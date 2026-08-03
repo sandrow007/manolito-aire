@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manolito Aire — Privacidad</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="wordmark">Manolito Aire <span>PRIVACIDAD</span></a>
+  <div class="topbar-right">
+    <a class="family-link" href="index.html">← Volver al mapa</a>
+    <button class="icon-btn" id="themeToggle" title="Modo claro/oscuro">☾</button>
+  </div>
+</div>
+
+<div class="content">
+  <h1>Privacidad</h1>
+  <p class="lead">
+    Resumen antes de leer nada más: no hay registro, no hay cuentas, no hay perfiles de usuario.
+    Lo poco que se guarda, se guarda en tu propio navegador, no en un servidor nuestro.
+  </p>
+
+  <h2>1. Qué NO recogemos</h2>
+  <p>
+    No pedimos email, ni nombre, ni contraseña. No hay sistema de cuentas. No hay perfiles
+    de usuario ni identificadores publicitarios.
+  </p>
+
+  <h2>2. Qué se guarda en tu navegador (no en un servidor)</h2>
+  <p>
+    Tu idioma elegido, el modo claro/oscuro, la paleta de color y el modo de lectura
+    (ciudadano, científico, abuela/abuelo, peque) se guardan con <code>localStorage</code>,
+    una memoria local de tu propio navegador. Nosotros no vemos ni recibimos ese dato:
+    se queda en tu dispositivo, y desaparece si borras los datos de navegación.
+  </p>
+
+  <h2>3. El chat de Manolito — esto es importante, léelo</h2>
+  <p>
+    Cuando escribes una pregunta en el chat, ese texto <b>se envía a un servicio externo de
+    inteligencia artificial</b> para generar la respuesta (actualmente Pollinations, un servicio
+    de IA gratuito; en el futuro también un Worker de Cloudflare AI operado por nosotros).
+    Eso significa que el texto que escribes sale de esta web y pasa por servidores de ese
+    tercero para poder responderte. No incluyas datos personales sensibles en tus preguntas
+    al chat (nombre completo, dirección exacta, datos médicos concretos, etc.). No usamos ese
+    texto para identificarte ni lo asociamos a ningún perfil.
+  </p>
+
+  <h2>4. Datos de calidad del aire</h2>
+  <p>
+    Cuando la web consulta el aire de tu ciudad o tu ubicación aproximada (si das permiso
+    de geolocalización al navegador), esa consulta se envía a Open-Meteo/Copernicus para
+    obtener el dato. Si no das permiso de ubicación, puedes elegir tu ciudad manualmente
+    y funciona igual.
+  </p>
+
+  <h2>5. Analítica</h2>
+  <p>
+    [A rellenar según lo que decidas usar: si en el futuro añades una analítica tipo
+    Cloudflare Web Analytics o Plausible — herramientas sin cookies de rastreo — indícalo aquí
+    con el nombre exacto de la herramienta. Si no usas ninguna, puedes dejar esta sección
+    diciendo "actualmente no usamos ninguna herramienta de analítica".]
+  </p>
+
+  <h2>6. Tus derechos</h2>
+  <p>
+    Como no guardamos datos personales identificables en ningún servidor propio, no hay
+    perfil que solicitar, modificar o borrar. Si tienes dudas, escribe a [email de contacto].
+  </p>
+</div>
+
+<div class="footer">
+  <a href="aviso-legal.html">Aviso legal</a> · <a href="privacidad.html">Privacidad</a> · <a href="cookies.html">Cookies</a>
+</div>
+
+<script src="js/theme.js"></script>
+<script src="js/cookie-banner.js"></script>
+</body>
+</html>

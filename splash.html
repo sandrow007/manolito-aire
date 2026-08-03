@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manolito Aire</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-deep:#1C3144; --sky-mid:#2B4A63; --dawn:#F4A66B; --paper:#FBFAF7;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; overflow:hidden; }
+  body{
+    background: radial-gradient(120% 140% at 50% 100%, #2B4A63 0%, #1C3144 55%, #10202E 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    position:relative; cursor:pointer;
+  }
+
+  /* --- cielo con degradado que respira lentamente --- */
+  .sky-glow{
+    position:absolute; inset:0;
+    background: radial-gradient(60% 50% at 50% 15%, rgba(244,166,107,0.18), transparent 70%);
+    animation: skyBreathe 6s ease-in-out infinite;
+  }
+  @keyframes skyBreathe{ 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
+
+  /* --- líneas de viento que cruzan la pantalla --- */
+  .wind-field{ position:absolute; inset:0; width:100%; height:100%; }
+  .wind-line{ fill:none; stroke: var(--dawn); stroke-width:1.2; stroke-linecap:round; opacity:0.4; }
+  .w1{ animation: driftX 8s ease-in-out infinite; }
+  .w2{ animation: driftX 11s ease-in-out infinite reverse; }
+  .w3{ animation: driftX 9.5s ease-in-out infinite; }
+  .w4{ animation: driftX 13s ease-in-out infinite reverse; }
+  @keyframes driftX{
+    0%,100%{ transform: translateX(-20px); opacity:0.2; }
+    50%{ transform: translateX(30px); opacity:0.6; }
+  }
+
+  /* --- partículas de aire flotando --- */
+  .particle{
+    position:absolute; border-radius:50%; background: var(--dawn); opacity:0.5;
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp{
+    0%{ transform: translateY(20px) translateX(0); opacity:0; }
+    15%{ opacity:0.6; }
+    85%{ opacity:0.3; }
+    100%{ transform: translateY(-90vh) translateX(20px); opacity:0; }
+  }
+
+  /* --- el logo que respira, protagonista --- */
+  .logo-wrap{ position:relative; z-index:2; text-align:center; }
+  .logo-ring{
+    width:120px; height:120px; margin:0 auto 22px; border-radius:50%;
+    border:1px solid rgba(244,166,107,0.4);
+    display:flex; align-items:center; justify-content:center;
+    animation: ringBreathe 3.6s ease-in-out infinite;
+  }
+  .logo-inf{ font-family:'Fraunces', serif; font-size:2.6rem; color: var(--dawn); font-weight:700; }
+  @keyframes ringBreathe{
+    0%,100%{ transform: scale(0.92); box-shadow: 0 0 0 0 rgba(244,166,107,0.25); }
+    50%{ transform: scale(1.06); box-shadow: 0 0 0 22px rgba(244,166,107,0); }
+  }
+
+  .brand{ font-family:'Fraunces', serif; font-weight:600; font-size: clamp(1.8rem, 6vw, 2.6rem); color: var(--paper); letter-spacing:-0.01em; }
+  .brand span{ color: var(--dawn); }
+  .tagline{ font-family:'IBM Plex Mono', monospace; font-size:0.78rem; color: var(--dawn); margin-top:10px; letter-spacing:0.05em; opacity:0.9; }
+
+  .skip{
+    position:absolute; bottom:34px; left:50%; transform:translateX(-50%); z-index:2;
+    font-family:'IBM Plex Mono', monospace; font-size:0.68rem; color: rgba(251,250,247,0.55);
+    letter-spacing:0.06em; animation: fadeInLate 3.5s ease forwards;
+  }
+  @keyframes fadeInLate{ 0%,70%{ opacity:0; } 100%{ opacity:1; } }
+
+  body.leaving{ animation: fadeOut 0.6s ease forwards; }
+  @keyframes fadeOut{ to{ opacity:0; } }
+
+  @media (prefers-reduced-motion: reduce){
+    .sky-glow, .wind-line, .particle, .logo-ring{ animation:none; }
+  }
+</style>
+</head>
+<body id="splashBody">
+
+<div class="sky-glow"></div>
+
+<svg class="wind-field" viewBox="0 0 400 200" preserveAspectRatio="none">
+  <path class="wind-line w1" d="M0,50 Q100,30 200,50 T400,45" />
+  <path class="wind-line w2" d="M0,90 Q120,120 240,85 T400,95" />
+  <path class="wind-line w3" d="M0,130 Q140,105 260,135 T400,130" />
+  <path class="wind-line w4" d="M0,165 Q100,150 220,168 T400,160" />
+</svg>
+
+<div id="particles"></div>
+
+<div class="logo-wrap">
+  <div class="logo-ring"><div class="logo-inf">∞</div></div>
+  <div class="brand">Manolito<span>∞</span> Aire</div>
+  <div class="tagline">RESPIRANDO DATOS EN TIEMPO REAL</div>
+</div>
+
+<div class="skip">toca la pantalla para entrar</div>
+
+<script>
+  // partículas flotando, generadas por JS para que cada una sea distinta
+  const field = document.getElementById('particles');
+  for (let i = 0; i < 18; i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 2 + Math.random() * 3;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.bottom = '-10px';
+    p.style.animationDuration = (6 + Math.random() * 6) + 's';
+    p.style.animationDelay = (Math.random() * 6) + 's';
+    field.appendChild(p);
+  }
+
+  function goToApp(){
+    const body = document.getElementById('splashBody');
+    body.classList.add('leaving');
+    setTimeout(() => { window.location.href = 'index.html'; }, 550);
+  }
+
+  document.body.addEventListener('click', goToApp);
+  const autoTimer = setTimeout(goToApp, 3600);
+</script>
+
+</body>
+</html>

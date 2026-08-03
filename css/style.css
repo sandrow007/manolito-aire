@@ -1,0 +1,222 @@
+/* ============================================================
+   MANOLITO AIRE — hoja de estilos compartida
+   Tokens de color separados por tema para poder cambiar
+   claro/oscuro y el acento sin tocar el resto del CSS.
+   ============================================================ */
+
+:root{
+  /* --- tema claro (por defecto) --- */
+  --sky-deep:#1C3144;
+  --sky-mid:#2B4A63;
+  --mist:#EDF1F0;
+  --paper:#FBFAF7;
+  --ink:#16232E;
+  --line: rgba(28,49,68,0.14);
+
+  /* --- acento (tema de color, cambiable) --- */
+  --accent: #F4A66B;      /* "amanecer" — por defecto */
+  --accent-soft: rgba(244,166,107,0.16);
+
+  /* --- estados del aire (no cambian con el tema) --- */
+  --breath-good:#7FA98C;
+  --breath-mid:#E0A93E;
+  --breath-bad:#B5543A;
+
+  --font-display:'Fraunces', serif;
+  --font-body:'Karla', sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
+}
+
+/* --- modo oscuro --- */
+[data-theme="dark"]{
+  --sky-deep:#EDF1F0;
+  --sky-mid:#B7C4CC;
+  --mist:#233240;
+  --paper:#151F27;
+  --ink:#EDF1F0;
+  --line: rgba(237,241,240,0.14);
+}
+
+/* --- variantes de acento (paletas alternativas) --- */
+[data-palette="amanecer"]{ --accent:#F4A66B; --accent-soft: rgba(244,166,107,0.16); }
+[data-palette="salvia"]{   --accent:#7FA98C; --accent-soft: rgba(127,169,140,0.16); }
+[data-palette="lavanda"]{  --accent:#8C82B0; --accent-soft: rgba(140,130,176,0.16); }
+[data-palette="coral"]{    --accent:#D6684F; --accent-soft: rgba(214,104,79,0.16); }
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
+body{
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+a{ color: var(--sky-mid); }
+
+/* ---------- barra superior, común a todas las páginas ---------- */
+.topbar{
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  position: sticky; top:0; z-index: 30;
+}
+.wordmark{
+  font-family: var(--font-display); font-weight:600; font-size: 1.2rem;
+  color: var(--sky-deep); display:flex; align-items:baseline; gap:8px; text-decoration:none;
+}
+.wordmark span{
+  font-family: var(--font-mono); font-size: 0.6rem; font-weight:500; color: var(--accent);
+  background: var(--accent-soft); padding: 2px 7px; border-radius: 999px; letter-spacing: 0.02em;
+}
+.topbar-right{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+
+.chip-toggle{ display:flex; gap:2px; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+.chip-toggle button{
+  border:none; background:transparent; padding:6px 10px; font-family:var(--font-mono);
+  font-size:0.7rem; cursor:pointer; color: var(--sky-mid);
+}
+.chip-toggle button.active{ background: var(--sky-deep); color:var(--paper); }
+
+.icon-btn{
+  border:1px solid var(--line); background:transparent; width:34px; height:34px;
+  border-radius:50%; cursor:pointer; color:var(--sky-mid); font-size:1rem;
+  display:flex; align-items:center; justify-content:center;
+}
+.icon-btn:hover{ border-color: var(--accent); color: var(--accent); }
+
+.family-link{ font-size:0.78rem; color: var(--sky-mid); text-decoration:none; border-bottom:1px dotted var(--sky-mid); }
+.family-link:hover{ color: var(--accent); border-color: var(--accent); }
+
+/* ---------- hero / orbe ---------- */
+.hero{ max-width: 720px; margin: 0 auto; padding: 48px 24px 20px; text-align:center; }
+.city-picker{
+  display:inline-flex; align-items:center; gap:8px; font-family:var(--font-mono);
+  font-size:0.72rem; color: var(--sky-mid); background: var(--mist);
+  padding: 6px 14px; border-radius: 999px; margin-bottom: 26px;
+}
+.city-picker select{ border:none; background:transparent; font-family:var(--font-mono); font-size:0.72rem; color: var(--sky-deep); font-weight:600; }
+/* los <option> de un <select> los pinta el sistema operativo, no el CSS de la web,
+   así que hay que forzar fondo/texto explícitos o en modo oscuro salen invisibles */
+select{ color-scheme: light dark; }
+select, select option{ background: var(--paper); color: var(--sky-deep); }
+
+.orb-wrap{ position:relative; width: 200px; height:200px; margin: 0 auto 24px; display:flex; align-items:center; justify-content:center; }
+.orb-ring{
+  position:absolute; inset:0; border-radius:50%;
+  border: 1px solid color-mix(in srgb, var(--state-color, var(--breath-good)) 35%, transparent);
+  animation: ringPulse 4s ease-in-out infinite;
+}
+.orb{
+  width: 138px; height:138px; border-radius:50%;
+  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--state-color, var(--breath-good)) 60%, white 25%), var(--state-color, var(--breath-good)) 70%);
+  animation: breathe 4s ease-in-out infinite;
+  display:flex; align-items:center; justify-content:center;
+  transition: background 0.6s ease;
+}
+.orb-face{ font-family: var(--font-mono); font-size:0.68rem; color: rgba(255,255,255,0.92); font-weight:500; }
+@keyframes breathe{
+  0%,100%{ transform: scale(0.92); }
+  50%{ transform: scale(1.05); }
+}
+@keyframes ringPulse{
+  0%,100%{ transform: scale(1); opacity:0.7; }
+  50%{ transform: scale(1.18); opacity:0.15; }
+}
+@media (prefers-reduced-motion: reduce){ .orb, .orb-ring{ animation: none; } }
+
+.human-line{ font-family: var(--font-display); font-weight: 600; font-size: clamp(1.4rem, 4vw, 2.1rem); color: var(--sky-deep); max-width: 520px; margin: 0 auto 10px; line-height:1.25; }
+.sub-line{ color: var(--sky-mid); font-size:0.96rem; max-width:440px; margin:0 auto 20px; }
+.tech-readout{ font-family: var(--font-mono); font-size: 0.7rem; color: var(--sky-mid); background: var(--mist); display:inline-block; padding: 8px 14px; border-radius: 10px; }
+
+.im-lost-btn{
+  margin-top: 22px; border:1px solid var(--sky-deep); background: transparent; color: var(--sky-deep);
+  font-family: var(--font-body); font-weight:600; font-size:0.86rem; padding: 11px 20px; border-radius: 999px; cursor:pointer;
+}
+.im-lost-btn:hover{ background: var(--sky-deep); color: var(--paper); }
+
+/* ---------- modos ---------- */
+.modes{ max-width: 780px; margin: 40px auto 0; padding: 0 24px; }
+.modes-label{ font-family: var(--font-mono); font-size:0.66rem; text-transform:uppercase; letter-spacing: 0.09em; color: var(--sky-mid); text-align:center; margin-bottom:14px; }
+.mode-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; }
+@media (max-width: 640px){ .mode-grid{ grid-template-columns: repeat(2,1fr); } }
+.mode-card{ border: 1px solid var(--line); background: var(--paper); border-radius: 14px; padding: 16px 12px; text-align:center; cursor:pointer; }
+.mode-card:hover{ border-color: var(--accent); }
+.mode-card.active{ background: var(--sky-deep); border-color: var(--sky-deep); }
+.mode-card.active .mode-title, .mode-card.active .mode-sub{ color: var(--paper); }
+.mode-mark{ font-family:var(--font-mono); font-size:0.7rem; display:block; margin-bottom:6px; color:var(--accent); }
+.mode-title{ font-family: var(--font-display); font-weight:600; font-size:0.9rem; color: var(--sky-deep); }
+.mode-sub{ font-size:0.68rem; color: var(--sky-mid); margin-top:2px; }
+
+body[data-mode="yayo"] .human-line{ font-size: clamp(1.8rem, 5vw, 2.5rem); }
+body[data-mode="yayo"] .sub-line{ font-size: 1.1rem; }
+body[data-mode="yayo"] .mode-title{ font-size:1rem; }
+body[data-mode="yayo"] .im-lost-btn{ font-size: 1rem; padding: 13px 24px; }
+
+/* ---------- mapa ---------- */
+.map-section{ max-width: 1000px; margin: 46px auto 0; padding: 0 24px; }
+.map-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px; }
+.map-title{ font-family:var(--font-display); font-weight:600; font-size:1.15rem; color:var(--sky-deep); }
+.map-wrap{ position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); }
+#map{ height: 460px; width:100%; background:var(--mist); }
+.legend{ position:absolute; bottom:14px; left:14px; z-index:400; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 14px; font-size:0.7rem; box-shadow:0 4px 14px rgba(0,0,0,0.1); }
+.legend-row{ display:flex; align-items:center; gap:6px; margin:3px 0; }
+.legend-dot{ width:10px; height:10px; border-radius:50%; }
+.legend-note{ color: var(--sky-mid); margin-top:6px; font-style:italic; max-width:190px; }
+.status-line{ text-align:center; font-family:var(--font-mono); font-size:0.68rem; color:var(--sky-mid); padding:8px; }
+.popup-human{ font-family:var(--font-display); font-weight:600; font-size:0.96rem; color:var(--sky-deep); margin-bottom:4px; }
+.popup-tech{ font-family:var(--font-mono); font-size:0.66rem; color:var(--sky-mid); }
+.popup-tag{ font-size:0.63rem; color:var(--accent); font-family:var(--font-mono); margin-top:4px; display:block; }
+
+/* ---------- sección "qué significa esto" ---------- */
+.explain{ max-width: 720px; margin: 50px auto 0; padding: 0 24px; }
+.explain h2{ font-family:var(--font-display); color:var(--sky-deep); font-size:1.4rem; }
+.explain-card{ background: var(--mist); border-radius:16px; padding:18px 20px; margin-bottom:12px; }
+.explain-card b{ color: var(--sky-deep); }
+
+/* ---------- footer ---------- */
+.footer{ margin-top: 60px; border-top: 1px solid var(--line); padding: 26px 24px 40px; text-align:center; color: var(--sky-mid); font-size:0.78rem; }
+.footer-family{ margin-top:8px; font-family: var(--font-mono); font-size:0.68rem; }
+
+/* ---------- chat flotante ---------- */
+.chat-fab{
+  position:fixed; bottom:22px; right:22px; z-index:60; background:var(--sky-deep); color:var(--paper);
+  border:none; border-radius:999px; padding:13px 20px; font-family:var(--font-body); font-weight:600;
+  font-size:0.86rem; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,0.18);
+}
+.chat-overlay{ position:fixed; inset:0; background: rgba(20,30,38,0.4); display:none; align-items:flex-end; justify-content:center; z-index:70; }
+.chat-overlay.open{ display:flex; }
+.chat-panel{ background: var(--paper); width:100%; max-width: 480px; border-radius: 20px 20px 0 0; padding: 22px; max-height:80vh; overflow-y:auto; box-shadow: 0 -10px 40px rgba(0,0,0,0.2); }
+.chat-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.chat-title{ font-family:var(--font-display); font-weight:600; font-size:1.1rem; color: var(--sky-deep); }
+.chat-msg{ background: var(--mist); border-radius: 14px; padding: 12px 14px; margin-bottom:10px; font-size:0.88rem; max-width: 90%; }
+.chat-msg.mano{ background: var(--accent-soft); }
+.chat-msg.user{ margin-left:auto; background: var(--sky-deep); color: var(--paper); }
+.quick-qs{ display:flex; flex-wrap:wrap; gap:8px; margin: 12px 0; }
+.quick-qs button{ font-size:0.74rem; border:1px solid var(--line); background:transparent; border-radius:999px; padding:7px 12px; cursor:pointer; color: var(--sky-deep); }
+.quick-qs button:hover{ border-color: var(--accent); }
+.chat-input-row{ display:flex; gap:8px; margin-top:8px; }
+.chat-input-row input{ flex:1; border:1px solid var(--line); border-radius:12px; padding:11px 14px; background:var(--paper); color:var(--ink); font-family: var(--font-body); font-size:0.86rem; }
+.chat-input-row button{ background: var(--sky-deep); color:var(--paper); border:none; border-radius:12px; padding: 0 18px; font-weight:600; cursor:pointer; }
+.chat-status{ font-family:var(--font-mono); font-size:0.62rem; color:var(--sky-mid); margin-top:6px; }
+
+.chat-fab{ display:flex; align-items:center; gap:8px; }
+.chat-fab-logo{
+  font-family: var(--font-display); font-size:1.1rem; font-weight:700; color: var(--accent);
+  width:24px; height:24px; border-radius:50%; background: rgba(255,255,255,0.12);
+  display:flex; align-items:center; justify-content:center;
+}
+.chat-logo{
+  font-family: var(--font-display); font-weight:700; color: var(--accent);
+  font-size:1.2rem; margin-right:2px;
+}
+
+/* ---------- páginas de contenido (about, legal) ---------- */
+.content{ max-width: 680px; margin: 0 auto; padding: 40px 24px 60px; }
+.content h1{ font-family:var(--font-display); color:var(--sky-deep); font-size:1.9rem; }
+.content h2{ font-family:var(--font-display); color:var(--sky-deep); font-size:1.25rem; margin-top:34px; }
+.content p{ color: var(--ink); }
+.content .lead{ font-size:1.05rem; color: var(--sky-mid); }

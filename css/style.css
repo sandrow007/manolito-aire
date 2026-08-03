@@ -117,7 +117,7 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
   display:flex; align-items:center; justify-content:center;
   transition: background 0.6s ease;
 }
-.orb-face{ font-family: var(--font-mono); font-size:0.68rem; color: rgba(255,255,255,0.92); font-weight:500; }
+.orb-face{ font-family: var(--font-mono); font-size:0.68rem; color: rgba(255,255,255,0.92); font-weight:500; text-transform:uppercase; letter-spacing:0.04em; }
 @keyframes breathe{
   0%,100%{ transform: scale(0.92); }
   50%{ transform: scale(1.05); }
@@ -171,6 +171,15 @@ body[data-mode="yayo"] .im-lost-btn{ font-size: 1rem; padding: 13px 24px; }
 .popup-tech{ font-family:var(--font-mono); font-size:0.66rem; color:var(--sky-mid); }
 .popup-tag{ font-size:0.63rem; color:var(--accent); font-family:var(--font-mono); margin-top:4px; display:block; }
 
+/* Leaflet trae sus controles con fondo blanco fijo por defecto —
+   en modo oscuro hay que forzarlos o se quedan como un bloque blanco encima del mapa */
+[data-theme="dark"] .leaflet-control-zoom a{ background:var(--mist); color:var(--ink); border-color:var(--line); }
+[data-theme="dark"] .leaflet-control-zoom a:hover{ background:var(--sky-deep); color:var(--paper); }
+[data-theme="dark"] .leaflet-popup-content-wrapper,
+[data-theme="dark"] .leaflet-popup-tip{ background:var(--paper); color:var(--ink); }
+[data-theme="dark"] .leaflet-control-attribution{ background:rgba(0,0,0,0.55); color:var(--sky-mid); }
+[data-theme="dark"] .leaflet-control-attribution a{ color:var(--sky-mid); }
+
 /* ---------- sección "qué significa esto" ---------- */
 .explain{ max-width: 720px; margin: 50px auto 0; padding: 0 24px; }
 .explain h2{ font-family:var(--font-display); color:var(--sky-deep); font-size:1.4rem; }
@@ -183,11 +192,11 @@ body[data-mode="yayo"] .im-lost-btn{ font-size: 1rem; padding: 13px 24px; }
 
 /* ---------- chat flotante ---------- */
 .chat-fab{
-  position:fixed; bottom:22px; right:22px; z-index:60; background:var(--sky-deep); color:var(--paper);
+  position:fixed; bottom:22px; right:22px; z-index:1200; background:var(--sky-deep); color:var(--paper);
   border:none; border-radius:999px; padding:13px 20px; font-family:var(--font-body); font-weight:600;
   font-size:0.86rem; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,0.18);
 }
-.chat-overlay{ position:fixed; inset:0; background: rgba(20,30,38,0.4); display:none; align-items:flex-end; justify-content:center; z-index:70; }
+.chat-overlay{ position:fixed; inset:0; background: rgba(20,30,38,0.4); display:none; align-items:flex-end; justify-content:center; z-index:1200; }
 .chat-overlay.open{ display:flex; }
 .chat-panel{ background: var(--paper); width:100%; max-width: 480px; border-radius: 20px 20px 0 0; padding: 22px; max-height:80vh; overflow-y:auto; box-shadow: 0 -10px 40px rgba(0,0,0,0.2); }
 .chat-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }

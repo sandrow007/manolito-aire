@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌬️</text></svg>">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -92,10 +93,10 @@
   <div class="map-head">
     <div class="map-title" data-i18n="mapTitle">El aire de España, ahora mismo</div>
     <div class="chip-toggle" id="regionJump">
-      <button data-r="peninsula" class="active">Península</button>
-      <button data-r="canarias">Canarias</button>
-      <button data-r="baleares">Baleares</button>
-      <button data-r="ceutamelilla">Ceuta / Melilla</button>
+      <button data-r="peninsula" class="active" data-i18n="region_peninsula">Península</button>
+      <button data-r="canarias" data-i18n="region_canarias">Canarias</button>
+      <button data-r="baleares" data-i18n="region_baleares">Baleares</button>
+      <button data-r="ceutamelilla" data-i18n="region_ceutamelilla">Ceuta / Melilla</button>
     </div>
   </div>
   <div class="map-wrap">
@@ -131,9 +132,13 @@
     <div class="chat-msg mano" data-i18n="chatWelcome">Tranquilo/a, vamos con calma. Dime qué no entiendes, o elige una pregunta.</div>
     <div id="chatBody"></div>
     <div class="quick-qs">
-      <button data-quick="pm25" onclick="askQuick('pm25')">¿Qué es el PM2.5?</button>
-      <button data-quick="color" onclick="askQuick('color')">¿Por qué cambia el color?</button>
-      <button data-quick="bebe" onclick="askQuick('bebe')">¿Es seguro salir con mi bebé?</button>
+      <button data-quick="pm25" onclick="askQuick('pm25')" data-i18n="quick_pm25">¿Qué es el PM2.5?</button>
+      <button data-quick="color" onclick="askQuick('color')" data-i18n="quick_color">¿Por qué cambia el color?</button>
+      <button data-quick="bebe" onclick="askQuick('bebe')" data-i18n="quick_bebe">¿Es seguro salir con mi bebé?</button>
+      <button data-quick="deporte" onclick="askQuick('deporte')">¿Puedo hacer deporte hoy?</button>
+      <button data-quick="ica" onclick="askQuick('ica')">¿Qué significa ICA?</button>
+      <button data-quick="ventanas" onclick="askQuick('ventanas')">¿Abro las ventanas o no?</button>
+      <button data-quick="asma" onclick="askQuick('asma')">Tengo asma, ¿qué debo saber?</button>
     </div>
     <div class="chat-input-row">
       <input type="text" id="chatInputField" data-i18n-placeholder="chatPlaceholder" placeholder="Escribe tu pregunta aquí...">
@@ -150,4 +155,5 @@
 <script src="js/app.js"></script>
 <script src="js/cookie-banner.js"></script>
 </body>
+</html>
 </html>

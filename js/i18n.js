@@ -1,3 +1,26 @@
+/* ============================================================ MANOLITO AIRE — i18n Castellano, català, euskera, galego. Uso: pon data-i18n="clave" en cualquier elemento de texto, o data-i18n-placeholder para inputs. ============================================================ *
+
+pasted
+
+
+Diagnosed translation conflicts and reconciled competing system architectures
+Diagnosed translation conflicts and reconciled competing system architectures
+Ahí está el lío — parece que Copilot (lo vi abierto en tu VS Code en la captura anterior) ha tocado este mismo archivo y se ha cargado las claves que yo había añadido (orb_good, orb_mid, orb_bad, quick_pm25, region_peninsula...) para meter un sistema nuevo (hero_title_good, función t()) que no está conectado con nada — tu app.js sigue usando getMessages() y dict[orb_...], que ya no existen en este archivo. Por eso se rompió.
+
+Aviso importante: si tienes a Copilot y a mí editando los mismos archivos a la vez, nos vamos a pisar constantemente — mejor usa uno de los dos para este proyecto, si no vamos a perseguirnos la cola.
+
+Te dejo el i18n.js reparado, con lo tuyo de hero_title_good quitado (no lo usa nada, así que solo estorbaba) y las claves que sí necesita app.js recuperadas:
+
+
+Ver mi versión de referencia que sí tiene todas las claves correctas
+Ver mi versión de referencia que sí tiene todas las claves correctas
+
+Ver mi versión de referencia que sí tiene todas las claves correctas
+bash
+
+cat /home/claude/manolito-aire/js/i18n.js
+Salida
+
 /* ============================================================
    MANOLITO AIRE — i18n
    Castellano, català, euskera, galego.
@@ -30,6 +53,10 @@ const translations = {
     chatPlaceholder: "Escribe tu pregunta aquí...",
     chatSend: "Enviar",
     footerFamily: "Manolit∞ Forestal · Islas de Calor Sevilla · Manolito Aire",
+    orb_good: "bien", orb_mid: "regular", orb_bad: "malo",
+    quick_pm25: "¿Qué es el PM2.5?", quick_color: "¿Por qué cambia el color?", quick_bebe: "¿Es seguro salir con mi bebé?",
+    region_peninsula: "Península", region_canarias: "Canarias", region_baleares: "Baleares", region_ceutamelilla: "Ceuta / Melilla",
+    statusLoading: "Cargando datos en vivo…",
   },
   ca: {
     tagline: "MAPA NACIONAL · DADES EN VIU",
@@ -55,6 +82,10 @@ const translations = {
     chatPlaceholder: "Escriu la teva pregunta aquí...",
     chatSend: "Enviar",
     footerFamily: "Manolit∞ Forestal · Illes de Calor Sevilla · Manolito Aire",
+    orb_good: "bé", orb_mid: "regular", orb_bad: "dolent",
+    quick_pm25: "Què és el PM2.5?", quick_color: "Per què canvia el color?", quick_bebe: "És segur sortir amb el meu nadó?",
+    region_peninsula: "Península", region_canarias: "Canàries", region_baleares: "Balears", region_ceutamelilla: "Ceuta / Melilla",
+    statusLoading: "Carregant dades en directe…",
   },
   eu: {
     tagline: "ESTATU MAPA · ZUZENEKO DATUAK",
@@ -80,6 +111,10 @@ const translations = {
     chatPlaceholder: "Idatzi zure galdera hemen...",
     chatSend: "Bidali",
     footerFamily: "Manolit∞ Forestal · Sevillako Bero Uharteak · Manolito Aire",
+    orb_good: "ondo", orb_mid: "erdi", orb_bad: "gaizki",
+    quick_pm25: "Zer da PM2.5?", quick_color: "Zergatik aldatzen da kolorea?", quick_bebe: "Seguru al dago haurrarekin irtetea?",
+    region_peninsula: "Penintsula", region_canarias: "Kanariar Uharteak", region_baleares: "Balear Uharteak", region_ceutamelilla: "Ceuta / Melilla",
+    statusLoading: "Zuzeneko datuak kargatzen…",
   },
   gl: {
     tagline: "MAPA NACIONAL · DATOS EN VIVO",
@@ -105,6 +140,10 @@ const translations = {
     chatPlaceholder: "Escribe a túa pregunta aquí...",
     chatSend: "Enviar",
     footerFamily: "Manolit∞ Forestal · Illas de Calor Sevilla · Manolito Aire",
+    orb_good: "ben", orb_mid: "regular", orb_bad: "mal",
+    quick_pm25: "Que é o PM2.5?", quick_color: "Por que cambia a cor?", quick_bebe: "É seguro saír co meu bebé?",
+    region_peninsula: "Península", region_canarias: "Canarias", region_baleares: "Baleares", region_ceutamelilla: "Ceuta / Melilla",
+    statusLoading: "Cargando datos en vivo…",
   },
   en: {
     tagline: "NATIONAL MAP · LIVE DATA",
@@ -130,6 +169,10 @@ const translations = {
     chatPlaceholder: "Type your question here...",
     chatSend: "Send",
     footerFamily: "Manolit∞ Forestal · Sevilla Heat Islands · Manolito Aire",
+    orb_good: "good", orb_mid: "moderate", orb_bad: "bad",
+    quick_pm25: "What is PM2.5?", quick_color: "Why does the colour change?", quick_bebe: "Is it safe to go out with my baby?",
+    region_peninsula: "Mainland", region_canarias: "Canary Islands", region_baleares: "Balearic Islands", region_ceutamelilla: "Ceuta / Melilla",
+    statusLoading: "Loading live data…",
   }
 };
 
@@ -155,6 +198,7 @@ function setLang(lang){
   currentLang = lang;
   localStorage.setItem('manolito_lang', lang);
   applyTranslations();
+  if (typeof renderHero === 'function') renderHero();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

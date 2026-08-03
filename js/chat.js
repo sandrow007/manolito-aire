@@ -8,7 +8,7 @@
 
 // PASO 1 — cuando tengas tu Worker de Cloudflare AI desplegado,
 // pon aquí su URL. Mientras esté vacío, se salta directo a Pollinations.
-const CLOUDFLARE_WORKER_URL = ""; // ej: "https://manolito-aire-ai.tu-usuario.workers.dev"
+const CLOUDFLARE_WORKER_URL = "https://manolito-aire.sandro-a007.workers.dev/";
 
 const cannedFallback = {
   pm25: "El PM2.5 son partículas tan pequeñas que entran hasta lo más hondo de tus pulmones. Cuanto más bajo el número, mejor. Por debajo de 10 se considera muy buen aire.",
@@ -18,7 +18,10 @@ const cannedFallback = {
 };
 
 async function askManolito(question){
-  const systemPrompt = "Eres Manolito, un asistente amable que explica la calidad del aire en España de forma clara y humana, en frases cortas, sin tecnicismos salvo que te los pidan.";
+  const langNames = { es:'español', ca:'català', eu:'euskera', gl:'galego', en:'English' };
+  const uiLang = (typeof currentLang !== 'undefined') ? currentLang : 'es';
+  const uiLangName = langNames[uiLang] || 'español';
+  const systemPrompt = `Eres Manolito, un asistente amable que explica la calidad del aire en España de forma clara y humana, en frases cortas, sin tecnicismos salvo que te los pidan. Responde SIEMPRE en el mismo idioma en el que la persona te escribe su pregunta, sea el que sea (español, catalán, euskera, gallego, inglés, francés, alemán, italiano, o cualquier otro). Si no puedes detectar el idioma con claridad, responde en ${uiLangName}, que es el idioma que la persona tiene seleccionado en la web ahora mismo. Nunca respondas en un idioma distinto al que te escriben.`;
 
   // Si el usuario rechazó las cookies, no llamamos a ningún servicio externo —
   // solo respuestas locales, tal y como le prometimos en la puerta de consentimiento.
@@ -74,9 +77,10 @@ function setChatStatus(text){
 
 async function askQuick(key){
   const btn = document.querySelector(`[data-quick="${key}"]`);
-  if (btn) addBubble(btn.textContent, 'user');
+  const questionText = btn ? btn.textContent : key;
+  if (btn) addBubble(questionText, 'user');
   setChatStatus('Manolito está pensando...');
-  const answer = cannedFallback[key] || await askManolito(key);
+  const answer = await askManolito(questionText);
   addBubble(answer, 'mano');
   setChatStatus('');
 }

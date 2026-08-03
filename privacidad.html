@@ -41,12 +41,21 @@
   <h2>3. El chat de Manolito — esto es importante, léelo</h2>
   <p>
     Cuando escribes una pregunta en el chat, ese texto <b>se envía a un servicio externo de
-    inteligencia artificial</b> para generar la respuesta (actualmente Pollinations, un servicio
-    de IA gratuito; en el futuro también un Worker de Cloudflare AI operado por nosotros).
-    Eso significa que el texto que escribes sale de esta web y pasa por servidores de ese
-    tercero para poder responderte. No incluyas datos personales sensibles en tus preguntas
+    inteligencia artificial</b> para generar la respuesta. Usamos dos posibles proveedores,
+    en este orden de prioridad:
+  </p>
+  <p>
+    1) <b>Cloudflare Workers AI</b> — un servicio operado por Cloudflare bajo nuestra propia
+    cuenta, que procesa el texto en sus servidores para generar la respuesta.<br>
+    2) <b>Pollinations</b> — un servicio de IA gratuito de terceros, usado como alternativa
+    si el anterior no está disponible.
+  </p>
+  <p>
+    En ambos casos, el texto que escribes sale de esta web y pasa por servidores de ese
+    proveedor para poder responderte. No incluyas datos personales sensibles en tus preguntas
     al chat (nombre completo, dirección exacta, datos médicos concretos, etc.). No usamos ese
-    texto para identificarte ni lo asociamos a ningún perfil.
+    texto para identificarte ni lo asociamos a ningún perfil, y no lo almacenamos nosotros más
+    allá de la propia conversación en curso.
   </p>
 
   <h2>4. Datos de calidad del aire</h2>
@@ -59,10 +68,7 @@
 
   <h2>5. Analítica</h2>
   <p>
-    [A rellenar según lo que decidas usar: si en el futuro añades una analítica tipo
-    Cloudflare Web Analytics o Plausible — herramientas sin cookies de rastreo — indícalo aquí
-    con el nombre exacto de la herramienta. Si no usas ninguna, puedes dejar esta sección
-    diciendo "actualmente no usamos ninguna herramienta de analítica".]
+    actualmente no usamos ninguna herramienta de analítica
   </p>
 
   <h2>6. Tus derechos</h2>

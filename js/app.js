@@ -167,12 +167,13 @@ function renderHero(){
   if (orbFaceEl) orbFaceEl.textContent = dict ? dict[`orb_${state}`] : state;
   document.documentElement.style.setProperty('--state-color',
     state==='good' ? 'var(--breath-good)' : state==='mid' ? 'var(--breath-mid)' : 'var(--breath-bad)');
-
-  // === AÑADE ESTA LÍNEA AQUÍ ABAJO ===
+    
+// Traducimos el estado al español porque el modo Peque (en index.html)
+  // espera 'buena'/'moderada'/'mala', no 'good'/'mid'/'bad'.
+  const estadoPeque = { good: 'buena', mid: 'moderada', bad: 'mala' }[state] || 'mala';
   if (typeof window.actualizarModoPeque === 'function') {
-    window.actualizarModoPeque(state);
+    window.actualizarModoPeque(estadoPeque);
   }
-  // ===================================
 }
 
 function initHeroControls(){

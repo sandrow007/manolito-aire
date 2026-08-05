@@ -144,6 +144,13 @@ let currentMode = 'ciudadano';
 let currentCity = 'sevilla';
 let currentPM25 = 9;
 
+// *** FUNCIÓN MÁGICA PARA EL NUEVO SELECTOR DE CIUDADES ***
+// El HTML la llama cuando eligen una ciudad.
+window.setCurrentCity = function(city) {
+  currentCity = city;
+  fetchCurrentCity();
+};
+
 function renderHero(){
   const d = cityData[currentCity];
   const state = stateFromPM25(currentPM25);
@@ -160,9 +167,16 @@ function renderHero(){
   if (orbFaceEl) orbFaceEl.textContent = dict ? dict[`orb_${state}`] : state;
   document.documentElement.style.setProperty('--state-color',
     state==='good' ? 'var(--breath-good)' : state==='mid' ? 'var(--breath-mid)' : 'var(--breath-bad)');
+
+  // === AÑADE ESTA LÍNEA AQUÍ ABAJO ===
+  if (typeof window.actualizarModoPeque === 'function') {
+    window.actualizarModoPeque(state);
+  }
+  // ===================================
 }
 
 function initHeroControls(){
+  // El antiguo selector (select) ya no existe, pero no hace daño si se intenta.
   const citySelect = document.getElementById('citySelect');
   if (citySelect){
     citySelect.addEventListener('change', async (e) => {
@@ -574,7 +588,7 @@ const stations = [
   { name: 'Miranda de Ebro', lat: 42.6865, lon: -2.9469 },
   { name: 'Medina del Campo', lat: 41.3056, lon: -4.9142 },
   { name: 'Benavente', lat: 42.0028, lon: -5.6783 },
-  { name: 'Puertollano', lat: 38.6871, lon: -4.1073 }, // Nodo industrial crítico
+  { name: 'Puertollano', lat: 38.6871, lon: -4.1073 },
   { name: 'Tomelloso', lat: 39.1555, lon: -3.0223 },
   { name: 'Alcázar de San Juan', lat: 39.3900, lon: -3.2104 },
   { name: 'Valdepeñas', lat: 38.7610, lon: -3.3838 },
@@ -582,7 +596,7 @@ const stations = [
   { name: 'Águilas', lat: 37.4062, lon: -1.5818 },
   { name: 'Torre-Pacheco', lat: 37.7410, lon: -0.9542 },
   { name: 'Siero', lat: 43.3922, lon: -5.6601 },
-  { name: 'Langreo', lat: 43.2965, lon: -5.6830 }, // Nodo industrial crítico
+  { name: 'Langreo', lat: 43.2965, lon: -5.6830 },
   { name: 'Castro-Urdiales', lat: 43.3828, lon: -3.2185 },
   { name: 'Camargo', lat: 43.4241, lon: -3.8566 },
   { name:'Barcelona', lat:41.3874, lon:2.1686 },
@@ -794,7 +808,7 @@ function initMap(){
   }
 }
 document.addEventListener('DOMContentLoaded', () => {
-initHeroControls();
+  initHeroControls();
   fetchCurrentCity();
   initMap();
 });

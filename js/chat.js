@@ -110,6 +110,13 @@ Si una pregunta no encaja en estas dos áreas, respondes igual de útil y simpá
     if (/asma/i.test(q)) return cannedFallback.aire_asma;
     return cannedFallback.aire_pm25 + " " + cannedFallback.aire_color;
   }
+  if (/capas|checkbox|edificios 3d|iluminación solar|google earth/i.test(q)) return cannedFallback.sombra_capas;
+  if (/no veo|no aparece|no sale.*sombra/i.test(q)) return cannedFallback.sombra_noveo;
+  if (/línea recta|es real|osrm|calles de verdad/i.test(q)) return cannedFallback.sombra_esreal;
+  if (/iluminación solar|cielo|luz del mapa/i.test(q)) return cannedFallback.sombra_iluminacion;
+  if (/no encuentra|no aparece mi dirección|sugerencias|autocompletado/i.test(q)) return cannedFallback.sombra_direccion;
+  if (/a qué hora|mejor hora|más sombra en la calle/i.test(q)) return cannedFallback.sombra_horas;
+  if (/cómo busco|cómo uso|cómo funciona.*ruta|buscar ruta/i.test(q)) return cannedFallback.sombra_como;
   if (/sombra|sol|calor|ruta|caminar|calle|aceras|orientación|protegiendo/.test(q)) {
     if (/desde|hasta|calle|setas|plaza|avenida/i.test(q)) return cannedFallback.sombra_consejo;
     return cannedFallback.sombra_ruta;

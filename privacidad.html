@@ -20,8 +20,8 @@
 <div class="content">
   <h1>Privacidad</h1>
   <p class="lead">
-    Resumen antes de leer nada más: no hay registro, no hay cuentas, no hay perfiles de usuario.
-    Lo poco que se guarda, se guarda en tu propio navegador, no en un servidor nuestro.
+    Resumen fundamental: no hay registro, no hay cuentas, no hay perfiles de usuario.
+    Los datos de configuración se guardan en tu propio navegador, no en un servidor nuestro.
   </p>
 
   <h2>1. Qué NO recogemos</h2>
@@ -30,7 +30,7 @@
     de usuario ni identificadores publicitarios.
   </p>
 
-  <h2>2. Qué se guarda en tu navegador (no en un servidor)</h2>
+  <h2>2. Qué se guarda en tu navegador (no en la nube)</h2>
   <p>
     Tu idioma elegido, el modo claro/oscuro, la paleta de color y el modo de lectura
     (ciudadano, científico, abuela/abuelo, peque) se guardan con <code>localStorage</code>,
@@ -38,7 +38,7 @@
     se queda en tu dispositivo, y desaparece si borras los datos de navegación.
   </p>
 
-  <h2>3. El chat de Manolito — esto es importante, léelo</h2>
+  <h2>3. El chat de Manolito (Interacciones con IA)</h2>
   <p>
     Cuando escribes una pregunta en el chat, ese texto <b>se envía a un servicio externo de
     inteligencia artificial</b> para generar la respuesta. Usamos dos posibles proveedores,
@@ -58,32 +58,31 @@
     allá de la propia conversación en curso.
   </p>
 
-  <h2>4. Datos de calidad del aire</h2>
+  <h2>4. Datos de ubicación, hora local y posición solar</h2>
   <p>
-    Cuando la web consulta el aire de tu ciudad o tu ubicación aproximada (si das permiso
-    de geolocalización al navegador), esa consulta se envía a Open-Meteo/Copernicus para
-    obtener el dato. Si no das permiso de ubicación, puedes elegir tu ciudad manualmente
-    y funciona igual.
+    Para proporcionar el pronóstico ambiental de tu zona y operar el panel de instrumentos de la posición solar (arco de horizonte a cenit), la web utiliza tu ubicación (si otorgas permisos de geolocalización al navegador) y la hora de tu sistema informático.
+  </p>
+  <p>
+    La petición de datos de calidad del aire se envía a Open-Meteo/Copernicus. Sin embargo, <b>los cálculos trigonométricos de la posición del sol se ejecutan íntegramente de forma local en tu dispositivo</b>. Manolito Aire no rastrea, ni envía a servidores propios, ni almacena tus coordenadas, IPs o husos horarios. Si prefieres no usar el GPS, puedes introducir la ciudad manualmente y el sistema operará bajo los mismos principios.
   </p>
 
   <h2>5. Búsqueda de direcciones y rutas ("Ruta y sombras 3D")</h2>
-<p>
-  Cuando escribes una dirección de origen o destino en esta sección, ese texto se envía a
-  <b>OpenStreetMap Nominatim</b> (para localizarla en el mapa) y, si buscas una ruta,
-  las coordenadas resultantes se envían a <b>OSRM</b> (para calcular el trayecto real por
-  calles). El mapa y los edificios en 3D se cargan desde <b>OpenFreeMap</b>.
-</p>
-<p>
-  Estos tres son servicios públicos y gratuitos de terceros, ajenos a Manolito Aire.
-  No te identifican por nombre ni cuenta: solo reciben el texto de la dirección y, para
-  calcular la ruta, las coordenadas. Nosotros no guardamos esas búsquedas en ningún
-  servidor propio. Como con el chat, evita escribir aquí datos personales sensibles
-  (por ejemplo, no hace falta poner tu nombre en la dirección).
-</p>
+  <p>
+    Cuando escribes una dirección de origen o destino en esta sección, ese texto se envía a
+    <b>OpenStreetMap Nominatim</b> (para localizarla en el mapa) y, si buscas una ruta,
+    las coordenadas resultantes se envían a <b>OSRM</b> (para calcular el trayecto real por
+    calles). El mapa y los edificios en 3D se cargan desde <b>OpenFreeMap</b>.
+  </p>
+  <p>
+    Estos tres son servicios públicos y gratuitos de terceros, ajenos a Manolito Aire.
+    No te identifican por nombre ni cuenta: solo reciben el texto de la dirección y, para
+    calcular la ruta, las coordenadas. Nosotros no guardamos esas búsquedas en ningún
+    servidor propio. Evita introducir datos personales que te identifiquen directamente en estas búsquedas.
+  </p>
+
   <h2>6. Tus derechos</h2>
   <p>
-    Como no guardamos datos personales identificables en ningún servidor propio, no hay
-    perfil que solicitar, modificar o borrar. Si tienes dudas, escribe a SANDRO.A007@GMAILCOM.
+    Dado que nuestra arquitectura no almacena datos de carácter personal en bases de datos propias, no existe un perfil asociado a ti que podamos extraer, modificar o borrar. Si tienes requerimientos técnicos o legales, contacta en: SANDRO.A007@GMAIL.COM.
   </p>
 </div>
 

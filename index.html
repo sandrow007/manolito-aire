@@ -22,13 +22,6 @@
 <meta name="twitter:description" content="Calidad del aire de España en tiempo real, gratis y sin publicidad.">
 <meta name="twitter:image" content="https://manolitoaire.com/nubes.png">
 
-<!-- Conexiones tempranas a los dominios externos de los que dependemos: el
-     navegador puede empezar el handshake DNS/TLS antes de necesitarlos de
-     verdad, así cuando el HTML pide el recurso ya no hay que esperar esa
-     negociación. fonts.gstatic.com es el dominio que sirve los ficheros de
-     fuente de verdad (fonts.googleapis.com solo sirve el CSS que los
-     referencia) — sin este preconnect, el ahorro de precargar fonts.googleapis
-     se pierde en cuanto hace falta el .woff2 real. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://unpkg.com">
@@ -41,8 +34,6 @@
 <link rel="apple-touch-icon" href="nubes.png">
 <link rel="stylesheet" href="css/style.css">
 
-<!-- Datos estructurados: ayuda a los buscadores a entender qué es la página
-     además de leer el título/descripción a pelo -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -58,6 +49,103 @@
 </script>
 </head>
 <body>
+
+<!-- ===================== SPLASH ===================== -->
+<div id="splash">
+  <div class="sky-glow"></div>
+  <svg class="wind-field" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid slice">
+    <path class="wind-line w-mid w1" d="M -100,120 C 150,280 350,20 600,180 S 850,80 1100,140" />
+    <path class="wind-line w-thin w2" d="M 1100,220 C 800,80 600,320 350,150 S 100,280 -100,180" />
+    <path class="wind-line w-thick w3" d="M -100,180 C 200,350 450,-20 750,220 S 950,50 1100,160" />
+    <path class="wind-line w-thin w4" d="M 1100,100 C 900,20 650,300 400,180 S 150,320 -100,220" />
+    <path class="wind-line w-mid w5" d="M -100,280 C 250,150 400,380 650,200 S 900,300 1100,250" />
+    <path class="wind-line w-thin w6" d="M 1100,280 C 850,380 700,100 450,250 S 200,100 -100,150" />
+  </svg>
+  <div id="particles"></div>
+  <div class="logo-wrap">
+    <div id="logo-container">
+      <svg id="logo-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="100" cy="150" r="45" fill="#E6A100" />
+        <path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#007A87" stroke-width="4" stroke-linecap="round"/>
+        <path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
+        <path d="M 100,150 C 75,125 75,175 100,150 C 125,125 125,175 100,150 Z" fill="none" stroke="#7A0016" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke="#7A0016" stroke-width="8" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="brand"><span>Manolit∞</span> Aire</div>
+    <div class="sub-brand">+ Mapa de sombras 3D</div>
+    <div class="tagline">datos respirando en el núcleo</div>
+    <div class="sombra-msg">renderizando topología local...</div>
+    <div class="clima-tag" id="climaTag"></div>
+  </div>
+  <button class="entry-btn" id="entryBtn">INICIALIZAR</button>
+  <div class="sun-burst"><div class="sun-burst-core"></div></div>
+  <div class="shadow-scene">
+    <svg viewBox="0 0 900 450" width="100%" height="100%" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <linearGradient id="reflectionFade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="white" stop-opacity="0.45"/>
+          <stop offset="80%" stop-color="white" stop-opacity="0"/>
+        </linearGradient>
+        <mask id="waterMask">
+          <rect x="0" y="250" width="900" height="200" fill="url(#reflectionFade)" />
+        </mask>
+        <g id="spain-skyline" fill="currentColor" stroke="currentColor">
+          <rect x="0" y="240" width="900" height="10" />
+          <g transform="translate(110, 240)" fill="url(#gradFg)">
+            <polygon points="0,0 40,-165 58,-165 24,0" />
+            <rect x="-110" y="-10" width="220" height="9" opacity="0.85" />
+            <line x1="12" y1="-145" x2="-70" y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+            <line x1="24" y1="-120" x2="-45" y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+            <line x1="36" y1="-95" x2="-22" y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+            <line x1="46" y1="-70" x2="2" y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+            <line x1="52" y1="-45" x2="20" y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+            <line x1="58" y1="-20" x2="45" y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+          </g>
+          <g transform="translate(490, 240)" fill="url(#gradFg)">
+            <rect x="-25" y="-60" width="50" height="60" />
+            <rect x="-26" y="-65" width="6" height="5" />
+            <rect x="-10" y="-65" width="6" height="5" />
+            <rect x="4" y="-65" width="6" height="5" />
+            <rect x="20" y="-65" width="6" height="5" />
+            <rect x="-18" y="-80" width="36" height="20" />
+            <rect x="-12" y="-100" width="24" height="20" />
+            <polygon points="-8,-100 8,-100 0,-115" />
+          </g>
+          <g transform="translate(180, 0)" fill="url(#gradFg)">
+            <path d="M -30,360 L -30,285 L 15,255 L 75,285 L 75,360 Z" />
+            <path d="M 15,255 L 15,225 L 20,225 L 20,255 Z" />
+            <rect x="-90" y="310" width="60" height="50" />
+            <rect x="75" y="320" width="80" height="40" />
+            <rect x="75" y="140" width="30" height="220" />
+            <rect x="78" y="100" width="24" height="40" />
+            <rect x="82" y="80" width="16" height="20" />
+            <rect x="85" y="65" width="10" height="15" />
+            <rect x="88" y="55" width="4" height="10" />
+            <circle cx="90" cy="52" r="2.5" />
+          </g>
+          <g transform="translate(730, 240)" fill="url(#gradFg)">
+            <rect x="-70" y="-95" width="9" height="95" />
+            <rect x="-15" y="-108" width="9" height="108" />
+            <rect x="40" y="-95" width="9" height="95" />
+            <path d="M -95,-95 Q -80,-135 -62,-100 Q -45,-145 -22,-102 Q 0,-150 25,-104 Q 48,-142 68,-100 Q 85,-130 100,-95 L 100,-82 Q 85,-112 68,-85 Q 48,-120 25,-88 Q 0,-128 -22,-86 Q -45,-122 -62,-84 Q -80,-112 -95,-82 Z" />
+          </g>
+          <g transform="translate(950, 270)" fill="url(#gradFg)">
+            <path d="M 8,90 Q 15,45 10,0 Q 12,45 14,90 Z" />
+            <path d="M 10,0 Q -10,-10 -25,10 Q -5,-5 10,0" />
+            <path d="M 10,0 Q 0,-25 -5,-35 Q 5,-15 10,0" />
+            <path d="M 10,0 Q 20,-25 25,-35 Q 15,-15 10,0" />
+            <path d="M 10,0 Q 30,-10 45,10 Q 25,-5 10,0" />
+          </g>
+        </g>
+      </defs>
+      <use href="#spain-skyline" color="#010203" />
+      <use href="#spain-skyline" color="#000000" transform="translate(0, 500) scale(1, -1)" mask="url(#waterMask)" style="filter: blur(1.5px);" />
+      <line x1="0" y1="250.5" x2="900" y2="250.5" stroke="#040A10" stroke-width="1" opacity="0.8" />
+    </svg>
+  </div>
+</div>
+<!-- =================== FIN SPLASH =================== -->
 
 <div class="topbar">
   <a href="index.html" class="wordmark">Manolito Aire <span data-i18n="tagline">MAPA NACIONAL · DATOS EN VIVO</span></a>
@@ -124,7 +212,6 @@
     <div class="orb-ring"></div>
     <div class="orb"><div class="orb-face" id="orbFace">bien</div></div>
 
-    <!-- MODO PEQUE -->
     <div class="peque-character" id="pequeCharacter">
       <div class="peque-cloud" id="pequeCloudSvg"></div>
       <div class="peque-message" id="pequeMessage">El aire está contento!</div>
@@ -136,7 +223,6 @@
   <div class="sub-line" id="subLine">Un momento.</div>
   <div class="tech-readout" id="techReadout">—</div>
 
-  <!-- MODO CIENTÍFICO -->
   <div class="sci-panel" id="sciPanel">
     <table>
       <tr><td>PM2.5</td><td id="sciPM25">-- µg/m³</td></tr>
@@ -151,8 +237,6 @@
   <br>
   <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
 
-  <!-- Solo visible en modo Abuela/Abuelo: sube o baja el tamaño de letra de
-       toda la página (afecta a todo, no solo a este bloque) -->
   <div class="yayo-zoom-controls" id="yayoZoomControls">
     <span class="yayo-zoom-label">Tamaño de letra</span>
     <button id="yayoZoomMenos" type="button" aria-label="Reducir tamaño de letra">A−</button>
@@ -239,6 +323,7 @@
     </p>
   </div>
 </div>
+
 <div class="map-section">
   <div class="map-head">
     <div class="map-title">Ruta y sombras 3D</div>
@@ -272,7 +357,6 @@
   <text x="60" y="114" text-anchor="middle" class="rs-sol-cardinal">S</text>
   <text x="8" y="64" text-anchor="middle" class="rs-sol-cardinal">O</text>
   <circle id="rsSolPunto" cx="60" cy="8" r="6" fill="var(--accent)"/>
-  <!-- (si tienes más cosas dentro del svg, déjalas igual) -->
 </svg>
 
 <div class="rs-layer-toggles">
@@ -281,37 +365,32 @@
   <label><input type="checkbox" id="rsToggleRuta" checked> Ruta</label>
   <label><input type="checkbox" id="rsTogglePosSol" > Posición del sol</label>
 </div>
-    </svg>
-    <div class="rs-sol-info">
-      <span id="rsSolHora">--:--</span>
-      <span id="rsSolTexto">Az --° · Alt --°</span>
-    </div>
-  </div>
-</div>
-    </div>
 
-    <div id="rsAqiPanel" style="margin-top:16px;">
-      <div class="quantum-sub" style="margin-bottom:8px;">Calidad del aire · Origen</div>
-      <div id="rsAqiPlaceholder" class="legend-note">Busca una ruta para ver el AQI del punto de origen.</div>
-      <div id="rsAqiContent" style="display:none;">
-        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;">
-          <span id="rsAqiValue" style="font-family:var(--font-display);font-weight:700;font-size:2rem;color:var(--sky-deep);">--</span>
-          <span id="rsAqiCategory" style="font-family:var(--font-mono);font-size:0.72rem;padding:3px 9px;border-radius:999px;"></span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">PM2.5</span><br><span id="rsPm25">--</span></div>
-          <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">PM10</span><br><span id="rsPm10">--</span></div>
-          <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">O₃</span><br><span id="rsO3">--</span></div>
-          <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">NO₂</span><br><span id="rsNo2">--</span></div>
-        </div>
-      </div>
+<div class="rs-sol-widget" style="display:none;">
+  <div class="rs-sol-info">
+    <span id="rsSolHora">--:--</span>
+    <span id="rsSolTexto">Az --° · Alt --°</span>
+  </div>
+</div>
+
+<div id="rsAqiPanel" style="margin-top:16px;">
+  <div class="quantum-sub" style="margin-bottom:8px;">Calidad del aire · Origen</div>
+  <div id="rsAqiPlaceholder" class="legend-note">Busca una ruta para ver el AQI del punto de origen.</div>
+  <div id="rsAqiContent" style="display:none;">
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;">
+      <span id="rsAqiValue" style="font-family:var(--font-display);font-weight:700;font-size:2rem;color:var(--sky-deep);">--</span>
+      <span id="rsAqiCategory" style="font-family:var(--font-mono);font-size:0.72rem;padding:3px 9px;border-radius:999px;"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">PM2.5</span><br><span id="rsPm25">--</span></div>
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">PM10</span><br><span id="rsPm10">--</span></div>
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">O₃</span><br><span id="rsO3">--</span></div>
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">NO₂</span><br><span id="rsNo2">--</span></div>
     </div>
   </div>
 </div>
-      </div>
-    </div>
-  </div>
 </div>
+
 <div class="footer">
   <p>Manolito Aire forma parte de la familia de proyectos ciudadanos de Sandro — herramientas gratuitas, sin registro y sin publicidad.</p>
   <div class="footer-family" data-i18n="footerFamily">Manolit∞ Forestal · Islas de Calor Sevilla · Manolito Aire</div>
@@ -368,13 +447,7 @@
   </div>
 </div>
 
-<!-- Todos los scripts externos van con "defer": se descargan en paralelo
-     desde el primer momento (en vez de uno detrás de otro, bloqueando cada
-     descarga a la anterior) pero se SIGUEN ejecutando en el mismo orden en
-     que aparecen aquí, justo antes de que la página se dé por "lista" — así
-     que shadows-route.js sigue teniendo maplibregl/turf/suncalc cargados
-     antes de arrancar, exactamente igual que antes, solo que la carga total
-     es más rápida. -->
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <script src="js/theme.js" defer></script>
 <script src="js/i18n.js" defer></script>
@@ -412,7 +485,7 @@
       const cloudDiv = document.getElementById('pequeCloudSvg');
       const msgEl = document.getElementById('pequeMessage');
       const humanEl = document.getElementById('humanLine');
-      const subEl = document.getElementById('subLine'); // Selección directa y segura por ID
+      const subEl = document.getElementById('subLine');
 
       if (!cloudDiv || !msgEl) return;
 
@@ -427,7 +500,6 @@
         : `<circle cx="37" cy="46" r="6" fill="#333"/>
            <circle cx="63" cy="46" r="6" fill="#333"/>`;
 
-      // Textos originales restaurados para el modo peque
       const variaciones = {
         buena: [
           { msg: '¡El aire está contento!', humano: '¡Hoy puedes jugar fuera todo el día!', sub: 'Cielo despejado.' }
@@ -457,7 +529,7 @@
                  ${eyes}
                  <line x1="32" y1="64" x2="68" y2="64" stroke="#333" stroke-width="3" stroke-linecap="round"/>
                </svg>`;
-      } else { // mala
+      } else {
         svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                  ${cloudBase}
                  ${eyes}
@@ -469,7 +541,6 @@
                </svg>`;
       }
 
-      // Inyección limpia que pisa los tres elementos
       msgEl.textContent = seleccion.msg;
       if (humanEl) humanEl.textContent = seleccion.humano;
       if (subEl) subEl.textContent = seleccion.sub; 
@@ -493,11 +564,10 @@
   })();
 
   /* =====================================================
-     LUPA PARA ABUELA/ABUELO: sube el tamaño de letra de toda
-     la página en escalones, guardando el nivel elegido
+     LUPA PARA ABUELA/ABUELO
      ===================================================== */
   (function() {
-    const NIVELES = [100, 115, 130, 145]; // % de tamaño base
+    const NIVELES = [100, 115, 130, 145];
     let indice = 0;
     try { indice = parseInt(localStorage.getItem('manolito_yayo_zoom') || '0', 10) || 0; } catch(e){}
     indice = Math.max(0, Math.min(indice, NIVELES.length - 1));
@@ -519,9 +589,6 @@
       aplicarNivel();
     });
 
-    // Solo se aplica mientras se está en modo Abuela/Abuelo — si cambias a
-    // otro modo, la letra vuelve a su tamaño normal (el nivel elegido queda
-    // guardado para la próxima vez que entres en este modo).
     document.querySelectorAll('.mode-card[data-mode]').forEach((card) => {
       card.addEventListener('click', () => {
         if (card.getAttribute('data-mode') === 'yayo') aplicarNivel();
@@ -531,9 +598,7 @@
   })();
 
   /* =====================================================
-     EMOJIS QUE APARECEN Y DESAPARECEN EN MODO PEQUE
-     Muy discreto: uno cada vez, pocos segundos, solo
-     mientras el modo Peque está activo.
+     EMOJIS FLOTANTES MODO PEQUE
      ===================================================== */
   (function() {
     const EMOJIS_PEQUE = ['✏️', '☀️', '🌙', '🌳', '⭐', '☁️'];
@@ -555,9 +620,7 @@
   })();
 
   /* =====================================================
-     MENÚ MÓVIL: colapsa el bloque de la derecha de la barra
-     superior (paleta, tema, idioma, enlaces) detrás de un
-     botón de hamburguesa por debajo de 720px de ancho
+     MENÚ MÓVIL
      ===================================================== */
   (function() {
     const btn = document.getElementById('topbarMenuBtn');
@@ -569,8 +632,6 @@
       btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
     });
 
-    // Si se cambia a vista de escritorio con el menú móvil abierto, lo
-    // limpiamos para que no se quede "open" pegado al volver a estrechar
     window.addEventListener('resize', () => {
       if (window.innerWidth > 720 && panel.classList.contains('open')) {
         panel.classList.remove('open');
@@ -580,7 +641,7 @@
   })();
 
   /* =====================================================
-     SELECTOR DE CIUDAD ELEGANTE
+     SELECTOR DE CIUDAD
      ===================================================== */
   (function() {
     const btn = document.getElementById('cityDropdownBtn');
@@ -611,6 +672,85 @@
 
     document.addEventListener('click', () => list.classList.remove('open'));
   })();
+
+</script>
+
+<!-- ========== SCRIPT DEL SPLASH ========== -->
+<script>
+(function() {
+    const CLIMAS = [
+        { nombre: 'amanecer despejado', deep: '#1C3144', mid: '#2B4A63', dawn: '#F4A66B', dawnRgb: '244, 166, 107', paper: '#FBFAF7' },
+        { nombre: 'niebla',             deep: '#26333A', mid: '#465C63', dawn: '#C9D6D9', dawnRgb: '201, 214, 217', paper: '#F2F5F4' },
+        { nombre: 'tormenta',           deep: '#12141C', mid: '#232839', dawn: '#8C9BC9', dawnRgb: '140, 155, 201', paper: '#E8EAF0' },
+        { nombre: 'calor extremo',      deep: '#361B18', mid: '#6B2E1F', dawn: '#FF8C42', dawnRgb: '255, 140, 66',  paper: '#FFF3E6' },
+        { nombre: 'lluvia',             deep: '#182838', mid: '#24475C', dawn: '#6FB8D1', dawnRgb: '111, 184, 209', paper: '#EAF4F8' },
+        { nombre: 'noche estrellada',   deep: '#0A1120', mid: '#1B2740', dawn: '#C9A6F4', dawnRgb: '201, 166, 244', paper: '#F3EEFB' },
+        { nombre: 'viento de levante',  deep: '#1B2B2F', mid: '#2F4A4F', dawn: '#9BDCC6', dawnRgb: '155, 220, 198', paper: '#EFFAF6' }
+    ];
+
+    const clima = CLIMAS[Math.floor(Math.random() * CLIMAS.length)];
+    const root = document.documentElement.style;
+    root.setProperty('--sky-deep', clima.deep);
+    root.setProperty('--sky-mid', clima.mid);
+    root.setProperty('--dawn', clima.dawn);
+    root.setProperty('--dawn-rgb', clima.dawnRgb);
+    root.setProperty('--paper', clima.paper);
+    
+    const climaTagEl = document.getElementById('climaTag');
+    if (climaTagEl) climaTagEl.textContent = 'clima: ' + clima.nombre;
+
+    // Partículas
+    const field = document.getElementById('particles');
+    if (field) {
+        for (let i = 0; i < 30; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = 1.2 + Math.random() * 2.5;
+            p.style.width = size + 'px';
+            p.style.height = size + 'px';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.bottom = '-10px';
+            p.style.animationDuration = (4 + Math.random() * 6) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
+            p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
+            field.appendChild(p);
+        }
+    }
+
+    // Movimiento 3D del logo
+    const logoContainer = document.getElementById('logo-container');
+    document.addEventListener('mousemove', (e) => {
+        if (!logoContainer) return;
+        const x = e.clientX / window.innerWidth - 0.5;
+        const y = e.clientY / window.innerHeight - 0.5;
+        logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
+    });
+
+    // Transición de salida
+    let isLeaving = false;
+    function executeTransition() {
+        if (isLeaving) return;
+        isLeaving = true;
+        const splash = document.getElementById('splash');
+        if (splash) splash.classList.add('leaving');
+        setTimeout(() => {
+            if (splash) splash.style.display = 'none';
+        }, 5000);
+    }
+
+    const entryBtn = document.getElementById('entryBtn');
+    if (entryBtn) {
+        entryBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            executeTransition();
+        });
+    }
+
+    document.body.addEventListener('dblclick', () => {
+        executeTransition();
+    });
+
+    setTimeout(executeTransition, 10000); // auto después de 10s
+})();
 </script>
 </body>
 </html>

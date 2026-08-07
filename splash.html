@@ -1,133 +1,379 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manolito Aire</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --sky-deep:#1C3144; --sky-mid:#2B4A63; --dawn:#F4A66B; --paper:#FBFAF7;
-  }
-  *{ box-sizing:border-box; margin:0; padding:0; }
-  html,body{ height:100%; overflow:hidden; }
-  body{
-    background: radial-gradient(120% 140% at 50% 100%, #2B4A63 0%, #1C3144 55%, #10202E 100%);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    position:relative; cursor:pointer;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manolit∞ Aire + Shadowmap Sevilla 3D</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sky-deep: #1C3144;
+            --sky-mid: #2B4A63;
+            --dawn: #F4A66B;
+            --dawn-rgb: 244, 166, 107;
+            --paper: #FBFAF7;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: hidden; background: #000; }
+        body {
+            background: radial-gradient(120% 140% at 50% 100%, var(--sky-mid) 0%, var(--sky-deep) 55%, #10202E 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; cursor: crosshair;
+            transition: background 1.2s ease;
+        }
 
-  /* --- cielo con degradado que respira lentamente --- */
-  .sky-glow{
-    position:absolute; inset:0;
-    background: radial-gradient(60% 50% at 50% 15%, rgba(244,166,107,0.18), transparent 70%);
-    animation: skyBreathe 6s ease-in-out infinite;
-  }
-  @keyframes skyBreathe{ 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
+        .sky-glow {
+            position: absolute; inset: 0;
+            background: radial-gradient(60% 50% at 50% 15%, rgba(var(--dawn-rgb), 0.18), transparent 70%);
+            animation: skyBreathe 6s ease-in-out infinite;
+            transition: background 1.2s ease;
+        }
+        @keyframes skyBreathe {
+            0%, 100% { opacity: 0.5; } 50% { opacity: 1; }
+        }
 
-  /* --- líneas de viento que cruzan la pantalla --- */
-  .wind-field{ position:absolute; inset:0; width:100%; height:100%; }
-  .wind-line{ fill:none; stroke: var(--dawn); stroke-width:1.2; stroke-linecap:round; opacity:0.4; }
-  .w1{ animation: driftX 8s ease-in-out infinite; }
-  .w2{ animation: driftX 11s ease-in-out infinite reverse; }
-  .w3{ animation: driftX 9.5s ease-in-out infinite; }
-  .w4{ animation: driftX 13s ease-in-out infinite reverse; }
-  @keyframes driftX{
-    0%,100%{ transform: translateX(-20px); opacity:0.2; }
-    50%{ transform: translateX(30px); opacity:0.6; }
-  }
+        .wind-field { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; opacity: 0.8; }
+        .wind-line {
+            fill: none; stroke: var(--dawn); stroke-linecap: round;
+            stroke-dasharray: 80 400;
+            animation: aeroBlow linear infinite;
+            transition: stroke 1.2s ease;
+        }
+        .w-thin { stroke-width: 0.8; opacity: 0.3; }
+        .w-mid { stroke-width: 1.5; opacity: 0.5; }
+        .w-thick { stroke-width: 2.5; opacity: 0.2; }
 
-  /* --- partículas de aire flotando --- */
-  .particle{
-    position:absolute; border-radius:50%; background: var(--dawn); opacity:0.5;
-    animation: floatUp linear infinite;
-  }
-  @keyframes floatUp{
-    0%{ transform: translateY(20px) translateX(0); opacity:0; }
-    15%{ opacity:0.6; }
-    85%{ opacity:0.3; }
-    100%{ transform: translateY(-90vh) translateX(20px); opacity:0; }
-  }
+        @keyframes aeroBlow {
+            0% { stroke-dashoffset: 600; }
+            100% { stroke-dashoffset: -200; }
+        }
 
-  /* --- el logo que respira, protagonista --- */
-  .logo-wrap{ position:relative; z-index:2; text-align:center; }
-  .logo-ring{
-    width:120px; height:120px; margin:0 auto 22px; border-radius:50%;
-    border:1px solid rgba(244,166,107,0.4);
-    display:flex; align-items:center; justify-content:center;
-    animation: ringBreathe 3.6s ease-in-out infinite;
-  }
-  .logo-inf{ font-family:'Fraunces', serif; font-size:2.6rem; color: var(--dawn); font-weight:700; }
-  @keyframes ringBreathe{
-    0%,100%{ transform: scale(0.92); box-shadow: 0 0 0 0 rgba(244,166,107,0.25); }
-    50%{ transform: scale(1.06); box-shadow: 0 0 0 22px rgba(244,166,107,0); }
-  }
+        .w1 { animation-duration: 8s; }
+        .w2 { animation-duration: 12s; animation-delay: -3s; stroke-dasharray: 120 500; }
+        .w3 { animation-duration: 9s; animation-delay: -5s; stroke-dasharray: 60 300; }
+        .w4 { animation-duration: 15s; animation-delay: -1s; }
+        .w5 { animation-duration: 11s; animation-delay: -7s; stroke-dasharray: 150 450; }
+        .w6 { animation-duration: 14s; animation-delay: -4s; }
 
-  .brand{ font-family:'Fraunces', serif; font-weight:600; font-size: clamp(1.8rem, 6vw, 2.6rem); color: var(--paper); letter-spacing:-0.01em; }
-  .brand span{ color: var(--dawn); }
-  .tagline{ font-family:'IBM Plex Mono', monospace; font-size:0.78rem; color: var(--dawn); margin-top:10px; letter-spacing:0.05em; opacity:0.9; }
+        .particle {
+            position: absolute; border-radius: 50%; background: var(--dawn);
+            animation: floatUp linear infinite, quantumFlicker 0.25s ease-in-out infinite alternate;
+            box-shadow: 0 0 5px rgba(var(--dawn-rgb), 0.6); pointer-events: none;
+            transition: background 1.2s ease;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(20px) translateX(0); opacity: 0; }
+            20% { opacity: 0.6; } 80% { opacity: 0.1; }
+            100% { transform: translateY(-100vh) translateX(40px); opacity: 0; }
+        }
+        @keyframes quantumFlicker {
+            0% { opacity: 0.1; } 100% { opacity: 0.9; }
+        }
 
-  .skip{
-    position:absolute; bottom:34px; left:50%; transform:translateX(-50%); z-index:2;
-    font-family:'IBM Plex Mono', monospace; font-size:0.68rem; color: rgba(251,250,247,0.55);
-    letter-spacing:0.06em; animation: fadeInLate 3.5s ease forwards;
-  }
-  @keyframes fadeInLate{ 0%,70%{ opacity:0; } 100%{ opacity:1; } }
+        .logo-wrap { position: relative; z-index: 2; text-align: center; pointer-events: none; }
 
-  body.leaving{ animation: fadeOut 0.6s ease forwards; }
-  @keyframes fadeOut{ to{ opacity:0; } }
+        #logo-container {
+            width: 180px; height: 180px; margin: 0 auto 20px;
+            display: flex; align-items: center; justify-content: center;
+            transform-style: preserve-3d; transition: transform 0.1s ease-out;
+        }
+        #logo-svg {
+            width: 100%; height: 100%;
+            filter: drop-shadow(0 0 12px rgba(var(--dawn-rgb), 0.4));
+            animation: logoFloat 5s ease-in-out infinite;
+        }
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); }
+        }
 
-  @media (prefers-reduced-motion: reduce){
-    .sky-glow, .wind-line, .particle, .logo-ring{ animation:none; }
-  }
-</style>
+        .brand {
+            font-family: 'Fraunces', serif; font-weight: 600;
+            font-size: clamp(1.6rem, 5vw, 2.4rem); color: var(--paper);
+            letter-spacing: -0.01em; margin-top: 5px;
+        }
+        .brand span { color: var(--dawn); transition: color 1.2s ease; }
+        .sub-brand {
+            font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.1rem;
+            color: var(--paper); margin-top: 4px; opacity: 0.85;
+        }
+        .tagline {
+            font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem;
+            color: var(--dawn); margin-top: 12px; letter-spacing: 0.08em; opacity: 0.8;
+            transition: color 1.2s ease;
+        }
+        .sombra-msg {
+            font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem;
+            color: rgba(251,250,247,0.5); margin-top: 8px;
+            letter-spacing: 0.05em; animation: fadeIn 2s ease forwards; opacity: 0;
+        }
+        .clima-tag {
+            font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem;
+            color: rgba(251,250,247,0.35); margin-top: 4px;
+            letter-spacing: 0.15em; text-transform: uppercase;
+        }
+
+        .entry-btn {
+            position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
+            z-index: 20; font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem; color: rgba(var(--dawn-rgb), 0.4); letter-spacing: 0.3em;
+            background: transparent; border: none; padding: 15px 40px;
+            cursor: pointer; transition: color 0.3s ease, text-shadow 0.3s ease;
+            animation: fadeIn 3s ease 1s forwards; opacity: 0; outline: none;
+        }
+        .entry-btn:hover {
+            color: var(--dawn);
+            text-shadow: 0 0 12px rgba(var(--dawn-rgb), 0.8);
+        }
+
+        .sun-burst {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%) scale(0); width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 10;
+        }
+        .sun-burst-core {
+            position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            width:450px; height:450px;
+            background: radial-gradient(circle, var(--dawn) 0%, rgba(var(--dawn-rgb), 0.5) 40%, transparent 70%);
+            border-radius:50%; filter:blur(15px);
+            transition: background 1.2s ease;
+        }
+
+        body.leaving .sun-burst { animation: solarExpand 5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+        @keyframes solarExpand {
+            0% { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+            10% { opacity: 1; }
+            80% { opacity: 0.2; transform: translate(-50%,-50%) scale(2); }
+            100% { transform: translate(-50%,-50%) scale(3); opacity: 0; }
+        }
+
+        .shadow-scene {
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; height: 65%; display: flex; justify-content: center;
+            align-items: flex-end; opacity: 0; z-index: 9; pointer-events: none;
+        }
+
+        body.leaving .shadow-scene { animation: shadowsRise 5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        @keyframes shadowsRise {
+            0% { opacity: 0; transform: translateX(-50%) translateY(40px) scale(0.98); filter: blur(5px); }
+            10% { opacity: 1; filter: blur(0); transform: translateX(-50%) translateY(0) scale(1); }
+            85% { opacity: 1; filter: blur(0); transform: translateX(-50%) translateY(-5px) scale(1.02); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(1.05); filter: blur(8px); }
+        }
+
+        body.leaving .logo-wrap,
+        body.leaving .wind-field,
+        body.leaving .particle,
+        body.leaving .entry-btn { opacity: 0; transition: opacity 0.5s ease-out; }
+
+        body.leaving { animation: fadeToBlack 5s ease-out forwards; }
+        @keyframes fadeToBlack {
+            0%, 85% { background: radial-gradient(120% 140% at 50% 100%, var(--sky-mid) 0%, var(--sky-deep) 55%, #10202E 100%); }
+            100% { background: #010203; }
+        }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { animation: none !important; transition: none !important; }
+        }
+    </style>
 </head>
 <body id="splashBody">
 
 <div class="sky-glow"></div>
 
-<svg class="wind-field" viewBox="0 0 400 200" preserveAspectRatio="none">
-  <path class="wind-line w1" d="M0,50 Q100,30 200,50 T400,45" />
-  <path class="wind-line w2" d="M0,90 Q120,120 240,85 T400,95" />
-  <path class="wind-line w3" d="M0,130 Q140,105 260,135 T400,130" />
-  <path class="wind-line w4" d="M0,165 Q100,150 220,168 T400,160" />
+<svg class="wind-field" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid slice">
+    <path class="wind-line w-mid w1" d="M -100,120 C 150,280 350,20 600,180 S 850,80 1100,140" />
+    <path class="wind-line w-thin w2" d="M 1100,220 C 800,80 600,320 350,150 S 100,280 -100,180" />
+    <path class="wind-line w-thick w3" d="M -100,180 C 200,350 450,-20 750,220 S 950,50 1100,160" />
+    <path class="wind-line w-thin w4" d="M 1100,100 C 900,20 650,300 400,180 S 150,320 -100,220" />
+    <path class="wind-line w-mid w5" d="M -100,280 C 250,150 400,380 650,200 S 900,300 1100,250" />
+    <path class="wind-line w-thin w6" d="M 1100,280 C 850,380 700,100 450,250 S 200,100 -100,150" />
 </svg>
 
 <div id="particles"></div>
 
 <div class="logo-wrap">
-  <div class="logo-ring"><div class="logo-inf">∞</div></div>
-  <div class="brand">Manolito<span>∞</span> Aire</div>
-  <div class="tagline">RESPIRANDO DATOS EN TIEMPO REAL</div>
+    <div id="logo-container">
+        <svg id="logo-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="100" cy="150" r="45" fill="#E6A100" />
+            <path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#007A87" stroke-width="4" stroke-linecap="round"/>
+            <path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 100,150 C 75,125 75,175 100,150 C 125,125 125,175 100,150 Z" fill="none" stroke="#7A0016" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke="#7A0016" stroke-width="8" stroke-linejoin="round"/>
+        </svg>
+    </div>
+    <div class="brand"><span>Manolit∞</span> Aire</div>
+    <div class="sub-brand">+ Mapa de sombras 3D</div>
+    <div class="tagline">datos respirando en el núcleo</div>
+    <div class="sombra-msg">renderizando topología local...</div>
+    <div class="clima-tag" id="climaTag"></div>
 </div>
 
-<div class="skip">toca la pantalla para entrar</div>
+<button class="entry-btn" id="entryBtn">INICIALIZAR</button>
+
+<div class="sun-burst">
+    <div class="sun-burst-core"></div>
+</div>
+
+<!-- ================= COMPOSICIÓN SHADOWMAP + REFLEJO — SEVILLA ================= -->
+<div class="shadow-scene">
+    <svg viewBox="0 0 900 450" width="100%" height="100%" preserveAspectRatio="xMidYMax slice">
+        <defs>
+            <linearGradient id="reflectionFade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="white" stop-opacity="0.45"/>
+                <stop offset="80%" stop-color="white" stop-opacity="0"/>
+            </linearGradient>
+            <mask id="waterMask">
+                <rect x="0" y="250" width="900" height="200" fill="url(#reflectionFade)" />
+            </mask>
+
+            <!-- SILUETA MAESTRA: Sevilla — Alamillo, Torre del Oro, Giralda, las Setas -->
+       <g id="spain-skyline" fill="currentColor" stroke="currentColor">
+  <rect x="0" y="240" width="900" height="10" />
+
+  <!-- Puente del Alamillo (corregido: estaba fuera con translate(1000,80)) -->
+  <g transform="translate(110, 240)" fill="url(#gradFg)">
+    <polygon points="0,0 40,-165 58,-165 24,0" />
+    <rect x="-110" y="-10" width="220" height="9" opacity="0.85" />
+
+    <!-- Tirantes -->
+    <line x1="12"  y1="-145" x2="-70" y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+    <line x1="24"  y1="-120" x2="-45" y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+    <line x1="36"  y1="-95"  x2="-22" y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+    <line x1="46"  y1="-70"  x2="2"   y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+    <line x1="52"  y1="-45"  x2="20"  y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+    <line x1="58"  y1="-20"  x2="45"  y2="-5" stroke="#020304" stroke-width="1.4" opacity="0.9"/>
+  </g>
+
+  <!-- 3. TORRE DEL ORO (tu parte, pero asegurando el cierre) -->
+  <g transform="translate(490, 240)" fill="url(#gradFg)">
+    <rect x="-25" y="-60" width="50" height="60" />
+    <rect x="-26" y="-65" width="6" height="5" />
+    <rect x="-10" y="-65" width="6" height="5" />
+    <rect x="4" y="-65" width="6" height="5" />
+    <rect x="20" y="-65" width="6" height="5" />
+
+    <rect x="-18" y="-80" width="36" height="20" />
+    <rect x="-12" y="-100" width="24" height="20" />
+    <polygon points="-8,-100 8,-100 0,-115" />
+  </g>
+
+  <!-- Catedral y Giralda -->
+  <g transform="translate(180, 0)" fill="url(#gradFg)">
+    <path d="M -30,360 L -30,285 L 15,255 L 75,285 L 75,360 Z" />
+    <path d="M 15,255 L 15,225 L 20,225 L 20,255 Z" />
+    <rect x="-90" y="310" width="60" height="50" />
+    <rect x="75" y="320" width="80" height="40" />
+
+    <rect x="75" y="140" width="30" height="220" />
+    <rect x="78" y="100" width="24" height="40" />
+    <rect x="82" y="80" width="16" height="20" />
+    <rect x="85" y="65" width="10" height="15" />
+    <rect x="88" y="55" width="4" height="10" />
+    <circle cx="90" cy="52" r="2.5" />
+  </g>
+
+  <!-- 4. LAS SETAS -->
+  <g transform="translate(730, 240)" fill="url(#gradFg)">
+    <rect x="-70" y="-95" width="9" height="95" />
+    <rect x="-15" y="-108" width="9" height="108" />
+    <rect x="40" y="-95" width="9" height="95" />
+
+    <path d="M -95,-95
+             Q -80,-135 -62,-100
+             Q -45,-145 -22,-102
+             Q 0,-150 25,-104
+             Q 48,-142 68,-100
+             Q 85,-130 100,-95
+             L 100,-82
+             Q 85,-112 68,-85
+             Q 48,-120 25,-88
+             Q 0,-128 -22,-86
+             Q -45,-122 -62,-84
+             Q -80,-112 -95,-82 Z" />
+  </g>
+
+  <!-- Palmera -->
+  <g transform="translate(950, 270)" fill="url(#gradFg)">
+    <path d="M 8,90 Q 15,45 10,0 Q 12,45 14,90 Z" />
+    <path d="M 10,0 Q -10,-10 -25,10 Q -5,-5 10,0" />
+    <path d="M 10,0 Q 0,-25 -5,-35 Q 5,-15 10,0" />
+    <path d="M 10,0 Q 20,-25 25,-35 Q 15,-15 10,0" />
+    <path d="M 10,0 Q 30,-10 45,10 Q 25,-5 10,0" />
+  </g>
+</g>  
+        </defs>
+
+        <use href="#spain-skyline" color="#010203" />
+        <use href="#spain-skyline" color="#000000" transform="translate(0, 500) scale(1, -1)" mask="url(#waterMask)" style="filter: blur(1.5px);" />
+
+        <line x1="0" y1="250.5" x2="900" y2="250.5" stroke="#040A10" stroke-width="1" opacity="0.8" />
+    </svg>
+</div>
 
 <script>
-  // partículas flotando, generadas por JS para que cada una sea distinta
-  const field = document.getElementById('particles');
-  for (let i = 0; i < 18; i++){
-    const p = document.createElement('div');
-    p.className = 'particle';
-    const size = 2 + Math.random() * 3;
-    p.style.width = size + 'px';
-    p.style.height = size + 'px';
-    p.style.left = Math.random() * 100 + 'vw';
-    p.style.bottom = '-10px';
-    p.style.animationDuration = (6 + Math.random() * 6) + 's';
-    p.style.animationDelay = (Math.random() * 6) + 's';
-    field.appendChild(p);
-  }
+    (function() {
+        const CLIMAS = [
+            { nombre: 'amanecer despejado', deep: '#1C3144', mid: '#2B4A63', dawn: '#F4A66B', dawnRgb: '244, 166, 107', paper: '#FBFAF7' },
+            { nombre: 'niebla',             deep: '#26333A', mid: '#465C63', dawn: '#C9D6D9', dawnRgb: '201, 214, 217', paper: '#F2F5F4' },
+            { nombre: 'tormenta',           deep: '#12141C', mid: '#232839', dawn: '#8C9BC9', dawnRgb: '140, 155, 201', paper: '#E8EAF0' },
+            { nombre: 'calor extremo',      deep: '#361B18', mid: '#6B2E1F', dawn: '#FF8C42', dawnRgb: '255, 140, 66',  paper: '#FFF3E6' },
+            { nombre: 'lluvia',             deep: '#182838', mid: '#24475C', dawn: '#6FB8D1', dawnRgb: '111, 184, 209', paper: '#EAF4F8' },
+            { nombre: 'noche estrellada',   deep: '#0A1120', mid: '#1B2740', dawn: '#C9A6F4', dawnRgb: '201, 166, 244', paper: '#F3EEFB' },
+            { nombre: 'viento de levante',  deep: '#1B2B2F', mid: '#2F4A4F', dawn: '#9BDCC6', dawnRgb: '155, 220, 198', paper: '#EFFAF6' }
+        ];
 
-  function goToApp(){
-    const body = document.getElementById('splashBody');
-    body.classList.add('leaving');
-    setTimeout(() => { window.location.href = 'index.html'; }, 550);
-  }
+        const clima = CLIMAS[Math.floor(Math.random() * CLIMAS.length)];
+        const root = document.documentElement.style;
+        root.setProperty('--sky-deep', clima.deep);
+        root.setProperty('--sky-mid', clima.mid);
+        root.setProperty('--dawn', clima.dawn);
+        root.setProperty('--dawn-rgb', clima.dawnRgb);
+        root.setProperty('--paper', clima.paper);
+        const climaTagEl = document.getElementById('climaTag');
+        if (climaTagEl) climaTagEl.textContent = 'clima: ' + clima.nombre;
 
-  document.body.addEventListener('click', goToApp);
-  const autoTimer = setTimeout(goToApp, 3600);
-</script>
+        const field = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = 1.2 + Math.random() * 2.5;
+            p.style.width = size + 'px';
+            p.style.height = size + 'px';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.bottom = '-10px';
+            p.style.animationDuration = (4 + Math.random() * 6) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
+            p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
+            field.appendChild(p);
+        }
 
+        const logoContainer = document.getElementById('logo-container');
+        document.addEventListener('mousemove', (e) => {
+            const x = e.clientX / window.innerWidth - 0.5;
+            const y = e.clientY / window.innerHeight - 0.5;
+            logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
+        });
+
+        let isLeaving = false;
+        function executeTransition() {
+            if (isLeaving) return;
+            isLeaving = true;
+            document.getElementById('splashBody').classList.add('leaving');
+            setTimeout(() => { window.location.href = 'index.html'; }, 5000);
+        }
+
+        document.getElementById('entryBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearTimeout(autoBoot);
+            executeTransition();
+        });
+
+        document.body.addEventListener('dblclick', () => {
+            clearTimeout(autoBoot);
+            executeTransition();
+        });
+
+        const autoBoot = setTimeout(executeTransition, 10000);
+    })();</script>
 </body>
 </html>

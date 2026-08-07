@@ -21,7 +21,13 @@
     pitchInicial: 55,
     bearingInicial: -15,
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
-    osrmUrl: 'https://router.project-osrm.org/route/v1',
+    nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
+    // OJO: router.project-osrm.org (el demo oficial de OSRM) SOLO tiene
+    // montado el perfil de coche, aunque se le pida /foot/ — por eso daba
+    // rutas irreales (4km "en 9 minutos a pie" = velocidad de coche). El
+    // servidor de FOSSGIS sí aloja un perfil peatonal real.
+    osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
+    velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
     styleUrl: 'https://tiles.openfreemap.org/styles/liberty', // vector tiles gratis, sin key
     edificiosLayerId: 'building-3d',
@@ -129,6 +135,32 @@
       paint: { 'line-color': leerVar('--accent') || '#F4A66B', 'line-width': 5, 'line-opacity': 0.9 },
     });
 
+    // Tramos de la ruta que caen dentro de una sombra proyectada: se pinta
+    // encima del trazado base para que se vea, de un vistazo, por dónde
+    // caminas a la sombra y por dónde vas al sol.
+    map.addSource('ruta-sombra', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-ruta-sombra',
+      type: 'line',
+      source: 'ruta-sombra',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#6f9c8b', 'line-width': 5, 'line-opacity': 0.95 },
+    });
+
+    // Marcadores de puntos elegidos a mano en el mapa (antes de resolverse en ruta)
+    map.addSource('puntos-manuales', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-puntos-manuales',
+      type: 'circle',
+      source: 'puntos-manuales',
+      paint: {
+        'circle-radius': 7,
+        'circle-color': leerVar('--accent') || '#F4A66B',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#1b2029',
+      },
+    });
+
     // Capa de cielo nativa de MapLibre: oculta hasta que se active el toggle del sol
     map.addLayer({
       id: 'cielo-sol',
@@ -142,10 +174,12 @@
     });
 
     inyectarControlesTiempo();
-    actualizarCacheEdificios();
-    recalcularSombrasVisibles();
+    inyectarControlesMapa();
     conectarTogglesDeCapas();
-    actualizarIluminacionSolar();
+    // La activación real (caché de edificios + primer cálculo de sombras +
+    // iluminación) se difiere a la primera vez que hace falta — al abrir el
+    // panel, marcar una capa que la necesite, o buscar una ruta — para no
+    // sumar ese trabajo pesado justo al arrancar la página.
 
     // Vuelo de entrada: pequeña pausa para que el primer frame ya tenga
     // edificios/sombras pintados antes de empezar a mover la cámara.
@@ -164,10 +198,18 @@
   // esperamos a que se asiente antes de recalcular — evita disparar el
   // cálculo pesado varias veces por segundo mientras aún se está moviendo.
   const alTerminarMovimiento = crearDebounce(() => {
+    if (!solarActivado) return;
     actualizarCacheEdificios();
     if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
   }, 220);
   map.on('moveend', alTerminarMovimiento);
+
+  let solarActivado = false;
+  function asegurarActivacionSolar() {
+    if (solarActivado) return;
+    solarActivado = true;
+    actualizarCacheEdificios();
+  }
 
   function actualizarCacheEdificios() {
     if (!capaEdificiosDisponible || !map.getLayer(CONFIG.edificiosLayerId)) return;
@@ -226,6 +268,7 @@
   // sola en el siguiente punto de control — así nunca se acumulan
   // cálculos pisándose unos a otros.
   let versionCalculoSombras = 0;
+  let ultimaColeccionSombras = turf.featureCollection([]); // se reutiliza para colorear la ruta por sol/sombra
 
   async function recalcularSombrasVisibles(horaOverride) {
     if (!map.getSource('sombras')) return;
@@ -240,6 +283,7 @@
     if (!document.getElementById('rsToggleSombras')?.checked) {
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+      ultimaColeccionSombras = turf.featureCollection([]);
       return;
     }
 
@@ -247,6 +291,7 @@
     if (posSol.altitude <= 0) {
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+      ultimaColeccionSombras = turf.featureCollection([]);
       mostrarAvisoSol('El sol está bajo el horizonte a esa hora — no hay sombras que proyectar.');
       return;
     }
@@ -255,6 +300,7 @@
     if (!capaEdificiosDisponible || !edificiosCacheados.length) {
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+      ultimaColeccionSombras = turf.featureCollection([]);
       return;
     }
 
@@ -298,6 +344,7 @@
     if (miVersion !== versionCalculoSombras) return;
     const coleccionSombras = turf.featureCollection(poligonosSombra);
     map.getSource('sombras')?.setData(coleccionSombras);
+    ultimaColeccionSombras = coleccionSombras;
 
     // Halo/feather: solo si no hay demasiados polígonos — es la parte más
     // cara del cálculo y aquí es puramente decorativa.
@@ -321,7 +368,7 @@
   // Recalcula cada minuto para que las sombras y la luz "se muevan" con el
   // reloj real — solo mientras no estemos en modo manual (slider tocado).
   setInterval(() => {
-    if (modoManual) return;
+    if (!solarActivado || modoManual) return;
     if (map.loaded()) recalcularSombrasVisibles();
     actualizarIluminacionSolar();
   }, 60 * 1000);
@@ -333,6 +380,37 @@
   // (sombreado de los edificios) + capa "sky" (color del cielo/atardecer).
 
   let puntoReferenciaSol = null; // { lat, lon } — se actualiza al buscar ruta
+  let rutaActual = null; // GeoJSON Feature<LineString> de la última ruta real calculada — para recolorear sol/sombra al cambiar la hora
+
+  function puntoEnSombra(punto) {
+    for (const poligono of ultimaColeccionSombras.features) {
+      try {
+        if (turf.booleanPointInPolygon(punto, poligono)) return true;
+      } catch (e) { /* geometría rara: la ignoramos */ }
+    }
+    return false;
+  }
+
+  async function actualizarTramosSombraRuta() {
+    const fuente = map.getSource('ruta-sombra');
+    if (!fuente) return;
+    if (!rutaActual || !ultimaColeccionSombras.features.length) {
+      fuente.setData(turf.featureCollection([]));
+      return;
+    }
+    try {
+      const tramos = turf.lineChunk(rutaActual, 0.01, { units: 'kilometers' }); // trocitos de ~10m
+      const tramosEnSombra = tramos.features.filter((tramo) => {
+        const coords = tramo.geometry.coordinates;
+        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
+        return puntoEnSombra(medio);
+      });
+      fuente.setData(turf.featureCollection(tramosEnSombra));
+    } catch (e) {
+      console.warn('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
+      fuente.setData(turf.featureCollection([]));
+    }
+  }
 
   function calcularAnguloSol(horaOverride) {
     const centro = puntoReferenciaSol || map.getCenter();
@@ -396,13 +474,13 @@
 
     if (badge) {
       if (estado === 'dorada') {
-        badge.textContent = '🌅 Hora dorada';
+        badge.textContent = 'Hora dorada';
         badge.style.visibility = 'visible';
         badge.style.color = '#e7b06a';
         badge.style.background = '#e7b06a22';
         badge.style.borderColor = '#e7b06a55';
       } else if (estado === 'azul') {
-        badge.textContent = '🌆 Hora azul';
+        badge.textContent = 'Hora azul';
         badge.style.visibility = 'visible';
         badge.style.color = '#7fb3c9';
         badge.style.background = '#7fb3c922';
@@ -474,10 +552,11 @@
     etiquetaTiempo.textContent = prefijo + formatoHora(fecha);
   }
 
-  function aplicarCambioDeHora(contexto) {
+  async function aplicarCambioDeHora(contexto) {
     actualizarEtiquetaTiempo(contexto);
-    recalcularSombrasVisibles();
+    await recalcularSombrasVisibles();
     actualizarIluminacionSolar();
+    await actualizarTramosSombraRuta();
   }
 
   // Estilo "placa de instrumento" (gnomon/astrolabio) en vez de la típica
@@ -561,6 +640,141 @@
   }
 
 
+  /* ---------------- Elegir puntos directamente en el mapa + geolocalización ---------------- */
+
+  let modoClickMapa = false;
+  let puntoOrigenPendiente = null; // { lat, lon } mientras se espera el segundo clic
+
+  function inyectarEstilosMapaControles() {
+    if (document.getElementById('rsMapaEstilos')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsMapaEstilos';
+    estilo.textContent = `
+      #rsMapControls{
+        position:absolute; left:12px; top:12px; z-index:5; display:flex; gap:6px;
+      }
+      #rsMapControls button{
+        font-family:inherit; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
+        font-weight:700; padding:8px 11px; border-radius:3px 12px 3px 12px;
+        border:1px solid #ffffff1f; border-left:2px solid #c98a4b;
+        background:linear-gradient(160deg,#262c38,#1b2029 70%); color:#e9e4d8;
+        cursor:pointer; box-shadow:0 8px 18px rgba(0,0,0,.28); transition:background .15s,border-color .15s;
+      }
+      #rsMapControls button:hover{ background:#c98a4b22; }
+      #rsMapControls button.rs-activo{ border-left-color:#e7b06a; color:#e7b06a; }
+      @media (max-width:480px){ #rsMapControls button{ padding:7px 8px; font-size:9.5px; } }
+    `;
+    document.head.appendChild(estilo);
+  }
+
+  function inyectarControlesMapa() {
+    if (document.getElementById('rsMapControls')) return;
+    inyectarEstilosMapaControles();
+
+    const panelMapa = document.createElement('div');
+    panelMapa.id = 'rsMapControls';
+
+    const btnModoClick = document.createElement('button');
+    btnModoClick.type = 'button';
+    btnModoClick.textContent = 'Elegir en el mapa';
+
+    const btnUbicacion = document.createElement('button');
+    btnUbicacion.type = 'button';
+    btnUbicacion.textContent = 'Mi ubicación';
+
+    function salirDeModoClick() {
+      modoClickMapa = false;
+      puntoOrigenPendiente = null;
+      btnModoClick.classList.remove('rs-activo');
+      map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
+    }
+
+    btnModoClick.addEventListener('click', () => {
+      if (modoClickMapa) {
+        salirDeModoClick();
+        mostrarEstado('');
+        return;
+      }
+      modoClickMapa = true;
+      puntoOrigenPendiente = null;
+      btnModoClick.classList.add('rs-activo');
+      mostrarEstado('Haz clic en el mapa para marcar el origen.');
+    });
+
+    btnUbicacion.addEventListener('click', () => {
+      if (!('geolocation' in navigator)) {
+        mostrarEstado('Este navegador no permite compartir tu ubicación.', 'error');
+        return;
+      }
+      mostrarEstado('Pidiendo permiso de ubicación…');
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude, lon = pos.coords.longitude;
+          const precisionM = Math.round(pos.coords.accuracy || 0);
+
+          seleccionPorInput.set(inputOrigen, { lat, lon, nombre: 'Mi ubicación', texto: 'Mi ubicación' });
+          inputOrigen.value = 'Mi ubicación';
+
+          // Punto + círculo de precisión: el navegador (sin GPS de verdad,
+          // en portátil/sobremesa o interiores) da una estimación por
+          // wifi/IP, no la posición exacta — este círculo es justo ese
+          // margen de error que reporta el propio dispositivo, para que se
+          // vea por qué el punto puede no caer justo encima de ti.
+          const puntoUbicacion = turf.point([lon, lat]);
+          const circuloPrecision = precisionM > 0
+            ? turf.circle([lon, lat], precisionM / 1000, { units: 'kilometers', steps: 48 })
+            : null;
+          map.getSource('puntos-manuales')?.setData(
+            turf.featureCollection(circuloPrecision ? [circuloPrecision, puntoUbicacion] : [puntoUbicacion])
+          );
+
+          const notaPrecision = precisionM > 0
+            ? ` (precisión reportada por el navegador: ±${precisionM} m — sin GPS real puede ser orientativa)`
+            : '';
+          mostrarEstado(`Ubicación marcada como origen${notaPrecision} — elige el destino.`, 'ok');
+          map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
+        },
+        () => mostrarEstado('No se ha podido obtener tu ubicación (¿has denegado el permiso?).', 'error'),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+
+    panelMapa.append(btnModoClick, btnUbicacion);
+    contenedorMapa.appendChild(panelMapa);
+
+    map.on('click', (e) => {
+      if (!modoClickMapa) return;
+      const { lat, lng } = e.lngLat;
+
+      if (!puntoOrigenPendiente) {
+        puntoOrigenPendiente = { lat, lon: lng };
+        map.getSource('puntos-manuales')?.setData(turf.featureCollection([turf.point([lng, lat])]));
+        inputOrigen.value = 'Punto marcado en el mapa';
+        mostrarEstado('Origen marcado — haz clic en el destino.');
+        geocodificarInverso(lat, lng).then((nombre) => { inputOrigen.value = nombre; });
+        return;
+      }
+
+      const origenFijado = puntoOrigenPendiente;
+      const destinoFijado = { lat, lon: lng };
+      map.getSource('puntos-manuales')?.setData(turf.featureCollection([
+        turf.point([origenFijado.lon, origenFijado.lat]),
+        turf.point([lng, lat]),
+      ]));
+      inputDestino.value = 'Punto marcado en el mapa';
+      salirDeModoClick();
+      // Búsqueda con los puntos ya resueltos: sin pasar por el emparejamiento
+      // texto<->input, así el reverse-geocoding (que solo pone bonito el
+      // nombre después) no puede llegar a pisarla a mitad de camino.
+      manejarBusqueda(
+        { ...origenFijado, nombre: 'Punto marcado en el mapa' },
+        { ...destinoFijado, nombre: 'Punto marcado en el mapa' }
+      );
+      geocodificarInverso(origenFijado.lat, origenFijado.lon).then((nombre) => { inputOrigen.value = nombre; });
+      geocodificarInverso(lat, lng).then((nombre) => { inputDestino.value = nombre; });
+    });
+  }
+
   function inyectarControlesTiempo() {
     if (document.getElementById('rsTimeControls')) return; // por si el load se dispara más de una vez
     inyectarEstilosPanel();
@@ -592,9 +806,21 @@
     btnPlegar.type = 'button';
     btnPlegar.setAttribute('aria-label', 'Mostrar u ocultar el panel de posición solar');
     btnPlegar.innerHTML = '<svg width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    btnPlegar.addEventListener('click', () => {
+    btnPlegar.addEventListener('click', async () => {
+      const estabaCerrado = panel.classList.contains('rs-cerrado');
       panel.classList.toggle('rs-cerrado');
+      if (estabaCerrado) {
+        asegurarActivacionSolar();
+        await recalcularSombrasVisibles();
+        actualizarIluminacionSolar();
+        await actualizarTramosSombraRuta();
+      }
     });
+
+    // Empieza plegado: el cálculo de sombras/iluminación no arranca solo
+    // al cargar la página — solo cuando el usuario lo pide (aquí, o al
+    // buscar una ruta).
+    panel.classList.add('rs-cerrado');
 
     cabecera.append(eyebrow, svgSol, btnPlegar);
 
@@ -720,11 +946,11 @@
         map.setLayoutProperty(CONFIG.edificiosLayerId, 'visibility', tEdificios.checked ? 'visible' : 'none');
       }
     });
-    tSombras?.addEventListener('change', () => recalcularSombrasVisibles());
+    tSombras?.addEventListener('change', () => { asegurarActivacionSolar(); recalcularSombrasVisibles(); });
     tRuta?.addEventListener('change', () => {
       map.setLayoutProperty('capa-ruta', 'visibility', tRuta.checked ? 'visible' : 'none');
     });
-    tSol?.addEventListener('change', () => actualizarIluminacionSolar());
+    tSol?.addEventListener('change', () => { asegurarActivacionSolar(); actualizarIluminacionSolar(); });
   }
 
   /* ---------------- Red: fetch con timeout + reintentos ---------------- */
@@ -784,6 +1010,22 @@
     throw new Error(`No se ha encontrado: "${direccionTexto}". Prueba a escribirla como "calle, número, ciudad".`);
   }
 
+  async function geocodificarInverso(lat, lon) {
+    // Convierte unas coordenadas (clic en el mapa, o geolocalización) en un
+    // nombre de calle legible para rellenar el campo de texto — puramente
+    // cosmético, si falla usamos las coordenadas tal cual.
+    try {
+      const url = new URL(CONFIG.nominatimReverseUrl);
+      url.searchParams.set('lat', lat);
+      url.searchParams.set('lon', lon);
+      url.searchParams.set('format', 'json');
+      const datos = await fetchConReintentos(url.toString(), { headers: { 'Accept-Language': 'es' } }, 1);
+      return datos?.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    } catch (e) {
+      return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    }
+  }
+
   /* ---------------- Ruta real por calles (OSRM) ---------------- */
 
   async function calcularRutaReal(origen, destino) {
@@ -793,11 +1035,26 @@
     try {
       const datos = await fetchConReintentos(url);
       if (datos?.code === 'Ok' && datos.routes?.[0]) {
+        const distanciaKmNum = datos.routes[0].distance / 1000;
+        let duracionMinNum = datos.routes[0].duration / 60;
+
+        // Red de seguridad: si el servidor devolviera una velocidad
+        // imposible para ir a pie (>9 km/h de media), no nos fiamos del
+        // tiempo recibido — probablemente venga de un grafo de coche — y
+        // lo recalculamos con una velocidad de paseo razonable.
+        const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
+        let duracionEstimada = false;
+        if (velocidadKmh > 9 || duracionMinNum <= 0) {
+          duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
+          duracionEstimada = true;
+        }
+
         return {
           geojson: datos.routes[0].geometry,
-          distanciaKm: (datos.routes[0].distance / 1000).toFixed(2),
-          duracionMin: Math.round(datos.routes[0].duration / 60),
+          distanciaKm: distanciaKmNum.toFixed(2),
+          duracionMin: Math.round(duracionMinNum),
           esReal: true,
+          duracionEstimada,
         };
       }
       throw new Error('OSRM no ha devuelto una ruta válida.');
@@ -1059,7 +1316,14 @@
     return geocodificar(texto);
   }
 
-  async function manejarBusqueda() {
+  async function manejarBusqueda(origenDirecto, destinoDirecto) {
+    // Si nos llaman con puntos ya resueltos (clic en el mapa, geolocalización),
+    // nos saltamos el emparejamiento texto<->input por completo: así no hay
+    // carrera posible con el reverse-geocoding que solo pone bonito el label.
+    if (origenDirecto && destinoDirecto) {
+      return ejecutarBusquedaConPuntos(origenDirecto, destinoDirecto);
+    }
+
     const textoOrigen = inputOrigen.value.trim();
     const textoDestino = inputDestino.value.trim();
     if (!textoOrigen || !textoDestino) {
@@ -1072,11 +1336,23 @@
 
     try {
       const [origen, destino] = await Promise.all([resolverPunto(inputOrigen), resolverPunto(inputDestino)]);
+      await ejecutarBusquedaConPuntos(origen, destino);
+    } catch (err) {
+      console.error(err);
+      mostrarEstado(err.message || 'Error al buscar la ruta. Inténtalo de nuevo.', 'error');
+      ponerCargando(false);
+    }
+  }
 
-      mostrarEstado('Calculando ruta real por calles…');
+  async function ejecutarBusquedaConPuntos(origen, destino) {
+    ponerCargando(true);
+    mostrarEstado('Calculando ruta real por calles…');
+
+    try {
       const ruta = await calcularRutaReal(origen, destino);
 
       map.getSource('ruta').setData(turf.feature(ruta.geojson));
+      map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
       pintarMarcadores(origen, destino);
 
       const bounds = ruta.geojson.coordinates.reduce(
@@ -1086,13 +1362,17 @@
       map.fitBounds(bounds, { padding: 70, maxZoom: 17, duration: 800 });
 
       puntoReferenciaSol = { lat: origen.lat, lon: origen.lon };
-      recalcularSombrasVisibles();
+      rutaActual = ruta.esReal ? turf.feature(ruta.geojson) : null;
+      asegurarActivacionSolar();
+      await recalcularSombrasVisibles();
       actualizarIluminacionSolar();
+      await actualizarTramosSombraRuta();
 
       if (ruta.esReal) {
-        mostrarEstado(`Ruta real: ${ruta.distanciaKm} km · ${ruta.duracionMin} min a pie.`, 'ok');
+        const nota = ruta.duracionEstimada ? ' (tiempo estimado a paso normal)' : '';
+        mostrarEstado(`Ruta real: ${ruta.distanciaKm} km · ${ruta.duracionMin} min a pie${nota}.`, 'ok');
       } else {
-        mostrarEstado('No se pudo calcular la ruta por calles (servidor OSRM ocupado) — mostrando línea directa.', 'error');
+        mostrarEstado('No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.', 'error');
       }
 
       try {

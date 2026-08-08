@@ -45,8 +45,14 @@
   // por lo que sea i18n.js no está cargado, cae al texto en español.
   function t(clave, fallback) {
     try {
-      if (typeof getMessages === 'function') {
-        const msg = getMessages();
+      // Se lee de window, no de la variable suelta: si el orden de carga o
+      // el bundler aíslan cada <script> en su propio scope, una referencia
+      // directa a `getMessages` falla en silencio y siempre se cae al
+      // fallback en español — por window siempre se ve, sea cual sea el
+      // montaje de la página.
+      const fn = window.getMessages;
+      if (typeof fn === 'function') {
+        const msg = fn();
         if (msg && msg[clave] != null) return msg[clave];
       }
     } catch (e) { /* seguimos con el fallback */ }
@@ -1630,6 +1636,15 @@
     }
   }
 
+  // El texto inicial del botón y de los placeholders viene tal cual del
+  // HTML (en español) hasta la primera búsqueda o cambio de idioma — se
+  // fija aquí en el idioma ya activo nada más arrancar el script.
+  ponerCargando(false);
+  if (inputOrigen && !inputOrigen.value) inputOrigen.setAttribute('placeholder', t('originPlaceholder', inputOrigen.getAttribute('placeholder')));
+  if (inputDestino && !inputDestino.value) inputDestino.setAttribute('placeholder', t('destinationPlaceholder', inputDestino.getAttribute('placeholder')));
+  const tituloRuta = document.getElementById('rsRouteMapTitle');
+  if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
+
   btnBuscar.addEventListener('click', manejarBusqueda);
   [inputOrigen, inputDestino].forEach((input) => {
     input.addEventListener('keydown', (e) => {
@@ -1665,5 +1680,9 @@
     if (btnInvierno) btnInvierno.textContent = t('btnWinter', 'Invierno');
     ponerCargando(false); // re-pinta el texto del botón "Buscar ruta" en el idioma nuevo
     if (etiquetaTiempo) actualizarEtiquetaTiempo(false);
+    if (inputOrigen && !inputOrigen.value) inputOrigen.setAttribute('placeholder', t('originPlaceholder', inputOrigen.getAttribute('placeholder')));
+    if (inputDestino && !inputDestino.value) inputDestino.setAttribute('placeholder', t('destinationPlaceholder', inputDestino.getAttribute('placeholder')));
+    const tituloRuta = document.getElementById('rsRouteMapTitle');
+    if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
   });
 })();

@@ -3,356 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manolit∞ Aire — Calidad del aire en España en tiempo real (PM2.5, PM10, NO₂, O₃)</title>
-<meta name="description" content="Consulta la calidad del aire de Sevilla, Madrid, Barcelona y otras ciudades de España en tiempo real: PM2.5, PM10, NO₂, O₃ e ICA. Gratis, sin registro y sin publicidad.">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="https://manolitoaire.com/">
-<meta name="theme-color" content="#1C3144">
-
-<!-- Open Graph / redes sociales -->
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Manolit∞ Aire">
-<meta property="og:title" content="Manolit∞ Aire — ¿Cómo respiras hoy?">
-<meta property="og:description" content="Calidad del aire de España en tiempo real, gratis, sin registro y sin publicidad.">
-<meta property="og:url" content="https://manolitoaire.com/">
-<meta property="og:image" content="https://manolitoaire.com/nubes.png">
-<meta property="og:locale" content="es_ES">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Manolit∞ Aire — ¿Cómo respiras hoy?">
-<meta name="twitter:description" content="Calidad del aire de España en tiempo real, gratis y sin publicidad.">
-<meta name="twitter:image" content="https://manolitoaire.com/nubes.png">
-
+<title>Manolito Aire — ¿Cómo respiras hoy?</title>
+<meta name="description" content="Calidad del aire de España en tiempo real, gratis, sin registro y sin publicidad.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://unpkg.com">
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
-
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet" />
 <link rel="icon" type="image/png" href="nubes.png">
-<link rel="apple-touch-icon" href="nubes.png">
 <link rel="stylesheet" href="css/style.css">
-
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "Manolit∞ Aire",
-  "url": "https://manolitoaire.com/",
-  "description": "Calidad del aire de España en tiempo real (PM2.5, PM10, NO2, O3, ICA), gratis, sin registro y sin publicidad.",
-  "applicationCategory": "Utility",
-  "operatingSystem": "Any",
-  "isAccessibleForFree": true,
-  "inLanguage": ["es", "ca", "eu", "gl", "en"]
-}
-</script>
-
-<!-- ============================================================
-     ESTILOS DEL SPLASH DE ENTRADA (Manolit∞ Aire + Shadowmap 3D)
-     ============================================================ -->
-<style>
-  #manolitoSplash{
-    --splash-sky-deep:#1C3144; --splash-sky-mid:#2B4A63;
-    --splash-dawn:#F4A66B; --splash-dawn-rgb:244, 166, 107; --splash-paper:#FBFAF7;
-    position:fixed; inset:0; width:100vw; height:100vh; z-index:99999;
-    overflow:hidden; background: radial-gradient(120% 140% at 50% 100%, var(--splash-sky-mid) 0%, var(--splash-sky-deep) 55%, #10202E 100%);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    cursor:crosshair; transition: background 1.2s ease;
-  }
-  #manolitoSplash, #manolitoSplash *{ box-sizing:border-box; margin:0; padding:0; }
-  body.manolito-splash-activo{ overflow:hidden; }
-
-  #manolitoSplash .sky-glow{
-    position:absolute; inset:0;
-    background: radial-gradient(60% 50% at 50% 15%, rgba(var(--splash-dawn-rgb), 0.18), transparent 70%);
-    animation: splashSkyBreathe 6s ease-in-out infinite; transition: background 1.2s ease;
-  }
-  @keyframes splashSkyBreathe{ 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
-
-  #manolitoSplash .wind-field{ position:absolute; inset:0; width:100%; height:100%; overflow:hidden; pointer-events:none; opacity:0.8; }
-  #manolitoSplash .wind-line{
-    fill:none; stroke:var(--splash-dawn); stroke-linecap:round;
-    stroke-dasharray:80 400; animation: splashAeroBlow linear infinite; transition: stroke 1.2s ease;
-  }
-  #manolitoSplash .w-thin{ stroke-width:0.8; opacity:0.3; }
-  #manolitoSplash .w-mid{ stroke-width:1.5; opacity:0.5; }
-  #manolitoSplash .w-thick{ stroke-width:2.5; opacity:0.2; }
-  @keyframes splashAeroBlow{ 0%{ stroke-dashoffset:600; } 100%{ stroke-dashoffset:-200; } }
-
-  #manolitoSplash .w1{ animation-duration:8s; }
-  #manolitoSplash .w2{ animation-duration:12s; animation-delay:-3s; stroke-dasharray:120 500; }
-  #manolitoSplash .w3{ animation-duration:9s; animation-delay:-5s; stroke-dasharray:60 300; }
-  #manolitoSplash .w4{ animation-duration:15s; animation-delay:-1s; }
-  #manolitoSplash .w5{ animation-duration:11s; animation-delay:-7s; stroke-dasharray:150 450; }
-  #manolitoSplash .w6{ animation-duration:14s; animation-delay:-4s; }
-
-  #manolitoSplash .particle{
-    position:absolute; border-radius:50%; background:var(--splash-dawn);
-    animation: splashFloatUp linear infinite, splashQuantumFlicker 0.25s ease-in-out infinite alternate;
-    box-shadow: 0 0 5px rgba(var(--splash-dawn-rgb), 0.6); pointer-events:none; transition: background 1.2s ease;
-  }
-  @keyframes splashFloatUp{
-    0%{ transform:translateY(20px) translateX(0); opacity:0; }
-    20%{ opacity:0.6; } 80%{ opacity:0.1; }
-    100%{ transform:translateY(-100vh) translateX(40px); opacity:0; }
-  }
-  @keyframes splashQuantumFlicker{ 0%{ opacity:0.1; } 100%{ opacity:0.9; } }
-
-  #manolitoSplash .logo-wrap{ position:relative; z-index:2; text-align:center; pointer-events:none; }
-  #manolitoSplash #logo-container{
-    width:180px; height:180px; margin:0 auto 20px;
-    display:flex; align-items:center; justify-content:center;
-    transform-style:preserve-3d; transition: transform 0.1s ease-out;
-  }
-  #manolitoSplash #logo-svg{
-    width:100%; height:100%;
-    filter: drop-shadow(0 0 12px rgba(var(--splash-dawn-rgb), 0.4));
-    animation: splashLogoFloat 5s ease-in-out infinite;
-  }
-  @keyframes splashLogoFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
-
-  #manolitoSplash .brand{
-    font-family:'Fraunces', serif; font-weight:600; font-size:clamp(1.6rem, 5vw, 2.4rem);
-    color:var(--splash-paper); letter-spacing:-0.01em; margin-top:5px;
-  }
-  #manolitoSplash .brand span{ color:var(--splash-dawn); transition: color 1.2s ease; }
-  #manolitoSplash .sub-brand{
-    font-family:'Fraunces', serif; font-weight:500; font-size:1.1rem; color:var(--splash-paper); margin-top:4px; opacity:0.85;
-  }
-  #manolitoSplash .tagline{
-    font-family:'IBM Plex Mono', monospace; font-size:0.75rem; color:var(--splash-dawn);
-    margin-top:12px; letter-spacing:0.08em; opacity:0.8; transition: color 1.2s ease;
-  }
-  #manolitoSplash .sombra-msg{
-    font-family:'IBM Plex Mono', monospace; font-size:0.65rem; color: rgba(251,250,247,0.5);
-    margin-top:8px; letter-spacing:0.05em; animation: splashFadeIn 2s ease forwards; opacity:0;
-  }
-  #manolitoSplash .clima-tag{
-    font-family:'IBM Plex Mono', monospace; font-size:0.6rem; color: rgba(251,250,247,0.35);
-    margin-top:4px; letter-spacing:0.15em; text-transform:uppercase;
-  }
-
-  #manolitoSplash .entry-btn{
-    position:absolute; bottom:35px; left:50%; transform:translateX(-50%); z-index:20;
-    font-family:'IBM Plex Mono', monospace; font-size:0.65rem; color: rgba(var(--splash-dawn-rgb), 0.4);
-    letter-spacing:0.3em; background:transparent; border:none; padding:15px 40px; cursor:pointer;
-    transition: color 0.3s ease, text-shadow 0.3s ease; animation: splashFadeIn 3s ease 1s forwards; opacity:0; outline:none;
-  }
-  #manolitoSplash .entry-btn:hover{ color:var(--splash-dawn); text-shadow: 0 0 12px rgba(var(--splash-dawn-rgb), 0.8); }
-
-  #manolitoSplash .sun-burst{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
-    width:100vw; height:100vh; pointer-events:none; z-index:10;
-  }
-  #manolitoSplash .sun-burst-core{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:450px; height:450px;
-    background: radial-gradient(circle, var(--splash-dawn) 0%, rgba(var(--splash-dawn-rgb), 0.5) 40%, transparent 70%);
-    border-radius:50%; filter:blur(15px); transition: background 1.2s ease;
-  }
-  #manolitoSplash.leaving .sun-burst{ animation: splashSolarExpand 5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
-  @keyframes splashSolarExpand{
-    0%{ transform:translate(-50%,-50%) scale(0); opacity:0; }
-    10%{ opacity:1; }
-    80%{ opacity:0.2; transform:translate(-50%,-50%) scale(2); }
-    100%{ transform:translate(-50%,-50%) scale(3); opacity:0; }
-  }
-
-  #manolitoSplash .shadow-scene{
-    position:absolute; bottom:0; left:50%; transform:translateX(-50%);
-    width:100%; height:65%; display:flex; justify-content:center; align-items:flex-end;
-    opacity:0; z-index:9; pointer-events:none;
-  }
-  #manolitoSplash.leaving .shadow-scene{ animation: splashShadowsRise 5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-  @keyframes splashShadowsRise{
-    0%{ opacity:0; transform:translateX(-50%) translateY(40px) scale(0.98); filter:blur(5px); }
-    10%{ opacity:1; filter:blur(0); transform:translateX(-50%) translateY(0) scale(1); }
-    85%{ opacity:1; filter:blur(0); transform:translateX(-50%) translateY(-5px) scale(1.02); }
-    100%{ opacity:0; transform:translateX(-50%) translateY(-20px) scale(1.05); filter:blur(8px); }
-  }
-
-  #manolitoSplash.leaving .logo-wrap,
-  #manolitoSplash.leaving .wind-field,
-  #manolitoSplash.leaving .particle,
-  #manolitoSplash.leaving .entry-btn{ opacity:0; transition: opacity 0.5s ease-out; }
-
-  #manolitoSplash.leaving{ animation: splashFadeToBlack 5s ease-out forwards; }
-  @keyframes splashFadeToBlack{
-    0%,85%{ background: radial-gradient(120% 140% at 50% 100%, var(--splash-sky-mid) 0%, var(--splash-sky-deep) 55%, #10202E 100%); }
-    100%{ background:#010203; }
-  }
-  @keyframes splashFadeIn{ to{ opacity:1; } }
-
-  @media (prefers-reduced-motion: reduce){
-    #manolitoSplash, #manolitoSplash *{ animation:none !important; transition:none !important; }
-  }
-</style>
 </head>
 <body>
-<!-- ============================================================
-     SPLASH DE ENTRADA
-     ============================================================ -->
-<div id="manolitoSplash">
-  <div class="sky-glow"></div>
-  <div class="wind-field"></div>
-  <svg class="wind-field" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid slice">
-    <path class="wind-line w-mid w1" d="M -100,120 C 150,280 350,20 600,180 S 850,80 1100,140" />
-    <path class="wind-line w-thin w2" d="M 1100,220 C 800,80 600,320 350,150 S 100,280 -100,180" />
-    <path class="wind-line w-thick w3" d="M -100,180 C 200,350 450,-20 750,220 S 950,50 1100,160" />
-    <path class="wind-line w-thin w4" d="M 1100,100 C 900,20 650,300 400,180 S 150,320 -100,220" />
-    <path class="wind-line w-mid w5" d="M -100,280 C 250,150 400,380 650,200 S 900,300 1100,250" />
-    <path class="wind-line w-thin w6" d="M 1100,280 C 850,380 700,100 450,250 S 200,100 -100,150" />
-  </svg>
-
-  <div id="particles"></div>
-
-  <div class="logo-wrap">
-    <div id="logo-container">
-      <svg id="logo-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="100" cy="150" r="45" fill="#E6A100" />
-        <path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#007A87" stroke-width="4" stroke-linecap="round"/>
-        <path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
-        <path d="M 100,150 C 75,125 75,175 100,150 C 125,125 125,175 100,150 Z" fill="none" stroke="#7A0016" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke="#7A0016" stroke-width="8" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div class="brand"><span>Manolit∞</span> Aire</div>
-    <div class="sub-brand">+ Mapa de sombras 3D</div>
-    <div class="tagline">datos respirando en el núcleo</div>
-    <div class="sombra-msg">renderizando topología local...</div>
-    <div class="clima-tag" id="climaTag"></div>
-  </div>
-
-  <button class="entry-btn" id="entryBtn">CLIC</button>
-
-  <div class="sun-burst">
-    <div class="sun-burst-core"></div>
-  </div>
-
-  <!-- Shadowmap Realista Sevilla -->
-  <div class="shadow-scene">
-    <svg viewBox="0 0 1400 400" width="100%" height="100%" preserveAspectRatio="xMidYMax slice">
-        <defs>
-            <linearGradient id="shadowGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#020304"/>
-                <stop offset="100%" stop-color="#05080A"/>
-            </linearGradient>
-        </defs>
-        <rect x="0" y="360" width="1400" height="40" fill="url(#shadowGrad)" />
-        <g transform="translate(1000, 80)" fill="url(#shadowGrad)">
-            <polygon points="0,280 35,0 55,0 40,280" />
-            <rect x="-250" y="275" width="450" height="8" />
-            <line x1="38" y1="30" x2="-200" y2="275" stroke="#020304" stroke-width="1.5" />
-            <line x1="39" y1="60" x2="-150" y2="275" stroke="#020304" stroke-width="1.5" />
-            <line x1="39" y1="90" x2="-100" y2="275" stroke="#020304" stroke-width="1.5" />
-            <line x1="40" y1="120" x2="-50" y2="275" stroke="#020304" stroke-width="1.5" />
-            <line x1="40" y1="150" x2="0" y2="275" stroke="#020304" stroke-width="1.5" />
-            <line x1="41" y1="180" x2="50" y2="275" stroke="#020304" stroke-width="1.5" />
-            <line x1="41" y1="210" x2="100" y2="275" stroke="#020304" stroke-width="1.5" />
-        </g>
-        <g transform="translate(750, 50)" fill="url(#shadowGrad)">
-            <path d="M 10,310 L 15,20 C 15,5 35,5 35,20 L 40,310 Z" />
-        </g>
-        <path d="M 0,360 L 0,330 L 40,330 L 50,310 L 90,310 L 90,360 Z" fill="url(#shadowGrad)"/>
-        <path d="M 100,360 L 100,340 L 140,320 L 180,340 L 180,360 Z" fill="url(#shadowGrad)"/>
-        <path d="M 400,360 L 400,320 L 430,320 L 430,290 L 470,290 L 470,360 Z" fill="url(#shadowGrad)"/>
-        <path d="M 600,360 L 600,310 L 650,310 L 650,330 L 710,330 L 710,360 Z" fill="url(#shadowGrad)"/>
-        <path d="M 850,360 L 850,300 L 880,300 L 880,320 L 930,320 L 930,360 Z" fill="url(#shadowGrad)"/>
-        <path d="M 1250,360 L 1250,330 L 1300,310 L 1350,330 L 1350,360 Z" fill="url(#shadowGrad)"/>
-        <g transform="translate(500, 220)" fill="url(#shadowGrad)">
-            <path d="M 0,140 L 0,60 L 5,60 L 8,40 L 32,40 L 35,60 L 40,60 L 40,140 Z" />
-            <rect x="12" y="20" width="16" height="20" />
-            <rect x="16" y="10" width="8" height="10" />
-            <polygon points="14,10 26,10 20,0" />
-        </g>
-        <rect x="75" y="150" width="28" height="210" />
-        <rect x="79" y="110" width="20" height="40" />
-        <rect x="83" y="90" width="12" height="20" />
-        <rect x="87" y="75" width="4" height="15" />
-        <circle cx="89" cy="72" r="2.5" />
-        <g transform="translate(730,240)">
-            <rect x="-70" y="-95" width="9" height="95" />
-            <rect x="-15" y="-108" width="9" height="108" />
-            <rect x="40" y="-95" width="9" height="95" />
-            <path d="M -95,-95 Q -80,-135 -62,-100 Q -45,-145 -22,-102 Q 0,-150 25,-104 Q 48,-142 68,-100 Q 85,-130 100,-95 L 100,-82 Q 85,-112 68,-85 Q 48,-120 25,-88 Q 0,-128 -22,-86 Q -45,-122 -62,-84 Q -80,-112 -95,-82 Z" />
-        </g>
-        <circle cx="210" cy="350" r="15" fill="url(#shadowGrad)" />
-        <circle cx="230" cy="345" r="20" fill="url(#shadowGrad)" />
-        <circle cx="560" cy="355" r="12" fill="url(#shadowGrad)" />
-        <circle cx="580" cy="348" r="18" fill="url(#shadowGrad)" />
-        <circle cx="950" cy="350" r="16" fill="url(#shadowGrad)" />
-        <circle cx="970" cy="345" r="22" fill="url(#shadowGrad)" />
-    </svg>
-  </div>
-</div>
-
-<script>
-(function() {
-    const field = document.getElementById('particles');
-    for (let i = 0; i < 28; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        const size = 1.5 + Math.random() * 2.5;
-        p.style.width = size + 'px';
-        p.style.height = size + 'px';
-        p.style.left = Math.random() * 100 + 'vw';
-        p.style.bottom = '-10px';
-        p.style.animationDuration = (5 + Math.random() * 7) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
-        p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
-        field.appendChild(p);
-    }
-
-    const logoContainer = document.getElementById('logo-container');
-    document.addEventListener('mousemove', (e) => {
-        const x = e.clientX / window.innerWidth - 0.5;
-        const y = e.clientY / window.innerHeight - 0.5;
-        logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
-    });
-
-    const splashDiv = document.getElementById('manolitoSplash');
-
-    function executeTransition() {
-        if (splashDiv.classList.contains('leaving')) return;
-        splashDiv.classList.add('leaving');
-        setTimeout(() => {
-            splashDiv.style.display = 'none';
-            document.body.classList.remove('manolito-splash-activo');
-        }, 2400);
-    }
-
-    const autoBoot = setTimeout(executeTransition, 10000);
-
-    document.getElementById('entryBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        clearTimeout(autoBoot);
-        executeTransition();
-    });
-
-    splashDiv.addEventListener('click', (e) => {
-        if (e.target === splashDiv || 
-            e.target.classList.contains('sky-glow') || 
-            e.target.closest('.logo-wrap')) {
-            clearTimeout(autoBoot);
-            executeTransition();
-        }
-    });
-
-    splashDiv.addEventListener('dblclick', (e) => {
-        clearTimeout(autoBoot);
-        executeTransition();
-    });
-
-})();
-</script>
 
 <div class="topbar">
   <a href="index.html" class="wordmark">Manolito Aire <span data-i18n="tagline">MAPA NACIONAL · DATOS EN VIVO</span></a>
-
-  <button class="topbar-menu-btn" id="topbarMenuBtn" aria-label="Abrir menú" aria-expanded="false" aria-controls="topbarRight">
-    <span></span><span></span><span></span>
-  </button>
-
-  <div class="topbar-right" id="topbarRight">
+  <div class="topbar-right">
     <a class="family-link" href="about.html" data-i18n="aboutLink">¿Por qué existe esto?</a>
     <a class="family-link" href="https://wwww.manolitoforestal.space" target="_blank" rel="noopener">Manolito Forestal</a>
     <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
@@ -393,16 +57,6 @@
       <li data-value="eivissa">Eivissa</li>
       <li data-value="menorca">Menorca</li>
       <li data-value="badajoz">Badajoz</li>
-      <li data-value="bilbao">Bilbao</li>
-      <li data-value="murcia">Murcia</li>
-      <li data-value="acoruna">A Coruña</li>
-      <li data-value="vigo">Vigo</li>
-      <li data-value="alicante">Alicante</li>
-      <li data-value="cordoba">Córdoba</li>
-      <li data-value="valladolid">Valladolid</li>
-      <li data-value="donostia">San Sebastián</li>
-      <li data-value="granada">Granada</li>
-      <li data-value="gijon">Gijón</li>
     </ul>
   </div>
 
@@ -410,17 +64,18 @@
     <div class="orb-ring"></div>
     <div class="orb"><div class="orb-face" id="orbFace">bien</div></div>
 
+    <!-- MODO PEQUE -->
     <div class="peque-character" id="pequeCharacter">
       <div class="peque-cloud" id="pequeCloudSvg"></div>
       <div class="peque-message" id="pequeMessage">El aire está contento!</div>
     </div>
-    <div class="peque-emoji-capa" id="pequeEmojiCapa" aria-hidden="true"></div>
   </div>
 
   <div class="human-line" id="humanLine">Cargando el aire de tu ciudad…</div>
   <div class="sub-line" id="subLine">Un momento.</div>
   <div class="tech-readout" id="techReadout">—</div>
 
+  <!-- MODO CIENTÍFICO -->
   <div class="sci-panel" id="sciPanel">
     <table>
       <tr><td>PM2.5</td><td id="sciPM25">-- µg/m³</td></tr>
@@ -434,12 +89,6 @@
 
   <br>
   <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
-
-  <div class="yayo-zoom-controls" id="yayoZoomControls">
-    <span class="yayo-zoom-label">Tamaño de letra</span>
-    <button id="yayoZoomMenos" type="button" aria-label="Reducir tamaño de letra">A−</button>
-    <button id="yayoZoomMas" type="button" aria-label="Aumentar tamaño de letra">A+</button>
-  </div>
 </div>
 
 <div class="modes">
@@ -504,7 +153,7 @@
 
   <div class="quantum-card">
     <div class="quantum-head">
-      <span class="quantum-badge">Manolit∞ Cuántico</span>
+      <span class="quantum-badge">∞ Manolito Cuántico</span>
       <span class="quantum-sub">probabilidad simulada, día a día, para los próximos 5 días</span>
     </div>
     <div id="quantumBars" class="quantum-bars"></div>
@@ -512,7 +161,6 @@
     <div class="week-label">próximos 7 días — simulado, menos fiable cuanto más lejos</div>
     <div id="quantumWeek" class="quantum-week"></div>
 
-    <p class="quantum-disclaimer-title">¿Qué es esto exactamente?</p>
     <p class="quantum-disclaimer">
       Esto NO es una predicción meteorológica oficial. Es una simulación matemática
       (formalismo cuántico simulado por software, sin hardware cuántico real) que calcula
@@ -521,22 +169,21 @@
     </p>
   </div>
 </div>
-
 <div class="map-section">
   <div class="map-head">
-    <div class="map-title">Ruta y sombras 3D</div>
+    <div class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</div>
   </div>
 
 <div class="rs-form">
   <div class="rs-field">
-    <input type="text" id="rsOrigen" placeholder="Punto de origen" autocomplete="off">
+    <input type="text" id="rsOrigen" placeholder="Punto de origen" data-i18n-placeholder="originPlaceholder" autocomplete="off">
     <ul class="rs-sugerencias" id="rsSugerenciasOrigen"></ul>
   </div>
   <div class="rs-field">
-    <input type="text" id="rsDestino" placeholder="Punto de destino" autocomplete="off">
+    <input type="text" id="rsDestino" placeholder="Punto de destino" data-i18n-placeholder="destinationPlaceholder" autocomplete="off">
     <ul class="rs-sugerencias" id="rsSugerenciasDestino"></ul>
   </div>
-  <button id="rsBuscarBtn" class="im-lost-btn">Buscar ruta</button>
+  <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar ruta</button>
 </div>
     <div id="rsStatus" class="chat-status" style="margin:8px 0 14px;"></div>
 
@@ -544,9 +191,14 @@
   <div id="shadowRouteMap" style="height:440px;width:100%;"></div>
 </div>
 
-<label><input type="checkbox" id="rsToggleIluminacionSol"> Iluminación solar</label>
+<div class="rs-layer-toggles">
+  <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
+  <label><input type="checkbox" id="rsToggleSombras" checked> <span data-i18n="layerShadows">Sombras</span></label>
+  <label><input type="checkbox" id="rsToggleRuta" checked> <span data-i18n="layerRoute">Ruta</span></label>
+  <label><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
+</div>
 
-<svg viewBox="0 0 120 120" width="120" height="120" id="rsSolarSvg" style="display:none;">
+<svg viewBox="0 0 120 120" width="120" height="120">
   <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="1"/>
   <circle cx="60" cy="60" r="26" fill="none" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 3"/>
   <circle cx="60" cy="60" r="2" fill="var(--sky-mid)"/>
@@ -556,19 +208,9 @@
   <text x="8" y="64" text-anchor="middle" class="rs-sol-cardinal">O</text>
   <circle id="rsSolPunto" cx="60" cy="8" r="6" fill="var(--accent)"/>
 </svg>
-
-<div class="rs-layer-toggles">
-  <label><input type="checkbox" id="rsToggleEdificios" checked> Edificios 3D</label>
-  <label><input type="checkbox" id="rsToggleSombras" checked> Sombras</label>
-  <label><input type="checkbox" id="rsToggleRuta" checked> Ruta</label>
-  <label><input type="checkbox" id="rsTogglePosSol" > Posición del sol</label>
-</div>
-
-<div class="rs-sol-widget" style="display:none;">
-  <div class="rs-sol-info">
-    <span id="rsSolHora">--:--</span>
-    <span id="rsSolTexto">Az --° · Alt --°</span>
-  </div>
+<div class="rs-sol-info">
+  <span id="rsSolHora">--:--</span>
+  <span id="rsSolTexto">Az --° · Alt --°</span>
 </div>
 
 <div id="rsAqiPanel" style="margin-top:16px;">
@@ -587,7 +229,7 @@
     </div>
   </div>
 </div>
-
+</div>
 <div class="footer">
   <p>Manolito Aire forma parte de la familia de proyectos ciudadanos de Sandro — herramientas gratuitas, sin registro y sin publicidad.</p>
   <div class="footer-family" data-i18n="footerFamily">Manolit∞ Forestal · Islas de Calor Sevilla · Manolito Aire</div>
@@ -644,21 +286,22 @@
   </div>
 </div>
 
-<!-- SCRIPTS EXTERNOS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-<script src="js/theme.js" defer></script>
-<script src="js/i18n.js" defer></script>
-<script src="js/chat.js" defer></script>
-<script src="js/app.js" defer></script>
-<script src="js/air-forecast.js" defer></script>
-<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
-<script src="https://unpkg.com/@turf/turf@6/turf.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js" defer></script>
-<script src="js/shadows-route.js" defer></script>
-<script src="js/cookie-banner.js" defer></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/app.js"></script>
+<script src="js/air-forecast.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js"></script>
+<script src="js/shadows-route.js"></script>
+<script src="js/cookie-banner.js"></script>
 
-<!-- ========== LÓGICA EN LINEA (modos, UI helpers) ========== -->
 <script>
+  /* =====================================================
+     LÓGICA DE LOS MODOS (CIENTÍFICO, YAYO, PEQUE)
+     ===================================================== */
   (function() {
     const body = document.body;
     const modeCards = document.querySelectorAll('.mode-card[data-mode]');
@@ -666,6 +309,7 @@
     function setMode(mode) {
       body.classList.remove('mode-cientifico', 'mode-yayo', 'mode-peque');
       if (mode !== 'ciudadano') body.classList.add('mode-' + mode);
+
       modeCards.forEach(c => c.classList.remove('active'));
       const activeCard = document.querySelector(`.mode-card[data-mode="${mode}"]`);
       if (activeCard) activeCard.classList.add('active');
@@ -679,12 +323,14 @@
       const cloudDiv = document.getElementById('pequeCloudSvg');
       const msgEl = document.getElementById('pequeMessage');
       const humanEl = document.getElementById('humanLine');
-      const subEl = document.getElementById('subLine');
+      const subEl = document.getElementById('subLine'); // Selección directa y segura por ID
+
       if (!cloudDiv || !msgEl) return;
 
       const cloudBase = `<circle cx="50" cy="50" r="32" fill="#fff" stroke="#888" stroke-width="2"/>
                          <circle cx="28" cy="48" r="22" fill="#fff" stroke="#888" stroke-width="2"/>
                          <circle cx="72" cy="48" r="22" fill="#fff" stroke="#888" stroke-width="2"/>`;
+
       const isWinking = Math.random() > 0.7;
       const eyes = (isWinking && estado === 'buena')
         ? `<line x1="34" y1="46" x2="40" y2="46" stroke="#333" stroke-width="2" stroke-linecap="round"/>
@@ -693,27 +339,38 @@
            <circle cx="63" cy="46" r="6" fill="#333"/>`;
 
       const variaciones = {
-        buena: [{ msg: '¡El aire está contento!', humano: '¡Hoy puedes jugar fuera todo el día!', sub: 'Cielo despejado.' }],
-        moderada: [{ msg: 'El aire está más o menos…', humano: 'Puedes salir, pero mejor sin correr mucho.', sub: 'Calidad aceptable.' }],
-        mala: [{ msg: 'El aire necesita mimos…', humano: 'Hoy mejor nos quedamos dentro a pintar.', sub: 'Demasiadas partículas en la calle.' }]
+        buena: [
+          { msg: '¡El aire está contento!', humano: '¡Hoy puedes jugar fuera todo el día!', sub: 'Cielo despejado.' }
+        ],
+        moderada: [
+          { msg: 'El aire está más o menos…', humano: 'Puedes salir, pero mejor sin correr mucho.', sub: 'Calidad aceptable.' }
+        ],
+        mala: [
+          { msg: 'El aire necesita mimos…', humano: 'Hoy mejor nos quedamos dentro a pintar.', sub: 'Demasiadas partículas en la calle.' }
+        ]
       };
 
       const estadoData = variaciones[estado] || variaciones.mala; 
       const seleccion = estadoData[Math.floor(Math.random() * estadoData.length)];
+
       let svg = '';
+
       if (estado === 'buena') {
         svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase} ${eyes}
+                 ${cloudBase}
+                 ${eyes}
                  <path d="M32 62 Q50 80 68 62" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
                </svg>`;
       } else if (estado === 'moderada') {
         svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase} ${eyes}
+                 ${cloudBase}
+                 ${eyes}
                  <line x1="32" y1="64" x2="68" y2="64" stroke="#333" stroke-width="3" stroke-linecap="round"/>
                </svg>`;
       } else {
         svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase} ${eyes}
+                 ${cloudBase}
+                 ${eyes}
                  <path d="M32 66 Q50 52 68 66" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
                  <rect x="30" y="56" width="40" height="14" rx="4" fill="#ddd" stroke="#666" stroke-width="2"/>
                  <line x1="30" y1="61" x2="70" y2="61" stroke="#666" stroke-width="2"/>
@@ -721,9 +378,11 @@
                  <line x1="72" y1="59" x2="82" y2="55" stroke="#666" stroke-width="2"/>
                </svg>`;
       }
+
       msgEl.textContent = seleccion.msg;
       if (humanEl) humanEl.textContent = seleccion.humano;
       if (subEl) subEl.textContent = seleccion.sub; 
+      
       cloudDiv.innerHTML = svg;
     }
     
@@ -739,93 +398,23 @@
       setVal('sciICA',  ica);
       setVal('sciUpdated', 'Actualizado: ' + hora);
     };
+
   })();
 
-  (function() {
-    const NIVELES = [100, 115, 130, 145];
-    let indice = 0;
-    try { indice = parseInt(localStorage.getItem('manolito_yayo_zoom') || '0', 10) || 0; } catch(e) {}
-    indice = Math.max(0, Math.min(indice, NIVELES.length - 1));
-    const controlesZoom = document.getElementById('yayoZoomControls');
-
-    function aplicarNivel() {
-        document.documentElement.style.fontSize = NIVELES[indice] + '%';
-        try { localStorage.setItem('manolito_yayo_zoom', String(indice)); } catch(e) {}
-    }
-    function quitarNivel() { document.documentElement.style.fontSize = ''; }
-
-    document.getElementById('yayoZoomMas')?.addEventListener('click', () => {
-        indice = Math.min(indice + 1, NIVELES.length - 1);
-        aplicarNivel();
-    });
-    document.getElementById('yayoZoomMenos')?.addEventListener('click', () => {
-        indice = Math.max(indice - 1, 0);
-        aplicarNivel();
-    });
-
-    document.querySelectorAll('.mode-card[data-mode]').forEach((card) => {
-        card.addEventListener('click', () => {
-            const modo = card.getAttribute('data-mode');
-            if (modo === 'yayo') {
-                if (controlesZoom) controlesZoom.style.display = 'flex';
-                aplicarNivel();
-            } else {
-                if (controlesZoom) controlesZoom.style.display = 'none';
-                quitarNivel();
-            }
-        });
-    });
-
-    if (document.body.classList.contains('mode-yayo')) {
-        if (controlesZoom) controlesZoom.style.display = 'flex';
-        aplicarNivel();
-    } else {
-        if (controlesZoom) controlesZoom.style.display = 'none';
-    }
-  })();
-
-  (function() {
-    const EMOJIS_PEQUE = ['✏️', '☀️', '🌙', '🌳', '⭐', '☁️'];
-    const capa = document.getElementById('pequeEmojiCapa');
-    if (!capa) return;
-    function lanzarEmoji() {
-      if (!document.body.classList.contains('mode-peque')) return;
-      const span = document.createElement('span');
-      span.className = 'peque-emoji-flotante';
-      span.textContent = EMOJIS_PEQUE[Math.floor(Math.random() * EMOJIS_PEQUE.length)];
-      span.style.left = (10 + Math.random() * 80) + '%';
-      span.style.top = (10 + Math.random() * 70) + '%';
-      capa.appendChild(span);
-      setTimeout(() => span.remove(), 2600);
-    }
-    setInterval(lanzarEmoji, 2400);
-  })();
-
-  (function() {
-    const btn = document.getElementById('topbarMenuBtn');
-    const panel = document.getElementById('topbarRight');
-    if (!btn || !panel) return;
-    btn.addEventListener('click', () => {
-      const abierto = panel.classList.toggle('open');
-      btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
-    });
-    window.addEventListener('resize', () => {
-      if (window.innerWidth > 720 && panel.classList.contains('open')) {
-        panel.classList.remove('open');
-        btn.setAttribute('aria-expanded', 'false');
-      }
-    });
-  })();
-
+  /* =====================================================
+     SELECTOR DE CIUDAD ELEGANTE
+     ===================================================== */
   (function() {
     const btn = document.getElementById('cityDropdownBtn');
     const list = document.getElementById('cityDropdownList');
     const items = list.querySelectorAll('li');
     const forecastCityName = document.getElementById('forecastCityName');
+
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       list.classList.toggle('open');
     });
+
     items.forEach(item => {
       item.addEventListener('click', () => {
         const value = item.getAttribute('data-value');
@@ -834,10 +423,14 @@
         items.forEach(i => i.classList.remove('selected'));
         item.classList.add('selected');
         list.classList.remove('open');
-        if (typeof window.setCurrentCity === 'function') window.setCurrentCity(value);
+
+        if (typeof window.setCurrentCity === 'function') {
+          window.setCurrentCity(value);
+        }
         if (forecastCityName) forecastCityName.textContent = text;
       });
     });
+
     document.addEventListener('click', () => list.classList.remove('open'));
   })();
 </script>

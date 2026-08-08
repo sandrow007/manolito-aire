@@ -88,6 +88,10 @@ const translations = {
     walkModeTracking: "Siguiendo tu posición…",
     darkMapOn: "Mapa oscuro",
     darkMapOff: "Mapa claro",
+    routeMapTitle: "Ruta y sombras 3D",
+    originPlaceholder: "Punto de origen",
+    destinationPlaceholder: "Punto de destino",
+    layerSun: "Posición del sol",
   },
   ca: {
     tagline: "MAPA NACIONAL · DADES EN VIU",
@@ -171,6 +175,10 @@ const translations = {
     walkModeTracking: "Seguint la teva posició…",
     darkMapOn: "Mapa fosc",
     darkMapOff: "Mapa clar",
+    routeMapTitle: "Ruta i ombres 3D",
+    originPlaceholder: "Punt d'origen",
+    destinationPlaceholder: "Punt de destí",
+    layerSun: "Posició del sol",
   },
   eu: {
     tagline: "ESTATU MAPA · ZUZENEKO DATUAK",
@@ -254,6 +262,10 @@ const translations = {
     walkModeTracking: "Zure kokapena jarraitzen…",
     darkMapOn: "Mapa iluna",
     darkMapOff: "Mapa argia",
+    routeMapTitle: "Ibilbidea eta itzal 3D",
+    originPlaceholder: "Jatorri puntua",
+    destinationPlaceholder: "Helmuga puntua",
+    layerSun: "Eguzkiaren posizioa",
   },
   gl: {
     tagline: "MAPA NACIONAL · DATOS EN VIVO",
@@ -337,6 +349,10 @@ const translations = {
     walkModeTracking: "Seguindo a túa posición…",
     darkMapOn: "Mapa escuro",
     darkMapOff: "Mapa claro",
+    routeMapTitle: "Ruta e sombras 3D",
+    originPlaceholder: "Punto de orixe",
+    destinationPlaceholder: "Punto de destino",
+    layerSun: "Posición do sol",
   },
   en: {
     tagline: "NATIONAL MAP · LIVE DATA",
@@ -420,6 +436,10 @@ const translations = {
     walkModeTracking: "Tracking your position…",
     darkMapOn: "Dark map",
     darkMapOff: "Light map",
+    routeMapTitle: "Route & 3D shadows",
+    originPlaceholder: "Starting point",
+    destinationPlaceholder: "Destination point",
+    layerSun: "Sun position",
   }
 };
 
@@ -468,3 +488,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// Enganche explícito a window: otros scripts (shadows-route.js) leen estas
+// funciones desde window en vez de asumir que las variables de nivel
+// superior de este <script> se ven directamente desde el suyo — si el
+// bundler/orden de carga aísla cada script en su propio scope, esto sigue
+// funcionando igual porque window es siempre el mismo objeto global.
+window.translations = translations;
+window.getMessages = getMessages;
+window.applyTranslations = applyTranslations;
+window.setLang = setLang;

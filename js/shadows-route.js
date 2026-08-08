@@ -29,7 +29,7 @@
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
     velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
-    styleUrl: 'https://tiles.openfreemap.org/styles/liberty', // vector tiles gratis, sin key
+    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', // vector tiles gratis, sin key
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
@@ -38,6 +38,20 @@
     loteSombraSize: 30, // nº de edificios que se procesan antes de ceder el hilo al navegador
     duracionVueloInicialMs: 2000,
   };
+
+  /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
+  // i18n.js define `translations` / `getMessages()` en el scope global del
+  // documento (se carga antes que este script). t(clave) tira de ahí; si
+  // por lo que sea i18n.js no está cargado, cae al texto en español.
+  function t(clave, fallback) {
+    try {
+      if (typeof getMessages === 'function') {
+        const msg = getMessages();
+        if (msg && msg[clave] != null) return msg[clave];
+      }
+    } catch (e) { /* seguimos con el fallback */ }
+    return fallback != null ? fallback : clave;
+  }
 
   function leerVar(nombre) {
     return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
@@ -77,7 +91,7 @@
 
   const map = new maplibregl.Map({
     container: 'shadowRouteMap',
-    style: CONFIG.styleUrl,
+    style: CONFIG.styleUrlClaro,
     center: CONFIG.centroInicial,
     zoom: Math.max(CONFIG.zoomInicial - 2.3, 1),
     pitch: 0,
@@ -161,6 +175,33 @@
       },
     });
 
+    // Círculo de precisión de la geolocalización: capa PROPIA de relleno
+    // (fill), separada de la de puntos-marcador. Antes se metía el polígono
+    // del círculo en la misma fuente que pinta puntos como círculos de 7px
+    // — y MapLibre, con una capa "circle", dibuja un marcador en CADA
+    // vértice del polígono (48 vértices = 48 puntitos alrededor del real).
+    // Con su propia capa "fill" se pinta como un área translúcida, no como
+    // puntos sueltos.
+    map.addSource('precision-ubicacion', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer(
+      {
+        id: 'capa-precision-ubicacion',
+        type: 'fill',
+        source: 'precision-ubicacion',
+        paint: { 'fill-color': leerVar('--accent') || '#F4A66B', 'fill-opacity': 0.12 },
+      },
+      'capa-puntos-manuales'
+    );
+    map.addLayer(
+      {
+        id: 'capa-precision-ubicacion-borde',
+        type: 'line',
+        source: 'precision-ubicacion',
+        paint: { 'line-color': leerVar('--accent') || '#F4A66B', 'line-width': 1, 'line-opacity': 0.4 },
+      },
+      'capa-puntos-manuales'
+    );
+
     // Capa de cielo nativa de MapLibre: oculta hasta que se active el toggle del sol
     map.addLayer({
       id: 'cielo-sol',
@@ -175,6 +216,7 @@
 
     inyectarControlesTiempo();
     inyectarControlesMapa();
+    inyectarSolVisual();
     conectarTogglesDeCapas();
     // La activación real (caché de edificios + primer cálculo de sombras +
     // iluminación) se difiere a la primera vez que hace falta — al abrir el
@@ -203,6 +245,11 @@
     if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
   }, 220);
   map.on('moveend', alTerminarMovimiento);
+
+  // El sol visual (proyectado en pantalla) sí tiene que seguir el
+  // movimiento de la cámara en tiempo real (no solo al terminar de mover),
+  // para que "se vea moverse" mientras giras o desplazas el mapa.
+  map.on('move', () => actualizarSolVisualEnMapa());
 
   let solarActivado = false;
   function asegurarActivacionSolar() {
@@ -292,7 +339,7 @@
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
       ultimaColeccionSombras = turf.featureCollection([]);
-      mostrarAvisoSol('El sol está bajo el horizonte a esa hora — no hay sombras que proyectar.');
+      mostrarAvisoSol(t('sunBelow', 'El sol está bajo el horizonte a esa hora — no hay sombras que proyectar.'));
       return;
     }
     mostrarAvisoSol('');
@@ -374,10 +421,11 @@
   }, 60 * 1000);
 
   /* ---------------- Widget de posición del sol (estilo "sun tool" de Google Earth) ---------------- */
-  // No montamos ningún cajetín aparte: cambiamos la luz y el cielo del
-  // propio mapa 3D según la posición real (o simulada) del sol — como el
-  // "Sun" de Google Earth. Usa las APIs nativas de MapLibre: map.setLight()
-  // (sombreado de los edificios) + capa "sky" (color del cielo/atardecer).
+  // Cambiamos la luz y el cielo del propio mapa 3D según la posición real
+  // (o simulada) del sol — como el "Sun" de Google Earth — y ADEMÁS
+  // pintamos un sol real (un disco brillante) proyectado sobre el mapa,
+  // que se desplaza al girar/mover la cámara, para que se note de un
+  // vistazo por dónde entra la luz — no solo un cambio de tono ambiental.
 
   let puntoReferenciaSol = null; // { lat, lon } — se actualiza al buscar ruta
   let rutaActual = null; // GeoJSON Feature<LineString> de la última ruta real calculada — para recolorear sol/sombra al cambiar la hora
@@ -430,6 +478,7 @@
       // Apagado: luz neutra de fábrica, sin cielo de atmósfera
       map.setLayoutProperty('cielo-sol', 'visibility', 'none');
       map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: 0.35, position: [1.5, 0, 40] });
+      actualizarSolVisualEnMapa();
       return;
     }
 
@@ -449,6 +498,60 @@
     map.setLayoutProperty('cielo-sol', 'visibility', 'visible');
     map.setPaintProperty('cielo-sol', 'sky-atmosphere-sun', [azimutDeg, polar]);
     map.setPaintProperty('cielo-sol', 'sky-atmosphere-sun-intensity', bajoHorizonte ? 3 : 12);
+
+    actualizarSolVisualEnMapa();
+  }
+
+  // ---- Sol visual: un disco brillante proyectado sobre el mapa, en la
+  // dirección real del sol relativa a hacia dónde estás mirando (bearing
+  // de la cámara). Se actualiza al mover/girar el mapa y al cambiar la
+  // hora — así, al desplazar el mapa, se ve moverse de verdad.
+  function inyectarSolVisual() {
+    if (document.getElementById('rsSolVisual')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsSolVisualEstilos';
+    estilo.textContent = `
+      #rsSolVisual{
+        position:absolute; width:34px; height:34px; border-radius:50%;
+        background:radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
+        box-shadow:0 0 22px 10px rgba(255,207,122,0.55);
+        transform:translate(-50%,-50%);
+        pointer-events:none; z-index:4; display:none;
+        transition:left .25s linear, top .25s linear, opacity .25s ease;
+      }
+    `;
+    document.head.appendChild(estilo);
+    const sol = document.createElement('div');
+    sol.id = 'rsSolVisual';
+    contenedorMapa.appendChild(sol);
+  }
+
+  function actualizarSolVisualEnMapa() {
+    const el = document.getElementById('rsSolVisual');
+    const tSol = document.getElementById('rsToggleSol');
+    if (!el) return;
+    if (!tSol || !tSol.checked) { el.style.display = 'none'; return; }
+
+    const { azimutDeg, alturaDeg } = calcularAnguloSol();
+    if (alturaDeg <= 0) { el.style.display = 'none'; return; }
+
+    const rect = contenedorMapa.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    // Ángulo del sol relativo a hacia dónde mira la cámara ahora mismo
+    const anguloRelativo = ((azimutDeg - map.getBearing()) * Math.PI) / 180;
+    const cx = rect.width / 2;
+    const cy = rect.height * 0.55;
+    const radioOrbita = Math.min(rect.width, rect.height) * 0.44;
+    const factorAltura = Math.min(alturaDeg, 90) / 90; // 0 = raso al horizonte, 1 = cenit
+
+    const x = cx + radioOrbita * Math.sin(anguloRelativo);
+    const y = cy - radioOrbita * factorAltura * 0.9 - rect.height * 0.04;
+
+    el.style.left = `${Math.max(16, Math.min(rect.width - 16, x))}px`;
+    el.style.top = `${Math.max(16, Math.min(rect.height - 16, y))}px`;
+    el.style.opacity = String(0.55 + factorAltura * 0.45);
+    el.style.display = 'block';
   }
 
   function actualizarBadgeHoraDorada(fechaEfectiva, lat, lon) {
@@ -462,25 +565,25 @@
     try {
       const tiempos = SunCalc.getTimes(fechaEfectiva, lat, lon);
       solarNoonMs = tiempos.solarNoon.getTime();
-      const t = fechaEfectiva.getTime();
+      const t2 = fechaEfectiva.getTime();
       const enDorada =
-        (t >= tiempos.sunrise.getTime() && t <= tiempos.goldenHourEnd.getTime()) ||
-        (t >= tiempos.goldenHour.getTime() && t <= tiempos.sunset.getTime());
+        (t2 >= tiempos.sunrise.getTime() && t2 <= tiempos.goldenHourEnd.getTime()) ||
+        (t2 >= tiempos.goldenHour.getTime() && t2 <= tiempos.sunset.getTime());
       const enAzul =
-        (t >= tiempos.dawn.getTime() && t <= tiempos.sunrise.getTime()) ||
-        (t >= tiempos.sunset.getTime() && t <= tiempos.dusk.getTime());
+        (t2 >= tiempos.dawn.getTime() && t2 <= tiempos.sunrise.getTime()) ||
+        (t2 >= tiempos.sunset.getTime() && t2 <= tiempos.dusk.getTime());
       estado = enDorada ? 'dorada' : enAzul ? 'azul' : null;
     } catch (e) { /* sin datos de horario fiables, seguimos sin badge */ }
 
     if (badge) {
       if (estado === 'dorada') {
-        badge.textContent = 'Hora dorada';
+        badge.textContent = t('goldenHour', 'Hora dorada');
         badge.style.visibility = 'visible';
         badge.style.color = '#e7b06a';
         badge.style.background = '#e7b06a22';
         badge.style.borderColor = '#e7b06a55';
       } else if (estado === 'azul') {
-        badge.textContent = 'Hora azul';
+        badge.textContent = t('blueHour', 'Hora azul');
         badge.style.visibility = 'visible';
         badge.style.color = '#7fb3c9';
         badge.style.background = '#7fb3c922';
@@ -548,7 +651,11 @@
   function actualizarEtiquetaTiempo(contexto) {
     if (!etiquetaTiempo) return;
     const fecha = obtenerFechaDelSlider();
-    const prefijo = contexto === 'verano' ? 'Solsticio de verano · ' : contexto === 'invierno' ? 'Solsticio de invierno · ' : modoManual ? 'Simulando · ' : 'Ahora · ';
+    const prefijo =
+      contexto === 'verano' ? t('summerSolstice', 'Solsticio de verano') + ' · ' :
+      contexto === 'invierno' ? t('winterSolstice', 'Solsticio de invierno') + ' · ' :
+      modoManual ? t('simulating', 'Simulando') + ' · ' :
+      t('now', 'Ahora') + ' · ';
     etiquetaTiempo.textContent = prefijo + formatoHora(fecha);
   }
 
@@ -644,6 +751,7 @@
 
   let modoClickMapa = false;
   let puntoOrigenPendiente = null; // { lat, lon } mientras se espera el segundo clic
+  let btnModoClickRef = null;
 
   function inyectarEstilosMapaControles() {
     if (document.getElementById('rsMapaEstilos')) return;
@@ -651,7 +759,7 @@
     estilo.id = 'rsMapaEstilos';
     estilo.textContent = `
       #rsMapControls{
-        position:absolute; left:12px; top:12px; z-index:5; display:flex; gap:6px;
+        position:absolute; left:12px; top:12px; z-index:5; display:flex; gap:6px; flex-wrap:wrap;
       }
       #rsMapControls button{
         font-family:inherit; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
@@ -676,15 +784,24 @@
 
     const btnModoClick = document.createElement('button');
     btnModoClick.type = 'button';
-    btnModoClick.textContent = 'Elegir en el mapa';
+    btnModoClick.id = 'rsBtnPickMap';
+    btnModoClick.textContent = t('pickMap', 'Elegir en el mapa');
+    btnModoClickRef = btnModoClick;
 
     const btnUbicacion = document.createElement('button');
     btnUbicacion.type = 'button';
-    btnUbicacion.textContent = 'Mi ubicación';
+    btnUbicacion.id = 'rsBtnMyLocation';
+    btnUbicacion.textContent = t('myLocation', 'Mi ubicación');
+
+    const btnCaminar = document.createElement('button');
+    btnCaminar.type = 'button';
+    btnCaminar.id = 'rsBtnWalk';
+    btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
 
     function salirDeModoClick() {
       modoClickMapa = false;
       puntoOrigenPendiente = null;
+      esperandoSoloDestino = false;
       btnModoClick.classList.remove('rs-activo');
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
     }
@@ -697,60 +814,134 @@
       }
       modoClickMapa = true;
       puntoOrigenPendiente = null;
+      esperandoSoloDestino = false;
       btnModoClick.classList.add('rs-activo');
-      mostrarEstado('Haz clic en el mapa para marcar el origen.');
+      mostrarEstado(t('clickOrigin', 'Haz clic en el mapa para marcar el origen.'));
     });
+
+    // Cuando el origen ya se fijó por geolocalización, un solo clic en el
+    // mapa debe bastar para poner el destino y lanzar la ruta sola — sin
+    // tener que activar antes el botón "Elegir en el mapa".
+    let esperandoSoloDestino = false;
+    let origenParaAutoRuta = null;
 
     btnUbicacion.addEventListener('click', () => {
       if (!('geolocation' in navigator)) {
-        mostrarEstado('Este navegador no permite compartir tu ubicación.', 'error');
+        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
         return;
       }
-      mostrarEstado('Pidiendo permiso de ubicación…');
+      mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicación…'));
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
           const precisionM = Math.round(pos.coords.accuracy || 0);
 
-          seleccionPorInput.set(inputOrigen, { lat, lon, nombre: 'Mi ubicación', texto: 'Mi ubicación' });
-          inputOrigen.value = 'Mi ubicación';
+          seleccionPorInput.set(inputOrigen, { lat, lon, nombre: t('myLocation', 'Mi ubicación'), texto: t('myLocation', 'Mi ubicación') });
+          inputOrigen.value = t('myLocation', 'Mi ubicación');
 
-          // Punto + círculo de precisión: el navegador (sin GPS de verdad,
-          // en portátil/sobremesa o interiores) da una estimación por
-          // wifi/IP, no la posición exacta — este círculo es justo ese
-          // margen de error que reporta el propio dispositivo, para que se
-          // vea por qué el punto puede no caer justo encima de ti.
+          // Un único punto — el círculo de precisión (si el navegador lo
+          // reporta) se pinta como área translúcida en su propia capa, no
+          // como puntos-marcador sueltos.
           const puntoUbicacion = turf.point([lon, lat]);
-          const circuloPrecision = precisionM > 0
-            ? turf.circle([lon, lat], precisionM / 1000, { units: 'kilometers', steps: 48 })
-            : null;
-          map.getSource('puntos-manuales')?.setData(
-            turf.featureCollection(circuloPrecision ? [circuloPrecision, puntoUbicacion] : [puntoUbicacion])
-          );
+          map.getSource('puntos-manuales')?.setData(turf.featureCollection([puntoUbicacion]));
+          if (precisionM > 0) {
+            const circuloPrecision = turf.circle([lon, lat], precisionM / 1000, { units: 'kilometers', steps: 48 });
+            map.getSource('precision-ubicacion')?.setData(turf.featureCollection([circuloPrecision]));
+          } else {
+            map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
+          }
 
           const notaPrecision = precisionM > 0
-            ? ` (precisión reportada por el navegador: ±${precisionM} m — sin GPS real puede ser orientativa)`
+            ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m — ${t('locationNote', 'sin GPS real puede ser orientativa')})`
             : '';
-          mostrarEstado(`Ubicación marcada como origen${notaPrecision} — elige el destino.`, 'ok');
+          mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision} — ${t('chooseDestination', 'toca un punto del mapa para poner el destino.')}`, 'ok');
           map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
+
+          // Se arma el modo "un solo clic": el próximo clic en el mapa
+          // se toma como destino y lanza la búsqueda automáticamente.
+          origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicación') };
+          esperandoSoloDestino = true;
+          modoClickMapa = true;
+          puntoOrigenPendiente = null; // ya lo tenemos aparte, en origenParaAutoRuta
+          btnModoClick.classList.add('rs-activo');
         },
-        () => mostrarEstado('No se ha podido obtener tu ubicación (¿has denegado el permiso?).', 'error'),
+        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     });
 
-    panelMapa.append(btnModoClick, btnUbicacion);
+    /* ---- Modo caminar: sigue tu posición en vivo mientras te mueves ---- */
+    let watchId = null;
+    let marcadorCaminando = null;
+
+    function detenerCaminata() {
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+      if (marcadorCaminando) { marcadorCaminando.remove(); marcadorCaminando = null; }
+      btnCaminar.classList.remove('rs-activo');
+      btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
+    }
+
+    btnCaminar.addEventListener('click', () => {
+      if (watchId != null) { detenerCaminata(); mostrarEstado(''); return; }
+      if (!('geolocation' in navigator)) {
+        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
+        return;
+      }
+      btnCaminar.classList.add('rs-activo');
+      btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
+      mostrarEstado(t('walkModeTracking', 'Siguiendo tu posición…'));
+
+      const el = document.createElement('div');
+      el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#1C3144'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#1C3144')}33;`;
+      marcadorCaminando = new maplibregl.Marker({ element: el });
+
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude, lon = pos.coords.longitude;
+          if (!marcadorCaminando.getLngLat) marcadorCaminando.addTo(map);
+          marcadorCaminando.setLngLat([lon, lat]);
+          if (!marcadorCaminando._map) marcadorCaminando.addTo(map);
+          map.easeTo({ center: [lon, lat], duration: 600 });
+          puntoReferenciaSol = { lat, lon };
+          if (rutaActual) actualizarTramosSombraRuta();
+        },
+        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 }
+      );
+    });
+
+    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar);
     contenedorMapa.appendChild(panelMapa);
 
     map.on('click', (e) => {
       if (!modoClickMapa) return;
       const { lat, lng } = e.lngLat;
 
+      // Caso "un solo clic": origen ya fijado por geolocalización, este
+      // clic es directamente el destino y dispara la búsqueda.
+      if (esperandoSoloDestino && origenParaAutoRuta) {
+        const origenFijado = origenParaAutoRuta;
+        const destinoFijado = { lat, lon: lng };
+        map.getSource('puntos-manuales')?.setData(turf.featureCollection([
+          turf.point([origenFijado.lon, origenFijado.lat]),
+          turf.point([lng, lat]),
+        ]));
+        inputDestino.value = t('pointMap', 'Punto marcado en el mapa');
+        salirDeModoClick();
+        manejarBusqueda(
+          { ...origenFijado },
+          { ...destinoFijado, nombre: t('pointMap', 'Punto marcado en el mapa') }
+        );
+        geocodificarInverso(lat, lng).then((nombre) => { inputDestino.value = nombre; });
+        return;
+      }
+
       if (!puntoOrigenPendiente) {
         puntoOrigenPendiente = { lat, lon: lng };
         map.getSource('puntos-manuales')?.setData(turf.featureCollection([turf.point([lng, lat])]));
-        inputOrigen.value = 'Punto marcado en el mapa';
-        mostrarEstado('Origen marcado — haz clic en el destino.');
+        inputOrigen.value = t('pointMap', 'Punto marcado en el mapa');
+        mostrarEstado(t('clickDestiny', 'Origen marcado — haz clic en el destino.'));
         geocodificarInverso(lat, lng).then((nombre) => { inputOrigen.value = nombre; });
         return;
       }
@@ -761,14 +952,14 @@
         turf.point([origenFijado.lon, origenFijado.lat]),
         turf.point([lng, lat]),
       ]));
-      inputDestino.value = 'Punto marcado en el mapa';
+      inputDestino.value = t('pointMap', 'Punto marcado en el mapa');
       salirDeModoClick();
       // Búsqueda con los puntos ya resueltos: sin pasar por el emparejamiento
       // texto<->input, así el reverse-geocoding (que solo pone bonito el
       // nombre después) no puede llegar a pisarla a mitad de camino.
       manejarBusqueda(
-        { ...origenFijado, nombre: 'Punto marcado en el mapa' },
-        { ...destinoFijado, nombre: 'Punto marcado en el mapa' }
+        { ...origenFijado, nombre: t('pointMap', 'Punto marcado en el mapa') },
+        { ...destinoFijado, nombre: t('pointMap', 'Punto marcado en el mapa') }
       );
       geocodificarInverso(origenFijado.lat, origenFijado.lon).then((nombre) => { inputOrigen.value = nombre; });
       geocodificarInverso(lat, lng).then((nombre) => { inputDestino.value = nombre; });
@@ -788,7 +979,8 @@
     cabecera.className = 'rs-cabecera';
     const eyebrow = document.createElement('span');
     eyebrow.className = 'rs-eyebrow';
-    eyebrow.textContent = 'Posición solar';
+    eyebrow.id = 'rsEyebrowSol';
+    eyebrow.textContent = t('sunPosition', 'Posición solar');
 
     const svgSol = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svgSol.setAttribute('viewBox', '0 0 60 34');
@@ -835,7 +1027,7 @@
     const badgeDorada = document.createElement('span');
     badgeDorada.id = 'rsGoldenBadge';
     badgeDorada.style.visibility = 'hidden'; // reserva el hueco desde el principio: el panel no cambia de tamaño al aparecer
-    badgeDorada.textContent = 'Hora dorada';
+    badgeDorada.textContent = t('goldenHour', 'Hora dorada');
     filaEtiqueta.append(etiquetaTiempo, badgeDorada);
 
     sliderTiempo = document.createElement('input');
@@ -862,17 +1054,18 @@
     const filaBotones = document.createElement('div');
     filaBotones.className = 'rs-botones';
 
-    function crearBoton(texto) {
+    function crearBoton(texto, id) {
       const b = document.createElement('button');
       b.type = 'button';
+      if (id) b.id = id;
       b.textContent = texto;
       return b;
     }
 
-    const btnAhora = crearBoton('Ahora');
-    const btnVerano = crearBoton('Verano');
-    const btnInvierno = crearBoton('Invierno');
-    const btnCapturar = crearBoton('Capturar vista');
+    const btnAhora = crearBoton(t('now', 'Ahora'), 'rsBtnAhora');
+    const btnVerano = crearBoton(t('btnSummer', 'Verano'), 'rsBtnVerano');
+    const btnInvierno = crearBoton(t('btnWinter', 'Invierno'), 'rsBtnInvierno');
+    const btnCapturar = crearBoton(t('captureView', 'Capturar vista'), 'rsBtnCapturar');
     btnCapturar.className = 'rs-btn-capturar';
 
     btnAhora.addEventListener('click', () => {
@@ -909,6 +1102,51 @@
     actualizarEtiquetaTiempo(false);
   }
 
+  /* ---------------- Capa de mapa oscura ---------------- */
+  // OpenFreeMap no ofrece un estilo "dark" gratuito propio, así que en vez
+  // de depender de otro proveedor de tiles (con su propia clave/límites),
+  // aplicamos un filtro CSS al lienzo del mapa — la técnica estándar para
+  // tener un "dark mode" de cualquier mapa vectorial sin cambiar de fuente
+  // de datos. Nuestras propias capas (sombras, ruta, sol) se recolorean a
+  // la vez para que sigan viéndose bien encima.
+  let mapaOscuro = false;
+  function inyectarControlToggleMapaOscuro() {
+    if (document.getElementById('rsMapStyleToggle')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsMapStyleToggleEstilos';
+    estilo.textContent = `
+      #rsMapStyleToggle{
+        position:absolute; right:12px; bottom:12px; z-index:5;
+      }
+      #rsMapStyleToggle button{
+        font-family:inherit; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
+        font-weight:700; padding:8px 12px; border-radius:12px 3px 12px 3px;
+        border:1px solid #ffffff1f; border-right:2px solid #c98a4b;
+        background:linear-gradient(160deg,#262c38,#1b2029 70%); color:#e9e4d8;
+        cursor:pointer; box-shadow:0 8px 18px rgba(0,0,0,.28);
+      }
+      #rsMapStyleToggle button:hover{ background:#c98a4b22; }
+      .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
+        filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
+      }
+    `;
+    document.head.appendChild(estilo);
+
+    const wrap = document.createElement('div');
+    wrap.id = 'rsMapStyleToggle';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'rsBtnMapaOscuro';
+    btn.textContent = t('darkMapOn', 'Mapa oscuro');
+    btn.addEventListener('click', () => {
+      mapaOscuro = !mapaOscuro;
+      contenedorMapa.classList.toggle('rs-mapa-oscuro-activo', mapaOscuro);
+      btn.textContent = mapaOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
+    });
+    wrap.appendChild(btn);
+    contenedorMapa.appendChild(wrap);
+  }
+
   /* ---------------- Captura/compartir: exportar la vista actual como imagen ---------------- */
 
   function capturarVista() {
@@ -929,13 +1167,15 @@
       // "manchado" (tainted) y toDataURL lanza SecurityError — no hay forma
       // de evitarlo desde el cliente, solo avisamos con claridad.
       console.error('No se ha podido exportar la vista como imagen:', e);
-      mostrarEstado('No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.', 'error');
+      mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
     }
   }
 
   /* ---------------- Toggles de capas ---------------- */
 
   function conectarTogglesDeCapas() {
+    inyectarControlToggleMapaOscuro();
+
     const tEdificios = document.getElementById('rsToggleEdificios');
     const tSombras = document.getElementById('rsToggleSombras');
     const tRuta = document.getElementById('rsToggleRuta');
@@ -1007,7 +1247,7 @@
       await new Promise((r) => setTimeout(r, 350));
     }
 
-    throw new Error(`No se ha encontrado: "${direccionTexto}". Prueba a escribirla como "calle, número, ciudad".`);
+    throw new Error(`${t('notFound', 'No se ha encontrado')}: "${direccionTexto}". ${t('tryFormat', 'Prueba a escribirla como calle, número, ciudad')}.`);
   }
 
   async function geocodificarInverso(lat, lon) {
@@ -1086,10 +1326,10 @@
   }
 
   function clasificarAQI(valor) {
-    if (valor == null || Number.isNaN(valor)) return { etiqueta: 'Sin datos', color: leerVar('--sky-mid') };
-    if (valor <= 50) return { etiqueta: 'Buena', color: leerVar('--breath-good') };
-    if (valor <= 100) return { etiqueta: 'Moderada', color: leerVar('--breath-mid') };
-    return { etiqueta: 'Mala', color: leerVar('--breath-bad') };
+    if (valor == null || Number.isNaN(valor)) return { etiqueta: t('aqiNoData', 'Sin datos'), color: leerVar('--sky-mid') };
+    if (valor <= 50) return { etiqueta: t('aqiGood', 'Buena'), color: leerVar('--breath-good') };
+    if (valor <= 100) return { etiqueta: t('aqiModerate', 'Moderada'), color: leerVar('--breath-mid') };
+    return { etiqueta: t('aqiBad', 'Mala'), color: leerVar('--breath-bad') };
   }
 
   function pintarPanelAQI(current) {
@@ -1129,12 +1369,12 @@
 
     marcadorOrigen = new maplibregl.Marker({ element: pin(leerVar('--accent') || '#F4A66B') })
       .setLngLat([origen.lon, origen.lat])
-      .setPopup(new maplibregl.Popup().setHTML(`<b>Origen</b><br>${origen.nombre}`))
+      .setPopup(new maplibregl.Popup().setHTML(`<b>${t('origin', 'Origen')}</b><br>${origen.nombre}`))
       .addTo(map);
 
     marcadorDestino = new maplibregl.Marker({ element: pin(leerVar('--sky-deep') || '#1C3144') })
       .setLngLat([destino.lon, destino.lat])
-      .setPopup(new maplibregl.Popup().setHTML(`<b>Destino</b><br>${destino.nombre}`))
+      .setPopup(new maplibregl.Popup().setHTML(`<b>${t('destiny', 'Destino')}</b><br>${destino.nombre}`))
       .addTo(map);
   }
 
@@ -1152,7 +1392,7 @@
 
   function ponerCargando(cargando) {
     btnBuscar.disabled = cargando;
-    btnBuscar.textContent = cargando ? 'Buscando…' : 'Buscar ruta';
+    btnBuscar.textContent = cargando ? t('searching', 'Buscando…') : t('searchBtn', 'Buscar ruta');
   }
 
   /* ---------------- Autocompletado tipo Google (Nominatim) ---------------- */
@@ -1248,7 +1488,7 @@
     function pintarSugerencias(resultados, textoOriginal) {
       ultimosResultados = [];
       if (!resultados || resultados.length === 0) {
-        contenedor.innerHTML = '<li class="rs-sug-empty">Sin resultados</li>';
+        contenedor.innerHTML = `<li class="rs-sug-empty">${t('noResults', 'Sin resultados')}</li>`;
         contenedor.style.display = 'block';
         return;
       }
@@ -1327,32 +1567,33 @@
     const textoOrigen = inputOrigen.value.trim();
     const textoDestino = inputDestino.value.trim();
     if (!textoOrigen || !textoDestino) {
-      mostrarEstado('Introduce origen y destino.', 'error');
+      mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
       return;
     }
 
     ponerCargando(true);
-    mostrarEstado('Geocodificando direcciones…');
+    mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
 
     try {
       const [origen, destino] = await Promise.all([resolverPunto(inputOrigen), resolverPunto(inputDestino)]);
       await ejecutarBusquedaConPuntos(origen, destino);
     } catch (err) {
       console.error(err);
-      mostrarEstado(err.message || 'Error al buscar la ruta. Inténtalo de nuevo.', 'error');
+      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
       ponerCargando(false);
     }
   }
 
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
-    mostrarEstado('Calculando ruta real por calles…');
+    mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
 
     try {
       const ruta = await calcularRutaReal(origen, destino);
 
       map.getSource('ruta').setData(turf.feature(ruta.geojson));
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
+      map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       pintarMarcadores(origen, destino);
 
       const bounds = ruta.geojson.coordinates.reduce(
@@ -1369,10 +1610,10 @@
       await actualizarTramosSombraRuta();
 
       if (ruta.esReal) {
-        const nota = ruta.duracionEstimada ? ' (tiempo estimado a paso normal)' : '';
-        mostrarEstado(`Ruta real: ${ruta.distanciaKm} km · ${ruta.duracionMin} min a pie${nota}.`, 'ok');
+        const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
+        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}.`, 'ok');
       } else {
-        mostrarEstado('No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.', 'error');
+        mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
       }
 
       try {
@@ -1383,7 +1624,7 @@
       }
     } catch (err) {
       console.error(err);
-      mostrarEstado(err.message || 'Error al buscar la ruta. Inténtalo de nuevo.', 'error');
+      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
     } finally {
       ponerCargando(false);
     }
@@ -1399,4 +1640,30 @@
   document.getElementById('themeToggle')?.addEventListener('click', () => setTimeout(() => {
     if (map.getLayer('capa-ruta')) map.setPaintProperty('capa-ruta', 'line-color', leerVar('--accent'));
   }, 50));
+
+  /* ---------------- Re-traducir los textos que este script controla directamente ---------------- */
+  // Los textos generados dinámicamente (botones creados por JS, badges,
+  // eyebrow del panel solar) no los pilla el sistema data-i18n de las
+  // plantillas — se refrescan aquí cuando el usuario cambia de idioma.
+  document.addEventListener('langChanged', () => {
+    if (btnModoClickRef) btnModoClickRef.textContent = t('pickMap', 'Elegir en el mapa');
+    const btnLoc = document.getElementById('rsBtnMyLocation');
+    if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicación');
+    const btnWalk = document.getElementById('rsBtnWalk');
+    if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
+    const btnDark = document.getElementById('rsBtnMapaOscuro');
+    if (btnDark) btnDark.textContent = mapaOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
+    const eyebrow = document.getElementById('rsEyebrowSol');
+    if (eyebrow) eyebrow.textContent = t('sunPosition', 'Posición solar');
+    const btnCapturar = document.getElementById('rsBtnCapturar');
+    if (btnCapturar) btnCapturar.textContent = t('captureView', 'Capturar vista');
+    const btnAhora = document.getElementById('rsBtnAhora');
+    if (btnAhora) btnAhora.textContent = t('now', 'Ahora');
+    const btnVerano = document.getElementById('rsBtnVerano');
+    if (btnVerano) btnVerano.textContent = t('btnSummer', 'Verano');
+    const btnInvierno = document.getElementById('rsBtnInvierno');
+    if (btnInvierno) btnInvierno.textContent = t('btnWinter', 'Invierno');
+    ponerCargando(false); // re-pinta el texto del botón "Buscar ruta" en el idioma nuevo
+    if (etiquetaTiempo) actualizarEtiquetaTiempo(false);
+  });
 })();

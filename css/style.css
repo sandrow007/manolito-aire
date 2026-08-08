@@ -58,11 +58,16 @@ a{ color: var(--sky-mid); }
 
 /* ---------- barra superior, común a todas las páginas ---------- */
 .topbar{
-  display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+  justify-content: flex-start;
   padding: 16px 24px;
   border-bottom: 1px solid var(--line);
   background: var(--paper);
   position: sticky; top:0; z-index: 30;
+}
+.topbar-right{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  margin-left: auto;
 }
 .wordmark{
   font-family: var(--font-display); font-weight:600; font-size: 1.2rem;
@@ -99,8 +104,6 @@ a{ color: var(--sky-mid); }
   padding: 6px 14px; border-radius: 999px; margin-bottom: 26px;
 }
 .city-picker select{ border:none; background:transparent; font-family:var(--font-mono); font-size:0.72rem; color: var(--sky-deep); font-weight:600; }
-/* los <option> de un <select> los pinta el sistema operativo, no el CSS de la web,
-   así que hay que forzar fondo/texto explícitos o en modo oscuro salen invisibles */
 select{ color-scheme: light dark; }
 select, select option{ background: var(--paper); color: var(--sky-deep); }
 
@@ -166,8 +169,6 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .popup-tech{ font-family:var(--font-mono); font-size:0.66rem; color:var(--sky-mid); }
 .popup-tag{ font-size:0.63rem; color:var(--accent); font-family:var(--font-mono); margin-top:4px; display:block; }
 
-/* Leaflet trae sus controles con fondo blanco fijo por defecto —
-   en modo oscuro hay que forzarlos o se quedan como un bloque blanco encima del mapa */
 [data-theme="dark"] .leaflet-control-zoom a{ background:var(--mist); color:var(--ink); border-color:var(--line); }
 [data-theme="dark"] .leaflet-control-zoom a:hover{ background:var(--sky-deep); color:var(--paper); }
 [data-theme="dark"] .leaflet-popup-content-wrapper,
@@ -265,7 +266,7 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .chart-tooltip b{ display:block; font-size:0.78rem; }
 .chart-tooltip span{ color: var(--accent); font-size:0.64rem; }
 
-/* ---------- semana cuántica: 7 columnas finas, sin aspecto de librería de charts ---------- */
+/* ---------- semana cuántica ---------- */
 .week-label{ font-family:var(--font-mono); font-size:0.64rem; color:var(--sky-mid); text-transform:uppercase; letter-spacing:0.06em; margin:18px 0 8px; }
 .quantum-week{ display:flex; gap:6px; align-items:flex-end; height:70px; }
 .week-day{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; cursor:default; }
@@ -297,316 +298,114 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .qday-seg{ height:100%; transition:width 0.6s ease; }
 .qday-dominant{ width:78px; text-align:right; font-family:var(--font-display); font-weight:600; font-size:0.78rem; color:var(--sky-deep); flex-shrink:0; }
 
+.yayo-zoom-controls { display: none; }
 
 /* ============================================================
    MEJORAS PARA LOS MODOS (CIENTÍFICO, YAYO, PEQUE)
    ============================================================ */
 
-/* ---------- CIENTÍFICO ---------- */
-body.mode-cientifico .orb-face {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 2.6rem;
-  font-weight: 500;
-}
-body.mode-cientifico .human-line {
-  font-family: 'IBM Plex Mono', monospace;
-}
-body.mode-cientifico .tech-readout {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 1rem;
-  color: var(--text-soft, #555);
-}
+body.mode-cientifico .orb-face { font-family: 'IBM Plex Mono', monospace; font-size: 2.6rem; font-weight: 500; }
+body.mode-cientifico .human-line { font-family: 'IBM Plex Mono', monospace; }
+body.mode-cientifico .tech-readout { font-family: 'IBM Plex Mono', monospace; font-size: 1rem; color: var(--text-soft, #555); }
 
-/* Panel de datos científicos */
 .sci-panel {
-  display: none;
-  margin: 1rem auto 0;
-  background: var(--surface, rgba(255,255,255,0.85));
-  backdrop-filter: blur(8px);
-  border-radius: 1.2rem;
-  padding: 0.8rem 1.2rem;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.9rem;
-  max-width: 340px;
-  border: 1px solid var(--border, #ccc);
-  text-align: left;
-  color: var(--text, #333);
+  display: none; margin: 1rem auto 0; background: var(--surface, rgba(255,255,255,0.85));
+  backdrop-filter: blur(8px); border-radius: 1.2rem; padding: 0.8rem 1.2rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; max-width: 340px;
+  border: 1px solid var(--border, #ccc); text-align: left; color: var(--text, #333);
 }
-body.mode-cientifico .sci-panel {
-  display: block;
-}
-.sci-panel table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.sci-panel td {
-  padding: 0.25rem 0;
-  border-bottom: 1px dashed var(--border, #ccc);
-}
-.sci-panel td:first-child {
-  font-weight: 600;
-}
-.sci-panel td:last-child {
-  text-align: right;
-}
-.sci-updated {
-  font-size: 0.75rem;
-  color: var(--text-soft, #777);
-  margin-top: 0.5rem;
-  text-align: right;
-}
+body.mode-cientifico .sci-panel { display: block; }
+.sci-panel table { width: 100%; border-collapse: collapse; }
+.sci-panel td { padding: 0.25rem 0; border-bottom: 1px dashed var(--border, #ccc); }
+.sci-panel td:first-child { font-weight: 600; }
+.sci-panel td:last-child { text-align: right; }
+.sci-updated { font-size: 0.75rem; color: var(--text-soft, #777); margin-top: 0.5rem; text-align: right; }
 
-/* ---------- YAYO (abuel@) ---------- */
-body.mode-yayo .orb {
-  width: 200px; height: 200px;
-}
-body.mode-yayo .orb-face {
-  font-size: 2.6rem;
-}
-body.mode-yayo .orb-ring {
-  width: 260px; height: 260px;
-}
-body.mode-yayo .human-line {
-  font-size: 1.8rem; line-height: 1.4;
-}
-body.mode-yayo .sub-line {
-  font-size: 1.4rem;
-}
-body.mode-yayo .tech-readout {
-  font-size: 1.3rem;
-}
-body.mode-yayo .im-lost-btn {
-  font-size: 1.2rem;
-  padding: 0.8rem 1.6rem;
-}
+body.mode-yayo .orb { width: 200px; height: 200px; }
+body.mode-yayo .orb-face { font-size: 2.6rem; }
+body.mode-yayo .orb-ring { width: 260px; height: 260px; }
+body.mode-yayo .human-line { font-size: 1.8rem; line-height: 1.4; }
+body.mode-yayo .sub-line { font-size: 1.4rem; }
+body.mode-yayo .tech-readout { font-size: 1.3rem; }
+body.mode-yayo .im-lost-btn { font-size: 1.2rem; padding: 0.8rem 1.6rem; }
+body.mode-yayo .yayo-zoom-controls { display: flex; }
 
-/* ---------- PEQUE (niñ@) ---------- */
-
-/* Transiciones de opacidad para evitar cortes bruscos al cambiar de modo */
-body.mode-peque .orb,
-body.mode-peque .orb-ring,
-body.mode-peque .tech-readout {
-  display: none;
-}
+body.mode-peque .orb, body.mode-peque .orb-ring, body.mode-peque .tech-readout { display: none; }
 
 .peque-character {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  width: 100%;
-  animation: fadeIn 0.4s ease-out forwards;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  margin: 0 auto; width: 100%; animation: fadeIn 0.4s ease-out forwards;
 }
+body.mode-peque .peque-character { display: flex; }
 
-body.mode-peque .peque-character {
-  display: flex;
-}
-
-/* 
-  TRUCO ORGÁNICO: Combinamos dos animaciones con duraciones en números primos (3s y 5s).
-  Esto hace que el patrón de movimiento tarde 15 segundos en repetirse,
-  engañando al ojo y pareciendo un movimiento errático y vivo, no robótico.
-*/
 .peque-cloud {
-  width: 120px;
-  height: 120px;
-  position: relative;
-  will-change: transform;
+  width: 120px; height: 120px; position: relative; will-change: transform;
   animation: floatY 3s ease-in-out infinite, floatX 5s ease-in-out infinite;
 }
+.peque-cloud svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
 
-.peque-cloud svg {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); /* Sombrea el SVG real, no la caja */
-}
+@keyframes floatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes floatX { 0%, 100% { margin-left: 0; } 50% { margin-left: -4px; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Animaciones desacopladas */
-@keyframes floatY {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-@keyframes floatX {
-  0%, 100% { margin-left: 0; }
-  50% { margin-left: -4px; }
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Textos y contenedores */
 .peque-message {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text, #333);
-  text-align: center;
-  margin-top: 0.8rem;
-  background: var(--surface, rgba(255, 255, 255, 0.75));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px); /* Soporte iOS/Safari */
-  padding: 0.4rem 1.4rem;
-  border-radius: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.3); /* Contraste cristal */
+  font-size: 1.5rem; font-weight: 700; color: var(--text, #333); text-align: center;
+  margin-top: 0.8rem; background: var(--surface, rgba(255, 255, 255, 0.75));
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  padding: 0.4rem 1.4rem; border-radius: 2rem; border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
+body.mode-peque .human-line { font-size: 1.4rem; font-weight: 600; color: var(--text, #444); margin-top: 0.5rem; }
+body.mode-peque .sub-line { font-size: 1.1rem; color: var(--text-soft, #666); }
 
-body.mode-peque .human-line {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--text, #444);
-  margin-top: 0.5rem;
-}
-
-body.mode-peque .sub-line {
-  font-size: 1.1rem;
-  color: var(--text-soft, #666);
-}
-
-/* Micro-interacciones en botones (física de pulsación) */
 body.mode-peque .im-lost-btn {
-  background: #FFD166;
-  color: #333;
-  font-weight: 600;
-  font-size: 1.1rem;
-  border-radius: 2rem;
-  padding: 0.7rem 1.5rem;
-  border: 2px solid #FFB347;
-  box-shadow: 0 4px 8px rgba(255, 179, 71, 0.2);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform, box-shadow;
+  background: #FFD166; color: #333; font-weight: 600; font-size: 1.1rem; border-radius: 2rem;
+  padding: 0.7rem 1.5rem; border: 2px solid #FFB347; box-shadow: 0 4px 8px rgba(255, 179, 71, 0.2);
+  cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform, box-shadow;
 }
+body.mode-peque .im-lost-btn:hover { background: #FFC033; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(255, 179, 71, 0.3); }
+body.mode-peque .im-lost-btn:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(255, 179, 71, 0.2); }
 
-body.mode-peque .im-lost-btn:hover {
-  background: #FFC033;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(255, 179, 71, 0.3);
-}
-
-body.mode-peque .im-lost-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 2px 4px rgba(255, 179, 71, 0.2);
-}
-
-/* Estructura central */
-.orb-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
+.orb-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
 /* ============================================================
    SELECTOR DE CIUDAD ELEGANTE
    ============================================================ */
-.city-picker {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  margin: 1rem 0;
-}
+.city-picker { position: relative; display: flex; justify-content: center; margin: 1rem 0; }
 .city-dropdown-btn {
-  background: var(--surface, #fff);
-  border: 1px solid var(--border, #ccc);
-  border-radius: 2rem;
-  padding: 0.7rem 1.8rem;
-  font-family: 'Karla', sans-serif;
-  font-weight: 600;
-  font-size: 1rem;
-  color: var(--text, #333);
-  cursor: pointer;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: background 0.2s;
+  background: var(--surface, #fff); border: 1px solid var(--border, #ccc); border-radius: 2rem;
+  padding: 0.7rem 1.8rem; font-family: 'Karla', sans-serif; font-weight: 600; font-size: 1rem;
+  color: var(--text, #333); cursor: pointer; backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s;
 }
-.city-dropdown-btn:hover {
-  background: var(--hover, #f0f0f0);
-}
-.city-dropdown-btn::after {
-  content: '▾';
-  font-size: 0.8rem;
-  margin-left: 0.3rem;
-}
+.city-dropdown-btn:hover { background: var(--hover, #f0f0f0); }
+.city-dropdown-btn::after { content: '▾'; font-size: 0.8rem; margin-left: 0.3rem; }
 .city-dropdown-list {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface, #fff);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border, #ccc);
-  border-radius: 1rem;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  list-style: none;
-  padding: 0.4rem 0;
-  margin: 0;
-  width: max-content;
-  min-width: 220px;
-  max-height: 260px;
-  overflow-y: auto;
-  z-index: 100;
-  display: none;
+  position: absolute; top: calc(100% + 0.5rem); left: 50%; transform: translateX(-50%);
+  background: var(--surface, #fff); backdrop-filter: blur(12px); border: 1px solid var(--border, #ccc);
+  border-radius: 1rem; box-shadow: 0 8px 24px rgba(0,0,0,0.12); list-style: none; padding: 0.4rem 0;
+  margin: 0; width: max-content; min-width: 220px; max-height: 260px; overflow-y: auto; z-index: 100; display: none;
 }
-.city-dropdown-list.open {
-  display: block;
-}
+.city-dropdown-list.open { display: block; }
 .city-dropdown-list li {
-  padding: 0.6rem 1.2rem;
-  font-family: 'Karla', sans-serif;
-  font-size: 0.95rem;
-  color: var(--text, #333);
-  cursor: pointer;
-  transition: background 0.15s;
+  padding: 0.6rem 1.2rem; font-family: 'Karla', sans-serif; font-size: 0.95rem;
+  color: var(--text, #333); cursor: pointer; transition: background 0.15s;
 }
-.city-dropdown-list li:hover {
-  background: var(--hover, #f0f0f0);
-}
-.city-dropdown-list li.selected {
-  font-weight: 700;
-  background: var(--hover, #e8e8e8);
-}
+city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
+.city-dropdown-list li.selected { font-weight: 700; background: var(--hover, #e8e8e8); }
 
 /* ============================================================
    APARTADO DE DONACIONES (DISCRETO)
    ============================================================ */
-.footer-donacion {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px dashed var(--line, #ccc);
-  text-align: center;
-  font-family: 'Karla', sans-serif;
-  color: var(--text-soft, #666);
-}
-
-.donacion-mensaje {
-  font-size: 0.9rem;
-  line-height: 1.4;
-  margin: 0 0 0.6rem 0;
-}
-
+.footer-donacion { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed var(--line, #ccc); text-align: center; font-family: 'Karla', sans-serif; color: var(--text-soft, #666); }
+.donacion-mensaje { font-size: 0.9rem; line-height: 1.4; margin: 0 0 0.6rem 0; }
 .donacion-boton {
-  display: inline-block;
-  padding: 0.4rem 1.2rem;
-  border: 1px solid var(--line, #ccc);
-  border-radius: 2rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-decoration: none;
-  color: var(--ink, #333);
-  background: var(--surface, rgba(255,255,255,0.7));
-  backdrop-filter: blur(4px);
-  transition: background 0.2s, border-color 0.2s;
+  display: inline-block; padding: 0.4rem 1.2rem; border: 1px solid var(--line, #ccc); border-radius: 2rem;
+  font-size: 0.85rem; font-weight: 600; text-decoration: none; color: var(--ink, #333);
+  background: var(--surface, rgba(255,255,255,0.7)); backdrop-filter: blur(4px); transition: background 0.2s, border-color 0.2s;
 }
+.donacion-boton:hover { background: var(--hover, #f0f0f0); border-color: #aaa; }
 
-.donacion-boton:hover {
-  background: var(--hover, #f0f0f0);
-  border-color: #aaa;
-}
 .rs-form{ display:flex; flex-wrap:wrap; gap:10px; }
 .rs-form input[type="text"]{
   flex:1; min-width:200px; padding:10px 14px; border:1px solid var(--line);
@@ -624,291 +423,32 @@ body.mode-peque .im-lost-btn:active {
 }
 .rs-sol-cardinal{ font-family:var(--font-mono); font-size:8px; fill:var(--sky-mid); }
 .rs-sol-info{ font-family:var(--font-mono); font-size:0.62rem; color:var(--sky-mid); display:flex; flex-direction:column; gap:1px; margin-top:4px; }
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-/* Variables globales (se sobreescriben con JS según clima) */
-:root {
-    --sky-deep: #1C3144;
-    --sky-mid: #2B4A63;
-    --dawn: #F4A66B;
-    --dawn-rgb: 244, 166, 107;
-    --paper: #FBFAF7;
-}
+/* ============================================================
+   RUTA Y SOMBRAS 3D — sugerencias del autocompletado + mapa oscuro
+   ============================================================ */
 
-/* ========== SPLASH ========== */
-#splash {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: radial-gradient(120% 140% at 50% 100%, var(--sky-mid) 0%, var(--sky-deep) 55%, #10202E 100%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    cursor: crosshair;
-    overflow: hidden;
-    transition: background 1.2s ease, opacity 0.5s ease-out;
+/* Lista de sugerencias del buscador de direcciones (usada por
+   shadows-route.js; antes no tenía estilos propios en esta hoja,
+   por eso salía sin formato / pegada al input). */
+.rs-field{ position:relative; flex:1; min-width:200px; }
+.rs-sugerencias{
+  position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:50;
+  list-style:none; margin:0; padding:6px 0; display:none;
+  background:var(--paper); border:1px solid var(--line); border-radius:12px;
+  box-shadow:0 10px 28px rgba(0,0,0,0.14); max-height:260px; overflow-y:auto;
 }
+.rs-sugerencias li{
+  padding:8px 14px; cursor:pointer; font-size:0.84rem; color:var(--ink);
+  display:flex; flex-direction:column; gap:1px;
+}
+.rs-sugerencias li:hover{ background:var(--accent-soft); }
+.rs-sugerencias li.rs-sug-empty{ color:var(--sky-mid); cursor:default; font-style:italic; }
+.rs-sug-linea1{ font-weight:600; }
+.rs-sug-linea2{ font-size:0.7rem; color:var(--sky-mid); }
 
-/* Elementos internos del splash */
-#splash .sky-glow {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(60% 50% at 50% 15%, rgba(var(--dawn-rgb), 0.18), transparent 70%);
-    animation: skyBreathe 6s ease-in-out infinite;
-    transition: background 1.2s ease;
-}
-
-#splash .wind-field {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    pointer-events: none;
-    opacity: 0.8;
-}
-
-#splash .wind-line {
-    fill: none;
-    stroke: var(--dawn);
-    stroke-linecap: round;
-    stroke-dasharray: 80 400;
-    animation: aeroBlow linear infinite;
-    transition: stroke 1.2s ease;
-}
-#splash .w-thin  { stroke-width: 0.8; opacity: 0.3; }
-#splash .w-mid   { stroke-width: 1.5; opacity: 0.5; }
-#splash .w-thick { stroke-width: 2.5; opacity: 0.2; }
-
-#splash .w1 { animation-duration: 8s; }
-#splash .w2 { animation-duration: 12s; animation-delay: -3s; stroke-dasharray: 120 500; }
-#splash .w3 { animation-duration: 9s; animation-delay: -5s; stroke-dasharray: 60 300; }
-#splash .w4 { animation-duration: 15s; animation-delay: -1s; }
-#splash .w5 { animation-duration: 11s; animation-delay: -7s; stroke-dasharray: 150 450; }
-#splash .w6 { animation-duration: 14s; animation-delay: -4s; }
-
-#splash .particle {
-    position: absolute;
-    border-radius: 50%;
-    background: var(--dawn);
-    animation: floatUp linear infinite, quantumFlicker 0.25s ease-in-out infinite alternate;
-    box-shadow: 0 0 5px rgba(var(--dawn-rgb), 0.6);
-    pointer-events: none;
-    transition: background 1.2s ease;
-}
-
-#splash .logo-wrap {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    pointer-events: none;
-}
-
-#splash #logo-container {
-    width: 180px;
-    height: 180px;
-    margin: 0 auto 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transform-style: preserve-3d;
-    transition: transform 0.1s ease-out;
-}
-
-#splash #logo-svg {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(0 0 12px rgba(var(--dawn-rgb), 0.4));
-    animation: logoFloat 5s ease-in-out infinite;
-}
-
-#splash .brand {
-    font-family: 'Fraunces', serif;
-    font-weight: 600;
-    font-size: clamp(1.6rem, 5vw, 2.4rem);
-    color: var(--paper);
-    letter-spacing: -0.01em;
-    margin-top: 5px;
-}
-#splash .brand span {
-    color: var(--dawn);
-    transition: color 1.2s ease;
-}
-
-#splash .sub-brand {
-    font-family: 'Fraunces', serif;
-    font-weight: 500;
-    font-size: 1.1rem;
-    color: var(--paper);
-    margin-top: 4px;
-    opacity: 0.85;
-}
-
-#splash .tagline {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.75rem;
-    color: var(--dawn);
-    margin-top: 12px;
-    letter-spacing: 0.08em;
-    opacity: 0.8;
-    transition: color 1.2s ease;
-}
-
-#splash .sombra-msg {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.65rem;
-    color: rgba(251,250,247,0.5);
-    margin-top: 8px;
-    letter-spacing: 0.05em;
-    opacity: 0;
-    animation: fadeIn 2s ease forwards;
-}
-
-#splash .clima-tag {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.6rem;
-    color: rgba(251,250,247,0.35);
-    margin-top: 4px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-}
-
-#splash .entry-btn {
-    position: absolute;
-    bottom: 35px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 20;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.65rem;
-    color: rgba(var(--dawn-rgb), 0.4);
-    letter-spacing: 0.3em;
-    background: transparent;
-    border: none;
-    padding: 15px 40px;
-    cursor: pointer;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
-    animation: fadeIn 3s ease 1s forwards;
-    opacity: 0;
-    outline: none;
-}
-#splash .entry-btn:hover {
-    color: var(--dawn);
-    text-shadow: 0 0 12px rgba(var(--dawn-rgb), 0.8);
-}
-
-#splash .sun-burst {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    z-index: 10;
-}
-#splash .sun-burst-core {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 450px;
-    height: 450px;
-    background: radial-gradient(circle, var(--dawn) 0%, rgba(var(--dawn-rgb), 0.5) 40%, transparent 70%);
-    border-radius: 50%;
-    filter: blur(15px);
-    transition: background 1.2s ease;
-}
-
-#splash .shadow-scene {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    height: 65%;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    opacity: 0;
-    z-index: 9;
-    pointer-events: none;
-}
-
-/* ========== ANIMACIONES ========== */
-@keyframes skyBreathe {
-    0%, 100% { opacity: 0.5; }
-    50%      { opacity: 1; }
-}
-@keyframes aeroBlow {
-    0%   { stroke-dashoffset: 600; }
-    100% { stroke-dashoffset: -200; }
-}
-@keyframes floatUp {
-    0%   { transform: translateY(20px) translateX(0); opacity: 0; }
-    20%  { opacity: 0.6; }
-    80%  { opacity: 0.1; }
-    100% { transform: translateY(-100vh) translateX(40px); opacity: 0; }
-}
-@keyframes quantumFlicker {
-    0%   { opacity: 0.1; }
-    100% { opacity: 0.9; }
-}
-@keyframes logoFloat {
-    0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(-10px); }
-}
-@keyframes fadeIn {
-    to { opacity: 1; }
-}
-
-/* ========== ESTADO DE SALIDA (al hacer clic o auto) ========== */
-#splash.leaving {
-    animation: splashFadeOut 5s ease-out forwards;
-}
-
-#splash.leaving .sun-burst {
-    animation: solarExpand 5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
-}
-#splash.leaving .shadow-scene {
-    animation: shadowsRise 5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-#splash.leaving .logo-wrap,
-#splash.leaving .wind-field,
-#splash.leaving .particle,
-#splash.leaving .entry-btn {
-    opacity: 0;
-    transition: opacity 0.5s ease-out;
-}
-
-@keyframes splashFadeOut {
-    0%, 85% { background: radial-gradient(120% 140% at 50% 100%, var(--sky-mid) 0%, var(--sky-deep) 55%, #10202E 100%); }
-    100%    { background: #010203; opacity: 0; visibility: hidden; }
-}
-@keyframes solarExpand {
-    0%   { transform: translate(-50%,-50%) scale(0); opacity: 0; }
-    10%  { opacity: 1; }
-    80%  { opacity: 0.2; transform: translate(-50%,-50%) scale(2); }
-    100% { transform: translate(-50%,-50%) scale(3); opacity: 0; }
-}
-@keyframes shadowsRise {
-    0%   { opacity: 0; transform: translateX(-50%) translateY(40px) scale(0.98); filter: blur(5px); }
-    10%  { opacity: 1; filter: blur(0); transform: translateX(-50%) translateY(0) scale(1); }
-    85%  { opacity: 1; filter: blur(0); transform: translateX(-50%) translateY(-5px) scale(1.02); }
-    100% { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(1.05); filter: blur(8px); }
-}
-
-/* Prefers-reduced-motion */
-@media (prefers-reduced-motion: reduce) {
-    #splash *,
-    #splash *::before,
-    #splash *::after {
-        animation: none !important;
-        transition: none !important;
-    }
-}
+/* Fondo del contenedor del mapa cuando el modo oscuro está activo —
+   el filtro CSS que oscurece de verdad el lienzo lo añade
+   shadows-route.js sobre #shadowRouteMap .maplibregl-canvas; esto es
+   solo el color de fondo mientras cargan los tiles. */
+.rs-mapa-oscuro-activo{ background:#0b0f14; }

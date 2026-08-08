@@ -1,35 +1,11 @@
-/* ============================================================ MANOLITO AIRE — i18n Castellano, català, euskera, galego. Uso: pon data-i18n="clave" en cualquier elemento de texto, o data-i18n-placeholder para inputs. ============================================================ *
-
-pasted
-
-
-Diagnosed translation conflicts and reconciled competing system architectures
-Diagnosed translation conflicts and reconciled competing system architectures
-Ahí está el lío — parece que Copilot (lo vi abierto en tu VS Code en la captura anterior) ha tocado este mismo archivo y se ha cargado las claves que yo había añadido (orb_good, orb_mid, orb_bad, quick_pm25, region_peninsula...) para meter un sistema nuevo (hero_title_good, función t()) que no está conectado con nada — tu app.js sigue usando getMessages() y dict[orb_...], que ya no existen en este archivo. Por eso se rompió.
-
-Aviso importante: si tienes a Copilot y a mí editando los mismos archivos a la vez, nos vamos a pisar constantemente — mejor usa uno de los dos para este proyecto, si no vamos a perseguirnos la cola.
-
-Te dejo el i18n.js reparado, con lo tuyo de hero_title_good quitado (no lo usa nada, así que solo estorbaba) y las claves que sí necesita app.js recuperadas:
-
-
-Ver mi versión de referencia que sí tiene todas las claves correctas
-Ver mi versión de referencia que sí tiene todas las claves correctas
-
-Ver mi versión de referencia que sí tiene todas las claves correctas
-bash
-
-cat /home/claude/manolito-aire/js/i18n.js
-Salida
-
 /* ============================================================
    MANOLITO AIRE — i18n
-   Castellano, català, euskera, galego.
-   Uso: pon data-i18n="clave" en cualquier elemento de texto,
-   o data-i18n-placeholder para inputs.
+   Castellano, català, euskera, galego, English.
    ============================================================ */
 
 const translations = {
   es: {
+    // General
     tagline: "MAPA NACIONAL · DATOS EN VIVO",
     modesLabel: "¿Cómo quieres que te lo cuente?",
     mode_ciudadano_title: "Ciudadano",
@@ -57,6 +33,61 @@ const translations = {
     quick_pm25: "¿Qué es el PM2.5?", quick_color: "¿Por qué cambia el color?", quick_bebe: "¿Es seguro salir con mi bebé?",
     region_peninsula: "Península", region_canarias: "Canarias", region_baleares: "Baleares", region_ceutamelilla: "Ceuta / Melilla",
     statusLoading: "Cargando datos en vivo…",
+    legalNotice: "Aviso legal",
+    privacy: "Privacidad",
+    cookies: "Cookies",
+    // shadows-route.js
+    searching: "Buscando…",
+    searchBtn: "Buscar ruta",
+    calculating: "Calculando ruta real por calles…",
+    geocoding: "Geocodificando direcciones…",
+    fillBoth: "Introduce origen y destino.",
+    notFound: "No se ha encontrado",
+    tryFormat: "Prueba a escribirla como calle, número, ciudad",
+    clickOrigin: "Haz clic en el mapa para marcar el origen.",
+    clickDestiny: "Origen marcado — haz clic en el destino.",
+    chooseDestination: "toca un punto del mapa para poner el destino.",
+    pointMap: "Punto marcado en el mapa",
+    myLocation: "Mi ubicación",
+    locationMarked: "Ubicación marcada como origen",
+    locationPrecision: "precisión reportada por el navegador",
+    locationNote: "sin GPS real puede ser orientativa",
+    locationDenied: "No se ha podido obtener tu ubicación (¿has denegado el permiso?).",
+    locationAsking: "Pidiendo permiso de ubicación…",
+    errorGeolocation: "Este navegador no permite compartir tu ubicación.",
+    errorSearch: "Error al buscar la ruta. Inténtalo de nuevo.",
+    routeReal: "Ruta real",
+    routeFallback: "No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.",
+    routeEstimated: "tiempo estimado a paso normal",
+    minWalk: "min a pie",
+    sunPosition: "Posición solar",
+    sunBelow: "El sol está bajo el horizonte a esa hora — no hay sombras que proyectar.",
+    goldenHour: "Hora dorada",
+    blueHour: "Hora azul",
+    now: "Ahora",
+    simulating: "Simulando",
+    summerSolstice: "Solsticio de verano",
+    winterSolstice: "Solsticio de invierno",
+    btnSummer: "Verano",
+    btnWinter: "Invierno",
+    pickMap: "Elegir en el mapa",
+    captureView: "Capturar vista",
+    captureError: "No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.",
+    origin: "Origen",
+    destiny: "Destino",
+    noResults: "Sin resultados",
+    aqiGood: "Buena",
+    aqiModerate: "Moderada",
+    aqiBad: "Mala",
+    aqiNoData: "Sin datos",
+    layerBuildings: "Edificios 3D",
+    layerShadows: "Sombras",
+    layerRoute: "Ruta",
+    walkModeStart: "Iniciar caminata",
+    walkModeStop: "Detener caminata",
+    walkModeTracking: "Siguiendo tu posición…",
+    darkMapOn: "Mapa oscuro",
+    darkMapOff: "Mapa claro",
   },
   ca: {
     tagline: "MAPA NACIONAL · DADES EN VIU",
@@ -86,6 +117,60 @@ const translations = {
     quick_pm25: "Què és el PM2.5?", quick_color: "Per què canvia el color?", quick_bebe: "És segur sortir amb el meu nadó?",
     region_peninsula: "Península", region_canarias: "Canàries", region_baleares: "Balears", region_ceutamelilla: "Ceuta / Melilla",
     statusLoading: "Carregant dades en directe…",
+    legalNotice: "Avís legal",
+    privacy: "Privacitat",
+    cookies: "Cookies",
+    searching: "Buscant…",
+    searchBtn: "Buscar ruta",
+    calculating: "Calculant ruta real pels carrers…",
+    geocoding: "Geocodificant adreces…",
+    fillBoth: "Introdueix origen i destí.",
+    notFound: "No s'ha trobat",
+    tryFormat: "Prova d'escriure-la com carrer, número, ciutat",
+    clickOrigin: "Fes clic al mapa per marcar l'origen.",
+    clickDestiny: "Origen marcat — fes clic al destí.",
+    chooseDestination: "toca un punt del mapa per posar el destí.",
+    pointMap: "Punt marcat al mapa",
+    myLocation: "La meva ubicació",
+    locationMarked: "Ubicació marcada com a origen",
+    locationPrecision: "precisió reportada pel navegador",
+    locationNote: "sense GPS real pot ser orientativa",
+    locationDenied: "No s'ha pogut obtenir la teva ubicació (has denegat el permís?).",
+    locationAsking: "Demanant permís d'ubicació…",
+    errorGeolocation: "Aquest navegador no permet compartir la teva ubicació.",
+    errorSearch: "Error en buscar la ruta. Torna-ho a intentar.",
+    routeReal: "Ruta real",
+    routeFallback: "No s'ha pogut calcular la ruta pels carrers (servidor de rutes ocupat) — mostrant línia directa.",
+    routeEstimated: "temps estimat a pas normal",
+    minWalk: "min a peu",
+    sunPosition: "Posició solar",
+    sunBelow: "El sol està sota l'horitzó a aquesta hora — no hi ha ombres que projectar.",
+    goldenHour: "Hora daurada",
+    blueHour: "Hora blava",
+    now: "Ara",
+    simulating: "Simulant",
+    summerSolstice: "Solstici d'estiu",
+    winterSolstice: "Solstici d'hivern",
+    btnSummer: "Estiu",
+    btnWinter: "Hivern",
+    pickMap: "Triar al mapa",
+    captureView: "Capturar vista",
+    captureError: "No s'ha pogut generar la imatge (limitació del servidor de mapes). Prova de fer una captura de pantalla normal.",
+    origin: "Origen",
+    destiny: "Destí",
+    noResults: "Sense resultats",
+    aqiGood: "Bona",
+    aqiModerate: "Moderada",
+    aqiBad: "Dolenta",
+    aqiNoData: "Sense dades",
+    layerBuildings: "Edificis 3D",
+    layerShadows: "Ombres",
+    layerRoute: "Ruta",
+    walkModeStart: "Iniciar caminada",
+    walkModeStop: "Aturar caminada",
+    walkModeTracking: "Seguint la teva posició…",
+    darkMapOn: "Mapa fosc",
+    darkMapOff: "Mapa clar",
   },
   eu: {
     tagline: "ESTATU MAPA · ZUZENEKO DATUAK",
@@ -115,6 +200,60 @@ const translations = {
     quick_pm25: "Zer da PM2.5?", quick_color: "Zergatik aldatzen da kolorea?", quick_bebe: "Seguru al dago haurrarekin irtetea?",
     region_peninsula: "Penintsula", region_canarias: "Kanariar Uharteak", region_baleares: "Balear Uharteak", region_ceutamelilla: "Ceuta / Melilla",
     statusLoading: "Zuzeneko datuak kargatzen…",
+    legalNotice: "Lege oharra",
+    privacy: "Pribatutasuna",
+    cookies: "Cookieak",
+    searching: "Bilatzen…",
+    searchBtn: "Ibilbidea bilatu",
+    calculating: "Kaleetako benetako ibilbidea kalkulatzen…",
+    geocoding: "Helbideak geokodifikatzen…",
+    fillBoth: "Sartu jatorria eta helmuga.",
+    notFound: "Ez da aurkitu",
+    tryFormat: "Saiatu kalea, zenbakia, hiria formatuan idazten",
+    clickOrigin: "Egin klik mapan jatorria markatzeko.",
+    clickDestiny: "Jatorria markatuta — egin klik helmugan.",
+    chooseDestination: "sakatu mapako puntu bat helmuga jartzeko.",
+    pointMap: "Mapan markatutako puntua",
+    myLocation: "Nire kokapena",
+    locationMarked: "Kokapena jatorri gisa markatuta",
+    locationPrecision: "nabigatzaileak jakinarazitako zehaztasuna",
+    locationNote: "benetako GPSik gabe orientagarria izan daiteke",
+    locationDenied: "Ezin izan da zure kokapena lortu (baimena ukatu duzu?).",
+    locationAsking: "Kokapen baimena eskatzen…",
+    errorGeolocation: "Nabigatzaile honek ez du zure kokapena partekatzea onartzen.",
+    errorSearch: "Errorea ibilbidea bilatzean. Saiatu berriro.",
+    routeReal: "Benetako ibilbidea",
+    routeFallback: "Ezin izan da kaleetako ibilbidea kalkulatu (zerbitzaria okupatuta) — lerro zuzena erakusten.",
+    routeEstimated: "denbora estimatua pausu normalean",
+    minWalk: "min oinez",
+    sunPosition: "Eguzkiaren posizioa",
+    sunBelow: "Eguzkia horizontearen azpian dago ordu horretan — ez dago itzalik proiektatzeko.",
+    goldenHour: "Urrezko ordua",
+    blueHour: "Ordu urdina",
+    now: "Orain",
+    simulating: "Simulatzen",
+    summerSolstice: "Udako solstizioa",
+    winterSolstice: "Neguko solstizioa",
+    btnSummer: "Uda",
+    btnWinter: "Negua",
+    pickMap: "Aukeratu mapan",
+    captureView: "Ikuspegia atera",
+    captureError: "Ezin izan da irudia sortu (mapa-zerbitzariaren muga). Probatu pantaila-argazki arrunt bat.",
+    origin: "Jatorria",
+    destiny: "Helmuga",
+    noResults: "Emaitzarik gabe",
+    aqiGood: "Ona",
+    aqiModerate: "Ertaina",
+    aqiBad: "Txarra",
+    aqiNoData: "Daturik gabe",
+    layerBuildings: "3D eraikinak",
+    layerShadows: "Itzalak",
+    layerRoute: "Ibilbidea",
+    walkModeStart: "Oinez hasi",
+    walkModeStop: "Oinez gelditu",
+    walkModeTracking: "Zure kokapena jarraitzen…",
+    darkMapOn: "Mapa iluna",
+    darkMapOff: "Mapa argia",
   },
   gl: {
     tagline: "MAPA NACIONAL · DATOS EN VIVO",
@@ -144,6 +283,60 @@ const translations = {
     quick_pm25: "Que é o PM2.5?", quick_color: "Por que cambia a cor?", quick_bebe: "É seguro saír co meu bebé?",
     region_peninsula: "Península", region_canarias: "Canarias", region_baleares: "Baleares", region_ceutamelilla: "Ceuta / Melilla",
     statusLoading: "Cargando datos en vivo…",
+    legalNotice: "Aviso legal",
+    privacy: "Privacidade",
+    cookies: "Cookies",
+    searching: "Buscando…",
+    searchBtn: "Buscar ruta",
+    calculating: "Calculando ruta real polas rúas…",
+    geocoding: "Xeocodificando enderezos…",
+    fillBoth: "Introduce orixe e destino.",
+    notFound: "Non se atopou",
+    tryFormat: "Proba a escribila como rúa, número, cidade",
+    clickOrigin: "Fai clic no mapa para marcar a orixe.",
+    clickDestiny: "Orixe marcada — fai clic no destino.",
+    chooseDestination: "toca un punto do mapa para pór o destino.",
+    pointMap: "Punto marcado no mapa",
+    myLocation: "A miña ubicación",
+    locationMarked: "Ubicación marcada como orixe",
+    locationPrecision: "precisión reportada polo navegador",
+    locationNote: "sen GPS real pode ser orientativa",
+    locationDenied: "Non se puido obter a túa ubicación (denegaches o permiso?).",
+    locationAsking: "Pedindo permiso de ubicación…",
+    errorGeolocation: "Este navegador non permite compartir a túa ubicación.",
+    errorSearch: "Erro ao buscar a ruta. Inténtao de novo.",
+    routeReal: "Ruta real",
+    routeFallback: "Non se puido calcular a ruta polas rúas (servidor de rutas ocupado) — mostrando liña directa.",
+    routeEstimated: "tempo estimado a paso normal",
+    minWalk: "min a pé",
+    sunPosition: "Posición solar",
+    sunBelow: "O sol está baixo o horizonte a esa hora — non hai sombras que proxectar.",
+    goldenHour: "Hora dourada",
+    blueHour: "Hora azul",
+    now: "Agora",
+    simulating: "Simulando",
+    summerSolstice: "Solsticio de verán",
+    winterSolstice: "Solsticio de inverno",
+    btnSummer: "Verán",
+    btnWinter: "Inverno",
+    pickMap: "Elixir no mapa",
+    captureView: "Capturar vista",
+    captureError: "Non se puido xerar a imaxe (limitación do servidor de mapas). Proba a facer unha captura de pantalla normal.",
+    origin: "Orixe",
+    destiny: "Destino",
+    noResults: "Sen resultados",
+    aqiGood: "Boa",
+    aqiModerate: "Moderada",
+    aqiBad: "Mala",
+    aqiNoData: "Sen datos",
+    layerBuildings: "Edificios 3D",
+    layerShadows: "Sombras",
+    layerRoute: "Ruta",
+    walkModeStart: "Iniciar camiñata",
+    walkModeStop: "Deter camiñata",
+    walkModeTracking: "Seguindo a túa posición…",
+    darkMapOn: "Mapa escuro",
+    darkMapOff: "Mapa claro",
   },
   en: {
     tagline: "NATIONAL MAP · LIVE DATA",
@@ -173,13 +366,73 @@ const translations = {
     quick_pm25: "What is PM2.5?", quick_color: "Why does the colour change?", quick_bebe: "Is it safe to go out with my baby?",
     region_peninsula: "Mainland", region_canarias: "Canary Islands", region_baleares: "Balearic Islands", region_ceutamelilla: "Ceuta / Melilla",
     statusLoading: "Loading live data…",
+    legalNotice: "Legal notice",
+    privacy: "Privacy",
+    cookies: "Cookies",
+    searching: "Searching…",
+    searchBtn: "Search route",
+    calculating: "Calculating real walking route…",
+    geocoding: "Geocoding addresses…",
+    fillBoth: "Enter origin and destination.",
+    notFound: "Not found",
+    tryFormat: "Try writing it as street, number, city",
+    clickOrigin: "Click on the map to mark the origin.",
+    clickDestiny: "Origin marked — click on the destination.",
+    chooseDestination: "tap a point on the map to set the destination.",
+    pointMap: "Point marked on map",
+    myLocation: "My location",
+    locationMarked: "Location marked as origin",
+    locationPrecision: "precision reported by browser",
+    locationNote: "without real GPS it may be approximate",
+    locationDenied: "Could not get your location (did you deny permission?).",
+    locationAsking: "Requesting location permission…",
+    errorGeolocation: "This browser does not allow sharing your location.",
+    errorSearch: "Error searching route. Try again.",
+    routeReal: "Real route",
+    routeFallback: "Could not calculate walking route (routing server busy) — showing straight line.",
+    routeEstimated: "estimated time at normal pace",
+    minWalk: "min walking",
+    sunPosition: "Sun position",
+    sunBelow: "The sun is below the horizon at that time — no shadows to project.",
+    goldenHour: "Golden hour",
+    blueHour: "Blue hour",
+    now: "Now",
+    simulating: "Simulating",
+    summerSolstice: "Summer solstice",
+    winterSolstice: "Winter solstice",
+    btnSummer: "Summer",
+    btnWinter: "Winter",
+    pickMap: "Pick on map",
+    captureView: "Capture view",
+    captureError: "Could not generate image (map server limitation). Try a regular screenshot.",
+    origin: "Origin",
+    destiny: "Destination",
+    noResults: "No results",
+    aqiGood: "Good",
+    aqiModerate: "Moderate",
+    aqiBad: "Bad",
+    aqiNoData: "No data",
+    layerBuildings: "3D buildings",
+    layerShadows: "Shadows",
+    layerRoute: "Route",
+    walkModeStart: "Start walking",
+    walkModeStop: "Stop walking",
+    walkModeTracking: "Tracking your position…",
+    darkMapOn: "Dark map",
+    darkMapOff: "Light map",
   }
 };
 
 let currentLang = localStorage.getItem('manolito_lang') || 'es';
 
-function applyTranslations(){
-  const dict = translations[currentLang] || translations.es;
+function getMessages() {
+  return translations[currentLang] || translations.es;
+}
+
+let dict = translations[currentLang] || translations.es;
+
+function applyTranslations() {
+  dict = translations[currentLang] || translations.es;
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (dict[key]) el.textContent = dict[key];
@@ -194,17 +447,22 @@ function applyTranslations(){
   document.documentElement.setAttribute('lang', currentLang);
 }
 
-function setLang(lang){
+function setLang(lang) {
   currentLang = lang;
   localStorage.setItem('manolito_lang', lang);
   applyTranslations();
+  // Disparamos evento para que shadows-route.js y otros scripts sepan que
+  // cambió el idioma y retraduzcan sus propios textos dinámicos — sin
+  // recargar la página.
+  document.dispatchEvent(new CustomEvent('langChanged', { detail: { lang: lang } }));
   if (typeof renderHero === 'function') renderHero();
 }
 
+// Inicializar
 document.addEventListener('DOMContentLoaded', () => {
   applyTranslations();
   const toggle = document.getElementById('langToggle');
-  if (toggle){
+  if (toggle) {
     toggle.addEventListener('click', (e) => {
       if (e.target.tagName === 'BUTTON') setLang(e.target.dataset.lang);
     });

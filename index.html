@@ -5,14 +5,333 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manolito Aire — ¿Cómo respiras hoy?</title>
 <meta name="description" content="Calidad del aire de España en tiempo real, gratis, sin registro y sin publicidad.">
+
+<!-- Conexiones tempranas a los dominios externos de los que dependemos —
+     el navegador puede ir haciendo el handshake DNS/TLS antes de que el
+     HTML llegue a pedir el recurso de verdad. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet" />
 <link rel="icon" type="image/png" href="nubes.png">
 <link rel="stylesheet" href="css/style.css">
+
+<!-- ============================================================
+     ESTILOS DEL SPLASH DE ENTRADA — todo cuelga de #manolitoSplash,
+     ningún selector suelto de body/html/* que afecte al resto de la
+     página. Variables con prefijo --splash- para no pisar
+     --sky-deep/--sky-mid/--paper del resto del sitio.
+     ============================================================ -->
+<style>
+  #manolitoSplash{
+    --splash-sky-deep:#1C3144; --splash-sky-mid:#2B4A63;
+    --splash-dawn:#F4A66B; --splash-dawn-rgb:244, 166, 107; --splash-paper:#FBFAF7;
+    position:fixed; inset:0; width:100vw; height:100vh; z-index:99999;
+    overflow:hidden; background: radial-gradient(120% 140% at 50% 100%, var(--splash-sky-mid) 0%, var(--splash-sky-deep) 55%, #10202E 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:crosshair; transition: background 1.2s ease;
+  }
+  #manolitoSplash, #manolitoSplash *{ box-sizing:border-box; margin:0; padding:0; }
+  body.manolito-splash-activo{ overflow:hidden; }
+
+  #manolitoSplash .sky-glow{
+    position:absolute; inset:0;
+    background: radial-gradient(60% 50% at 50% 15%, rgba(var(--splash-dawn-rgb), 0.18), transparent 70%);
+    animation: splashSkyBreathe 6s ease-in-out infinite; transition: background 1.2s ease;
+  }
+  @keyframes splashSkyBreathe{ 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
+
+  #manolitoSplash .wind-field{ position:absolute; inset:0; width:100%; height:100%; overflow:hidden; pointer-events:none; opacity:0.8; }
+  #manolitoSplash .wind-line{
+    fill:none; stroke:var(--splash-dawn); stroke-linecap:round;
+    stroke-dasharray:80 400; animation: splashAeroBlow linear infinite; transition: stroke 1.2s ease;
+  }
+  #manolitoSplash .w-thin{ stroke-width:0.8; opacity:0.3; }
+  #manolitoSplash .w-mid{ stroke-width:1.5; opacity:0.5; }
+  #manolitoSplash .w-thick{ stroke-width:2.5; opacity:0.2; }
+  @keyframes splashAeroBlow{ 0%{ stroke-dashoffset:600; } 100%{ stroke-dashoffset:-200; } }
+
+  #manolitoSplash .w1{ animation-duration:8s; }
+  #manolitoSplash .w2{ animation-duration:12s; animation-delay:-3s; stroke-dasharray:120 500; }
+  #manolitoSplash .w3{ animation-duration:9s; animation-delay:-5s; stroke-dasharray:60 300; }
+  #manolitoSplash .w4{ animation-duration:15s; animation-delay:-1s; }
+  #manolitoSplash .w5{ animation-duration:11s; animation-delay:-7s; stroke-dasharray:150 450; }
+  #manolitoSplash .w6{ animation-duration:14s; animation-delay:-4s; }
+
+  #manolitoSplash .particle{
+    position:absolute; border-radius:50%; background:var(--splash-dawn);
+    animation: splashFloatUp linear infinite, splashQuantumFlicker 0.25s ease-in-out infinite alternate;
+    box-shadow: 0 0 5px rgba(var(--splash-dawn-rgb), 0.6); pointer-events:none; transition: background 1.2s ease;
+  }
+  @keyframes splashFloatUp{
+    0%{ transform:translateY(20px) translateX(0); opacity:0; }
+    20%{ opacity:0.6; } 80%{ opacity:0.1; }
+    100%{ transform:translateY(-100vh) translateX(40px); opacity:0; }
+  }
+  @keyframes splashQuantumFlicker{ 0%{ opacity:0.1; } 100%{ opacity:0.9; } }
+
+  #manolitoSplash .logo-wrap{ position:relative; z-index:2; text-align:center; pointer-events:none; }
+  #manolitoSplash #logo-container{
+    width:180px; height:180px; margin:0 auto 20px;
+    display:flex; align-items:center; justify-content:center;
+    transform-style:preserve-3d; transition: transform 0.1s ease-out;
+  }
+  #manolitoSplash #logo-svg{
+    width:100%; height:100%;
+    filter: drop-shadow(0 0 12px rgba(var(--splash-dawn-rgb), 0.4));
+    animation: splashLogoFloat 5s ease-in-out infinite;
+  }
+  @keyframes splashLogoFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
+
+  #manolitoSplash .brand{
+    font-family:'Fraunces', serif; font-weight:600; font-size:clamp(1.6rem, 5vw, 2.4rem);
+    color:var(--splash-paper); letter-spacing:-0.01em; margin-top:5px;
+  }
+  #manolitoSplash .brand span{ color:var(--splash-dawn); transition: color 1.2s ease; }
+  #manolitoSplash .sub-brand{
+    font-family:'Fraunces', serif; font-weight:500; font-size:1.1rem; color:var(--splash-paper); margin-top:4px; opacity:0.85;
+  }
+  #manolitoSplash .tagline{
+    font-family:'IBM Plex Mono', monospace; font-size:0.75rem; color:var(--splash-dawn);
+    margin-top:12px; letter-spacing:0.08em; opacity:0.8; transition: color 1.2s ease;
+  }
+  #manolitoSplash .sombra-msg{
+    font-family:'IBM Plex Mono', monospace; font-size:0.65rem; color: rgba(251,250,247,0.5);
+    margin-top:8px; letter-spacing:0.05em; animation: splashFadeIn 2s ease forwards; opacity:0;
+  }
+  #manolitoSplash .clima-tag{
+    font-family:'IBM Plex Mono', monospace; font-size:0.6rem; color: rgba(251,250,247,0.35);
+    margin-top:4px; letter-spacing:0.15em; text-transform:uppercase;
+  }
+
+  #manolitoSplash .entry-btn{
+    position:absolute; bottom:35px; left:50%; transform:translateX(-50%); z-index:20;
+    font-family:'IBM Plex Mono', monospace; font-size:0.65rem; color: rgba(var(--splash-dawn-rgb), 0.4);
+    letter-spacing:0.3em; background:transparent; border:none; padding:15px 40px; cursor:pointer;
+    transition: color 0.3s ease, text-shadow 0.3s ease; animation: splashFadeIn 3s ease 1s forwards; opacity:0; outline:none;
+  }
+  #manolitoSplash .entry-btn:hover{ color:var(--splash-dawn); text-shadow: 0 0 12px rgba(var(--splash-dawn-rgb), 0.8); }
+
+  #manolitoSplash .sun-burst{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
+    width:100vw; height:100vh; pointer-events:none; z-index:10;
+  }
+  #manolitoSplash .sun-burst-core{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:450px; height:450px;
+    background: radial-gradient(circle, var(--splash-dawn) 0%, rgba(var(--splash-dawn-rgb), 0.5) 40%, transparent 70%);
+    border-radius:50%; filter:blur(15px); transition: background 1.2s ease;
+  }
+  /* Duración igualada a 2.4s en las tres animaciones "leaving" para que
+     coincida EXACTAMENTE con el setTimeout del script que quita el splash
+     — antes el CSS decía 5s pero el JS lo cortaba a los 2.4s, así que la
+     animación se veía cortada a media transición. */
+  #manolitoSplash.leaving .sun-burst{ animation: splashSolarExpand 2.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+  @keyframes splashSolarExpand{
+    0%{ transform:translate(-50%,-50%) scale(0); opacity:0; }
+    10%{ opacity:1; }
+    80%{ opacity:0.2; transform:translate(-50%,-50%) scale(2); }
+    100%{ transform:translate(-50%,-50%) scale(3); opacity:0; }
+  }
+
+  #manolitoSplash .shadow-scene{
+    position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; height:65%; display:flex; justify-content:center; align-items:flex-end;
+    opacity:0; z-index:9; pointer-events:none;
+  }
+  #manolitoSplash.leaving .shadow-scene{ animation: splashShadowsRise 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+  @keyframes splashShadowsRise{
+    0%{ opacity:0; transform:translateX(-50%) translateY(40px) scale(0.98); filter:blur(5px); }
+    15%{ opacity:1; filter:blur(0); transform:translateX(-50%) translateY(0) scale(1); }
+    75%{ opacity:1; filter:blur(0); transform:translateX(-50%) translateY(-5px) scale(1.02); }
+    100%{ opacity:0; transform:translateX(-50%) translateY(-20px) scale(1.05); filter:blur(8px); }
+  }
+
+  #manolitoSplash.leaving .logo-wrap,
+  #manolitoSplash.leaving .wind-field,
+  #manolitoSplash.leaving .particle,
+  #manolitoSplash.leaving .entry-btn{ opacity:0; transition: opacity 0.4s ease-out; }
+
+  #manolitoSplash.leaving{ animation: splashFadeToBlack 2.4s ease-out forwards; }
+  @keyframes splashFadeToBlack{
+    0%,80%{ background: radial-gradient(120% 140% at 50% 100%, var(--splash-sky-mid) 0%, var(--splash-sky-deep) 55%, #10202E 100%); }
+    100%{ background:#010203; }
+  }
+  @keyframes splashFadeIn{ to{ opacity:1; } }
+
+  @media (prefers-reduced-motion: reduce){
+    #manolitoSplash, #manolitoSplash *{ animation:none !important; transition:none !important; }
+  }
+</style>
 </head>
 <body>
+
+<!-- ============================================================
+     SPLASH DE ENTRADA — desaparece solo (botón, doble clic, o a
+     los 10s) mientras el resto de la página ya está cargando debajo.
+     ============================================================ -->
+<div id="manolitoSplash">
+  <div class="sky-glow"></div>
+
+  <svg class="wind-field" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid slice">
+    <path class="wind-line w-mid w1" d="M -100,120 C 150,280 350,20 600,180 S 850,80 1100,140" />
+    <path class="wind-line w-thin w2" d="M 1100,220 C 800,80 600,320 350,150 S 100,280 -100,180" />
+    <path class="wind-line w-thick w3" d="M -100,180 C 200,350 450,-20 750,220 S 950,50 1100,160" />
+    <path class="wind-line w-thin w4" d="M 1100,100 C 900,20 650,300 400,180 S 150,320 -100,220" />
+    <path class="wind-line w-mid w5" d="M -100,280 C 250,150 400,380 650,200 S 900,300 1100,250" />
+    <path class="wind-line w-thin w6" d="M 1100,280 C 850,380 700,100 450,250 S 200,100 -100,150" />
+  </svg>
+
+  <div id="particles"></div>
+
+  <div class="logo-wrap">
+    <div id="logo-container">
+      <svg id="logo-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="100" cy="150" r="45" fill="#E6A100" />
+        <path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#007A87" stroke-width="4" stroke-linecap="round"/>
+        <path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
+        <path d="M 100,150 C 75,125 75,175 100,150 C 125,125 125,175 100,150 Z" fill="none" stroke="#7A0016" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke="#7A0016" stroke-width="8" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="brand"><span>Manolit∞</span> Aire</div>
+    <div class="sub-brand">+ Mapa de sombras 3D</div>
+    <div class="tagline">datos respirando en el núcleo</div>
+    <div class="sombra-msg">renderizando topología local...</div>
+    <div class="clima-tag" id="climaTag"></div>
+  </div>
+
+  <button class="entry-btn" id="entryBtn">CLIC</button>
+
+  <div class="sun-burst">
+    <div class="sun-burst-core"></div>
+  </div>
+
+  <!-- Shadowmap Realista Sevilla -->
+  <div class="shadow-scene">
+    <svg viewBox="0 0 1400 400" width="100%" height="100%" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <linearGradient id="splashShadowGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#020304"/>
+          <stop offset="100%" stop-color="#05080A"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Base de la ciudad -->
+      <rect x="0" y="360" width="1400" height="40" fill="url(#splashShadowGrad)" />
+
+      <!-- Catedral y Giralda -->
+      <g transform="translate(250, 0)" fill="url(#splashShadowGrad)">
+        <path d="M -50,360 L -50,280 L 10,250 L 70,280 L 70,360 Z" />
+        <path d="M 10,250 L 10,220 L 15,220 L 15,250 Z" />
+        <path d="M -120,360 L -120,300 L -50,300 L -50,360 Z" />
+        <path d="M 70,360 L 70,310 L 140,310 L 140,360 Z" />
+
+        <rect x="75" y="150" width="28" height="210" />
+        <rect x="79" y="110" width="20" height="40" />
+        <rect x="83" y="90" width="12" height="20" />
+        <rect x="87" y="75" width="4" height="15" />
+        <circle cx="89" cy="72" r="2.5" />
+      </g>
+
+      <!-- Torre del Oro -->
+      <g transform="translate(500, 220)" fill="url(#splashShadowGrad)">
+        <path d="M 0,140 L 0,60 L 5,60 L 8,40 L 32,40 L 35,60 L 40,60 L 40,140 Z" />
+        <rect x="12" y="20" width="16" height="20" />
+        <rect x="16" y="10" width="8" height="10" />
+        <polygon points="14,10 26,10 20,0" />
+      </g>
+
+      <!-- Puente del Alamillo -->
+      <g transform="translate(1000, 80)" fill="url(#splashShadowGrad)">
+        <polygon points="0,280 35,0 55,0 40,280" />
+        <rect x="-250" y="275" width="450" height="8" />
+        <line x1="38" y1="30" x2="-200" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="39" y1="60" x2="-150" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="39" y1="90" x2="-100" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="40" y1="120" x2="-50" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="40" y1="150" x2="0" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="41" y1="180" x2="50" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="41" y1="210" x2="100" y2="275" stroke="#020304" stroke-width="1.5" />
+      </g>
+
+      <!-- Torre Sevilla (Pelli) -->
+      <g transform="translate(750, 50)" fill="url(#splashShadowGrad)">
+        <path d="M 10,310 L 15,20 C 15,5 35,5 35,20 L 40,310 Z" />
+      </g>
+
+      <!-- Relleno urbano -->
+      <path d="M 0,360 L 0,330 L 40,330 L 50,310 L 90,310 L 90,360 Z" fill="url(#splashShadowGrad)"/>
+      <path d="M 100,360 L 100,340 L 140,320 L 180,340 L 180,360 Z" fill="url(#splashShadowGrad)"/>
+      <path d="M 400,360 L 400,320 L 430,320 L 430,290 L 470,290 L 470,360 Z" fill="url(#splashShadowGrad)"/>
+      <path d="M 600,360 L 600,310 L 650,310 L 650,330 L 710,330 L 710,360 Z" fill="url(#splashShadowGrad)"/>
+      <path d="M 850,360 L 850,300 L 880,300 L 880,320 L 930,320 L 930,360 Z" fill="url(#splashShadowGrad)"/>
+      <path d="M 1250,360 L 1250,330 L 1300,310 L 1350,330 L 1350,360 Z" fill="url(#splashShadowGrad)"/>
+
+      <!-- Arboleda baja -->
+      <circle cx="210" cy="350" r="15" fill="url(#splashShadowGrad)" />
+      <circle cx="230" cy="345" r="20" fill="url(#splashShadowGrad)" />
+      <circle cx="560" cy="355" r="12" fill="url(#splashShadowGrad)" />
+      <circle cx="580" cy="348" r="18" fill="url(#splashShadowGrad)" />
+      <circle cx="950" cy="350" r="16" fill="url(#splashShadowGrad)" />
+      <circle cx="970" cy="345" r="22" fill="url(#splashShadowGrad)" />
+    </svg>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const overlay = document.getElementById('manolitoSplash');
+    if (!overlay) return;
+    document.body.classList.add('manolito-splash-activo');
+
+    const field = document.getElementById('particles');
+    for (let i = 0; i < 28; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = 1.5 + Math.random() * 2.5;
+      p.style.width = size + 'px';
+      p.style.height = size + 'px';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.bottom = '-10px';
+      p.style.animationDuration = (5 + Math.random() * 7) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
+      p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
+      field.appendChild(p);
+    }
+
+    const logoContainer = document.getElementById('logo-container');
+    function tiltLogo(e) {
+      const x = e.clientX / window.innerWidth - 0.5;
+      const y = e.clientY / window.innerHeight - 0.5;
+      logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
+    }
+    document.addEventListener('mousemove', tiltLogo);
+
+    let isLeaving = false;
+    function executeTransition() {
+      if (isLeaving) return;
+      isLeaving = true;
+      overlay.classList.add('leaving');
+      document.removeEventListener('mousemove', tiltLogo);
+      setTimeout(() => {
+        overlay.remove();
+        document.body.classList.remove('manolito-splash-activo');
+      }, 2400); // Igualado a la duración real de las animaciones "leaving" del CSS
+    }
+
+    document.getElementById('entryBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      executeTransition();
+    });
+
+    overlay.addEventListener('dblclick', executeTransition);
+
+    const autoBoot = setTimeout(executeTransition, 10000);
+  })();
+</script>
 
 <div class="topbar">
   <a href="index.html" class="wordmark">Manolito Aire <span data-i18n="tagline">MAPA NACIONAL · DATOS EN VIVO</span></a>
@@ -188,7 +507,12 @@
     <div id="rsStatus" class="chat-status" style="margin:8px 0 14px;"></div>
 
 <div class="map-wrap">
-  <div id="shadowRouteMap" style="height:440px;width:100%;"></div>
+  <div id="shadowRouteMap" style="height:440px;width:100%;">
+    <!-- Marcador para el observador de scroll: el mapa 3D (MapLibre +
+         Turf + SunCalc + shadows-route.js) solo se carga cuando esta
+         sección entra en pantalla, no en cada visita a la web aunque
+         nadie llegue a bajar hasta aquí. -->
+  </div>
 </div>
 
 <div class="rs-layer-toggles">
@@ -270,13 +594,13 @@
       <button data-quick="ica" onclick="askQuick('ica')" data-i18n="quick_ica">¿Qué significa ICA?</button>
       <button data-quick="ventanas" onclick="askQuick('ventanas')" data-i18n="quick_ventanas">¿Abro las ventanas o no?</button>
       <button data-quick="asma" onclick="askQuick('asma')" data-i18n="quick_asma">Tengo asma, ¿qué debo saber?</button>
-      <button data-quick="sombra_como" onclick="askQuick('sombra_como')">¿Cómo busco una ruta con sombra?</button>
-      <button data-quick="sombra_capas" onclick="askQuick('sombra_capas')">¿Qué son las capas del mapa?</button>  
-      <button data-quick="sombra_noveo" onclick="askQuick('sombra_noveo')">No veo ninguna sombra, ¿por qué?</button>
-      <button data-quick="sombra_esreal" onclick="askQuick('sombra_esreal')">¿La ruta es real o una línea recta?</button>
-      <button data-quick="sombra_iluminacion" onclick="askQuick('sombra_iluminacion')">¿Qué es la iluminación solar del mapa?</button>
-      <button data-quick="sombra_direccion" onclick="askQuick('sombra_direccion')">No encuentra mi dirección, ¿qué hago?</button>
-      <button data-quick="sombra_horas" onclick="askQuick('sombra_horas')">¿A qué hora hay más sombra en la calle?</button>
+      <button data-quick="sombra_como" onclick="askQuick('sombra_como')" data-i18n="quick_sombra_como">¿Cómo busco una ruta con sombra?</button>
+      <button data-quick="sombra_capas" onclick="askQuick('sombra_capas')" data-i18n="quick_sombra_capas">¿Qué son las capas del mapa?</button>  
+      <button data-quick="sombra_noveo" onclick="askQuick('sombra_noveo')" data-i18n="quick_sombra_noveo">No veo ninguna sombra, ¿por qué?</button>
+      <button data-quick="sombra_esreal" onclick="askQuick('sombra_esreal')" data-i18n="quick_sombra_esreal">¿La ruta es real o una línea recta?</button>
+      <button data-quick="sombra_iluminacion" onclick="askQuick('sombra_iluminacion')" data-i18n="quick_sombra_iluminacion">¿Qué es la iluminación solar del mapa?</button>
+      <button data-quick="sombra_direccion" onclick="askQuick('sombra_direccion')" data-i18n="quick_sombra_direccion">No encuentra mi dirección, ¿qué hago?</button>
+      <button data-quick="sombra_horas" onclick="askQuick('sombra_horas')" data-i18n="quick_sombra_horas">¿A qué hora hay más sombra en la calle?</button>
     </div>
     <div class="chat-input-row">
       <input type="text" id="chatInputField" data-i18n-placeholder="chatPlaceholder" placeholder="Escribe tu pregunta aquí...">
@@ -286,17 +610,68 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/theme.js"></script>
-<script src="js/i18n.js"></script>
-<script src="js/chat.js"></script>
-<script src="js/app.js"></script>
-<script src="js/air-forecast.js"></script>
-<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
-<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js"></script>
-<script src="js/shadows-route.js"></script>
-<script src="js/cookie-banner.js"></script>
+<!-- SCRIPTS SIEMPRE NECESARIOS: van con defer (se descargan en paralelo,
+     se ejecutan en este mismo orden justo antes de que la página se dé
+     por lista) -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<script src="js/theme.js" defer></script>
+<script src="js/i18n.js" defer></script>
+<script src="js/chat.js" defer></script>
+<script src="js/app.js" defer></script>
+<script src="js/air-forecast.js" defer></script>
+<script src="js/cookie-banner.js" defer></script>
+
+<!-- MAPA DE SOMBRAS 3D: MapLibre + Turf + SunCalc + shadows-route.js pesan
+     bastante y solo hacen falta si alguien llega a bajar hasta esa
+     sección — antes se cargaban SIEMPRE, en cada visita, aunque nadie
+     mirara el mapa de sombras. Ahora se cargan solo cuando la sección
+     entra en pantalla (o ya está a la vista al cargar la página). No se
+     toca shadows-route.js en absoluto, solo CUÁNDO se pide. -->
+<script>
+  (function () {
+    const objetivo = document.getElementById('shadowRouteMap');
+    if (!objetivo) return;
+
+    let cargado = false;
+    function cargarMapaSombras() {
+      if (cargado) return;
+      cargado = true;
+
+      function cargarScript(src) {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      // En orden estricto: shadows-route.js necesita que maplibregl/turf/
+      // SunCalc ya existan como globales cuando se ejecuta.
+      cargarScript('https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js')
+        .then(() => cargarScript('https://unpkg.com/@turf/turf@6/turf.min.js'))
+        .then(() => cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'))
+        .then(() => cargarScript('js/shadows-route.js'))
+        .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
+    }
+
+    if ('IntersectionObserver' in window) {
+      const observador = new IntersectionObserver((entradas) => {
+        entradas.forEach((entrada) => {
+          if (entrada.isIntersecting) {
+            cargarMapaSombras();
+            observador.disconnect();
+          }
+        });
+      }, { rootMargin: '600px 0px' }); // empieza a cargar un poco antes de que se vea, no en el instante exacto
+      observador.observe(objetivo);
+    } else {
+      // Navegador muy antiguo sin soporte: cargamos directamente, sin lazy load.
+      cargarMapaSombras();
+    }
+  })();
+</script>
 
 <script>
   /* =====================================================
@@ -319,11 +694,22 @@
       card.addEventListener('click', () => setMode(card.getAttribute('data-mode')));
     });
 
+    function getRobustLang() {
+      if (typeof currentLang !== 'undefined' && currentLang) return currentLang;
+      const htmlLang = document.documentElement.getAttribute('lang');
+      if (htmlLang) return htmlLang.split('-')[0];
+      try {
+        const storedLang = localStorage.getItem('manolito_lang') || localStorage.getItem('lang');
+        if (storedLang) return storedLang.split('-')[0];
+      } catch (e) {}
+      return 'es';
+    }
+
     function renderPequeFace(estado) {
       const cloudDiv = document.getElementById('pequeCloudSvg');
       const msgEl = document.getElementById('pequeMessage');
       const humanEl = document.getElementById('humanLine');
-      const subEl = document.getElementById('subLine'); // Selección directa y segura por ID
+      const subEl = document.getElementById('subLine');
 
       if (!cloudDiv || !msgEl) return;
 
@@ -338,19 +724,102 @@
         : `<circle cx="37" cy="46" r="6" fill="#333"/>
            <circle cx="63" cy="46" r="6" fill="#333"/>`;
 
-      const variaciones = {
-        buena: [
-          { msg: '¡El aire está contento!', humano: '¡Hoy puedes jugar fuera todo el día!', sub: 'Cielo despejado.' }
-        ],
-        moderada: [
-          { msg: 'El aire está más o menos…', humano: 'Puedes salir, pero mejor sin correr mucho.', sub: 'Calidad aceptable.' }
-        ],
-        mala: [
-          { msg: 'El aire necesita mimos…', humano: 'Hoy mejor nos quedamos dentro a pintar.', sub: 'Demasiadas partículas en la calle.' }
-        ]
+      const variacionesIdiomas = {
+        es: {
+          buena: [
+            { msg: '¡El aire está contento!', humano: '¡Hoy puedes jugar fuera todo el día!', sub: 'Cielo despejado.' },
+            { msg: '¡Qué aire tan limpio hoy!', humano: '¡Corre, salta y juega todo lo que quieras!', sub: 'Un día perfecto para el parque.' },
+            { msg: 'El aire está de fiesta hoy.', humano: '¡A la calle, que hoy se respira genial!', sub: 'Sin nubes de polvo por ningún lado.' },
+            { msg: 'El cielo está feliz hoy.', humano: 'Buen día para la bici o el balón en el parque.', sub: 'Aire fresquito y limpio.' }
+          ],
+          moderada: [
+            { msg: 'El aire está más o menos…', humano: 'Puedes salir, pero mejor sin correr mucho.', sub: 'Calidad aceptable.' },
+            { msg: 'El aire hoy está un poco tímido.', humano: 'Se puede jugar fuera, con calma y sin agobiarse.', sub: 'Ni bien ni mal del todo.' },
+            { msg: 'El aire está regulero hoy.', humano: 'Mejor juegos tranquilos al aire libre hoy.', sub: 'Nada grave, solo un poco flojo.' }
+          ],
+          mala: [
+            { msg: 'El aire necesita mimos…', humano: 'Hoy mejor nos quedamos dentro a pintar.', sub: 'Demasiadas partículas en la calle.' },
+            { msg: 'El aire está un poco enfadado hoy.', humano: 'Toca jugar dentro de casa un rato, ¿construimos algo?', sub: 'Mejor esperar a que se calme.' },
+            { msg: 'Hoy el cielo está cansado.', humano: 'Vamos a dibujar o leer un cuento dentro de casa.', sub: 'El aire de fuera necesita descansar.' }
+          ]
+        },
+        en: {
+          buena: [
+            { msg: 'The air is happy!', humano: 'You can play outside all day today!', sub: 'Clear skies.' },
+            { msg: 'Such clean air today!', humano: 'Run, jump and play as much as you want!', sub: 'A perfect day for the park.' },
+            { msg: 'The air is partying today.', humano: 'Go outside, breathing is great today!', sub: 'No dust clouds anywhere.' },
+            { msg: 'The sky is happy today.', humano: 'Good day for biking or playing ball in the park.', sub: 'Fresh and clean air.' }
+          ],
+          moderada: [
+            { msg: 'The air is so-so...', humano: 'You can go out, but better not run too much.', sub: 'Acceptable quality.' },
+            { msg: 'The air is a bit shy today.', humano: 'You can play outside, take it easy and don\'t stress.', sub: 'Neither entirely good nor bad.' },
+            { msg: 'The air is mediocre today.', humano: 'Better stick to quiet outdoor games today.', sub: 'Nothing serious, just a bit weak.' }
+          ],
+          mala: [
+            { msg: 'The air needs a hug...', humano: 'Better stay inside and paint today.', sub: 'Too many particles outside.' },
+            { msg: 'The air is a bit angry today.', humano: 'Time to play indoors for a while, shall we build something?', sub: 'Better wait for it to calm down.' },
+            { msg: 'The sky is tired today.', humano: 'Let\'s draw or read a story indoors.', sub: 'The outside air needs to rest.' }
+          ]
+        },
+        ca: {
+          buena: [
+            { msg: 'L\'aire està content!', humano: 'Avui pots jugar a fora tot el dia!', sub: 'Cel clar.' },
+            { msg: 'Quin aire més net avui!', humano: 'Corre, salta i juga tot el que vulguis!', sub: 'Un dia perfecte per al parc.' },
+            { msg: 'L\'aire està de festa avui.', humano: 'Al carrer, que avui s\'respira genial!', sub: 'Sense núvols de pols enlloc.' },
+            { msg: 'El cel està feliç avui.', humano: 'Bon dia per a la bici o la pilota al parc.', sub: 'Aire fresquet i net.' }
+          ],
+          moderada: [
+            { msg: 'L\'aire està més o menys…', humano: 'Pots sortir, però millor sense córrer gaire.', sub: 'Qualitat acceptable.' },
+            { msg: 'L\'aire avui està una mica tímid.', humano: 'Es pot jugar a fora, amb calma i sense atabalar-se.', sub: 'Ni bé ni malament del tot.' },
+            { msg: 'L\'aire està regular avui.', humano: 'Millor jocs tranquils a l\'aire lliure avui.', sub: 'Res greu, només una mica fluix.' }
+          ],
+          mala: [
+            { msg: 'L\'aire necessita mimos…', humano: 'Avui millor ens quedem a dins a pintar.', sub: 'Massa partícules al carrer.' },
+            { msg: 'L\'aire està una mica enfadat avui.', humano: 'Toca jugar dins de casa una estona, construïm alguna cosa?', sub: 'Millor esperar que es calmi.' },
+            { msg: 'Avui el cel està cansat.', humano: 'Anem a dibuixar o llegir un conte dins de casa.', sub: 'L\'aire de fora necessita descansar.' }
+          ]
+        },
+        gl: {
+          buena: [
+            { msg: 'O aire está contento!', humano: 'Hoxe podes xogar fóra todo o día!', sub: 'Ceo despexado.' },
+            { msg: 'Que aire tan limpo hoxe!', humano: 'Corre, salta e xoga todo o que queiras!', sub: 'Un día perfecto para o parque.' },
+            { msg: 'O aire está de festa hoxe.', humano: 'Á rúa, que hoxe respírase xenial!', sub: 'Sen nubes de po por ningures.' },
+            { msg: 'O ceo está feliz hoxe.', humano: 'Bo día para a bici ou o balón no parque.', sub: 'Aire fresquiño e limpo.' }
+          ],
+          moderada: [
+            { msg: 'O aire está máis ou menos…', humano: 'Podes saír, pero mellor sen correr moito.', sub: 'Calidade aceptable.' },
+            { msg: 'O aire hoxe está un pouco tímido.', humano: 'Pódese xogar fóra, con calma e sen agobiarse.', sub: 'Nin ben nin mal de todo.' },
+            { msg: 'O aire está regular hoxe.', humano: 'Mellor xogos tranquilos ao aire libre hoxe.', sub: 'Nada grave, só un pouco frouxo.' }
+          ],
+          mala: [
+            { msg: 'O aire necesita mimos…', humano: 'Hoxe mellor quedamos dentro a pintar.', sub: 'Demasiadas partículas na rúa.' },
+            { msg: 'O aire está un pouco enfadado hoxe.', humano: 'Toca xogar dentro de casa un cacho, construímos algo?', sub: 'Mellor esperar a que se calme.' },
+            { msg: 'Hoxe o ceo está canso.', humano: 'Imos debuxar ou ler un conto dentro de casa.', sub: 'O aire de fóra necesita descansar.' }
+          ]
+        },
+        eu: {
+          buena: [
+            { msg: 'Airea pozik dago!', humano: 'Gaur egun osoan zehar kanpoan jolastu dezakezu!', sub: 'Zeru garbia.' },
+            { msg: 'Zein aire garbia gaur!', humano: 'Korrika egin, salto egin eta jolastu nahi duzun guztia!', sub: 'Egun ezin hobea parkerako.' },
+            { msg: 'Airea festan dago gaur.', humano: 'Kalera, gaur primeran arnasten da eta!', sub: 'Ez dago hauts-hodeirik inon.' },
+            { msg: 'Zerua zoriontsu dago gaur.', humano: 'Egun ona parkean bizikletan edo baloiarekin jolasteko.', sub: 'Aire fresko eta garbia.' }
+          ],
+          moderada: [
+            { msg: 'Airea hala-hola dago…', humano: 'Atera zaitezke, baina hobe korrika asko egin gabe.', sub: 'Kalitate onargarria.' },
+            { msg: 'Airea apur bat lotsati dago gaur.', humano: 'Kanpoan jolastu daiteke, lasai eta estutu gabe.', sub: 'Ez ondo ezta gaizki ere.' },
+            { msg: 'Airea kaskar dago gaur.', humano: 'Hobe aire zabaleko jolas lasaiak gaur.', sub: 'Ez da ezer larria, pixka bat ahula besterik ez.' }
+          ],
+          mala: [
+            { msg: 'Aireak mimoak behar ditu…', humano: 'Gaur hobe barruan geratzea margotzen.', sub: 'Partikula gehiegi kalean.' },
+            { msg: 'Airea apur bat haserre dago gaur.', humano: 'Etxe barruan jolasteko unea da, zerbait eraikiko dugu?', sub: 'Hobe lasaitu arte itxarotea.' },
+            { msg: 'Gaur zerua nekatuta dago.', humano: 'Etxe barruan marraztera edo ipuin bat irakurtzera goaz.', sub: 'Kanpoko aireak atsedena behar du.' }
+          ]
+        }
       };
 
-      const estadoData = variaciones[estado] || variaciones.mala; 
+      const lang = getRobustLang();
+      const idiomaSeleccionado = variacionesIdiomas[lang] ? variacionesIdiomas[lang] : variacionesIdiomas['es'];
+      const estadoData = idiomaSeleccionado[estado] || idiomaSeleccionado.mala; 
       const seleccion = estadoData[Math.floor(Math.random() * estadoData.length)];
 
       let svg = '';

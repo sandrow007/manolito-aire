@@ -1,5 +1,5 @@
 /* ============================================================
-   MANOLITO — Aire + Sombra (versión completa)
+   MANOLITO — Aire + Sombra (versión completa y robusta)
    Fallback: 1) Cloudflare Worker  2) OpenRouter  3) Local
    ============================================================ */
 const CLOUDFLARE_WORKER_URL = "https://manolito-aire.sandro-a007.workers.dev/manolito";
@@ -16,12 +16,40 @@ const cannedFallback = {
   aire_asma: "Con asma, presta especial atención cuando el círculo esté en ámbar o rojo: mejor llevar la medicación de rescate a mano, evitar ejercicio intenso al aire libre y, si tienes dudas sobre tu caso concreto, coméntaselo a tu médico.",
   sombra_ruta: "Para buscar la calle con más sombra necesito que me digas desde dónde sales, a dónde vas y en qué ciudad. Si me dices la hora, mejor aún.",
   sombra_consejo: "Truco solar: por la mañana las sombras caen hacia el oeste, así que camina por la acera este. Por la tarde, al revés. Las calles estrechas y los soportales son tus aliados.",
+  sombra_capas: "El mapa tiene 4 capas: Edificios 3D (para ver la ciudad), Sombras (calculadas con la posición real del sol), Ruta (tu camino a pie) y Posición del sol. Puedes activarlas o desactivarlas.",
+  sombra_noveo: "Si es de noche (el sol está bajo el horizonte), no hay sombras que proyectar. También asegúrate de que la capa 'Sombras' esté activada.",
+  sombra_esreal: "Sí, traza el trayecto real a pie por calles usando el sistema OSRM. Si el servidor falla, mostrará una línea recta por defecto, pero puedes reintentar.",
+  sombra_iluminacion: "Es una simulación de la luz y el cielo que cambia en tiempo real según la hora del día, parecido a lo que hace Google Earth.",
+  sombra_direccion: "Para buscar la ruta tienes que elegir una de las sugerencias que aparecen en la lista desplegable al escribir 3 letras. No le des a buscar sin elegir una.",
+  sombra_horas: "Depende de la orientación de la calle. Al mediodía el sol está alto y hay menos sombra. Por la mañana busca la acera este, por la tarde la oeste.",
+  sombra_como: "Usa los recuadros de la sección 'Ruta y sombras 3D' abajo. Escribe origen y destino, elige de la lista y dale a 'Buscar ruta'.",
   generic: "¡Hola! Soy Manolito, experto en calidad del aire y en esquivar el sol. Pregúntame lo que quieras."
 };
 
+/**
+ * Esta es la función robusta que te mencionaba. 
+ * Se asegura de saber en qué idioma está la web al 100%.
+ */
+function getRobustLang() {
+  if (typeof currentLang !== 'undefined' && currentLang) {
+    return currentLang;
+  }
+  const htmlLang = document.documentElement.getAttribute('lang');
+  if (htmlLang) {
+    return htmlLang.split('-')[0];
+  }
+  try {
+    const storedLang = localStorage.getItem('manolito_lang') || localStorage.getItem('lang');
+    if (storedLang) return storedLang.split('-')[0];
+  } catch (e) {}
+  return 'es';
+}
+
 async function askManolito(question){
   const langNames = { es:'español', ca:'català', eu:'euskera', gl:'galego', en:'English', fr:'français', de:'Deutsch', it:'italiano', pt:'português', nl:'Nederlands', sv:'svenska', el:'ελληνικά', he:'עברית', ar:'العربية', ka:'ქართული' };
-  const uiLang = (typeof currentLang !== 'undefined') ? currentLang : 'es';
+  
+  // Aquí usamos la función robusta
+  const uiLang = getRobustLang();
   const uiLangName = langNames[uiLang] || 'español';
 
   const systemPrompt = `Eres Manolito, un asistente alegre y experto en dos áreas: calidad del aire (PM2.5, colores del índice, salud) y rutas urbanas para caminar por la sombra evitando el sol directo. Explicas todo de forma clara, humana y con buen rollo, sin tecnicismos a menos que te los pidan.
@@ -39,6 +67,7 @@ RUTAS CON SOMBRA: Eres un guía urbano especializado en encontrar las calles con
 - NUNCA das respuestas genéricas como "busca árboles". Das calles concretas con orientaciones.
 - Priorizas: soportales, calles estrechas del casco histórico, calles con arbolado denso, aceras en sombra según la hora.
 - Nunca pides GPS, solo nombres de calles y ciudad.
+
 LA HERRAMIENTA "RUTA Y SOMBRAS 3D" DE ESTA MISMA WEB: Manolito Aire tiene una sección más abajo en la página llamada "Ruta y sombras 3D" con un mapa interactivo real (no una simulación de texto). Cuando alguien te pregunte cómo usarla, cómo funciona, o le pase algo raro con ella, explícaselo así:
 - Tiene dos campos, "Punto de origen" y "Punto de destino": al escribir 3 letras o más, aparece una lista de sugerencias reales (como en Google Maps) — hay que hacer clic en la sugerencia correcta de la lista, no basta con escribir y darle a "Buscar ruta" directamente, porque puede haber calles con el mismo nombre en varias localidades.
 - Al pulsar "Buscar ruta" traza el trayecto REAL por calles (a pie), no una línea recta — y debajo muestra la calidad del aire (AQI) del punto de origen.
@@ -46,6 +75,7 @@ LA HERRAMIENTA "RUTA Y SOMBRAS 3D" DE ESTA MISMA WEB: Manolito Aire tiene una se
 - Si el sol está bajo el horizonte (de noche), avisa de que no hay sombras que proyectar — es normal y no es un fallo.
 - Si a alguien no le carga la ruta real, es porque el servidor gratuito de rutas (OSRM) puede estar ocupado en ese momento; en ese caso la web avisa y muestra una línea directa en su lugar, pero se puede reintentar.
 - Esta sección es aparte del chat: no hace falta escribirte a ti la dirección para usarla, se usa directamente ahí.
+
 CONOCES EL RESTO DE LA WEB: Manolito Aire tiene un selector de ciudad (sin usar GPS, el usuario elige de una lista), 4 modos de lectura (Ciudadano: claro y directo; Científico: con datos técnicos PM2.5/PM10/NO2/O3/ICA; Abuela/Abuelo: letra grande y ritmo tranquilo; Peque: para niños de unos 5 años, con dibujos), un gráfico de evolución del aire (48h reales + 48h de pronóstico Copernicus/CAMS), y una sección "Manolito Cuántico" que es una simulación matemática de probabilidad (NO una predicción meteorológica oficial, y así lo debes aclarar si alguien te pregunta por ella).
 
 SI NO SABES ALGO CON CERTEZA: nunca te inventes un nombre de calle, un dato de contaminación o una cifra que no tengas. Si no estás seguro de una calle concreta de una ciudad que no conoces bien, dilo claramente ("no conozco tan bien el callejero de esa ciudad, pero te puedo dar el criterio general de por dónde caerá la sombra") en vez de inventar un nombre que suene creíble.
@@ -58,7 +88,7 @@ Si una pregunta no encaja en estas dos áreas, respondes igual de útil y simpá
     return cannedFallback.generic + " (Has rechazado las cookies, así que el chat solo usa respuestas locales. Puedes cambiarlo en Cookies.)";
   }
 
-// 1) Cloudflare Worker
+  // 1) Cloudflare Worker
   if (CLOUDFLARE_WORKER_URL){
     try{
       const r = await fetch(CLOUDFLARE_WORKER_URL, {
@@ -98,7 +128,7 @@ Si una pregunta no encaja en estas dos áreas, respondes igual de útil y simpá
     } catch(e){}
   }
 
-// 3) Respuesta local de seguridad
+  // 3) Respuesta local de seguridad
   const q = question.toLowerCase();
   if (/aire|pm|contaminaci|calidad|índice|bebé|bebe|bebés|deporte|ejercicio|ica|ventana|asma/.test(q)) {
     if (/pm|partículas/i.test(q)) return cannedFallback.aire_pm25;

@@ -6,9 +6,6 @@
 <title>Manolito Aire — ¿Cómo respiras hoy?</title>
 <meta name="description" content="Calidad del aire de España en tiempo real, gratis, sin registro y sin publicidad.">
 
-<!-- Conexiones tempranas a los dominios externos de los que dependemos —
-     el navegador puede ir haciendo el handshake DNS/TLS antes de que el
-     HTML llegue a pedir el recurso de verdad. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://unpkg.com">
@@ -20,12 +17,6 @@
 <link rel="icon" type="image/png" href="nubes.png">
 <link rel="stylesheet" href="css/style.css">
 
-<!-- ============================================================
-     ESTILOS DEL SPLASH DE ENTRADA — todo cuelga de #manolitoSplash,
-     ningún selector suelto de body/html/* que afecte al resto de la
-     página. Variables con prefijo --splash- para no pisar
-     --sky-deep/--sky-mid/--paper del resto del sitio.
-     ============================================================ -->
 <style>
   #manolitoSplash{
     --splash-sky-deep:#1C3144; --splash-sky-mid:#2B4A63;
@@ -125,10 +116,6 @@
     background: radial-gradient(circle, var(--splash-dawn) 0%, rgba(var(--splash-dawn-rgb), 0.5) 40%, transparent 70%);
     border-radius:50%; filter:blur(15px); transition: background 1.2s ease;
   }
-  /* Duración igualada a 2.4s en las tres animaciones "leaving" para que
-     coincida EXACTAMENTE con el setTimeout del script que quita el splash
-     — antes el CSS decía 5s pero el JS lo cortaba a los 2.4s, así que la
-     animación se veía cortada a media transición. */
   #manolitoSplash.leaving .sun-burst{ animation: splashSolarExpand 2.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
   @keyframes splashSolarExpand{
     0%{ transform:translate(-50%,-50%) scale(0); opacity:0; }
@@ -169,13 +156,8 @@
 </head>
 <body>
 
-<!-- ============================================================
-     SPLASH DE ENTRADA — desaparece solo (botón, doble clic, o a
-     los 10s) mientras el resto de la página ya está cargando debajo.
-     ============================================================ -->
 <div id="manolitoSplash">
   <div class="sky-glow"></div>
-
   <svg class="wind-field" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid slice">
     <path class="wind-line w-mid w1" d="M -100,120 C 150,280 350,20 600,180 S 850,80 1100,140" />
     <path class="wind-line w-thin w2" d="M 1100,220 C 800,80 600,320 350,150 S 100,280 -100,180" />
@@ -219,33 +201,24 @@
           <stop offset="100%" stop-color="#05080A"/>
         </linearGradient>
       </defs>
-
-      <!-- Base de la ciudad -->
       <rect x="0" y="360" width="1400" height="40" fill="url(#splashShadowGrad)" />
-
-      <!-- Catedral y Giralda -->
       <g transform="translate(250, 0)" fill="url(#splashShadowGrad)">
         <path d="M -50,360 L -50,280 L 10,250 L 70,280 L 70,360 Z" />
         <path d="M 10,250 L 10,220 L 15,220 L 15,250 Z" />
         <path d="M -120,360 L -120,300 L -50,300 L -50,360 Z" />
         <path d="M 70,360 L 70,310 L 140,310 L 140,360 Z" />
-
         <rect x="75" y="150" width="28" height="210" />
         <rect x="79" y="110" width="20" height="40" />
         <rect x="83" y="90" width="12" height="20" />
         <rect x="87" y="75" width="4" height="15" />
         <circle cx="89" cy="72" r="2.5" />
       </g>
-
-      <!-- Torre del Oro -->
       <g transform="translate(500, 220)" fill="url(#splashShadowGrad)">
         <path d="M 0,140 L 0,60 L 5,60 L 8,40 L 32,40 L 35,60 L 40,60 L 40,140 Z" />
         <rect x="12" y="20" width="16" height="20" />
         <rect x="16" y="10" width="8" height="10" />
         <polygon points="14,10 26,10 20,0" />
       </g>
-
-      <!-- Puente del Alamillo -->
       <g transform="translate(1000, 80)" fill="url(#splashShadowGrad)">
         <polygon points="0,280 35,0 55,0 40,280" />
         <rect x="-250" y="275" width="450" height="8" />
@@ -257,21 +230,15 @@
         <line x1="41" y1="180" x2="50" y2="275" stroke="#020304" stroke-width="1.5" />
         <line x1="41" y1="210" x2="100" y2="275" stroke="#020304" stroke-width="1.5" />
       </g>
-
-      <!-- Torre Sevilla (Pelli) -->
       <g transform="translate(750, 50)" fill="url(#splashShadowGrad)">
         <path d="M 10,310 L 15,20 C 15,5 35,5 35,20 L 40,310 Z" />
       </g>
-
-      <!-- Relleno urbano -->
       <path d="M 0,360 L 0,330 L 40,330 L 50,310 L 90,310 L 90,360 Z" fill="url(#splashShadowGrad)"/>
       <path d="M 100,360 L 100,340 L 140,320 L 180,340 L 180,360 Z" fill="url(#splashShadowGrad)"/>
       <path d="M 400,360 L 400,320 L 430,320 L 430,290 L 470,290 L 470,360 Z" fill="url(#splashShadowGrad)"/>
       <path d="M 600,360 L 600,310 L 650,310 L 650,330 L 710,330 L 710,360 Z" fill="url(#splashShadowGrad)"/>
       <path d="M 850,360 L 850,300 L 880,300 L 880,320 L 930,320 L 930,360 Z" fill="url(#splashShadowGrad)"/>
       <path d="M 1250,360 L 1250,330 L 1300,310 L 1350,330 L 1350,360 Z" fill="url(#splashShadowGrad)"/>
-
-      <!-- Arboleda baja -->
       <circle cx="210" cy="350" r="15" fill="url(#splashShadowGrad)" />
       <circle cx="230" cy="345" r="20" fill="url(#splashShadowGrad)" />
       <circle cx="560" cy="355" r="12" fill="url(#splashShadowGrad)" />
@@ -319,7 +286,7 @@
       setTimeout(() => {
         overlay.remove();
         document.body.classList.remove('manolito-splash-activo');
-      }, 2400); // Igualado a la duración real de las animaciones "leaving" del CSS
+      }, 2400); 
     }
 
     document.getElementById('entryBtn').addEventListener('click', (e) => {
@@ -328,7 +295,6 @@
     });
 
     overlay.addEventListener('dblclick', executeTransition);
-
     const autoBoot = setTimeout(executeTransition, 10000);
   })();
 </script>
@@ -382,8 +348,6 @@
   <div class="orb-wrap">
     <div class="orb-ring"></div>
     <div class="orb"><div class="orb-face" id="orbFace">bien</div></div>
-
-    <!-- MODO PEQUE -->
     <div class="peque-character" id="pequeCharacter">
       <div class="peque-cloud" id="pequeCloudSvg"></div>
       <div class="peque-message" id="pequeMessage">El aire está contento!</div>
@@ -394,7 +358,6 @@
   <div class="sub-line" id="subLine">Un momento.</div>
   <div class="tech-readout" id="techReadout">—</div>
 
-  <!-- MODO CIENTÍFICO -->
   <div class="sci-panel" id="sciPanel">
     <table>
       <tr><td>PM2.5</td><td id="sciPM25">-- µg/m³</td></tr>
@@ -508,10 +471,6 @@
 
 <div class="map-wrap">
   <div id="shadowRouteMap" style="height:440px;width:100%;">
-    <!-- Marcador para el observador de scroll: el mapa 3D (MapLibre +
-         Turf + SunCalc + shadows-route.js) solo se carga cuando esta
-         sección entra en pantalla, no en cada visita a la web aunque
-         nadie llegue a bajar hasta aquí. -->
   </div>
 </div>
 
@@ -610,23 +569,15 @@
   </div>
 </div>
 
-<!-- SCRIPTS SIEMPRE NECESARIOS: van con defer (se descargan en paralelo,
-     se ejecutan en este mismo orden justo antes de que la página se dé
-     por lista) -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <script src="js/theme.js" defer></script>
 <script src="js/i18n.js" defer></script>
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
+<!-- Aquí está la llamada a tu archivo de cookies intacta -->
 <script src="js/cookie-banner.js" defer></script>
 
-<!-- MAPA DE SOMBRAS 3D: MapLibre + Turf + SunCalc + shadows-route.js pesan
-     bastante y solo hacen falta si alguien llega a bajar hasta esa
-     sección — antes se cargaban SIEMPRE, en cada visita, aunque nadie
-     mirara el mapa de sombras. Ahora se cargan solo cuando la sección
-     entra en pantalla (o ya está a la vista al cargar la página). No se
-     toca shadows-route.js en absoluto, solo CUÁNDO se pide. -->
 <script>
   (function () {
     const objetivo = document.getElementById('shadowRouteMap');
@@ -647,8 +598,6 @@
         });
       }
 
-      // En orden estricto: shadows-route.js necesita que maplibregl/turf/
-      // SunCalc ya existan como globales cuando se ejecuta.
       cargarScript('https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js')
         .then(() => cargarScript('https://unpkg.com/@turf/turf@6/turf.min.js'))
         .then(() => cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'))
@@ -664,19 +613,15 @@
             observador.disconnect();
           }
         });
-      }, { rootMargin: '600px 0px' }); // empieza a cargar un poco antes de que se vea, no en el instante exacto
+      }, { rootMargin: '600px 0px' }); 
       observador.observe(objetivo);
     } else {
-      // Navegador muy antiguo sin soporte: cargamos directamente, sin lazy load.
       cargarMapaSombras();
     }
   })();
 </script>
 
 <script>
-  /* =====================================================
-     LÓGICA DE LOS MODOS (CIENTÍFICO, YAYO, PEQUE)
-     ===================================================== */
   (function() {
     const body = document.body;
     const modeCards = document.querySelectorAll('.mode-card[data-mode]');
@@ -870,9 +815,6 @@
 
   })();
 
-  /* =====================================================
-     SELECTOR DE CIUDAD ELEGANTE
-     ===================================================== */
   (function() {
     const btn = document.getElementById('cityDropdownBtn');
     const list = document.getElementById('cityDropdownList');

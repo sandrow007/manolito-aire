@@ -1,5 +1,5 @@
 /* ============================================================
-   MANOLIT∞ AIRE — tutorial.js (Definitivo 8 Pasos y 5 Idiomas Corregidos)
+   MANOLIT∞ AIRE — tutorial.js (Definitivo 8 Pasos y 5 Idiomas)
    ============================================================ */
 
 'use strict';
@@ -17,7 +17,7 @@
         { title: "¿Cómo quieres que te lo cuente?", desc: "Elige el modo que mejor te venga — mismo dato, explicado distinto." },
         { title: "El aire de España, ahora mismo", desc: "Cada punto es una estación real. Tócalo para ver el detalle." },
         { title: "Ruta y origen", desc: "Escribe aquí tu punto de partida y destino para trazar el camino." },
-        { title: "Mapa 3D y sombras", desc: "Visualiza el mapa 3D en tiempo real para calcular tu ruta evitando el sol y las sombras." },
+        { title: "Mapa 3D y sombras", desc: "Visualiza el mapa 3D en tiempo real para calcular tu ruta evitando el sol y aprovecha las sombras completamente gratis." },
         { title: "Pregúntale a Manolito", desc: "¿Algo no te queda claro? Pregúntaselo aquí en cualquier momento." },
         { title: "Apoya la causa", desc: "Manolit∞ siempre será gratis. Si quieres colaborar con los servidores, puedes apoyar en Ko-fi aquí." },
         { title: "Los hermanos de Manolit∞", desc: "Puedes visitar los proyectos (como Manolit∞ Forestal e Islas de Calor Sevilla)." }
@@ -32,7 +32,7 @@
         { title: "Com vols que t'ho expliqui?", desc: "Tria el mode que millor et vagi — mateixa dada, explicat diferent." },
         { title: "L'aire d'Espanya, ara mateix", desc: "Cada punt és una estació real. Toca'l per veure el detall." },
         { title: "Ruta i origen", desc: "Escriu aquí el teu punt de partida i destí per traçar el camí." },
-        { title: "Mapa 3D i ombres", desc: "Visualitza el mapa 3D en temps real per calcular la teva ruta evitant el sol i les ombres." },
+        { title: "Mapa 3D i ombres", desc: "Visualitza el mapa 3D en temps real per calcular la teva ruta evitant el sol i aprofitant les ombres completament gratis." },
         { title: "Pregunta a Manolito", desc: "Alguna cosa no et queda clara? Pregunta'm-ho aquí en qualsevol moment." },
         { title: "Dona suport a la causa", desc: "Manolit∞ sempre serà gratis. Si vols col·laborar amb els servidors, pots donar suport a Ko-fi aquí." },
         { title: "Els germans de Manolit∞", desc: "Pots visitar els projectes (com ara Manolit∞ Forestal i Illes de Calor Sevilla)." }
@@ -47,7 +47,7 @@
         { title: "Nola kontatzea nahi duzu?", desc: "Aukeratu onenak datorkizun modua — datu bera, ezberdin azaldua." },
         { title: "Espainiako airea, orain bertan", desc: "Puntu bakoitza benetako estazio bat da. Ukitu xehetasuna ikusteko." },
         { title: "Ibilbidea eta jatorria", desc: "Idatzi hemen zure abiapuntua eta helmuga bidea marrazteko." },
-        { title: "3D mapa eta itzalak", desc: "Ikusi 3D mapa denbora errealean zure ibilbidea kalkulatuz eguzkia eta itzalak saihestuz." },
+        { title: "3D mapa eta itzalak", desc: "Ikusi 3D mapa denbora errealean zure ibilbidea kalkulatuz eguzkia saihestuz eta itzalak aprobetxatuz, guztiz doan." },
         { title: "Galdetu Manolitori", desc: "Zerbait ez zaizu argi geratzen? Galdetu hemen edozein unetan." },
         { title: "Babestu kausa", desc: "Manolit∞ beti doakoa izango da. Zerbitzariak lagundu nahi badituzu, Ko-fi bidez egin dezakezu." },
         { title: "Manolit∞ren anai-arrebak", desc: "Proiektuak bisitatu ditzakezu (hala nola Manolit∞ Forestal eta Sevillako Bero-Uharteak)." }
@@ -62,7 +62,7 @@
         { title: "Como queres que o conte?", desc: "Escolle o modo que mellor te veña — mesmo dato, explicado distinto." },
         { title: "O aire de España, agora mesmo", desc: "Cada punto é unha estación real. Tócao para ver o detalle." },
         { title: "Ruta e orixe", desc: "Escribe aquí o teu punto de partida e destino para trazar o camiño." },
-        { title: "Mapa 3D e sombras", desc: "Visualiza o mapa 3D en tempo real para calcular a túa ruta evitando o sol e as sombras." },
+        { title: "Mapa 3D e sombras", desc: "Visualiza o mapa 3D en tempo real para calcular a túa ruta evitando o sol e aproveitando as sombras completamente gratis." },
         { title: "Pregúntalle a Manolito", desc: "Algo non che queda claro? Pregúntamo aquí en calquera momento." },
         { title: "Apoia a causa", desc: "Manolit∞ sempre será gratis. Se queres colaborar cos servidores, podes apoiar en Ko-fi aquí." },
         { title: "Os irmáns de Manolit∞", desc: "Podes visitar os proxectos (como Manolit∞ Forestal e Illas de Calor Sevilla)." }
@@ -77,7 +77,7 @@
         { title: "How do you want me to tell you?", desc: "Choose the mode that suits you best — same data, explained differently." },
         { title: "Spain's air, right now", desc: "Each point is a real station. Tap it to see details." },
         { title: "Route and origin", desc: "Type your starting point and destination here to trace the path." },
-        { title: "3D Map & Shadows", desc: "View the 3D map in real time to calculate your route avoiding the sun and shadows." },
+        { title: "3D Map & Shadows", desc: "View the 3D map in real time to calculate your route avoiding the sun and taking advantage of shadows, completely free." },
         { title: "Ask Manolito", desc: "Something not clear? Ask here at any time." },
         { title: "Support the cause", desc: "Manolit∞ will always be free. If you want to help with servers, you can support via Ko-fi here." },
         { title: "Manolit∞'s Siblings", desc: "You can visit our projects (such as Manolit∞ Forestal and Seville Heat Islands)." }

@@ -1,18 +1,16 @@
 /* ============================================================
-   MANOLIT∞ AIRE — puerta de consentimiento de cookies (Robusto)
+   MANOLIT∞ AIRE — cookie-banner.js 
    ============================================================ */
 
 function initCookieBanner(){
   const choice = localStorage.getItem('manolito_cookies_choice');
   if (choice === 'accepted' || choice === 'rejected') return;
 
-  // Evitar duplicados si ya existe en el DOM
   if (document.getElementById('cookieGate')) return;
 
   const gate = document.createElement('div');
   gate.id = 'cookieGate';
   
-  // Z-index extremo (100000) y colores fijos garantizados para que no dependa de variables CSS externas
   gate.style.cssText = `
     position: fixed; inset: 0; z-index: 100000; background: rgba(1, 2, 3, 0.85);
     display: flex; align-items: center; justify-content: center; padding: 20px;
@@ -44,7 +42,7 @@ function initCookieBanner(){
   document.getElementById('cookieAcceptBtn').addEventListener('click', () => {
     localStorage.setItem('manolito_cookies_choice', 'accepted');
     gate.remove();
-    document.dispatchEvent(new CustomEvent('cookiesAceptadas')); // dispara el tutorial (tutorial.js)
+    document.dispatchEvent(new CustomEvent('cookiesAceptadas'));
   });
   
   document.getElementById('cookieRejectBtn').addEventListener('click', () => {
@@ -58,7 +56,6 @@ function cookiesAccepted(){
   return localStorage.getItem('manolito_cookies_choice') === 'accepted';
 }
 
-// Ejecución inmediata y segura al cargar el script
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initCookieBanner);
 } else {

@@ -279,15 +279,32 @@
     }
     document.addEventListener('mousemove', tiltLogo);
 
+    // NUEVO: El tutorial SOLO arranca si ambas condiciones físicas se cumplen
+    function evaluarArranqueTutorial() {
+      const cookiesAceptadas = localStorage.getItem('manolito_cookies_choice') === 'accepted';
+      const splashDestruido = document.getElementById('manolitoSplash') === null;
+      
+      if (cookiesAceptadas && splashDestruido && typeof window.iniciarTutorialManolito === 'function') {
+        window.iniciarTutorialManolito();
+      }
+    }
+
+    // Escucha el evento del banner por si el usuario acepta las cookies DESPUÉS de que el splash desaparezca
+    document.addEventListener('cookiesAceptadas', evaluarArranqueTutorial);
+
     let isLeaving = false;
     function executeTransition() {
       if (isLeaving) return;
       isLeaving = true;
       overlay.classList.add('leaving');
       document.removeEventListener('mousemove', tiltLogo);
+      
       setTimeout(() => {
         overlay.remove();
         document.body.classList.remove('manolito-splash-activo');
+        
+        // Evalúa el arranque justo en el instante en que el DOM elimina la portada
+        evaluarArranqueTutorial();
       }, 2400); 
     }
 
@@ -568,12 +585,12 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <script src="js/theme.js" defer></script>
 <script src="js/i18n.js" defer></script>
+<script src="js/cookie-banner.js" defer></script> <!-- 1. Primero se crea el banner de cookies -->
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
-<script src="js/tutorial.js" defer></script>
+<script src="js/tutorial.js" defer></script> <!-- 2. Al final se carga el tutorial y se queda esperando el clic real -->
 <script src="js/air-forecast.js" defer></script>
-<!-- Aquí está la llamada a tu archivo de cookies intacta -->
-<script src="js/cookie-banner.js" defer></script>
+
 
 <script>
   (function () {

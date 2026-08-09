@@ -1,9 +1,5 @@
 /* ============================================================
-   MANOLITO AIRE — tutorial.js (Driver.js)
-   Arranca SOLO al aceptar cookies, SOLO una vez (localStorage).
-   Textos de los botones enganchados al mismo sistema de i18n
-   que el resto de la web — cambia de idioma sin fallar, igual
-   que shadows-route.js y app.js.
+   MANOLIT∞ AIRE — tutorial.js (Definitivo 8 Pasos, 5 Idiomas, Botón X Activo)
    ============================================================ */
 
 'use strict';
@@ -11,156 +7,206 @@
 (function () {
   const CLAVE_LOCALSTORAGE = 'tutorial_visto';
 
-  // Textos de los botones por idioma. Si en tu i18n.js prefieres tenerlos
-  // junto a las demás claves, mueve este objeto a `translations` en
-  // i18n.js con estas mismas claves (tutorialNext/tutorialPrev/tutorialDone)
-  // y borra este bloque — t() los encontrará igual, ya que primero mira
-  // siempre el diccionario central antes de este de repuesto.
-  const TEXTOS_REPUESTO = {
-    es: { next: 'Siguiente', prev: 'Anterior', done: 'Finalizar' },
-    ca: { next: 'Següent', prev: 'Anterior', done: 'Finalitzar' },
-    eu: { next: 'Hurrengoa', prev: 'Aurrekoa', done: 'Amaitu' },
-    gl: { next: 'Seguinte', prev: 'Anterior', done: 'Rematar' },
-    en: { next: 'Next', prev: 'Previous', done: 'Done' },
+  const TEXTOS_IDIOMAS = {
+    es: {
+      next: "Siguiente",
+      prev: "Anterior",
+      done: "Finalizar",
+      pasos: [
+        { title: "Elige tu ciudad", desc: "Cambia aquí la ciudad para ver su aire en tiempo real." },
+        { title: "¿Cómo quieres que te lo cuente?", desc: "Elige el modo que mejor te venga — mismo dato, explicado un poco distinto." },
+        { title: "El aire de España, ahora mismo", desc: "Cada punto es una estación real. Tócalo para ver el detalle." },
+        { title: "Ruta y origen", desc: "Escribe aquí tu punto de partida y destino o usa tu ubicación directaente para trazar el camino." },
+        { title: "Pregúntale a Manolito", desc: "¿Algo no te queda claro? Pregúntaselo aquí en cualquier momento." },
+        { title: "Apoya la causa", desc: "Manolit∞ siempre será gratis. Si quieres colaborar con los servidores, puedes apoyar en Ko-fi aquí." },
+        { title: "Los hermanos de Manolit∞", desc: "Puedes visitar los proyectos (como Manolit∞ Forestal e Islas de Calor Sevilla)" }
+      ]
+    },
+    ca: {
+      next: "Següent",
+      prev: "Anterior",
+      done: "Finalitzar",
+      pasos: [
+        { title: "Escull la teva ciutat", desc: "Canvia aquí la ciutat per veure el seu aire en temps real." },
+        { title: "Com vols que t'ho expliqui?", desc: "Tria el mode que millor et vagi — mateixa dada, explicat diferent." },
+        { title: "L'aire d'Espanya, ara mateix", desc: "Cada punt és una estació real. Toca'l per veure el detall." },
+        { title: "Ruta i origen", desc: "Escriu aquí el teu punt de partida i destí per traçar el camí." },
+        { title: "Mapa 3D i ombres", desc: "Visualitza el mapa 3D en temps real per calcular la teva ruta evitant el sol i les ombres." },
+        { title: "Pregunta a Manolito", desc: "Alguna cosa no et queda clara? Pregunta'm-ho aquí en qualsevol moment." },
+        { title: "Dona suport a la causa", desc: "Manolit∞ sempre serà gratis. Si vols col·laborar amb els servidors, pots donar suport a Ko-fi aquí." },
+        { title: "Els germans de Manolit∞", desc: "Pots visitar els projectes (com ara Manolit∞ Forestal i Illes de Calor Sevilla)" }
+      ]
+    },
+    eu: {
+      next: "Hurrengoa",
+      prev: "Aurrekoa",
+      done: "Amaitu",
+      pasos: [
+        { title: "Hautu zure hiria", desc: "Aldatu hemen hiria denbora errealean bere airea ikusteko." },
+        { title: "Nola kontatzea nahi duzu?", desc: "Aukeratu onenak datorkizun modua — datu bera, ezberdin azaldua." },
+        { title: "Espainiako airea, orain bertan", desc: "Puntu bakoitza benetako estazio bat da. Ukitu xehetasuna ikusteko." },
+        { title: "Ibilbidea eta jatorria", desc: "Idatzi hemen zure abiapuntua eta helmuga bidea marrazteko." },
+        { title: "3D mapa eta itzalak", desc: "Ikusi 3D mapa denbora errealean zure ibilbidea kalkulatuz eguzkia eta itzalak saihestuz." },
+        { title: "Galdetu Manolitori", desc: "Zerbait ez zaizu argi geratzen? Galdetu hemen edozein unetan." },
+        { title: "Babestu kausa", desc: "Manolit∞ beti doakoa izango da. Zerbitzariak lagundu nahi badituzu, Ko-fi bidez egin dezakezu." },
+        { title: "Manolit∞ren anai-arrebak", desc: "Proiektuak bisitatu ditzakezu (hala nola Manolit∞ Forestal eta Sevillako Bero-Uharteak)" }
+      ]
+    },
+    gl: {
+      next: "Seguinte",
+      prev: "Anterior",
+      done: "Rematar",
+      pasos: [
+        { title: "Escolle a túa cidade", desc: "Cambia aquí a cidade para ver o seu aire en tempo real." },
+        { title: "Como queres que o conte?", desc: "Escolle o modo que mellor te veña — mesmo dato, explicado distinto." },
+        { title: "O aire de España, agora mesmo", desc: "Cada punto é unha estación real. Tócao para ver o detalle." },
+        { title: "Ruta e orixe", desc: "Escribe aquí o teu punto de partida e destino para trazar o camiño." },
+        { title: "Mapa 3D e sombras", desc: "Visualiza o mapa 3D en tempo real para calcular a túa ruta evitando o sol e as sombras." },
+        { title: "Pregúntalle a Manolito", desc: "Algo non che queda claro? Pregúntamo aquí en calquera momento." },
+        { title: "Apoia a causa", desc: "Manolit∞ sempre será gratis. Se queres colaborar cos servidores, podes apoiar en Ko-fi aquí." },
+        { title: "Os irmáns de Manolit∞", desc: "Podes visitar os proxectos (como Manolit∞ Forestal e Illas de Calor Sevilla)" }
+      ]
+    },
+    en: {
+      next: "Next",
+      prev: "Previous",
+      done: "Done",
+      pasos: [
+        { title: "Choose your city", desc: "Change the city here to see its air in real time." },
+        { title: "How do you want me to tell you?", desc: "Choose the mode that suits you best — same data, explained differently." },
+        { title: "Spain's air, right now", desc: "Each point is a real station. Tap it to see details." },
+        { title: "Route and origin", desc: "Type your starting point and destination here to trace the path." },
+        { title: "3D Map & Shadows", desc: "Plan your perfect route with real-time shadow tracking to stay in the sun or the shade." },
+        { title: "Support the cause", desc: "Manolit∞ will always be free. If you want to help with servers, you can support via Ko-fi here." },
+        { title: "Manolit∞'s Siblings", desc: "You can visit our projects (such as Manolit∞ Forestal and Seville Heat Islands)" }
+      ]
+    }
   };
 
-  // Mismo patrón defensivo que shadows-route.js y app.js: lee siempre de
-  // window, nunca de una variable suelta — así da igual el orden de carga
-  // o si algún otro script redeclara `getMessages`/`currentLang` por su
-  // cuenta (fue justo lo que rompió las traducciones la última vez).
   function idiomaActivo() {
     try {
-      return (typeof window.getCurrentLang === 'function') ? window.getCurrentLang() : 'es';
-    } catch (e) { return 'es'; }
+      if (typeof window.getCurrentLang === 'function') {
+        const lang = window.getCurrentLang();
+        if (TEXTOS_IDIOMAS[lang]) return lang;
+      }
+      const htmlLang = document.documentElement.getAttribute('lang');
+      if (htmlLang && TEXTOS_IDIOMAS[htmlLang.split('-')[0]]) {
+        return htmlLang.split('-')[0];
+      }
+      const stored = localStorage.getItem('manolito_lang');
+      if (stored && TEXTOS_IDIOMAS[stored]) return stored;
+    } catch (e) {}
+    return 'es';
   }
 
-  function textoBoton(clave) {
+  function obtenerTraducciones() {
     const lang = idiomaActivo();
-    try {
-      if (typeof window.getMessages === 'function') {
-        const msg = window.getMessages();
-        const claveCompuesta = 'tutorial' + clave[0].toUpperCase() + clave.slice(1); // tutorialNext, tutorialPrev, tutorialDone
-        if (msg && msg[claveCompuesta] != null) return msg[claveCompuesta];
-      }
-    } catch (e) { /* seguimos con el repuesto */ }
-    const repuesto = TEXTOS_REPUESTO[lang] || TEXTOS_REPUESTO.es;
-    return repuesto[clave];
+    return TEXTOS_IDIOMAS[lang] || TEXTOS_IDIOMAS.es;
   }
 
   function yaVioElTutorial() {
     try { return localStorage.getItem(CLAVE_LOCALSTORAGE) === 'true'; }
-    catch (e) { return false; } // si localStorage falla (privado/incógnito estricto), mejor mostrarlo que romper
+    catch (e) { return false; }
   }
 
   function marcarTutorialVisto() {
-    try { localStorage.setItem(CLAVE_LOCALSTORAGE, 'true'); } catch (e) { /* no pasa nada si no se puede guardar */ }
+    try { localStorage.setItem(CLAVE_LOCALSTORAGE, 'true'); } catch (e) {}
+  }
+
+  function cookiesAceptadas() {
+    try { return localStorage.getItem('manolito_cookies_choice') === 'accepted'; }
+    catch (e) { return false; }
   }
 
   function construirPasos() {
-    // Cada `element` es el selector CSS del elemento real de tu página.
-    // Cambia solo los selectores — el resto (popover, botones, idioma)
-    // ya está enganchado.
+    const t = obtenerTraducciones();
     return [
-      {
-        element: '#cityDropdownBtn', // Aquí el ID de mi selector de ciudad
-        popover: {
-          title: 'Elige tu ciudad',
-          description: 'Cambia aquí la ciudad para ver su aire en tiempo real.',
-          side: 'bottom',
-          align: 'start',
-        },
-      },
-      {
-        element: '#modeGrid', // Aquí el ID de mi menú de modos (Ciudadano/Científico/Yayo/Peque)
-        popover: {
-          title: '¿Cómo quieres que te lo cuente?',
-          description: 'Elige el modo que mejor te venga — mismo dato, explicado distinto.',
-          side: 'top',
-          align: 'start',
-        },
-      },
-      {
-        element: '#map', // Aquí el ID de mi mapa nacional
-        popover: {
-          title: 'El aire de España, ahora mismo',
-          description: 'Cada punto es una estación real. Tócalo para ver el detalle.',
-          side: 'top',
-          align: 'center',
-        },
-      },
-      {
-        element: '.chat-fab', // Aquí el ID/clase de mi botón de chat "Pregúntale a Manolito"
-        popover: {
-          title: 'Pregúntale a Manolito',
-          description: '¿Algo no te queda claro? Pregúntaselo aquí en cualquier momento.',
-          side: 'left',
-          align: 'end',
-        },
-      },
+      { element: '#cityDropdownBtn', popover: { title: t.pasos[0].title, description: t.pasos[0].desc, side: 'bottom', align: 'start' } },
+      { element: '#modeGrid', popover: { title: t.pasos[1].title, description: t.pasos[1].desc, side: 'top', align: 'start' } },
+      { element: '#map', popover: { title: t.pasos[2].title, description: t.pasos[2].desc, side: 'top', align: 'center' } },
+      { element: '.rs-form', popover: { title: t.pasos[3].title, description: t.pasos[3].desc, side: 'top', align: 'start' } },
+      { element: '#shadowRouteMap', popover: { title: t.pasos[4].title, description: t.pasos[4].desc, side: 'top', align: 'center' } },
+      { element: '.chat-fab', popover: { title: t.pasos[5].title, description: t.pasos[5].desc, side: 'left', align: 'end' } },
+      { element: '.donacion-boton', popover: { title: t.pasos[6].title, description: t.pasos[6].desc, side: 'top', align: 'center' } },
+      { element: '.footer-family', popover: { title: t.pasos[7].title, description: t.pasos[7].desc, side: 'top', align: 'center' } }
     ];
   }
 
   let driverObjActivo = null;
 
-  function lanzarTutorial() {
-    if (typeof window.driver === 'undefined' || typeof window.driver.js === 'undefined') {
-      console.warn('Driver.js no está cargado — revisa que el <script> del CDN esté antes de tutorial.js.');
-      return;
-    }
-
-    driverObjActivo = window.driver.js.driver({
-      showProgress: true,
-      nextBtnText: textoBoton('next'),
-      prevBtnText: textoBoton('prev'),
-      doneBtnText: textoBoton('done'),
-      steps: construirPasos(),
-      onDestroyed: () => { marcarTutorialVisto(); driverObjActivo = null; }, // se marca como visto tanto si lo completa como si lo cierra a mitad
-    });
-
-    driverObjActivo.drive();
+  function obtenerFactoriaDriver() {
+    if (typeof window.driver === 'function') return window.driver;
+    if (window.driver && typeof window.driver.driver === 'function') return window.driver.driver;
+    if (window.driver && window.driver.js && typeof window.driver.js.driver === 'function') return window.driver.js.driver;
+    return null;
   }
 
-  // Si el usuario cambia de idioma A MITAD del tutorial, los botones se
-  // re-traducen sin reiniciar los pasos ni la posición en la que va —
-  // usando la propia API de Driver.js (setConfig), no adivinando el DOM.
+  function lanzarTutorial() {
+    if (yaVioElTutorial()) return;
+    if (document.getElementById('manolitoSplash')) return;
+    if (!cookiesAceptadas()) return;
+
+    const crearDriver = obtenerFactoriaDriver();
+    if (!crearDriver) return;
+
+    const t = obtenerTraducciones();
+
+    try {
+      driverObjActivo = crearDriver({
+        allowClose: true, // Botón X habilitado para cerrar libremente
+        showButtons: ['next', 'previous', 'close'],
+        showProgress: true,
+        nextBtnText: t.next,
+        prevBtnText: t.prev,
+        doneBtnText: t.done,
+        steps: construirPasos(),
+        onDestroyed: () => { marcarTutorialVisto(); driverObjActivo = null; },
+      });
+      driverObjActivo.drive();
+    } catch (err) {}
+  }
+
   document.addEventListener('langChanged', () => {
-    if (!driverObjActivo) return; // el tutorial no está abierto ahora mismo
+    if (!driverObjActivo) return;
+    const t = obtenerTraducciones();
     driverObjActivo.setConfig({
+      allowClose: true,
       showProgress: true,
-      nextBtnText: textoBoton('next'),
-      prevBtnText: textoBoton('prev'),
-      doneBtnText: textoBoton('done'),
+      nextBtnText: t.next,
+      prevBtnText: t.prev,
+      doneBtnText: t.done,
       steps: construirPasos(),
     });
   });
 
-  let yaLanzadoEstaSesion = false;
-
   window.iniciarTutorialManolito = function () {
-    if (yaVioElTutorial() || yaLanzadoEstaSesion) return;
-    yaLanzadoEstaSesion = true;
     lanzarTutorial();
   };
 
-  // ---------------------------------------------------------------
-  // Enganche al botón de "Aceptar cookies". No conozco el ID exacto
-  // de tu banner (cookie-banner.js no me lo has pasado), así que
-  // cubro los dos casos más habituales:
-  //
-  // A) Si tu cookie-banner.js dispara un evento personalizado al
-  //    aceptar (recomendado, no hace falta tocar ese archivo):
-  document.addEventListener('cookiesAceptadas', () => {
-    window.iniciarTutorialManolito();
-  });
-
-  // B) Alternativa sin tocar cookie-banner.js: delegación de eventos sobre
-  //    todo el documento — funciona aunque el banner (y su botón) se creen
-  //    de forma dinámica DESPUÉS de que tutorial.js ya se haya cargado,
-  //    que es justo el caso de un banner hecho con createElement().
-  //    Cambia 'cookieAcceptBtn' por el ID real si el tuyo es distinto.
-  document.addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'cookieAcceptBtn') { // Aquí el ID de mi botón "Aceptar"
-      window.iniciarTutorialManolito();
+  function verificarYArrancar() {
+    if (yaVioElTutorial()) return;
+    
+    if (!document.getElementById('manolitoSplash') && cookiesAceptadas()) {
+      setTimeout(lanzarTutorial, 500);
+      return;
     }
+
+    const observer = new MutationObserver(() => {
+      if (!document.getElementById('manolitoSplash') && cookiesAceptadas()) {
+        observer.disconnect();
+        setTimeout(lanzarTutorial, 500);
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', verificarYArrancar);
+  } else {
+    verificarYArrancar();
+  }
+
+  document.addEventListener('cookiesAceptadas', () => {
+    verificarYArrancar();
   });
 })();

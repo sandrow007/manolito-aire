@@ -1,5 +1,5 @@
 /* ============================================================
-   MANOLITO AIRE — app.js
+   MANOLIT∞ AIRE — app.js
    Orbe que respira + selector de modos + mapa nacional en vivo.
    ============================================================ */
 

@@ -1,5 +1,5 @@
 /* ============================================================
-   MANOLITO AIRE — puerta de consentimiento de cookies (Robusto)
+   MANOLIT∞ AIRE — puerta de consentimiento de cookies (Robusto)
    ============================================================ */
 
 function initCookieBanner(){
@@ -44,6 +44,7 @@ function initCookieBanner(){
   document.getElementById('cookieAcceptBtn').addEventListener('click', () => {
     localStorage.setItem('manolito_cookies_choice', 'accepted');
     gate.remove();
+    document.dispatchEvent(new CustomEvent('cookiesAceptadas')); // dispara el tutorial (tutorial.js)
   });
   
   document.getElementById('cookieRejectBtn').addEventListener('click', () => {

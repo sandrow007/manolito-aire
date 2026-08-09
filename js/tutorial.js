@@ -1,5 +1,5 @@
 /* ============================================================
-   MANOLIT∞ AIRE — tutorial.js (Definitivo 8 Pasos, 5 Idiomas, Botón X Activo)
+   MANOLIT∞ AIRE — tutorial.js (Definitivo 8 Pasos y 5 Idiomas Corregidos)
    ============================================================ */
 
 'use strict';
@@ -14,12 +14,13 @@
       done: "Finalizar",
       pasos: [
         { title: "Elige tu ciudad", desc: "Cambia aquí la ciudad para ver su aire en tiempo real." },
-        { title: "¿Cómo quieres que te lo cuente?", desc: "Elige el modo que mejor te venga — mismo dato, explicado un poco distinto." },
+        { title: "¿Cómo quieres que te lo cuente?", desc: "Elige el modo que mejor te venga — mismo dato, explicado distinto." },
         { title: "El aire de España, ahora mismo", desc: "Cada punto es una estación real. Tócalo para ver el detalle." },
-        { title: "Ruta y origen", desc: "Escribe aquí tu punto de partida y destino o usa tu ubicación directaente para trazar el camino." },
+        { title: "Ruta y origen", desc: "Escribe aquí tu punto de partida y destino para trazar el camino." },
+        { title: "Mapa 3D y sombras", desc: "Visualiza el mapa 3D en tiempo real para calcular tu ruta evitando el sol y las sombras." },
         { title: "Pregúntale a Manolito", desc: "¿Algo no te queda claro? Pregúntaselo aquí en cualquier momento." },
         { title: "Apoya la causa", desc: "Manolit∞ siempre será gratis. Si quieres colaborar con los servidores, puedes apoyar en Ko-fi aquí." },
-        { title: "Los hermanos de Manolit∞", desc: "Puedes visitar los proyectos (como Manolit∞ Forestal e Islas de Calor Sevilla)" }
+        { title: "Los hermanos de Manolit∞", desc: "Puedes visitar los proyectos (como Manolit∞ Forestal e Islas de Calor Sevilla)." }
       ]
     },
     ca: {
@@ -34,7 +35,7 @@
         { title: "Mapa 3D i ombres", desc: "Visualitza el mapa 3D en temps real per calcular la teva ruta evitant el sol i les ombres." },
         { title: "Pregunta a Manolito", desc: "Alguna cosa no et queda clara? Pregunta'm-ho aquí en qualsevol moment." },
         { title: "Dona suport a la causa", desc: "Manolit∞ sempre serà gratis. Si vols col·laborar amb els servidors, pots donar suport a Ko-fi aquí." },
-        { title: "Els germans de Manolit∞", desc: "Pots visitar els projectes (com ara Manolit∞ Forestal i Illes de Calor Sevilla)" }
+        { title: "Els germans de Manolit∞", desc: "Pots visitar els projectes (com ara Manolit∞ Forestal i Illes de Calor Sevilla)." }
       ]
     },
     eu: {
@@ -49,7 +50,7 @@
         { title: "3D mapa eta itzalak", desc: "Ikusi 3D mapa denbora errealean zure ibilbidea kalkulatuz eguzkia eta itzalak saihestuz." },
         { title: "Galdetu Manolitori", desc: "Zerbait ez zaizu argi geratzen? Galdetu hemen edozein unetan." },
         { title: "Babestu kausa", desc: "Manolit∞ beti doakoa izango da. Zerbitzariak lagundu nahi badituzu, Ko-fi bidez egin dezakezu." },
-        { title: "Manolit∞ren anai-arrebak", desc: "Proiektuak bisitatu ditzakezu (hala nola Manolit∞ Forestal eta Sevillako Bero-Uharteak)" }
+        { title: "Manolit∞ren anai-arrebak", desc: "Proiektuak bisitatu ditzakezu (hala nola Manolit∞ Forestal eta Sevillako Bero-Uharteak)." }
       ]
     },
     gl: {
@@ -64,7 +65,7 @@
         { title: "Mapa 3D e sombras", desc: "Visualiza o mapa 3D en tempo real para calcular a túa ruta evitando o sol e as sombras." },
         { title: "Pregúntalle a Manolito", desc: "Algo non che queda claro? Pregúntamo aquí en calquera momento." },
         { title: "Apoia a causa", desc: "Manolit∞ sempre será gratis. Se queres colaborar cos servidores, podes apoiar en Ko-fi aquí." },
-        { title: "Os irmáns de Manolit∞", desc: "Podes visitar os proxectos (como Manolit∞ Forestal e Illas de Calor Sevilla)" }
+        { title: "Os irmáns de Manolit∞", desc: "Podes visitar os proxectos (como Manolit∞ Forestal e Illas de Calor Sevilla)." }
       ]
     },
     en: {
@@ -76,9 +77,10 @@
         { title: "How do you want me to tell you?", desc: "Choose the mode that suits you best — same data, explained differently." },
         { title: "Spain's air, right now", desc: "Each point is a real station. Tap it to see details." },
         { title: "Route and origin", desc: "Type your starting point and destination here to trace the path." },
-        { title: "3D Map & Shadows", desc: "Plan your perfect route with real-time shadow tracking to stay in the sun or the shade." },
+        { title: "3D Map & Shadows", desc: "View the 3D map in real time to calculate your route avoiding the sun and shadows." },
+        { title: "Ask Manolito", desc: "Something not clear? Ask here at any time." },
         { title: "Support the cause", desc: "Manolit∞ will always be free. If you want to help with servers, you can support via Ko-fi here." },
-        { title: "Manolit∞'s Siblings", desc: "You can visit our projects (such as Manolit∞ Forestal and Seville Heat Islands)" }
+        { title: "Manolit∞'s Siblings", desc: "You can visit our projects (such as Manolit∞ Forestal and Seville Heat Islands)." }
       ]
     }
   };
@@ -153,7 +155,7 @@
 
     try {
       driverObjActivo = crearDriver({
-        allowClose: true, // Botón X habilitado para cerrar libremente
+        allowClose: true,
         showButtons: ['next', 'previous', 'close'],
         showProgress: true,
         nextBtnText: t.next,

@@ -1,24 +1,24 @@
 ﻿/* ============================================================
-   MANOLITâˆž AIRE â€” Ruta real + Sombras 3D reales + AQI (origen)
+   MANOLIT∞ AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
-   + Turf.js (geometrÃ­a de sombra) + OSRM (ruta por calles)
+   + Turf.js (geometría de sombra) + OSRM (ruta por calles)
 
-   v2 â€” aÃ±ade: slider de tiempo (hoy / solsticios), vuelo de
-   entrada cinemÃ¡tico, botÃ³n de captura de imagen, sombras por
-   volumen de barrido real (no aproximaciÃ³n por envolvente
+   v2 — añade: slider de tiempo (hoy / solsticios), vuelo de
+   entrada cinemático, botón de captura de imagen, sombras por
+   volumen de barrido real (no aproximación por envolvente
    convexa), halo de "feather" en el borde de la sombra, aviso
-   de hora dorada/azul, cachÃ© de edificios (el slider no vuelve
-   a consultar el mapa en cada movimiento) y navegaciÃ³n por
-   teclado en las sugerencias de direcciÃ³n.
+   de hora dorada/azul, caché de edificios (el slider no vuelve
+   a consultar el mapa en cada movimiento) y navegación por
+   teclado en las sugerencias de dirección.
 
-   FIX (Ãºnico cambio de esta revisiÃ³n): se ha quitado
-   `preserveDrawingBuffer: true` del mapa â€” ese flag hacÃ­a que
+   FIX (único cambio de esta revisión): se ha quitado
+   `preserveDrawingBuffer: true` del mapa — ese flag hacía que
    WebGL no limpiara el lienzo entre fotogramas, lo que en iOS
-   Safari (sobre todo en modo "aÃ±adido a pantalla de inicio")
+   Safari (sobre todo en modo "añadido a pantalla de inicio")
    deja una estela/rastro visible al moverte por el mapa (modo
-   caminar, GPS en vivo). El botÃ³n "Capturar vista" sigue
+   caminar, GPS en vivo). El botón "Capturar vista" sigue
    funcionando exactamente igual, pero ahora toma la foto
-   enganchÃ¡ndose al evento `render` del propio mapa justo antes
+   enganchándose al evento `render` del propio mapa justo antes
    de que se intercambie el buffer, en vez de dejar el buffer
    siempre sin limpiar.
    ============================================================ */
@@ -34,9 +34,9 @@
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
     // OJO: router.project-osrm.org (el demo oficial de OSRM) SOLO tiene
-    // montado el perfil de coche, aunque se le pida /foot/ â€” por eso daba
+    // montado el perfil de coche, aunque se le pida /foot/ — por eso daba
     // rutas irreales (4km "en 9 minutos a pie" = velocidad de coche). El
-    // servidor de FOSSGIS sÃ­ aloja un perfil peatonal real.
+    // servidor de FOSSGIS sí aloja un perfil peatonal real.
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
     velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
@@ -45,12 +45,12 @@
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
     alturaPorDefectoM: 9, // si un edificio no trae altura en los datos OSM
-    maxEdificiosSombra: 220, // lÃ­mite de seguridad para no colgar el navegador
-    loteSombraSize: 30, // nÂº de edificios que se procesan antes de ceder el hilo al navegador
+    maxEdificiosSombra: 220, // límite de seguridad para no colgar el navegador
+    loteSombraSize: 30, // nº de edificios que se procesan antes de ceder el hilo al navegador
     duracionVueloInicialMs: 2000,
   };
 
-  /* ---------------- TraducciÃ³n: enganche directo al diccionario de i18n.js ---------------- */
+  /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
   function t(clave, fallback) {
     try {
       const fn = window.getMessages;
@@ -99,7 +99,7 @@
     pitch: 0,
     bearing: 0,
     attributionControl: true,
-    // (antes: preserveDrawingBuffer: true â€” quitado, ver nota de cabecera)
+    // (antes: preserveDrawingBuffer: true — quitado, ver nota de cabecera)
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
@@ -240,7 +240,7 @@
     try {
       const r = turf.union(a, b);
       if (r) return r;
-    } catch (e) { /* nos quedamos con lo que habÃ­a */ }
+    } catch (e) { /* nos quedamos con lo que había */ }
     return a;
   }
 
@@ -290,7 +290,7 @@
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
       ultimaColeccionSombras = turf.featureCollection([]);
-      mostrarAvisoSol(t('sunBelow', 'El sol estÃ¡ bajo el horizonte a esa hora â€” no hay sombras que proyectar.'));
+      mostrarAvisoSol(t('sunBelow', 'El sol está bajo el horizonte a esa hora — no hay sombras que proyectar.'));
       return;
     }
     mostrarAvisoSol('');
@@ -363,7 +363,7 @@
     actualizarIluminacionSolar();
   }, 60 * 1000);
 
-  /* ---------------- Widget de posiciÃ³n del sol ---------------- */
+  /* ---------------- Widget de posición del sol ---------------- */
 
   let puntoReferenciaSol = null;
   let rutaActual = null;
@@ -372,7 +372,7 @@
     for (const poligono of ultimaColeccionSombras.features) {
       try {
         if (turf.booleanPointInPolygon(punto, poligono)) return true;
-      } catch (e) { /* geometrÃ­a rara: la ignoramos */ }
+      } catch (e) { /* geometría rara: la ignoramos */ }
     }
     return false;
   }
@@ -393,7 +393,7 @@
       });
       fuente.setData(turf.featureCollection(tramosEnSombra));
     } catch (e) {
-      console.warn('No se ha podido calcular quÃ© tramos de la ruta estÃ¡n en sombra:', e);
+      console.warn('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
       fuente.setData(turf.featureCollection([]));
     }
   }
@@ -584,10 +584,10 @@
     if (!etiquetaTiempo) return;
     const fecha = obtenerFechaDelSlider();
     const prefijo =
-      contexto === 'verano' ? t('summerSolstice', 'Solsticio de verano') + ' Â· ' :
-      contexto === 'invierno' ? t('winterSolstice', 'Solsticio de invierno') + ' Â· ' :
-      modoManual ? t('simulating', 'Simulando') + ' Â· ' :
-      t('now', 'Ahora') + ' Â· ';
+      contexto === 'verano' ? t('summerSolstice', 'Solsticio de verano') + ' · ' :
+      contexto === 'invierno' ? t('winterSolstice', 'Solsticio de invierno') + ' · ' :
+      modoManual ? t('simulating', 'Simulando') + ' · ' :
+      t('now', 'Ahora') + ' · ';
     etiquetaTiempo.textContent = prefijo + formatoHora(fecha);
   }
 
@@ -604,12 +604,12 @@
     estilo.id = 'rsPanelEstilos';
     estilo.textContent = `
       #rsTimeControls{
-        --rs-metal-1:#1b2029; --rs-metal-2:#262c38; --rs-latÃ³n:#c98a4b;
-        --rs-latÃ³n-vivo:#e7b06a; --rs-verdigris:#6f9c8b; --rs-hueso:#e9e4d8;
+        --rs-metal-1:#1b2029; --rs-metal-2:#262c38; --rs-latón:#c98a4b;
+        --rs-latón-vivo:#e7b06a; --rs-verdigris:#6f9c8b; --rs-hueso:#e9e4d8;
         position:absolute; left:12px; bottom:12px; z-index:5; width:246px;
         background:linear-gradient(160deg,var(--rs-metal-2),var(--rs-metal-1) 70%);
         border-radius:3px 16px 3px 16px;
-        border:1px solid #00000055; border-left:2px solid var(--rs-latÃ³n);
+        border:1px solid #00000055; border-left:2px solid var(--rs-latón);
         box-shadow:0 12px 28px rgba(0,0,0,.32), inset 0 1px 0 #ffffff0c;
         padding:13px 15px; font-family:inherit; color:var(--rs-hueso);
         transition:opacity .18s ease, transform .18s ease;
@@ -622,7 +622,7 @@
       #rsTimeControls.rs-cerrado .rs-cabecera{ margin-bottom:0; }
       #rsTimeControls:not(.rs-cerrado) .rs-cabecera{ margin-bottom:10px; }
       #rsTimeControls .rs-eyebrow{
-        font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--rs-latÃ³n);
+        font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--rs-latón);
         font-weight:700; opacity:.9;
       }
       #rsPlegarBtn{
@@ -649,16 +649,16 @@
         -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; cursor:pointer; margin:6px 0 2px;
       }
       #rsTimeSlider::-webkit-slider-runnable-track{
-        height:3px; background:linear-gradient(90deg,var(--rs-latÃ³n),#00000000),#3a4150; border-radius:2px;
+        height:3px; background:linear-gradient(90deg,var(--rs-latón),#00000000),#3a4150; border-radius:2px;
       }
       #rsTimeSlider::-webkit-slider-thumb{
         -webkit-appearance:none; margin-top:-6px; width:15px; height:15px; border-radius:50%;
-        background:var(--rs-latÃ³n-vivo); border:2px solid #1b2029; box-shadow:0 0 0 3px #e7b06a2e;
+        background:var(--rs-latón-vivo); border:2px solid #1b2029; box-shadow:0 0 0 3px #e7b06a2e;
       }
       #rsTimeSlider::-moz-range-track{ height:3px; background:#3a4150; border-radius:2px; }
-      #rsTimeSlider::-moz-range-progress{ height:3px; background:var(--rs-latÃ³n); border-radius:2px; }
+      #rsTimeSlider::-moz-range-progress{ height:3px; background:var(--rs-latón); border-radius:2px; }
       #rsTimeSlider::-moz-range-thumb{
-        width:15px; height:15px; border-radius:50%; background:var(--rs-latÃ³n-vivo); border:2px solid #1b2029;
+        width:15px; height:15px; border-radius:50%; background:var(--rs-latón-vivo); border:2px solid #1b2029;
       }
       #rsTimeControls .rs-botones{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
       #rsTimeControls button{
@@ -668,14 +668,14 @@
       }
       #rsTimeControls button:hover{ background:#c98a4b22; border-color:#c98a4b66; }
       #rsTimeControls button:active{ background:#c98a4b3a; }
-      #rsTimeControls button.rs-btn-capturar{ flex-basis:100%; color:var(--rs-latÃ³n-vivo); border-color:#c98a4b44; }
+      #rsTimeControls button.rs-btn-capturar{ flex-basis:100%; color:var(--rs-latón-vivo); border-color:#c98a4b44; }
       @media (max-width:480px){ #rsTimeControls{ width:calc(100vw - 24px); max-width:250px; } }
     `;
     document.head.appendChild(estilo);
   }
 
 
-  /* ---------------- Elegir puntos directamente en el mapa + geolocalizaciÃ³n ---------------- */
+  /* ---------------- Elegir puntos directamente en el mapa + geolocalización ---------------- */
 
   let modoClickMapa = false;
   let puntoOrigenPendiente = null;
@@ -719,7 +719,7 @@
     const btnUbicacion = document.createElement('button');
     btnUbicacion.type = 'button';
     btnUbicacion.id = 'rsBtnMyLocation';
-    btnUbicacion.textContent = t('myLocation', 'Mi ubicaciÃ³n');
+    btnUbicacion.textContent = t('myLocation', 'Mi ubicación');
 
     const btnCaminar = document.createElement('button');
     btnCaminar.type = 'button';
@@ -752,17 +752,17 @@
 
     btnUbicacion.addEventListener('click', () => {
       if (!('geolocation' in navigator)) {
-        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicaciÃ³n.'), 'error');
+        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
         return;
       }
-      mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicaciÃ³nâ€¦'));
+      mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicación…'));
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
           const precisionM = Math.round(pos.coords.accuracy || 0);
 
-          seleccionPorInput.set(inputOrigen, { lat, lon, nombre: t('myLocation', 'Mi ubicaciÃ³n'), texto: t('myLocation', 'Mi ubicaciÃ³n') });
-          inputOrigen.value = t('myLocation', 'Mi ubicaciÃ³n');
+          seleccionPorInput.set(inputOrigen, { lat, lon, nombre: t('myLocation', 'Mi ubicación'), texto: t('myLocation', 'Mi ubicación') });
+          inputOrigen.value = t('myLocation', 'Mi ubicación');
 
           const puntoUbicacion = turf.point([lon, lat]);
           map.getSource('puntos-manuales')?.setData(turf.featureCollection([puntoUbicacion]));
@@ -774,23 +774,23 @@
           }
 
           const notaPrecision = precisionM > 0
-            ? ` (${t('locationPrecision', 'precisiÃ³n reportada por el navegador')}: Â±${precisionM} m â€” ${t('locationNote', 'sin GPS real puede ser orientativa')})`
+            ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m — ${t('locationNote', 'sin GPS real puede ser orientativa')})`
             : '';
-          mostrarEstado(`${t('locationMarked', 'UbicaciÃ³n marcada como origen')}${notaPrecision} â€” ${t('chooseDestination', 'toca un punto del mapa para poner el destino.')}`, 'ok');
+          mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision} — ${t('chooseDestination', 'toca un punto del mapa para poner el destino.')}`, 'ok');
           map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
 
-          origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicaciÃ³n') };
+          origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicación') };
           esperandoSoloDestino = true;
           modoClickMapa = true;
           puntoOrigenPendiente = null;
           btnModoClick.classList.add('rs-activo');
         },
-        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicaciÃ³n (Â¿has denegado el permiso?).'), 'error'),
+        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     });
 
-    /* ---- Modo caminar: sigue tu posiciÃ³n en vivo mientras te mueves ---- */
+    /* ---- Modo caminar: sigue tu posición en vivo mientras te mueves ---- */
     let watchId = null;
     let marcadorCaminando = null;
 
@@ -805,12 +805,12 @@
     btnCaminar.addEventListener('click', () => {
       if (watchId != null) { detenerCaminata(); mostrarEstado(''); return; }
       if (!('geolocation' in navigator)) {
-        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicaciÃ³n.'), 'error');
+        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
         return;
       }
       btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
-      mostrarEstado(t('walkModeTracking', 'Siguiendo tu posiciÃ³nâ€¦'));
+      mostrarEstado(t('walkModeTracking', 'Siguiendo tu posición…'));
 
       const el = document.createElement('div');
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#1C3144'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#1C3144')}33;`;
@@ -825,7 +825,7 @@
           puntoReferenciaSol = { lat, lon };
           if (rutaActual) actualizarTramosSombraRuta();
         },
-        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicaciÃ³n (Â¿has denegado el permiso?).'), 'error'),
+        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
         { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 }
       );
     });
@@ -858,7 +858,7 @@
         puntoOrigenPendiente = { lat, lon: lng };
         map.getSource('puntos-manuales')?.setData(turf.featureCollection([turf.point([lng, lat])]));
         inputOrigen.value = t('pointMap', 'Punto marcado en el mapa');
-        mostrarEstado(t('clickDestiny', 'Origen marcado â€” haz clic en el destino.'));
+        mostrarEstado(t('clickDestiny', 'Origen marcado — haz clic en el destino.'));
         geocodificarInverso(lat, lng).then((nombre) => { inputOrigen.value = nombre; });
         return;
       }
@@ -892,7 +892,7 @@
     const eyebrow = document.createElement('span');
     eyebrow.className = 'rs-eyebrow';
     eyebrow.id = 'rsEyebrowSol';
-    eyebrow.textContent = t('sunPosition', 'PosiciÃ³n solar');
+    eyebrow.textContent = t('sunPosition', 'Posición solar');
 
     const svgSol = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svgSol.setAttribute('viewBox', '0 0 60 34');
@@ -908,7 +908,7 @@
     const btnPlegar = document.createElement('button');
     btnPlegar.id = 'rsPlegarBtn';
     btnPlegar.type = 'button';
-    btnPlegar.setAttribute('aria-label', 'Mostrar u ocultar el panel de posiciÃ³n solar');
+    btnPlegar.setAttribute('aria-label', 'Mostrar u ocultar el panel de posición solar');
     btnPlegar.innerHTML = '<svg width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     btnPlegar.addEventListener('click', async () => {
       const estabaCerrado = panel.classList.contains('rs-cerrado');
@@ -1054,8 +1054,8 @@
   /* ---------------- Captura/compartir: exportar la vista actual como imagen ---------------- */
   // FIX: ya no depende de preserveDrawingBuffer permanente (causaba la
   // estela en iOS). Se engancha al evento 'render' del propio mapa, que se
-  // dispara justo despuÃ©s de pintar un fotograma y ANTES de que el
-  // navegador pueda limpiar/intercambiar el buffer â€” es el punto correcto
+  // dispara justo después de pintar un fotograma y ANTES de que el
+  // navegador pueda limpiar/intercambiar el buffer — es el punto correcto
   // para leer el lienzo sin necesidad de mantenerlo siempre sin limpiar.
 
   function capturarVista() {
@@ -1072,13 +1072,13 @@
           enlace.remove();
         } catch (errInterno) {
           console.error('No se ha podido exportar la vista como imagen:', errInterno);
-          mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitaciÃ³n del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
+          mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
         }
       });
       map.triggerRepaint();
     } catch (e) {
       console.error('No se ha podido exportar la vista como imagen:', e);
-      mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitaciÃ³n del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
+      mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
     }
   }
 
@@ -1124,7 +1124,7 @@
     }
   }
 
-  /* ---------------- GeocodificaciÃ³n (Nominatim) ---------------- */
+  /* ---------------- Geocodificación (Nominatim) ---------------- */
 
   async function consultarNominatim(consulta) {
     const url = new URL(CONFIG.nominatimUrl);
@@ -1137,9 +1137,9 @@
   async function geocodificar(direccionTexto) {
     const variantes = [
       direccionTexto,
-      `${direccionTexto}, EspaÃ±a`,
+      `${direccionTexto}, España`,
       direccionTexto.replace(/\s*\d+\s*$/, '').trim(),
-      `${direccionTexto.replace(/\s*\d+\s*$/, '').trim()}, EspaÃ±a`,
+      `${direccionTexto.replace(/\s*\d+\s*$/, '').trim()}, España`,
     ].filter((v, i, arr) => v && arr.indexOf(v) === i);
 
     for (const intento of variantes) {
@@ -1154,7 +1154,7 @@
       await new Promise((r) => setTimeout(r, 350));
     }
 
-    throw new Error(`${t('notFound', 'No se ha encontrado')}: "${direccionTexto}". ${t('tryFormat', 'Prueba a escribirla como calle, nÃºmero, ciudad')}.`);
+    throw new Error(`${t('notFound', 'No se ha encontrado')}: "${direccionTexto}". ${t('tryFormat', 'Prueba a escribirla como calle, número, ciudad')}.`);
   }
 
   async function geocodificarInverso(lat, lon) {
@@ -1197,9 +1197,9 @@
           duracionEstimada,
         };
       }
-      throw new Error('OSRM no ha devuelto una ruta vÃ¡lida.');
+      throw new Error('OSRM no ha devuelto una ruta válida.');
     } catch (err) {
-      console.warn('Routing real no disponible, usando lÃ­nea directa:', err);
+      console.warn('Routing real no disponible, usando línea directa:', err);
       return {
         geojson: { type: 'LineString', coordinates: [[origen.lon, origen.lat], [destino.lon, destino.lat]] },
         distanciaKm: null,
@@ -1245,10 +1245,10 @@
     categoriaEl.style.color = clasificacion.color;
     categoriaEl.style.background = clasificacion.color + '26';
 
-    document.getElementById('rsPm25').textContent = current.pm2_5 != null ? `${current.pm2_5} Âµg/mÂ³` : '--';
-    document.getElementById('rsPm10').textContent = current.pm10 != null ? `${current.pm10} Âµg/mÂ³` : '--';
-    document.getElementById('rsO3').textContent = current.ozone != null ? `${current.ozone} Âµg/mÂ³` : '--';
-    document.getElementById('rsNo2').textContent = current.nitrogen_dioxide != null ? `${current.nitrogen_dioxide} Âµg/mÂ³` : '--';
+    document.getElementById('rsPm25').textContent = current.pm2_5 != null ? `${current.pm2_5} µg/m³` : '--';
+    document.getElementById('rsPm10').textContent = current.pm10 != null ? `${current.pm10} µg/m³` : '--';
+    document.getElementById('rsO3').textContent = current.ozone != null ? `${current.ozone} µg/m³` : '--';
+    document.getElementById('rsNo2').textContent = current.nitrogen_dioxide != null ? `${current.nitrogen_dioxide} µg/m³` : '--';
 
     placeholder.style.display = 'none';
     contenido.style.display = 'block';
@@ -1293,7 +1293,7 @@
 
   function ponerCargando(cargando) {
     btnBuscar.disabled = cargando;
-    btnBuscar.textContent = cargando ? t('searching', 'Buscandoâ€¦') : t('searchBtn', 'Buscar ruta');
+    btnBuscar.textContent = cargando ? t('searching', 'Buscando…') : t('searchBtn', 'Buscar ruta');
   }
 
   /* ---------------- Autocompletado tipo Google (Nominatim) ---------------- */
@@ -1397,7 +1397,7 @@
           const resto = r.display_name.split(',')[0];
           return `<li data-idx="${i}">
             <span class="rs-sug-linea1">${resto}</span>
-            <span class="rs-sug-linea2">${ciudad ? ciudad + ' Â· ' : ''}${r.address?.state || ''}</span>
+            <span class="rs-sug-linea2">${ciudad ? ciudad + ' · ' : ''}${r.address?.state || ''}</span>
           </li>`;
         })
         .join('');
@@ -1460,21 +1460,21 @@
     }
 
     ponerCargando(true);
-    mostrarEstado(t('geocoding', 'Geocodificando direccionesâ€¦'));
+    mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
 
     try {
       const [origen, destino] = await Promise.all([resolverPunto(inputOrigen), resolverPunto(inputDestino)]);
       await ejecutarBusquedaConPuntos(origen, destino);
     } catch (err) {
       console.error(err);
-      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. IntÃ©ntalo de nuevo.'), 'error');
+      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
       ponerCargando(false);
     }
   }
 
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
-    mostrarEstado(t('calculating', 'Calculando ruta real por callesâ€¦'));
+    mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
 
     try {
       const ruta = await calcularRutaReal(origen, destino);
@@ -1499,9 +1499,9 @@
 
       if (ruta.esReal) {
         const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
-        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km Â· ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}.`, 'ok');
+        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}.`, 'ok');
       } else {
-        mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) â€” mostrando lÃ­nea directa.'), 'error');
+        mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
       }
 
       try {
@@ -1513,7 +1513,7 @@
       }
     } catch (err) {
       console.error(err);
-      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. IntÃ©ntalo de nuevo.'), 'error');
+      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
     } finally {
       ponerCargando(false);
     }
@@ -1539,13 +1539,13 @@
   document.addEventListener('langChanged', () => {
     if (btnModoClickRef) btnModoClickRef.textContent = t('pickMap', 'Elegir en el mapa');
     const btnLoc = document.getElementById('rsBtnMyLocation');
-    if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicaciÃ³n');
+    if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicación');
     const btnWalk = document.getElementById('rsBtnWalk');
     if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
     const btnDark = document.getElementById('rsBtnMapaOscuro');
     if (btnDark) btnDark.textContent = mapaOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
     const eyebrow = document.getElementById('rsEyebrowSol');
-    if (eyebrow) eyebrow.textContent = t('sunPosition', 'PosiciÃ³n solar');
+    if (eyebrow) eyebrow.textContent = t('sunPosition', 'Posición solar');
     const btnCapturar = document.getElementById('rsBtnCapturar');
     if (btnCapturar) btnCapturar.textContent = t('captureView', 'Capturar vista');
     const btnAhora = document.getElementById('rsBtnAhora');

@@ -1,7 +1,7 @@
 ﻿/* ============================================================
-   MANOLITâˆž AIRE â€” Ruta real + Sombras 3D reales + AQI (origen)
+   MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
-   + Turf.js (geometrí­a de sombra) + OSRM (ruta por calles)
+   + Turf.js (geometría de sombra) + OSRM (ruta por calles)
 
    v2 añade: slider de tiempo (hoy / solsticios), vuelo de
    entrada cinemática, botón de captura de imagen, sombras por
@@ -12,7 +12,7 @@
    teclado en las sugerencias de direccion.
 
    FIX (cambio de esta revisión): se ha quitado
-   `preserveDrawingBuffer: true` del mapa â€” ese flag hací­a que
+   `preserveDrawingBuffer: true` del mapa ese flag hací­a que
    WebGL no limpiara el lienzo entre fotogramas, lo que en iOS
    Safari (sobre todo en modo "añadido a pantalla de inicio")
    deja una estela/rastro visible al moverte por el mapa (modo
@@ -34,7 +34,7 @@
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
     // OJO: router.project-osrm.org (el demo oficial de OSRM) SOLO tiene
-    // montado el perfil de coche, aunque se le pida /foot/ â€” por eso daba
+    // montado el perfil de coche, aunque se le pida /foot/ por eso daba
     // rutas irreales (4km "en 9 minutos a pie" = velocidad de coche). El
     // servidor de FOSSGIS sí­ aloja un perfil peatonal real.
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
@@ -46,7 +46,7 @@
     fetchRetries: 2,
     alturaPorDefectoM: 9, // si un edificio no trae altura en los datos OSM
     maxEdificiosSombra: 220, // lí­mite de seguridad para no colgar el navegador
-    loteSombraSize: 30, // nÂº de edificios que se procesan antes de ceder el hilo al navegador
+    loteSombraSize: 30, // nº de edificios que se procesan antes de ceder el hilo al navegador
     duracionVueloInicialMs: 2000,
   };
 
@@ -99,7 +99,7 @@
     pitch: 0,
     bearing: 0,
     attributionControl: true,
-    // (antes: preserveDrawingBuffer: true â€” quitado, ver nota de cabecera)
+    // (antes: preserveDrawingBuffer: true — quitado, ver nota de cabecera)
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
@@ -584,10 +584,10 @@
     if (!etiquetaTiempo) return;
     const fecha = obtenerFechaDelSlider();
     const prefijo =
-      contexto === 'verano' ? t('summerSolstice', 'Solsticio de verano') + ' Â· ' :
-      contexto === 'invierno' ? t('winterSolstice', 'Solsticio de invierno') + ' Â· ' :
-      modoManual ? t('simulating', 'Simulando') + ' Â· ' :
-      t('now', 'Ahora') + ' Â· ';
+      contexto === 'verano' ? t('summerSolstice', 'Solsticio de verano') + ' — ' :
+      contexto === 'invierno' ? t('winterSolstice', 'Solsticio de invierno') + ' — ' :
+      modoManual ? t('simulating', 'Simulando') + ' — ' :
+      t('now', 'Ahora') + ' — ';
     etiquetaTiempo.textContent = prefijo + formatoHora(fecha);
   }
 
@@ -774,9 +774,9 @@
           }
 
           const notaPrecision = precisionM > 0
-            ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: Â±${precisionM} m â€” ${t('locationNote', 'sin GPS real puede ser orientativa')})`
+            ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m — ${t('locationNote', 'sin GPS real puede ser orientativa')})`
             : '';
-          mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision} â€” ${t('chooseDestination', 'toca un punto del mapa para poner el destino.')}`, 'ok');
+          mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision} — ${t('chooseDestination', 'toca un punto del mapa para poner el destino.')}`, 'ok');
           map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
 
           origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicación') };
@@ -858,7 +858,7 @@
         puntoOrigenPendiente = { lat, lon: lng };
         map.getSource('puntos-manuales')?.setData(turf.featureCollection([turf.point([lng, lat])]));
         inputOrigen.value = t('pointMap', 'Punto marcado en el mapa');
-        mostrarEstado(t('clickDestiny', 'Origen marcado â€” haz clic en el destino.'));
+        mostrarEstado(t('clickDestiny', 'Origen marcado — haz clic en el destino.'));
         geocodificarInverso(lat, lng).then((nombre) => { inputOrigen.value = nombre; });
         return;
       }
@@ -1245,10 +1245,10 @@
     categoriaEl.style.color = clasificacion.color;
     categoriaEl.style.background = clasificacion.color + '26';
 
-    document.getElementById('rsPm25').textContent = current.pm2_5 != null ? `${current.pm2_5} Âµg/mÂ³` : '--';
-    document.getElementById('rsPm10').textContent = current.pm10 != null ? `${current.pm10} Âµg/mÂ³` : '--';
-    document.getElementById('rsO3').textContent = current.ozone != null ? `${current.ozone} Âµg/mÂ³` : '--';
-    document.getElementById('rsNo2').textContent = current.nitrogen_dioxide != null ? `${current.nitrogen_dioxide} Âµg/mÂ³` : '--';
+    document.getElementById('rsPm25').textContent = current.pm2_5 != null ? `${current.pm2_5} µg/m³` : '--';
+    document.getElementById('rsPm10').textContent = current.pm10 != null ? `${current.pm10} µg/m³` : '--';
+    document.getElementById('rsO3').textContent = current.ozone != null ? `${current.ozone} µg/m³` : '--';
+    document.getElementById('rsNo2').textContent = current.nitrogen_dioxide != null ? `${current.nitrogen_dioxide} µg/m³` : '--';
 
     placeholder.style.display = 'none';
     contenido.style.display = 'block';
@@ -1293,7 +1293,7 @@
 
   function ponerCargando(cargando) {
     btnBuscar.disabled = cargando;
-    btnBuscar.textContent = cargando ? t('searching', 'Buscandoâ€¦') : t('searchBtn', 'Buscar ruta');
+    btnBuscar.textContent = cargando ? t('searching', 'Buscando…') : t('searchBtn', 'Buscar ruta');
   }
 
   /* ---------------- Autocompletado tipo Google (Nominatim) ---------------- */
@@ -1397,7 +1397,7 @@
           const resto = r.display_name.split(',')[0];
           return `<li data-idx="${i}">
             <span class="rs-sug-linea1">${resto}</span>
-            <span class="rs-sug-linea2">${ciudad ? ciudad + ' Â· ' : ''}${r.address?.state || ''}</span>
+            <span class="rs-sug-linea2">${ciudad ? ciudad + ' — ' : ''}${r.address?.state || ''}</span>
           </li>`;
         })
         .join('');
@@ -1460,7 +1460,7 @@
     }
 
     ponerCargando(true);
-    mostrarEstado(t('geocoding', 'Geocodificando direccionesâ€¦'));
+    mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
 
     try {
       const [origen, destino] = await Promise.all([resolverPunto(inputOrigen), resolverPunto(inputDestino)]);
@@ -1474,7 +1474,7 @@
 
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
-    mostrarEstado(t('calculating', 'Calculando ruta real por callesâ€¦'));
+    mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
 
     try {
       const ruta = await calcularRutaReal(origen, destino);

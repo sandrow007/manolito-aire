@@ -103,8 +103,9 @@
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
-  let capaEdificiosDisponible = false;
-  let edificiosCacheados = [];
+let capaEdificiosDisponible = false;
+let edificiosCacheados = [];
+let cieloSolActivo = false;
 
   map.on('load', () => {
     const capas = map.getStyle().layers || [];
@@ -188,8 +189,6 @@
       },
       'capa-puntos-manuales'
     );
-
-    let cieloSolActivo = false;
 
     inyectarControlesTiempo();
     inyectarControlesMapa();

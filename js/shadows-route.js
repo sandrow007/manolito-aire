@@ -725,6 +725,29 @@
     btnCaminar.type = 'button';
     btnCaminar.id = 'rsBtnWalk';
     btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
+        const btnReiniciar = document.createElement('button');
+    btnReiniciar.type = 'button';
+    btnReiniciar.id = 'rsBtnReset';
+    btnReiniciar.textContent = t('resetBtn', 'Reiniciar');
+
+    function reiniciarTodo() {
+      salirDeModoClick();
+      detenerCaminata();
+      inputOrigen.value = '';
+      inputDestino.value = '';
+      seleccionPorInput.delete(inputOrigen);
+      seleccionPorInput.delete(inputDestino);
+      map.getSource('ruta')?.setData(turf.featureCollection([]));
+      map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
+      map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
+      map.getSource('precision-ubicación')?.setData(turf.featureCollection([]));
+      if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
+      if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
+      rutaActual = null;
+      mostrarEstado('');
+    }
+
+    btnReiniciar.addEventListener('click', reiniciarTodo);
 
     function salirDeModoClick() {
       modoClickMapa = false;
@@ -830,7 +853,7 @@
       );
     });
 
-    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar);
+    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar, btnReiniciar);
     contenedorMapa.appendChild(panelMapa);
 
     map.on('click', (e) => {

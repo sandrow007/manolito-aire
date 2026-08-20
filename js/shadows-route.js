@@ -462,7 +462,27 @@ let cieloSolActivo = false;
       actualizarSolVisualEnMapa();
       return;
     }
-
+    
+// ============================================================
+    // NUEVO v3: Usar la ruta seleccionada actual
+    // ============================================================
+    const rutaActiva = obtenerRutaActiva();
+    if (!rutaActiva || !ultimaColeccionSombras.features.length) {
+      fuente.setData(turf.featureCollection([]));
+      return;
+    }
+    
+    try {
+      const resultado = calcularPorcentajeSombraRuta(rutaActiva.geojson);
+      fuente.setData(resultado.tramosEnSombra || turf.featureCollection([]));
+      
+      actualizarPanelEstadisticas(resultado.porcentaje, rutaActiva.distanciaKm, resultado.distanciaSombraKm);
+    } catch (e) {
+      console.warn('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
+      fuente.setData(turf.featureCollection([]));
+    }
+  }
+  
     const { azimutDeg, alturaDeg } = calcularAnguloSol(horaOverride);
     const bajoHorizonte = alturaDeg <= 0;
     const polar = Math.max(0, 90 - Math.max(alturaDeg, 0));
@@ -481,31 +501,33 @@ let cieloSolActivo = false;
       'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0.3]
     });
     cieloSolActivo = true;
+cielosolActivo = true;
 
-    actualizarSolVisualEnMapa();
-  }
+actualizarsolVisualEnMapa();
 
-  function inyectarSolVisual() {
+function inyectarSolVisual() {
     if (document.getElementById('rsSolVisual')) return;
     const estilo = document.createElement('style');
     estilo.id = 'rsSolVisualEstilos';
     estilo.textContent = `
-      #rsSolVisual{
-        position:absolute; width:34px; height:34px; border-radius:50%;
-        background:radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
-        box-shadow:0 0 22px 10px rgba(255,207,122,0.55);
-        transform:translate(-50%,-50%);
-        pointer-events:none; z-index:4; display:none;
-        transition:left .25s linear, top .25s linear, opacity .25s ease;
-      }
+        #rsSolVisual{
+            position:absolute; width:34px; height:34px; border-radius:50%;
+            background:radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
+            box-shadow:0 0 22px 10px rgba(255,207,122,0.55);
+            transform:translate(-50%,-50%);
+        }
     `;
+    // Aquí puedes poner el resto del código que seguía en tu archivo...
+}
+
     document.head.appendChild(estilo);
     const sol = document.createElement('div');
     sol.id = 'rsSolVisual';
     contenedorMapa.appendChild(sol);
-  }
+// contenedorMapa.appendChild(sol);
+//
 
-  function actualizarSolVisualEnMapa() {
+function actualizarSolVisualEnMapa() {
     const el = document.getElementById('rsSolVisual');
     const tSol = document.getElementById('rsToggleSol');
     if (!el) return;
@@ -530,7 +552,7 @@ let cieloSolActivo = false;
     el.style.top = `${Math.max(16, Math.min(rect.height - 16, y))}px`;
     el.style.opacity = String(0.55 + factorAltura * 0.45);
     el.style.display = 'block';
-  }
+}
 
   function actualizarBadgeHoraDorada(fechaEfectiva, lat, lon) {
     const badge = document.getElementById('rsGoldenBadge');
@@ -1628,3 +1650,4 @@ let cieloSolActivo = false;
     if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
   });
 })();
+

@@ -3,7 +3,7 @@ $ApiKey = "TU_API_KEY_AQUI"
 $Url = "https://moonshot.ai"
 
 # Escribe aquí tu pregunta o el código que quieres incluir
-$Pregunta = "Hola, dime si me estás escuchando bien y salúdame."
+$Pregunta = "Hola Kimi, salúdame y dime si me escuchas."
 
 # Preparación de los datos para enviar a Kimi
 $Headers = @{
@@ -18,14 +18,12 @@ $Body = @{
     )
 } | ConvertTo-Json -Depth 10
 
-# Envío de la petición y visualización de la respuesta
 Write-Host "Pensando..." -ForegroundColor Cyan
 
-# Forzamos la petición de forma segura
+# Hacemos la petición y la guardamos como texto limpio de forma directa
 $RawResponse = Invoke-RestMethod -Uri $Url -Method Post -Headers $Headers -Body ([System.Text.Encoding]::UTF8.GetBytes($Body))
 
-# Convertimos la respuesta para leerla sin errores
-$Response = $RawResponse | ConvertTo-Json -Depth 10 | ConvertFrom-Json
-
 Write-Host "`nRespuesta de Kimi:" -ForegroundColor Green
-$Response.choices.message.content
+
+# Esta línea va a buscar el texto directamente dentro de la respuesta
+Write-Host $RawResponse.choices.message.content

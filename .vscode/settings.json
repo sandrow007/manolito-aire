@@ -1,0 +1,7 @@
+{
+    "deepseek.apiKey": "sk-aaae542edc5a406aa95fbbb5861211fb",
+    "deepseek.model": "deepseek-v4-pro",
+    "deepseek-copilot.maxTokens": 80000,
+    "deepseek.maxTokens": 8100,
+    "deepseek-copilot.experimental.stabilizeToolList": true
+}

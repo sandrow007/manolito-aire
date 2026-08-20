@@ -5,22 +5,22 @@
 
    v2 añade: slider de tiempo (hoy / solsticios), vuelo de
    entrada cinemática, botón de captura de imagen, sombras por
-   volumen de barrido real, halo de "feather", aviso de hora
-   dorada/azul, caché de edificios y navegación por teclado.
+   volumen de barrido real (no aproximación por envolvente
+   convexa), halo de "feather" en el borde de la sombra, aviso
+   de hora dorada/azul, caché de edificios (el slider no vuelve
+   a consultar el mapa en cada movimiento) y navegación por
+   teclado en las sugerencias de direccion.
 
    FIX (cambio de esta revisión): se ha quitado
-   `preserveDrawingBuffer: true` para evitar estela en iOS.
-
-   PARCHES v3 (sobre tu código original, sin eliminar nada):
-   - Cambio de estilo a Stadia Maps Alidade Smooth (edificios 3D, gratuito, sin clave).
-   - Añadido CONFIG.chunkRutaKm para el cálculo de porcentaje.
-   - Eliminada la duplicación de actualizarTramosSombraRuta (la primera, incompleta).
-   - Creado el elemento rsSolVisual dentro del load del mapa.
-   - Creados los toggles (Sombras, Sol, Edificios) dentro del panel de tiempo.
-   - El panel de tiempo ya no se oculta por defecto.
-   - Restaurada la llamada a inyectarControlToggleMapaOscuro.
-   - Añadida función calcularPorcentajeSombraRuta y su badge en el panel.
-   - Optimizado el cálculo de sombras con límite de edificios y uso de requestIdleCallback.
+   `preserveDrawingBuffer: true` del mapa ese flag hací­a que
+   WebGL no limpiara el lienzo entre fotogramas, lo que en iOS
+   Safari (sobre todo en modo "añadido a pantalla de inicio")
+   deja una estela/rastro visible al moverte por el mapa (modo
+   caminar, GPS en vivo). El botón "Capturar vista" sigue
+   funcionando exactamente igual, pero ahora toma la foto
+   enganchándose al evento `render` del propio mapa justo antes
+   de que se intercambie el buffer, en vez de dejar el buffer
+   siempre sin limpiar.
    ============================================================ */
 
 'use strict';
@@ -31,25 +31,26 @@
     zoomInicial: 15.5,
     pitchInicial: 55,
     bearingInicial: -15,
-    // ---- CAMBIO DEFINITIVO: uso Stadia Maps Alidade Smooth (edificios 3D, gratuito, sin clave) ----
-    styleUrl: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json',
-    // Atribución requerida: se mostrará en el mapa automáticamente.
-    // Si prefieres MapTiler (con clave), cambia a:
-    // 'https://api.maptiler.com/maps/streets-v2/style.json?key=TU_CLAVE'
-    // ---- FIN DEL CAMBIO ----
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
+    // OJO: router.project-osrm.org (el demo oficial de OSRM) SOLO tiene
+    // montado el perfil de coche, aunque se le pida /foot/ por eso daba
+    // rutas irreales (4km "en 9 minutos a pie" = velocidad de coche). El
+    // servidor de FOSSGIS sí­ aloja un perfil peatonal real.
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
-    velocidadCaminandoKmh: 4.8,
+    velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
+    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', // vector tiles gratis, sin key
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
-    alturaPorDefectoM: 9,
-    maxEdificiosSombra: 220,
-    loteSombraSize: 30,
+    alturaPorDefectoM: 9, // si un edificio no trae altura en los datos OSM
+    maxEdificiosSombra: 220, // lí­mite de seguridad para no colgar el navegador
+    loteSombraSize: 30, // nº de edificios que se procesan antes de ceder el hilo al navegador
     duracionVueloInicialMs: 2000,
-    chunkRutaKm: 0.01 // AÑADIDO: para dividir la ruta en tramos y calcular porcentaje de sombra
+    priorizarSombra: true,       // si hay varias rutas posibles, prioriza la que más sombra tenga
+    maxDetourSombra: 1.5,        // acepta rutas hasta un 50% más largas si tienen mucha más sombra
+    maxAlternativasSombra: 3,    // cuántas alternativas pedir a OSRM como máximo
   };
 
   /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
@@ -95,13 +96,13 @@
 
   const map = new maplibregl.Map({
     container: 'shadowRouteMap',
-    style: CONFIG.styleUrl,
+    style: CONFIG.styleUrlClaro,
     center: CONFIG.centroInicial,
     zoom: Math.max(CONFIG.zoomInicial - 2.3, 1),
     pitch: 0,
     bearing: 0,
     attributionControl: true,
-    // preserveDrawingBuffer: false (quitado para evitar estela en iOS)
+    // (antes: preserveDrawingBuffer: true — quitado, ver nota de cabecera)
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
@@ -110,22 +111,6 @@ let edificiosCacheados = [];
 let cieloSolActivo = false;
 
   map.on('load', () => {
-    // ---- CREAR ELEMENTO VISUAL DEL SOL (para que no falle) ----
-    if (!document.getElementById('rsSolVisual')) {
-      const solDiv = document.createElement('div');
-      solDiv.id = 'rsSolVisual';
-      solDiv.style.cssText = `
-        position: absolute; width: 34px; height: 34px; border-radius: 50%;
-        background: radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
-        box-shadow: 0 0 22px 10px rgba(255,207,122,0.55);
-        transform: translate(-50%, -50%);
-        z-index: 999;
-        pointer-events: none;
-        display: none;
-      `;
-      contenedorMapa.appendChild(solDiv);
-    }
-
     const capas = map.getStyle().layers || [];
     const capaEdificios = capas.find(
       (l) => l.type === 'fill-extrusion' && /building/i.test(l.id)
@@ -133,9 +118,19 @@ let cieloSolActivo = false;
     if (capaEdificios) {
       CONFIG.edificiosLayerId = capaEdificios.id;
       capaEdificiosDisponible = true;
-      console.log('✅ Edificios 3D detectados. Las sombras funcionarán.');
-    } else {
-      console.warn('⚠️ No se encontró capa de edificios 3D. Las sombras no se mostrarán. Asegúrate de usar un estilo con fill-extrusion (ej. Stadia Maps Alidade Smooth).');
+      try {
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', [
+          'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+          0, '#8fb3e8',
+          30, '#5f8fd6',
+          70, '#3f6bc0',
+          140, '#274a96'
+        ]);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-opacity', 0.93);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-vertical-gradient', true);
+      } catch (e) {
+        console.warn('No se ha podido aplicar el color vivo a los edificios:', e);
+      }
     }
 
     map.addSource('sombras-halo', { type: 'geojson', data: turf.featureCollection([]) });
@@ -213,7 +208,8 @@ let cieloSolActivo = false;
 
     inyectarControlesTiempo();
     inyectarControlesMapa();
-    inyectarControlToggleMapaOscuro(); // RESTAURADO
+    inyectarSolVisual();
+    inyectarBadgeSombra();
     conectarTogglesDeCapas();
 
     setTimeout(() => {
@@ -370,13 +366,6 @@ let cieloSolActivo = false;
     } else {
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
     }
-
-    // ---- ACTUALIZAR PORCENTAJE DE SOMBRA (NUEVO) ----
-    if (rutaActual) {
-      const porcentaje = calcularPorcentajeSombraRuta(rutaActual);
-      const badge = document.getElementById('rsPorcentajeSombra');
-      if (badge) badge.textContent = porcentaje + '%';
-    }
   }
 
   function mostrarAvisoSol(texto) {
@@ -404,30 +393,6 @@ let cieloSolActivo = false;
     return false;
   }
 
-  // ============================================================
-  // NUEVO v3: Calcular porcentaje de sombra de una ruta
-  // ============================================================
-  function calcularPorcentajeSombraRuta(geojsonRuta) {
-    if (!geojsonRuta || !geojsonRuta.coordinates || !ultimaColeccionSombras.features.length) {
-      return 0;
-    }
-    try {
-      const tramos = turf.lineChunk(geojsonRuta, CONFIG.chunkRutaKm, { units: 'kilometers' });
-      if (!tramos.features.length) return 0;
-      let enSombra = 0;
-      for (const tramo of tramos.features) {
-        const coords = tramo.geometry.coordinates;
-        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
-        if (puntoEnSombra(medio)) enSombra++;
-      }
-      return Math.round((enSombra / tramos.features.length) * 100);
-    } catch (e) {
-      console.warn('Error calculando porcentaje de sombra:', e);
-      return 0;
-    }
-  }
-
-  // ---- ÚNICA VERSIÓN DE actualizarTramosSombraRuta (eliminada la duplicada) ----
   async function actualizarTramosSombraRuta() {
     const fuente = map.getSource('ruta-sombra');
     if (!fuente) return;
@@ -436,7 +401,7 @@ let cieloSolActivo = false;
       return;
     }
     try {
-      const tramos = turf.lineChunk(rutaActual, CONFIG.chunkRutaKm, { units: 'kilometers' });
+      const tramos = turf.lineChunk(rutaActual, 0.01, { units: 'kilometers' });
       const tramosEnSombra = tramos.features.filter((tramo) => {
         const coords = tramo.geometry.coordinates;
         const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
@@ -491,6 +456,26 @@ let cieloSolActivo = false;
     cieloSolActivo = true;
 
     actualizarSolVisualEnMapa();
+  }
+
+  function inyectarSolVisual() {
+    if (document.getElementById('rsSolVisual')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsSolVisualEstilos';
+    estilo.textContent = `
+      #rsSolVisual{
+        position:absolute; width:34px; height:34px; border-radius:50%;
+        background:radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
+        box-shadow:0 0 22px 10px rgba(255,207,122,0.55);
+        transform:translate(-50%,-50%);
+        pointer-events:none; z-index:4; display:none;
+        transition:left .25s linear, top .25s linear, opacity .25s ease;
+      }
+    `;
+    document.head.appendChild(estilo);
+    const sol = document.createElement('div');
+    sol.id = 'rsSolVisual';
+    contenedorMapa.appendChild(sol);
   }
 
   function actualizarSolVisualEnMapa() {
@@ -583,6 +568,54 @@ let cieloSolActivo = false;
     punto.setAttribute('cy', y.toFixed(1));
   }
 
+  /* ---------------- Badge discreto de % de sombra (desplegable, no ocupa toda la pantalla) ---------------- */
+
+  function inyectarBadgeSombra() {
+    if (document.getElementById('rsShadowBadge')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsShadowBadgeEstilos';
+    estilo.textContent = `
+      #rsShadowBadge{
+        position:absolute; left:50%; transform:translateX(-50%); bottom:12px;
+        z-index:6; display:none; align-items:center; gap:8px;
+        background:rgba(10,10,12,0.88); backdrop-filter:blur(8px);
+        border:1px solid rgba(255,255,255,0.12); border-radius:999px;
+        padding:6px 10px 6px 14px; font-size:11.5px; color:#e9e4d8;
+        box-shadow:0 8px 18px rgba(0,0,0,.28); max-width:calc(100vw - 24px);
+        white-space:nowrap;
+      }
+      #rsShadowBadge.rs-visible{ display:inline-flex; }
+      #rsShadowBadgeCerrar{
+        background:transparent; border:none; color:#999; font-size:15px;
+        cursor:pointer; line-height:1; padding:0 2px;
+      }
+      #rsShadowBadgeCerrar:hover{ color:#fff; }
+      @media (max-width:480px){ #rsShadowBadge{ font-size:10.5px; bottom:8px; padding:5px 8px 5px 12px; } }
+    `;
+    document.head.appendChild(estilo);
+
+    const badge = document.createElement('div');
+    badge.id = 'rsShadowBadge';
+    const texto = document.createElement('span');
+    texto.id = 'rsShadowBadgeTexto';
+    const cerrar = document.createElement('button');
+    cerrar.id = 'rsShadowBadgeCerrar';
+    cerrar.type = 'button';
+    cerrar.textContent = '×';
+    cerrar.setAttribute('aria-label', 'Cerrar');
+    cerrar.addEventListener('click', () => badge.classList.remove('rs-visible'));
+    badge.append(texto, cerrar);
+    contenedorMapa.appendChild(badge);
+  }
+
+  function mostrarBadgeSombra(pct) {
+    const badge = document.getElementById('rsShadowBadge');
+    const texto = document.getElementById('rsShadowBadgeTexto');
+    if (!badge || !texto || pct == null) { badge?.classList.remove('rs-visible'); return; }
+    texto.textContent = `☂ ${pct}% ${t('shadeCoverage', 'del trayecto en sombra')}`;
+    badge.classList.add('rs-visible');
+  }
+
   /* ---------------- Slider de tiempo ---------------- */
 
   let modoManual = false;
@@ -644,10 +677,14 @@ let cieloSolActivo = false;
         box-shadow:0 12px 28px rgba(0,0,0,.32), inset 0 1px 0 #ffffff0c;
         padding:13px 15px; font-family:inherit; color:var(--rs-hueso);
         transition:opacity .18s ease, transform .18s ease;
-        max-height: 90vh; overflow-y: auto;
       }
-      #rsTimeControls .rs-cuerpo{ display:block; }
-      #rsTimeControls .rs-cabecera{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+      #rsTimeControls.rs-cerrado{ padding-bottom:13px; }
+      #rsTimeControls .rs-cuerpo{ overflow:hidden; }
+      #rsTimeControls.rs-cerrado .rs-cuerpo{ display:none; }
+      #rsTimeControls .rs-fila{ display:flex; align-items:center; gap:10px; }
+      #rsTimeControls .rs-cabecera{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+      #rsTimeControls.rs-cerrado .rs-cabecera{ margin-bottom:0; }
+      #rsTimeControls:not(.rs-cerrado) .rs-cabecera{ margin-bottom:10px; }
       #rsTimeControls .rs-eyebrow{
         font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--rs-latón);
         font-weight:700; opacity:.9;
@@ -658,8 +695,7 @@ let cieloSolActivo = false;
       }
       #rsPlegarBtn:hover{ opacity:1; }
       #rsPlegarBtn svg{ display:block; transition:transform .2s ease; }
-      #rsTimeControls.oculto .rs-cuerpo{ display:none; }
-      #rsTimeControls.oculto #rsPlegarBtn svg{ transform:rotate(180deg); }
+      #rsTimeControls.rs-cerrado #rsPlegarBtn svg{ transform:rotate(180deg); }
       #rsTimeLabel{
         font-family:'Space Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
         font-size:15px; letter-spacing:.03em; color:var(--rs-hueso); white-space:nowrap;
@@ -667,7 +703,7 @@ let cieloSolActivo = false;
       #rsGoldenBadge{
         font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 8px 3px 6px;
         border-radius:3px; border:1px solid transparent; white-space:nowrap;
-        display:inline-flex; align-items:center; gap:5px; visibility:hidden;
+        display:inline-flex; align-items:center; gap:5px;
       }
       #rsGoldenBadge::before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
       #rsTimeControls .rs-divisor{
@@ -697,172 +733,11 @@ let cieloSolActivo = false;
       #rsTimeControls button:hover{ background:#c98a4b22; border-color:#c98a4b66; }
       #rsTimeControls button:active{ background:#c98a4b3a; }
       #rsTimeControls button.rs-btn-capturar{ flex-basis:100%; color:var(--rs-latón-vivo); border-color:#c98a4b44; }
-      #rsTimeControls .rs-toggle-group{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:6px; }
-      #rsTimeControls .rs-toggle-group label{ display:flex; align-items:center; gap:4px; font-size:12px; cursor:pointer; }
-      #rsTimeControls .rs-toggle-group input[type="checkbox"]{ accent-color:var(--rs-latón); }
-      #rsPorcentajeSombra{
-        font-size:16px; font-weight:700; color:#7fc9b0; margin-left:6px;
-      }
-      #rsSunNote{ font-size:11px; color:#c98a4b; margin-top:4px; }
       @media (max-width:480px){ #rsTimeControls{ width:calc(100vw - 24px); max-width:250px; } }
     `;
     document.head.appendChild(estilo);
   }
 
-  function inyectarControlesTiempo() {
-    if (document.getElementById('rsTimeControls')) return;
-    inyectarEstilosPanel();
-
-    const panel = document.createElement('div');
-    panel.id = 'rsTimeControls';
-
-    const cabecera = document.createElement('div');
-    cabecera.className = 'rs-cabecera';
-    const eyebrow = document.createElement('span');
-    eyebrow.className = 'rs-eyebrow';
-    eyebrow.id = 'rsEyebrowSol';
-    eyebrow.textContent = t('sunPosition', 'Posición solar');
-
-    const svgSol = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svgSol.setAttribute('viewBox', '0 0 60 34');
-    svgSol.setAttribute('width', '48');
-    svgSol.setAttribute('height', '28');
-    svgSol.innerHTML = `
-      <g id="rsSolGrupo" style="transition:opacity .3s;">
-        <path d="M 4 30 A 26 26 0 0 1 56 30" fill="none" stroke="#c98a4b" stroke-width="1" stroke-dasharray="1.5 3" opacity="0.55"/>
-        <line x1="4" y1="30" x2="56" y2="30" stroke="#ffffff22" stroke-width="1"/>
-        <circle id="rsSolPunto" cx="30" cy="4" r="3.4" fill="#e7b06a"/>
-      </g>`;
-
-    const btnPlegar = document.createElement('button');
-    btnPlegar.id = 'rsPlegarBtn';
-    btnPlegar.type = 'button';
-    btnPlegar.setAttribute('aria-label', 'Mostrar u ocultar el panel de posición solar');
-    btnPlegar.innerHTML = '<svg width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    btnPlegar.addEventListener('click', () => {
-      panel.classList.toggle('oculto');
-    });
-
-    cabecera.append(eyebrow, svgSol, btnPlegar);
-
-    const cuerpo = document.createElement('div');
-    cuerpo.className = 'rs-cuerpo';
-
-    // ---- AQUÍ SE CREAN LOS TOGGLES (para que existan en el DOM) ----
-    const toggleGroup = document.createElement('div');
-    toggleGroup.className = 'rs-toggle-group';
-    const toggleSombras = document.createElement('label');
-    toggleSombras.innerHTML = '<input type="checkbox" id="rsToggleSombras" checked> <span>Sombras</span>';
-    const toggleSol = document.createElement('label');
-    toggleSol.innerHTML = '<input type="checkbox" id="rsToggleSol" checked> <span>Sol</span>';
-    const toggleEdif = document.createElement('label');
-    toggleEdif.innerHTML = '<input type="checkbox" id="rsToggleEdificios" checked> <span>Edificios</span>';
-    toggleGroup.append(toggleSombras, toggleSol, toggleEdif);
-    cuerpo.appendChild(toggleGroup);
-
-    const filaEtiqueta = document.createElement('div');
-    filaEtiqueta.className = 'rs-fila';
-    filaEtiqueta.style.justifyContent = 'space-between';
-    etiquetaTiempo = document.createElement('span');
-    etiquetaTiempo.id = 'rsTimeLabel';
-    const badgeDorada = document.createElement('span');
-    badgeDorada.id = 'rsGoldenBadge';
-    badgeDorada.style.visibility = 'hidden';
-    badgeDorada.textContent = t('goldenHour', 'Hora dorada');
-    filaEtiqueta.append(etiquetaTiempo, badgeDorada);
-
-    sliderTiempo = document.createElement('input');
-    sliderTiempo.type = 'range';
-    sliderTiempo.id = 'rsTimeSlider';
-    sliderTiempo.min = '0';
-    sliderTiempo.max = '1439';
-    sliderTiempo.step = '5';
-    sliderTiempo.value = String(minutosDesdeFecha(new Date()));
-
-    sliderTiempo.addEventListener('input', () => {
-      modoManual = true;
-      fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual : new Date();
-      clearTimeout(temporizadorSlider);
-      temporizadorSlider = setTimeout(() => aplicarCambioDeHora(esFechaSolsticioActiva), 90);
-      actualizarEtiquetaTiempo(esFechaSolsticioActiva);
-    });
-
-    let esFechaSolsticioActiva = false;
-
-    const divisor = document.createElement('div');
-    divisor.className = 'rs-divisor';
-
-    const filaBotones = document.createElement('div');
-    filaBotones.className = 'rs-botones';
-
-    function crearBoton(texto, id) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      if (id) b.id = id;
-      b.textContent = texto;
-      return b;
-    }
-
-    const btnAhora = crearBoton(t('now', 'Ahora'), 'rsBtnAhora');
-    const btnVerano = crearBoton(t('btnSummer', 'Verano'), 'rsBtnVerano');
-    const btnInvierno = crearBoton(t('btnWinter', 'Invierno'), 'rsBtnInvierno');
-    const btnCapturar = crearBoton(t('captureView', 'Capturar vista'), 'rsBtnCapturar');
-    btnCapturar.className = 'rs-btn-capturar';
-
-    btnAhora.addEventListener('click', () => {
-      modoManual = false;
-      esFechaSolsticioActiva = false;
-      fechaBaseManual = new Date();
-      sliderTiempo.value = String(minutosDesdeFecha(new Date()));
-      aplicarCambioDeHora(false);
-    });
-
-    btnVerano.addEventListener('click', () => {
-      modoManual = true;
-      esFechaSolsticioActiva = 'verano';
-      fechaBaseManual = fechaSolsticio('verano');
-      sliderTiempo.value = '780';
-      aplicarCambioDeHora('verano');
-    });
-
-    btnInvierno.addEventListener('click', () => {
-      modoManual = true;
-      esFechaSolsticioActiva = 'invierno';
-      fechaBaseManual = fechaSolsticio('invierno');
-      sliderTiempo.value = '780';
-      aplicarCambioDeHora('invierno');
-    });
-
-    btnCapturar.addEventListener('click', capturarVista);
-
-    filaBotones.append(btnAhora, btnVerano, btnInvierno, btnCapturar);
-
-    // ---- NUEVO: Badge de porcentaje de sombra ----
-    const filaPorcentaje = document.createElement('div');
-    filaPorcentaje.className = 'rs-fila';
-    filaPorcentaje.style.justifyContent = 'space-between';
-    const lblPorc = document.createElement('span');
-    lblPorc.textContent = 'Sombra en ruta:';
-    const valPorc = document.createElement('span');
-    valPorc.id = 'rsPorcentajeSombra';
-    valPorc.textContent = '--%';
-    filaPorcentaje.append(lblPorc, valPorc);
-    cuerpo.appendChild(filaPorcentaje);
-
-    // Nota de sol
-    const notaSol = document.createElement('div');
-    notaSol.id = 'rsSunNote';
-    notaSol.style.fontSize = '11px';
-    notaSol.style.color = '#c98a4b';
-    notaSol.style.marginTop = '4px';
-    cuerpo.appendChild(notaSol);
-
-    cuerpo.append(filaEtiqueta, sliderTiempo, divisor, filaBotones);
-    panel.append(cabecera, cuerpo);
-    contenedorMapa.appendChild(panel);
-
-    actualizarEtiquetaTiempo(false);
-  }
 
   /* ---------------- Elegir puntos directamente en el mapa + geolocalización ---------------- */
 
@@ -934,6 +809,7 @@ let cieloSolActivo = false;
       if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
       rutaActual = null;
       mostrarEstado('');
+      mostrarBadgeSombra(null);
     }
 
     btnReiniciar.addEventListener('click', reiniciarTodo);
@@ -1092,30 +968,135 @@ let cieloSolActivo = false;
     });
   }
 
-  function conectarTogglesDeCapas() {
-    const tEdificios = document.getElementById('rsToggleEdificios');
-    const tSombras = document.getElementById('rsToggleSombras');
-    const tRuta = document.getElementById('rsToggleRuta');
-    const tSol = document.getElementById('rsToggleSol');
+  function inyectarControlesTiempo() {
+    if (document.getElementById('rsTimeControls')) return;
+    inyectarEstilosPanel();
 
-    if (tEdificios) {
-      tEdificios.addEventListener('change', () => {
-        if (capaEdificiosDisponible) {
-          map.setLayoutProperty(CONFIG.edificiosLayerId, 'visibility', tEdificios.checked ? 'visible' : 'none');
-        }
-      });
+    const panel = document.createElement('div');
+    panel.id = 'rsTimeControls';
+
+    const cabecera = document.createElement('div');
+    cabecera.className = 'rs-cabecera';
+    const eyebrow = document.createElement('span');
+    eyebrow.className = 'rs-eyebrow';
+    eyebrow.id = 'rsEyebrowSol';
+    eyebrow.textContent = t('sunPosition', 'Posición solar');
+
+    const svgSol = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svgSol.setAttribute('viewBox', '0 0 60 34');
+    svgSol.setAttribute('width', '48');
+    svgSol.setAttribute('height', '28');
+    svgSol.innerHTML = `
+      <g id="rsSolGrupo" style="transition:opacity .3s;">
+        <path d="M 4 30 A 26 26 0 0 1 56 30" fill="none" stroke="#c98a4b" stroke-width="1" stroke-dasharray="1.5 3" opacity="0.55"/>
+        <line x1="4" y1="30" x2="56" y2="30" stroke="#ffffff22" stroke-width="1"/>
+        <circle id="rsSolPunto" cx="30" cy="4" r="3.4" fill="#e7b06a"/>
+      </g>`;
+
+    const btnPlegar = document.createElement('button');
+    btnPlegar.id = 'rsPlegarBtn';
+    btnPlegar.type = 'button';
+    btnPlegar.setAttribute('aria-label', 'Mostrar u ocultar el panel de posición solar');
+    btnPlegar.innerHTML = '<svg width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    btnPlegar.addEventListener('click', async () => {
+      const estabaCerrado = panel.classList.contains('rs-cerrado');
+      panel.classList.toggle('rs-cerrado');
+      if (estabaCerrado) {
+        asegurarActivacionSolar();
+        await recalcularSombrasVisibles();
+        actualizarIluminacionSolar();
+        await actualizarTramosSombraRuta();
+      }
+    });
+
+    panel.classList.add('rs-cerrado');
+
+    cabecera.append(eyebrow, svgSol, btnPlegar);
+
+    const cuerpo = document.createElement('div');
+    cuerpo.className = 'rs-cuerpo';
+
+    const filaEtiqueta = document.createElement('div');
+    filaEtiqueta.className = 'rs-fila';
+    filaEtiqueta.style.justifyContent = 'space-between';
+    etiquetaTiempo = document.createElement('span');
+    etiquetaTiempo.id = 'rsTimeLabel';
+    const badgeDorada = document.createElement('span');
+    badgeDorada.id = 'rsGoldenBadge';
+    badgeDorada.style.visibility = 'hidden';
+    badgeDorada.textContent = t('goldenHour', 'Hora dorada');
+    filaEtiqueta.append(etiquetaTiempo, badgeDorada);
+
+    sliderTiempo = document.createElement('input');
+    sliderTiempo.type = 'range';
+    sliderTiempo.id = 'rsTimeSlider';
+    sliderTiempo.min = '0';
+    sliderTiempo.max = '1439';
+    sliderTiempo.step = '5';
+    sliderTiempo.value = String(minutosDesdeFecha(new Date()));
+
+    sliderTiempo.addEventListener('input', () => {
+      modoManual = true;
+      fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual : new Date();
+      clearTimeout(temporizadorSlider);
+      temporizadorSlider = setTimeout(() => aplicarCambioDeHora(esFechaSolsticioActiva), 90);
+      actualizarEtiquetaTiempo(esFechaSolsticioActiva);
+    });
+
+    let esFechaSolsticioActiva = false;
+
+    const divisor = document.createElement('div');
+    divisor.className = 'rs-divisor';
+
+    const filaBotones = document.createElement('div');
+    filaBotones.className = 'rs-botones';
+
+    function crearBoton(texto, id) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      if (id) b.id = id;
+      b.textContent = texto;
+      return b;
     }
-    if (tSombras) {
-      tSombras.addEventListener('change', () => { asegurarActivacionSolar(); recalcularSombrasVisibles(); });
-    }
-    if (tRuta) {
-      tRuta.addEventListener('change', () => {
-        map.setLayoutProperty('capa-ruta', 'visibility', tRuta.checked ? 'visible' : 'none');
-      });
-    }
-    if (tSol) {
-      tSol.addEventListener('change', () => { asegurarActivacionSolar(); actualizarIluminacionSolar(); });
-    }
+
+    const btnAhora = crearBoton(t('now', 'Ahora'), 'rsBtnAhora');
+    const btnVerano = crearBoton(t('btnSummer', 'Verano'), 'rsBtnVerano');
+    const btnInvierno = crearBoton(t('btnWinter', 'Invierno'), 'rsBtnInvierno');
+    const btnCapturar = crearBoton(t('captureView', 'Capturar vista'), 'rsBtnCapturar');
+    btnCapturar.className = 'rs-btn-capturar';
+
+    btnAhora.addEventListener('click', () => {
+      modoManual = false;
+      esFechaSolsticioActiva = false;
+      fechaBaseManual = new Date();
+      sliderTiempo.value = String(minutosDesdeFecha(new Date()));
+      aplicarCambioDeHora(false);
+    });
+
+    btnVerano.addEventListener('click', () => {
+      modoManual = true;
+      esFechaSolsticioActiva = 'verano';
+      fechaBaseManual = fechaSolsticio('verano');
+      sliderTiempo.value = '780';
+      aplicarCambioDeHora('verano');
+    });
+
+    btnInvierno.addEventListener('click', () => {
+      modoManual = true;
+      esFechaSolsticioActiva = 'invierno';
+      fechaBaseManual = fechaSolsticio('invierno');
+      sliderTiempo.value = '780';
+      aplicarCambioDeHora('invierno');
+    });
+
+    btnCapturar.addEventListener('click', capturarVista);
+
+    filaBotones.append(btnAhora, btnVerano, btnInvierno, btnCapturar);
+    cuerpo.append(filaEtiqueta, sliderTiempo, divisor, filaBotones);
+    panel.append(cabecera, cuerpo);
+    contenedorMapa.appendChild(panel);
+
+    actualizarEtiquetaTiempo(false);
   }
 
   /* ---------------- Capa de mapa oscura ---------------- */
@@ -1192,7 +1173,23 @@ let cieloSolActivo = false;
   /* ---------------- Toggles de capas ---------------- */
 
   function conectarTogglesDeCapas() {
-    // Ya asignados arriba
+    inyectarControlToggleMapaOscuro();
+
+    const tEdificios = document.getElementById('rsToggleEdificios');
+    const tSombras = document.getElementById('rsToggleSombras');
+    const tRuta = document.getElementById('rsToggleRuta');
+    const tSol = document.getElementById('rsToggleSol');
+
+    tEdificios?.addEventListener('change', () => {
+      if (capaEdificiosDisponible) {
+        map.setLayoutProperty(CONFIG.edificiosLayerId, 'visibility', tEdificios.checked ? 'visible' : 'none');
+      }
+    });
+    tSombras?.addEventListener('change', () => { asegurarActivacionSolar(); recalcularSombrasVisibles(); });
+    tRuta?.addEventListener('change', () => {
+      map.setLayoutProperty('capa-ruta', 'visibility', tRuta.checked ? 'visible' : 'none');
+    });
+    tSol?.addEventListener('change', () => { asegurarActivacionSolar(); actualizarIluminacionSolar(); });
   }
 
   /* ---------------- Red: fetch con timeout + reintentos ---------------- */
@@ -1297,6 +1294,139 @@ let cieloSolActivo = false;
         duracionMin: null,
         esReal: false,
       };
+    }
+  }
+
+  /* ---------------- Ruta con prioridad de sombra (entre alternativas reales) ---------------- */
+
+  function calcularCoberturaSombra(geojsonLinea, poligonosSombra) {
+    if (!poligonosSombra.length) return 0;
+    try {
+      const linea = geojsonLinea.type === 'Feature' ? geojsonLinea : turf.feature(geojsonLinea);
+      const tramos = turf.lineChunk(linea, 0.015, { units: 'kilometers' }).features;
+      if (!tramos.length) return 0;
+      let enSombra = 0;
+      for (const tramo of tramos) {
+        const coords = tramo.geometry.coordinates;
+        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
+        for (const poligono of poligonosSombra) {
+          try {
+            if (turf.booleanPointInPolygon(medio, poligono)) { enSombra++; break; }
+          } catch (e) { /* geometría rara, la saltamos */ }
+        }
+      }
+      return enSombra / tramos.length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  async function generarPoligonosSombraPara(listaEdificios, posSolActual) {
+    if (!posSolActual || posSolActual.altitude <= 0) return [];
+    const azimutGrados = (posSolActual.azimuth * 180) / Math.PI + 180;
+    const bearingSombra = (azimutGrados + 180) % 360;
+    const poligonos = [];
+    for (const edificio of listaEdificios) {
+      try {
+        const altura = Number(edificio.properties.height ?? edificio.properties.render_height) || CONFIG.alturaPorDefectoM;
+        const longitudSombraM = altura / Math.tan(posSolActual.altitude);
+        if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+        const geom = edificio.geometry;
+        if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
+        const distanciaKm = longitudSombraM / 1000;
+        const partes = turf.flatten(turf.feature(geom)).features;
+        for (const parte of partes) {
+          const volumen = calcularVolumenSombra(parte, distanciaKm, bearingSombra);
+          if (volumen) poligonos.push(volumen);
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    return poligonos;
+  }
+
+  function esperarMapaListo(timeoutMs = 4000) {
+    return new Promise((resolve) => {
+      let resuelto = false;
+      const terminar = () => { if (!resuelto) { resuelto = true; resolve(); } };
+      map.once('idle', terminar);
+      setTimeout(terminar, timeoutMs);
+    });
+  }
+
+  async function calcularRutaConPrioridadSombra(origen, destino) {
+    if (!CONFIG.priorizarSombra) return calcularRutaReal(origen, destino);
+
+    try {
+      const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
+      const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&alternatives=true`;
+      const datos = await fetchConReintentos(url);
+
+      if (datos?.code !== 'Ok' || !datos.routes?.length) {
+        return calcularRutaReal(origen, destino);
+      }
+
+      const candidatas = datos.routes.slice(0, CONFIG.maxAlternativasSombra);
+      if (candidatas.length === 1) {
+        return calcularRutaReal(origen, destino);
+      }
+
+      const todasLasCoords = candidatas.flatMap((r) => r.geometry.coordinates);
+      if (todasLasCoords.length < 2) return calcularRutaReal(origen, destino);
+
+      const bboxCombinado = turf.bbox(turf.lineString(todasLasCoords));
+      map.jumpTo({
+        center: [(bboxCombinado[0] + bboxCombinado[2]) / 2, (bboxCombinado[1] + bboxCombinado[3]) / 2],
+        zoom: Math.max(map.getZoom(), 16),
+      });
+      await esperarMapaListo();
+      actualizarCacheEdificios();
+
+      const centro = { lat: (origen.lat + destino.lat) / 2, lon: (origen.lon + destino.lon) / 2 };
+      const posSolActual = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+
+      let poligonosSombra = [];
+      if (posSolActual.altitude > 0 && capaEdificiosDisponible && edificiosCacheados.length) {
+        poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
+      }
+
+      const distanciaMinimaKm = Math.min(...candidatas.map((r) => r.distance / 1000));
+
+      let mejor = null;
+      for (const ruta of candidatas) {
+        const distanciaKm = ruta.distance / 1000;
+        const cobertura = poligonosSombra.length ? calcularCoberturaSombra(ruta.geometry, poligonosSombra) : 0;
+        const dentroDeMargen = distanciaKm <= distanciaMinimaKm * CONFIG.maxDetourSombra;
+        const candidato = { ruta, distanciaKm, cobertura, dentroDeMargen };
+        if (!mejor) { mejor = candidato; continue; }
+        if (dentroDeMargen && !mejor.dentroDeMargen) { mejor = candidato; continue; }
+        if (dentroDeMargen === mejor.dentroDeMargen) {
+          if (cobertura > mejor.cobertura + 0.02) mejor = candidato;
+          else if (Math.abs(cobertura - mejor.cobertura) <= 0.02 && distanciaKm < mejor.distanciaKm) mejor = candidato;
+        }
+      }
+
+      const distanciaKmNum = mejor.distanciaKm;
+      let duracionMinNum = mejor.ruta.duration / 60;
+      const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
+      let duracionEstimada = false;
+      if (velocidadKmh > 9 || duracionMinNum <= 0) {
+        duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
+        duracionEstimada = true;
+      }
+
+      return {
+        geojson: mejor.ruta.geometry,
+        distanciaKm: distanciaKmNum.toFixed(2),
+        duracionMin: Math.round(duracionMinNum),
+        esReal: true,
+        duracionEstimada,
+        coberturaSombraPct: poligonosSombra.length ? Math.round(mejor.cobertura * 100) : null,
+      };
+    } catch (err) {
+      console.warn('Routing con prioridad de sombra no disponible, usando ruta normal:', err);
+      return calcularRutaReal(origen, destino);
     }
   }
 
@@ -1568,7 +1698,7 @@ let cieloSolActivo = false;
     mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
 
     try {
-      const ruta = await calcularRutaReal(origen, destino);
+      const ruta = await calcularRutaConPrioridadSombra(origen, destino);
 
       map.getSource('ruta').setData(turf.feature(ruta.geojson));
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
@@ -1590,9 +1720,12 @@ let cieloSolActivo = false;
 
       if (ruta.esReal) {
         const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
-        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}.`, 'ok');
+        const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
+        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`, 'ok');
+        mostrarBadgeSombra(ruta.coberturaSombraPct);
       } else {
         mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
+        mostrarBadgeSombra(null);
       }
 
       try {

@@ -36,7 +36,7 @@
     // OJO: router.project-osrm.org (el demo oficial de OSRM) SOLO tiene
     // montado el perfil de coche, aunque se le pida /foot/ por eso daba
     // rutas irreales (4km "en 9 minutos a pie" = velocidad de coche). El
-    // servidor de FOSSGIS sí­ aloja un perfil peatonal real.
+    // servidor de FOSSGIS sí aloja un perfil peatonal real.
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
     velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
@@ -45,12 +45,18 @@
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
     alturaPorDefectoM: 9, // si un edificio no trae altura en los datos OSM
-    maxEdificiosSombra: 220, // lí­mite de seguridad para no colgar el navegador
+    maxEdificiosSombra: 220, // límite de seguridad para no colgar el navegador
     loteSombraSize: 30, // nº de edificios que se procesan antes de ceder el hilo al navegador
     duracionVueloInicialMs: 2000,
     priorizarSombra: true,       // si hay varias rutas posibles, prioriza la que más sombra tenga
     maxDetourSombra: 1.5,        // acepta rutas hasta un 50% más largas si tienen mucha más sombra
     maxAlternativasSombra: 3,    // cuántas alternativas pedir a OSRM como máximo
+    // ----- Modo peatón virtual (cámara libre, sin GPS real) -----
+    paseoAlturaOjoM: 1.7,
+    paseoVelocidadMs: 3.5,
+    paseoVelocidadGiro: 2.2,
+    paseoLookAheadM: 25,
+    paseoMaxPitch: 92,
   };
 
   /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
@@ -106,9 +112,24 @@
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
-let capaEdificiosDisponible = false;
-let edificiosCacheados = [];
-let cieloSolActivo = false;
+  let capaEdificiosDisponible = false;
+  let edificiosCacheados = [];
+  let cieloSolActivo = false;
+
+  /* ----- Estado: modo peatón virtual (cámara libre) ----- */
+  let paseoActivo = false;
+  let paseoRafId = null;
+  let paseoUltimoFrame = 0;
+  let paseoOrigenMercator = null;
+  let paseoMetrosAU = 0; // metros a unidades mercator
+  let paseoJugador = { x: 0, y: 0, heading: 0 }; // x=east, y=north, heading=rad
+  let paseoToques = new Map(); // pointerId -> {x,y}
+  let paseoJoystick = { active:false, startX:0, startY:0, dx:0, dy:0, pointerId:null };
+  
+  // Registro global de teclas para el paseo 3D
+  const keysDown = new Set();
+  addEventListener('keydown', e => keysDown.add(e.code));
+  addEventListener('keyup', e => keysDown.delete(e.code));
 
   map.on('load', () => {
     const capas = map.getStyle().layers || [];
@@ -738,7 +759,6 @@ let cieloSolActivo = false;
     document.head.appendChild(estilo);
   }
 
-
   /* ---------------- Elegir puntos directamente en el mapa + geolocalización ---------------- */
 
   let modoClickMapa = false;
@@ -763,6 +783,25 @@ let cieloSolActivo = false;
       #rsMapControls button:hover{ background:#c98a4b22; }
       #rsMapControls button.rs-activo{ border-left-color:#e7b06a; color:#e7b06a; }
       @media (max-width:480px){ #rsMapControls button{ padding:7px 8px; font-size:9.5px; } }
+
+      /* Joystick virtual para paseo 3D */
+      #rsJoystick{
+        position:absolute; right:24px; bottom:24px; width:96px; height:96px;
+        border-radius:50%; background:rgba(255,255,255,0.06);
+        border:1px solid rgba(255,255,255,0.15); touch-action:none;
+        z-index:6; display:none; pointer-events:auto;
+      }
+      #rsJoystickKnob{
+        position:absolute; left:50%; top:50%; width:38px; height:38px;
+        transform:translate(-50%,-50%); border-radius:50%;
+        background:rgba(201,138,75,0.85); border:2px solid #e9e4d8;
+        box-shadow:0 4px 12px rgba(0,0,0,.35); touch-action:none;
+      }
+      #rsJoystick.rs-visible{ display:block; }
+      @media (max-width:480px){
+        #rsJoystick{ width:78px; height:78px; right:16px; bottom:16px; }
+        #rsJoystickKnob{ width:32px; height:32px; }
+      }
     `;
     document.head.appendChild(estilo);
   }
@@ -789,12 +828,19 @@ let cieloSolActivo = false;
     btnCaminar.type = 'button';
     btnCaminar.id = 'rsBtnWalk';
     btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
-        const btnReiniciar = document.createElement('button');
+
+    const btnPaseo = document.createElement('button');
+    btnPaseo.type = 'button';
+    btnPaseo.id = 'rsBtnPaseo';
+    btnPaseo.textContent = t('virtualWalkStart', 'Paseo virtual 3D');
+
+    const btnReiniciar = document.createElement('button');
     btnReiniciar.type = 'button';
     btnReiniciar.id = 'rsBtnReset';
     btnReiniciar.textContent = t('resetBtn', 'Reiniciar');
 
     function reiniciarTodo() {
+      detenerPaseoVirtual();
       salirDeModoClick();
       detenerCaminata();
       inputOrigen.value = '';
@@ -918,7 +964,130 @@ let cieloSolActivo = false;
       );
     });
 
-    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar, btnReiniciar);
+    /* ---- Paseo virtual 3D: cámara libre, sin GPS real ---- */
+    function entrarPaseoVirtual() {
+      if (paseoActivo) return;
+      // Origen dinámico: centro actual del mapa
+      const centro = map.getCenter();
+      paseoOrigenMercator = maplibregl.MercatorCoordinate.fromLngLat(centro);
+      paseoMetrosAU = paseoOrigenMercator.meterInMercatorCoordinateUnits();
+      // Convertir centro actual a coords locales del jugador
+      paseoJugador.x = 0;
+      paseoJugador.y = 0;
+      paseoJugador.heading = ((map.getBearing() || 0) * Math.PI) / -180; // bearing 0 = north, heading 0 = east
+      // Desactivar interacciones nativas del mapa para no pelear con el dedo/ratón
+      map.dragPan.disable();
+      map.scrollZoom.disable();
+      map.dragRotate.disable();
+      map.touchZoomRotate.disable();
+      map.doubleClickZoom.disable();
+      map.keyboard.disable();
+      // Forzar pitch alto para vista de peatón
+      map.setMaxPitch(CONFIG.paseoMaxPitch);
+      paseoActivo = true;
+      paseoUltimoFrame = performance.now();
+      btnPaseo.classList.add('rs-activo');
+      btnPaseo.textContent = t('virtualWalkStop', 'Salir del paseo');
+      mostrarEstado(t('virtualWalkHint', 'Arrastra para mirar • Joystick para moverte • Esc para salir'));
+      // Iniciar loop
+      paseoRafId = requestAnimationFrame(loopPaseo);
+    }
+
+    function detenerPaseoVirtual() {
+      if (!paseoActivo) return;
+      paseoActivo = false;
+      if (paseoRafId) cancelAnimationFrame(paseoRafId);
+      paseoRafId = null;
+      // Restaurar controles nativos
+      map.dragPan.enable();
+      map.scrollZoom.enable();
+      map.dragRotate.enable();
+      map.touchZoomRotate.enable();
+      map.doubleClickZoom.enable();
+      map.keyboard.enable();
+      map.setMaxPitch(85); // o el default que tuviera
+      btnPaseo.classList.remove('rs-activo');
+      btnPaseo.textContent = t('virtualWalkStart', 'Paseo virtual 3D');
+      mostrarEstado('');
+      // Ocultar joystick visual
+      const joy = document.getElementById('rsJoystick');
+      if (joy) joy.style.display = 'none';
+    }
+
+    function paseoToLngLat(x, y) {
+      return new maplibregl.MercatorCoordinate(
+        paseoOrigenMercator.x + x * paseoMetrosAU,
+        paseoOrigenMercator.y + y * paseoMetrosAU
+      ).toLngLat();
+    }
+
+    function actualizarCamaraPaseo() {
+      const eye = paseoToLngLat(paseoJugador.x, paseoJugador.y);
+      const ahead = paseoToLngLat(
+        paseoJugador.x + Math.cos(paseoJugador.heading) * CONFIG.paseoLookAheadM,
+        paseoJugador.y + Math.sin(paseoJugador.heading) * CONFIG.paseoLookAheadM
+      );
+      // calculateCameraOptionsFromTo existe desde MapLibre v2.4, tú tienes v4+
+      const opts = map.calculateCameraOptionsFromTo(
+        eye, CONFIG.paseoAlturaOjoM,
+        ahead, CONFIG.paseoAlturaOjoM
+      );
+      // Aplicar sin animación para que sea instantáneo (loop a 60fps)
+      map.jumpTo({
+        center: opts.center,
+        zoom: opts.zoom ?? map.getZoom(),
+        pitch: opts.pitch ?? map.getPitch(),
+        bearing: opts.bearing ?? map.getBearing(),
+      });
+    }
+
+    function loopPaseo(now) {
+      if (!paseoActivo) return;
+      const dt = Math.min(0.05, (now - paseoUltimoFrame) / 1000);
+      paseoUltimoFrame = now;
+
+      // Joystick (táctil) o teclado W/S
+      let avance = 0;
+      let giro = 0;
+
+      // Teclado desktop
+      if (keysDown.has('KeyW') || keysDown.has('ArrowUp')) avance += 1;
+      if (keysDown.has('KeyS') || keysDown.has('ArrowDown')) avance -= 1;
+      if (keysDown.has('KeyA') || keysDown.has('ArrowLeft')) giro += 1;
+      if (keysDown.has('KeyD') || keysDown.has('ArrowRight')) giro -= 1;
+
+      // Joystick virtual (móvil)
+      if (paseoJoystick.active) {
+        // Usar dy para avance/retroceso, dx para giro suave
+        avance = -paseoJoystick.dy; // hacia arriba = avanzar
+        giro = -paseoJoystick.dx * 0.6;
+      }
+
+      // Aplicar
+      if (giro !== 0) {
+        paseoJugador.heading += giro * CONFIG.paseoVelocidadGiro * dt;
+      }
+      if (avance !== 0) {
+        const step = avance * CONFIG.paseoVelocidadMs * dt;
+        paseoJugador.x += Math.cos(paseoJugador.heading) * step;
+        paseoJugador.y += Math.sin(paseoJugador.heading) * step;
+      }
+
+      actualizarCamaraPaseo();
+      paseoRafId = requestAnimationFrame(loopPaseo);
+    }
+
+    // Eventos globales de teclado para salir rápido
+    addEventListener('keydown', (e) => {
+      if (e.code === 'Escape' && paseoActivo) detenerPaseoVirtual();
+    });
+
+    btnPaseo.addEventListener('click', () => {
+      if (paseoActivo) detenerPaseoVirtual();
+      else entrarPaseoVirtual();
+    });
+
+    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar);
     contenedorMapa.appendChild(panelMapa);
 
     map.on('click', (e) => {
@@ -1195,7 +1364,6 @@ let cieloSolActivo = false;
   /* ---------------- Red: fetch con timeout + reintentos ---------------- */
 
   async function fetchConReintentos(url, options = {}, intentos = CONFIG.fetchRetries) {
-
     for (let intento = 0; intento <= intentos; intento++) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), CONFIG.fetchTimeoutMs);
@@ -1766,6 +1934,11 @@ let cieloSolActivo = false;
     if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicación');
     const btnWalk = document.getElementById('rsBtnWalk');
     if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
+    
+    // Traducción dinámica del nuevo botón
+    const btnPaseo = document.getElementById('rsBtnPaseo');
+    if (btnPaseo) btnPaseo.textContent = paseoActivo ? t('virtualWalkStop', 'Salir del paseo') : t('virtualWalkStart', 'Paseo virtual 3D');
+
     const btnDark = document.getElementById('rsBtnMapaOscuro');
     if (btnDark) btnDark.textContent = mapaOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
     const eyebrow = document.getElementById('rsEyebrowSol');
@@ -1785,4 +1958,90 @@ let cieloSolActivo = false;
     const tituloRuta = document.getElementById('rsRouteMapTitle');
     if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
   });
+
+  /* ============================================================
+     JOYSTICK VIRTUAL + EVENTOS POINTER PARA PASEO 3D
+     ============================================================ */
+  function inyectarJoystick() {
+    if (document.getElementById('rsJoystick')) return;
+    const joy = document.createElement('div');
+    joy.id = 'rsJoystick';
+    const knob = document.createElement('div');
+    knob.id = 'rsJoystickKnob';
+    joy.appendChild(knob);
+    contenedorMapa.appendChild(joy);
+
+    const maxR = 28; // radio máximo del knob en px
+
+    joy.addEventListener('pointerdown', (e) => {
+      if (!paseoActivo) return;
+      e.preventDefault();
+      joy.setPointerCapture(e.pointerId);
+      paseoJoystick.active = true;
+      paseoJoystick.pointerId = e.pointerId;
+      const rect = joy.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      paseoJoystick.startX = cx;
+      paseoJoystick.startY = cy;
+      paseoJoystick.dx = 0;
+      paseoJoystick.dy = 0;
+      knob.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
+      joy.classList.add('rs-visible');
+    });
+
+    joy.addEventListener('pointermove', (e) => {
+      if (!paseoActivo || !paseoJoystick.active || e.pointerId !== paseoJoystick.pointerId) return;
+      const dx = e.clientX - paseoJoystick.startX;
+      const dy = e.clientY - paseoJoystick.startY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const scale = dist > maxR ? maxR / dist : 1;
+      paseoJoystick.dx = (dx * scale) / maxR; // -1..1
+      paseoJoystick.dy = (dy * scale) / maxR; // -1..1
+      knob.style.transform = `translate(-50%, -50%) translate(${dx * scale}px, ${dy * scale}px)`;
+    });
+
+    const limpiarJoystick = () => {
+      paseoJoystick.active = false;
+      paseoJoystick.dx = 0;
+      paseoJoystick.dy = 0;
+      knob.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
+    };
+
+    joy.addEventListener('pointerup', limpiarJoystick);
+    joy.addEventListener('pointercancel', limpiarJoystick);
+    joy.addEventListener('lostpointercapture', limpiarJoystick);
+  }
+
+  // Inyectar joystick al cargar el mapa
+  map.on('load', () => {
+    inyectarJoystick();
+  });
+
+  // Eventos pointer en el canvas del mapa para mirar alrededor (drag = rotar cámara)
+  mapEl.addEventListener('pointerdown', (e) => {
+    if (!paseoActivo) return;
+    // Solo si no estamos tocando el joystick
+    if (e.target.closest('#rsJoystick')) return;
+    paseoToques.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { mapEl.setPointerCapture(e.pointerId); } catch(_){}
+  });
+
+  mapEl.addEventListener('pointermove', (e) => {
+    if (!paseoActivo) return;
+    const prev = paseoToques.get(e.pointerId);
+    if (!prev) return;
+    const dx = e.clientX - prev.x;
+    // const dy = e.clientY - prev.y;
+    // Horizontal: gira el personaje (heading)
+    const sensibilidad = 0.003;
+    paseoJugador.heading -= dx * sensibilidad;
+    // Vertical: opcional, podría ajustar pitch, pero mejor dejarlo fijo a 90 para peatón
+    prev.x = e.clientX;
+    prev.y = e.clientY;
+  });
+
+  mapEl.addEventListener('pointerup', (e) => paseoToques.delete(e.pointerId));
+  mapEl.addEventListener('pointercancel', (e) => paseoToques.delete(e.pointerId));
+
 })();

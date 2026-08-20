@@ -40,7 +40,7 @@
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
     velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
-    styleUrlClaro: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json', // vector tiles gratis, sin key
+    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', // vector tiles gratis, sin key
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
@@ -374,29 +374,6 @@ let cieloSolActivo = false;
       } catch (e) { /* geometría rara: la ignoramos */ }
     }
     return false;
-  }
-
-  // NUEVA FUNCIÓN: Algoritmo para evaluar qué porcentaje de una ruta está en sombra
-  function evaluarCoberturaSombraRuta(geojsonRuta) {
-    if (!ultimaColeccionSombras || !ultimaColeccionSombras.features.length) return 0;
-    try {
-      // Dividimos la ruta en tramos de 15 metros para una evaluación precisa
-      const tramos = turf.lineChunk(geojsonRuta, 0.015, { units: 'kilometers' });
-      if (!tramos || !tramos.features.length) return 0;
-      
-      let tramosEnSombra = 0;
-      for (const tramo of tramos.features) {
-        const coords = tramo.geometry.coordinates;
-        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
-        if (puntoEnSombra(medio)) {
-          tramosEnSombra++;
-        }
-      }
-      return tramosEnSombra / tramos.features.length; // Devuelve un ratio de 0 a 1 (0% a 100%)
-    } catch (e) {
-      console.warn('Error evaluando sombra de ruta:', e);
-      return 0;
-    }
   }
 
   async function actualizarTramosSombraRuta() {
@@ -1215,52 +1192,32 @@ let cieloSolActivo = false;
     }
   }
 
-  /* ---------------- Ruta real por calles (OSRM) con priorización de sombra ---------------- */
+  /* ---------------- Ruta real por calles (OSRM) ---------------- */
 
   async function calcularRutaReal(origen, destino) {
     const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
-    // Pedimos 'alternatives=true' para tener opciones entre las que elegir
-    const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&alternatives=true`;
+    const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson`;
 
     try {
       const datos = await fetchConReintentos(url);
-      if (datos?.code === 'Ok' && datos.routes?.length > 0) {
-        
-        // Evaluamos todas las rutas alternativas disponibles
-        const rutasEvaluadas = datos.routes.map(ruta => {
-          const distanciaKmNum = ruta.distance / 1000;
-          let duracionMinNum = ruta.duration / 60;
-          const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
-          let duracionEstimada = false;
-          
-          if (velocidadKmh > 9 || duracionMinNum <= 0) {
-            duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
-            duracionEstimada = true;
-          }
-          
-          // Calculamos el % de esta ruta que cae en sombra
-          const coberturaSombra = evaluarCoberturaSombraRuta(ruta.geometry);
+      if (datos?.code === 'Ok' && datos.routes?.[0]) {
+        const distanciaKmNum = datos.routes[0].distance / 1000;
+        let duracionMinNum = datos.routes[0].duration / 60;
 
-          return {
-            geojson: ruta.geometry,
-            distanciaKm: distanciaKmNum.toFixed(2),
-            duracionMin: Math.round(duracionMinNum),
-            esReal: true,
-            duracionEstimada,
-            coberturaSombra: coberturaSombra // Nuevo campo: ratio de 0 a 1
-          };
-        });
+        const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
+        let duracionEstimada = false;
+        if (velocidadKmh > 9 || duracionMinNum <= 0) {
+          duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
+          duracionEstimada = true;
+        }
 
-        // Ordenamos las rutas. PRIORIDAD 1: Mayor cobertura de sombra. 
-        // PRIORIDAD 2: Si la sombra es similar (diferencia < 5%), elegimos la más corta.
-        rutasEvaluadas.sort((a, b) => {
-          if (Math.abs(a.coberturaSombra - b.coberturaSombra) > 0.05) {
-            return b.coberturaSombra - a.coberturaSombra; // Más sombra primero
-          }
-          return a.distanciaKm - b.distanciaKm; // Más corta como desempate
-        });
-
-        return rutasEvaluadas[0]; // Devolvemos la ruta ganadora (la más sombría)
+        return {
+          geojson: datos.routes[0].geometry,
+          distanciaKm: distanciaKmNum.toFixed(2),
+          duracionMin: Math.round(duracionMinNum),
+          esReal: true,
+          duracionEstimada,
+        };
       }
       throw new Error('OSRM no ha devuelto una ruta válida.');
     } catch (err) {
@@ -1270,7 +1227,6 @@ let cieloSolActivo = false;
         distanciaKm: null,
         duracionMin: null,
         esReal: false,
-        coberturaSombra: 0
       };
     }
   }
@@ -1543,91 +1499,29 @@ let cieloSolActivo = false;
     mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
 
     try {
-      // 1. Obtenemos primero la geometría básica para saber los límites de la zona
-      const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
-      const urlRutaBasica = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&alternatives=true`;
-      const datosRuta = await fetchConReintentos(urlRutaBasica);
-      
-      if (!datosRuta || datosRuta.code !== 'Ok' || !datosRuta.routes?.length > 0) {
-        throw new Error('No se pudo obtener la ruta.');
-      }
+      const ruta = await calcularRutaReal(origen, destino);
 
-      // 2. Movemos el mapa a la zona de la ruta. 
-      // Esto es CRUCIAL: MapLibre necesita estar mirando esta zona para cargar 
-      // y cachear los edificios 3D sobre los que calcularemos las sombras reales.
-      const rutaGeojson = datosRuta.routes[0].geometry;
-      const bounds = rutaGeojson.coordinates.reduce(
-        (b, c) => b.extend(c),
-        new maplibregl.LngLatBounds(rutaGeojson.coordinates[0], rutaGeojson.coordinates[0])
-      );
-      
-      await new Promise(resolve => {
-        map.fitBounds(bounds, { padding: 70, maxZoom: 17, duration: 800 });
-        const onMoveEnd = () => {
-          map.off('moveend', onMoveEnd);
-          setTimeout(resolve, 600); // Pequeña pausa para asegurar que los edificios 3D se renderizaron
-        };
-        map.on('moveend', onMoveEnd);
-      });
-
-      // 3. Ahora sí, calculamos las sombras de la zona correcta
-      puntoReferenciaSol = { lat: origen.lat, lon: origen.lon };
-      asegurarActivacionSolar();
-      mostrarEstado(t('calculatingShade', 'Evaluando rutas por cobertura de sombra…'));
-      await recalcularSombrasVisibles();
-
-      // 4. Evaluamos las alternativas con las sombras ya calculadas
-      const rutasEvaluadas = datosRuta.routes.map(ruta => {
-        const distanciaKmNum = ruta.distance / 1000;
-        let duracionMinNum = ruta.duration / 60;
-        const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
-        let duracionEstimada = false;
-        
-        if (velocidadKmh > 9 || duracionMinNum <= 0) {
-          duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
-          duracionEstimada = true;
-        }
-        
-        const coberturaSombra = evaluarCoberturaSombraRuta(ruta.geometry);
-
-        return {
-          geojson: ruta.geometry,
-          distanciaKm: distanciaKmNum.toFixed(2),
-          duracionMin: Math.round(duracionMinNum),
-          esReal: true,
-          duracionEstimada,
-          coberturaSombra: coberturaSombra
-        };
-      });
-
-      // Ordenamos: PRIORIDAD 1: Mayor cobertura de sombra. PRIORIDAD 2: Menor distancia
-      rutasEvaluadas.sort((a, b) => {
-        if (Math.abs(a.coberturaSombra - b.coberturaSombra) > 0.05) {
-          return b.coberturaSombra - a.coberturaSombra;
-        }
-        return a.distanciaKm - b.distanciaKm;
-      });
-
-      const mejorRuta = rutasEvaluadas[0];
-
-      // 5. Pintamos la ruta ganadora
-      map.getSource('ruta').setData(turf.feature(mejorRuta.geojson));
+      map.getSource('ruta').setData(turf.feature(ruta.geojson));
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
-      map.getSource('precision-ubicación')?.setData(turf.featureCollection([]));
+      map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       pintarMarcadores(origen, destino);
 
-      rutaActual = mejorRuta.esReal ? turf.feature(mejorRuta.geojson) : null;
+      const bounds = ruta.geojson.coordinates.reduce(
+        (b, c) => b.extend(c),
+        new maplibregl.LngLatBounds(ruta.geojson.coordinates[0], ruta.geojson.coordinates[0])
+      );
+      map.fitBounds(bounds, { padding: 70, maxZoom: 17, duration: 800 });
+
+      puntoReferenciaSol = { lat: origen.lat, lon: origen.lon };
+      rutaActual = ruta.esReal ? turf.feature(ruta.geojson) : null;
+      asegurarActivacionSolar();
+      await recalcularSombrasVisibles();
       actualizarIluminacionSolar();
       await actualizarTramosSombraRuta();
 
-      if (mejorRuta.esReal) {
-        const porcentajeSombra = Math.round((mejorRuta.coberturaSombra || 0) * 100);
-        const nota = mejorRuta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
-        const mensajeSombra = porcentajeSombra > 0 
-          ? ` 🌳 ${porcentajeSombra}% de la ruta está en sombra (priorizada por frescor).` 
-          : ' ☀️ Ruta calculada (sin cobertura de sombra significativa en este tramo).';
-        
-        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${mejorRuta.distanciaKm} km · ${mejorRuta.duracionMin} ${t('minWalk', 'min a pie')}${nota}.${mensajeSombra}`, 'ok');
+      if (ruta.esReal) {
+        const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
+        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}.`, 'ok');
       } else {
         mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
       }
@@ -1637,7 +1531,7 @@ let cieloSolActivo = false;
         pintarPanelAQI(aire);
       } catch (errAire) {
         console.error(errAire);
-        mostrarEstado(t('airDataUnavailable', 'No se ha podido cargar la calidad del aire ahora mismo.'), 'error');
+        mostrarEstado(t('airDataUnavailable', 'No se ha podido cargar la calidad del aire ahora mismo (demasiadas peticiones). Prueba de nuevo en unos segundos.'), 'error');
       }
     } catch (err) {
       console.error(err);

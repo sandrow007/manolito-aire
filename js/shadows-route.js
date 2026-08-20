@@ -1,33 +1,56 @@
 ﻿/* ============================================================
    MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
-   Stack: MapLibre GL JS + SunCalc + Turf.js + OSRM
+   Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
+   + Turf.js (geometría de sombra) + OSRM (ruta por calles)
+
+   v2 añade: slider de tiempo (hoy / solsticios), vuelo de
+   entrada cinemática, botón de captura de imagen, sombras por
+   volumen de barrido real (no aproximación por envolvente
+   convexa), halo de "feather" en el borde de la sombra, aviso
+   de hora dorada/azul, caché de edificios (el slider no vuelve
+   a consultar el mapa en cada movimiento) y navegación por
+   teclado en las sugerencias de direccion.
+
+   FIX (cambio de esta revisión): se ha quitado
+   `preserveDrawingBuffer: true` del mapa ese flag hací­a que
+   WebGL no limpiara el lienzo entre fotogramas, lo que en iOS
+   Safari (sobre todo en modo "añadido a pantalla de inicio")
+   deja una estela/rastro visible al moverte por el mapa (modo
+   caminar, GPS en vivo). El botón "Capturar vista" sigue
+   funcionando exactamente igual, pero ahora toma la foto
+   enganchándose al evento `render` del propio mapa justo antes
+   de que se intercambie el buffer, en vez de dejar el buffer
+   siempre sin limpiar.
    ============================================================ */
 
 'use strict';
 
 (function () {
   const CONFIG = {
-    centroInicial: [-5.9845, 37.3891],
+    centroInicial: [-5.9845, 37.3891], // [lon, lat] Sevilla
     zoomInicial: 15.5,
     pitchInicial: 55,
     bearingInicial: -15,
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
+    // OJO: router.project-osrm.org (el demo oficial de OSRM) SOLO tiene
+    // montado el perfil de coche, aunque se le pida /foot/ por eso daba
+    // rutas irreales (4km "en 9 minutos a pie" = velocidad de coche). El
+    // servidor de FOSSGIS sí­ aloja un perfil peatonal real.
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
-    velocidadCaminandoKmh: 4.8,
+    velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
-    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
+    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', // vector tiles gratis, sin key
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
-    alturaPorDefectoM: 9,
-    maxEdificiosSombra: 220,
-    loteSombraSize: 30,
+    alturaPorDefectoM: 9, // si un edificio no trae altura en los datos OSM
+    maxEdificiosSombra: 220, // lí­mite de seguridad para no colgar el navegador
+    loteSombraSize: 30, // nº de edificios que se procesan antes de ceder el hilo al navegador
     duracionVueloInicialMs: 2000,
-    chunkRutaKm: 0.01, // para calcular % de sombra en tramos
   };
 
-  // Traducción
+  /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
   function t(clave, fallback) {
     try {
       const fn = window.getMessages;
@@ -35,7 +58,7 @@
         const msg = fn();
         if (msg && msg[clave] != null) return msg[clave];
       }
-    } catch (e) { }
+    } catch (e) { /* seguimos con el fallback */ }
     return fallback != null ? fallback : clave;
   }
 
@@ -66,7 +89,8 @@
     contenedorMapa.style.position = 'relative';
   }
 
-  // ---------------- Mapa ----------------
+  /* ---------------- Mapa MapLibre con edificios 3D reales ---------------- */
+
   const map = new maplibregl.Map({
     container: 'shadowRouteMap',
     style: CONFIG.styleUrlClaro,
@@ -75,40 +99,147 @@
     pitch: 0,
     bearing: 0,
     attributionControl: true,
+    // (antes: preserveDrawingBuffer: true — quitado, ver nota de cabecera)
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
-  let capaEdificiosDisponible = false;
-  let edificiosCacheados = [];
-  let solarActivado = false;
-  let puntoReferenciaSol = null;
-  let rutaActual = null;
-  let rutaDatos = null; // guarda distancia, duración, etc.
-  let ultimaColeccionSombras = turf.featureCollection([]);
-  let modoManual = false;
-  let fechaBaseManual = new Date();
-  let sliderTiempo = null;
-  let etiquetaTiempo = null;
-  let temporizadorSlider = null;
-  let mapaOscuro = false;
-  let modoClickMapa = false;
-  let puntoOrigenPendiente = null;
-  let esperandoSoloDestino = false;
-  let origenParaAutoRuta = null;
-  let marcadorOrigen = null;
-  let marcadorDestino = null;
-  let btnModoClickRef = null;
+let capaEdificiosDisponible = false;
+let edificiosCacheados = [];
+let cieloSolActivo = false;
 
-  // ---------------- Utilidades geométricas ----------------
+  map.on('load', () => {
+    const capas = map.getStyle().layers || [];
+    const capaEdificios = capas.find(
+      (l) => l.type === 'fill-extrusion' && /building/i.test(l.id)
+    );
+    if (capaEdificios) {
+      CONFIG.edificiosLayerId = capaEdificios.id;
+      capaEdificiosDisponible = true;
+    }
+
+    map.addSource('sombras-halo', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer(
+      {
+        id: 'capa-sombras-halo',
+        type: 'fill',
+        source: 'sombras-halo',
+        paint: { 'fill-color': '#0b1220', 'fill-opacity': 0.10 },
+      },
+      capaEdificiosDisponible ? CONFIG.edificiosLayerId : undefined
+    );
+
+    map.addSource('sombras', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer(
+      {
+        id: 'capa-sombras',
+        type: 'fill',
+        source: 'sombras',
+        paint: { 'fill-color': '#0b1220', 'fill-opacity': 0.28 },
+      },
+      capaEdificiosDisponible ? CONFIG.edificiosLayerId : undefined
+    );
+
+    map.addSource('ruta', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-ruta',
+      type: 'line',
+      source: 'ruta',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': leerVar('--accent') || '#F4A66B', 'line-width': 5, 'line-opacity': 0.9 },
+    });
+
+    map.addSource('ruta-sombra', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-ruta-sombra',
+      type: 'line',
+      source: 'ruta-sombra',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#6f9c8b', 'line-width': 5, 'line-opacity': 0.95 },
+    });
+
+    map.addSource('puntos-manuales', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-puntos-manuales',
+      type: 'circle',
+      source: 'puntos-manuales',
+      paint: {
+        'circle-radius': 7,
+        'circle-color': leerVar('--accent') || '#F4A66B',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#1b2029',
+      },
+    });
+
+    map.addSource('precision-ubicación', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer(
+      {
+        id: 'capa-precision-ubicación',
+        type: 'fill',
+        source: 'precision-ubicación',
+        paint: { 'fill-color': leerVar('--accent') || '#F4A66B', 'fill-opacity': 0.12 },
+      },
+      'capa-puntos-manuales'
+    );
+    map.addLayer(
+      {
+        id: 'capa-precision-ubicación-borde',
+        type: 'line',
+        source: 'precision-ubicación',
+        paint: { 'line-color': leerVar('--accent') || '#F4A66B', 'line-width': 1, 'line-opacity': 0.4 },
+      },
+      'capa-puntos-manuales'
+    );
+
+    inyectarControlesTiempo();
+    inyectarControlesMapa();
+    inyectarSolVisual();
+    conectarTogglesDeCapas();
+
+    setTimeout(() => {
+      map.easeTo({
+        pitch: CONFIG.pitchInicial,
+        bearing: CONFIG.bearingInicial,
+        zoom: CONFIG.zoomInicial,
+        duration: CONFIG.duracionVueloInicialMs,
+        essential: true,
+      });
+    }, 150);
+  });
+
+  const alTerminarMovimiento = crearDebounce(() => {
+    if (!solarActivado) return;
+    actualizarCacheEdificios();
+    if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
+  }, 220);
+  map.on('moveend', alTerminarMovimiento);
+
+  map.on('move', () => actualizarSolVisualEnMapa());
+
+  let solarActivado = false;
+  function asegurarActivacionSolar() {
+    if (solarActivado) return;
+    solarActivado = true;
+    actualizarCacheEdificios();
+  }
+
+  function actualizarCacheEdificios() {
+    if (!capaEdificiosDisponible || !map.getLayer(CONFIG.edificiosLayerId)) return;
+    edificiosCacheados = map
+      .queryRenderedFeatures({ layers: [CONFIG.edificiosLayerId] })
+      .slice(0, CONFIG.maxEdificiosSombra);
+  }
+
+  /* ---------------- Sombras reales: sol + altura de edificios ---------------- */
+
   function unirDosPoligonos(a, b) {
     try {
       const r = turf.union(turf.featureCollection([a, b]));
       if (r) return r;
-    } catch (e) { }
+    } catch (e) { /* probamos la otra firma */ }
     try {
       const r = turf.union(a, b);
       if (r) return r;
-    } catch (e) { }
+    } catch (e) { /* nos quedamos con lo que había */ }
     return a;
   }
 
@@ -123,26 +254,19 @@
       try {
         const cuadrilatero = turf.polygon([[p1, p2, p2t, p1t, p1]]);
         resultado = unirDosPoligonos(resultado, cuadrilatero);
-      } catch (e) { continue; }
+      } catch (e) {
+        continue;
+      }
     }
     return resultado;
   }
 
-  function puntoEnSombra(punto) {
-    for (const poligono of ultimaColeccionSombras.features) {
-      try {
-        if (turf.booleanPointInPolygon(punto, poligono)) return true;
-      } catch (e) { }
-    }
-    return false;
-  }
-
-  // ---------------- Sombras ----------------
   function obtenerHoraEfectiva() {
     return modoManual ? obtenerFechaDelSlider() : new Date();
   }
 
   let versionCalculoSombras = 0;
+  let ultimaColeccionSombras = turf.featureCollection([]);
 
   async function recalcularSombrasVisibles(horaOverride) {
     if (!map.getSource('sombras')) return;
@@ -150,8 +274,7 @@
 
     const ahora = horaOverride || obtenerHoraEfectiva();
     const centro = puntoReferenciaSol || map.getCenter();
-    const lat = centro.lat || centro.lat;
-    const lon = centro.lon ?? centro.lng ?? centro.lon;
+    const lat = centro.lat, lon = centro.lon ?? centro.lng;
     const posSol = SunCalc.getPosition(ahora, lat, lon);
     actualizarBadgeHoraDorada(ahora, lat, lon);
 
@@ -201,9 +324,12 @@
             const volumen = calcularVolumenSombra(parte, distanciaKm, bearingSombra);
             if (volumen) poligonosSombra.push(volumen);
           }
-        } catch (e) { continue; }
+        } catch (e) {
+          continue;
+        }
       }
 
+      if (miVersion !== versionCalculoSombras) return;
       map.getSource('sombras')?.setData(turf.featureCollection(poligonosSombra));
       if (i + CONFIG.loteSombraSize < edificiosCacheados.length) await cederAlNavegador();
     }
@@ -216,7 +342,7 @@
     if (poligonosSombra.length <= 160) {
       try {
         const halo = turf.buffer(coleccionSombras, 3.5, { units: 'meters', steps: 4 });
-        map.getSource('sombras-halo')?.setData(halo || turf.featureCollection([]));
+        if (miVersion === versionCalculoSombras) map.getSource('sombras-halo')?.setData(halo || turf.featureCollection([]));
       } catch (e) {
         map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
       }
@@ -230,19 +356,33 @@
     if (el) el.textContent = texto;
   }
 
-  // ---------------- Cache de edificios ----------------
-  function actualizarCacheEdificios() {
-    if (!capaEdificiosDisponible || !map.getLayer(CONFIG.edificiosLayerId)) return;
-    edificiosCacheados = map
-      .queryRenderedFeatures({ layers: [CONFIG.edificiosLayerId] })
-      .slice(0, CONFIG.maxEdificiosSombra);
-  }
+  setInterval(() => {
+    if (!solarActivado || modoManual) return;
+    if (map.loaded()) recalcularSombrasVisibles();
+    actualizarIluminacionSolar();
+  }, 60 * 1000);
 
-  // ---------------- Porcentaje de sombra en la ruta ----------------
+  /* ---------------- Widget de posición del sol ---------------- */
+
+  let puntoReferenciaSol = null;
+  let rutaActual = null;
+
+  function puntoEnSombra(punto) {
+    for (const poligono of ultimaColeccionSombras.features) {
+      try {
+        if (turf.booleanPointInPolygon(punto, poligono)) return true;
+      } catch (e) { /* geometría rara: la ignoramos */ }
+    }
+    return false;
+  }
+// ============================================================
+  // NUEVO v3: Calcular porcentaje de sombra de una ruta
+  // ============================================================
   function calcularPorcentajeSombraRuta(geojsonRuta) {
     if (!geojsonRuta || !geojsonRuta.coordinates || !ultimaColeccionSombras.features.length) {
       return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
     }
+
     try {
       const tramos = turf.lineChunk(geojsonRuta, CONFIG.chunkRutaKm, { units: 'kilometers' });
       const totalTramos = tramos.features.length;
@@ -250,20 +390,24 @@
 
       let tramosEnSombra = [];
       let distanciaSombraTotalKm = 0;
+
       for (const tramo of tramos.features) {
         const coords = tramo.geometry.coordinates;
         const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
+        
         if (puntoEnSombra(medio)) {
           tramosEnSombra.push(tramo);
           const longitudTramo = turf.length(tramo, { units: 'kilometers' });
           distanciaSombraTotalKm += longitudTramo;
         }
       }
+
       const porcentaje = Math.round((tramosEnSombra.length / totalTramos) * 100);
+      
       return {
         porcentaje,
         tramosEnSombra: turf.featureCollection(tramosEnSombra),
-        distanciaSombraKm: Math.round(distanciaSombraTotalKm * 100) / 100,
+        distanciaSombraKm: Math.round(distanciaSombraTotalKm * 100) / 100
       };
     } catch (e) {
       console.warn('Error calculando % de sombra:', e);
@@ -271,6 +415,11 @@
     }
   }
 
+  async function actualizarTramosSombraRuta() {
+    const fuente = map.getSource('ruta-sombra');
+    if (!fuente) return;
+    }
+  
   async function actualizarTramosSombraRuta() {
     const fuente = map.getSource('ruta-sombra');
     if (!fuente) return;
@@ -286,57 +435,123 @@
         return puntoEnSombra(medio);
       });
       fuente.setData(turf.featureCollection(tramosEnSombra));
-
-      const resultado = calcularPorcentajeSombraRuta(rutaActual.geometry);
-      mostrarPanelPorcentajeSombra(resultado.porcentaje, resultado.distanciaSombraKm);
     } catch (e) {
       console.warn('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
       fuente.setData(turf.featureCollection([]));
     }
   }
 
-  function mostrarPanelPorcentajeSombra(porcentaje, distanciaSombraKm) {
-    let panel = document.getElementById('rsInfoSombra');
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.id = 'rsInfoSombra';
-      panel.style.cssText = `
-        position:absolute; left:12px; top:50%; transform:translateY(-50%);
-        background:rgba(27,32,41,0.9); color:#e9e4d8;
-        padding:8px 12px; border-radius:3px 12px 3px 12px;
-        border-left:2px solid #c98a4b; font-size:12px; font-weight:600;
-        pointer-events:none; z-index:10; box-shadow:0 4px 12px rgba(0,0,0,.3);
-      `;
-      contenedorMapa.appendChild(panel);
-    }
-    panel.textContent = `🌳 ${t('shadowPercent', 'Sombra en ruta')}: ${porcentaje}% (${distanciaSombraKm} km)`;
-  }
-
-  // ---------------- Sol visual y luz ----------------
   function calcularAnguloSol(horaOverride) {
     const centro = puntoReferenciaSol || map.getCenter();
-    const lat = centro.lat || centro.lat;
-    const lon = centro.lon ?? centro.lng ?? centro.lon;
+    const lat = centro.lat;
+    const lon = centro.lon ?? centro.lng;
     const pos = SunCalc.getPosition(horaOverride || obtenerHoraEfectiva(), lat, lon);
     const azimutDeg = ((pos.azimuth * 180) / Math.PI + 180) % 360;
     const alturaDeg = (pos.altitude * 180) / Math.PI;
     return { azimutDeg, alturaDeg };
   }
 
-  function actualizarSolVisualEnMapa() {
+  function actualizarIluminacionSolar(horaOverride) {
+    const tSol = document.getElementById('rsToggleSol');
+    if (!tSol) return;
+
+    if (!tSol.checked) {
+      map.setSky(undefined);
+      cieloSolActivo = false;
+      map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: 0.35, position: [1.5, 0, 40] });
+      actualizarSolVisualEnMapa();
+      return;
+    }
+    
+// ============================================================
+    // NUEVO v3: Usar la ruta seleccionada actual
+    // ============================================================
+    const rutaActiva = obtenerRutaActiva();
+    if (!rutaActiva || !ultimaColeccionSombras.features.length) {
+      fuente.setData(turf.featureCollection([]));
+      return;
+    }
+    
+    try {
+      const resultado = calcularPorcentajeSombraRuta(rutaActiva.geojson);
+      fuente.setData(resultado.tramosEnSombra || turf.featureCollection([]));
+      
+      actualizarPanelEstadisticas(resultado.porcentaje, rutaActiva.distanciaKm, resultado.distanciaSombraKm);
+    } catch (e) {
+      console.warn('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
+      fuente.setData(turf.featureCollection([]));
+    }
+  }
+  
+    const { azimutDeg, alturaDeg } = calcularAnguloSol(horaOverride);
+    const bajoHorizonte = alturaDeg <= 0;
+    const polar = Math.max(0, 90 - Math.max(alturaDeg, 0));
+
+    map.setLight({
+      anchor: 'map',
+      color: bajoHorizonte ? '#3a4a63' : '#fff6e6',
+      intensity: bajoHorizonte ? 0.15 : Math.min(1, 0.35 + alturaDeg / 90),
+      position: [1.5, azimutDeg, polar],
+    });
+
+    map.setSky({
+      'sky-color': bajoHorizonte ? '#0a1220' : '#199EF3',
+      'sky-horizon-blend': 0.5,
+      'horizon-color': bajoHorizonte ? '#2a3a55' : '#ffffff',
+         'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0.3]
+    });
+    cielosolActivo = true;
+
+    // Crea el elemento del sol si no existe para que el mapa no falle
+    let sol = document.getElementById('rsSolVisual');
+    if (!sol) {
+        sol = document.createElement('div');
+        sol.id = 'rsSolVisual';
+        if (typeof contenedorMapa !== 'undefined' && contenedorMapa) {
+            contenedorMapa.appendChild(sol);
+        } else if (map && map.getContainer) {
+            map.getContainer().appendChild(sol);
+        }
+    }
+
+    // Inyecta sus estilos CSS obligatorios
+    if (!document.getElementById('rsSolVisualEstilos')) {
+        const estilo = document.createElement('style');
+        estilo.id = 'rsSolVisualEstilos';
+        estilo.textContent = `
+            #rsSolVisual {
+                position: absolute; width: 34px; height: 34px; border-radius: 50%;
+                background: radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
+                box-shadow: 0 0 22px 10px rgba(255,207,122,0.55);
+                transform: translate(-50%, -50%);
+                z-index: 999;
+            }
+        `;
+        document.head.appendChild(estilo);
+    }
+
+    // Ejecuta la actualización de posición
+    if (typeof actualizarsolVisualEnMapa === 'function') {
+        actualizarsolVisualEnMapa();
+    } else if (typeof actualizarSolVisualEnMapa === 'function') {
+        actualizarSolVisualEnMapa();
+    }
+
+    document.head.appendChild(estilo);
+    const sol = document.createElement('div');
+    sol.id = 'rsSolVisual';
+    contenedorMapa.appendChild(sol);
+// contenedorMapa.appendChild(sol);
+//
+
+function actualizarSolVisualEnMapa() {
     const el = document.getElementById('rsSolVisual');
     const tSol = document.getElementById('rsToggleSol');
     if (!el) return;
-    if (!tSol || !tSol.checked) {
-      el.style.display = 'none';
-      return;
-    }
+    if (!tSol || !tSol.checked) { el.style.display = 'none'; return; }
 
     const { azimutDeg, alturaDeg } = calcularAnguloSol();
-    if (alturaDeg <= 0) {
-      el.style.display = 'none';
-      return;
-    }
+    if (alturaDeg <= 0) { el.style.display = 'none'; return; }
 
     const rect = contenedorMapa.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
@@ -354,67 +569,19 @@
     el.style.top = `${Math.max(16, Math.min(rect.height - 16, y))}px`;
     el.style.opacity = String(0.55 + factorAltura * 0.45);
     el.style.display = 'block';
-  }
-
-  function inyectarSolVisual() {
-    if (document.getElementById('rsSolVisual')) return;
-    const estilo = document.createElement('style');
-    estilo.textContent = `
-      #rsSolVisual {
-        position: absolute; width: 34px; height: 34px; border-radius: 50%;
-        background: radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
-        box-shadow: 0 0 22px 10px rgba(255,207,122,0.55);
-        transform: translate(-50%, -50%);
-        z-index: 999; pointer-events: none;
-      }
-    `;
-    document.head.appendChild(estilo);
-    const el = document.createElement('div');
-    el.id = 'rsSolVisual';
-    contenedorMapa.appendChild(el);
-  }
-
-  function actualizarIluminacionSolar(horaOverride) {
-    const tSol = document.getElementById('rsToggleSol');
-    if (!tSol) return;
-
-    if (!tSol.checked) {
-      map.setSky(undefined);
-      map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: 0.35, position: [1.5, 0, 40] });
-      actualizarSolVisualEnMapa();
-      return;
-    }
-
-    const { azimutDeg, alturaDeg } = calcularAnguloSol(horaOverride);
-    const bajoHorizonte = alturaDeg <= 0;
-    const polar = Math.max(0, 90 - Math.max(alturaDeg, 0));
-
-    map.setLight({
-      anchor: 'map',
-      color: bajoHorizonte ? '#3a4a63' : '#fff6e6',
-      intensity: bajoHorizonte ? 0.15 : Math.min(1, 0.35 + alturaDeg / 90),
-      position: [1.5, azimutDeg, polar],
-    });
-
-    map.setSky({
-      'sky-color': bajoHorizonte ? '#0a1220' : '#199EF3',
-      'sky-horizon-blend': 0.5,
-      'horizon-color': bajoHorizonte ? '#2a3a55' : '#ffffff',
-      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0.3]
-    });
-
-    inyectarSolVisual();
-    actualizarSolVisualEnMapa();
-  }
+}
 
   function actualizarBadgeHoraDorada(fechaEfectiva, lat, lon) {
     const badge = document.getElementById('rsGoldenBadge');
     const posSol = SunCalc.getPosition(fechaEfectiva, lat, lon);
     const altitudeDeg = (posSol.altitude * 180) / Math.PI;
+
+    let solarNoonMs = null;
     let estado = null;
 
     try {
       const tiempos = SunCalc.getTimes(fechaEfectiva, lat, lon);
+      solarNoonMs = tiempos.solarNoon.getTime();
       const t2 = fechaEfectiva.getTime();
       const enDorada =
         (t2 >= tiempos.sunrise.getTime() && t2 <= tiempos.goldenHourEnd.getTime()) ||
@@ -423,7 +590,7 @@
         (t2 >= tiempos.dawn.getTime() && t2 <= tiempos.sunrise.getTime()) ||
         (t2 >= tiempos.sunset.getTime() && t2 <= tiempos.dusk.getTime());
       estado = enDorada ? 'dorada' : enAzul ? 'azul' : null;
-    } catch (e) { }
+    } catch (e) { /* sin datos de horario fiables, seguimos sin badge */ }
 
     if (badge) {
       if (estado === 'dorada') {
@@ -442,17 +609,21 @@
         badge.style.visibility = 'hidden';
       }
     }
+
+    actualizarIndicadorSolar(altitudeDeg, solarNoonMs != null ? fechaEfectiva.getTime() <= solarNoonMs : true);
   }
 
   function actualizarIndicadorSolar(altitudeDeg, esManana) {
     const punto = document.getElementById('rsSolPunto');
     const grupo = document.getElementById('rsSolGrupo');
     if (!punto || !grupo) return;
+
     if (altitudeDeg == null || altitudeDeg <= 0) {
       grupo.style.opacity = '0.25';
       return;
     }
     grupo.style.opacity = '1';
+
     const cx = 30, cy = 30, r = 26;
     const altura = Math.max(0, Math.min(90, altitudeDeg));
     const theta = esManana ? 180 - altura : altura;
@@ -463,7 +634,14 @@
     punto.setAttribute('cy', y.toFixed(1));
   }
 
-  // ---------------- Slider de tiempo ----------------
+  /* ---------------- Slider de tiempo ---------------- */
+
+  let modoManual = false;
+  let fechaBaseManual = new Date();
+  let sliderTiempo = null;
+  let etiquetaTiempo = null;
+  let temporizadorSlider = null;
+
   function fechaSolsticio(tipo) {
     const anio = new Date().getFullYear();
     return tipo === 'verano' ? new Date(anio, 5, 21, 12, 0, 0) : new Date(anio, 11, 21, 12, 0, 0);
@@ -502,7 +680,6 @@
     await actualizarTramosSombraRuta();
   }
 
-  // ---------------- Panel de tiempo ----------------
   function inyectarEstilosPanel() {
     if (document.getElementById('rsPanelEstilos')) return;
     const estilo = document.createElement('style');

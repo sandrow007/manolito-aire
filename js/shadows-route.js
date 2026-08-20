@@ -501,24 +501,41 @@ let cieloSolActivo = false;
          'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0.3]
     });
     cielosolActivo = true;
-    inyectarSolVisual();
-    actualizarsolVisualEnMapa();
 
-    function inyectarSolVisual() {
-        if (document.getElementById('rsSolVisual')) return;
-
-    const estilo = document.createElement('style');
-    estilo.id = 'rsSolVisualEstilos';
-    estilo.textContent = `
-        #rsSolVisual{
-            position:absolute; width:34px; height:34px; border-radius:50%;
-            background:radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
-            box-shadow:0 0 22px 10px rgba(255,207,122,0.55);
-            transform:translate(-50%,-50%);
+    // Crea el elemento del sol si no existe para que el mapa no falle
+    let sol = document.getElementById('rsSolVisual');
+    if (!sol) {
+        sol = document.createElement('div');
+        sol.id = 'rsSolVisual';
+        if (typeof contenedorMapa !== 'undefined' && contenedorMapa) {
+            contenedorMapa.appendChild(sol);
+        } else if (map && map.getContainer) {
+            map.getContainer().appendChild(sol);
         }
-    `;
-    // Aquí puedes poner el resto del código que seguía en tu archivo...
-}
+    }
+
+    // Inyecta sus estilos CSS obligatorios
+    if (!document.getElementById('rsSolVisualEstilos')) {
+        const estilo = document.createElement('style');
+        estilo.id = 'rsSolVisualEstilos';
+        estilo.textContent = `
+            #rsSolVisual {
+                position: absolute; width: 34px; height: 34px; border-radius: 50%;
+                background: radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
+                box-shadow: 0 0 22px 10px rgba(255,207,122,0.55);
+                transform: translate(-50%, -50%);
+                z-index: 999;
+            }
+        `;
+        document.head.appendChild(estilo);
+    }
+
+    // Ejecuta la actualización de posición
+    if (typeof actualizarsolVisualEnMapa === 'function') {
+        actualizarsolVisualEnMapa();
+    } else if (typeof actualizarSolVisualEnMapa === 'function') {
+        actualizarSolVisualEnMapa();
+    }
 
     document.head.appendChild(estilo);
     const sol = document.createElement('div');

@@ -1,16 +1,26 @@
 ﻿/* ============================================================
-   MANOLITO AIRE — Ruta real + Sombras 3D reales + AQI (origen)
+   MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
 
-   v3 añade: 
-   - Mapa vívido CartoDB Voyager (parques verdes, agua azul)
-   - Algoritmo que evalúa % de sombra en cada ruta alternativa
-   - Sistema de priorización que elige la ruta con más sombra
-   - Mensaje informativo con el % de sombra de la ruta elegida
-   
-   FIX v2: `preserveDrawingBuffer: true` quitado para evitar
-   estelas en iOS Safari. Captura vía evento `render`.
+   v2 añade: slider de tiempo (hoy / solsticios), vuelo de
+   entrada cinemática, botón de captura de imagen, sombras por
+   volumen de barrido real (no aproximación por envolvente
+   convexa), halo de "feather" en el borde de la sombra, aviso
+   de hora dorada/azul, caché de edificios (el slider no vuelve
+   a consultar el mapa en cada movimiento) y navegación por
+   teclado en las sugerencias de direccion.
+
+   FIX (cambio de esta revisión): se ha quitado
+   `preserveDrawingBuffer: true` del mapa ese flag hací­a que
+   WebGL no limpiara el lienzo entre fotogramas, lo que en iOS
+   Safari (sobre todo en modo "añadido a pantalla de inicio")
+   deja una estela/rastro visible al moverte por el mapa (modo
+   caminar, GPS en vivo). El botón "Capturar vista" sigue
+   funcionando exactamente igual, pero ahora toma la foto
+   enganchándose al evento `render` del propio mapa justo antes
+   de que se intercambie el buffer, en vez de dejar el buffer
+   siempre sin limpiar.
    ============================================================ */
 
 'use strict';
@@ -26,28 +36,18 @@
     // OJO: router.project-osrm.org (el demo oficial de OSRM) SOLO tiene
     // montado el perfil de coche, aunque se le pida /foot/ por eso daba
     // rutas irreales (4km "en 9 minutos a pie" = velocidad de coche). El
-    // servidor de FOSSGIS sí aloja un perfil peatonal real.
+    // servidor de FOSSGIS sí­ aloja un perfil peatonal real.
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
     velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
-    // ============================================================
-    // CAMBIO v3: Mapa vívido CartoDB Voyager en vez de OpenFreeMap Liberty
-    // CartoDB Voyager: parques en verde vibrante, agua en azul, edificios claros
-    // ============================================================
-    // Si quieres probar con tu mapa original que funcionaba:
-styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
+    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', // vector tiles gratis, sin key
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
     alturaPorDefectoM: 9, // si un edificio no trae altura en los datos OSM
-    maxEdificiosSombra: 220, // límite de seguridad para no colgar el navegador
+    maxEdificiosSombra: 220, // lí­mite de seguridad para no colgar el navegador
     loteSombraSize: 30, // nº de edificios que se procesan antes de ceder el hilo al navegador
     duracionVueloInicialMs: 2000,
-    // ============================================================
-    // NUEVO v3: Configuración para evaluación de rutas alternativas
-    // ============================================================
-    chunkRutaKm: 0.015, // tamaño de segmento para evaluar sombra (15m)
-    umbralSombraSimilarPct: 5, // diferencia mínima para considerar sombra "diferente"
   };
 
   /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
@@ -103,16 +103,9 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
-  let capaEdificiosDisponible = false;
-  let edificiosCacheados = [];
-  let cieloSolActivo = false;
-
-  // ============================================================
-  // NUEVO v3: Variables para rutas alternativas
-  // ============================================================
-  let rutasAlternativasEvaluadas = [];
-  let rutaSeleccionadaIndex = 0;
-  const COLORES_RUTA_ALTERNATIVA = ['#F4A66B', '#6B9CF4', '#9CF46B', '#F46B9C'];
+let capaEdificiosDisponible = false;
+let edificiosCacheados = [];
+let cieloSolActivo = false;
 
   map.on('load', () => {
     const capas = map.getStyle().layers || [];
@@ -164,23 +157,6 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
       paint: { 'line-color': '#6f9c8b', 'line-width': 5, 'line-opacity': 0.95 },
     });
 
-    // ============================================================
-    // NUEVO v3: Fuente para rutas alternativas no seleccionadas
-    // ============================================================
-    map.addSource('rutas-alternativas', { type: 'geojson', data: turf.featureCollection([]) });
-    map.addLayer({
-      id: 'capa-rutas-alternativas',
-      type: 'line',
-      source: 'rutas-alternativas',
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 
-        'line-color': ['get', 'color'],
-        'line-width': 3,
-        'line-opacity': 0.4,
-        'line-dasharray': [2, 2]
-      },
-    });
-
     map.addSource('puntos-manuales', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer({
       id: 'capa-puntos-manuales',
@@ -218,10 +194,6 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     inyectarControlesMapa();
     inyectarSolVisual();
     conectarTogglesDeCapas();
-    // ============================================================
-    // NUEVO v3: Panel de estadísticas de sombra
-    // ============================================================
-    inyectarPanelEstadisticasSombra();
 
     setTimeout(() => {
       map.easeTo({
@@ -377,13 +349,6 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     } else {
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
     }
-
-    // ============================================================
-    // NUEVO v3: Reevaluar rutas alternativas con nuevas sombras
-    // ============================================================
-    if (rutasAlternativasEvaluadas.length > 0) {
-      await reevaluarRutasConNuevasSombras();
-    }
   }
 
   function mostrarAvisoSol(texto) {
@@ -411,82 +376,25 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     return false;
   }
 
-  // ============================================================
-  // NUEVO v3: Calcular porcentaje de sombra de una ruta
-  // ============================================================
-  function calcularPorcentajeSombraRuta(geojsonRuta) {
-    if (!geojsonRuta || !geojsonRuta.coordinates || !ultimaColeccionSombras.features.length) {
-      return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
-    }
-
-    try {
-      const tramos = turf.lineChunk(geojsonRuta, CONFIG.chunkRutaKm, { units: 'kilometers' });
-      const totalTramos = tramos.features.length;
-      if (totalTramos === 0) return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
-
-      let tramosEnSombra = [];
-      let distanciaSombraTotalKm = 0;
-
-      for (const tramo of tramos.features) {
-        const coords = tramo.geometry.coordinates;
-        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
-        
-        if (puntoEnSombra(medio)) {
-          tramosEnSombra.push(tramo);
-          const longitudTramo = turf.length(tramo, { units: 'kilometers' });
-          distanciaSombraTotalKm += longitudTramo;
-        }
-      }
-
-      const porcentaje = Math.round((tramosEnSombra.length / totalTramos) * 100);
-      
-      return {
-        porcentaje,
-        tramosEnSombra: turf.featureCollection(tramosEnSombra),
-        distanciaSombraKm: Math.round(distanciaSombraTotalKm * 100) / 100
-      };
-    } catch (e) {
-      console.warn('Error calculando % de sombra:', e);
-      return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
-    }
-  }
-
   async function actualizarTramosSombraRuta() {
     const fuente = map.getSource('ruta-sombra');
     if (!fuente) return;
-    
-    // ============================================================
-    // NUEVO v3: Usar la ruta seleccionada actual
-    // ============================================================
-    const rutaActiva = obtenerRutaActiva();
-    if (!rutaActiva || !ultimaColeccionSombras.features.length) {
+    if (!rutaActual || !ultimaColeccionSombras.features.length) {
       fuente.setData(turf.featureCollection([]));
       return;
     }
-    
     try {
-      const resultado = calcularPorcentajeSombraRuta(rutaActiva.geojson);
-      fuente.setData(resultado.tramosEnSombra || turf.featureCollection([]));
-      
-      actualizarPanelEstadisticas(resultado.porcentaje, rutaActiva.distanciaKm, resultado.distanciaSombraKm);
+      const tramos = turf.lineChunk(rutaActual, 0.01, { units: 'kilometers' });
+      const tramosEnSombra = tramos.features.filter((tramo) => {
+        const coords = tramo.geometry.coordinates;
+        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
+        return puntoEnSombra(medio);
+      });
+      fuente.setData(turf.featureCollection(tramosEnSombra));
     } catch (e) {
       console.warn('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
       fuente.setData(turf.featureCollection([]));
     }
-  }
-
-  // ============================================================
-  // NUEVO v3: Obtener la ruta actualmente seleccionada
-  // ============================================================
-  function obtenerRutaActiva() {
-    if (rutasAlternativasEvaluadas.length === 0) {
-      return rutaActual ? { 
-        geojson: rutaActual.geometry || rutaActual, 
-        distanciaKm: null,
-        duracionMin: null 
-      } : null;
-    }
-    return rutasAlternativasEvaluadas[rutaSeleccionadaIndex] || rutasAlternativasEvaluadas[0];
   }
 
   function calcularAnguloSol(horaOverride) {
@@ -816,8 +724,7 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     btnCaminar.type = 'button';
     btnCaminar.id = 'rsBtnWalk';
     btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
-    
-    const btnReiniciar = document.createElement('button');
+        const btnReiniciar = document.createElement('button');
     btnReiniciar.type = 'button';
     btnReiniciar.id = 'rsBtnReset';
     btnReiniciar.textContent = t('resetBtn', 'Reiniciar');
@@ -831,15 +738,8 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
       seleccionPorInput.delete(inputDestino);
       map.getSource('ruta')?.setData(turf.featureCollection([]));
       map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
-      // ============================================================
-      // NUEVO v3: Limpiar también rutas alternativas
-      // ============================================================
-      map.getSource('rutas-alternativas')?.setData(turf.featureCollection([]));
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
       map.getSource('precision-ubicación')?.setData(turf.featureCollection([]));
-      rutasAlternativasEvaluadas = [];
-      rutaSeleccionadaIndex = 0;
-      actualizarPanelEstadisticas(0, 0, 0);
       if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
       if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
       rutaActual = null;
@@ -932,7 +832,7 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
       }
       btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
-      mostrarEstado(t('walkModeTracking', 'Siguiendo tu posición…'));
+      mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
 
       const el = document.createElement('div');
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#1C3144'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#1C3144')}33;`;
@@ -1133,7 +1033,7 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     actualizarEtiquetaTiempo(false);
   }
 
-  /* ---------------- Capa de mapa oscuro ---------------- */
+  /* ---------------- Capa de mapa oscura ---------------- */
 
   let mapaOscuro = false;
   function inyectarControlToggleMapaOscuro() {
@@ -1173,7 +1073,13 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     contenedorMapa.appendChild(wrap);
   }
 
-  /* ---------------- Captura/compartir ---------------- */
+  /* ---------------- Captura/compartir: exportar la vista actual como imagen ---------------- */
+  // FIX: ya no depende de preserveDrawingBuffer permanente (causaba la
+  // estela en iOS). Se engancha al evento 'render' del propio mapa, que se
+  // dispara justo después de pintar un fotograma y ANTES de que el
+  // navegador pueda limpiar/intercambiar el buffer — es el punto correcto
+  // para leer el lienzo sin necesidad de mantenerlo siempre sin limpiar.
+
   function capturarVista() {
     try {
       map.once('render', () => {
@@ -1216,7 +1122,6 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     tSombras?.addEventListener('change', () => { asegurarActivacionSolar(); recalcularSombrasVisibles(); });
     tRuta?.addEventListener('change', () => {
       map.setLayoutProperty('capa-ruta', 'visibility', tRuta.checked ? 'visible' : 'none');
-      map.setLayoutProperty('capa-rutas-alternativas', 'visibility', tRuta.checked ? 'visible' : 'none');
     });
     tSol?.addEventListener('change', () => { asegurarActivacionSolar(); actualizarIluminacionSolar(); });
   }
@@ -1287,173 +1192,42 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     }
   }
 
-  /* ============================================================
-     NUEVO v3: Sistema de rutas alternativas con evaluación de sombra
-     ============================================================ */
+  /* ---------------- Ruta real por calles (OSRM) ---------------- */
 
-  // ============================================================
-  // NUEVO v3: Calcular ruta real con alternativas de OSRM
-  // ============================================================
-  async function calcularRutaRealConAlternativas(origen, destino) {
+  async function calcularRutaReal(origen, destino) {
     const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
-    // alternatives=true pide rutas alternativas a OSRM
-    const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&alternatives=true`;
+    const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson`;
 
     try {
       const datos = await fetchConReintentos(url);
       if (datos?.code === 'Ok' && datos.routes?.[0]) {
-        
-        const rutasProcesadas = [];
-        const rutasRaw = datos.routes || [];
-        
-        for (let i = 0; i < rutasRaw.length; i++) {
-          const rutaRaw = rutasRaw[i];
-          const distanciaKmNum = rutaRaw.distance / 1000;
-          let duracionMinNum = rutaRaw.duration / 60;
+        const distanciaKmNum = datos.routes[0].distance / 1000;
+        let duracionMinNum = datos.routes[0].duration / 60;
 
-          const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
-          let duracionEstimada = false;
-          if (velocidadKmh > 9 || duracionMinNum <= 0) {
-            duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
-            duracionEstimada = true;
-          }
-
-          rutasProcesadas.push({
-            geojson: rutaRaw.geometry,
-            distanciaKm: distanciaKmNum.toFixed(2),
-            distanciaKmNum,
-            duracionMin: Math.round(duracionMinNum),
-            duracionMinNum: Math.round(duracionMinNum),
-            esReal: true,
-            duracionEstimada,
-            indiceOriginal: i,
-            porcentajeSombra: 0,
-            distanciaSombraKm: 0,
-            color: COLORES_RUTA_ALTERNATIVA[i % COLORES_RUTA_ALTERNATIVA.length]
-          });
+        const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
+        let duracionEstimada = false;
+        if (velocidadKmh > 9 || duracionMinNum <= 0) {
+          duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
+          duracionEstimada = true;
         }
 
         return {
-          rutas: rutasProcesadas,
-          alternativasDisponibles: rutasProcesadas.length > 1
+          geojson: datos.routes[0].geometry,
+          distanciaKm: distanciaKmNum.toFixed(2),
+          duracionMin: Math.round(duracionMinNum),
+          esReal: true,
+          duracionEstimada,
         };
       }
       throw new Error('OSRM no ha devuelto una ruta válida.');
     } catch (err) {
       console.warn('Routing real no disponible, usando línea directa:', err);
       return {
-        rutas: [{
-          geojson: { type: 'LineString', coordinates: [[origen.lon, origen.lat], [destino.lon, destino.lat]] },
-          distanciaKm: null,
-          distanciaKmNum: turf.distance([origen.lon, origen.lat], [destino.lon, destino.lat], { units: 'kilometers' }),
-          duracionMin: null,
-          duracionMinNum: null,
-          esReal: false,
-          duracionEstimada: false,
-          indiceOriginal: 0,
-          porcentajeSombra: 0,
-          distanciaSombraKm: 0,
-          color: COLORES_RUTA_ALTERNATIVA[0]
-        }],
-        alternativasDisponibles: false
+        geojson: { type: 'LineString', coordinates: [[origen.lon, origen.lat], [destino.lon, destino.lat]] },
+        distanciaKm: null,
+        duracionMin: null,
+        esReal: false,
       };
-    }
-  }
-
-  // ============================================================
-  // NUEVO v3: Evaluar sombra en todas las rutas alternativas
-  // ============================================================
-  async function evaluarSombrasRutasAlternativas(rutas) {
-    if (!ultimaColeccionSombras.features.length) {
-      return rutas.map(r => ({ ...r, porcentajeSombra: 0, distanciaSombraKm: 0 }));
-    }
-
-    const rutasEvaluadas = [];
-    for (const ruta of rutas) {
-      const resultado = calcularPorcentajeSombraRuta(ruta.geojson);
-      rutasEvaluadas.push({
-        ...ruta,
-        porcentajeSombra: resultado.porcentaje,
-        distanciaSombraKm: resultado.distanciaSombraKm
-      });
-    }
-    return rutasEvaluadas;
-  }
-
-  // ============================================================
-  // NUEVO v3: Elegir la mejor ruta (más sombra, o más corta si empatan)
-  // ============================================================
-  function elegirMejorRuta(rutasEvaluadas) {
-    if (rutasEvaluadas.length === 0) return null;
-    if (rutasEvaluadas.length === 1) return { ruta: rutasEvaluadas[0], index: 0 };
-
-    const ordenadas = [...rutasEvaluadas].map((ruta, index) => ({ ruta, index })).sort((a, b) => {
-      const diffSombra = b.ruta.porcentajeSombra - a.ruta.porcentajeSombra;
-      if (Math.abs(diffSombra) > CONFIG.umbralSombraSimilarPct) {
-        return diffSombra;
-      }
-      const distA = a.ruta.distanciaKmNum ?? Infinity;
-      const distB = b.ruta.distanciaKmNum ?? Infinity;
-      return distA - distB;
-    });
-
-    return ordenadas[0];
-  }
-
-  // ============================================================
-  // NUEVO v3: Reevaluar rutas cuando cambian las sombras
-  // ============================================================
-  async function reevaluarRutasConNuevasSombras() {
-    if (rutasAlternativasEvaluadas.length === 0) return;
-
-    const rutasReevaluadas = await evaluarSombrasRutasAlternativas(rutasAlternativasEvaluadas);
-    const mejor = elegirMejorRuta(rutasReevaluadas);
-    if (!mejor) return;
-
-    rutaSeleccionadaIndex = mejor.index;
-    rutasAlternativasEvaluadas = rutasReevaluadas;
-
-    visualizarRutasAlternativas(rutasReevaluadas, rutaSeleccionadaIndex);
-    await actualizarTramosSombraRuta();
-  }
-
-  // ============================================================
-  // NUEVO v3: Visualizar rutas en el mapa
-  // ============================================================
-  function visualizarRutasAlternativas(rutas, indexSeleccionada) {
-    const rutaElegida = rutas[indexSeleccionada];
-    
-    if (rutaElegida) {
-      const featureRuta = turf.feature(rutaElegida.geojson);
-      featureRuta.properties = { 
-        color: rutaElegida.color,
-        porcentajeSombra: rutaElegida.porcentajeSombra,
-        distanciaKm: rutaElegida.distanciaKm
-      };
-      map.getSource('ruta').setData(featureRuta);
-    }
-
-    const alternativas = rutas
-      .filter((_, i) => i !== indexSeleccionada)
-      .map(r => {
-        const f = turf.feature(r.geojson);
-        f.properties = { 
-          color: r.color,
-          porcentajeSombra: r.porcentajeSombra,
-          distanciaKm: r.distanciaKm
-        };
-        return f;
-      });
-    
-    map.getSource('rutas-alternativas').setData(turf.featureCollection(alternativas));
-
-    if (rutaElegida) {
-      actualizarPanelEstadisticas(
-        rutaElegida.porcentajeSombra, 
-        rutaElegida.distanciaKm, 
-        rutaElegida.distanciaSombraKm,
-        rutas.length > 1
-      );
     }
   }
 
@@ -1720,79 +1494,36 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     }
   }
 
-  // ============================================================
-  // NUEVO v3: Ejecutar búsqueda con rutas alternativas y evaluación de sombra
-  // ============================================================
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
-    mostrarEstado(t('calculating', 'Calculando rutas reales por calles…'));
+    mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
 
     try {
-      const resultadoRouting = await calcularRutaRealConAlternativas(origen, destino);
-      const rutas = resultadoRouting.rutas;
+      const ruta = await calcularRutaReal(origen, destino);
 
-      let todasCoords = [];
-      rutas.forEach(r => {
-        if (r.geojson?.coordinates) {
-          todasCoords = todasCoords.concat(r.geojson.coordinates);
-        }
-      });
-
+      map.getSource('ruta').setData(turf.feature(ruta.geojson));
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
       map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       pintarMarcadores(origen, destino);
 
-      if (todasCoords.length > 0) {
-        const bounds = todasCoords.reduce(
-          (b, c) => b.extend(c),
-          new maplibregl.LngLatBounds(todasCoords[0], todasCoords[0])
-        );
-        map.fitBounds(bounds, { padding: 70, maxZoom: 17, duration: 800 });
-      }
+      const bounds = ruta.geojson.coordinates.reduce(
+        (b, c) => b.extend(c),
+        new maplibregl.LngLatBounds(ruta.geojson.coordinates[0], ruta.geojson.coordinates[0])
+      );
+      map.fitBounds(bounds, { padding: 70, maxZoom: 17, duration: 800 });
 
       puntoReferenciaSol = { lat: origen.lat, lon: origen.lon };
+      rutaActual = ruta.esReal ? turf.feature(ruta.geojson) : null;
       asegurarActivacionSolar();
-      
       await recalcularSombrasVisibles();
       actualizarIluminacionSolar();
-
-      mostrarEstado(t('evaluatingShadows', 'Evaluando sombra en rutas alternativas…'));
-      const rutasConSombra = await evaluarSombrasRutasAlternativas(rutas);
-      
-      const mejor = elegirMejorRuta(rutasConSombra);
-      rutaSeleccionadaIndex = mejor ? mejor.index : 0;
-      rutasAlternativasEvaluadas = rutasConSombra;
-
-      visualizarRutasAlternativas(rutasConSombra, rutaSeleccionadaIndex);
-
-      const rutaElegida = rutasConSombra[rutaSeleccionadaIndex];
-      rutaActual = rutaElegida.esReal ? turf.feature(rutaElegida.geojson) : null;
-
       await actualizarTramosSombraRuta();
 
-      if (rutaElegida.esReal) {
-        const notaDuracion = rutaElegida.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
-        const sombraTexto = rutaElegida.porcentajeSombra > 0 
-          ? ` · ${rutaElegida.porcentajeSombra}% ${t('inShadow', 'en sombra')}`
-          : '';
-        
-        let razonElegida = '';
-        if (rutasConSombra.length > 1) {
-          const otras = rutasConSombra.filter((_, i) => i !== rutaSeleccionadaIndex);
-          const mejorSombra = otras.every(r => r.porcentajeSombra <= rutaElegida.porcentajeSombra);
-          if (mejorSombra && rutaElegida.porcentajeSombra > 0) {
-            razonElegida = ` (${t('chosenMoreShadow', 'elegida por más sombra')})`;
-          } else if (rutaElegida.porcentajeSombra > 0) {
-            razonElegida = ` (${t('chosenShorter', 'sombra similar, elegida la más corta')})`;
-          }
-        }
-
-        mostrarEstado(
-          `${t('routeReal', 'Ruta')}: ${rutaElegida.distanciaKm} km · ${rutaElegida.duracionMin} ${t('minWalk', 'min a pie')}${notaDuracion}${sombraTexto}${razonElegida}`, 
-          'ok'
-        );
+      if (ruta.esReal) {
+        const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
+        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}.`, 'ok');
       } else {
-        mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles — mostrando línea directa.'), 'error');
+        mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
       }
 
       try {
@@ -1807,116 +1538,6 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
       mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
     } finally {
       ponerCargando(false);
-    }
-  }
-
-  // ============================================================
-  // NUEVO v3: Panel de estadísticas de sombra
-  // ============================================================
-  function inyectarPanelEstadisticasSombra() {
-    if (document.getElementById('rsShadowStatsPanel')) return;
-
-    const estilo = document.createElement('style');
-    estilo.id = 'rsShadowStatsEstilos';
-    estilo.textContent = `
-      #rsShadowStatsPanel{
-        position:absolute; right:12px; top:70px; z-index:5; width:200px;
-        background:linear-gradient(160deg,#262c38,#1b2029 70%);
-        border-radius:16px 3px 16px 3px;
-        border:1px solid #00000055; border-right:2px solid #6f9c8b;
-        box-shadow:0 12px 28px rgba(0,0,0,.32), inset 0 1px 0 #ffffff0c;
-        padding:12px 14px; font-family:inherit; color:#e9e4d8;
-        display:none;
-      }
-      #rsShadowStatsPanel.visible{ display:block; }
-      #rsShadowStatsPanel .rs-stats-titulo{
-        font-size:10px; letter-spacing:.12em; text-transform:uppercase;
-        color:#6f9c8b; font-weight:700; margin-bottom:8px;
-      }
-      #rsShadowStatsPanel .rs-stats-barra-wrap{
-        height:8px; background:#1b2029; border-radius:4px; overflow:hidden;
-        margin:6px 0 4px;
-      }
-      #rsShadowStatsPanel .rs-stats-barra{
-        height:100%; border-radius:4px; transition:width .6s ease, background-color .3s ease;
-      }
-      #rsShadowStatsPanel .rs-stats-valor{
-        font-family:'Space Mono',ui-monospace,monospace; font-size:18px; font-weight:700;
-        color:#6f9c8b;
-      }
-      #rsShadowStatsPanel .rs-stats-etiqueta{
-        font-size:10.5px; color:#a0a8b8; line-height:1.4;
-      }
-      #rsShadowStatsPanel .rs-stats-alternativas{
-        margin-top:8px; padding-top:8px; border-top:1px solid #ffffff0d;
-        font-size:10px; color:#7fb3c9;
-      }
-      @media (max-width:480px){ #rsShadowStatsPanel{ width:calc(100vw - 24px); max-width:200px; right:auto; left:12px; top:auto; bottom:200px; } }
-    `;
-    document.head.appendChild(estilo);
-
-    const panel = document.createElement('div');
-    panel.id = 'rsShadowStatsPanel';
-    panel.innerHTML = `
-      <div class="rs-stats-titulo">${t('shadowStats', 'Sombra en tu ruta')}</div>
-      <div class="rs-stats-valor" id="rsShadowPct">0%</div>
-      <div class="rs-stats-barra-wrap">
-        <div class="rs-stats-barra" id="rsShadowBar" style="width:0%; background:#6f9c8b;"></div>
-      </div>
-      <div class="rs-stats-etiqueta" id="rsShadowLabel">${t('noShadowData', 'Calculando…')}</div>
-      <div class="rs-stats-alternativas" id="rsShadowAlternatives" style="display:none;"></div>
-    `;
-    contenedorMapa.appendChild(panel);
-  }
-
-  // ============================================================
-  // NUEVO v3: Actualizar panel de estadísticas
-  // ============================================================
-  function actualizarPanelEstadisticas(porcentaje, distanciaTotalKm, distanciaSombraKm, hayAlternativas) {
-    const panel = document.getElementById('rsShadowStatsPanel');
-    if (!panel) return;
-
-    panel.classList.add('visible');
-
-    const valorEl = document.getElementById('rsShadowPct');
-    const barraEl = document.getElementById('rsShadowBar');
-    const etiquetaEl = document.getElementById('rsShadowLabel');
-    const alternativasEl = document.getElementById('rsShadowAlternatives');
-
-    valorEl.textContent = `${porcentaje}%`;
-
-    let colorBarra = '#6f9c8b';
-    let mensaje = '';
-    
-    if (porcentaje >= 50) {
-      colorBarra = '#6f9c8b';
-      mensaje = t('shadowGreat', '¡Excelente! La mitad de tu ruta está protegida del sol');
-    } else if (porcentaje >= 25) {
-      colorBarra = '#c98a4b';
-      mensaje = t('shadowGood', 'Buena sombra en partes de la ruta');
-    } else if (porcentaje > 0) {
-      colorBarra = '#e7b06a';
-      mensaje = t('shadowSome', 'Algo de sombra disponible');
-    } else {
-      colorBarra = '#a0a8b8';
-      mensaje = t('shadowNone', 'Poca o ninguna sombra en esta ruta');
-    }
-
-    barraEl.style.width = `${porcentaje}%`;
-    barraEl.style.backgroundColor = colorBarra;
-    valorEl.style.color = colorBarra;
-
-    if (distanciaSombraKm > 0 && distanciaTotalKm) {
-      etiquetaEl.textContent = `${mensaje} · ${distanciaSombraKm} km ${t('of', 'de')} ${distanciaTotalKm} km ${t('inShadowShort', 'a la sombra')}`;
-    } else {
-      etiquetaEl.textContent = mensaje;
-    }
-
-    if (hayAlternativas) {
-      alternativasEl.style.display = 'block';
-      alternativasEl.textContent = t('alternativesAvailable', 'Hay rutas alternativas comparadas');
-    } else {
-      alternativasEl.style.display = 'none';
     }
   }
 
@@ -1955,10 +1576,6 @@ styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     if (btnVerano) btnVerano.textContent = t('btnSummer', 'Verano');
     const btnInvierno = document.getElementById('rsBtnInvierno');
     if (btnInvierno) btnInvierno.textContent = t('btnWinter', 'Invierno');
-    
-    const statsTitulo = document.querySelector('#rsShadowStatsPanel .rs-stats-titulo');
-    if (statsTitulo) statsTitulo.textContent = t('shadowStats', 'Sombra en tu ruta');
-    
     ponerCargando(false);
     if (etiquetaTiempo) actualizarEtiquetaTiempo(false);
     if (inputOrigen && !inputOrigen.value) inputOrigen.setAttribute('placeholder', t('originPlaceholder', inputOrigen.getAttribute('placeholder')));

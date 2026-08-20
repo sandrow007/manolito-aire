@@ -1,9 +1,9 @@
 # Configura tu clave y el destino de Kimi
-$ApiKey = "sk-MJ2qYO2fTtEA4Ny1pxojUIOfIdf3yo5aslEBBeJn17TNo3Pb"
+$ApiKey = "TU_API_KEY_AQUI"
 $Url = "https://moonshot.ai"
 
 # Escribe aquí tu pregunta o el código que quieres incluir
-$Pregunta = "Quiero que revises este código y me digas si tiene fallos: [Pega aquí tu código]"
+$Pregunta = "Hola, dime si me estás escuchando bien y salúdame."
 
 # Preparación de los datos para enviar a Kimi
 $Headers = @{
@@ -20,6 +20,12 @@ $Body = @{
 
 # Envío de la petición y visualización de la respuesta
 Write-Host "Pensando..." -ForegroundColor Cyan
-$Response = Invoke-RestMethod -Uri $Url -Method Post -Headers $Headers -Body ([System.Text.Encoding]::UTF8.GetBytes($Body))
+
+# Forzamos la petición de forma segura
+$RawResponse = Invoke-RestMethod -Uri $Url -Method Post -Headers $Headers -Body ([System.Text.Encoding]::UTF8.GetBytes($Body))
+
+# Convertimos la respuesta para leerla sin errores
+$Response = $RawResponse | ConvertTo-Json -Depth 10 | ConvertFrom-Json
+
 Write-Host "`nRespuesta de Kimi:" -ForegroundColor Green
-$Response.choices[0].message.content
+$Response.choices.message.content

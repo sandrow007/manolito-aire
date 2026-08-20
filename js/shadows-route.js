@@ -612,7 +612,7 @@ let cieloSolActivo = false;
     const badge = document.getElementById('rsShadowBadge');
     const texto = document.getElementById('rsShadowBadgeTexto');
     if (!badge || !texto || pct == null) { badge?.classList.remove('rs-visible'); return; }
-    texto.textContent = `☂ ${pct}% ${t('shadeCoverage', 'del trayecto en sombra')}`;
+    texto.textContent = `${pct}% ${t('shadeCoverage', 'del trayecto en sombra')}`;
     badge.classList.add('rs-visible');
   }
 

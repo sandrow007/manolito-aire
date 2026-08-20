@@ -498,15 +498,15 @@ let cieloSolActivo = false;
       'sky-color': bajoHorizonte ? '#0a1220' : '#199EF3',
       'sky-horizon-blend': 0.5,
       'horizon-color': bajoHorizonte ? '#2a3a55' : '#ffffff',
-      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0.3]
+         'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0.3]
     });
-    cieloSolActivo = true;
-cielosolActivo = true;
+    cielosolActivo = true;
+    inyectarSolVisual();
+    actualizarsolVisualEnMapa();
 
-actualizarsolVisualEnMapa();
+    function inyectarSolVisual() {
+        if (document.getElementById('rsSolVisual')) return;
 
-function inyectarSolVisual() {
-    if (document.getElementById('rsSolVisual')) return;
     const estilo = document.createElement('style');
     estilo.id = 'rsSolVisualEstilos';
     estilo.textContent = `

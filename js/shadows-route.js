@@ -375,7 +375,51 @@ let cieloSolActivo = false;
     }
     return false;
   }
+// ============================================================
+  // NUEVO v3: Calcular porcentaje de sombra de una ruta
+  // ============================================================
+  function calcularPorcentajeSombraRuta(geojsonRuta) {
+    if (!geojsonRuta || !geojsonRuta.coordinates || !ultimaColeccionSombras.features.length) {
+      return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
+    }
 
+    try {
+      const tramos = turf.lineChunk(geojsonRuta, CONFIG.chunkRutaKm, { units: 'kilometers' });
+      const totalTramos = tramos.features.length;
+      if (totalTramos === 0) return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
+
+      let tramosEnSombra = [];
+      let distanciaSombraTotalKm = 0;
+
+      for (const tramo of tramos.features) {
+        const coords = tramo.geometry.coordinates;
+        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
+        
+        if (puntoEnSombra(medio)) {
+          tramosEnSombra.push(tramo);
+          const longitudTramo = turf.length(tramo, { units: 'kilometers' });
+          distanciaSombraTotalKm += longitudTramo;
+        }
+      }
+
+      const porcentaje = Math.round((tramosEnSombra.length / totalTramos) * 100);
+      
+      return {
+        porcentaje,
+        tramosEnSombra: turf.featureCollection(tramosEnSombra),
+        distanciaSombraKm: Math.round(distanciaSombraTotalKm * 100) / 100
+      };
+    } catch (e) {
+      console.warn('Error calculando % de sombra:', e);
+      return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
+    }
+  }
+
+  async function actualizarTramosSombraRuta() {
+    const fuente = map.getSource('ruta-sombra');
+    if (!fuente) return;
+    }
+  
   async function actualizarTramosSombraRuta() {
     const fuente = map.getSource('ruta-sombra');
     if (!fuente) return;

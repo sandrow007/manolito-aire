@@ -11,12 +11,16 @@
    FIX (cambio de esta revisión): se ha quitado
    `preserveDrawingBuffer: true` para evitar estela en iOS.
 
-   PARCHES v3 (sobre tu código original):
-   - Añadido CONFIG.chunkRutaKm.
-   - Eliminada duplicación de actualizarTramosSombraRuta.
+   PARCHES v3 (sobre tu código original, sin eliminar nada):
+   - Cambio de estilo a Stadia Maps Alidade Smooth (edificios 3D, gratuito, sin clave).
+   - Añadido CONFIG.chunkRutaKm para el cálculo de porcentaje.
+   - Eliminada la duplicación de actualizarTramosSombraRuta (la primera, incompleta).
    - Creado el elemento rsSolVisual dentro del load del mapa.
-   - Creados toggles (sombras, sol, edificios) en el panel de tiempo.
-   - Panel de tiempo visible por defecto.
+   - Creados los toggles (Sombras, Sol, Edificios) dentro del panel de tiempo.
+   - El panel de tiempo ya no se oculta por defecto.
+   - Restaurada la llamada a inyectarControlToggleMapaOscuro.
+   - Añadida función calcularPorcentajeSombraRuta y su badge en el panel.
+   - Optimizado el cálculo de sombras con límite de edificios y uso de requestIdleCallback.
    ============================================================ */
 
 'use strict';
@@ -27,7 +31,12 @@
     zoomInicial: 15.5,
     pitchInicial: 55,
     bearingInicial: -15,
-    styleUrl: 'https://tiles.openfreemap.org/styles/liberty', // vector tiles gratis, sin key
+    // ---- CAMBIO DEFINITIVO: uso Stadia Maps Alidade Smooth (edificios 3D, gratuito, sin clave) ----
+    styleUrl: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json',
+    // Atribución requerida: se mostrará en el mapa automáticamente.
+    // Si prefieres MapTiler (con clave), cambia a:
+    // 'https://api.maptiler.com/maps/streets-v2/style.json?key=TU_CLAVE'
+    // ---- FIN DEL CAMBIO ----
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
@@ -40,7 +49,7 @@
     maxEdificiosSombra: 220,
     loteSombraSize: 30,
     duracionVueloInicialMs: 2000,
-    chunkRutaKm: 0.01 // AÑADIDO: necesario para calcular porcentaje de sombra
+    chunkRutaKm: 0.01 // AÑADIDO: para dividir la ruta en tramos y calcular porcentaje de sombra
   };
 
   /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
@@ -83,6 +92,7 @@
   }
 
   /* ---------------- Mapa MapLibre con edificios 3D reales ---------------- */
+
   const map = new maplibregl.Map({
     container: 'shadowRouteMap',
     style: CONFIG.styleUrl,
@@ -95,12 +105,12 @@
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
-  let capaEdificiosDisponible = false;
-  let edificiosCacheados = [];
-  let cieloSolActivo = false;
+let capaEdificiosDisponible = false;
+let edificiosCacheados = [];
+let cieloSolActivo = false;
 
   map.on('load', () => {
-    // Crear el elemento visual del sol (para que exista cuando se use)
+    // ---- CREAR ELEMENTO VISUAL DEL SOL (para que no falle) ----
     if (!document.getElementById('rsSolVisual')) {
       const solDiv = document.createElement('div');
       solDiv.id = 'rsSolVisual';
@@ -123,6 +133,9 @@
     if (capaEdificios) {
       CONFIG.edificiosLayerId = capaEdificios.id;
       capaEdificiosDisponible = true;
+      console.log('✅ Edificios 3D detectados. Las sombras funcionarán.');
+    } else {
+      console.warn('⚠️ No se encontró capa de edificios 3D. Las sombras no se mostrarán. Asegúrate de usar un estilo con fill-extrusion (ej. Stadia Maps Alidade Smooth).');
     }
 
     map.addSource('sombras-halo', { type: 'geojson', data: turf.featureCollection([]) });
@@ -200,6 +213,7 @@
 
     inyectarControlesTiempo();
     inyectarControlesMapa();
+    inyectarControlToggleMapaOscuro(); // RESTAURADO
     conectarTogglesDeCapas();
 
     setTimeout(() => {
@@ -357,7 +371,7 @@
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
     }
 
-    // Actualizar porcentaje de sombra de la ruta
+    // ---- ACTUALIZAR PORCENTAJE DE SOMBRA (NUEVO) ----
     if (rutaActual) {
       const porcentaje = calcularPorcentajeSombraRuta(rutaActual);
       const badge = document.getElementById('rsPorcentajeSombra');
@@ -390,7 +404,9 @@
     return false;
   }
 
-  // Calcular porcentaje de sombra de una ruta
+  // ============================================================
+  // NUEVO v3: Calcular porcentaje de sombra de una ruta
+  // ============================================================
   function calcularPorcentajeSombraRuta(geojsonRuta) {
     if (!geojsonRuta || !geojsonRuta.coordinates || !ultimaColeccionSombras.features.length) {
       return 0;
@@ -411,7 +427,7 @@
     }
   }
 
-  // Única versión de actualizarTramosSombraRuta (eliminada la duplicada)
+  // ---- ÚNICA VERSIÓN DE actualizarTramosSombraRuta (eliminada la duplicada) ----
   async function actualizarTramosSombraRuta() {
     const fuente = map.getSource('ruta-sombra');
     if (!fuente) return;
@@ -619,20 +635,21 @@
     estilo.id = 'rsPanelEstilos';
     estilo.textContent = `
       #rsTimeControls{
-        --rs-metal-1:#1b2029; --rs-metal-2:#262c38; --rs-laton:#c98a4b;
-        --rs-laton-vivo:#e7b06a; --rs-verdigris:#6f9c8b; --rs-hueso:#e9e4d8;
+        --rs-metal-1:#1b2029; --rs-metal-2:#262c38; --rs-latón:#c98a4b;
+        --rs-latón-vivo:#e7b06a; --rs-verdigris:#6f9c8b; --rs-hueso:#e9e4d8;
         position:absolute; left:12px; bottom:12px; z-index:5; width:246px;
         background:linear-gradient(160deg,var(--rs-metal-2),var(--rs-metal-1) 70%);
         border-radius:3px 16px 3px 16px;
-        border:1px solid #00000055; border-left:2px solid var(--rs-laton);
+        border:1px solid #00000055; border-left:2px solid var(--rs-latón);
         box-shadow:0 12px 28px rgba(0,0,0,.32), inset 0 1px 0 #ffffff0c;
         padding:13px 15px; font-family:inherit; color:var(--rs-hueso);
         transition:opacity .18s ease, transform .18s ease;
+        max-height: 90vh; overflow-y: auto;
       }
       #rsTimeControls .rs-cuerpo{ display:block; }
       #rsTimeControls .rs-cabecera{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
       #rsTimeControls .rs-eyebrow{
-        font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--rs-laton);
+        font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--rs-latón);
         font-weight:700; opacity:.9;
       }
       #rsPlegarBtn{
@@ -660,16 +677,16 @@
         -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; cursor:pointer; margin:6px 0 2px;
       }
       #rsTimeSlider::-webkit-slider-runnable-track{
-        height:3px; background:linear-gradient(90deg,var(--rs-laton),#00000000),#3a4150; border-radius:2px;
+        height:3px; background:linear-gradient(90deg,var(--rs-latón),#00000000),#3a4150; border-radius:2px;
       }
       #rsTimeSlider::-webkit-slider-thumb{
         -webkit-appearance:none; margin-top:-6px; width:15px; height:15px; border-radius:50%;
-        background:var(--rs-laton-vivo); border:2px solid #1b2029; box-shadow:0 0 0 3px #e7b06a2e;
+        background:var(--rs-latón-vivo); border:2px solid #1b2029; box-shadow:0 0 0 3px #e7b06a2e;
       }
       #rsTimeSlider::-moz-range-track{ height:3px; background:#3a4150; border-radius:2px; }
-      #rsTimeSlider::-moz-range-progress{ height:3px; background:var(--rs-laton); border-radius:2px; }
+      #rsTimeSlider::-moz-range-progress{ height:3px; background:var(--rs-latón); border-radius:2px; }
       #rsTimeSlider::-moz-range-thumb{
-        width:15px; height:15px; border-radius:50%; background:var(--rs-laton-vivo); border:2px solid #1b2029;
+        width:15px; height:15px; border-radius:50%; background:var(--rs-latón-vivo); border:2px solid #1b2029;
       }
       #rsTimeControls .rs-botones{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
       #rsTimeControls button{
@@ -679,10 +696,10 @@
       }
       #rsTimeControls button:hover{ background:#c98a4b22; border-color:#c98a4b66; }
       #rsTimeControls button:active{ background:#c98a4b3a; }
-      #rsTimeControls button.rs-btn-capturar{ flex-basis:100%; color:var(--rs-laton-vivo); border-color:#c98a4b44; }
+      #rsTimeControls button.rs-btn-capturar{ flex-basis:100%; color:var(--rs-latón-vivo); border-color:#c98a4b44; }
       #rsTimeControls .rs-toggle-group{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:6px; }
       #rsTimeControls .rs-toggle-group label{ display:flex; align-items:center; gap:4px; font-size:12px; cursor:pointer; }
-      #rsTimeControls .rs-toggle-group input[type="checkbox"]{ accent-color:var(--rs-laton); }
+      #rsTimeControls .rs-toggle-group input[type="checkbox"]{ accent-color:var(--rs-latón); }
       #rsPorcentajeSombra{
         font-size:16px; font-weight:700; color:#7fc9b0; margin-left:6px;
       }
@@ -704,7 +721,7 @@
     const eyebrow = document.createElement('span');
     eyebrow.className = 'rs-eyebrow';
     eyebrow.id = 'rsEyebrowSol';
-    eyebrow.textContent = t('sunPosition', 'Posicion solar');
+    eyebrow.textContent = t('sunPosition', 'Posición solar');
 
     const svgSol = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svgSol.setAttribute('viewBox', '0 0 60 34');
@@ -720,7 +737,7 @@
     const btnPlegar = document.createElement('button');
     btnPlegar.id = 'rsPlegarBtn';
     btnPlegar.type = 'button';
-    btnPlegar.setAttribute('aria-label', 'Mostrar u ocultar el panel de posicion solar');
+    btnPlegar.setAttribute('aria-label', 'Mostrar u ocultar el panel de posición solar');
     btnPlegar.innerHTML = '<svg width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     btnPlegar.addEventListener('click', () => {
       panel.classList.toggle('oculto');
@@ -731,7 +748,7 @@
     const cuerpo = document.createElement('div');
     cuerpo.className = 'rs-cuerpo';
 
-    // Toggles (creados aquí para que existan en el DOM)
+    // ---- AQUÍ SE CREAN LOS TOGGLES (para que existan en el DOM) ----
     const toggleGroup = document.createElement('div');
     toggleGroup.className = 'rs-toggle-group';
     const toggleSombras = document.createElement('label');
@@ -820,7 +837,7 @@
 
     filaBotones.append(btnAhora, btnVerano, btnInvierno, btnCapturar);
 
-    // Porcentaje de sombra
+    // ---- NUEVO: Badge de porcentaje de sombra ----
     const filaPorcentaje = document.createElement('div');
     filaPorcentaje.className = 'rs-fila';
     filaPorcentaje.style.justifyContent = 'space-between';
@@ -891,13 +908,13 @@
     const btnUbicacion = document.createElement('button');
     btnUbicacion.type = 'button';
     btnUbicacion.id = 'rsBtnMyLocation';
-    btnUbicacion.textContent = t('myLocation', 'Mi ubicacion');
+    btnUbicacion.textContent = t('myLocation', 'Mi ubicación');
 
     const btnCaminar = document.createElement('button');
     btnCaminar.type = 'button';
     btnCaminar.id = 'rsBtnWalk';
     btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
-    const btnReiniciar = document.createElement('button');
+        const btnReiniciar = document.createElement('button');
     btnReiniciar.type = 'button';
     btnReiniciar.id = 'rsBtnReset';
     btnReiniciar.textContent = t('resetBtn', 'Reiniciar');
@@ -912,7 +929,7 @@
       map.getSource('ruta')?.setData(turf.featureCollection([]));
       map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
-      map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
+      map.getSource('precision-ubicación')?.setData(turf.featureCollection([]));
       if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
       if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
       rutaActual = null;
@@ -947,17 +964,17 @@
 
     btnUbicacion.addEventListener('click', () => {
       if (!('geolocation' in navigator)) {
-        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicacion.'), 'error');
+        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
         return;
       }
-      mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicacion...'));
+      mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicación…'));
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
           const precisionM = Math.round(pos.coords.accuracy || 0);
 
-          seleccionPorInput.set(inputOrigen, { lat, lon, nombre: t('myLocation', 'Mi ubicacion'), texto: t('myLocation', 'Mi ubicacion') });
-          inputOrigen.value = t('myLocation', 'Mi ubicacion');
+          seleccionPorInput.set(inputOrigen, { lat, lon, nombre: t('myLocation', 'Mi ubicación'), texto: t('myLocation', 'Mi ubicación') });
+          inputOrigen.value = t('myLocation', 'Mi ubicación');
 
           const puntoUbicacion = turf.point([lon, lat]);
           map.getSource('puntos-manuales')?.setData(turf.featureCollection([puntoUbicacion]));
@@ -969,23 +986,23 @@
           }
 
           const notaPrecision = precisionM > 0
-            ? ` (${t('locationPrecision', 'precision reportada por el navegador')}: ±${precisionM} m — ${t('locationNote', 'sin GPS real puede ser orientativa')})`
+            ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m — ${t('locationNote', 'sin GPS real puede ser orientativa')})`
             : '';
-          mostrarEstado(`${t('locationMarked', 'Ubicacion marcada como origen')}${notaPrecision} — ${t('chooseDestination', 'toca un punto del mapa para poner el destino.')}`, 'ok');
+          mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision} — ${t('chooseDestination', 'toca un punto del mapa para poner el destino.')}`, 'ok');
           map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
 
-          origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicacion') };
+          origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicación') };
           esperandoSoloDestino = true;
           modoClickMapa = true;
           puntoOrigenPendiente = null;
           btnModoClick.classList.add('rs-activo');
         },
-        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicacion (has denegado el permiso?).'), 'error'),
+        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     });
 
-    /* ---- Modo caminar: sigue tu posicion en vivo mientras te mueves ---- */
+    /* ---- Modo caminar: sigue tu posición en vivo mientras te mueves ---- */
     let watchId = null;
     let marcadorCaminando = null;
 
@@ -1000,12 +1017,12 @@
     btnCaminar.addEventListener('click', () => {
       if (watchId != null) { detenerCaminata(); mostrarEstado(''); return; }
       if (!('geolocation' in navigator)) {
-        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicacion.'), 'error');
+        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
         return;
       }
       btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
-      mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicacion...'));
+      mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
 
       const el = document.createElement('div');
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#1C3144'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#1C3144')}33;`;
@@ -1020,7 +1037,7 @@
           puntoReferenciaSol = { lat, lon };
           if (rutaActual) actualizarTramosSombraRuta();
         },
-        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicacion (has denegado el permiso?).'), 'error'),
+        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
         { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 }
       );
     });
@@ -1142,6 +1159,11 @@
   }
 
   /* ---------------- Captura/compartir: exportar la vista actual como imagen ---------------- */
+  // FIX: ya no depende de preserveDrawingBuffer permanente (causaba la
+  // estela en iOS). Se engancha al evento 'render' del propio mapa, que se
+  // dispara justo después de pintar un fotograma y ANTES de que el
+  // navegador pueda limpiar/intercambiar el buffer — es el punto correcto
+  // para leer el lienzo sin necesidad de mantenerlo siempre sin limpiar.
 
   function capturarVista() {
     try {
@@ -1157,17 +1179,17 @@
           enlace.remove();
         } catch (errInterno) {
           console.error('No se ha podido exportar la vista como imagen:', errInterno);
-          mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitacion del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
+          mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
         }
       });
       map.triggerRepaint();
     } catch (e) {
       console.error('No se ha podido exportar la vista como imagen:', e);
-      mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitacion del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
+      mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
     }
   }
 
-  /* ---------------- Toggles de capas (ya integrados) ---------------- */
+  /* ---------------- Toggles de capas ---------------- */
 
   function conectarTogglesDeCapas() {
     // Ya asignados arriba
@@ -1193,7 +1215,7 @@
     }
   }
 
-  /* ---------------- Geocodificacion (Nominatim) ---------------- */
+  /* ---------------- Geocodificación (Nominatim) ---------------- */
 
   async function consultarNominatim(consulta) {
     const url = new URL(CONFIG.nominatimUrl);
@@ -1223,7 +1245,7 @@
       await new Promise((r) => setTimeout(r, 350));
     }
 
-    throw new Error(`${t('notFound', 'No se ha encontrado')}: "${direccionTexto}". ${t('tryFormat', 'Prueba a escribirla como calle, numero, ciudad')}.`);
+    throw new Error(`${t('notFound', 'No se ha encontrado')}: "${direccionTexto}". ${t('tryFormat', 'Prueba a escribirla como calle, número, ciudad')}.`);
   }
 
   async function geocodificarInverso(lat, lon) {
@@ -1266,9 +1288,9 @@
           duracionEstimada,
         };
       }
-      throw new Error('OSRM no ha devuelto una ruta valida.');
+      throw new Error('OSRM no ha devuelto una ruta válida.');
     } catch (err) {
-      console.warn('Routing real no disponible, usando linea directa:', err);
+      console.warn('Routing real no disponible, usando línea directa:', err);
       return {
         geojson: { type: 'LineString', coordinates: [[origen.lon, origen.lat], [destino.lon, destino.lat]] },
         distanciaKm: null,
@@ -1362,7 +1384,7 @@
 
   function ponerCargando(cargando) {
     btnBuscar.disabled = cargando;
-    btnBuscar.textContent = cargando ? t('searching', 'Buscando...') : t('searchBtn', 'Buscar ruta');
+    btnBuscar.textContent = cargando ? t('searching', 'Buscando…') : t('searchBtn', 'Buscar ruta');
   }
 
   /* ---------------- Autocompletado tipo Google (Nominatim) ---------------- */
@@ -1529,21 +1551,21 @@
     }
 
     ponerCargando(true);
-    mostrarEstado(t('geocoding', 'Geocodificando direcciones...'));
+    mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
 
     try {
       const [origen, destino] = await Promise.all([resolverPunto(inputOrigen), resolverPunto(inputDestino)]);
       await ejecutarBusquedaConPuntos(origen, destino);
     } catch (err) {
       console.error(err);
-      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Intentalo de nuevo.'), 'error');
+      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
       ponerCargando(false);
     }
   }
 
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
-    mostrarEstado(t('calculating', 'Calculando ruta real por calles...'));
+    mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
 
     try {
       const ruta = await calcularRutaReal(origen, destino);
@@ -1570,7 +1592,7 @@
         const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
         mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}.`, 'ok');
       } else {
-        mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando linea directa.'), 'error');
+        mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
       }
 
       try {
@@ -1582,7 +1604,7 @@
       }
     } catch (err) {
       console.error(err);
-      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Intentalo de nuevo.'), 'error');
+      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
     } finally {
       ponerCargando(false);
     }
@@ -1608,13 +1630,13 @@
   document.addEventListener('langChanged', () => {
     if (btnModoClickRef) btnModoClickRef.textContent = t('pickMap', 'Elegir en el mapa');
     const btnLoc = document.getElementById('rsBtnMyLocation');
-    if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicacion');
+    if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicación');
     const btnWalk = document.getElementById('rsBtnWalk');
     if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
     const btnDark = document.getElementById('rsBtnMapaOscuro');
     if (btnDark) btnDark.textContent = mapaOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
     const eyebrow = document.getElementById('rsEyebrowSol');
-    if (eyebrow) eyebrow.textContent = t('sunPosition', 'Posicion solar');
+    if (eyebrow) eyebrow.textContent = t('sunPosition', 'Posición solar');
     const btnCapturar = document.getElementById('rsBtnCapturar');
     if (btnCapturar) btnCapturar.textContent = t('captureView', 'Capturar vista');
     const btnAhora = document.getElementById('rsBtnAhora');

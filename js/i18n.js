@@ -1,6 +1,9 @@
 /* ============================================================
    MANOLITO AIRE — i18n
    Castellano, català, euskera, galego, English.
+   
+   v3: Añadidas traducciones para el sistema de rutas alternativas
+   con evaluación de porcentaje de sombra.
    ============================================================ */
 
 const translations = {
@@ -56,7 +59,7 @@ const translations = {
     locationAsking: "Pidiendo permiso de ubicación…",
     errorGeolocation: "Este navegador no permite compartir tu ubicación.",
     errorSearch: "Error al buscar la ruta. Inténtalo de nuevo.",
-    routeReal: "Ruta real",
+    routeReal: "Ruta",
     routeFallback: "No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.",
     routeEstimated: "tiempo estimado a paso normal",
     minWalk: "min a pie",
@@ -92,6 +95,23 @@ const translations = {
     originPlaceholder: "Punto de origen",
     destinationPlaceholder: "Punto de destino",
     layerSun: "Posición del sol",
+    resetBtn: "Reiniciar",
+    // ============================================================
+    // NUEVO v3: Sistema de rutas alternativas con evaluación de sombra
+    // ============================================================
+    evaluatingShadows: "Evaluando sombra en rutas alternativas…",
+    inShadow: "en sombra",
+    chosenMoreShadow: "elegida por más sombra",
+    chosenShorter: "sombra similar, elegida la más corta",
+    shadowStats: "Sombra en tu ruta",
+    noShadowData: "Calculando…",
+    shadowGreat: "¡Excelente! La mitad de tu ruta está protegida del sol",
+    shadowGood: "Buena sombra en partes de la ruta",
+    shadowSome: "Algo de sombra disponible",
+    shadowNone: "Poca o ninguna sombra en esta ruta",
+    of: "de",
+    inShadowShort: "a la sombra",
+    alternativesAvailable: "Hay rutas alternativas comparadas",
   },
   ca: {
     tagline: "MAPA NACIONAL · DADES EN VIU",
@@ -143,7 +163,7 @@ const translations = {
     locationAsking: "Demanant permís d'ubicació…",
     errorGeolocation: "Aquest navegador no permet compartir la teva ubicació.",
     errorSearch: "Error en buscar la ruta. Torna-ho a intentar.",
-    routeReal: "Ruta real",
+    routeReal: "Ruta",
     routeFallback: "No s'ha pogut calcular la ruta pels carrers (servidor de rutes ocupat) — mostrant línia directa.",
     routeEstimated: "temps estimat a pas normal",
     minWalk: "min a peu",
@@ -179,6 +199,23 @@ const translations = {
     originPlaceholder: "Punt d'origen",
     destinationPlaceholder: "Punt de destí",
     layerSun: "Posició del sol",
+    resetBtn: "Reiniciar",
+    // ============================================================
+    // NUEVO v3: Sistema de rutas alternativas amb avaluació d'ombra
+    // ============================================================
+    evaluatingShadows: "Avaluant ombra en rutes alternatives…",
+    inShadow: "en ombra",
+    chosenMoreShadow: "triada per més ombra",
+    chosenShorter: "ombra similar, triada la més curta",
+    shadowStats: "Ombra a la teva ruta",
+    noShadowData: "Calculant…",
+    shadowGreat: "¡Excel·lent! La meitat de la teva ruta està protegida del sol",
+    shadowGood: "Bona ombra en parts de la ruta",
+    shadowSome: "Una mica d'ombra disponible",
+    shadowNone: "Poca o cap ombra en aquesta ruta",
+    of: "de",
+    inShadowShort: "a l'ombra",
+    alternativesAvailable: "Hi ha rutes alternatives comparades",
   },
   eu: {
     tagline: "ESTATU MAPA · ZUZENEKO DATUAK",
@@ -230,7 +267,7 @@ const translations = {
     locationAsking: "Kokapen baimena eskatzen…",
     errorGeolocation: "Nabigatzaile honek ez du zure kokapena partekatzea onartzen.",
     errorSearch: "Errorea ibilbidea bilatzean. Saiatu berriro.",
-    routeReal: "Benetako ibilbidea",
+    routeReal: "Ibilbidea",
     routeFallback: "Ezin izan da kaleetako ibilbidea kalkulatu (zerbitzaria okupatuta) — lerro zuzena erakusten.",
     routeEstimated: "denbora estimatua pausu normalean",
     minWalk: "min oinez",
@@ -266,6 +303,23 @@ const translations = {
     originPlaceholder: "Jatorri puntua",
     destinationPlaceholder: "Helmuga puntua",
     layerSun: "Eguzkiaren posizioa",
+    resetBtn: "Berriz hasi",
+    // ============================================================
+    // NUEVO v3: Ibilbide alternatiboen sistema itzulpenarekin
+    // ============================================================
+    evaluatingShadows: "Ibilbide alternatiboetan itzala ebaluatzen…",
+    inShadow: "itzalean",
+    chosenMoreShadow: "itzal gehiago duelako aukeratua",
+    chosenShorter: "itzal antzekoa, motzena aukeratua",
+    shadowStats: "Itzala zure ibilbidean",
+    noShadowData: "Kalkulatzen…",
+    shadowGreat: "Bikain! Zure ibilbidearen erdia eguzkitik babestuta dago",
+    shadowGood: "Itzal ona ibilbidearen zatietan",
+    shadowSome: "Itzal apur bat eskuragarri",
+    shadowNone: "Itzal gutxi edo bat ere ez ibilbide honetan",
+    of: "-",
+    inShadowShort: "itzalean",
+    alternativesAvailable: "Ibilbide alternatiboak daude konparatuta",
   },
   gl: {
     tagline: "MAPA NACIONAL · DATOS EN VIVO",
@@ -317,7 +371,7 @@ const translations = {
     locationAsking: "Pedindo permiso de ubicación…",
     errorGeolocation: "Este navegador non permite compartir a túa ubicación.",
     errorSearch: "Erro ao buscar a ruta. Inténtao de novo.",
-    routeReal: "Ruta real",
+    routeReal: "Ruta",
     routeFallback: "Non se puido calcular a ruta polas rúas (servidor de rutas ocupado) — mostrando liña directa.",
     routeEstimated: "tempo estimado a paso normal",
     minWalk: "min a pé",
@@ -353,6 +407,23 @@ const translations = {
     originPlaceholder: "Punto de orixe",
     destinationPlaceholder: "Punto de destino",
     layerSun: "Posición do sol",
+    resetBtn: "Reiniciar",
+    // ============================================================
+    // NUEVO v3: Sistema de rutas alternativas con avaliación de sombra
+    // ============================================================
+    evaluatingShadows: "Avaliando sombra en rutas alternativas…",
+    inShadow: "en sombra",
+    chosenMoreShadow: "elixida por máis sombra",
+    chosenShorter: "sombra similar, elixida a máis curta",
+    shadowStats: "Sombra na túa ruta",
+    noShadowData: "Calculando…",
+    shadowGreat: "¡Excelente! A metade da túa ruta está protexida do sol",
+    shadowGood: "Boa sombra en partes da ruta",
+    shadowSome: "Algo de sombra dispoñible",
+    shadowNone: "Pouca ou ningunha sombra nesta ruta",
+    of: "de",
+    inShadowShort: "á sombra",
+    alternativesAvailable: "Hai rutas alternativas comparadas",
   },
   en: {
     tagline: "NATIONAL MAP · LIVE DATA",
@@ -404,7 +475,7 @@ const translations = {
     locationAsking: "Requesting location permission…",
     errorGeolocation: "This browser does not allow sharing your location.",
     errorSearch: "Error searching route. Try again.",
-    routeReal: "Real route",
+    routeReal: "Route",
     routeFallback: "Could not calculate walking route (routing server busy) — showing straight line.",
     routeEstimated: "estimated time at normal pace",
     minWalk: "min walking",
@@ -440,6 +511,23 @@ const translations = {
     originPlaceholder: "Starting point",
     destinationPlaceholder: "Destination point",
     layerSun: "Sun position",
+    resetBtn: "Reset",
+    // ============================================================
+    // NUEVO v3: Alternative route system with shadow evaluation
+    // ============================================================
+    evaluatingShadows: "Evaluating shadow on alternative routes…",
+    inShadow: "in shadow",
+    chosenMoreShadow: "chosen for more shadow",
+    chosenShorter: "similar shadow, chosen the shorter one",
+    shadowStats: "Shadow on your route",
+    noShadowData: "Calculating…",
+    shadowGreat: "Excellent! Half your route is protected from the sun",
+    shadowGood: "Good shadow on parts of the route",
+    shadowSome: "Some shadow available",
+    shadowNone: "Little or no shadow on this route",
+    of: "of",
+    inShadowShort: "in shadow",
+    alternativesAvailable: "Alternative routes compared",
   }
 };
 
@@ -477,6 +565,7 @@ function setLang(lang) {
   document.dispatchEvent(new CustomEvent('langChanged', { detail: { lang: lang } }));
   if (typeof renderHero === 'function') renderHero();
 }
+
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', () => {

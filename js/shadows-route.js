@@ -34,7 +34,8 @@
     // CAMBIO v3: Mapa vívido CartoDB Voyager en vez de OpenFreeMap Liberty
     // CartoDB Voyager: parques en verde vibrante, agua en azul, edificios claros
     // ============================================================
-    styleUrlClaro: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+    // Si quieres probar con tu mapa original que funcionaba:
+styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty',
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
     fetchRetries: 2,

@@ -1,19 +1,16 @@
 ﻿/* ============================================================
-   MANOLITO AIRE v3 — Ruta real + Sombras 3D reales + AQI + 
-   MAPA VIVO CARTODB + RUTAS ALTERNATIVAS CON % SOMBRA
-   
+   MANOLITO AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
 
-   v3 añade:
+   v3 añade: 
    - Mapa vívido CartoDB Voyager (parques verdes, agua azul)
-   - Algoritmo de evaluación de % de sombra en rutas alternativas
-   - Sistema de priorización: elige la ruta con más sombra
-   - Panel informativo con el % de sombra de la ruta elegida
-   - Fallback inteligente cuando no hay alternativas de OSRM
+   - Algoritmo que evalúa % de sombra en cada ruta alternativa
+   - Sistema de priorización que elige la ruta con más sombra
+   - Mensaje informativo con el % de sombra de la ruta elegida
    
-   FIX (v2): `preserveDrawingBuffer: true` quitado para evitar
-   estelas en iOS Safari. Captura de pantalla vía evento `render`.
+   FIX v2: `preserveDrawingBuffer: true` quitado para evitar
+   estelas en iOS Safari. Captura vía evento `render`.
    ============================================================ */
 
 'use strict';
@@ -26,32 +23,30 @@
     bearingInicial: -15,
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
-    // OSRM con perfil peatonal real (FOSSGIS)
+    // OJO: router.project-osrm.org (el demo oficial de OSRM) SOLO tiene
+    // montado el perfil de coche, aunque se le pida /foot/ por eso daba
+    // rutas irreales (4km "en 9 minutos a pie" = velocidad de coche). El
+    // servidor de FOSSGIS sí aloja un perfil peatonal real.
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
-    velocidadCaminandoKmh: 4.8,
+    velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
     // ============================================================
-    // NUEVO v3: Mapa vívido CartoDB Voyager
-    // - Parques en verde vibrante, agua en azul, edificios claros
-    // - Estilo vectorial gratuito, sin API key necesaria
+    // CAMBIO v3: Mapa vívido CartoDB Voyager en vez de OpenFreeMap Liberty
+    // CartoDB Voyager: parques en verde vibrante, agua en azul, edificios claros
     // ============================================================
     styleUrlClaro: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
-    alturaPorDefectoM: 9,
-    maxEdificiosSombra: 220,
-    loteSombraSize: 30,
+    alturaPorDefectoM: 9, // si un edificio no trae altura en los datos OSM
+    maxEdificiosSombra: 220, // límite de seguridad para no colgar el navegador
+    loteSombraSize: 30, // nº de edificios que se procesan antes de ceder el hilo al navegador
     duracionVueloInicialMs: 2000,
     // ============================================================
-    // NUEVO v3: Configuración de evaluación de rutas alternativas
+    // NUEVO v3: Configuración para evaluación de rutas alternativas
     // ============================================================
-    // Tamaño de chunk para evaluar sombra en la ruta (km)
-    // Más pequeño = más preciso pero más lento
-    chunkRutaKm: 0.015,
-    // Umbral para considerar que dos rutas tienen "sombra similar"
-    // Si la diferencia de % es menor que esto, se elige la más corta
-    umbralSombraSimilarPct: 5,
+    chunkRutaKm: 0.015, // tamaño de segmento para evaluar sombra (15m)
+    umbralSombraSimilarPct: 5, // diferencia mínima para considerar sombra "diferente"
   };
 
   /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
@@ -103,6 +98,7 @@
     pitch: 0,
     bearing: 0,
     attributionControl: true,
+    // (antes: preserveDrawingBuffer: true — quitado, ver nota de cabecera)
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
@@ -111,13 +107,10 @@
   let cieloSolActivo = false;
 
   // ============================================================
-  // NUEVO v3: Variables para rutas alternativas y sombra
+  // NUEVO v3: Variables para rutas alternativas
   // ============================================================
-  // Almacena todas las rutas alternativas evaluadas
   let rutasAlternativasEvaluadas = [];
-  // Índice de la ruta actualmente seleccionada (la "ganadora")
   let rutaSeleccionadaIndex = 0;
-  // Colores para distinguir rutas alternativas en el mapa
   const COLORES_RUTA_ALTERNATIVA = ['#F4A66B', '#6B9CF4', '#9CF46B', '#F46B9C'];
 
   map.on('load', () => {
@@ -129,12 +122,6 @@
       CONFIG.edificiosLayerId = capaEdificios.id;
       capaEdificiosDisponible = true;
     }
-
-    // ============================================================
-    // NUEVO v3: Ajustar visibilidad de capas para mapa CartoDB Voyager
-    // Hacer edificios más visibles/claros en este estilo
-    // ============================================================
-    ajustarEstiloCartoDBVoyager();
 
     map.addSource('sombras-halo', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer(
@@ -158,24 +145,15 @@
       capaEdificiosDisponible ? CONFIG.edificiosLayerId : undefined
     );
 
-    // ============================================================
-    // NUEVO v3: Múltiples fuentes de ruta para alternativas
-    // 'ruta' es la principal, 'ruta-alt-1', 'ruta-alt-2', etc.
-    // ============================================================
     map.addSource('ruta', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer({
       id: 'capa-ruta',
       type: 'line',
       source: 'ruta',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 
-        'line-color': ['get', 'color'], 
-        'line-width': 5, 
-        'line-opacity': 0.9 
-      },
+      paint: { 'line-color': leerVar('--accent') || '#F4A66B', 'line-width': 5, 'line-opacity': 0.9 },
     });
 
-    // Fuente para la ruta SOMBRA (tramos en sombra de la ruta elegida)
     map.addSource('ruta-sombra', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer({
       id: 'capa-ruta-sombra',
@@ -186,8 +164,7 @@
     });
 
     // ============================================================
-    // NUEVO v3: Fuentes para rutas alternativas no seleccionadas
-    // Se muestran más tenues para comparación visual
+    // NUEVO v3: Fuente para rutas alternativas no seleccionadas
     // ============================================================
     map.addSource('rutas-alternativas', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer({
@@ -241,7 +218,7 @@
     inyectarSolVisual();
     conectarTogglesDeCapas();
     // ============================================================
-    // NUEVO v3: Inyectar panel de estadísticas de sombra
+    // NUEVO v3: Panel de estadísticas de sombra
     // ============================================================
     inyectarPanelEstadisticasSombra();
 
@@ -255,20 +232,6 @@
       });
     }, 150);
   });
-
-  // ============================================================
-  // NUEVO v3: Función para optimizar la visualización con CartoDB Voyager
-  // ============================================================
-  function ajustarEstiloCartoDBVoyager() {
-    try {
-      // Aumentar opacidad de edificios para que se vean mejor
-      if (capaEdificiosDisponible && map.getLayer(CONFIG.edificiosLayerId)) {
-        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-opacity', 0.85);
-      }
-    } catch (e) {
-      console.warn('No se pudo ajustar el estilo CartoDB Voyager:', e);
-    }
-  }
 
   const alTerminarMovimiento = crearDebounce(() => {
     if (!solarActivado) return;
@@ -415,7 +378,7 @@
     }
 
     // ============================================================
-    // NUEVO v3: Tras recalcular sombras, reevaluar rutas alternativas
+    // NUEVO v3: Reevaluar rutas alternativas con nuevas sombras
     // ============================================================
     if (rutasAlternativasEvaluadas.length > 0) {
       await reevaluarRutasConNuevasSombras();
@@ -448,8 +411,7 @@
   }
 
   // ============================================================
-  // NUEVO v3: Función mejorada para calcular % de sombra de una ruta
-  // Devuelve: { porcentaje: number, tramosEnSombra: Feature[], distanciaSombraKm: number }
+  // NUEVO v3: Calcular porcentaje de sombra de una ruta
   // ============================================================
   function calcularPorcentajeSombraRuta(geojsonRuta) {
     if (!geojsonRuta || !geojsonRuta.coordinates || !ultimaColeccionSombras.features.length) {
@@ -457,7 +419,6 @@
     }
 
     try {
-      // Dividir la ruta en chunks pequeños para evaluación precisa
       const tramos = turf.lineChunk(geojsonRuta, CONFIG.chunkRutaKm, { units: 'kilometers' });
       const totalTramos = tramos.features.length;
       if (totalTramos === 0) return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
@@ -467,12 +428,10 @@
 
       for (const tramo of tramos.features) {
         const coords = tramo.geometry.coordinates;
-        // Evaluar el punto medio del tramo
-        const puntoMedio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
+        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
         
-        if (puntoEnSombra(puntoMedio)) {
+        if (puntoEnSombra(medio)) {
           tramosEnSombra.push(tramo);
-          // Sumar la longitud de este tramo en sombra
           const longitudTramo = turf.length(tramo, { units: 'kilometers' });
           distanciaSombraTotalKm += longitudTramo;
         }
@@ -496,7 +455,7 @@
     if (!fuente) return;
     
     // ============================================================
-    // NUEVO v3: Usar la ruta seleccionada actual, no solo rutaActual
+    // NUEVO v3: Usar la ruta seleccionada actual
     // ============================================================
     const rutaActiva = obtenerRutaActiva();
     if (!rutaActiva || !ultimaColeccionSombras.features.length) {
@@ -508,7 +467,6 @@
       const resultado = calcularPorcentajeSombraRuta(rutaActiva.geojson);
       fuente.setData(resultado.tramosEnSombra || turf.featureCollection([]));
       
-      // Actualizar el panel de estadísticas
       actualizarPanelEstadisticas(resultado.porcentaje, rutaActiva.distanciaKm, resultado.distanciaSombraKm);
     } catch (e) {
       console.warn('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
@@ -870,21 +828,17 @@
       inputDestino.value = '';
       seleccionPorInput.delete(inputOrigen);
       seleccionPorInput.delete(inputDestino);
-      
+      map.getSource('ruta')?.setData(turf.featureCollection([]));
+      map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
       // ============================================================
       // NUEVO v3: Limpiar también rutas alternativas
       // ============================================================
-      map.getSource('ruta')?.setData(turf.featureCollection([]));
-      map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
       map.getSource('rutas-alternativas')?.setData(turf.featureCollection([]));
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
       map.getSource('precision-ubicación')?.setData(turf.featureCollection([]));
-      
-      // Limpiar estado de rutas alternativas
       rutasAlternativasEvaluadas = [];
       rutaSeleccionadaIndex = 0;
       actualizarPanelEstadisticas(0, 0, 0);
-      
       if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
       if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
       rutaActual = null;
@@ -977,7 +931,7 @@
       }
       btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
-      mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
+      mostrarEstado(t('walkModeTracking', 'Siguiendo tu posición…'));
 
       const el = document.createElement('div');
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#1C3144'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#1C3144')}33;`;
@@ -1218,7 +1172,7 @@
     contenedorMapa.appendChild(wrap);
   }
 
-  /* ---------------- Captura/compartir: exportar la vista actual como imagen ---------------- */
+  /* ---------------- Captura/compartir ---------------- */
   function capturarVista() {
     try {
       map.once('render', () => {
@@ -1338,7 +1292,6 @@
 
   // ============================================================
   // NUEVO v3: Calcular ruta real con alternativas de OSRM
-  // El parámetro `alternatives=true` pide rutas alternativas al servidor
   // ============================================================
   async function calcularRutaRealConAlternativas(origen, destino) {
     const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
@@ -1349,13 +1302,7 @@
       const datos = await fetchConReintentos(url);
       if (datos?.code === 'Ok' && datos.routes?.[0]) {
         
-        // ============================================================
-        // NUEVO v3: Procesar todas las rutas (principal + alternativas)
-        // OSRM devuelve: routes[0] = más rápida, routes[1+] = alternativas
-        // ============================================================
         const rutasProcesadas = [];
-        
-        // Procesar cada ruta devuelta por OSRM
         const rutasRaw = datos.routes || [];
         
         for (let i = 0; i < rutasRaw.length; i++) {
@@ -1379,10 +1326,8 @@
             esReal: true,
             duracionEstimada,
             indiceOriginal: i,
-            // Porcentaje de sombra se calculará después
             porcentajeSombra: 0,
             distanciaSombraKm: 0,
-            // Color para visualización
             color: COLORES_RUTA_ALTERNATIVA[i % COLORES_RUTA_ALTERNATIVA.length]
           });
         }
@@ -1415,16 +1360,14 @@
   }
 
   // ============================================================
-  // NUEVO v3: Evaluar porcentaje de sombra para TODAS las rutas alternativas
+  // NUEVO v3: Evaluar sombra en todas las rutas alternativas
   // ============================================================
   async function evaluarSombrasRutasAlternativas(rutas) {
     if (!ultimaColeccionSombras.features.length) {
-      // Si no hay sombras calculadas, devolver rutas sin modificar
       return rutas.map(r => ({ ...r, porcentajeSombra: 0, distanciaSombraKm: 0 }));
     }
 
     const rutasEvaluadas = [];
-
     for (const ruta of rutas) {
       const resultado = calcularPorcentajeSombraRuta(ruta.geojson);
       rutasEvaluadas.push({
@@ -1433,76 +1376,52 @@
         distanciaSombraKm: resultado.distanciaSombraKm
       });
     }
-
     return rutasEvaluadas;
   }
 
   // ============================================================
-  // NUEVO v3: Algoritmo de priorización que elige la mejor ruta
-  // 
-  // Criterios de priorización (en orden):
-  // 1. Máximo porcentaje de sombra (protección solar)
-  // 2. Si hay empate en sombra (diferencia < umbral), elige la más CORTA
-  // 
-  // Esto permite que el usuario priorice caminar por la sombra,
-  // pero si dos rutas tienen sombra similar, prefiere la más eficiente
+  // NUEVO v3: Elegir la mejor ruta (más sombra, o más corta si empatan)
   // ============================================================
   function elegirMejorRuta(rutasEvaluadas) {
     if (rutasEvaluadas.length === 0) return null;
     if (rutasEvaluadas.length === 1) return { ruta: rutasEvaluadas[0], index: 0 };
 
-    // Ordenar por porcentaje de sombra descendente, luego por distancia ascendente
     const ordenadas = [...rutasEvaluadas].map((ruta, index) => ({ ruta, index })).sort((a, b) => {
-      // Primero: más sombra
       const diffSombra = b.ruta.porcentajeSombra - a.ruta.porcentajeSombra;
-      
-      // Si la diferencia de sombra es significativa (> umbral), gana la de más sombra
       if (Math.abs(diffSombra) > CONFIG.umbralSombraSimilarPct) {
         return diffSombra;
       }
-      
-      // Si la sombra es similar (diferencia <= umbral), desempatar por distancia (más corta gana)
-      // Manejar caso de distancia null (ruta no real)
       const distA = a.ruta.distanciaKmNum ?? Infinity;
       const distB = b.ruta.distanciaKmNum ?? Infinity;
       return distA - distB;
     });
 
-    return ordenadas[0]; // { ruta, index }
+    return ordenadas[0];
   }
 
   // ============================================================
-  // NUEVO v3: Reevaluar rutas cuando cambian las sombras (slider de tiempo)
+  // NUEVO v3: Reevaluar rutas cuando cambian las sombras
   // ============================================================
   async function reevaluarRutasConNuevasSombras() {
     if (rutasAlternativasEvaluadas.length === 0) return;
 
-    // Recalcular sombra para todas las rutas almacenadas
     const rutasReevaluadas = await evaluarSombrasRutasAlternativas(rutasAlternativasEvaluadas);
-    
-    // Elegir la mejor de nuevo (puede haber cambiado con el nuevo ángulo solar)
     const mejor = elegirMejorRuta(rutasReevaluadas);
     if (!mejor) return;
 
     rutaSeleccionadaIndex = mejor.index;
     rutasAlternativasEvaluadas = rutasReevaluadas;
 
-    // Actualizar visualización
     visualizarRutasAlternativas(rutasReevaluadas, rutaSeleccionadaIndex);
-    
-    // Actualizar tramos en sombra de la ruta elegida
     await actualizarTramosSombraRuta();
   }
 
   // ============================================================
   // NUEVO v3: Visualizar rutas en el mapa
-  // - Ruta elegida: línea sólida, color principal, más ancha
-  // - Alternativas: líneas discontinuas, colores distintos, más tenues
   // ============================================================
   function visualizarRutasAlternativas(rutas, indexSeleccionada) {
     const rutaElegida = rutas[indexSeleccionada];
     
-    // La ruta principal (elegida) va en la fuente 'ruta'
     if (rutaElegida) {
       const featureRuta = turf.feature(rutaElegida.geojson);
       featureRuta.properties = { 
@@ -1513,7 +1432,6 @@
       map.getSource('ruta').setData(featureRuta);
     }
 
-    // Las alternativas no elegidas van en 'rutas-alternativas'
     const alternativas = rutas
       .filter((_, i) => i !== indexSeleccionada)
       .map(r => {
@@ -1528,7 +1446,6 @@
     
     map.getSource('rutas-alternativas').setData(turf.featureCollection(alternativas));
 
-    // Actualizar el panel de estadísticas con la ruta elegida
     if (rutaElegida) {
       actualizarPanelEstadisticas(
         rutaElegida.porcentajeSombra, 
@@ -1803,20 +1720,16 @@
   }
 
   // ============================================================
-  // NUEVO v3: Ejecutar búsqueda con evaluación de rutas alternativas
+  // NUEVO v3: Ejecutar búsqueda con rutas alternativas y evaluación de sombra
   // ============================================================
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
     mostrarEstado(t('calculating', 'Calculando rutas reales por calles…'));
 
     try {
-      // ============================================================
-      // NUEVO v3: Obtener rutas alternativas de OSRM
-      // ============================================================
       const resultadoRouting = await calcularRutaRealConAlternativas(origen, destino);
       const rutas = resultadoRouting.rutas;
 
-      // Calcular bounds de todas las rutas para el zoom
       let todasCoords = [];
       rutas.forEach(r => {
         if (r.geojson?.coordinates) {
@@ -1828,7 +1741,6 @@
       map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       pintarMarcadores(origen, destino);
 
-      // Hacer zoom que abarque todas las rutas
       if (todasCoords.length > 0) {
         const bounds = todasCoords.reduce(
           (b, c) => b.extend(c),
@@ -1840,43 +1752,29 @@
       puntoReferenciaSol = { lat: origen.lat, lon: origen.lon };
       asegurarActivacionSolar();
       
-      // Asegurar que las sombras estén calculadas antes de evaluar rutas
       await recalcularSombrasVisibles();
       actualizarIluminacionSolar();
 
-      // ============================================================
-      // NUEVO v3: Evaluar sombra en TODAS las rutas alternativas
-      // ============================================================
       mostrarEstado(t('evaluatingShadows', 'Evaluando sombra en rutas alternativas…'));
       const rutasConSombra = await evaluarSombrasRutasAlternativas(rutas);
       
-      // ============================================================
-      // NUEVO v3: Elegir la mejor ruta según criterios de priorización
-      // ============================================================
       const mejor = elegirMejorRuta(rutasConSombra);
       rutaSeleccionadaIndex = mejor ? mejor.index : 0;
       rutasAlternativasEvaluadas = rutasConSombra;
 
-      // Visualizar rutas: elegida + alternativas
       visualizarRutasAlternativas(rutasConSombra, rutaSeleccionadaIndex);
 
-      // Guardar la ruta elegida como rutaActual para el seguimiento
       const rutaElegida = rutasConSombra[rutaSeleccionadaIndex];
       rutaActual = rutaElegida.esReal ? turf.feature(rutaElegida.geojson) : null;
 
-      // Actualizar tramos en sombra de la ruta elegida
       await actualizarTramosSombraRuta();
 
-      // ============================================================
-      // NUEVO v3: Mensaje informativo con el % de sombra
-      // ============================================================
       if (rutaElegida.esReal) {
-        const notaDuracion = rutaElegida.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado')})` : '';
+        const notaDuracion = rutaElegida.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
         const sombraTexto = rutaElegida.porcentajeSombra > 0 
           ? ` · ${rutaElegida.porcentajeSombra}% ${t('inShadow', 'en sombra')}`
           : '';
         
-        // Si hay alternativas, mencionar por qué se eligió esta
         let razonElegida = '';
         if (rutasConSombra.length > 1) {
           const otras = rutasConSombra.filter((_, i) => i !== rutaSeleccionadaIndex);
@@ -1889,7 +1787,7 @@
         }
 
         mostrarEstado(
-          `${t('routeReal', 'Ruta')}: ${rutaElegida.distanciaKm} km · ${rutaElegida.duracionMin} ${t('minWalk', 'min')}${notaDuracion}${sombraTexto}${razonElegida}`, 
+          `${t('routeReal', 'Ruta')}: ${rutaElegida.distanciaKm} km · ${rutaElegida.duracionMin} ${t('minWalk', 'min a pie')}${notaDuracion}${sombraTexto}${razonElegida}`, 
           'ok'
         );
       } else {
@@ -1901,7 +1799,7 @@
         pintarPanelAQI(aire);
       } catch (errAire) {
         console.error(errAire);
-        mostrarEstado(t('airDataUnavailable', 'No se ha podido cargar la calidad del aire (demasiadas peticiones).'), 'error');
+        mostrarEstado(t('airDataUnavailable', 'No se ha podido cargar la calidad del aire ahora mismo (demasiadas peticiones). Prueba de nuevo en unos segundos.'), 'error');
       }
     } catch (err) {
       console.error(err);
@@ -1913,7 +1811,6 @@
 
   // ============================================================
   // NUEVO v3: Panel de estadísticas de sombra
-  // Muestra información visual del % de sombra de la ruta
   // ============================================================
   function inyectarPanelEstadisticasSombra() {
     if (document.getElementById('rsShadowStatsPanel')) return;
@@ -1972,7 +1869,7 @@
   }
 
   // ============================================================
-  // NUEVO v3: Actualizar panel de estadísticas con datos de sombra
+  // NUEVO v3: Actualizar panel de estadísticas
   // ============================================================
   function actualizarPanelEstadisticas(porcentaje, distanciaTotalKm, distanciaSombraKm, hayAlternativas) {
     const panel = document.getElementById('rsShadowStatsPanel');
@@ -1985,24 +1882,22 @@
     const etiquetaEl = document.getElementById('rsShadowLabel');
     const alternativasEl = document.getElementById('rsShadowAlternatives');
 
-    // Animar el valor
     valorEl.textContent = `${porcentaje}%`;
 
-    // Color según porcentaje de sombra
-    let colorBarra = '#6f9c8b'; // verde (buena sombra)
+    let colorBarra = '#6f9c8b';
     let mensaje = '';
     
     if (porcentaje >= 50) {
-      colorBarra = '#6f9c8b'; // verde
+      colorBarra = '#6f9c8b';
       mensaje = t('shadowGreat', '¡Excelente! La mitad de tu ruta está protegida del sol');
     } else if (porcentaje >= 25) {
-      colorBarra = '#c98a4b'; // latón
+      colorBarra = '#c98a4b';
       mensaje = t('shadowGood', 'Buena sombra en partes de la ruta');
     } else if (porcentaje > 0) {
-      colorBarra = '#e7b06a'; // dorado
+      colorBarra = '#e7b06a';
       mensaje = t('shadowSome', 'Algo de sombra disponible');
     } else {
-      colorBarra = '#a0a8b8'; // gris
+      colorBarra = '#a0a8b8';
       mensaje = t('shadowNone', 'Poca o ninguna sombra en esta ruta');
     }
 
@@ -2010,14 +1905,12 @@
     barraEl.style.backgroundColor = colorBarra;
     valorEl.style.color = colorBarra;
 
-    // Texto descriptivo
     if (distanciaSombraKm > 0 && distanciaTotalKm) {
       etiquetaEl.textContent = `${mensaje} · ${distanciaSombraKm} km ${t('of', 'de')} ${distanciaTotalKm} km ${t('inShadowShort', 'a la sombra')}`;
     } else {
       etiquetaEl.textContent = mensaje;
     }
 
-    // Indicador de alternativas
     if (hayAlternativas) {
       alternativasEl.style.display = 'block';
       alternativasEl.textContent = t('alternativesAvailable', 'Hay rutas alternativas comparadas');
@@ -2062,7 +1955,6 @@
     const btnInvierno = document.getElementById('rsBtnInvierno');
     if (btnInvierno) btnInvierno.textContent = t('btnWinter', 'Invierno');
     
-    // NUEVO v3: Actualizar textos del panel de sombra
     const statsTitulo = document.querySelector('#rsShadowStatsPanel .rs-stats-titulo');
     if (statsTitulo) statsTitulo.textContent = t('shadowStats', 'Sombra en tu ruta');
     

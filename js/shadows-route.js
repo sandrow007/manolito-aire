@@ -3,34 +3,21 @@
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
 
-   v2 añade: slider de tiempo (hoy / solsticios), vuelo de
-   entrada cinemática, botón de captura de imagen, sombras por
-   volumen de barrido real (no aproximación por envolvente
-   convexa), halo de "feather" en el borde de la sombra, aviso
-   de hora dorada/azul, caché de edificios (el slider no vuelve
-   a consultar el mapa en cada movimiento) y navegación por
-   teclado en las sugerencias de direccion.
-
-   FIX: Eliminado preserveDrawingBuffer. Captura de vista por
-   evento 'render'. Integrado motor 3D FreeCameraOptions para
-   paseo virtual libre sin error de maxPitch o intersección 2D.
-
-   v3 (esta revisión) — arreglo del paseo virtual 3D:
-   - Se guarda y se restaura correctamente el estado de cámara
-     (centro/zoom/pitch/bearing/maxPitch) al entrar y salir del
-     paseo, en vez de dejar el mapa "roto" pegado al suelo.
-   - El paseo y la "caminata GPS" ahora se excluyen mutuamente
-     (antes podían chocar: easeTo() de la caminata peleaba cada
-     frame contra setFreeCameraOptions() del paseo).
-   - Durante el paseo se refresca periódicamente la caché de
-     edificios y se recalculan las sombras según la posición
-     virtual del jugador, así que las sombras 3D también se ven
-     mientras caminas (antes solo se actualizaban con moveend,
-     evento que no se dispara en modo cámara libre).
-   - Corregido el id de la fuente de precisión de ubicación:
-     estaba duplicado como 'precision-ubicación' (con tilde) al
-     crearlo y 'precision-ubicacion' (sin tilde) al usarlo, así
-     que el círculo de precisión nunca se pintaba ni se borraba.
+   v4 (esta revisión) — sincronización con la capa de árboles:
+   - Se expone window.manolitAireHoraEfectiva() para que CUALQUIER
+     otro script (como arboles-globales.js) use la MISMA hora que
+     el slider de tiempo, en vez de tirar de su propio new Date().
+   - Se expone window.manolitAireCentroSol() para que los árboles
+     calculen el sol respecto al mismo punto de referencia que los
+     edificios (puntoReferenciaSol), no un centro de mapa distinto.
+   - Cada vez que cambia la hora (slider, "Ahora", solsticios,
+     toggle de sombras, paseo virtual, o el refresco automático
+     cada 60s) se llama a window.manolitAireRecalcularArboles(),
+     si existe, para que las sombras de los árboles se recalculen
+     exactamente en el mismo momento que las de los edificios.
+   - Corregido un error de sintaxis en calcularRutaConPrioridadSombra
+     ("generarPoligonosSombra= await generarPoligonosSombraPara(...)")
+     que rompía todo el script en cuanto se ejecutaba esa función.
    ============================================================ */
 
 'use strict';
@@ -95,6 +82,18 @@
       clearTimeout(temporizador);
       temporizador = setTimeout(() => fn(...args), esperaMs);
     };
+  }
+
+  // Avisa (si existe) a la capa de árboles de que recalcule sus sombras
+  // con la hora actual. Se centraliza aquí para no olvidar ningún sitio.
+  function sincronizarArboles() {
+    try {
+      if (typeof window.manolitAireRecalcularArboles === 'function') {
+        window.manolitAireRecalcularArboles();
+      }
+    } catch (e) {
+      console.warn('No se ha podido sincronizar la sombra de los árboles:', e);
+    }
   }
 
   const mapEl = document.getElementById('shadowRouteMap');
@@ -258,6 +257,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     if (!solarActivado || paseoActivo) return;
     actualizarCacheEdificios();
     if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
+    sincronizarArboles();
   }, 220);
   map.on('moveend', alTerminarMovimiento);
 
@@ -312,6 +312,20 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   function obtenerHoraEfectiva() {
     return modoManual ? obtenerFechaDelSlider() : new Date();
   }
+
+  // Expuesto para que cualquier otro script (árboles, etc.) use SIEMPRE
+  // la misma hora "efectiva" que el slider de tiempo, en vez de tirar de
+  // su propio new Date(). Esto es lo que faltaba para que las sombras de
+  // los árboles se movieran igual que las de los edificios.
+  window.manolitAireHoraEfectiva = () => obtenerHoraEfectiva();
+
+  // Mismo punto de referencia solar que usan los edificios (el origen de
+  // la ruta, tu posición al caminar, etc.), en vez de un centro de mapa
+  // potencialmente distinto.
+  window.manolitAireCentroSol = () => {
+    const c = puntoReferenciaSol || map.getCenter();
+    return { lat: c.lat, lon: c.lon ?? c.lng };
+  };
 
   let versionCalculoSombras = 0;
   let ultimaColeccionSombras = turf.featureCollection([]);
@@ -408,6 +422,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     if (!solarActivado || modoManual || paseoActivo) return;
     if (map.loaded()) recalcularSombrasVisibles();
     actualizarIluminacionSolar();
+    sincronizarArboles();
   }, 60 * 1000);
 
   /* ---------------- Widget de posición del sol ---------------- */
@@ -691,6 +706,9 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     await recalcularSombrasVisibles();
     actualizarIluminacionSolar();
     await actualizarTramosSombraRuta();
+    // Punto clave: cada cambio de hora (slider, "Ahora", solsticios) debe
+    // avisar también a los árboles, o si no se quedan con la hora vieja.
+    sincronizarArboles();
   }
 
   function inyectarEstilosPanel() {
@@ -969,6 +987,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
           map.easeTo({ center: [lon, lat], duration: 600 });
           puntoReferenciaSol = { lat, lon };
           if (rutaActual) actualizarTramosSombraRuta();
+          sincronizarArboles();
         },
         () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
         { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 }
@@ -1067,6 +1086,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
       actualizarCacheEdificios();
       if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
+      sincronizarArboles();
     }
 
     function paseoToLngLat(x, y) {
@@ -1104,6 +1124,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       actualizarCacheEdificios();
       if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
       if (rutaActual) actualizarTramosSombraRuta();
+      sincronizarArboles();
     }
 
     function loopPaseo(now) {
@@ -1244,6 +1265,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         await recalcularSombrasVisibles();
         actualizarIluminacionSolar();
         await actualizarTramosSombraRuta();
+        sincronizarArboles();
       }
     });
 
@@ -1416,7 +1438,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         map.setLayoutProperty(CONFIG.edificiosLayerId, 'visibility', tEdificios.checked ? 'visible' : 'none');
       }
     });
-    tSombras?.addEventListener('change', () => { asegurarActivacionSolar(); recalcularSombrasVisibles(); });
+    tSombras?.addEventListener('change', () => {
+      asegurarActivacionSolar();
+      recalcularSombrasVisibles();
+      sincronizarArboles();
+    });
     tRuta?.addEventListener('change', () => {
       map.setLayoutProperty('capa-ruta', 'visibility', tRuta.checked ? 'visible' : 'none');
     });
@@ -1617,8 +1643,12 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
       let poligonosSombra = [];
       if (posSolActual.altitude > 0 && capaEdificiosDisponible && edificiosCacheados.length) {
-      poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
-          }
+        // FIX: aquí había un error de sintaxis
+        // ("generarPoligonosSombra= await generarPoligonosSombraPara(...)")
+        // que rompía todo el script en cuanto se llamaba a esta función.
+        poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
+      }
+
       const distanciaMinimaKm = Math.min(...candidatas.map((r) => r.distance / 1000));
 
       let mejor = null;
@@ -1945,6 +1975,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       await recalcularSombrasVisibles();
       actualizarIluminacionSolar();
       await actualizarTramosSombraRuta();
+      sincronizarArboles();
 
       if (ruta.esReal) {
         const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';

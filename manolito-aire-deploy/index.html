@@ -601,7 +601,6 @@
 <script src="js/air-forecast.js" defer></script>
 <script src="js/tutorial.js" defer></script>
 <script src="js/map.js" defer></script>
-<script src="js/arboles-globales.js"></script>
 
 <script>
   (function () {
@@ -627,6 +626,7 @@
         .then(() => cargarScript('https://unpkg.com/@turf/turf@6/turf.min.js'))
         .then(() => cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'))
         .then(() => cargarScript('js/shadows-route.js'))
+        .then(() => cargarScript('js/arboles-globales.js'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
     }
 

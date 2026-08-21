@@ -1,7 +1,5 @@
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
-
-   v5 — FIX CRÍTICO de unidades + Sombras Orgánicas Asimétricas
    ============================================================ */
 
 'use strict';
@@ -50,32 +48,6 @@
   }
 
   esperarMapa().then(iniciar).catch((e) => console.warn('[arboles-globales]', e.message));
-
-  function obtenerHoraEfectiva() {
-    if (typeof window.manolitAireHoraEfectiva === 'function') {
-      try {
-        const h = window.manolitAireHoraEfectiva();
-        if (h instanceof Date && !isNaN(h)) return h;
-      } catch (e) { /* seguimos con el respaldo */ }
-    }
-    return new Date();
-  }
-
-  function obtenerCentroSolar(map) {
-    if (typeof window.manolitAireCentroSol === 'function') {
-      try {
-        const c = window.manolitAireCentroSol();
-        if (c && typeof c.lat === 'number' && typeof c.lon === 'number') return c;
-      } catch (e) { /* seguimos con el respaldo */ }
-    }
-    const c = map.getCenter();
-    return { lat: c.lat, lon: c.lng };
-  }
-
-  function sombrasActivadasEnPanel() {
-    const t = document.getElementById('rsToggleSombras');
-    return !t || t.checked;
-  }
 
   async function iniciar(map) {
 
@@ -287,80 +259,32 @@
       return enVista;
     }
 
-    /* ---------------- Generación de Sombras Orgánicas ---------------- */
+    /* ---------------- Sombra real calculada por Envoltura Convexa ---------------- */
 
-    function pseudoRandom(x, y, seed) {
-      const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
-      return n - Math.floor(n);
-    }
-
-    function crearCopaIrregular(centro, radioKm, lon, lat) {
-      const pasos = 16; 
-      const coords = [];
-      for (let i = 0; i < pasos; i++) {
-        const angulo = (i * 360) / pasos;
-        const variacion = 0.70 + (pseudoRandom(lon, lat, i) * 0.50);
-        const radioIrregular = radioKm * variacion;
-        const pt = turf.transformTranslate(centro, radioIrregular, angulo, { units: 'kilometers' }).geometry.coordinates;
-        coords.push(pt);
-      }
-      coords.push(coords[0]);
-      return turf.polygon([coords]);
-    }
-
-    function unirDosPoligonos(a, b) {
-      try {
-        const r = turf.union(turf.featureCollection([a, b]));
-        if (r) return r;
-      } catch (e) { }
-      try {
-        const r = turf.union(a, b);
-        if (r) return r;
-      } catch (e) { }
-      return a;
-    }
-
-    function calcularSombraArbol(arbol, distanciaKm, bearingSombra) {
-      const perpendicular = (bearingSombra + 90) % 360;
-      const radioTroncoKm = Math.max(arbol.radioCopaM * 0.12, 0.35) / 1000;
-      const radioCopaKm = arbol.radioCopaM / 1000;
-      const [lon, lat] = arbol.punto.geometry.coordinates;
-
-      const lejano = turf.transformTranslate(arbol.punto, distanciaKm, bearingSombra, { units: 'kilometers' });
-      const copaIrregular = crearCopaIrregular(lejano, radioCopaKm, lon, lat);
-
-      const pBaseA = turf.transformTranslate(arbol.punto, radioTroncoKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
-      const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
-      const pLejosA = turf.transformTranslate(lejano, radioCopaKm * 0.75, perpendicular, { units: 'kilometers' }).geometry.coordinates;
-      const pLejosB = turf.transformTranslate(lejano, radioCopaKm * 0.75, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
-
-      let cuna;
-      try {
-        cuna = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
-      } catch (e) {
-        return copaIrregular;
-      }
-
-      const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
-
-      let sombraFinal = unirDosPoligonos(cuna, copaIrregular);
-      return unirDosPoligonos(sombraFinal, baseRedondeada);
+    function calcularVolumenSombraCopa(circuloCopa, distanciaKm, bearingSombra) {
+      // Proyecta el círculo completo hasta donde termina la sombra
+      const circuloPunta = turf.transformTranslate(circuloCopa, distanciaKm, bearingSombra, { units: 'kilometers' });
+      
+      // Extrae todos los vértices de la copa original y de la proyectada
+      const puntos = [];
+      circuloCopa.geometry.coordinates[0].forEach(c => puntos.push(turf.point(c)));
+      circuloPunta.geometry.coordinates[0].forEach(c => puntos.push(turf.point(c)));
+      
+      // turf.convex crea un polígono perfecto envolviendo todos los puntos, sin dentados
+      return turf.convex(turf.featureCollection(puntos));
     }
 
     let versionSombra = 0;
 
     async function recalcularSombrasArboles() {
       if (!map.getSource('arboles-globales-sombra') || !capaVisible) return;
-
-      if (!sombrasActivadasEnPanel()) {
-        map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
-        return;
-      }
-
       const miVersion = ++versionSombra;
 
-      const centro = obtenerCentroSolar(map);
-      const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+      const centro = map.getCenter();
+      
+      // LÓGICA VIRTUAL AÑADIDA AQUÍ
+      const fechaSombra = window.rsFechaVirtual || new Date();
+      const posSol = SunCalc.getPosition(fechaSombra, centro.lat, centro.lng);
 
       if (posSol.altitude <= 0) {
         map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
@@ -373,8 +297,10 @@
       const enVista = dibujarArbolesVisibles();
       const paraSombra = enVista.slice(0, CONFIG.maxArbolesConSombra);
 
-      const tangenteSol = Math.tan(posSol.altitude);
-      if (!tangenteSol) return;
+      // BLINDAJE MATEMÁTICO AÑADIDO AQUÍ
+      const altSol = typeof posSol.altitude === 'number' ? posSol.altitude : 0;
+      const tangenteSol = Math.tan(altSol);
+      if (!tangenteSol || tangenteSol === 0) return;
 
       const sombras = [];
       for (let i = 0; i < paraSombra.length; i += CONFIG.loteSombraSize) {
@@ -384,7 +310,11 @@
           const longitudSombraM = arbol.altura / tangenteSol;
           if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
           const distanciaKm = longitudSombraM / 1000;
-          const volumen = calcularSombraArbol(arbol, distanciaKm, bearingSombra);
+          
+          // RESOLUCIÓN GEOMÉTRICA SUBIDA A 24 STEPS PARA BORDES CURVOS SUAVES
+          const circulo = turf.circle(arbol.punto, arbol.radioCopaM / 1000, { units: 'kilometers', steps: 24 });
+          
+          const volumen = calcularVolumenSombraCopa(circulo, distanciaKm, bearingSombra);
           if (volumen) sombras.push(volumen);
         }
         if (miVersion !== versionSombra) return;
@@ -409,7 +339,10 @@
       }, CONFIG.esperaMoveendMs);
     });
 
-    window.manolitAireRecalcularArboles = recalcularSombrasArboles;
+    // ESCUCHADOR DE EVENTOS AÑADIDO AQUÍ (Para actualizar al mover el slider)
+    window.addEventListener('rsTimeChanged', () => {
+      if (capaVisible) recalcularSombrasArboles();
+    });
 
     await cargarArbolesDeLaVista();
     recalcularSombrasArboles();

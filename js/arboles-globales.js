@@ -1,19 +1,19 @@
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
 
-   v2 — sincronización EXACTA con shadows-route.js:
-   - La hora usada para el sol ya no se lee del slider a mano; se
-     pide directamente a window.manolitAireHoraEfectiva(), que es
-     la MISMA función interna que usan los edificios (respeta
-     minutos Y fecha real, incluidos los solsticios de verano e
-     invierno — antes solo se replicaba la hora, no la fecha).
-   - El punto de referencia del sol también es el mismo que el de
-     los edificios: window.manolitAireCentroSol() (origen de ruta,
-     posición al caminar, etc.), en vez del centro del mapa a secas.
-   - Se expone window.manolitAireRecalcularArboles = recalcularSombrasArboles
-     para que sea shadows-route.js quien avise activamente del
-     cambio de hora, en vez de que este archivo tenga que ir a
-     escuchar clics y sliders por su cuenta.
+   v3 (esta revisión):
+   - La sombra de cada árbol respeta el toggle #rsToggleSombras del
+     panel de capas. Antes: al desactivar "Sombras" solo se apagaba
+     la sombra de los edificios; la de los árboles se quedaba
+     dibujada porque recalcularSombrasArboles() nunca comprobaba
+     ese checkbox, solo su propio botón "Árboles".
+   - Forma de sombra más realista: antes cada árbol proyectaba solo
+     el círculo de la copa "arrastrado" en línea recta, dando una
+     cápsula/óvalo de anchura uniforme de punta a punta. Ahora se
+     construye como una cuña — estrecha junto al tronco, ancha hacia
+     el extremo lejano — rematada en un círculo en la punta, que se
+     parece mucho más a cómo cae realmente la sombra de un árbol
+     (tronco fino, copa ancha).
    ============================================================ */
 
 'use strict';
@@ -63,10 +63,6 @@
 
   esperarMapa().then(iniciar).catch((e) => console.warn('[arboles-globales]', e.message));
 
-  // ---- Hora y centro solar EXACTOS: se piden a shadows-route.js en vez de
-  // reconstruirlos aquí. Si por lo que sea aún no se han expuesto (orden de
-  // carga, versión antigua del archivo), se cae a new Date()/centro del mapa
-  // para no romper nada, pero en el flujo normal siempre existen.
   function obtenerHoraEfectiva() {
     if (typeof window.manolitAireHoraEfectiva === 'function') {
       try {
@@ -86,6 +82,14 @@
     }
     const c = map.getCenter();
     return { lat: c.lat, lon: c.lng };
+  }
+
+  // El toggle "Sombras" del panel es compartido con los edificios. Si no
+  // existe (versión antigua del HTML sin ese checkbox) se asume activado,
+  // para no romper nada; si existe, se respeta su estado tal cual.
+  function sombrasActivadasEnPanel() {
+    const t = document.getElementById('rsToggleSombras');
+    return !t || t.checked;
   }
 
   async function iniciar(map) {
@@ -298,7 +302,7 @@
       return enVista;
     }
 
-    /* ---------------- Sombra real por barrido (misma técnica que los edificios) ---------------- */
+    /* ---------------- Sombra realista: cuña estrecha-tronco → ancha-copa ---------------- */
 
     function unirDosPoligonos(a, b) {
       try {
@@ -312,32 +316,57 @@
       return a;
     }
 
-    function calcularVolumenSombraCopa(circuloCopa, distanciaKm, bearingSombra) {
-      const anillo = circuloCopa.geometry.coordinates[0];
-      let resultado = circuloCopa;
-      for (let i = 0; i < anillo.length - 1; i++) {
-        const p1 = anillo[i];
-        const p2 = anillo[i + 1];
-        const p1t = turf.transformTranslate(turf.point(p1), distanciaKm, bearingSombra, { units: 'kilometers' }).geometry.coordinates;
-        const p2t = turf.transformTranslate(turf.point(p2), distanciaKm, bearingSombra, { units: 'kilometers' }).geometry.coordinates;
-        try {
-          const cuadrilatero = turf.polygon([[p1, p2, p2t, p1t, p1]]);
-          resultado = unirDosPoligonos(resultado, cuadrilatero);
-        } catch (e) {
-          continue;
-        }
+    // Una sombra real de árbol no es un óvalo de anchura uniforme (eso es
+    // lo que salía antes al arrastrar el círculo de la copa en línea recta):
+    // nace estrecha en la base del tronco y se abre hacia la copa, que es
+    // la parte que más sombra proyecta. Se modela como un trapecio (estrecho
+    // junto al árbol, ancho en el extremo lejano) rematado con un círculo en
+    // la punta para redondear el contorno de la copa proyectada.
+    function calcularSombraArbol(arbol, distanciaKm, bearingSombra) {
+      const perpendicular = (bearingSombra + 90) % 360;
+      const radioTroncoKm = Math.max(arbol.radioCopaM * 0.12, 0.00035); // mínimo ~0.35m
+      const radioCopaKm = arbol.radioCopaM / 1000;
+
+      const lejano = turf.transformTranslate(arbol.punto, distanciaKm, bearingSombra, { units: 'kilometers' });
+
+      const pBaseA = turf.transformTranslate(arbol.punto, radioTroncoKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+      const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+      const pLejosA = turf.transformTranslate(lejano, radioCopaKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+      const pLejosB = turf.transformTranslate(lejano, radioCopaKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+
+      let cuna;
+      try {
+        cuna = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
+      } catch (e) {
+        // Geometría degenerada (árbol y sombra casi coincidentes): nos
+        // quedamos solo con el círculo de la copa lejana.
+        return turf.circle(lejano, radioCopaKm, { units: 'kilometers', steps: 16 });
       }
-      return resultado;
+
+      const copaLejana = turf.circle(lejano, radioCopaKm, { units: 'kilometers', steps: 16 });
+      const conCopa = unirDosPoligonos(cuna, copaLejana);
+
+      // Un pequeño círculo en la base redondea el arranque junto al tronco,
+      // en vez de dejar la esquina recta del trapecio.
+      const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 10 });
+      return unirDosPoligonos(conCopa, baseRedondeada);
     }
 
     let versionSombra = 0;
 
     async function recalcularSombrasArboles() {
       if (!map.getSource('arboles-globales-sombra') || !capaVisible) return;
+
+      // Respeta el toggle "Sombras" del panel, compartido con los edificios.
+      // Antes esta comprobación no existía aquí, así que al desactivar
+      // "Sombras" la de los edificios desaparecía pero la de los árboles no.
+      if (!sombrasActivadasEnPanel()) {
+        map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+        return;
+      }
+
       const miVersion = ++versionSombra;
 
-      // Hora y punto de referencia EXACTOS de shadows-route.js — ya no
-      // "new Date()" a secas ni el centro visual del mapa.
       const centro = obtenerCentroSolar(map);
       const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
 
@@ -363,8 +392,7 @@
           const longitudSombraM = arbol.altura / tangenteSol;
           if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
           const distanciaKm = longitudSombraM / 1000;
-          const circulo = turf.circle(arbol.punto, arbol.radioCopaM / 1000, { units: 'kilometers', steps: 10 });
-          const volumen = calcularVolumenSombraCopa(circulo, distanciaKm, bearingSombra);
+          const volumen = calcularSombraArbol(arbol, distanciaKm, bearingSombra);
           if (volumen) sombras.push(volumen);
         }
         if (miVersion !== versionSombra) return;
@@ -389,13 +417,9 @@
       }, CONFIG.esperaMoveendMs);
     });
 
-    // ---- Enganche exacto con shadows-route.js ----
-    // shadows-route.js llama a window.manolitAireRecalcularArboles() cada
-    // vez que cambia la hora (slider, Ahora, Verano, Invierno, toggle de
-    // sombras, paseo virtual, caminata GPS o el refresco cada 60s). Con
-    // esto ya no hace falta escuchar clics ni sliders por nuestra cuenta:
-    // es el propio archivo de sombras quien nos avisa, con la hora y el
-    // punto de referencia exactos ya listos para leer.
+    // shadows-route.js llama a esto en cada cambio de hora/estado relevante
+    // (slider, Ahora, Verano, Invierno, toggle de sombras, paseo virtual,
+    // caminata GPS, refresco cada 60s).
     window.manolitAireRecalcularArboles = recalcularSombrasArboles;
 
     await cargarArbolesDeLaVista();

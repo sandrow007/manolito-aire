@@ -333,8 +333,12 @@
         if (miVersion !== versionSombra) return;
         const lote = paraSombra.slice(i, i + CONFIG.loteSombraSize);
         for (const arbol of lote) {
-          const longitudSombraM = arbol.altura / Math.tan(posSol.altitude);
-          if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+          const altSol = posSol && typeof posSol.altitude === 'number' ? posSol.altitude : 0;
+        if (altSol <= 0) continue;
+        const tangenteSol = Math.tan(altSol);
+        if (!tangentSol || tangenteSol === 0) continue;
+        const longitudSombraM = arbol.altura / tangenteSol;
+        if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
           const circulo = turf.circle(arbol.punto, arbol.radioCopaM / 1000, { units: 'kilometers', steps: 10 });
           sombras.push(sombraDeCopa(circulo, longitudSombraM / 1000, bearingSombra));
         }

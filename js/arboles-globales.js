@@ -1,5 +1,19 @@
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
+
+   v2 — sincronización EXACTA con shadows-route.js:
+   - La hora usada para el sol ya no se lee del slider a mano; se
+     pide directamente a window.manolitAireHoraEfectiva(), que es
+     la MISMA función interna que usan los edificios (respeta
+     minutos Y fecha real, incluidos los solsticios de verano e
+     invierno — antes solo se replicaba la hora, no la fecha).
+   - El punto de referencia del sol también es el mismo que el de
+     los edificios: window.manolitAireCentroSol() (origen de ruta,
+     posición al caminar, etc.), en vez del centro del mapa a secas.
+   - Se expone window.manolitAireRecalcularArboles = recalcularSombrasArboles
+     para que sea shadows-route.js quien avise activamente del
+     cambio de hora, en vez de que este archivo tenga que ir a
+     escuchar clics y sliders por su cuenta.
    ============================================================ */
 
 'use strict';
@@ -22,7 +36,6 @@
     loteSombraSize: 25,
     sincroSombraMs: 60 * 1000,
     esperaMoveendMs: 500,
-    esperaSliderMs: 90, // igual que aplicarCambioDeHora() en shadows-route.js
     maxLadoConsultaKm: 3,
     cacheCeldasGrados: 0.01,
     esperaMapaMs: 15000,
@@ -50,25 +63,29 @@
 
   esperarMapa().then(iniciar).catch((e) => console.warn('[arboles-globales]', e.message));
 
-  // ---- Hora efectiva: comparte el mismo slider #rsTimeSlider que pinta
-  // shadows-route.js, en vez de usar siempre la hora real del sistema.
-  // Así, al mover el slider (o pulsar Ahora/Verano/Invierno), la sombra
-  // de los árboles gira igual que la de los edificios.
-  // Nota: los botones "Verano"/"Invierno" cambian también la FECHA (no solo
-  // la hora) dentro de shadows-route.js, pero esa fecha es interna a ese
-  // archivo y no se expone. Aquí replicamos el mismo truco que usaría el
-  // slider solo para minutos-del-día: se respeta perfectamente la hora
-  // elegida; el día calendario usado internamente es el de hoy. Esto no
-  // afecta al ángulo del sol de forma apreciable salvo en fechas muy
-  // alejadas de la actual.
+  // ---- Hora y centro solar EXACTOS: se piden a shadows-route.js en vez de
+  // reconstruirlos aquí. Si por lo que sea aún no se han expuesto (orden de
+  // carga, versión antigua del archivo), se cae a new Date()/centro del mapa
+  // para no romper nada, pero en el flujo normal siempre existen.
   function obtenerHoraEfectiva() {
-    const slider = document.getElementById('rsTimeSlider');
-    if (!slider) return new Date();
-    const minutos = Number(slider.value);
-    if (Number.isNaN(minutos)) return new Date();
-    const d = new Date();
-    d.setHours(Math.floor(minutos / 60), minutos % 60, 0, 0);
-    return d;
+    if (typeof window.manolitAireHoraEfectiva === 'function') {
+      try {
+        const h = window.manolitAireHoraEfectiva();
+        if (h instanceof Date && !isNaN(h)) return h;
+      } catch (e) { /* seguimos con el respaldo */ }
+    }
+    return new Date();
+  }
+
+  function obtenerCentroSolar(map) {
+    if (typeof window.manolitAireCentroSol === 'function') {
+      try {
+        const c = window.manolitAireCentroSol();
+        if (c && typeof c.lat === 'number' && typeof c.lon === 'number') return c;
+      } catch (e) { /* seguimos con el respaldo */ }
+    }
+    const c = map.getCenter();
+    return { lat: c.lat, lon: c.lng };
   }
 
   async function iniciar(map) {
@@ -319,10 +336,10 @@
       if (!map.getSource('arboles-globales-sombra') || !capaVisible) return;
       const miVersion = ++versionSombra;
 
-      const centro = map.getCenter();
-      // Antes: SunCalc.getPosition(new Date(), ...) — ignoraba el slider de
-      // tiempo de shadows-route.js. Ahora usa la misma hora que ese panel.
-      const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lng);
+      // Hora y punto de referencia EXACTOS de shadows-route.js — ya no
+      // "new Date()" a secas ni el centro visual del mapa.
+      const centro = obtenerCentroSolar(map);
+      const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
 
       if (posSol.altitude <= 0) {
         map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
@@ -372,27 +389,14 @@
       }, CONFIG.esperaMoveendMs);
     });
 
-    // ---- Escucha del panel de tiempo de shadows-route.js ----
-    // El slider (#rsTimeSlider) y los botones Ahora/Verano/Invierno se crean
-    // dinámicamente por shadows-route.js, así que se delega el listener en
-    // el document en vez de buscar el elemento una sola vez al arrancar.
-    let esperaSliderArboles = null;
-    function programarRecalculoPorTiempo() {
-      clearTimeout(esperaSliderArboles);
-      esperaSliderArboles = setTimeout(() => recalcularSombrasArboles(), CONFIG.esperaSliderMs);
-    }
-    document.addEventListener('input', (e) => {
-      if (e.target && e.target.id === 'rsTimeSlider') programarRecalculoPorTiempo();
-    });
-    document.addEventListener('click', (e) => {
-      const id = e.target && e.target.id;
-      if (id === 'rsBtnAhora' || id === 'rsBtnVerano' || id === 'rsBtnInvierno') {
-        // Los botones tardan ~90ms en aplicar su propio cambio de hora
-        // (aplicarCambioDeHora en shadows-route.js); esperamos un poco más
-        // para leer el slider ya actualizado.
-        setTimeout(() => recalcularSombrasArboles(), 140);
-      }
-    });
+    // ---- Enganche exacto con shadows-route.js ----
+    // shadows-route.js llama a window.manolitAireRecalcularArboles() cada
+    // vez que cambia la hora (slider, Ahora, Verano, Invierno, toggle de
+    // sombras, paseo virtual, caminata GPS o el refresco cada 60s). Con
+    // esto ya no hace falta escuchar clics ni sliders por nuestra cuenta:
+    // es el propio archivo de sombras quien nos avisa, con la hora y el
+    // punto de referencia exactos ya listos para leer.
+    window.manolitAireRecalcularArboles = recalcularSombrasArboles;
 
     await cargarArbolesDeLaVista();
     recalcularSombrasArboles();

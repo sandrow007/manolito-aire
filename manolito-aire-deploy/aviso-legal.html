@@ -35,7 +35,7 @@
 
   <h2>3. Naturaleza informativa del servicio</h2>
   <p>
-    Los datos mostrados (calidad del aire, mensajes del chat, recomendaciones, métricas solares) tienen carácter
+    Los datos mostrados (calidad del aire, mensajes del chat, recomendaciones, métricas solares, irradiación térmica) tienen carácter
     <b>orientativo</b> y no sustituyen el criterio médico, ni las alertas o recomendaciones
     oficiales de organismos como el Ministerio de Sanidad, AEMET o las autoridades autonómicas
     de salud pública. En caso de duda sobre tu salud, consulta siempre a un profesional sanitario.
@@ -59,6 +59,10 @@
     <b>API pública Overpass</b>, que permite consultar elementos puntuales como árboles
     (etiquetados como <code>natural=tree</code>). Estos datos son colaborativos y pueden ser
     incompletos o no estar verificados.
+  </p>
+  <p>
+    Los datos históricos de radiación solar empleados en la capa de irradiación proceden de la API pública 
+    del proyecto <b>NASA POWER</b> (Prediction of Worldwide Energy Resources).
   </p>
 
   <h2>5. Exclusión de responsabilidad</h2>
@@ -116,6 +120,14 @@
   <h2>10. Instrumento de posición solar</h2>
   <p>
     El panel de seguimiento solar (arco de horizonte a cenit) es un componente de cálculo autónomo. Determina la altitud y el azimut del sol utilizando algoritmos astronómicos estándar basados en las coordenadas geográficas de la consulta y la hora local del dispositivo. Es una representación matemática de carácter estrictamente visual e ilustrativo; no constituye un instrumento de precisión y no debe emplearse para fines de navegación, aviación o mediciones técnicas.
+  </p>
+
+  <h2>11. Sobre la Capa de Irradiación Solar Real</h2>
+  <p>
+    La capa de irradiación térmica es una <b>representación visual y orientativa</b>. Utiliza datos históricos mensuales de irradiancia global horizontal suministrados por la API de la NASA.
+  </p>
+  <p>
+    El cálculo final del color aplicado sobre el modelo 3D (la rampa térmica) se obtiene cruzando este dato histórico medio con la altura solar real de la simulación, basándose en una aproximación a la <b>ley del coseno de Lambert</b>. Al tratarse de una media histórica aplicada a una geometría simplificada, <b>no representa el calor o la radiación exacta y actual</b> sobre cada inmueble. Esta herramienta tiene un propósito puramente divulgativo y no debe utilizarse bajo ningún concepto para certificaciones energéticas, cálculo de instalaciones fotovoltaicas, ni decisiones técnicas o médicas.
   </p>
 </div>
 

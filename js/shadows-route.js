@@ -107,17 +107,19 @@
 
   /* ---------------- Mapa MapLibre con edificios 3D reales ---------------- */
 
-  const map = new maplibregl.Map({
+ const map = new maplibregl.Map({
     container: 'shadowRouteMap',
     style: CONFIG.styleUrlClaro,
     center: CONFIG.centroInicial,
     zoom: Math.max(CONFIG.zoomInicial - 2.3, 1),
     pitch: 0,
     bearing: 0,
-    attributionControl: true,
-  });
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+    attributionControl: true
+});
 
+// AHORA SÍ: El mapa está creado, lo pasamos a global para que los árboles lo enganchen
+window.manolitAireMap = map;
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   let capaEdificiosDisponible = false;
   let edificiosCacheados = [];
   let cieloSolActivo = false;

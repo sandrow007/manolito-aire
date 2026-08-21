@@ -2,7 +2,7 @@
    MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
- 
+
    v2 añade: slider de tiempo (hoy / solsticios), vuelo de
    entrada cinemática, botón de captura de imagen, sombras por
    volumen de barrido real (no aproximación por envolvente
@@ -10,21 +10,14 @@
    de hora dorada/azul, caché de edificios (el slider no vuelve
    a consultar el mapa en cada movimiento) y navegación por
    teclado en las sugerencias de direccion.
- 
-   FIX (cambio de esta revisión): se ha quitado
-   `preserveDrawingBuffer: true` del mapa ese flag hací­a que
-   WebGL no limpiara el lienzo entre fotogramas, lo que en iOS
-   Safari (sobre todo en modo "añadido a pantalla de inicio")
-   deja una estela/rastro visible al moverte por el mapa (modo
-   caminar, GPS en vivo). El botón "Capturar vista" sigue
-   funcionando exactamente igual, pero ahora toma la foto
-   enganchándose al evento `render` del propio mapa justo antes
-   de que se intercambie el buffer, en vez de dejar el buffer
-   siempre sin limpiar.
+
+   FIX: Eliminado preserveDrawingBuffer. Captura de vista por
+   evento 'render'. Integrado motor 3D FreeCameraOptions para
+   paseo virtual libre sin error de maxPitch o intersección 2D.
    ============================================================ */
- 
+
 'use strict';
- 
+
 (function () {
   const CONFIG = {
     centroInicial: [-5.9845, 37.3891], // [lon, lat] Sevilla
@@ -33,23 +26,28 @@
     bearingInicial: -15,
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
-    // OJO: router.project-osrm.org (el demo oficial de OSRM) SOLO tiene
-    // montado el perfil de coche, aunque se le pida /foot/ por eso daba
-    // rutas irreales (4km "en 9 minutos a pie" = velocidad de coche). El
-    // servidor de FOSSGIS sí­ aloja un perfil peatonal real.
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
-    velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
+    velocidadCaminandoKmh: 4.8, 
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
-    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', // vector tiles gratis, sin key
+    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', 
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
-    alturaPorDefectoM: 9, // si un edificio no trae altura en los datos OSM
-    maxEdificiosSombra: 220, // lí­mite de seguridad para no colgar el navegador
-    loteSombraSize: 30, // nº de edificios que se procesan antes de ceder el hilo al navegador
+    alturaPorDefectoM: 9, 
+    maxEdificiosSombra: 220, 
+    loteSombraSize: 30, 
     duracionVueloInicialMs: 2000,
+    priorizarSombra: true,       
+    maxDetourSombra: 1.5,        
+    maxAlternativasSombra: 3,    
+    // ----- Modo peatón virtual (cámara libre, sin GPS real) -----
+    paseoAlturaOjoM: 1.7,
+    paseoVelocidadMs: 3.5,
+    paseoVelocidadGiro: 2.2,
+    paseoLookAheadM: 25,
+    paseoMaxPitch: 85, // Límite estricto de MapLibre
   };
- 
+
   /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
   function t(clave, fallback) {
     try {
@@ -61,18 +59,18 @@
     } catch (e) { /* seguimos con el fallback */ }
     return fallback != null ? fallback : clave;
   }
- 
+
   function leerVar(nombre) {
     return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
   }
- 
+
   function cederAlNavegador() {
     return new Promise((resolve) => {
       if ('requestIdleCallback' in window) requestIdleCallback(() => resolve(), { timeout: 120 });
       else setTimeout(resolve, 0);
     });
   }
- 
+
   function crearDebounce(fn, esperaMs) {
     let temporizador = null;
     return (...args) => {
@@ -80,17 +78,17 @@
       temporizador = setTimeout(() => fn(...args), esperaMs);
     };
   }
- 
+
   const mapEl = document.getElementById('shadowRouteMap');
   if (!mapEl) return;
- 
+
   const contenedorMapa = mapEl.parentElement || mapEl;
   if (getComputedStyle(contenedorMapa).position === 'static') {
     contenedorMapa.style.position = 'relative';
   }
- 
+
   /* ---------------- Mapa MapLibre con edificios 3D reales ---------------- */
- 
+
   const map = new maplibregl.Map({
     container: 'shadowRouteMap',
     style: CONFIG.styleUrlClaro,
@@ -99,14 +97,28 @@
     pitch: 0,
     bearing: 0,
     attributionControl: true,
-    // (antes: preserveDrawingBuffer: true — quitado, ver nota de cabecera)
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
- 
-let capaEdificiosDisponible = false;
-let edificiosCacheados = [];
-let cieloSolActivo = false;
- 
+
+  let capaEdificiosDisponible = false;
+  let edificiosCacheados = [];
+  let cieloSolActivo = false;
+
+  /* ----- Estado: modo peatón virtual (cámara libre) ----- */
+  let paseoActivo = false;
+  let paseoRafId = null;
+  let paseoUltimoFrame = 0;
+  let paseoOrigenMercator = null;
+  let paseoMetrosAU = 0; // metros a unidades mercator
+  let paseoJugador = { x: 0, y: 0, bearing: 0 }; // Brújula real
+  let paseoToques = new Map(); // pointerId -> {x,y}
+  let paseoJoystick = { active:false, startX:0, startY:0, dx:0, dy:0, pointerId:null };
+  
+  // Registro global de teclas para el paseo 3D
+  const keysDown = new Set();
+  addEventListener('keydown', e => keysDown.add(e.code));
+  addEventListener('keyup', e => keysDown.delete(e.code));
+
   map.on('load', () => {
     const capas = map.getStyle().layers || [];
     const capaEdificios = capas.find(
@@ -115,8 +127,21 @@ let cieloSolActivo = false;
     if (capaEdificios) {
       CONFIG.edificiosLayerId = capaEdificios.id;
       capaEdificiosDisponible = true;
+      try {
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', [
+          'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+          0, '#8fb3e8',
+          30, '#5f8fd6',
+          70, '#3f6bc0',
+          140, '#274a96'
+        ]);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-opacity', 0.93);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-vertical-gradient', true);
+      } catch (e) {
+        console.warn('No se ha podido aplicar el color vivo a los edificios:', e);
+      }
     }
- 
+
     map.addSource('sombras-halo', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer(
       {
@@ -127,7 +152,7 @@ let cieloSolActivo = false;
       },
       capaEdificiosDisponible ? CONFIG.edificiosLayerId : undefined
     );
- 
+
     map.addSource('sombras', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer(
       {
@@ -138,7 +163,7 @@ let cieloSolActivo = false;
       },
       capaEdificiosDisponible ? CONFIG.edificiosLayerId : undefined
     );
- 
+
     map.addSource('ruta', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer({
       id: 'capa-ruta',
@@ -147,7 +172,7 @@ let cieloSolActivo = false;
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': leerVar('--accent') || '#F4A66B', 'line-width': 5, 'line-opacity': 0.9 },
     });
- 
+
     map.addSource('ruta-sombra', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer({
       id: 'capa-ruta-sombra',
@@ -156,7 +181,7 @@ let cieloSolActivo = false;
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#6f9c8b', 'line-width': 5, 'line-opacity': 0.95 },
     });
- 
+
     map.addSource('puntos-manuales', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer({
       id: 'capa-puntos-manuales',
@@ -169,7 +194,7 @@ let cieloSolActivo = false;
         'circle-stroke-color': '#1b2029',
       },
     });
- 
+
     map.addSource('precision-ubicación', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer(
       {
@@ -189,12 +214,13 @@ let cieloSolActivo = false;
       },
       'capa-puntos-manuales'
     );
- 
+
     inyectarControlesTiempo();
     inyectarControlesMapa();
     inyectarSolVisual();
+    inyectarBadgeSombra();
     conectarTogglesDeCapas();
- 
+
     setTimeout(() => {
       map.easeTo({
         pitch: CONFIG.pitchInicial,
@@ -205,32 +231,32 @@ let cieloSolActivo = false;
       });
     }, 150);
   });
- 
+
   const alTerminarMovimiento = crearDebounce(() => {
     if (!solarActivado) return;
     actualizarCacheEdificios();
     if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
   }, 220);
   map.on('moveend', alTerminarMovimiento);
- 
+
   map.on('move', () => actualizarSolVisualEnMapa());
- 
+
   let solarActivado = false;
   function asegurarActivacionSolar() {
     if (solarActivado) return;
     solarActivado = true;
     actualizarCacheEdificios();
   }
- 
+
   function actualizarCacheEdificios() {
     if (!capaEdificiosDisponible || !map.getLayer(CONFIG.edificiosLayerId)) return;
     edificiosCacheados = map
       .queryRenderedFeatures({ layers: [CONFIG.edificiosLayerId] })
       .slice(0, CONFIG.maxEdificiosSombra);
   }
- 
+
   /* ---------------- Sombras reales: sol + altura de edificios ---------------- */
- 
+
   function unirDosPoligonos(a, b) {
     try {
       const r = turf.union(turf.featureCollection([a, b]));
@@ -242,7 +268,7 @@ let cieloSolActivo = false;
     } catch (e) { /* nos quedamos con lo que había */ }
     return a;
   }
- 
+
   function calcularVolumenSombra(poligonoSimple, distanciaKm, bearingSombra) {
     const anillo = poligonoSimple.geometry.coordinates[0];
     let resultado = poligonoSimple;
@@ -260,31 +286,31 @@ let cieloSolActivo = false;
     }
     return resultado;
   }
- 
+
   function obtenerHoraEfectiva() {
     return modoManual ? obtenerFechaDelSlider() : new Date();
   }
- 
+
   let versionCalculoSombras = 0;
   let ultimaColeccionSombras = turf.featureCollection([]);
- 
+
   async function recalcularSombrasVisibles(horaOverride) {
     if (!map.getSource('sombras')) return;
     const miVersion = ++versionCalculoSombras;
- 
+
     const ahora = horaOverride || obtenerHoraEfectiva();
     const centro = puntoReferenciaSol || map.getCenter();
     const lat = centro.lat, lon = centro.lon ?? centro.lng;
     const posSol = SunCalc.getPosition(ahora, lat, lon);
     actualizarBadgeHoraDorada(ahora, lat, lon);
- 
+
     if (!document.getElementById('rsToggleSombras')?.checked) {
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
       ultimaColeccionSombras = turf.featureCollection([]);
       return;
     }
- 
+
     if (posSol.altitude <= 0) {
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
@@ -293,31 +319,31 @@ let cieloSolActivo = false;
       return;
     }
     mostrarAvisoSol('');
- 
+
     if (!capaEdificiosDisponible || !edificiosCacheados.length) {
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
       ultimaColeccionSombras = turf.featureCollection([]);
       return;
     }
- 
+
     const azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;
     const bearingSombra = (azimutGrados + 180) % 360;
- 
+
     const poligonosSombra = [];
     for (let i = 0; i < edificiosCacheados.length; i += CONFIG.loteSombraSize) {
       if (miVersion !== versionCalculoSombras) return;
- 
+
       const lote = edificiosCacheados.slice(i, i + CONFIG.loteSombraSize);
       for (const edificio of lote) {
         try {
           const altura = Number(edificio.properties.height ?? edificio.properties.render_height) || CONFIG.alturaPorDefectoM;
           const longitudSombraM = altura / Math.tan(posSol.altitude);
           if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
- 
+
           const geom = edificio.geometry;
           if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
- 
+
           const distanciaKm = longitudSombraM / 1000;
           const partes = turf.flatten(turf.feature(geom)).features;
           for (const parte of partes) {
@@ -328,17 +354,17 @@ let cieloSolActivo = false;
           continue;
         }
       }
- 
+
       if (miVersion !== versionCalculoSombras) return;
       map.getSource('sombras')?.setData(turf.featureCollection(poligonosSombra));
       if (i + CONFIG.loteSombraSize < edificiosCacheados.length) await cederAlNavegador();
     }
- 
+
     if (miVersion !== versionCalculoSombras) return;
     const coleccionSombras = turf.featureCollection(poligonosSombra);
     map.getSource('sombras')?.setData(coleccionSombras);
     ultimaColeccionSombras = coleccionSombras;
- 
+
     if (poligonosSombra.length <= 160) {
       try {
         const halo = turf.buffer(coleccionSombras, 3.5, { units: 'meters', steps: 4 });
@@ -350,23 +376,23 @@ let cieloSolActivo = false;
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
     }
   }
- 
+
   function mostrarAvisoSol(texto) {
     const el = document.getElementById('rsSunNote');
     if (el) el.textContent = texto;
   }
- 
+
   setInterval(() => {
     if (!solarActivado || modoManual) return;
     if (map.loaded()) recalcularSombrasVisibles();
     actualizarIluminacionSolar();
   }, 60 * 1000);
- 
+
   /* ---------------- Widget de posición del sol ---------------- */
- 
+
   let puntoReferenciaSol = null;
   let rutaActual = null;
- 
+
   function puntoEnSombra(punto) {
     for (const poligono of ultimaColeccionSombras.features) {
       try {
@@ -375,51 +401,7 @@ let cieloSolActivo = false;
     }
     return false;
   }
-// ============================================================
-  // NUEVO v3: Calcular porcentaje de sombra de una ruta
-  // ============================================================
-  function calcularPorcentajeSombraRuta(geojsonRuta) {
-    if (!geojsonRuta || !geojsonRuta.coordinates || !ultimaColeccionSombras.features.length) {
-      return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
-    }
- 
-    try {
-      const tramos = turf.lineChunk(geojsonRuta, CONFIG.chunkRutaKm, { units: 'kilometers' });
-      const totalTramos = tramos.features.length;
-      if (totalTramos === 0) return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
- 
-      let tramosEnSombra = [];
-      let distanciaSombraTotalKm = 0;
- 
-      for (const tramo of tramos.features) {
-        const coords = tramo.geometry.coordinates;
-        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
-        
-        if (puntoEnSombra(medio)) {
-          tramosEnSombra.push(tramo);
-          const longitudTramo = turf.length(tramo, { units: 'kilometers' });
-          distanciaSombraTotalKm += longitudTramo;
-        }
-      }
- 
-      const porcentaje = Math.round((tramosEnSombra.length / totalTramos) * 100);
-      
-      return {
-        porcentaje,
-        tramosEnSombra: turf.featureCollection(tramosEnSombra),
-        distanciaSombraKm: Math.round(distanciaSombraTotalKm * 100) / 100
-      };
-    } catch (e) {
-      console.warn('Error calculando % de sombra:', e);
-      return { porcentaje: 0, tramosEnSombra: [], distanciaSombraKm: 0 };
-    }
-  }
- 
-  async function actualizarTramosSombraRuta() {
-    const fuente = map.getSource('ruta-sombra');
-    if (!fuente) return;
-    }
-  
+
   async function actualizarTramosSombraRuta() {
     const fuente = map.getSource('ruta-sombra');
     if (!fuente) return;
@@ -440,7 +422,7 @@ let cieloSolActivo = false;
       fuente.setData(turf.featureCollection([]));
     }
   }
- 
+
   function calcularAnguloSol(horaOverride) {
     const centro = puntoReferenciaSol || map.getCenter();
     const lat = centro.lat;
@@ -450,11 +432,11 @@ let cieloSolActivo = false;
     const alturaDeg = (pos.altitude * 180) / Math.PI;
     return { azimutDeg, alturaDeg };
   }
- 
+
   function actualizarIluminacionSolar(horaOverride) {
     const tSol = document.getElementById('rsToggleSol');
     if (!tSol) return;
- 
+
     if (!tSol.checked) {
       map.setSky(undefined);
       cieloSolActivo = false;
@@ -462,106 +444,84 @@ let cieloSolActivo = false;
       actualizarSolVisualEnMapa();
       return;
     }
-    
-// ============================================================
-    // NUEVO v3: Usar la ruta seleccionada actual
-    // ============================================================
-    const rutaActiva = obtenerRutaActiva();
-    if (!rutaActiva || !ultimaColeccionSombras.features.length) {
-      fuente.setData(turf.featureCollection([]));
-      return;
-    }
-    
-    try {
-      const resultado = calcularPorcentajeSombraRuta(rutaActiva.geojson);
-      fuente.setData(resultado.tramosEnSombra || turf.featureCollection([]));
-      
-      actualizarPanelEstadisticas(resultado.porcentaje, rutaActiva.distanciaKm, resultado.distanciaSombraKm);
-    } catch (e) {
-      console.warn('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
-      fuente.setData(turf.featureCollection([]));
-    }
-  }
-  
+
     const { azimutDeg, alturaDeg } = calcularAnguloSol(horaOverride);
     const bajoHorizonte = alturaDeg <= 0;
     const polar = Math.max(0, 90 - Math.max(alturaDeg, 0));
- 
+
     map.setLight({
       anchor: 'map',
       color: bajoHorizonte ? '#3a4a63' : '#fff6e6',
       intensity: bajoHorizonte ? 0.15 : Math.min(1, 0.35 + alturaDeg / 90),
       position: [1.5, azimutDeg, polar],
     });
- 
+
     map.setSky({
       'sky-color': bajoHorizonte ? '#0a1220' : '#199EF3',
       'sky-horizon-blend': 0.5,
       'horizon-color': bajoHorizonte ? '#2a3a55' : '#ffffff',
-         'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0.3]
+      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0.3]
     });
-    cielosolActivo = true;
-    inyectarSolVisual();
-    actualizarsolVisualEnMapa();
- 
-    function inyectarSolVisual() {
-        if (document.getElementById('rsSolVisual')) return;
- 
+    cieloSolActivo = true;
+
+    actualizarSolVisualEnMapa();
+  }
+
+  function inyectarSolVisual() {
+    if (document.getElementById('rsSolVisual')) return;
     const estilo = document.createElement('style');
     estilo.id = 'rsSolVisualEstilos';
     estilo.textContent = `
-        #rsSolVisual{
-            position:absolute; width:34px; height:34px; border-radius:50%;
-            background:radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
-            box-shadow:0 0 22px 10px rgba(255,207,122,0.55);
-            transform:translate(-50%,-50%);
-        }
+      #rsSolVisual{
+        position:absolute; width:34px; height:34px; border-radius:50%;
+        background:radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
+        box-shadow:0 0 22px 10px rgba(255,207,122,0.55);
+        transform:translate(-50%,-50%);
+        pointer-events:none; z-index:4; display:none;
+        transition:left .25s linear, top .25s linear, opacity .25s ease;
+      }
     `;
-    // Aquí puedes poner el resto del código que seguía en tu archivo...
-}
- 
     document.head.appendChild(estilo);
     const sol = document.createElement('div');
     sol.id = 'rsSolVisual';
     contenedorMapa.appendChild(sol);
-// contenedorMapa.appendChild(sol);
-//
- 
-function actualizarSolVisualEnMapa() {
+  }
+
+  function actualizarSolVisualEnMapa() {
     const el = document.getElementById('rsSolVisual');
     const tSol = document.getElementById('rsToggleSol');
     if (!el) return;
     if (!tSol || !tSol.checked) { el.style.display = 'none'; return; }
- 
+
     const { azimutDeg, alturaDeg } = calcularAnguloSol();
     if (alturaDeg <= 0) { el.style.display = 'none'; return; }
- 
+
     const rect = contenedorMapa.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
- 
+
     const anguloRelativo = ((azimutDeg - map.getBearing()) * Math.PI) / 180;
     const cx = rect.width / 2;
     const cy = rect.height * 0.55;
     const radioOrbita = Math.min(rect.width, rect.height) * 0.44;
     const factorAltura = Math.min(alturaDeg, 90) / 90;
- 
+
     const x = cx + radioOrbita * Math.sin(anguloRelativo);
     const y = cy - radioOrbita * factorAltura * 0.9 - rect.height * 0.04;
- 
+
     el.style.left = `${Math.max(16, Math.min(rect.width - 16, x))}px`;
     el.style.top = `${Math.max(16, Math.min(rect.height - 16, y))}px`;
     el.style.opacity = String(0.55 + factorAltura * 0.45);
     el.style.display = 'block';
-}
- 
+  }
+
   function actualizarBadgeHoraDorada(fechaEfectiva, lat, lon) {
     const badge = document.getElementById('rsGoldenBadge');
     const posSol = SunCalc.getPosition(fechaEfectiva, lat, lon);
     const altitudeDeg = (posSol.altitude * 180) / Math.PI;
- 
+
     let solarNoonMs = null;
     let estado = null;
- 
+
     try {
       const tiempos = SunCalc.getTimes(fechaEfectiva, lat, lon);
       solarNoonMs = tiempos.solarNoon.getTime();
@@ -574,7 +534,7 @@ function actualizarSolVisualEnMapa() {
         (t2 >= tiempos.sunset.getTime() && t2 <= tiempos.dusk.getTime());
       estado = enDorada ? 'dorada' : enAzul ? 'azul' : null;
     } catch (e) { /* sin datos de horario fiables, seguimos sin badge */ }
- 
+
     if (badge) {
       if (estado === 'dorada') {
         badge.textContent = t('goldenHour', 'Hora dorada');
@@ -592,21 +552,21 @@ function actualizarSolVisualEnMapa() {
         badge.style.visibility = 'hidden';
       }
     }
- 
+
     actualizarIndicadorSolar(altitudeDeg, solarNoonMs != null ? fechaEfectiva.getTime() <= solarNoonMs : true);
   }
- 
+
   function actualizarIndicadorSolar(altitudeDeg, esManana) {
     const punto = document.getElementById('rsSolPunto');
     const grupo = document.getElementById('rsSolGrupo');
     if (!punto || !grupo) return;
- 
+
     if (altitudeDeg == null || altitudeDeg <= 0) {
       grupo.style.opacity = '0.25';
       return;
     }
     grupo.style.opacity = '1';
- 
+
     const cx = 30, cy = 30, r = 26;
     const altura = Math.max(0, Math.min(90, altitudeDeg));
     const theta = esManana ? 180 - altura : altura;
@@ -616,35 +576,83 @@ function actualizarSolVisualEnMapa() {
     punto.setAttribute('cx', x.toFixed(1));
     punto.setAttribute('cy', y.toFixed(1));
   }
- 
+
+  /* ---------------- Badge discreto de % de sombra (desplegable, no ocupa toda la pantalla) ---------------- */
+
+  function inyectarBadgeSombra() {
+    if (document.getElementById('rsShadowBadge')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsShadowBadgeEstilos';
+    estilo.textContent = `
+      #rsShadowBadge{
+        position:absolute; left:50%; transform:translateX(-50%); bottom:12px;
+        z-index:6; display:none; align-items:center; gap:8px;
+        background:rgba(10,10,12,0.88); backdrop-filter:blur(8px);
+        border:1px solid rgba(255,255,255,0.12); border-radius:999px;
+        padding:6px 10px 6px 14px; font-size:11.5px; color:#e9e4d8;
+        box-shadow:0 8px 18px rgba(0,0,0,.28); max-width:calc(100vw - 24px);
+        white-space:nowrap;
+      }
+      #rsShadowBadge.rs-visible{ display:inline-flex; }
+      #rsShadowBadgeCerrar{
+        background:transparent; border:none; color:#999; font-size:15px;
+        cursor:pointer; line-height:1; padding:0 2px;
+      }
+      #rsShadowBadgeCerrar:hover{ color:#fff; }
+      @media (max-width:480px){ #rsShadowBadge{ font-size:10.5px; bottom:8px; padding:5px 8px 5px 12px; } }
+    `;
+    document.head.appendChild(estilo);
+
+    const badge = document.createElement('div');
+    badge.id = 'rsShadowBadge';
+    const texto = document.createElement('span');
+    texto.id = 'rsShadowBadgeTexto';
+    const cerrar = document.createElement('button');
+    cerrar.id = 'rsShadowBadgeCerrar';
+    cerrar.type = 'button';
+    cerrar.textContent = '×';
+    cerrar.setAttribute('aria-label', 'Cerrar');
+    cerrar.addEventListener('click', () => badge.classList.remove('rs-visible'));
+    badge.append(texto, cerrar);
+    contenedorMapa.appendChild(badge);
+  }
+
+  function mostrarBadgeSombra(pct) {
+    const badge = document.getElementById('rsShadowBadge');
+    const texto = document.getElementById('rsShadowBadgeTexto');
+    if (!badge || !texto || pct == null) { badge?.classList.remove('rs-visible'); return; }
+    texto.textContent = `${pct}% ${t('shadeCoverage', 'del trayecto en sombra')}`;
+    badge.classList.add('rs-visible');
+  }
+
   /* ---------------- Slider de tiempo ---------------- */
- 
+
   let modoManual = false;
   let fechaBaseManual = new Date();
   let sliderTiempo = null;
   let etiquetaTiempo = null;
   let temporizadorSlider = null;
- 
+
   function fechaSolsticio(tipo) {
     const anio = new Date().getFullYear();
     return tipo === 'verano' ? new Date(anio, 5, 21, 12, 0, 0) : new Date(anio, 11, 21, 12, 0, 0);
   }
- 
+
   function minutosDesdeFecha(fecha) {
     return fecha.getHours() * 60 + fecha.getMinutes();
   }
- 
+
   function obtenerFechaDelSlider() {
     const d = new Date(fechaBaseManual);
     const minutos = Number(sliderTiempo?.value ?? minutosDesdeFecha(new Date()));
     d.setHours(Math.floor(minutos / 60), minutos % 60, 0, 0);
     return d;
   }
- 
+
   function formatoHora(fecha) {
     return fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   }
- 
+
   function actualizarEtiquetaTiempo(contexto) {
     if (!etiquetaTiempo) return;
     const fecha = obtenerFechaDelSlider();
@@ -655,14 +663,14 @@ function actualizarSolVisualEnMapa() {
       t('now', 'Ahora') + ' — ';
     etiquetaTiempo.textContent = prefijo + formatoHora(fecha);
   }
- 
+
   async function aplicarCambioDeHora(contexto) {
     actualizarEtiquetaTiempo(contexto);
     await recalcularSombrasVisibles();
     actualizarIluminacionSolar();
     await actualizarTramosSombraRuta();
   }
- 
+
   function inyectarEstilosPanel() {
     if (document.getElementById('rsPanelEstilos')) return;
     const estilo = document.createElement('style');
@@ -738,14 +746,13 @@ function actualizarSolVisualEnMapa() {
     `;
     document.head.appendChild(estilo);
   }
- 
- 
+
   /* ---------------- Elegir puntos directamente en el mapa + geolocalización ---------------- */
- 
+
   let modoClickMapa = false;
   let puntoOrigenPendiente = null;
   let btnModoClickRef = null;
- 
+
   function inyectarEstilosMapaControles() {
     if (document.getElementById('rsMapaEstilos')) return;
     const estilo = document.createElement('style');
@@ -764,38 +771,64 @@ function actualizarSolVisualEnMapa() {
       #rsMapControls button:hover{ background:#c98a4b22; }
       #rsMapControls button.rs-activo{ border-left-color:#e7b06a; color:#e7b06a; }
       @media (max-width:480px){ #rsMapControls button{ padding:7px 8px; font-size:9.5px; } }
+
+      /* Joystick virtual para paseo 3D */
+      #rsJoystick{
+        position:absolute; right:24px; bottom:24px; width:96px; height:96px;
+        border-radius:50%; background:rgba(255,255,255,0.06);
+        border:1px solid rgba(255,255,255,0.15); touch-action:none;
+        z-index:6; display:none; pointer-events:auto;
+      }
+      #rsJoystickKnob{
+        position:absolute; left:50%; top:50%; width:38px; height:38px;
+        transform:translate(-50%,-50%); border-radius:50%;
+        background:rgba(201,138,75,0.85); border:2px solid #e9e4d8;
+        box-shadow:0 4px 12px rgba(0,0,0,.35); touch-action:none;
+      }
+      #rsJoystick.rs-visible{ display:block; }
+      @media (max-width:480px){
+        #rsJoystick{ width:78px; height:78px; right:16px; bottom:16px; }
+        #rsJoystickKnob{ width:32px; height:32px; }
+      }
     `;
     document.head.appendChild(estilo);
   }
- 
+
   function inyectarControlesMapa() {
     if (document.getElementById('rsMapControls')) return;
     inyectarEstilosMapaControles();
- 
+
     const panelMapa = document.createElement('div');
     panelMapa.id = 'rsMapControls';
- 
+
     const btnModoClick = document.createElement('button');
     btnModoClick.type = 'button';
     btnModoClick.id = 'rsBtnPickMap';
     btnModoClick.textContent = t('pickMap', 'Elegir en el mapa');
     btnModoClickRef = btnModoClick;
- 
+
     const btnUbicacion = document.createElement('button');
     btnUbicacion.type = 'button';
     btnUbicacion.id = 'rsBtnMyLocation';
     btnUbicacion.textContent = t('myLocation', 'Mi ubicación');
- 
+
     const btnCaminar = document.createElement('button');
     btnCaminar.type = 'button';
     btnCaminar.id = 'rsBtnWalk';
     btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
-        const btnReiniciar = document.createElement('button');
+
+    const btnPaseo = document.createElement('button');
+    btnPaseo.type = 'button';
+    btnPaseo.id = 'rsBtnPaseo';
+    btnPaseo.textContent = t('virtualWalkStart', 'Paseo virtual 3D');
+
+    const btnReiniciar = document.createElement('button');
     btnReiniciar.type = 'button';
     btnReiniciar.id = 'rsBtnReset';
     btnReiniciar.textContent = t('resetBtn', 'Reiniciar');
- 
+
     function reiniciarTodo() {
+      detenerPaseoVirtual();
       salirDeModoClick();
       detenerCaminata();
       inputOrigen.value = '';
@@ -810,10 +843,11 @@ function actualizarSolVisualEnMapa() {
       if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
       rutaActual = null;
       mostrarEstado('');
+      mostrarBadgeSombra(null);
     }
- 
+
     btnReiniciar.addEventListener('click', reiniciarTodo);
- 
+
     function salirDeModoClick() {
       modoClickMapa = false;
       puntoOrigenPendiente = null;
@@ -821,7 +855,7 @@ function actualizarSolVisualEnMapa() {
       btnModoClick.classList.remove('rs-activo');
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
     }
- 
+
     btnModoClick.addEventListener('click', () => {
       if (modoClickMapa) {
         salirDeModoClick();
@@ -834,10 +868,10 @@ function actualizarSolVisualEnMapa() {
       btnModoClick.classList.add('rs-activo');
       mostrarEstado(t('clickOrigin', 'Haz clic en el mapa para marcar el origen.'));
     });
- 
+
     let esperandoSoloDestino = false;
     let origenParaAutoRuta = null;
- 
+
     btnUbicacion.addEventListener('click', () => {
       if (!('geolocation' in navigator)) {
         mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
@@ -848,10 +882,10 @@ function actualizarSolVisualEnMapa() {
         async (pos) => {
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
           const precisionM = Math.round(pos.coords.accuracy || 0);
- 
+
           seleccionPorInput.set(inputOrigen, { lat, lon, nombre: t('myLocation', 'Mi ubicación'), texto: t('myLocation', 'Mi ubicación') });
           inputOrigen.value = t('myLocation', 'Mi ubicación');
- 
+
           const puntoUbicacion = turf.point([lon, lat]);
           map.getSource('puntos-manuales')?.setData(turf.featureCollection([puntoUbicacion]));
           if (precisionM > 0) {
@@ -860,13 +894,13 @@ function actualizarSolVisualEnMapa() {
           } else {
             map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
           }
- 
+
           const notaPrecision = precisionM > 0
             ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m — ${t('locationNote', 'sin GPS real puede ser orientativa')})`
             : '';
           mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision} — ${t('chooseDestination', 'toca un punto del mapa para poner el destino.')}`, 'ok');
           map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
- 
+
           origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicación') };
           esperandoSoloDestino = true;
           modoClickMapa = true;
@@ -877,11 +911,11 @@ function actualizarSolVisualEnMapa() {
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     });
- 
+
     /* ---- Modo caminar: sigue tu posición en vivo mientras te mueves ---- */
     let watchId = null;
     let marcadorCaminando = null;
- 
+
     function detenerCaminata() {
       if (watchId != null) navigator.geolocation.clearWatch(watchId);
       watchId = null;
@@ -889,7 +923,7 @@ function actualizarSolVisualEnMapa() {
       btnCaminar.classList.remove('rs-activo');
       btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
     }
- 
+
     btnCaminar.addEventListener('click', () => {
       if (watchId != null) { detenerCaminata(); mostrarEstado(''); return; }
       if (!('geolocation' in navigator)) {
@@ -899,11 +933,11 @@ function actualizarSolVisualEnMapa() {
       btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
       mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
- 
+
       const el = document.createElement('div');
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#1C3144'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#1C3144')}33;`;
       marcadorCaminando = new maplibregl.Marker({ element: el });
- 
+
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
@@ -917,14 +951,128 @@ function actualizarSolVisualEnMapa() {
         { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 }
       );
     });
- 
-    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar, btnReiniciar);
+
+    /* ---- Paseo virtual 3D: cámara libre, sin GPS real ---- */
+    function entrarPaseoVirtual() {
+      if (paseoActivo) return;
+      
+      const centro = map.getCenter();
+      paseoOrigenMercator = maplibregl.MercatorCoordinate.fromLngLat(centro);
+      paseoMetrosAU = paseoOrigenMercator.meterInMercatorCoordinateUnits();
+      
+      paseoJugador.x = 0;
+      paseoJugador.y = 0;
+      paseoJugador.bearing = map.getBearing() || 0; 
+      
+      map.dragPan.disable();
+      map.scrollZoom.disable();
+      map.dragRotate.disable();
+      map.touchZoomRotate.disable();
+      map.doubleClickZoom.disable();
+      map.keyboard.disable();
+      
+      map.setMaxPitch(85); // Límite estricto y seguro de MapLibre
+      paseoActivo = true;
+      paseoUltimoFrame = performance.now();
+      
+      if(btnPaseo) {
+        btnPaseo.classList.add('rs-activo');
+        btnPaseo.textContent = t('virtualWalkStop', 'Salir del paseo');
+      }
+      mostrarEstado(t('virtualWalkHint', 'Arrastra para mirar • Joystick para moverte • Esc para salir'));
+      
+      paseoRafId = requestAnimationFrame(loopPaseo);
+    }
+
+    function detenerPaseoVirtual() {
+      if (!paseoActivo) return;
+      paseoActivo = false;
+      if (paseoRafId) cancelAnimationFrame(paseoRafId);
+      paseoRafId = null;
+      
+      map.dragPan.enable();
+      map.scrollZoom.enable();
+      map.dragRotate.enable();
+      map.touchZoomRotate.enable();
+      map.doubleClickZoom.enable();
+      map.keyboard.enable();
+      map.setMaxPitch(85); 
+      
+      btnPaseo.classList.remove('rs-activo');
+      btnPaseo.textContent = t('virtualWalkStart', 'Paseo virtual 3D');
+      mostrarEstado('');
+      
+      const joy = document.getElementById('rsJoystick');
+      if (joy) joy.style.display = 'none';
+    }
+
+    function paseoToLngLat(x, y) {
+      return new maplibregl.MercatorCoordinate(
+        paseoOrigenMercator.x + x * paseoMetrosAU,
+        paseoOrigenMercator.y + y * paseoMetrosAU
+      ).toLngLat();
+    }
+
+    function actualizarCamaraPaseo() {
+      const eye = paseoToLngLat(paseoJugador.x, paseoJugador.y);
+      const camera = map.getFreeCameraOptions();
+      // Motor 3D nativo: posición exacta en altura sin calcular intersecciones 2D
+      camera.position = maplibregl.MercatorCoordinate.fromLngLat(eye, CONFIG.paseoAlturaOjoM);
+      camera.setPitchBearing(85, paseoJugador.bearing);
+      map.setFreeCameraOptions(camera);
+    }
+
+    function loopPaseo(now) {
+      if (!paseoActivo) return;
+      const dt = Math.min(0.05, (now - paseoUltimoFrame) / 1000);
+      paseoUltimoFrame = now;
+
+      let avance = 0;
+      let giro = 0;
+
+      if (keysDown.has('KeyW') || keysDown.has('ArrowUp')) avance += 1;
+      if (keysDown.has('KeyS') || keysDown.has('ArrowDown')) avance -= 1;
+      if (keysDown.has('KeyA') || keysDown.has('ArrowLeft')) giro -= 1;
+      if (keysDown.has('KeyD') || keysDown.has('ArrowRight')) giro += 1;
+
+      if (paseoJoystick.active) {
+        avance = -paseoJoystick.dy;
+        giro = paseoJoystick.dx * 0.6;
+      }
+
+      if (giro !== 0) {
+        paseoJugador.bearing += giro * 100 * dt; 
+      }
+      
+      if (avance !== 0) {
+        const step = avance * CONFIG.paseoVelocidadMs * dt;
+        const rad = paseoJugador.bearing * Math.PI / 180;
+        // En proyecciones Mercator, -Y es el Norte absoluto
+        paseoJugador.x += Math.sin(rad) * step;
+        paseoJugador.y -= Math.cos(rad) * step;
+      }
+
+      actualizarCamaraPaseo();
+      paseoRafId = requestAnimationFrame(loopPaseo);
+    }
+
+    // Eventos globales de teclado para salir rápido
+    addEventListener('keydown', (e) => {
+      if (e.code === 'Escape' && paseoActivo) detenerPaseoVirtual();
+    });
+
+    btnPaseo.addEventListener('click', () => {
+      if (paseoActivo) detenerPaseoVirtual();
+      else entrarPaseoVirtual();
+    });
+
+    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar);
     contenedorMapa.appendChild(panelMapa);
- 
+
     map.on('click', (e) => {
       if (!modoClickMapa) return;
       const { lat, lng } = e.lngLat;
- 
+
       if (esperandoSoloDestino && origenParaAutoRuta) {
         const origenFijado = origenParaAutoRuta;
         const destinoFijado = { lat, lon: lng };
@@ -941,7 +1089,7 @@ function actualizarSolVisualEnMapa() {
         geocodificarInverso(lat, lng).then((nombre) => { inputDestino.value = nombre; });
         return;
       }
- 
+
       if (!puntoOrigenPendiente) {
         puntoOrigenPendiente = { lat, lon: lng };
         map.getSource('puntos-manuales')?.setData(turf.featureCollection([turf.point([lng, lat])]));
@@ -950,7 +1098,7 @@ function actualizarSolVisualEnMapa() {
         geocodificarInverso(lat, lng).then((nombre) => { inputOrigen.value = nombre; });
         return;
       }
- 
+
       const origenFijado = puntoOrigenPendiente;
       const destinoFijado = { lat, lon: lng };
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([
@@ -967,21 +1115,21 @@ function actualizarSolVisualEnMapa() {
       geocodificarInverso(lat, lng).then((nombre) => { inputDestino.value = nombre; });
     });
   }
- 
+
   function inyectarControlesTiempo() {
     if (document.getElementById('rsTimeControls')) return;
     inyectarEstilosPanel();
- 
+
     const panel = document.createElement('div');
     panel.id = 'rsTimeControls';
- 
+
     const cabecera = document.createElement('div');
     cabecera.className = 'rs-cabecera';
     const eyebrow = document.createElement('span');
     eyebrow.className = 'rs-eyebrow';
     eyebrow.id = 'rsEyebrowSol';
     eyebrow.textContent = t('sunPosition', 'Posición solar');
- 
+
     const svgSol = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svgSol.setAttribute('viewBox', '0 0 60 34');
     svgSol.setAttribute('width', '48');
@@ -992,7 +1140,7 @@ function actualizarSolVisualEnMapa() {
         <line x1="4" y1="30" x2="56" y2="30" stroke="#ffffff22" stroke-width="1"/>
         <circle id="rsSolPunto" cx="30" cy="4" r="3.4" fill="#e7b06a"/>
       </g>`;
- 
+
     const btnPlegar = document.createElement('button');
     btnPlegar.id = 'rsPlegarBtn';
     btnPlegar.type = 'button';
@@ -1008,14 +1156,14 @@ function actualizarSolVisualEnMapa() {
         await actualizarTramosSombraRuta();
       }
     });
- 
+
     panel.classList.add('rs-cerrado');
- 
+
     cabecera.append(eyebrow, svgSol, btnPlegar);
- 
+
     const cuerpo = document.createElement('div');
     cuerpo.className = 'rs-cuerpo';
- 
+
     const filaEtiqueta = document.createElement('div');
     filaEtiqueta.className = 'rs-fila';
     filaEtiqueta.style.justifyContent = 'space-between';
@@ -1026,7 +1174,7 @@ function actualizarSolVisualEnMapa() {
     badgeDorada.style.visibility = 'hidden';
     badgeDorada.textContent = t('goldenHour', 'Hora dorada');
     filaEtiqueta.append(etiquetaTiempo, badgeDorada);
- 
+
     sliderTiempo = document.createElement('input');
     sliderTiempo.type = 'range';
     sliderTiempo.id = 'rsTimeSlider';
@@ -1034,7 +1182,7 @@ function actualizarSolVisualEnMapa() {
     sliderTiempo.max = '1439';
     sliderTiempo.step = '5';
     sliderTiempo.value = String(minutosDesdeFecha(new Date()));
- 
+
     sliderTiempo.addEventListener('input', () => {
       modoManual = true;
       fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual : new Date();
@@ -1042,15 +1190,15 @@ function actualizarSolVisualEnMapa() {
       temporizadorSlider = setTimeout(() => aplicarCambioDeHora(esFechaSolsticioActiva), 90);
       actualizarEtiquetaTiempo(esFechaSolsticioActiva);
     });
- 
+
     let esFechaSolsticioActiva = false;
- 
+
     const divisor = document.createElement('div');
     divisor.className = 'rs-divisor';
- 
+
     const filaBotones = document.createElement('div');
     filaBotones.className = 'rs-botones';
- 
+
     function crearBoton(texto, id) {
       const b = document.createElement('button');
       b.type = 'button';
@@ -1058,13 +1206,13 @@ function actualizarSolVisualEnMapa() {
       b.textContent = texto;
       return b;
     }
- 
+
     const btnAhora = crearBoton(t('now', 'Ahora'), 'rsBtnAhora');
     const btnVerano = crearBoton(t('btnSummer', 'Verano'), 'rsBtnVerano');
     const btnInvierno = crearBoton(t('btnWinter', 'Invierno'), 'rsBtnInvierno');
     const btnCapturar = crearBoton(t('captureView', 'Capturar vista'), 'rsBtnCapturar');
     btnCapturar.className = 'rs-btn-capturar';
- 
+
     btnAhora.addEventListener('click', () => {
       modoManual = false;
       esFechaSolsticioActiva = false;
@@ -1072,7 +1220,7 @@ function actualizarSolVisualEnMapa() {
       sliderTiempo.value = String(minutosDesdeFecha(new Date()));
       aplicarCambioDeHora(false);
     });
- 
+
     btnVerano.addEventListener('click', () => {
       modoManual = true;
       esFechaSolsticioActiva = 'verano';
@@ -1080,7 +1228,7 @@ function actualizarSolVisualEnMapa() {
       sliderTiempo.value = '780';
       aplicarCambioDeHora('verano');
     });
- 
+
     btnInvierno.addEventListener('click', () => {
       modoManual = true;
       esFechaSolsticioActiva = 'invierno';
@@ -1088,19 +1236,19 @@ function actualizarSolVisualEnMapa() {
       sliderTiempo.value = '780';
       aplicarCambioDeHora('invierno');
     });
- 
+
     btnCapturar.addEventListener('click', capturarVista);
- 
+
     filaBotones.append(btnAhora, btnVerano, btnInvierno, btnCapturar);
     cuerpo.append(filaEtiqueta, sliderTiempo, divisor, filaBotones);
     panel.append(cabecera, cuerpo);
     contenedorMapa.appendChild(panel);
- 
+
     actualizarEtiquetaTiempo(false);
   }
- 
+
   /* ---------------- Capa de mapa oscura ---------------- */
- 
+
   let mapaOscuro = false;
   function inyectarControlToggleMapaOscuro() {
     if (document.getElementById('rsMapStyleToggle')) return;
@@ -1123,7 +1271,7 @@ function actualizarSolVisualEnMapa() {
       }
     `;
     document.head.appendChild(estilo);
- 
+
     const wrap = document.createElement('div');
     wrap.id = 'rsMapStyleToggle';
     const btn = document.createElement('button');
@@ -1138,14 +1286,7 @@ function actualizarSolVisualEnMapa() {
     wrap.appendChild(btn);
     contenedorMapa.appendChild(wrap);
   }
- 
-  /* ---------------- Captura/compartir: exportar la vista actual como imagen ---------------- */
-  // FIX: ya no depende de preserveDrawingBuffer permanente (causaba la
-  // estela en iOS). Se engancha al evento 'render' del propio mapa, que se
-  // dispara justo después de pintar un fotograma y ANTES de que el
-  // navegador pueda limpiar/intercambiar el buffer — es el punto correcto
-  // para leer el lienzo sin necesidad de mantenerlo siempre sin limpiar.
- 
+
   function capturarVista() {
     try {
       map.once('render', () => {
@@ -1169,17 +1310,17 @@ function actualizarSolVisualEnMapa() {
       mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
     }
   }
- 
+
   /* ---------------- Toggles de capas ---------------- */
- 
+
   function conectarTogglesDeCapas() {
     inyectarControlToggleMapaOscuro();
- 
+
     const tEdificios = document.getElementById('rsToggleEdificios');
     const tSombras = document.getElementById('rsToggleSombras');
     const tRuta = document.getElementById('rsToggleRuta');
     const tSol = document.getElementById('rsToggleSol');
- 
+
     tEdificios?.addEventListener('change', () => {
       if (capaEdificiosDisponible) {
         map.setLayoutProperty(CONFIG.edificiosLayerId, 'visibility', tEdificios.checked ? 'visible' : 'none');
@@ -1191,11 +1332,10 @@ function actualizarSolVisualEnMapa() {
     });
     tSol?.addEventListener('change', () => { asegurarActivacionSolar(); actualizarIluminacionSolar(); });
   }
- 
+
   /* ---------------- Red: fetch con timeout + reintentos ---------------- */
- 
+
   async function fetchConReintentos(url, options = {}, intentos = CONFIG.fetchRetries) {
- 
     for (let intento = 0; intento <= intentos; intento++) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), CONFIG.fetchTimeoutMs);
@@ -1211,9 +1351,9 @@ function actualizarSolVisualEnMapa() {
       }
     }
   }
- 
+
   /* ---------------- Geocodificación (Nominatim) ---------------- */
- 
+
   async function consultarNominatim(consulta) {
     const url = new URL(CONFIG.nominatimUrl);
     url.searchParams.set('q', consulta);
@@ -1221,7 +1361,7 @@ function actualizarSolVisualEnMapa() {
     url.searchParams.set('limit', '1');
     return fetchConReintentos(url.toString(), { headers: { 'Accept-Language': 'es' } });
   }
- 
+
   async function geocodificar(direccionTexto) {
     const variantes = [
       direccionTexto,
@@ -1229,7 +1369,7 @@ function actualizarSolVisualEnMapa() {
       direccionTexto.replace(/\s*\d+\s*$/, '').trim(),
       `${direccionTexto.replace(/\s*\d+\s*$/, '').trim()}, España`,
     ].filter((v, i, arr) => v && arr.indexOf(v) === i);
- 
+
     for (const intento of variantes) {
       try {
         const datos = await consultarNominatim(intento);
@@ -1237,14 +1377,13 @@ function actualizarSolVisualEnMapa() {
           return { lat: parseFloat(datos[0].lat), lon: parseFloat(datos[0].lon), nombre: datos[0].display_name };
         }
       } catch (e) {
-        // seguimos con la siguiente variante
       }
       await new Promise((r) => setTimeout(r, 350));
     }
- 
+
     throw new Error(`${t('notFound', 'No se ha encontrado')}: "${direccionTexto}". ${t('tryFormat', 'Prueba a escribirla como calle, número, ciudad')}.`);
   }
- 
+
   async function geocodificarInverso(lat, lon) {
     try {
       const url = new URL(CONFIG.nominatimReverseUrl);
@@ -1257,26 +1396,26 @@ function actualizarSolVisualEnMapa() {
       return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
     }
   }
- 
+
   /* ---------------- Ruta real por calles (OSRM) ---------------- */
- 
+
   async function calcularRutaReal(origen, destino) {
     const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
     const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson`;
- 
+
     try {
       const datos = await fetchConReintentos(url);
       if (datos?.code === 'Ok' && datos.routes?.[0]) {
         const distanciaKmNum = datos.routes[0].distance / 1000;
         let duracionMinNum = datos.routes[0].duration / 60;
- 
+
         const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
         let duracionEstimada = false;
         if (velocidadKmh > 9 || duracionMinNum <= 0) {
           duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
           duracionEstimada = true;
         }
- 
+
         return {
           geojson: datos.routes[0].geometry,
           distanciaKm: distanciaKmNum.toFixed(2),
@@ -1296,28 +1435,161 @@ function actualizarSolVisualEnMapa() {
       };
     }
   }
- 
+
+  /* ---------------- Ruta con prioridad de sombra (entre alternativas reales) ---------------- */
+
+  function calcularCoberturaSombra(geojsonLinea, poligonosSombra) {
+    if (!poligonosSombra.length) return 0;
+    try {
+      const linea = geojsonLinea.type === 'Feature' ? geojsonLinea : turf.feature(geojsonLinea);
+      const tramos = turf.lineChunk(linea, 0.015, { units: 'kilometers' }).features;
+      if (!tramos.length) return 0;
+      let enSombra = 0;
+      for (const tramo of tramos) {
+        const coords = tramo.geometry.coordinates;
+        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
+        for (const poligono of poligonosSombra) {
+          try {
+            if (turf.booleanPointInPolygon(medio, poligono)) { enSombra++; break; }
+          } catch (e) { }
+        }
+      }
+      return enSombra / tramos.length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  async function generarPoligonosSombraPara(listaEdificios, posSolActual) {
+    if (!posSolActual || posSolActual.altitude <= 0) return [];
+    const azimutGrados = (posSolActual.azimuth * 180) / Math.PI + 180;
+    const bearingSombra = (azimutGrados + 180) % 360;
+    const poligonos = [];
+    for (const edificio of listaEdificios) {
+      try {
+        const altura = Number(edificio.properties.height ?? edificio.properties.render_height) || CONFIG.alturaPorDefectoM;
+        const longitudSombraM = altura / Math.tan(posSolActual.altitude);
+        if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+        const geom = edificio.geometry;
+        if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
+        const distanciaKm = longitudSombraM / 1000;
+        const partes = turf.flatten(turf.feature(geom)).features;
+        for (const parte of partes) {
+          const volumen = calcularVolumenSombra(parte, distanciaKm, bearingSombra);
+          if (volumen) poligonos.push(volumen);
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    return poligonos;
+  }
+
+  function esperarMapaListo(timeoutMs = 4000) {
+    return new Promise((resolve) => {
+      let resuelto = false;
+      const terminar = () => { if (!resuelto) { resuelto = true; resolve(); } };
+      map.once('idle', terminar);
+      setTimeout(terminar, timeoutMs);
+    });
+  }
+
+  async function calcularRutaConPrioridadSombra(origen, destino) {
+    if (!CONFIG.priorizarSombra) return calcularRutaReal(origen, destino);
+
+    try {
+      const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
+      const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&alternatives=true`;
+      const datos = await fetchConReintentos(url);
+
+      if (datos?.code !== 'Ok' || !datos.routes?.length) {
+        return calcularRutaReal(origen, destino);
+      }
+
+      const candidatas = datos.routes.slice(0, CONFIG.maxAlternativasSombra);
+      if (candidatas.length === 1) {
+        return calcularRutaReal(origen, destino);
+      }
+
+      const todasLasCoords = candidatas.flatMap((r) => r.geometry.coordinates);
+      if (todasLasCoords.length < 2) return calcularRutaReal(origen, destino);
+
+      const bboxCombinado = turf.bbox(turf.lineString(todasLasCoords));
+      map.jumpTo({
+        center: [(bboxCombinado[0] + bboxCombinado[2]) / 2, (bboxCombinado[1] + bboxCombinado[3]) / 2],
+        zoom: Math.max(map.getZoom(), 16),
+      });
+      await esperarMapaListo();
+      actualizarCacheEdificios();
+
+      const centro = { lat: (origen.lat + destino.lat) / 2, lon: (origen.lon + destino.lon) / 2 };
+      const posSolActual = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+
+      let poligonosSombra = [];
+      if (posSolActual.altitude > 0 && capaEdificiosDisponible && edificiosCacheados.length) {
+        poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
+      }
+
+      const distanciaMinimaKm = Math.min(...candidatas.map((r) => r.distance / 1000));
+
+      let mejor = null;
+      for (const ruta of candidatas) {
+        const distanciaKm = ruta.distance / 1000;
+        const cobertura = poligonosSombra.length ? calcularCoberturaSombra(ruta.geometry, poligonosSombra) : 0;
+        const dentroDeMargen = distanciaKm <= distanciaMinimaKm * CONFIG.maxDetourSombra;
+        const candidato = { ruta, distanciaKm, cobertura, dentroDeMargen };
+        if (!mejor) { mejor = candidato; continue; }
+        if (dentroDeMargen && !mejor.dentroDeMargen) { mejor = candidato; continue; }
+        if (dentroDeMargen === mejor.dentroDeMargen) {
+          if (cobertura > mejor.cobertura + 0.02) mejor = candidato;
+          else if (Math.abs(cobertura - mejor.cobertura) <= 0.02 && distanciaKm < mejor.distanciaKm) mejor = candidato;
+        }
+      }
+
+      const distanciaKmNum = mejor.distanciaKm;
+      let duracionMinNum = mejor.ruta.duration / 60;
+      const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
+      let duracionEstimada = false;
+      if (velocidadKmh > 9 || duracionMinNum <= 0) {
+        duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
+        duracionEstimada = true;
+      }
+
+      return {
+        geojson: mejor.ruta.geometry,
+        distanciaKm: distanciaKmNum.toFixed(2),
+        duracionMin: Math.round(duracionMinNum),
+        esReal: true,
+        duracionEstimada,
+        coberturaSombraPct: poligonosSombra.length ? Math.round(mejor.cobertura * 100) : null,
+      };
+    } catch (err) {
+      console.warn('Routing con prioridad de sombra no disponible, usando ruta normal:', err);
+      return calcularRutaReal(origen, destino);
+    }
+  }
+
   /* ---------------- Calidad del aire (Open-Meteo) ---------------- */
- 
+
   async function obtenerCalidadAire(lat, lon) {
     const url = new URL(CONFIG.airQualityUrl);
     url.searchParams.set('latitude', lat);
     url.searchParams.set('longitude', lon);
     url.searchParams.set('current', ['us_aqi', 'pm2_5', 'pm10', 'ozone', 'nitrogen_dioxide'].join(','));
     url.searchParams.set('timezone', 'auto');
- 
+
     const datos = await fetchConReintentos(url.toString());
     if (!datos || !datos.current) throw new Error('La API de calidad del aire no ha devuelto datos.');
     return datos.current;
   }
- 
+
   function clasificarAQI(valor) {
     if (valor == null || Number.isNaN(valor)) return { etiqueta: t('aqiNoData', 'Sin datos'), color: leerVar('--sky-mid') };
     if (valor <= 50) return { etiqueta: t('aqiGood', 'Buena'), color: leerVar('--breath-good') };
     if (valor <= 100) return { etiqueta: t('aqiModerate', 'Moderada'), color: leerVar('--breath-mid') };
     return { etiqueta: t('aqiBad', 'Mala'), color: leerVar('--breath-bad') };
   }
- 
+
   function pintarPanelAQI(current) {
     if (!current) return;
     const placeholder = document.getElementById('rsAqiPlaceholder');
@@ -1326,93 +1598,93 @@ function actualizarSolVisualEnMapa() {
     if (!placeholder || !contenido || !categoriaElChk) return;
     const aqi = current.us_aqi;
     const clasificacion = clasificarAQI(aqi);
- 
+
     document.getElementById('rsAqiValue').textContent = aqi != null ? Math.round(aqi) : '--';
     const categoriaEl = document.getElementById('rsAqiCategory');
     categoriaEl.textContent = clasificacion.etiqueta;
     categoriaEl.style.color = clasificacion.color;
     categoriaEl.style.background = clasificacion.color + '26';
- 
+
     document.getElementById('rsPm25').textContent = current.pm2_5 != null ? `${current.pm2_5} µg/m³` : '--';
     document.getElementById('rsPm10').textContent = current.pm10 != null ? `${current.pm10} µg/m³` : '--';
     document.getElementById('rsO3').textContent = current.ozone != null ? `${current.ozone} µg/m³` : '--';
     document.getElementById('rsNo2').textContent = current.nitrogen_dioxide != null ? `${current.nitrogen_dioxide} µg/m³` : '--';
- 
+
     placeholder.style.display = 'none';
     contenido.style.display = 'block';
   }
- 
+
   /* ---------------- Marcadores ---------------- */
- 
+
   let marcadorOrigen = null, marcadorDestino = null;
- 
+
   function pintarMarcadores(origen, destino) {
     if (marcadorOrigen) marcadorOrigen.remove();
     if (marcadorDestino) marcadorDestino.remove();
- 
+
     const pin = (color) => {
       const el = document.createElement('div');
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${color};border:3px solid var(--paper);box-shadow:0 0 0 2px ${color}66;`;
       return el;
     };
- 
+
     marcadorOrigen = new maplibregl.Marker({ element: pin(leerVar('--accent') || '#F4A66B') })
       .setLngLat([origen.lon, origen.lat])
       .setPopup(new maplibregl.Popup().setHTML(`<b>${t('origin', 'Origen')}</b><br>${origen.nombre}`))
       .addTo(map);
- 
+
     marcadorDestino = new maplibregl.Marker({ element: pin(leerVar('--sky-deep') || '#1C3144') })
       .setLngLat([destino.lon, destino.lat])
       .setPopup(new maplibregl.Popup().setHTML(`<b>${t('destiny', 'Destino')}</b><br>${destino.nombre}`))
       .addTo(map);
   }
- 
+
   /* ---------------- UI principal ---------------- */
- 
+
   const inputOrigen = document.getElementById('rsOrigen');
   const inputDestino = document.getElementById('rsDestino');
   const btnBuscar = document.getElementById('rsBuscarBtn');
   const statusEl = document.getElementById('rsStatus');
- 
+
   function mostrarEstado(texto, tipo) {
     statusEl.textContent = texto;
     statusEl.style.color = tipo === 'error' ? leerVar('--breath-bad') : tipo === 'ok' ? leerVar('--breath-good') : leerVar('--sky-mid');
   }
- 
+
   function ponerCargando(cargando) {
     btnBuscar.disabled = cargando;
     btnBuscar.textContent = cargando ? t('searching', 'Buscando…') : t('searchBtn', 'Buscar ruta');
   }
- 
+
   /* ---------------- Autocompletado tipo Google (Nominatim) ---------------- */
- 
+
   const seleccionPorInput = new Map();
- 
+
   function crearAutocompletado(input, contenedorSugerenciasId) {
     const contenedor = document.getElementById(contenedorSugerenciasId);
     if (!contenedor) return;
- 
+
     let temporizador = null;
     let controladorActual = null;
     let indiceActivo = -1;
     let ultimosResultados = [];
- 
+
     input.addEventListener('input', () => {
       seleccionPorInput.delete(input);
       indiceActivo = -1;
       const texto = input.value.trim();
- 
+
       clearTimeout(temporizador);
       if (texto.length < 3) {
         contenedor.innerHTML = '';
         contenedor.style.display = 'none';
         return;
       }
- 
+
       temporizador = setTimeout(async () => {
         if (controladorActual) controladorActual.abort();
         controladorActual = new AbortController();
- 
+
         try {
           const url = new URL(CONFIG.nominatimUrl);
           url.searchParams.set('q', texto);
@@ -1420,7 +1692,7 @@ function actualizarSolVisualEnMapa() {
           url.searchParams.set('limit', '6');
           url.searchParams.set('addressdetails', '1');
           url.searchParams.set('countrycodes', 'es');
- 
+
           const resp = await fetch(url.toString(), {
             headers: { 'Accept-Language': 'es' },
             signal: controladorActual.signal,
@@ -1432,7 +1704,7 @@ function actualizarSolVisualEnMapa() {
         }
       }, 350);
     });
- 
+
     function reordenarPorCiudadEscrita(resultados, textoOriginal) {
       const textoLower = textoOriginal.toLowerCase();
       return [...resultados].sort((a, b) => {
@@ -1443,7 +1715,7 @@ function actualizarSolVisualEnMapa() {
         return coincideB - coincideA;
       });
     }
- 
+
     function seleccionarSugerencia(r) {
       input.value = r.display_name;
       seleccionPorInput.set(input, {
@@ -1456,7 +1728,7 @@ function actualizarSolVisualEnMapa() {
       contenedor.style.display = 'none';
       indiceActivo = -1;
     }
- 
+
     function resaltarActivo() {
       const items = contenedor.querySelectorAll('li[data-idx]');
       items.forEach((li, i) => {
@@ -1466,7 +1738,7 @@ function actualizarSolVisualEnMapa() {
         items[indiceActivo].scrollIntoView({ block: 'nearest' });
       }
     }
- 
+
     function pintarSugerencias(resultados, textoOriginal) {
       ultimosResultados = [];
       if (!resultados || resultados.length === 0) {
@@ -1474,11 +1746,11 @@ function actualizarSolVisualEnMapa() {
         contenedor.style.display = 'block';
         return;
       }
- 
+
       resultados = reordenarPorCiudadEscrita(resultados, textoOriginal);
       ultimosResultados = resultados;
       indiceActivo = -1;
- 
+
       contenedor.innerHTML = resultados
         .map((r, i) => {
           const ciudad = r.address?.city || r.address?.town || r.address?.village || r.address?.municipality || '';
@@ -1490,16 +1762,16 @@ function actualizarSolVisualEnMapa() {
         })
         .join('');
       contenedor.style.display = 'block';
- 
+
       contenedor.querySelectorAll('li[data-idx]').forEach((li) => {
         li.addEventListener('click', () => seleccionarSugerencia(resultados[Number(li.dataset.idx)]));
       });
     }
- 
+
     input.addEventListener('keydown', (e) => {
       const visible = contenedor.style.display !== 'none' && ultimosResultados.length > 0;
       if (!visible) return;
- 
+
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         indiceActivo = (indiceActivo + 1) % ultimosResultados.length;
@@ -1517,39 +1789,39 @@ function actualizarSolVisualEnMapa() {
         indiceActivo = -1;
       }
     });
- 
+
     document.addEventListener('click', (e) => {
       if (e.target !== input && !contenedor.contains(e.target)) {
         contenedor.style.display = 'none';
       }
     });
   }
- 
+
   crearAutocompletado(inputOrigen, 'rsSugerenciasOrigen');
   crearAutocompletado(inputDestino, 'rsSugerenciasDestino');
- 
+
   async function resolverPunto(input) {
     const seleccionado = seleccionPorInput.get(input);
     const texto = input.value.trim();
     if (seleccionado && seleccionado.texto === texto) return seleccionado;
     return geocodificar(texto);
   }
- 
+
   async function manejarBusqueda(origenDirecto, destinoDirecto) {
     if (origenDirecto && destinoDirecto) {
       return ejecutarBusquedaConPuntos(origenDirecto, destinoDirecto);
     }
- 
+
     const textoOrigen = inputOrigen.value.trim();
     const textoDestino = inputDestino.value.trim();
     if (!textoOrigen || !textoDestino) {
       mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
       return;
     }
- 
+
     ponerCargando(true);
     mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
- 
+
     try {
       const [origen, destino] = await Promise.all([resolverPunto(inputOrigen), resolverPunto(inputDestino)]);
       await ejecutarBusquedaConPuntos(origen, destino);
@@ -1559,39 +1831,42 @@ function actualizarSolVisualEnMapa() {
       ponerCargando(false);
     }
   }
- 
+
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
     mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
- 
+
     try {
-      const ruta = await calcularRutaReal(origen, destino);
- 
+      const ruta = await calcularRutaConPrioridadSombra(origen, destino);
+
       map.getSource('ruta').setData(turf.feature(ruta.geojson));
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
       map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       pintarMarcadores(origen, destino);
- 
+
       const bounds = ruta.geojson.coordinates.reduce(
         (b, c) => b.extend(c),
         new maplibregl.LngLatBounds(ruta.geojson.coordinates[0], ruta.geojson.coordinates[0])
       );
       map.fitBounds(bounds, { padding: 70, maxZoom: 17, duration: 800 });
- 
+
       puntoReferenciaSol = { lat: origen.lat, lon: origen.lon };
       rutaActual = ruta.esReal ? turf.feature(ruta.geojson) : null;
       asegurarActivacionSolar();
       await recalcularSombrasVisibles();
       actualizarIluminacionSolar();
       await actualizarTramosSombraRuta();
- 
+
       if (ruta.esReal) {
         const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
-        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}.`, 'ok');
+        const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
+        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`, 'ok');
+        mostrarBadgeSombra(ruta.coberturaSombraPct);
       } else {
         mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
+        mostrarBadgeSombra(null);
       }
- 
+
       try {
         const aire = await obtenerCalidadAire(origen.lat, origen.lon);
         pintarPanelAQI(aire);
@@ -1606,30 +1881,34 @@ function actualizarSolVisualEnMapa() {
       ponerCargando(false);
     }
   }
- 
+
   ponerCargando(false);
   if (inputOrigen && !inputOrigen.value) inputOrigen.setAttribute('placeholder', t('originPlaceholder', inputOrigen.getAttribute('placeholder')));
   if (inputDestino && !inputDestino.value) inputDestino.setAttribute('placeholder', t('destinationPlaceholder', inputDestino.getAttribute('placeholder')));
   const tituloRuta = document.getElementById('rsRouteMapTitle');
   if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
- 
+
   btnBuscar.addEventListener('click', manejarBusqueda);
   [inputOrigen, inputDestino].forEach((input) => {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); manejarBusqueda(); }
     });
   });
- 
+
   document.getElementById('themeToggle')?.addEventListener('click', () => setTimeout(() => {
     if (map.getLayer('capa-ruta')) map.setPaintProperty('capa-ruta', 'line-color', leerVar('--accent'));
   }, 50));
- 
+
   document.addEventListener('langChanged', () => {
     if (btnModoClickRef) btnModoClickRef.textContent = t('pickMap', 'Elegir en el mapa');
     const btnLoc = document.getElementById('rsBtnMyLocation');
     if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicación');
     const btnWalk = document.getElementById('rsBtnWalk');
     if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
+    
+    const btnPaseo = document.getElementById('rsBtnPaseo');
+    if (btnPaseo) btnPaseo.textContent = paseoActivo ? t('virtualWalkStop', 'Salir del paseo') : t('virtualWalkStart', 'Paseo virtual 3D');
+
     const btnDark = document.getElementById('rsBtnMapaOscuro');
     if (btnDark) btnDark.textContent = mapaOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
     const eyebrow = document.getElementById('rsEyebrowSol');
@@ -1649,5 +1928,87 @@ function actualizarSolVisualEnMapa() {
     const tituloRuta = document.getElementById('rsRouteMapTitle');
     if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
   });
+
+  /* ============================================================
+     JOYSTICK VIRTUAL + EVENTOS POINTER PARA PASEO 3D
+     ============================================================ */
+  function inyectarJoystick() {
+    if (document.getElementById('rsJoystick')) return;
+    const joy = document.createElement('div');
+    joy.id = 'rsJoystick';
+    const knob = document.createElement('div');
+    knob.id = 'rsJoystickKnob';
+    joy.appendChild(knob);
+    contenedorMapa.appendChild(joy);
+
+    const maxR = 28; 
+
+    joy.addEventListener('pointerdown', (e) => {
+      if (!paseoActivo) return;
+      e.preventDefault();
+      joy.setPointerCapture(e.pointerId);
+      paseoJoystick.active = true;
+      paseoJoystick.pointerId = e.pointerId;
+      const rect = joy.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      paseoJoystick.startX = cx;
+      paseoJoystick.startY = cy;
+      paseoJoystick.dx = 0;
+      paseoJoystick.dy = 0;
+      knob.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
+      joy.classList.add('rs-visible');
+    });
+
+    joy.addEventListener('pointermove', (e) => {
+      if (!paseoActivo || !paseoJoystick.active || e.pointerId !== paseoJoystick.pointerId) return;
+      const dx = e.clientX - paseoJoystick.startX;
+      const dy = e.clientY - paseoJoystick.startY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const scale = dist > maxR ? maxR / dist : 1;
+      paseoJoystick.dx = (dx * scale) / maxR; 
+      paseoJoystick.dy = (dy * scale) / maxR; 
+      knob.style.transform = `translate(-50%, -50%) translate(${dx * scale}px, ${dy * scale}px)`;
+    });
+
+    const limpiarJoystick = () => {
+      paseoJoystick.active = false;
+      paseoJoystick.dx = 0;
+      paseoJoystick.dy = 0;
+      knob.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
+    };
+
+    joy.addEventListener('pointerup', limpiarJoystick);
+    joy.addEventListener('pointercancel', limpiarJoystick);
+    joy.addEventListener('lostpointercapture', limpiarJoystick);
+  }
+
+  map.on('load', () => {
+    inyectarJoystick();
+  });
+
+  mapEl.addEventListener('pointerdown', (e) => {
+    if (!paseoActivo) return;
+    if (e.target.closest('#rsJoystick')) return;
+    paseoToques.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { mapEl.setPointerCapture(e.pointerId); } catch(_){}
+  });
+
+  mapEl.addEventListener('pointermove', (e) => {
+    if (!paseoActivo) return;
+    const prev = paseoToques.get(e.pointerId);
+    if (!prev) return;
+    
+    const dx = e.clientX - prev.x;
+    const sensibilidad = 0.3; 
+    
+    paseoJugador.bearing -= dx * sensibilidad;
+    
+    prev.x = e.clientX;
+    prev.y = e.clientY;
+  });
+
+  mapEl.addEventListener('pointerup', (e) => paseoToques.delete(e.pointerId));
+  mapEl.addEventListener('pointercancel', (e) => paseoToques.delete(e.pointerId));
+
 })();
- 

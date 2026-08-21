@@ -22,6 +22,7 @@
     loteSombraSize: 25,
     sincroSombraMs: 60 * 1000,
     esperaMoveendMs: 500,
+    esperaSliderMs: 90, // igual que aplicarCambioDeHora() en shadows-route.js
     maxLadoConsultaKm: 3,
     cacheCeldasGrados: 0.01,
     esperaMapaMs: 15000,
@@ -49,6 +50,27 @@
 
   esperarMapa().then(iniciar).catch((e) => console.warn('[arboles-globales]', e.message));
 
+  // ---- Hora efectiva: comparte el mismo slider #rsTimeSlider que pinta
+  // shadows-route.js, en vez de usar siempre la hora real del sistema.
+  // Así, al mover el slider (o pulsar Ahora/Verano/Invierno), la sombra
+  // de los árboles gira igual que la de los edificios.
+  // Nota: los botones "Verano"/"Invierno" cambian también la FECHA (no solo
+  // la hora) dentro de shadows-route.js, pero esa fecha es interna a ese
+  // archivo y no se expone. Aquí replicamos el mismo truco que usaría el
+  // slider solo para minutos-del-día: se respeta perfectamente la hora
+  // elegida; el día calendario usado internamente es el de hoy. Esto no
+  // afecta al ángulo del sol de forma apreciable salvo en fechas muy
+  // alejadas de la actual.
+  function obtenerHoraEfectiva() {
+    const slider = document.getElementById('rsTimeSlider');
+    if (!slider) return new Date();
+    const minutos = Number(slider.value);
+    if (Number.isNaN(minutos)) return new Date();
+    const d = new Date();
+    d.setHours(Math.floor(minutos / 60), minutos % 60, 0, 0);
+    return d;
+  }
+
   async function iniciar(map) {
 
     function primeraCapaEdificiosOSuelo() {
@@ -65,8 +87,6 @@
           type: 'fill',
           source: 'arboles-globales-sombra',
           paint: {
-            // Mismo tono "sombra" que usan los edificios en manolit-aire.js,
-            // para que ambas capas de sombra se vean coherentes.
             'fill-color': '#0b1220',
             'fill-opacity': 0.26,
           },
@@ -275,10 +295,6 @@
       return a;
     }
 
-    // Barre el contorno del círculo de la copa a lo largo de la dirección de
-    // la sombra y une los cuadriláteros resultantes: da la silueta cónica
-    // real de la sombra, no solo el círculo original pegado a una copia
-    // trasladada (eso último dejaba un hueco en forma de "cacahuete").
     function calcularVolumenSombraCopa(circuloCopa, distanciaKm, bearingSombra) {
       const anillo = circuloCopa.geometry.coordinates[0];
       let resultado = circuloCopa;
@@ -304,10 +320,10 @@
       const miVersion = ++versionSombra;
 
       const centro = map.getCenter();
-      const posSol = SunCalc.getPosition(new Date(), centro.lat, centro.lng);
+      // Antes: SunCalc.getPosition(new Date(), ...) — ignoraba el slider de
+      // tiempo de shadows-route.js. Ahora usa la misma hora que ese panel.
+      const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lng);
 
-      // Igual que con los edificios: si el sol está bajo el horizonte no
-      // hay sombra que proyectar. Nada de forzar una altitud inventada.
       if (posSol.altitude <= 0) {
         map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
         return;
@@ -354,6 +370,28 @@
         cargarArbolesDeLaVista();
         recalcularSombrasArboles();
       }, CONFIG.esperaMoveendMs);
+    });
+
+    // ---- Escucha del panel de tiempo de shadows-route.js ----
+    // El slider (#rsTimeSlider) y los botones Ahora/Verano/Invierno se crean
+    // dinámicamente por shadows-route.js, así que se delega el listener en
+    // el document en vez de buscar el elemento una sola vez al arrancar.
+    let esperaSliderArboles = null;
+    function programarRecalculoPorTiempo() {
+      clearTimeout(esperaSliderArboles);
+      esperaSliderArboles = setTimeout(() => recalcularSombrasArboles(), CONFIG.esperaSliderMs);
+    }
+    document.addEventListener('input', (e) => {
+      if (e.target && e.target.id === 'rsTimeSlider') programarRecalculoPorTiempo();
+    });
+    document.addEventListener('click', (e) => {
+      const id = e.target && e.target.id;
+      if (id === 'rsBtnAhora' || id === 'rsBtnVerano' || id === 'rsBtnInvierno') {
+        // Los botones tardan ~90ms en aplicar su propio cambio de hora
+        // (aplicarCambioDeHora en shadows-route.js); esperamos un poco más
+        // para leer el slider ya actualizado.
+        setTimeout(() => recalcularSombrasArboles(), 140);
+      }
     });
 
     await cargarArbolesDeLaVista();

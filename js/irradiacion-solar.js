@@ -207,9 +207,10 @@
         }
         #irrPanel.rs-visible{ display:block; }
         #irrPanel label{ font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#c98a4b; display:block; margin-bottom:4px; }
-        #irrPanel select{
+        #irrPanel select, #irrPanel input[type=month]{
           width:100%; margin-bottom:8px; background:#00000026; color:#e9e4d8;
-          border:1px solid #ffffff1f; border-radius:2px; padding:5px; font-family:inherit; font-size:12px;
+          border:1px solid #ffffff1f; border-radius:2px; padding:6px; font-family:inherit; font-size:13px;
+          color-scheme: dark;
         }
         #irrEstado{ font-size:10.5px; margin-top:4px; line-height:1.4; }
         @media (max-width:480px){ #irrPanel{ width:calc(100vw - 24px); right:12px; } }
@@ -219,46 +220,42 @@
       panelEl = document.createElement('div');
       panelEl.id = 'irrPanel';
 
-      const labelAnio = document.createElement('label');
-      labelAnio.textContent = 'Año histórico';
-      const selectAnio = document.createElement('select');
-      const anioActual = new Date().getFullYear();
-      for (let a = anioActual; a >= CONFIG.anioMinimo; a--) {
-        const opt = document.createElement('option');
-        opt.value = String(a);
-        opt.textContent = String(a);
-        selectAnio.appendChild(opt);
-      }
+      // Un único selector "mes y año": el navegador dibuja un calendario
+      // visual encima, Y también deja escribir la fecha directamente con
+      // el teclado (dd/aaaa) — cubre las dos cosas a la vez. Además, con
+      // min/max evitamos que se puedan elegir meses futuros (por eso daba
+      // el error 422: se pedía un mes que todavía no ha pasado).
+      const labelFecha = document.createElement('label');
+      labelFecha.textContent = 'Mes y año histórico';
+      const inputMes = document.createElement('input');
+      inputMes.type = 'month';
+      inputMes.id = 'irrInputMes';
 
-      const labelMes = document.createElement('label');
-      labelMes.textContent = 'Mes';
-      const selectMes = document.createElement('select');
-      const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-      nombresMeses.forEach((nombre, i) => {
-        const opt = document.createElement('option');
-        opt.value = String(i + 1);
-        opt.textContent = nombre;
-        selectMes.appendChild(opt);
-      });
-      selectMes.value = String(new Date().getMonth() + 1);
+      const ahora = new Date();
+      const maxMes = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
+      inputMes.min = `${CONFIG.anioMinimo}-01`;
+      inputMes.max = maxMes;
+      inputMes.value = maxMes;
 
       estadoEl = document.createElement('div');
       estadoEl.id = 'irrEstado';
 
       function onCambio() {
         if (!capaActiva) return;
-        aplicarIrradiancia(Number(selectAnio.value), Number(selectMes.value));
+        const val = inputMes.value; // formato "AAAA-MM"
+        if (!val) return;
+        const [anio, mes] = val.split('-').map(Number);
+        aplicarIrradiancia(anio, mes);
       }
-      selectAnio.addEventListener('change', onCambio);
-      selectMes.addEventListener('change', onCambio);
+      inputMes.addEventListener('change', onCambio);
 
-      panelEl.append(labelAnio, selectAnio, labelMes, selectMes, estadoEl);
+      panelEl.append(labelFecha, inputMes, estadoEl);
       contenedorMapa.appendChild(panelEl);
 
-      return { selectAnio, selectMes };
+      return { inputMes };
     }
 
-    const { selectAnio, selectMes } = construirPanel();
+    const { inputMes } = construirPanel();
 
     function inyectarBotonCapa() {
       const panelControles = document.getElementById('rsMapControls');
@@ -272,7 +269,8 @@
         btn.classList.toggle('rs-activo', capaActiva);
         panelEl.classList.toggle('rs-visible', capaActiva);
         if (capaActiva) {
-          aplicarIrradiancia(Number(selectAnio.value), Number(selectMes.value));
+          const [anio, mes] = inputMes.value.split('-').map(Number);
+          aplicarIrradiancia(anio, mes);
         } else {
           restaurarColoresOriginales();
           mostrarEstadoPanel('');

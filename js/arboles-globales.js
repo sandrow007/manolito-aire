@@ -65,8 +65,6 @@
           type: 'fill',
           source: 'arboles-globales-sombra',
           paint: {
-            // Mismo tono "sombra" que usan los edificios en manolit-aire.js,
-            // para que ambas capas de sombra se vean coherentes.
             'fill-color': '#0b1220',
             'fill-opacity': 0.26,
           },
@@ -261,7 +259,7 @@
       return enVista;
     }
 
-    /* ---------------- Sombra real por barrido (misma técnica que los edificios) ---------------- */
+    /* ---------------- Sombra real por barrido ---------------- */
 
     function unirDosPoligonos(a, b) {
       try {
@@ -275,10 +273,6 @@
       return a;
     }
 
-    // Barre el contorno del círculo de la copa a lo largo de la dirección de
-    // la sombra y une los cuadriláteros resultantes: da la silueta cónica
-    // real de la sombra, no solo el círculo original pegado a una copia
-    // trasladada (eso último dejaba un hueco en forma de "cacahuete").
     function calcularVolumenSombraCopa(circuloCopa, distanciaKm, bearingSombra) {
       const anillo = circuloCopa.geometry.coordinates[0];
       let resultado = circuloCopa;
@@ -304,10 +298,11 @@
       const miVersion = ++versionSombra;
 
       const centro = map.getCenter();
-      const posSol = SunCalc.getPosition(new Date(), centro.lat, centro.lng);
+      
+      // LÓGICA VIRTUAL AÑADIDA AQUÍ
+      const fechaSombra = window.rsFechaVirtual || new Date();
+      const posSol = SunCalc.getPosition(fechaSombra, centro.lat, centro.lng);
 
-      // Igual que con los edificios: si el sol está bajo el horizonte no
-      // hay sombra que proyectar. Nada de forzar una altitud inventada.
       if (posSol.altitude <= 0) {
         map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
         return;
@@ -319,8 +314,10 @@
       const enVista = dibujarArbolesVisibles();
       const paraSombra = enVista.slice(0, CONFIG.maxArbolesConSombra);
 
-      const tangenteSol = Math.tan(posSol.altitude);
-      if (!tangenteSol) return;
+      // BLINDAJE MATEMÁTICO AÑADIDO AQUÍ
+      const altSol = typeof posSol.altitude === 'number' ? posSol.altitude : 0;
+      const tangenteSol = Math.tan(altSol);
+      if (!tangenteSol || tangenteSol === 0) return;
 
       const sombras = [];
       for (let i = 0; i < paraSombra.length; i += CONFIG.loteSombraSize) {
@@ -354,6 +351,11 @@
         cargarArbolesDeLaVista();
         recalcularSombrasArboles();
       }, CONFIG.esperaMoveendMs);
+    });
+
+    // ESCUCHADOR DE EVENTOS AÑADIDO AQUÍ (Para actualizar al mover el slider)
+    window.addEventListener('rsTimeChanged', () => {
+      if (capaVisible) recalcularSombrasArboles();
     });
 
     await cargarArbolesDeLaVista();

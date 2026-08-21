@@ -21,8 +21,12 @@
    Qué hace este archivo:
    1. En cada movimiento del mapa (con espera para no saturar),
       pide a Overpass los árboles dentro del rectángulo visible.
-   2. Filtra SOLO árboles grandes (altura > 3 m, o diámetro de
-      copa > 3 m si no hay altura) — nada de arbustos ni seteos.
+   2. Acepta cualquier nodo natural=tree (esa etiqueta en OSM ya
+      significa "árbol", no arbusto — eso sería natural=shrub).
+      Si trae height o diameter_crown se usan esos datos reales;
+      si no trae nada (lo más habitual, la inmensa mayoría de los
+      árboles en OSM no tienen esos campos rellenos) se le asigna
+      una altura/copa por defecto en vez de descartarlo.
    3. Los dibuja en 3D (copa como un pequeño volumen extruido)
       con la misma estética que los edificios 3D del mapa.
    4. Proyecta su sombra según la posición real del sol —mismo
@@ -48,10 +52,9 @@
     ],
     overpassTimeoutS: 20,
 
-    alturaMinimaM: 3,          // solo árboles grandes que den sombra de verdad
-    diametroCopaMinimoM: 3,    // umbral alternativo si no hay dato de altura
-    alturaEstimadaSinDatoM: 6, // altura asumida cuando pasa el filtro por copa pero no trae altura
-    radioCopaPorDefectoM: 2.2,
+    alturaMinimaM: 2,          // altura mínima para considerarlo "árbol grande" (no seto/arbusto)
+    alturaEstimadaSinDatoM: 6, // altura asumida cuando el nodo natural=tree no trae height
+    radioCopaPorDefectoM: 2.2, // copa asumida cuando el nodo no trae diameter_crown
 
     maxArbolesEnPantalla: 700,  // límite de dibujado por rendimiento
     maxArbolesConSombra: 220,   // límite de cálculo de sombra por rendimiento
@@ -221,26 +224,23 @@
       if (el.type !== 'node' || el.lat == null || el.lon == null) return null;
       const tags = el.tags || {};
 
-      const altura = leerNumero(tags, ['height']);
+      // natural=tree en OSM ya significa "árbol" (los arbustos van aparte,
+      // como natural=shrub). La inmensa mayoría de los árboles mapeados NO
+      // traen height ni diameter_crown rellenos — eso no significa que no
+      // sean árboles grandes, solo que nadie ha rellenado ese dato. Por eso
+      // ya no descartamos el nodo si faltan esos campos: usamos los valores
+      // reales cuando existen, y si no, asumimos un árbol "normal".
+      const altura = leerNumero(tags, ['height']) || CONFIG.alturaEstimadaSinDatoM;
       const diametroCopa = leerNumero(tags, ['diameter_crown']);
 
-      let alturaFinal = altura;
-      if (alturaFinal == null) {
-        // sin altura declarada: solo lo aceptamos si la copa ya delata un árbol grande
-        if (diametroCopa != null && diametroCopa > CONFIG.diametroCopaMinimoM) {
-          alturaFinal = CONFIG.alturaEstimadaSinDatoM;
-        } else {
-          return null; // sin datos suficientes para asegurar que es un árbol grande: se descarta
-        }
-      }
-      if (alturaFinal <= CONFIG.alturaMinimaM) return null; // solo árboles grandes, nada de arbustos
+      if (altura <= CONFIG.alturaMinimaM) return null; // esto sí descarta setos/arbolillos con height explícito muy bajo
 
       const radioCopaM = diametroCopa ? diametroCopa / 2 : CONFIG.radioCopaPorDefectoM;
       const nombre = tags.species || tags['species:es'] || tags.genus || 'Árbol';
 
       return {
         punto: turf.point([el.lon, el.lat]),
-        altura: alturaFinal,
+        altura,
         radioCopaM,
         nombre,
       };
@@ -334,11 +334,11 @@
         const lote = paraSombra.slice(i, i + CONFIG.loteSombraSize);
         for (const arbol of lote) {
           const altSol = posSol && typeof posSol.altitude === 'number' ? posSol.altitude : 0;
-        if (altSol <= 0) continue;
-        const tangenteSol = Math.tan(altSol);
-        if (!tangentSol || tangenteSol === 0) continue;
-        const longitudSombraM = arbol.altura / tangenteSol;
-        if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+          if (altSol <= 0) continue;
+          const tangenteSol = Math.tan(altSol);
+          if (!tangenteSol || tangenteSol === 0) continue;
+          const longitudSombraM = arbol.altura / tangenteSol;
+          if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
           const circulo = turf.circle(arbol.punto, arbol.radioCopaM / 1000, { units: 'kilometers', steps: 10 });
           sombras.push(sombraDeCopa(circulo, longitudSombraM / 1000, bearingSombra));
         }

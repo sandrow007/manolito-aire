@@ -1,17 +1,7 @@
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
 
-   v4 (esta revisión) — FIX CRÍTICO de unidades:
-   - En calcularSombraArbol(), radioTroncoKm se calculaba como
-     "arbol.radioCopaM * 0.12" y se usaba DIRECTAMENTE como si ya
-     estuviera en kilómetros — faltaba dividir entre 1000. Como
-     radioCopaM son metros (p.ej. 2.2), esto generaba troncos de
-     sombra de ~264 METROS de radio en vez de ~26 CENTÍMETROS.
-     Con cientos de árboles unidos por turf.union, el resultado
-     era una mancha negra gigantesca que tapaba medio mapa
-     (incluida el agua, que es donde más se notaba al ser una
-     zona grande y abierta). Corregido: ahora sí se divide /1000
-     igual que radioCopaKm.
+   v5 — FIX CRÍTICO de unidades + Sombras Orgánicas Asimétricas
    ============================================================ */
 
 'use strict';
@@ -297,48 +287,64 @@
       return enVista;
     }
 
-    /* ---------------- Sombra realista: cuña estrecha-tronco → ancha-copa ---------------- */
+    /* ---------------- Generación de Sombras Orgánicas ---------------- */
+
+    function pseudoRandom(x, y, seed) {
+      const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+      return n - Math.floor(n);
+    }
+
+    function crearCopaIrregular(centro, radioKm, lon, lat) {
+      const pasos = 16; 
+      const coords = [];
+      for (let i = 0; i < pasos; i++) {
+        const angulo = (i * 360) / pasos;
+        const variacion = 0.70 + (pseudoRandom(lon, lat, i) * 0.50);
+        const radioIrregular = radioKm * variacion;
+        const pt = turf.transformTranslate(centro, radioIrregular, angulo, { units: 'kilometers' }).geometry.coordinates;
+        coords.push(pt);
+      }
+      coords.push(coords[0]);
+      return turf.polygon([coords]);
+    }
 
     function unirDosPoligonos(a, b) {
       try {
         const r = turf.union(turf.featureCollection([a, b]));
         if (r) return r;
-      } catch (e) { /* probamos la otra firma */ }
+      } catch (e) { }
       try {
         const r = turf.union(a, b);
         if (r) return r;
-      } catch (e) { /* nos quedamos con lo que había */ }
+      } catch (e) { }
       return a;
     }
 
     function calcularSombraArbol(arbol, distanciaKm, bearingSombra) {
       const perpendicular = (bearingSombra + 90) % 360;
-
-      // FIX: antes esto se quedaba en METROS (0.264) y se usaba como si
-      // fuesen KILÓMETROS → tronco de sombra de 264 m de radio. Ahora sí
-      // se divide entre 1000, igual que radioCopaKm de la línea siguiente.
-      const radioTroncoKm = Math.max(arbol.radioCopaM * 0.12, 0.35) / 1000; // mínimo 0.35 m reales
+      const radioTroncoKm = Math.max(arbol.radioCopaM * 0.12, 0.35) / 1000;
       const radioCopaKm = arbol.radioCopaM / 1000;
+      const [lon, lat] = arbol.punto.geometry.coordinates;
 
       const lejano = turf.transformTranslate(arbol.punto, distanciaKm, bearingSombra, { units: 'kilometers' });
+      const copaIrregular = crearCopaIrregular(lejano, radioCopaKm, lon, lat);
 
       const pBaseA = turf.transformTranslate(arbol.punto, radioTroncoKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
       const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
-      const pLejosA = turf.transformTranslate(lejano, radioCopaKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
-      const pLejosB = turf.transformTranslate(lejano, radioCopaKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+      const pLejosA = turf.transformTranslate(lejano, radioCopaKm * 0.75, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+      const pLejosB = turf.transformTranslate(lejano, radioCopaKm * 0.75, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
 
       let cuna;
       try {
         cuna = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
       } catch (e) {
-        return turf.circle(lejano, radioCopaKm, { units: 'kilometers', steps: 16 });
+        return copaIrregular;
       }
 
-      const copaLejana = turf.circle(lejano, radioCopaKm, { units: 'kilometers', steps: 16 });
-      const conCopa = unirDosPoligonos(cuna, copaLejana);
+      const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
 
-      const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 10 });
-      return unirDosPoligonos(conCopa, baseRedondeada);
+      let sombraFinal = unirDosPoligonos(cuna, copaIrregular);
+      return unirDosPoligonos(sombraFinal, baseRedondeada);
     }
 
     let versionSombra = 0;

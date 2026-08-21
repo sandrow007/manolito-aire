@@ -1,26 +1,36 @@
 ﻿/* ============================================================
-   MANOLIT∞ AIRE — Ruta real + Sombras 3D reales + AQI (origen)
+   MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
 
-   v2 — añade: slider de tiempo (hoy / solsticios), vuelo de
-   entrada cinemático, botón de captura de imagen, sombras por
+   v2 añade: slider de tiempo (hoy / solsticios), vuelo de
+   entrada cinemática, botón de captura de imagen, sombras por
    volumen de barrido real (no aproximación por envolvente
    convexa), halo de "feather" en el borde de la sombra, aviso
    de hora dorada/azul, caché de edificios (el slider no vuelve
    a consultar el mapa en cada movimiento) y navegación por
-   teclado en las sugerencias de dirección.
+   teclado en las sugerencias de direccion.
 
-   FIX (único cambio de esta revisión): se ha quitado
-   `preserveDrawingBuffer: true` del mapa — ese flag hacía que
-   WebGL no limpiara el lienzo entre fotogramas, lo que en iOS
-   Safari (sobre todo en modo "añadido a pantalla de inicio")
-   deja una estela/rastro visible al moverte por el mapa (modo
-   caminar, GPS en vivo). El botón "Capturar vista" sigue
-   funcionando exactamente igual, pero ahora toma la foto
-   enganchándose al evento `render` del propio mapa justo antes
-   de que se intercambie el buffer, en vez de dejar el buffer
-   siempre sin limpiar.
+   FIX: Eliminado preserveDrawingBuffer. Captura de vista por
+   evento 'render'. Integrado motor 3D FreeCameraOptions para
+   paseo virtual libre sin error de maxPitch o intersección 2D.
+
+   v3 (esta revisión) — arreglo del paseo virtual 3D:
+   - Se guarda y se restaura correctamente el estado de cámara
+     (centro/zoom/pitch/bearing/maxPitch) al entrar y salir del
+     paseo, en vez de dejar el mapa "roto" pegado al suelo.
+   - El paseo y la "caminata GPS" ahora se excluyen mutuamente
+     (antes podían chocar: easeTo() de la caminata peleaba cada
+     frame contra setFreeCameraOptions() del paseo).
+   - Durante el paseo se refresca periódicamente la caché de
+     edificios y se recalculan las sombras según la posición
+     virtual del jugador, así que las sombras 3D también se ven
+     mientras caminas (antes solo se actualizaban con moveend,
+     evento que no se dispara en modo cámara libre).
+   - Corregido el id de la fuente de precisión de ubicación:
+     estaba duplicado como 'precision-ubicación' (con tilde) al
+     crearlo y 'precision-ubicacion' (sin tilde) al usarlo, así
+     que el círculo de precisión nunca se pintaba ni se borraba.
    ============================================================ */
 
 'use strict';
@@ -33,21 +43,27 @@
     bearingInicial: -15,
     nominatimUrl: 'https://nominatim.openstreetmap.org/search',
     nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
-    // OJO: router.project-osrm.org (el demo oficial de OSRM) SOLO tiene
-    // montado el perfil de coche, aunque se le pida /foot/ — por eso daba
-    // rutas irreales (4km "en 9 minutos a pie" = velocidad de coche). El
-    // servidor de FOSSGIS sí aloja un perfil peatonal real.
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
-    velocidadCaminandoKmh: 4.8, // para el aviso de seguridad si el tiempo recibido no cuadra
+    velocidadCaminandoKmh: 4.8, 
     airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
-    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', // vector tiles gratis, sin key
+    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', 
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
-    alturaPorDefectoM: 9, // si un edificio no trae altura en los datos OSM
-    maxEdificiosSombra: 220, // límite de seguridad para no colgar el navegador
-    loteSombraSize: 30, // nº de edificios que se procesan antes de ceder el hilo al navegador
+    alturaPorDefectoM: 9, 
+    maxEdificiosSombra: 220, 
+    loteSombraSize: 30, 
     duracionVueloInicialMs: 2000,
+    priorizarSombra: true,       
+    maxDetourSombra: 1.5,        
+    maxAlternativasSombra: 3,    
+    // ----- Modo peatón virtual (cámara libre, sin GPS real) -----
+    paseoAlturaOjoM: 1.7,
+    paseoVelocidadMs: 3.5,
+    paseoVelocidadGiro: 2.2,
+    paseoLookAheadM: 25,
+    paseoMaxPitch: 85, // Límite estricto de MapLibre
+    paseoSincroMs: 450, // Cada cuánto se refrescan edificios/sombras mientras caminas
   };
 
   /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
@@ -91,20 +107,39 @@
 
   /* ---------------- Mapa MapLibre con edificios 3D reales ---------------- */
 
-  const map = new maplibregl.Map({
+ const map = new maplibregl.Map({
     container: 'shadowRouteMap',
     style: CONFIG.styleUrlClaro,
     center: CONFIG.centroInicial,
     zoom: Math.max(CONFIG.zoomInicial - 2.3, 1),
     pitch: 0,
     bearing: 0,
-    attributionControl: true,
-    // (antes: preserveDrawingBuffer: true — quitado, ver nota de cabecera)
-  });
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+    attributionControl: true
+});
 
+// AHORA SÍ: El mapa está creado, lo pasamos a global para que los árboles lo enganchen
+window.manolitAireMap = map;
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   let capaEdificiosDisponible = false;
   let edificiosCacheados = [];
+  let cieloSolActivo = false;
+
+  /* ----- Estado: modo peatón virtual (cámara libre) ----- */
+  let paseoActivo = false;
+  let paseoRafId = null;
+  let paseoUltimoFrame = 0;
+  let paseoOrigenMercator = null;
+  let paseoMetrosAU = 0; // metros a unidades mercator
+  let paseoJugador = { x: 0, y: 0, bearing: 0 };
+  let paseoToques = new Map(); // pointerId -> {x,y}
+  let paseoJoystick = { active:false, startX:0, startY:0, dx:0, dy:0, pointerId:null };
+  let paseoEstadoPrevio = null; // snapshot del mapa antes de entrar, para restaurarlo al salir
+  let paseoUltimaSincroMs = 0;
+
+  // Registro global de teclas para el paseo 3D
+  const keysDown = new Set();
+  addEventListener('keydown', e => keysDown.add(e.code));
+  addEventListener('keyup', e => keysDown.delete(e.code));
 
   map.on('load', () => {
     const capas = map.getStyle().layers || [];
@@ -114,6 +149,19 @@
     if (capaEdificios) {
       CONFIG.edificiosLayerId = capaEdificios.id;
       capaEdificiosDisponible = true;
+      try {
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', [
+          'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+          0, '#8fb3e8',
+          30, '#5f8fd6',
+          70, '#3f6bc0',
+          140, '#274a96'
+        ]);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-opacity', 0.93);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-vertical-gradient', true);
+      } catch (e) {
+        console.warn('No se ha podido aplicar el color vivo a los edificios:', e);
+      }
     }
 
     map.addSource('sombras-halo', { type: 'geojson', data: turf.featureCollection([]) });
@@ -144,7 +192,7 @@
       type: 'line',
       source: 'ruta',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': leerVar('--accent') || '#F4A66B', 'line-width': 5, 'line-opacity': 0.9 },
+      paint: { 'line-color': leerVar('--accent') || '#00f2ff', 'line-width': 5, 'line-opacity': 0.9 },
     });
 
     map.addSource('ruta-sombra', { type: 'geojson', data: turf.featureCollection([]) });
@@ -153,7 +201,7 @@
       type: 'line',
       source: 'ruta-sombra',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#6f9c8b', 'line-width': 5, 'line-opacity': 0.95 },
+      paint: { 'line-color': '#0e5439', 'line-width': 5, 'line-opacity': 0.95 },
     });
 
     map.addSource('puntos-manuales', { type: 'geojson', data: turf.featureCollection([]) });
@@ -163,7 +211,7 @@
       source: 'puntos-manuales',
       paint: {
         'circle-radius': 7,
-        'circle-color': leerVar('--accent') || '#F4A66B',
+        'circle-color': leerVar('--accent') || '#0eedc0',
         'circle-stroke-width': 2,
         'circle-stroke-color': '#1b2029',
       },
@@ -175,7 +223,7 @@
         id: 'capa-precision-ubicacion',
         type: 'fill',
         source: 'precision-ubicacion',
-        paint: { 'fill-color': leerVar('--accent') || '#F4A66B', 'fill-opacity': 0.12 },
+        paint: { 'fill-color': leerVar('--accent') || '#00f2ff', 'fill-opacity': 0.12 },
       },
       'capa-puntos-manuales'
     );
@@ -184,16 +232,15 @@
         id: 'capa-precision-ubicacion-borde',
         type: 'line',
         source: 'precision-ubicacion',
-        paint: { 'line-color': leerVar('--accent') || '#F4A66B', 'line-width': 1, 'line-opacity': 0.4 },
+        paint: { 'line-color': leerVar('--accent') || '#00f2ff', 'line-width': 1, 'line-opacity': 0.4 },
       },
       'capa-puntos-manuales'
     );
 
-    let cieloSolActivo = false;
-
     inyectarControlesTiempo();
     inyectarControlesMapa();
     inyectarSolVisual();
+    inyectarBadgeSombra();
     conectarTogglesDeCapas();
 
     setTimeout(() => {
@@ -208,7 +255,7 @@
   });
 
   const alTerminarMovimiento = crearDebounce(() => {
-    if (!solarActivado) return;
+    if (!solarActivado || paseoActivo) return;
     actualizarCacheEdificios();
     if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
   }, 220);
@@ -358,7 +405,7 @@
   }
 
   setInterval(() => {
-    if (!solarActivado || modoManual) return;
+    if (!solarActivado || modoManual || paseoActivo) return;
     if (map.loaded()) recalcularSombrasVisibles();
     actualizarIluminacionSolar();
   }, 60 * 1000);
@@ -552,6 +599,54 @@
     punto.setAttribute('cy', y.toFixed(1));
   }
 
+  /* ---------------- Badge discreto de % de sombra (desplegable, no ocupa toda la pantalla) ---------------- */
+
+  function inyectarBadgeSombra() {
+    if (document.getElementById('rsShadowBadge')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsShadowBadgeEstilos';
+    estilo.textContent = `
+      #rsShadowBadge{
+        position:absolute; left:50%; transform:translateX(-50%); bottom:12px;
+        z-index:6; display:none; align-items:center; gap:8px;
+        background:rgba(10,10,12,0.88); backdrop-filter:blur(8px);
+        border:1px solid rgba(255,255,255,0.12); border-radius:999px;
+        padding:6px 10px 6px 14px; font-size:11.5px; color:#e9e4d8;
+        box-shadow:0 8px 18px rgba(0,0,0,.28); max-width:calc(100vw - 24px);
+        white-space:nowrap;
+      }
+      #rsShadowBadge.rs-visible{ display:inline-flex; }
+      #rsShadowBadgeCerrar{
+        background:transparent; border:none; color:#999; font-size:15px;
+        cursor:pointer; line-height:1; padding:0 2px;
+      }
+      #rsShadowBadgeCerrar:hover{ color:#fff; }
+      @media (max-width:480px){ #rsShadowBadge{ font-size:10.5px; bottom:8px; padding:5px 8px 5px 12px; } }
+    `;
+    document.head.appendChild(estilo);
+
+    const badge = document.createElement('div');
+    badge.id = 'rsShadowBadge';
+    const texto = document.createElement('span');
+    texto.id = 'rsShadowBadgeTexto';
+    const cerrar = document.createElement('button');
+    cerrar.id = 'rsShadowBadgeCerrar';
+    cerrar.type = 'button';
+    cerrar.textContent = '×';
+    cerrar.setAttribute('aria-label', 'Cerrar');
+    cerrar.addEventListener('click', () => badge.classList.remove('rs-visible'));
+    badge.append(texto, cerrar);
+    contenedorMapa.appendChild(badge);
+  }
+
+  function mostrarBadgeSombra(pct) {
+    const badge = document.getElementById('rsShadowBadge');
+    const texto = document.getElementById('rsShadowBadgeTexto');
+    if (!badge || !texto || pct == null) { badge?.classList.remove('rs-visible'); return; }
+    texto.textContent = `${pct}% ${t('shadeCoverage', 'del trayecto en sombra')}`;
+    badge.classList.add('rs-visible');
+  }
+
   /* ---------------- Slider de tiempo ---------------- */
 
   let modoManual = false;
@@ -584,10 +679,10 @@
     if (!etiquetaTiempo) return;
     const fecha = obtenerFechaDelSlider();
     const prefijo =
-      contexto === 'verano' ? t('summerSolstice', 'Solsticio de verano') + ' · ' :
-      contexto === 'invierno' ? t('winterSolstice', 'Solsticio de invierno') + ' · ' :
-      modoManual ? t('simulating', 'Simulando') + ' · ' :
-      t('now', 'Ahora') + ' · ';
+      contexto === 'verano' ? t('summerSolstice', 'Solsticio de verano') + ' — ' :
+      contexto === 'invierno' ? t('winterSolstice', 'Solsticio de invierno') + ' — ' :
+      modoManual ? t('simulating', 'Simulando') + ' — ' :
+      t('now', 'Ahora') + ' — ';
     etiquetaTiempo.textContent = prefijo + formatoHora(fecha);
   }
 
@@ -674,7 +769,6 @@
     document.head.appendChild(estilo);
   }
 
-
   /* ---------------- Elegir puntos directamente en el mapa + geolocalización ---------------- */
 
   let modoClickMapa = false;
@@ -699,6 +793,25 @@
       #rsMapControls button:hover{ background:#c98a4b22; }
       #rsMapControls button.rs-activo{ border-left-color:#e7b06a; color:#e7b06a; }
       @media (max-width:480px){ #rsMapControls button{ padding:7px 8px; font-size:9.5px; } }
+
+      /* Joystick virtual para paseo 3D */
+      #rsJoystick{
+        position:absolute; right:24px; bottom:24px; width:96px; height:96px;
+        border-radius:50%; background:rgba(255,255,255,0.06);
+        border:1px solid rgba(255,255,255,0.15); touch-action:none;
+        z-index:6; display:none; pointer-events:auto;
+      }
+      #rsJoystickKnob{
+        position:absolute; left:50%; top:50%; width:38px; height:38px;
+        transform:translate(-50%,-50%); border-radius:50%;
+        background:rgba(201,138,75,0.85); border:2px solid #e9e4d8;
+        box-shadow:0 4px 12px rgba(0,0,0,.35); touch-action:none;
+      }
+      #rsJoystick.rs-visible{ display:block; }
+      @media (max-width:480px){
+        #rsJoystick{ width:78px; height:78px; right:16px; bottom:16px; }
+        #rsJoystickKnob{ width:32px; height:32px; }
+      }
     `;
     document.head.appendChild(estilo);
   }
@@ -725,6 +838,37 @@
     btnCaminar.type = 'button';
     btnCaminar.id = 'rsBtnWalk';
     btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
+
+    const btnPaseo = document.createElement('button');
+    btnPaseo.type = 'button';
+    btnPaseo.id = 'rsBtnPaseo';
+    btnPaseo.textContent = t('virtualWalkStart', 'Paseo virtual 3D');
+
+    const btnReiniciar = document.createElement('button');
+    btnReiniciar.type = 'button';
+    btnReiniciar.id = 'rsBtnReset';
+    btnReiniciar.textContent = t('resetBtn', 'Reiniciar');
+
+    function reiniciarTodo() {
+      detenerPaseoVirtual();
+      salirDeModoClick();
+      detenerCaminata();
+      inputOrigen.value = '';
+      inputDestino.value = '';
+      seleccionPorInput.delete(inputOrigen);
+      seleccionPorInput.delete(inputDestino);
+      map.getSource('ruta')?.setData(turf.featureCollection([]));
+      map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
+      map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
+      map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
+      if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
+      if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
+      rutaActual = null;
+      mostrarEstado('');
+      mostrarBadgeSombra(null);
+    }
+
+    btnReiniciar.addEventListener('click', reiniciarTodo);
 
     function salirDeModoClick() {
       modoClickMapa = false;
@@ -804,13 +948,14 @@
 
     btnCaminar.addEventListener('click', () => {
       if (watchId != null) { detenerCaminata(); mostrarEstado(''); return; }
+      if (paseoActivo) detenerPaseoVirtual(); // los dos modos de caminar no pueden convivir
       if (!('geolocation' in navigator)) {
         mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
         return;
       }
       btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
-      mostrarEstado(t('walkModeTracking', 'Siguiendo tu posición…'));
+      mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
 
       const el = document.createElement('div');
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#1C3144'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#1C3144')}33;`;
@@ -830,7 +975,188 @@
       );
     });
 
-    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar);
+    /* ---- Paseo virtual 3D: cámara libre, sin GPS real ----
+       Arreglado: se guarda el estado del mapa antes de entrar y se
+       restaura tal cual al salir; la cámara libre y la caminata GPS
+       se excluyen mutuamente; y las sombras/edificios se refrescan
+       según la posición del jugador mientras camina. */
+    function entrarPaseoVirtual() {
+      if (paseoActivo) return;
+      if (watchId != null) detenerCaminata(); // no convivir con la caminata GPS real
+
+      // Guardamos el estado real del mapa para poder volver a él tal cual al salir
+      paseoEstadoPrevio = {
+        center: map.getCenter(),
+        zoom: map.getZoom(),
+        pitch: map.getPitch(),
+        bearing: map.getBearing(),
+        maxPitch: map.getMaxPitch(),
+      };
+
+      const centro = map.getCenter();
+      paseoOrigenMercator = maplibregl.MercatorCoordinate.fromLngLat(centro);
+      paseoMetrosAU = paseoOrigenMercator.meterInMercatorCoordinateUnits();
+
+      paseoJugador.x = 0;
+      paseoJugador.y = 0;
+      paseoJugador.bearing = map.getBearing() || 0;
+
+      map.dragPan.disable();
+      map.scrollZoom.disable();
+      map.dragRotate.disable();
+      map.touchZoomRotate.disable();
+      map.doubleClickZoom.disable();
+      map.keyboard.disable();
+
+      map.setMaxPitch(CONFIG.paseoMaxPitch);
+      paseoActivo = true;
+      paseoUltimoFrame = performance.now();
+      paseoUltimaSincroMs = 0; // fuerza una sincronización de sombras nada más entrar
+
+      asegurarActivacionSolar();
+      map.getSource('sombras-halo')?.setData(turf.featureCollection([])); // el halo es caro; se omite durante el paseo
+
+      if (btnPaseo) {
+        btnPaseo.classList.add('rs-activo');
+        btnPaseo.textContent = t('virtualWalkStop', 'Salir del paseo');
+      }
+      mostrarEstado(t('virtualWalkHint', 'Arrastra para mirar • Joystick para moverte • Esc para salir'));
+
+      const joy = document.getElementById('rsJoystick');
+      if (joy && 'ontouchstart' in window) joy.classList.add('rs-visible');
+
+      paseoRafId = requestAnimationFrame(loopPaseo);
+    }
+
+    function detenerPaseoVirtual() {
+      if (!paseoActivo) return;
+      paseoActivo = false;
+      if (paseoRafId) cancelAnimationFrame(paseoRafId);
+      paseoRafId = null;
+
+      map.dragPan.enable();
+      map.scrollZoom.enable();
+      map.dragRotate.enable();
+      map.touchZoomRotate.enable();
+      map.doubleClickZoom.enable();
+      map.keyboard.enable();
+
+      // Devolvemos el mapa exactamente a como estaba antes de entrar
+      // (si no, se queda "roto": cámara libre pegada al suelo, sin salir de FreeCameraOptions)
+      if (paseoEstadoPrevio) {
+        map.setMaxPitch(paseoEstadoPrevio.maxPitch);
+        map.jumpTo({
+          center: paseoEstadoPrevio.center,
+          zoom: paseoEstadoPrevio.zoom,
+          pitch: paseoEstadoPrevio.pitch,
+          bearing: paseoEstadoPrevio.bearing,
+        });
+        puntoReferenciaSol = { lat: paseoEstadoPrevio.center.lat, lon: paseoEstadoPrevio.center.lng };
+        paseoEstadoPrevio = null;
+      } else {
+        map.setMaxPitch(60);
+      }
+
+      btnPaseo.classList.remove('rs-activo');
+      btnPaseo.textContent = t('virtualWalkStart', 'Paseo virtual 3D');
+      mostrarEstado('');
+
+      const joy = document.getElementById('rsJoystick');
+      if (joy) { joy.style.display = 'none'; joy.classList.remove('rs-visible'); }
+      paseoJoystick.active = false;
+
+      actualizarCacheEdificios();
+      if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
+    }
+
+    function paseoToLngLat(x, y) {
+      return new maplibregl.MercatorCoordinate(
+        paseoOrigenMercator.x + x * paseoMetrosAU,
+        paseoOrigenMercator.y + y * paseoMetrosAU,
+        0
+      ).toLngLat();
+    }
+
+    function actualizarCamaraPaseo(eye) {
+      if (typeof map.getFreeCameraOptions !== 'function' || typeof map.setFreeCameraOptions !== 'function') {
+        // Esta versión de MapLibre GL JS no trae la API de cámara libre (FreeCameraOptions,
+        // disponible desde MapLibre GL JS 3+). En vez de reventar con un error en cadena,
+        // avisamos una sola vez y salimos limpiamente del paseo.
+        console.warn('[paseo virtual] Esta versión de MapLibre GL JS no soporta cámara libre (getFreeCameraOptions). Revisa la versión cargada en el HTML.');
+        mostrarEstado(t('virtualWalkUnsupported', 'Tu navegador o la versión del mapa cargada no soporta el paseo virtual 3D ahora mismo.'), 'error');
+        detenerPaseoVirtual();
+        return;
+      }
+      const camera = map.getFreeCameraOptions();
+      camera.position = maplibregl.MercatorCoordinate.fromLngLat(eye, CONFIG.paseoAlturaOjoM);
+      camera.setPitchBearing(CONFIG.paseoMaxPitch, paseoJugador.bearing);
+      map.setFreeCameraOptions(camera);
+    }
+
+    // Mientras caminas: refresca periódicamente qué edificios hay alrededor
+    // y recalcula sus sombras con la posición virtual real del jugador
+    // (antes esto solo pasaba con el evento 'moveend', que no salta en
+    // modo cámara libre, así que las sombras se quedaban congeladas).
+    function sincronizarSombrasPaseo(eye, now) {
+      if (now - paseoUltimaSincroMs < CONFIG.paseoSincroMs) return;
+      paseoUltimaSincroMs = now;
+      puntoReferenciaSol = { lat: eye.lat, lon: eye.lng };
+      actualizarCacheEdificios();
+      if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
+      if (rutaActual) actualizarTramosSombraRuta();
+    }
+
+    function loopPaseo(now) {
+      if (!paseoActivo) return;
+      const dt = Math.min(0.05, (now - paseoUltimoFrame) / 1000);
+      paseoUltimoFrame = now;
+
+      let avance = 0;
+      let giro = 0;
+
+      if (keysDown.has('KeyW') || keysDown.has('ArrowUp')) avance += 1;
+      if (keysDown.has('KeyS') || keysDown.has('ArrowDown')) avance -= 1;
+      if (keysDown.has('KeyA') || keysDown.has('ArrowLeft')) giro -= 1;
+      if (keysDown.has('KeyD') || keysDown.has('ArrowRight')) giro += 1;
+
+      if (paseoJoystick.active) {
+        avance = -paseoJoystick.dy;
+        giro = paseoJoystick.dx * 0.6;
+      }
+
+      if (giro !== 0) {
+        paseoJugador.bearing += giro * 100 * dt;
+      }
+
+      if (avance !== 0) {
+        const step = avance * CONFIG.paseoVelocidadMs * dt;
+        const rad = paseoJugador.bearing * Math.PI / 180;
+        // En proyecciones Mercator, -Y es el Norte absoluto
+        paseoJugador.x += Math.sin(rad) * step;
+        paseoJugador.y -= Math.cos(rad) * step;
+      }
+
+      const eye = paseoToLngLat(paseoJugador.x, paseoJugador.y);
+      actualizarCamaraPaseo(eye);
+      sincronizarSombrasPaseo(eye, now);
+
+      paseoRafId = requestAnimationFrame(loopPaseo);
+    }
+
+    // Eventos globales de teclado para salir rápido
+    addEventListener('keydown', (e) => {
+      if (e.code === 'Escape' && paseoActivo) detenerPaseoVirtual();
+    });
+
+    btnPaseo.addEventListener('click', () => {
+      if (paseoActivo) detenerPaseoVirtual();
+      else entrarPaseoVirtual();
+    });
+
+    // Se exponen para poder usarlas desde fuera de esta función (reiniciarTodo, etc.)
+    window.__rsDetenerPaseoVirtual = detenerPaseoVirtual;
+
+    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar);
     contenedorMapa.appendChild(panelMapa);
 
     map.on('click', (e) => {
@@ -1051,13 +1377,6 @@
     contenedorMapa.appendChild(wrap);
   }
 
-  /* ---------------- Captura/compartir: exportar la vista actual como imagen ---------------- */
-  // FIX: ya no depende de preserveDrawingBuffer permanente (causaba la
-  // estela en iOS). Se engancha al evento 'render' del propio mapa, que se
-  // dispara justo después de pintar un fotograma y ANTES de que el
-  // navegador pueda limpiar/intercambiar el buffer — es el punto correcto
-  // para leer el lienzo sin necesidad de mantenerlo siempre sin limpiar.
-
   function capturarVista() {
     try {
       map.once('render', () => {
@@ -1107,7 +1426,6 @@
   /* ---------------- Red: fetch con timeout + reintentos ---------------- */
 
   async function fetchConReintentos(url, options = {}, intentos = CONFIG.fetchRetries) {
-
     for (let intento = 0; intento <= intentos; intento++) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), CONFIG.fetchTimeoutMs);
@@ -1149,7 +1467,6 @@
           return { lat: parseFloat(datos[0].lat), lon: parseFloat(datos[0].lon), nombre: datos[0].display_name };
         }
       } catch (e) {
-        // seguimos con la siguiente variante
       }
       await new Promise((r) => setTimeout(r, 350));
     }
@@ -1206,6 +1523,139 @@
         duracionMin: null,
         esReal: false,
       };
+    }
+  }
+
+  /* ---------------- Ruta con prioridad de sombra (entre alternativas reales) ---------------- */
+
+  function calcularCoberturaSombra(geojsonLinea, poligonosSombra) {
+    if (!poligonosSombra.length) return 0;
+    try {
+      const linea = geojsonLinea.type === 'Feature' ? geojsonLinea : turf.feature(geojsonLinea);
+      const tramos = turf.lineChunk(linea, 0.015, { units: 'kilometers' }).features;
+      if (!tramos.length) return 0;
+      let enSombra = 0;
+      for (const tramo of tramos) {
+        const coords = tramo.geometry.coordinates;
+        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
+        for (const poligono of poligonosSombra) {
+          try {
+            if (turf.booleanPointInPolygon(medio, poligono)) { enSombra++; break; }
+          } catch (e) { }
+        }
+      }
+      return enSombra / tramos.length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  async function generarPoligonosSombraPara(listaEdificios, posSolActual) {
+    if (!posSolActual || posSolActual.altitude <= 0) return [];
+    const azimutGrados = (posSolActual.azimuth * 180) / Math.PI + 180;
+    const bearingSombra = (azimutGrados + 180) % 360;
+    const poligonos = [];
+    for (const edificio of listaEdificios) {
+      try {
+        const altura = Number(edificio.properties.height ?? edificio.properties.render_height) || CONFIG.alturaPorDefectoM;
+        const longitudSombraM = altura / Math.tan(posSolActual.altitude);
+        if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+        const geom = edificio.geometry;
+        if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
+        const distanciaKm = longitudSombraM / 1000;
+        const partes = turf.flatten(turf.feature(geom)).features;
+        for (const parte of partes) {
+          const volumen = calcularVolumenSombra(parte, distanciaKm, bearingSombra);
+          if (volumen) poligonos.push(volumen);
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    return poligonos;
+  }
+
+  function esperarMapaListo(timeoutMs = 4000) {
+    return new Promise((resolve) => {
+      let resuelto = false;
+      const terminar = () => { if (!resuelto) { resuelto = true; resolve(); } };
+      map.once('idle', terminar);
+      setTimeout(terminar, timeoutMs);
+    });
+  }
+
+  async function calcularRutaConPrioridadSombra(origen, destino) {
+    if (!CONFIG.priorizarSombra) return calcularRutaReal(origen, destino);
+
+    try {
+      const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
+      const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&alternatives=true`;
+      const datos = await fetchConReintentos(url);
+
+      if (datos?.code !== 'Ok' || !datos.routes?.length) {
+        return calcularRutaReal(origen, destino);
+      }
+
+      const candidatas = datos.routes.slice(0, CONFIG.maxAlternativasSombra);
+      if (candidatas.length === 1) {
+        return calcularRutaReal(origen, destino);
+      }
+
+      const todasLasCoords = candidatas.flatMap((r) => r.geometry.coordinates);
+      if (todasLasCoords.length < 2) return calcularRutaReal(origen, destino);
+
+      const bboxCombinado = turf.bbox(turf.lineString(todasLasCoords));
+      map.jumpTo({
+        center: [(bboxCombinado[0] + bboxCombinado[2]) / 2, (bboxCombinado[1] + bboxCombinado[3]) / 2],
+        zoom: Math.max(map.getZoom(), 16),
+      });
+      await esperarMapaListo();
+      actualizarCacheEdificios();
+
+      const centro = { lat: (origen.lat + destino.lat) / 2, lon: (origen.lon + destino.lon) / 2 };
+      const posSolActual = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+
+      let poligonosSombra = [];
+      if (posSolActual.altitude > 0 && capaEdificiosDisponible && edificiosCacheados.length) {
+        poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
+      }
+
+      const distanciaMinimaKm = Math.min(...candidatas.map((r) => r.distance / 1000));
+
+      let mejor = null;
+      for (const ruta of candidatas) {
+        const distanciaKm = ruta.distance / 1000;
+        const cobertura = poligonosSombra.length ? calcularCoberturaSombra(ruta.geometry, poligonosSombra) : 0;
+        const dentroDeMargen = distanciaKm <= distanciaMinimaKm * CONFIG.maxDetourSombra;
+        const candidato = { ruta, distanciaKm, cobertura, dentroDeMargen };
+        if (!mejor) { mejor = candidato; continue; }
+        if (dentroDeMargen && !mejor.dentroDeMargen) { mejor = candidato; continue; }
+        if (dentroDeMargen === mejor.dentroDeMargen) {
+          if (cobertura > mejor.cobertura + 0.02) mejor = candidato;
+          else if (Math.abs(cobertura - mejor.cobertura) <= 0.02 && distanciaKm < mejor.distanciaKm) mejor = candidato;
+        }
+      }
+
+      const distanciaKmNum = mejor.distanciaKm;
+      let duracionMinNum = mejor.ruta.duration / 60;
+      const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
+      let duracionEstimada = false;
+      if (velocidadKmh > 9 || duracionMinNum <= 0) {
+        duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
+        duracionEstimada = true;
+      }
+
+      return {
+        geojson: mejor.ruta.geometry,
+        distanciaKm: distanciaKmNum.toFixed(2),
+        duracionMin: Math.round(duracionMinNum),
+        esReal: true,
+        duracionEstimada,
+        coberturaSombraPct: poligonosSombra.length ? Math.round(mejor.cobertura * 100) : null,
+      };
+    } catch (err) {
+      console.warn('Routing con prioridad de sombra no disponible, usando ruta normal:', err);
+      return calcularRutaReal(origen, destino);
     }
   }
 
@@ -1268,7 +1718,7 @@
       return el;
     };
 
-    marcadorOrigen = new maplibregl.Marker({ element: pin(leerVar('--accent') || '#F4A66B') })
+    marcadorOrigen = new maplibregl.Marker({ element: pin(leerVar('--accent') || '#00f2ff') })
       .setLngLat([origen.lon, origen.lat])
       .setPopup(new maplibregl.Popup().setHTML(`<b>${t('origin', 'Origen')}</b><br>${origen.nombre}`))
       .addTo(map);
@@ -1372,7 +1822,7 @@
     function resaltarActivo() {
       const items = contenedor.querySelectorAll('li[data-idx]');
       items.forEach((li, i) => {
-        li.style.background = i === indiceActivo ? (leerVar('--accent') || '#F4A66B') + '22' : '';
+        li.style.background = i === indiceActivo ? (leerVar('--accent') || '#09ffbd') + '22' : '';
       });
       if (indiceActivo >= 0 && items[indiceActivo]) {
         items[indiceActivo].scrollIntoView({ block: 'nearest' });
@@ -1397,7 +1847,7 @@
           const resto = r.display_name.split(',')[0];
           return `<li data-idx="${i}">
             <span class="rs-sug-linea1">${resto}</span>
-            <span class="rs-sug-linea2">${ciudad ? ciudad + ' · ' : ''}${r.address?.state || ''}</span>
+            <span class="rs-sug-linea2">${ciudad ? ciudad + ' — ' : ''}${r.address?.state || ''}</span>
           </li>`;
         })
         .join('');
@@ -1477,7 +1927,7 @@
     mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
 
     try {
-      const ruta = await calcularRutaReal(origen, destino);
+      const ruta = await calcularRutaConPrioridadSombra(origen, destino);
 
       map.getSource('ruta').setData(turf.feature(ruta.geojson));
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
@@ -1499,9 +1949,12 @@
 
       if (ruta.esReal) {
         const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
-        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}.`, 'ok');
+        const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
+        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`, 'ok');
+        mostrarBadgeSombra(ruta.coberturaSombraPct);
       } else {
         mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
+        mostrarBadgeSombra(null);
       }
 
       try {
@@ -1542,6 +1995,10 @@
     if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicación');
     const btnWalk = document.getElementById('rsBtnWalk');
     if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
+
+    const btnPaseo = document.getElementById('rsBtnPaseo');
+    if (btnPaseo) btnPaseo.textContent = paseoActivo ? t('virtualWalkStop', 'Salir del paseo') : t('virtualWalkStart', 'Paseo virtual 3D');
+
     const btnDark = document.getElementById('rsBtnMapaOscuro');
     if (btnDark) btnDark.textContent = mapaOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
     const eyebrow = document.getElementById('rsEyebrowSol');
@@ -1561,4 +2018,87 @@
     const tituloRuta = document.getElementById('rsRouteMapTitle');
     if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
   });
+
+  /* ============================================================
+     JOYSTICK VIRTUAL + EVENTOS POINTER PARA PASEO 3D
+     ============================================================ */
+  function inyectarJoystick() {
+    if (document.getElementById('rsJoystick')) return;
+    const joy = document.createElement('div');
+    joy.id = 'rsJoystick';
+    const knob = document.createElement('div');
+    knob.id = 'rsJoystickKnob';
+    joy.appendChild(knob);
+    contenedorMapa.appendChild(joy);
+
+    const maxR = 28; 
+
+    joy.addEventListener('pointerdown', (e) => {
+      if (!paseoActivo) return;
+      e.preventDefault();
+      joy.setPointerCapture(e.pointerId);
+      paseoJoystick.active = true;
+      paseoJoystick.pointerId = e.pointerId;
+      const rect = joy.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      paseoJoystick.startX = cx;
+      paseoJoystick.startY = cy;
+      paseoJoystick.dx = 0;
+      paseoJoystick.dy = 0;
+      knob.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
+      joy.classList.add('rs-visible');
+    });
+
+    joy.addEventListener('pointermove', (e) => {
+      if (!paseoActivo || !paseoJoystick.active || e.pointerId !== paseoJoystick.pointerId) return;
+      const dx = e.clientX - paseoJoystick.startX;
+      const dy = e.clientY - paseoJoystick.startY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const scale = dist > maxR ? maxR / dist : 1;
+      paseoJoystick.dx = (dx * scale) / maxR; 
+      paseoJoystick.dy = (dy * scale) / maxR; 
+      knob.style.transform = `translate(-50%, -50%) translate(${dx * scale}px, ${dy * scale}px)`;
+    });
+
+    const limpiarJoystick = () => {
+      paseoJoystick.active = false;
+      paseoJoystick.dx = 0;
+      paseoJoystick.dy = 0;
+      knob.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
+    };
+
+    joy.addEventListener('pointerup', limpiarJoystick);
+    joy.addEventListener('pointercancel', limpiarJoystick);
+    joy.addEventListener('lostpointercapture', limpiarJoystick);
+  }
+
+  map.on('load', () => {
+    inyectarJoystick();
+  });
+
+  mapEl.addEventListener('pointerdown', (e) => {
+    if (!paseoActivo) return;
+    if (e.target.closest('#rsJoystick')) return;
+    paseoToques.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { mapEl.setPointerCapture(e.pointerId); } catch(_){}
+  });
+
+  mapEl.addEventListener('pointermove', (e) => {
+    if (!paseoActivo) return;
+    const prev = paseoToques.get(e.pointerId);
+    if (!prev) return;
+
+    const dx = e.clientX - prev.x;
+    const sensibilidad = 0.3; 
+
+    paseoJugador.bearing -= dx * sensibilidad;
+
+    prev.x = e.clientX;
+    prev.y = e.clientY;
+  });
+
+  mapEl.addEventListener('pointerup', (e) => paseoToques.delete(e.pointerId));
+  mapEl.addEventListener('pointercancel', (e) => paseoToques.delete(e.pointerId));
+
 })();

@@ -1,19 +1,17 @@
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
 
-   v3 (esta revisión):
-   - La sombra de cada árbol respeta el toggle #rsToggleSombras del
-     panel de capas. Antes: al desactivar "Sombras" solo se apagaba
-     la sombra de los edificios; la de los árboles se quedaba
-     dibujada porque recalcularSombrasArboles() nunca comprobaba
-     ese checkbox, solo su propio botón "Árboles".
-   - Forma de sombra más realista: antes cada árbol proyectaba solo
-     el círculo de la copa "arrastrado" en línea recta, dando una
-     cápsula/óvalo de anchura uniforme de punta a punta. Ahora se
-     construye como una cuña — estrecha junto al tronco, ancha hacia
-     el extremo lejano — rematada en un círculo en la punta, que se
-     parece mucho más a cómo cae realmente la sombra de un árbol
-     (tronco fino, copa ancha).
+   v4 (esta revisión) — FIX CRÍTICO de unidades:
+   - En calcularSombraArbol(), radioTroncoKm se calculaba como
+     "arbol.radioCopaM * 0.12" y se usaba DIRECTAMENTE como si ya
+     estuviera en kilómetros — faltaba dividir entre 1000. Como
+     radioCopaM son metros (p.ej. 2.2), esto generaba troncos de
+     sombra de ~264 METROS de radio en vez de ~26 CENTÍMETROS.
+     Con cientos de árboles unidos por turf.union, el resultado
+     era una mancha negra gigantesca que tapaba medio mapa
+     (incluida el agua, que es donde más se notaba al ser una
+     zona grande y abierta). Corregido: ahora sí se divide /1000
+     igual que radioCopaKm.
    ============================================================ */
 
 'use strict';
@@ -84,9 +82,6 @@
     return { lat: c.lat, lon: c.lng };
   }
 
-  // El toggle "Sombras" del panel es compartido con los edificios. Si no
-  // existe (versión antigua del HTML sin ese checkbox) se asume activado,
-  // para no romper nada; si existe, se respeta su estado tal cual.
   function sombrasActivadasEnPanel() {
     const t = document.getElementById('rsToggleSombras');
     return !t || t.checked;
@@ -316,15 +311,13 @@
       return a;
     }
 
-    // Una sombra real de árbol no es un óvalo de anchura uniforme (eso es
-    // lo que salía antes al arrastrar el círculo de la copa en línea recta):
-    // nace estrecha en la base del tronco y se abre hacia la copa, que es
-    // la parte que más sombra proyecta. Se modela como un trapecio (estrecho
-    // junto al árbol, ancho en el extremo lejano) rematado con un círculo en
-    // la punta para redondear el contorno de la copa proyectada.
     function calcularSombraArbol(arbol, distanciaKm, bearingSombra) {
       const perpendicular = (bearingSombra + 90) % 360;
-      const radioTroncoKm = Math.max(arbol.radioCopaM * 0.12, 0.00035); // mínimo ~0.35m
+
+      // FIX: antes esto se quedaba en METROS (0.264) y se usaba como si
+      // fuesen KILÓMETROS → tronco de sombra de 264 m de radio. Ahora sí
+      // se divide entre 1000, igual que radioCopaKm de la línea siguiente.
+      const radioTroncoKm = Math.max(arbol.radioCopaM * 0.12, 0.35) / 1000; // mínimo 0.35 m reales
       const radioCopaKm = arbol.radioCopaM / 1000;
 
       const lejano = turf.transformTranslate(arbol.punto, distanciaKm, bearingSombra, { units: 'kilometers' });
@@ -338,16 +331,12 @@
       try {
         cuna = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
       } catch (e) {
-        // Geometría degenerada (árbol y sombra casi coincidentes): nos
-        // quedamos solo con el círculo de la copa lejana.
         return turf.circle(lejano, radioCopaKm, { units: 'kilometers', steps: 16 });
       }
 
       const copaLejana = turf.circle(lejano, radioCopaKm, { units: 'kilometers', steps: 16 });
       const conCopa = unirDosPoligonos(cuna, copaLejana);
 
-      // Un pequeño círculo en la base redondea el arranque junto al tronco,
-      // en vez de dejar la esquina recta del trapecio.
       const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 10 });
       return unirDosPoligonos(conCopa, baseRedondeada);
     }
@@ -357,9 +346,6 @@
     async function recalcularSombrasArboles() {
       if (!map.getSource('arboles-globales-sombra') || !capaVisible) return;
 
-      // Respeta el toggle "Sombras" del panel, compartido con los edificios.
-      // Antes esta comprobación no existía aquí, así que al desactivar
-      // "Sombras" la de los edificios desaparecía pero la de los árboles no.
       if (!sombrasActivadasEnPanel()) {
         map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
         return;
@@ -417,9 +403,6 @@
       }, CONFIG.esperaMoveendMs);
     });
 
-    // shadows-route.js llama a esto en cada cambio de hora/estado relevante
-    // (slider, Ahora, Verano, Invierno, toggle de sombras, paseo virtual,
-    // caminata GPS, refresco cada 60s).
     window.manolitAireRecalcularArboles = recalcularSombrasArboles;
 
     await cargarArbolesDeLaVista();

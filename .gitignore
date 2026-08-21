@@ -1,3 +1,6 @@
+# no subir el historial interno de git como si fuera parte de la web
+.git
+
 # wrangler files
 .wrangler
 .dev.vars*

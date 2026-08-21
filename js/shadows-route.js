@@ -192,7 +192,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       type: 'line',
       source: 'ruta',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': leerVar('--accent') || '#F4A66B', 'line-width': 5, 'line-opacity': 0.9 },
+      paint: { 'line-color': leerVar('--accent') || '#00f2ff', 'line-width': 5, 'line-opacity': 0.9 },
     });
 
     map.addSource('ruta-sombra', { type: 'geojson', data: turf.featureCollection([]) });
@@ -201,7 +201,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       type: 'line',
       source: 'ruta-sombra',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#6f9c8b', 'line-width': 5, 'line-opacity': 0.95 },
+      paint: { 'line-color': '#0e5439', 'line-width': 5, 'line-opacity': 0.95 },
     });
 
     map.addSource('puntos-manuales', { type: 'geojson', data: turf.featureCollection([]) });
@@ -223,7 +223,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         id: 'capa-precision-ubicacion',
         type: 'fill',
         source: 'precision-ubicacion',
-        paint: { 'fill-color': leerVar('--accent') || '#F4A66B', 'fill-opacity': 0.12 },
+        paint: { 'fill-color': leerVar('--accent') || '#00f2ff', 'fill-opacity': 0.12 },
       },
       'capa-puntos-manuales'
     );
@@ -232,7 +232,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         id: 'capa-precision-ubicacion-borde',
         type: 'line',
         source: 'precision-ubicacion',
-        paint: { 'line-color': leerVar('--accent') || '#F4A66B', 'line-width': 1, 'line-opacity': 0.4 },
+        paint: { 'line-color': leerVar('--accent') || '#00f2ff', 'line-width': 1, 'line-opacity': 0.4 },
       },
       'capa-puntos-manuales'
     );
@@ -1718,7 +1718,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       return el;
     };
 
-    marcadorOrigen = new maplibregl.Marker({ element: pin(leerVar('--accent') || '#F4A66B') })
+    marcadorOrigen = new maplibregl.Marker({ element: pin(leerVar('--accent') || '#00f2ff') })
       .setLngLat([origen.lon, origen.lat])
       .setPopup(new maplibregl.Popup().setHTML(`<b>${t('origin', 'Origen')}</b><br>${origen.nombre}`))
       .addTo(map);

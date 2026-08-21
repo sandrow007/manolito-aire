@@ -295,7 +295,7 @@
     }
 
     function crearCopaIrregular(centro, radioKm, lon, lat) {
-      const pasos = 16; 
+      const pasos = 32; // Aumentado a 32 para suavizar los bordes rotos
       const coords = [];
       for (let i = 0; i < pasos; i++) {
         const angulo = (i * 360) / pasos;
@@ -341,7 +341,8 @@
         return copaIrregular;
       }
 
-      const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
+      // Aumentado a 24 steps para asegurar geometría suave en la base y evitar fallos de unión
+      const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 24 });
 
       let sombraFinal = unirDosPoligonos(cuna, copaIrregular);
       return unirDosPoligonos(sombraFinal, baseRedondeada);
@@ -373,8 +374,10 @@
       const enVista = dibujarArbolesVisibles();
       const paraSombra = enVista.slice(0, CONFIG.maxArbolesConSombra);
 
-      const tangenteSol = Math.tan(posSol.altitude);
-      if (!tangenteSol) return;
+      // Protección matemática para asegurar que no se divida por nulo o cero
+      const altSol = typeof posSol.altitude === 'number' ? posSol.altitude : 0;
+      const tangenteSol = Math.tan(altSol);
+      if (!tangenteSol || tangenteSol === 0) return;
 
       const sombras = [];
       for (let i = 0; i < paraSombra.length; i += CONFIG.loteSombraSize) {

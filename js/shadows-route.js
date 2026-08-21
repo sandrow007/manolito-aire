@@ -211,7 +211,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       source: 'puntos-manuales',
       paint: {
         'circle-radius': 7,
-        'circle-color': leerVar('--accent') || '#F4A66B',
+        'circle-color': leerVar('--accent') || '#0eedc0',
         'circle-stroke-width': 2,
         'circle-stroke-color': '#1b2029',
       },
@@ -1822,7 +1822,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     function resaltarActivo() {
       const items = contenedor.querySelectorAll('li[data-idx]');
       items.forEach((li, i) => {
-        li.style.background = i === indiceActivo ? (leerVar('--accent') || '#F4A66B') + '22' : '';
+        li.style.background = i === indiceActivo ? (leerVar('--accent') || '#09ffbd') + '22' : '';
       });
       if (indiceActivo >= 0 && items[indiceActivo]) {
         items[indiceActivo].scrollIntoView({ block: 'nearest' });

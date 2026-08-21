@@ -54,6 +54,12 @@
     en 3D). La dirección que escribas en esa sección se envía a estos servidores externos para
     poder localizarla en el mapa; Manolit∞ Aire no la almacena.
   </p>
+  <p>
+    La capa de <b>árboles en 3D</b> obtiene los datos de <b>OpenStreetMap</b> a través de la
+    <b>API pública Overpass</b>, que permite consultar elementos puntuales como árboles
+    (etiquetados como <code>natural=tree</code>). Estos datos son colaborativos y pueden ser
+    incompletos o no estar verificados.
+  </p>
 
   <h2>5. Exclusión de responsabilidad</h2>
   <p>
@@ -91,7 +97,23 @@
     usarse como única base para decisiones.
   </p>
 
-  <h2>9. Instrumento de posición solar</h2>
+  <h2>9. Sobre los árboles en 3D</h2>
+  <p>
+    La capa de árboles en 3D muestra los árboles registrados en OpenStreetMap dentro del área
+    visible del mapa. La información de cada árbol (altura, diámetro de copa) es aportada por
+    voluntarios de OpenStreetMap y puede estar incompleta. Cuando no existe ese dato, la
+    aplicación utiliza valores estimados (altura de 6 metros y copa de 2,2 metros de radio)
+    para poder representar el árbol de forma aproximada.
+  </p>
+  <p>
+    Los árboles se dibujan como volúmenes simplificados (tronco y copa escalonada) y sus
+    sombras se calculan con el mismo método geométrico que las de los edificios. Por tanto,
+    la forma, altura y proyección de sombra de cada árbol son <b>aproximadas</b> y tienen
+    únicamente una finalidad ilustrativa. No deben utilizarse para fines técnicos, de
+    inventario forestal ni de seguridad.
+  </p>
+
+  <h2>10. Instrumento de posición solar</h2>
   <p>
     El panel de seguimiento solar (arco de horizonte a cenit) es un componente de cálculo autónomo. Determina la altitud y el azimut del sol utilizando algoritmos astronómicos estándar basados en las coordenadas geográficas de la consulta y la hora local del dispositivo. Es una representación matemática de carácter estrictamente visual e ilustrativo; no constituye un instrumento de precisión y no debe emplearse para fines de navegación, aviación o mediciones técnicas.
   </p>

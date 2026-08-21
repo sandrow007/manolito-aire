@@ -104,7 +104,7 @@
           id: 'capa-sombra-arboles-globales',
           type: 'fill',
           source: 'arboles-globales-sombra',
-          paint: { 'fill-color': '#0b1220', 'fill-opacity': 0.26 },
+          paint: { 'fill-color': '#0d1f0d', 'fill-opacity': 0.30 },
         }, primeraCapaEdificiosOSuelo());
       }
       if (!map.getSource('arboles-globales-copas')) {

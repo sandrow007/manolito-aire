@@ -115,10 +115,15 @@
           source: 'arboles-globales-copas',
           paint: {
             'fill-extrusion-color': [
-              'interpolate', ['linear'], ['get', 'altura'],
-              3, '#7fb069',
-              8, '#4f8a3d',
-              15, '#2f5d2a',
+              'case',
+              ['==', ['get', 'tipo'], 'tronco'], '#8b5a2b',
+              ['==', ['get', 'tipo'], 'copa'], [
+                'interpolate', ['linear'], ['get', 'altura'],
+                3, '#7fb069',
+                8, '#4f8a3d',
+                15, '#2f5d2a',
+              ],
+              '#7fb069'
             ],
             'fill-extrusion-base': ['get', 'baseM'],
             'fill-extrusion-height': ['get', 'alturaTotalM'],
@@ -285,20 +290,49 @@
         return lon >= b.getWest() && lon <= b.getEast() && lat >= b.getSouth() && lat <= b.getNorth();
       }).slice(0, CONFIG.maxArbolesEnPantalla);
 
-      const copas = enVista.map((a) => {
-        const circulo = turf.circle(a.punto, a.radioCopaM / 1000, { units: 'kilometers', steps: 10 });
-        circulo.properties = {
+      const features = [];
+      for (const a of enVista) {
+        const alturaTroncoM = Math.max(1, a.altura * 0.35);          // Tronco: 35% de la altura total (mínimo 1 m)
+        const alturaCopaInferiorM = a.altura * 0.40;                   // Copa inferior: 40%
+        const alturaCopaSuperiorM = a.altura - alturaTroncoM - alturaCopaInferiorM; // Resto arriba
+        const radioTroncoM = Math.max(0.15, a.radioCopaM * 0.15);      // Tronco delgado
+
+        // Tronco (cilindro marrón desde el suelo)
+        const tronco = turf.circle(a.punto, radioTroncoM / 1000, { units: 'kilometers', steps: 8 });
+        tronco.properties = {
           altura: a.altura,
-          baseM: Math.max(0, a.altura - a.radioCopaM), // el "tronco" no se dibuja como bloque; solo se eleva la copa
+          baseM: 0,
+          alturaTotalM: alturaTroncoM,
+          nombre: a.nombre,
+          tipo: 'tronco'
+        };
+        features.push(tronco);
+
+        // Copa inferior (más ancha)
+        const copaInferior = turf.circle(a.punto, a.radioCopaM / 1000, { units: 'kilometers', steps: 14 });
+        copaInferior.properties = {
+          altura: a.altura,
+          baseM: alturaTroncoM,
+          alturaTotalM: alturaTroncoM + alturaCopaInferiorM,
+          nombre: a.nombre,
+          tipo: 'copa'
+        };
+        features.push(copaInferior);
+
+        // Copa superior (más estrecha, para dar forma redondeada)
+        const copaSuperior = turf.circle(a.punto, (a.radioCopaM * 0.65) / 1000, { units: 'kilometers', steps: 14 });
+        copaSuperior.properties = {
+          altura: a.altura,
+          baseM: alturaTroncoM + alturaCopaInferiorM,
           alturaTotalM: a.altura,
           nombre: a.nombre,
+          tipo: 'copa'
         };
-        return circulo;
-      });
-
-      map.getSource('arboles-globales-copas').setData(turf.featureCollection(copas));
+        features.push(copaSuperior);
+      }
+      map.getSource('arboles-globales-copas').setData(turf.featureCollection(features));
       return enVista;
-    }
+    } // <-- ¡Esta llave faltaba!
 
     // ---- Sombras de los árboles: mismo principio que en manolit-aire.js ----
     function sombraDeCopa(circuloCopa, distanciaKm, bearingSombra) {
@@ -318,7 +352,7 @@
 
       const centro = map.getCenter();
       const posSol = SunCalc.getPosition(new Date(), centro.lat, centro.lng);
-      if (false) {
+      if (false) { // <-- Cambia a "if (posSol.altitude <= 0) {" para sombras reales solo de día
           map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
         return;
       }

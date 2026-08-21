@@ -125,8 +125,12 @@
       }
     }
 
-    map.once('idle', asegurarCapas);
-    if (map.loaded()) asegurarCapas();
+    console.info('[arboles-globales] enganchado al mapa correctamente, preparando capas...');
+    if (map.loaded()) {
+      asegurarCapas();
+    } else {
+      map.once('load', asegurarCapas);
+    }
 
     // ---- Toggle discreto, si existe el panel de controles de manolit-aire.js ----
     let capaVisible = true;
@@ -188,6 +192,7 @@
           const id = setTimeout(() => controller.abort(), CONFIG.overpassTimeoutS * 1000 + 3000);
           const r = await fetch(url, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
             body: 'data=' + encodeURIComponent(query),
             signal: controller.signal,
           });

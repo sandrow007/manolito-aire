@@ -1,6 +1,7 @@
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
-   (Versión con depuración para diagnosticar sombras)
+   (Versión adaptada: se sincroniza con el slider de hora de
+   shadows-route.js sin modificar ese archivo)
    ============================================================ */
 
 'use strict';
@@ -19,7 +20,7 @@
     radioCopaPorDefectoM: 2.2,
 
     maxArbolesEnPantalla: 1000,
-    maxArbolesConSombra: 300,   // aumentamos para ver más sombras
+    maxArbolesConSombra: 300,
     loteSombraSize: 25,
     sincroSombraMs: 60 * 1000,
     esperaMoveendMs: 500,
@@ -27,6 +28,11 @@
     cacheCeldasGrados: 0.01,
     esperaMapaMs: 15000,
   };
+
+  // --- Estado propio de hora para sincronizarse con la UI de shadows-route ---
+  let fechaBaseArboles = new Date();   // si no es solsticio, se usa esta fecha con el slider
+  let esSolsticioArboles = false;      // true si se ha pulsado "Verano" o "Invierno"
+  let minutosSlider = 0;               // minutos desde medianoche según el slider
 
   function cederAlNavegador() {
     return new Promise((resolve) => {
@@ -41,7 +47,7 @@
       (function intento() {
         if (window.manolitAireMap) return resolve(window.manolitAireMap);
         if (Date.now() - t0 > CONFIG.esperaMapaMs) {
-          return reject(new Error('No se ha encontrado window.manolitAireMap — añade "window.manolitAireMap = map;" justo después de crear el mapa en manolit-aire.js'));
+          return reject(new Error('No se ha encontrado window.manolitAireMap'));
         }
         setTimeout(intento, 200);
       })();
@@ -66,8 +72,8 @@
           type: 'fill',
           source: 'arboles-globales-sombra',
           paint: { 
-            'fill-color': '#ff0000',  // ROJO para depuración
-            'fill-opacity': 0.8       // Muy visible
+            'fill-color': '#0d1f0d',   // Verde oscuro natural
+            'fill-opacity': 0.35
           },
         }, primeraCapaEdificiosOSuelo());
       }
@@ -201,7 +207,6 @@
       if (!capaVisible || consultaEnCurso) return;
       const bounds = map.getBounds();
       if (anchoVistaKm(bounds) > CONFIG.maxLadoConsultaKm) {
-        console.log('[arboles] Vista demasiado ancha, no se consulta.');
         return;
       }
 
@@ -214,13 +219,11 @@
         const bbox = [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()];
         const datos = await consultarOverpass(bbox);
         const elementos = datos.elements || [];
-        console.log('[arboles] Elementos recibidos de Overpass:', elementos.length);
         for (const el of elementos) {
           const arbol = procesarElementoOSM(el);
           if (arbol) arbolesGrandes.push(arbol);
           if (arbolesGrandes.length % 200 === 0) await cederAlNavegador();
         }
-        console.log('[arboles] Total árboles acumulados:', arbolesGrandes.length);
       } catch (e) {
         console.warn('[arboles-globales] Overpass no disponible ahora mismo:', e.message);
         celdas.forEach((c) => celdasConsultadas.delete(c));
@@ -229,7 +232,7 @@
       }
 
       dibujarArbolesVisibles();
-      programarSincroSombra(true);
+      recalcularSombrasArboles();
     }
 
     function dibujarArbolesVisibles() {
@@ -239,8 +242,6 @@
         const [lon, lat] = a.punto.geometry.coordinates;
         return lon >= b.getWest() && lon <= b.getEast() && lat >= b.getSouth() && lat <= b.getNorth();
       }).slice(0, CONFIG.maxArbolesEnPantalla);
-
-      console.log('[arboles] Árboles visibles:', enVista.length);
 
       const features = [];
       for (const a of enVista) {
@@ -275,6 +276,18 @@
       }
     }
 
+    // --- Obtener la hora efectiva a partir del estado de la interfaz ---
+    function obtenerHoraEfectivaArboles() {
+      if (esSolsticioArboles) {
+        const d = new Date(fechaBaseArboles);
+        d.setHours(Math.floor(minutosSlider / 60), minutosSlider % 60, 0, 0);
+        return d;
+      } else {
+        // Modo "Ahora": se usa la hora actual (ignorando el slider)
+        return new Date();
+      }
+    }
+
     let versionSombra = 0;
 
     async function recalcularSombrasArboles() {
@@ -282,26 +295,27 @@
       const miVersion = ++versionSombra;
 
       const centro = map.getCenter();
-      const posSol = SunCalc.getPosition(new Date(), centro.lat, centro.lng);
-      console.log('[arboles] Altitud solar:', posSol.altitude, 'Azimut:', posSol.azimuth);
+      const horaEfectiva = obtenerHoraEfectivaArboles();
+      const posSol = SunCalc.getPosition(horaEfectiva, centro.lat, centro.lng);
 
-      // Forzamos SIEMPRE el cálculo, ignorando la altitud
+      // Si el sol está bajo el horizonte, no hay sombra
+      if (posSol.altitude <= 0) {
+        map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+        return;
+      }
+
       const azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;
       const bearingSombra = (azimutGrados + 180) % 360;
 
       const enVista = dibujarArbolesVisibles();
       const paraSombra = enVista.slice(0, CONFIG.maxArbolesConSombra);
-      console.log('[arboles] Árboles para sombra:', paraSombra.length);
 
       const sombras = [];
       for (let i = 0; i < paraSombra.length; i += CONFIG.loteSombraSize) {
         if (miVersion !== versionSombra) return;
         const lote = paraSombra.slice(i, i + CONFIG.loteSombraSize);
         for (const arbol of lote) {
-          // Usamos una altitud fija si es de noche, por ejemplo 45 grados
-          let altSol = posSol.altitude;
-          if (altSol <= 0) altSol = 0.785; // 45 grados en radianes (aprox)
-          const tangenteSol = Math.tan(altSol);
+          const tangenteSol = Math.tan(posSol.altitude);
           if (!tangenteSol || tangenteSol === 0) continue;
           const longitudSombraM = arbol.altura / tangenteSol;
           if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
@@ -309,32 +323,87 @@
           sombras.push(sombraDeCopa(circulo, longitudSombraM / 1000, bearingSombra));
         }
         if (miVersion !== versionSombra) return;
-        map.getSource('arboles-globales-sombra')?.setData(turf.featureCollection(sombras));
+        map.getSource('arboles-globales-sombra').setData(turf.featureCollection(sombras));
         if (i + CONFIG.loteSombraSize < paraSombra.length) await cederAlNavegador();
       }
-
-      console.log('[arboles] Total sombras generadas:', sombras.length);
-      if (sombras.length === 0) {
-        console.warn('[arboles] No se generó ninguna sombra. Revisa altSol, paraSombra, etc.');
+      if (miVersion === versionSombra) {
+        map.getSource('arboles-globales-sombra').setData(turf.featureCollection(sombras));
       }
     }
 
-    let temporizadorSombra = null;
-    function programarSincroSombra(inmediato) {
-      clearInterval(temporizadorSombra);
-      if (inmediato) recalcularSombrasArboles();
-      temporizadorSombra = setInterval(recalcularSombrasArboles, CONFIG.sincroSombraMs);
+    // --- Sincronización con la interfaz de shadows-route.js ---
+    function sincronizarConUI() {
+      const slider = document.getElementById('rsTimeSlider');
+      const btnAhora = document.getElementById('rsBtnAhora');
+      const btnVerano = document.getElementById('rsBtnVerano');
+      const btnInvierno = document.getElementById('rsBtnInvierno');
+
+      if (btnAhora) {
+        btnAhora.addEventListener('click', () => {
+          esSolsticioArboles = false;
+          fechaBaseArboles = new Date();
+          minutosSlider = new Date().getHours() * 60 + new Date().getMinutes();
+          if (slider) slider.value = minutosSlider;
+          recalcularSombrasArboles();
+        });
+      }
+      if (btnVerano) {
+        btnVerano.addEventListener('click', () => {
+          esSolsticioArboles = true;
+          const anio = new Date().getFullYear();
+          fechaBaseArboles = new Date(anio, 5, 21, 12, 0, 0); // 21 junio
+          minutosSlider = 780; // 13:00
+          if (slider) slider.value = minutosSlider;
+          recalcularSombrasArboles();
+        });
+      }
+      if (btnInvierno) {
+        btnInvierno.addEventListener('click', () => {
+          esSolsticioArboles = true;
+          const anio = new Date().getFullYear();
+          fechaBaseArboles = new Date(anio, 11, 21, 12, 0, 0); // 21 diciembre
+          minutosSlider = 780; // 13:00
+          if (slider) slider.value = minutosSlider;
+          recalcularSombrasArboles();
+        });
+      }
+      if (slider) {
+        slider.addEventListener('input', () => {
+          // Si el usuario mueve el slider manualmente, asumimos modo manual
+          esSolsticioArboles = true; // Para que use la fecha base y el slider
+          // Pero si no había solsticio activo, ¿qué fecha base usar?
+          // Usamos la fecha actual como base, para que solo cambie la hora.
+          if (!esSolsticioArboles) {
+            fechaBaseArboles = new Date();
+          }
+          minutosSlider = Number(slider.value);
+          recalcularSombrasArboles();
+        });
+      }
     }
+
+    // Ejecutar sincronización después de que el DOM esté listo
+    setTimeout(sincronizarConUI, 300);
 
     let esperaMoveend = null;
     map.on('moveend', () => {
       clearTimeout(esperaMoveend);
       esperaMoveend = setTimeout(() => {
         cargarArbolesDeLaVista();
-        recalcularSombrasArboles();
       }, CONFIG.esperaMoveendMs);
     });
 
-    await cargarArbolesDeLaVista();
+    // Cargar árboles iniciales y sincronizar sombras
+    if (map.loaded()) {
+      await cargarArbolesDeLaVista();
+    } else {
+      map.once('load', async () => {
+        await cargarArbolesDeLaVista();
+      });
+    }
+
+    setInterval(() => {
+      if (map.loaded()) recalcularSombrasArboles();
+    }, CONFIG.sincroSombraMs);
   }
 })();

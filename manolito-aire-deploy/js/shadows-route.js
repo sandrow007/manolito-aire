@@ -1617,9 +1617,8 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
       let poligonosSombra = [];
       if (posSolActual.altitude > 0 && capaEdificiosDisponible && edificiosCacheados.length) {
-        poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
-      }
-
+      poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
+          }
       const distanciaMinimaKm = Math.min(...candidatas.map((r) => r.distance / 1000));
 
       let mejor = null;

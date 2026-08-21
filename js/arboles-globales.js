@@ -1,6 +1,5 @@
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
-   (Versión con depuración para diagnosticar sombras)
    ============================================================ */
 
 'use strict';
@@ -19,7 +18,7 @@
     radioCopaPorDefectoM: 2.2,
 
     maxArbolesEnPantalla: 1000,
-    maxArbolesConSombra: 300,   // aumentamos para ver más sombras
+    maxArbolesConSombra: 250,
     loteSombraSize: 25,
     sincroSombraMs: 60 * 1000,
     esperaMoveendMs: 500,
@@ -65,9 +64,11 @@
           id: 'capa-sombra-arboles-globales',
           type: 'fill',
           source: 'arboles-globales-sombra',
-          paint: { 
-            'fill-color': '#ff0000',  // ROJO para depuración
-            'fill-opacity': 0.8       // Muy visible
+          paint: {
+            // Mismo tono "sombra" que usan los edificios en manolit-aire.js,
+            // para que ambas capas de sombra se vean coherentes.
+            'fill-color': '#0b1220',
+            'fill-opacity': 0.26,
           },
         }, primeraCapaEdificiosOSuelo());
       }
@@ -97,7 +98,6 @@
       }
     }
 
-    console.info('[arboles-globales] enganchado al mapa correctamente, preparando capas...');
     if (map.loaded()) {
       asegurarCapas();
     } else {
@@ -119,7 +119,10 @@
         ['capa-arboles-globales-3d', 'capa-sombra-arboles-globales'].forEach((id) => {
           if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', capaVisible ? 'visible' : 'none');
         });
-        if (capaVisible) cargarArbolesDeLaVista();
+        if (capaVisible) {
+          cargarArbolesDeLaVista();
+          recalcularSombrasArboles();
+        }
       });
       panel.appendChild(btn);
     }
@@ -200,10 +203,7 @@
     async function cargarArbolesDeLaVista() {
       if (!capaVisible || consultaEnCurso) return;
       const bounds = map.getBounds();
-      if (anchoVistaKm(bounds) > CONFIG.maxLadoConsultaKm) {
-        console.log('[arboles] Vista demasiado ancha, no se consulta.');
-        return;
-      }
+      if (anchoVistaKm(bounds) > CONFIG.maxLadoConsultaKm) return;
 
       const celdas = celdasDeVista(bounds).filter((c) => !celdasConsultadas.has(c));
       if (!celdas.length) { dibujarArbolesVisibles(); return; }
@@ -214,13 +214,11 @@
         const bbox = [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()];
         const datos = await consultarOverpass(bbox);
         const elementos = datos.elements || [];
-        console.log('[arboles] Elementos recibidos de Overpass:', elementos.length);
         for (const el of elementos) {
           const arbol = procesarElementoOSM(el);
           if (arbol) arbolesGrandes.push(arbol);
           if (arbolesGrandes.length % 200 === 0) await cederAlNavegador();
         }
-        console.log('[arboles] Total árboles acumulados:', arbolesGrandes.length);
       } catch (e) {
         console.warn('[arboles-globales] Overpass no disponible ahora mismo:', e.message);
         celdas.forEach((c) => celdasConsultadas.delete(c));
@@ -239,8 +237,6 @@
         const [lon, lat] = a.punto.geometry.coordinates;
         return lon >= b.getWest() && lon <= b.getEast() && lat >= b.getSouth() && lat <= b.getNorth();
       }).slice(0, CONFIG.maxArbolesEnPantalla);
-
-      console.log('[arboles] Árboles visibles:', enVista.length);
 
       const features = [];
       for (const a of enVista) {
@@ -265,14 +261,40 @@
       return enVista;
     }
 
-    function sombraDeCopa(circuloCopa, distanciaKm, bearingSombra) {
+    /* ---------------- Sombra real por barrido (misma técnica que los edificios) ---------------- */
+
+    function unirDosPoligonos(a, b) {
       try {
-        const trasladado = turf.transformTranslate(circuloCopa, distanciaKm, bearingSombra, { units: 'kilometers' });
-        const union = turf.union(turf.featureCollection([circuloCopa, trasladado]));
-        return union || circuloCopa;
-      } catch (e) {
-        return circuloCopa;
+        const r = turf.union(turf.featureCollection([a, b]));
+        if (r) return r;
+      } catch (e) { /* probamos la otra firma */ }
+      try {
+        const r = turf.union(a, b);
+        if (r) return r;
+      } catch (e) { /* nos quedamos con lo que había */ }
+      return a;
+    }
+
+    // Barre el contorno del círculo de la copa a lo largo de la dirección de
+    // la sombra y une los cuadriláteros resultantes: da la silueta cónica
+    // real de la sombra, no solo el círculo original pegado a una copia
+    // trasladada (eso último dejaba un hueco en forma de "cacahuete").
+    function calcularVolumenSombraCopa(circuloCopa, distanciaKm, bearingSombra) {
+      const anillo = circuloCopa.geometry.coordinates[0];
+      let resultado = circuloCopa;
+      for (let i = 0; i < anillo.length - 1; i++) {
+        const p1 = anillo[i];
+        const p2 = anillo[i + 1];
+        const p1t = turf.transformTranslate(turf.point(p1), distanciaKm, bearingSombra, { units: 'kilometers' }).geometry.coordinates;
+        const p2t = turf.transformTranslate(turf.point(p2), distanciaKm, bearingSombra, { units: 'kilometers' }).geometry.coordinates;
+        try {
+          const cuadrilatero = turf.polygon([[p1, p2, p2t, p1t, p1]]);
+          resultado = unirDosPoligonos(resultado, cuadrilatero);
+        } catch (e) {
+          continue;
+        }
       }
+      return resultado;
     }
 
     let versionSombra = 0;
@@ -283,39 +305,38 @@
 
       const centro = map.getCenter();
       const posSol = SunCalc.getPosition(new Date(), centro.lat, centro.lng);
-      console.log('[arboles] Altitud solar:', posSol.altitude, 'Azimut:', posSol.azimuth);
 
-      // Forzamos SIEMPRE el cálculo, ignorando la altitud
+      // Igual que con los edificios: si el sol está bajo el horizonte no
+      // hay sombra que proyectar. Nada de forzar una altitud inventada.
+      if (posSol.altitude <= 0) {
+        map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+        return;
+      }
+
       const azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;
       const bearingSombra = (azimutGrados + 180) % 360;
 
       const enVista = dibujarArbolesVisibles();
       const paraSombra = enVista.slice(0, CONFIG.maxArbolesConSombra);
-      console.log('[arboles] Árboles para sombra:', paraSombra.length);
+
+      const tangenteSol = Math.tan(posSol.altitude);
+      if (!tangenteSol) return;
 
       const sombras = [];
       for (let i = 0; i < paraSombra.length; i += CONFIG.loteSombraSize) {
         if (miVersion !== versionSombra) return;
         const lote = paraSombra.slice(i, i + CONFIG.loteSombraSize);
         for (const arbol of lote) {
-          // Usamos una altitud fija si es de noche, por ejemplo 45 grados
-          let altSol = posSol.altitude;
-          if (altSol <= 0) altSol = 0.785; // 45 grados en radianes (aprox)
-          const tangenteSol = Math.tan(altSol);
-          if (!tangenteSol || tangenteSol === 0) continue;
           const longitudSombraM = arbol.altura / tangenteSol;
           if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+          const distanciaKm = longitudSombraM / 1000;
           const circulo = turf.circle(arbol.punto, arbol.radioCopaM / 1000, { units: 'kilometers', steps: 10 });
-          sombras.push(sombraDeCopa(circulo, longitudSombraM / 1000, bearingSombra));
+          const volumen = calcularVolumenSombraCopa(circulo, distanciaKm, bearingSombra);
+          if (volumen) sombras.push(volumen);
         }
         if (miVersion !== versionSombra) return;
         map.getSource('arboles-globales-sombra')?.setData(turf.featureCollection(sombras));
         if (i + CONFIG.loteSombraSize < paraSombra.length) await cederAlNavegador();
-      }
-
-      console.log('[arboles] Total sombras generadas:', sombras.length);
-      if (sombras.length === 0) {
-        console.warn('[arboles] No se generó ninguna sombra. Revisa altSol, paraSombra, etc.');
       }
     }
 
@@ -336,5 +357,6 @@
     });
 
     await cargarArbolesDeLaVista();
+    recalcularSombrasArboles();
   }
 })();

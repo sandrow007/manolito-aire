@@ -318,8 +318,8 @@
 
       const centro = map.getCenter();
       const posSol = SunCalc.getPosition(new Date(), centro.lat, centro.lng);
-      if (posSol.altitude <= 0) {
-        map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+      if (false) {
+          map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
         return;
       }
       const azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;

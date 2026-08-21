@@ -56,7 +56,7 @@
     alturaEstimadaSinDatoM: 6, // altura asumida cuando el nodo natural=tree no trae height
     radioCopaPorDefectoM: 2.2, // copa asumida cuando el nodo no trae diameter_crown
 
-    maxArbolesEnPantalla: 700,  // límite de dibujado por rendimiento
+    maxArbolesEnPantalla: 527,  // límite de dibujado por rendimiento
     maxArbolesConSombra: 220,   // límite de cálculo de sombra por rendimiento
     loteSombraSize: 25,
     sincroSombraMs: 60 * 1000,  // recalcular sombras cada minuto, como los edificios

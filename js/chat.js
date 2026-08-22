@@ -1,13 +1,15 @@
 /* ============================================================
    MANOLIT∞ — Aire + Sombras 3D
-   VERSIÓN DEFINITIVA: CONTEXTO TÉCNICO ROBUSTO + IA UNIVERSAL
+   VERSIÓN CORREGIDA: CONTEXTO SEPARADO + MEMORIA COHERENTE
    ============================================================ */
 
 const CLOUDFLARE_WORKER_URL = "https://manolito-aire.sandro-a007.workers.dev/manolito";
 const OPENROUTER_API_KEY = ""; // Respaldo opcional
 const OPENROUTER_MODEL = "google/gemma-3-27b-it";
 
+// HISTORIAL PERSISTENTE - Se mantiene entre preguntas
 let chatHistory = [];
+const MAX_HISTORY = 10; // Aumentamos para mejor contexto
 
 function getRobustLang() {
   if (typeof currentLang !== 'undefined' && currentLang) return currentLang;
@@ -24,102 +26,28 @@ function parseMarkdownToHTML(text) {
   let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
   html = html.replace(/`(.*?)`/g, '<code>$1</code>');
-  html = html.replace(/^### (.*$)/gm, '<h4>$1</h4>');
-  html = html.replace(/^## (.*$)/gm, '<h3>$1</h3>');
   html = html.replace(/\n/g, '<br>');
   return html;
 }
 
-// ====== SISTEMA DE CONTEXTO TÉCNICO DE MANOLIT∞ AIRE ======
-const MANOLITO_SYSTEM_CONTEXT = `[INSTRUCCIONES SISTEMA - CUMPLIR ESTRICTAMENTE]
+// ====== SYSTEM PROMPT SEPARADO Y CLARO ======
+const SYSTEM_PROMPT = `Eres Manolit∞, asistente de la web manolitoaire.com y también un asistente universal.
 
-IDENTIDAD:
-Eres Manolit∞, asistente experto de la plataforma web "Manolit∞ Aire" (manolitoaire.com), un proyecto climático ciudadano avanzado. Operas con precisión técnica y conocimiento universal.
+SOBRE LA WEB manolitoaire.com:
+- Mapas 3D con cálculo de sombras solares en tiempo real (OpenStreetMap + Three.js)
+- Rutas peatonales bajo sombra (OSRM)
+- Irradiación solar (NASA POWER API)
+- Calidad del aire en tiempo real (Copernicus CAMS)
+- Árboles 3D como reguladores térmicos
+- "Manolit∞ Cuántico" = simulador probabilístico (no hardware cuántico real)
 
-=== BASE DE DATOS TÉCNICA: MANOLIT∞ AIRE (DOMINA AL 100%) ===
-
-CARACTERÍSTICAS PRINCIPALES DE LA WEB:
-
-1. MAPAS 3D INTERACTIVOS:
-- Visualización tridimensional de ciudades usando datos de OpenStreetMap
-- Edificios extruidos en 3D con texturas realistas
-- Renderizado en tiempo real con Three.js/WebGL
-- Navegable en cualquier ciudad del mundo con datos 3D disponibles
-
-2. CÁLCULO DE SOMBRAS 3D EN TIEMPO REAL:
-- Proyección precisa de sombras solares sobre edificios 3D
-- Usa hora astronómica real (posición solar exacta)
-- Funciona globalmente donde existan edificios 3D mapeados
-- Simula sombras proyectadas por árboles y estructuras
-- NO es un videojuego ni simulación cinematográfica
-
-3. RUTAS PEATONALES BAJO SOMBRA:
-- Trazado de rutas a pie optimizando caminar por zonas sombreadas
-- Usa OSRM (Open Source Routing Machine) para navegación
-- Calcula dinámicamente qué calles tienen sombra según la hora del día
-- Ideal para ciudades calurosas o para evitar exposición solar
-
-4. PASEOS BAJO SOMBRA:
-- Generación de recorridos urbanos que maximizan cobertura de sombra
-- Útil para turismo peatonal en clima cálido
-- Considera densidad de edificios y vegetación
-
-5. IRRADIACIÓN SOLAR (MAPA TÉRMICO):
-- Mapas de calor mostrando radiación solar por zona
-- Cruza datos históricos mensuales de la NASA (API POWER)
-- Combina con altura solar real astronómica
-- Útil para instalación de paneles solares y urbanismo
-
-6. CALIDAD DEL AIRE EN TIEMPO REAL:
-- Datos actualizados de Copernicus CAMS (Copernicus Atmosphere Monitoring Service)
-- Mide PM2.5, PM10, O3, NO2, SO2
-- Mapas de contaminación atmosférica en vivo
-- "Manolit∞ Cuántico" = simulador probabilístico (servidores clásicos, NO hardware cuántico real)
-
-7. ÁRBOLES 3D Y REGULACIÓN TÉRMICA:
-- Extracción de árboles desde OpenStreetMap via Overpass API
-- Función climática: reducción de temperatura urbica
-- Si faltan datos en una zona, simula árbol estándar de 6m
-- Considera especies y densidad foliar
-
-8. TECNOLOGÍAS IMPLEMENTADAS:
-- Frontend: HTML5, JavaScript ES6+, Three.js, Leaflet
-- APIs: OpenStreetMap, Overpass, NASA POWER, Copernicus CAMS, OSRM
-- Backend: Cloudflare Workers serverless
-- Renderizado: WebGL para gráficos 3D
-
-=== REGLAS DE INTELIGENCIA Y COMPORTAMIENTO ===
-
-1. DEDUCCIÓN ABSOLUTA:
-- El usuario escribirá con errores, abreviaciones y lenguaje informal
-- DEDUCE SIEMPRE la intención y contexto real
-- JAMÁS digas "no entiendo" ni pidas aclaraciones por errores tipográficos
-- Responde directamente a la duda deducida
-
-2. CONOCIMIENTO UNIVERSAL ILIMITADO:
-- Eres un experto universal además de técnico de la web
-- Responde con precisión sobre: historia, medicina, geografía, política, arte, programación, ciencia, filosofía, literatura, idiomas, matemáticas, física, química, biología, economía, deportes, cocina, música, cine, etc.
-- No te limites al clima si cambian de tema
-- Mantén profundidad técnica en cualquier área
-
-3. MULTI-IDIOMA FLUIDO:
-- Detecta el idioma de la pregunta y responde en ese mismo idioma
-- Soporta mínimo: español, inglés, francés, alemán, italiano, portugués, chino, japonés, ruso, árabe
-- Si hay errores gramaticales, deduce el idioma y responde correctamente
-
-4. ACTITUD Y TONO:
-- Directo, técnico, sin rodeos
-- Ciencia pura, sin fantasía ni adornos innecesarios
-- Profesional pero accesible
-- Sin disculpas innecesarias
-
-5. CONTINUIDAD GARANTIZADA:
-- JAMÁS te quedes bloqueado o sin respuesta
-- Si una pregunta es ambigua, deduce lo más probable y responde
-- Si no sabes algo con certeza, da la mejor aproximación posible
-- Prioriza siempre dar información útil sobre admitir ignorancia
-
-[FIN DE INSTRUCCIONES SISTEMA]`;
+COMPORTAMIENTO:
+1. Responde en el mismo idioma del usuario
+2. Si te preguntan sobre la web, usa el conocimiento técnico de arriba
+3. Si te preguntan sobre OTROS temas (música, historia, ciencia, etc.), responde como experto universal
+4. MANTÉN EL CONTEXTO de la conversación: si hablan de Lady Gaga y luego preguntan "¿qué otras canciones tiene?", responde sobre Lady Gaga, NO cambies de tema
+5. Deduce siempre la intención del usuario
+6. Nunca digas "no entiendo" - deduce y responde`;
 
 async function askManolito(question) {
   const uiLang = getRobustLang();
@@ -128,41 +56,27 @@ async function askManolito(question) {
     return "Conexión bloqueada. Acepta las cookies para interactuar con la IA.";
   }
 
-  // Preparamos el historial reciente con formato claro
-  let historyText = "";
-  if (chatHistory.length > 0) {
-    historyText = "\n=== MEMORIA DE CONVERSACIÓN RECIENTE ===\n";
-    chatHistory.forEach(m => {
-      const role = m.role === 'user' ? 'USUARIO' : 'MANOLIT∞';
-      historyText += `${role}: ${m.content}\n`;
-    });
-    historyText += "=== FIN MEMORIA ===\n\n";
+  // AGREGAR pregunta al historial ANTES de construir el contexto
+  chatHistory.push({ role: 'user', content: question });
+  
+  // Mantener solo los últimos mensajes para no exceder tokens
+  while (chatHistory.length > MAX_HISTORY) {
+    chatHistory.shift();
   }
 
-  // Construcción del mensaje completo
-  const fullContext = `${MANOLITO_SYSTEM_CONTEXT}
-
-${historyText}
-
-=== PREGUNTA ENTRANTE ===
-Idioma detectado: ${uiLang}
-Pregunta: "${question}"
-
-INSTRUCCIÓN FINAL: Analiza la pregunta, deduce contexto e intención (incluso con errores tipográficos), y responde directamente en el mismo idioma del usuario. Si es sobre manolitoaire.com, usa tu conocimiento técnico. Si es sobre otro tema, responde como experto universal. JAMÁS te quedes sin respuesta.
-=== FIN PREGUNTA ===`;
-
-  // Actualizamos memoria local
-  chatHistory.push({ role: 'user', content: question });
-  if (chatHistory.length > 8) chatHistory.shift(); // Aumentamos a 8 mensajes para mejor contexto
-
   let finalAnswer = "";
-  let errors = [];
 
-  // 1) Ejecución vía Cloudflare Worker
+  // 1) Cloudflare Worker - Enviar estructura correcta
   if (CLOUDFLARE_WORKER_URL) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // Timeout de 15s
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
+      // ESTRUCTURA CORRECTA: system + historial completo (incluyendo pregunta actual)
+      const messages = [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...chatHistory // Esto incluye TODA la conversación previa + pregunta actual
+      ];
       
       const res = await fetch(CLOUDFLARE_WORKER_URL, {
         method: "POST",
@@ -172,10 +86,9 @@ INSTRUCCIÓN FINAL: Analiza la pregunta, deduce contexto e intención (incluso c
         },
         signal: controller.signal,
         body: JSON.stringify({ 
-          message: question, 
-          idioma: uiLang, 
-          systemPrompt: MANOLITO_SYSTEM_CONTEXT,
-          history: chatHistory.slice(-6) // Enviamos historial estructurado
+          messages: messages, // <-- CAMBIO CLAVE: enviar estructura messages completa
+          idioma: uiLang,
+          systemPrompt: SYSTEM_PROMPT
         })
       });
       
@@ -185,44 +98,35 @@ INSTRUCCIÓN FINAL: Analiza la pregunta, deduce contexto e intención (incluso c
         const data = await res.json();
         if (data.respuesta && data.respuesta.trim().length > 0) {
           finalAnswer = data.respuesta.trim();
-        } else if (data.error) {
-          errors.push(`Worker: ${data.error}`);
         }
-      } else {
-        errors.push(`Worker HTTP ${res.status}`);
       }
     } catch (e) {
-      errors.push(`Worker: ${e.name === 'AbortError' ? 'Timeout' : e.message}`);
-      console.warn("Fallo de conexión con el Worker de Cloudflare:", e);
+      console.warn("Fallo Worker:", e.message);
     }
   }
 
-  // 2) Fallback a OpenRouter
+  // 2) Fallback OpenRouter - Estructura correcta de messages
   if (!finalAnswer && OPENROUTER_API_KEY) {
     try {
+      // ESTRUCTURA CORRECTA PARA OPENROUTER
       const messagesForOR = [
-        { role: "system", content: MANOLITO_SYSTEM_CONTEXT },
-        ...chatHistory.map(m => ({
-          role: m.role,
-          content: m.content
-        }))
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...chatHistory // Historial completo con contexto
       ];
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // Timeout de 20s
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://manolitoaire.com",
-          "X-Title": "Manolit∞ Aire"
+          "Content-Type": "application/json"
         },
         signal: controller.signal,
         body: JSON.stringify({ 
           model: OPENROUTER_MODEL, 
-          messages: messagesForOR,
+          messages: messagesForOR, // <-- Estructura correcta
           temperature: 0.7,
           max_tokens: 1000
         })
@@ -235,32 +139,30 @@ INSTRUCCIÓN FINAL: Analiza la pregunta, deduce contexto e intención (incluso c
         if (data.choices && data.choices[0] && data.choices[0].message) {
           finalAnswer = data.choices[0].message.content.trim();
         }
-      } else {
-        errors.push(`OpenRouter HTTP ${res.status}`);
       }
     } catch (e) {
-      errors.push(`OpenRouter: ${e.name === 'AbortError' ? 'Timeout' : e.message}`);
-      console.error("Fallo en OpenRouter:", e);
+      console.error("Fallo OpenRouter:", e.message);
     }
   }
 
-  // 3) Respuesta de emergencia si todo falla
+  // 3) Manejar respuesta
   if (!finalAnswer) {
-    console.error("Errores acumulados:", errors);
-    finalAnswer = `⚠️ Conexión inestable detectada. 
-
-Sin embargo, puedo ayudarte: manolitoaire.com ofrece mapas 3D con cálculo de sombras solares en tiempo real, rutas peatonales bajo sombra, mapas de irradiación solar (NASA POWER) y calidad del aire (Copernicus CAMS).
-
-Reformula tu pregunta en un momento. Si el problema persiste, verifica tu conexión a internet.`;
-    chatHistory.pop(); // Removemos la pregunta sin respuesta del historial
+    finalAnswer = "Error de conexión. Reformula tu pregunta en un momento.";
+    chatHistory.pop(); // Quitar pregunta sin respuesta del historial
   } else {
+    // AGREGAR respuesta al historial - CRÍTICO para mantener contexto
     chatHistory.push({ role: 'assistant', content: finalAnswer });
+    
+    // Mantener límite después de agregar respuesta
+    while (chatHistory.length > MAX_HISTORY) {
+      chatHistory.shift();
+    }
   }
 
   return finalAnswer;
 }
 
-// ========================== INTERFAZ DE USUARIO ==========================
+// ========================== INTERFAZ UI ==========================
 function openChat() {
   const overlay = document.getElementById('chatOverlay');
   if (overlay) {
@@ -309,27 +211,10 @@ function toggleInputState(disabled) {
   if (sendBtn) sendBtn.disabled = disabled;
 }
 
-// Preguntas rápidas contextuales sobre la web
-const QUICK_QUESTIONS = {
-  es: [
-    "¿Cómo funcionan las sombras 3D?",
-    "¿Qué es la irradiación solar?",
-    "¿De dónde viene la calidad del aire?",
-    "¿Puedo trazar rutas bajo sombra?"
-  ],
-  en: [
-    "How do 3D shadows work?",
-    "What is solar irradiation?",
-    "Where does air quality data come from?",
-    "Can I route under shade?"
-  ]
-};
-
 async function askQuick(key) {
   const btn = document.querySelector(`[data-quick="${key}"]`);
   const questionText = btn ? btn.textContent : key;
   if (!questionText) return;
-
   await sendQuestion(questionText);
 }
 
@@ -347,21 +232,20 @@ async function askCustom() {
 async function sendQuestion(question) {
   toggleInputState(true);
   addBubble(question, 'user');
-  setChatStatus('Manolit∞ analizando contexto...');
+  setChatStatus('Manolit∞ procesando...');
   
   try {
     const answer = await askManolito(question);
     addBubble(answer, 'mano');
   } catch (e) {
-    addBubble("Error inesperado. Reinténtalo en un momento.", 'mano');
-    console.error("Error crítico:", e);
+    addBubble("Error inesperado. Reinténtalo.", 'mano');
+    console.error("Error:", e);
   } finally {
     setChatStatus('');
     toggleInputState(false);
   }
 }
 
-// Inicialización
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('chatInputField');
   if (input) {
@@ -372,22 +256,14 @@ document.addEventListener('DOMContentLoaded', () => {
       } 
     });
   }
-  
-  // Auto-enfoque al abrir
-  const chatTrigger = document.querySelector('[data-chat-trigger]');
-  if (chatTrigger) {
-    chatTrigger.addEventListener('click', () => {
-      setTimeout(openChat, 100);
-    });
-  }
 });
 
-// Mensaje de bienvenida contextual
+// Mensaje inicial
 function initWelcomeMessage() {
   const lang = getRobustLang();
   const welcome = lang === 'en' 
-    ? "Hola! Soy Manolit∞, asistente de manolitoaire.com. Pregúntame sobre sombras 3D, irradiación solar, calidad del aire, rutas bajo sombra... o cualquier otro tema. ¿En qué puedo ayudarte?"
-    : "¡Hola! Soy Manolit∞, asistente de manolitoaire.com. Pregúntame sobre sombras 3D, irradiación solar, calidad del aire, rutas bajo sombra... o sobre cualquier otro tema. ¿En qué puedo ayudarte?";
+    ? "Hola! Soy Manolit∞. Pregúntame sobre manolitoaire.com (sombras 3D, irradiación solar, calidad del aire) o sobre cualquier tema. ¿Qué necesitas?"
+    : "¡Hola! Soy Manolit∞. Pregúntame sobre manolitoaire.com (sombras 3D, irradiación solar, calidad del aire) o sobre cualquier otro tema. ¿En qué puedo ayudarte?";
   
   const body = document.getElementById('chatBody');
   if (body && body.children.length === 0) {
@@ -395,5 +271,4 @@ function initWelcomeMessage() {
   }
 }
 
-// Llamar al inicio si el chat existe
 setTimeout(initWelcomeMessage, 500);

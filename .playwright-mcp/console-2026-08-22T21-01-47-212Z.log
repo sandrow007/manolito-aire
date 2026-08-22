@@ -1,0 +1,6 @@
+[     481ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=36.5956&longitude=-4.6367&current=pm2_5,pm10,nitrogen_dioxide,ozone:0
+[    4653ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=41.5815&longitude=2.5501&current=pm2_5,pm10,nitrogen_dioxide,ozone:0
+[    5653ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=43.1362&longitude=-2.0722&current=pm2_5,pm10,nitrogen_dioxide,ozone:0
+[  137619ms] [WARNING] Expected value to be of type number, but found null instead. @ blob:http://127.0.0.1:5500/6034ef67-0968-4a5b-b64b-b59072fa15b9:0
+[  137620ms] [WARNING] Expected value to be of type number, but found null instead. @ blob:http://127.0.0.1:5500/6034ef67-0968-4a5b-b64b-b59072fa15b9:0
+[  137620ms] [WARNING] Expected value to be of type number, but found null instead. @ blob:http://127.0.0.1:5500/6034ef67-0968-4a5b-b64b-b59072fa15b9:0

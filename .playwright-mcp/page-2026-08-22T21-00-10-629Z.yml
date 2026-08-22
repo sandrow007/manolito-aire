@@ -1,0 +1,668 @@
+- generic [active] [ref=f4e1]:
+  - generic [ref=f4e5]:
+    - link "Manolit∞ Aire MAPA NACIONAL · DATOS EN VIVO" [ref=f4e6] [cursor=pointer]:
+      - /url: index.html
+      - text: Manolit∞ Aire
+      - generic [ref=f4e7]: MAPA NACIONAL · DATOS EN VIVO
+    - generic [ref=f4e8]:
+      - link "¿Por qué existe esto?" [ref=f4e9] [cursor=pointer]:
+        - /url: about.html
+      - link "Manolit∞ Forestal" [ref=f4e10] [cursor=pointer]:
+        - /url: https://www.manolitoforestal.space/
+      - link "Islas de Calor Sevilla" [ref=f4e11] [cursor=pointer]:
+        - /url: https://islasdecalorsevilla.com
+      - link "Que es Manolit∞ ©" [ref=f4e12] [cursor=pointer]:
+        - /url: https://islasdecalorsevilla.com/manolito
+      - generic "Color de acento" [ref=f4e13]:
+        - button "◐" [ref=f4e14] [cursor=pointer]
+        - button "◑" [ref=f4e15] [cursor=pointer]
+        - button "◒" [ref=f4e16] [cursor=pointer]
+        - button "◓" [ref=f4e17] [cursor=pointer]
+      - button "☾" [ref=f4e18] [cursor=pointer]
+      - generic [ref=f4e19]:
+        - button "ES" [ref=f4e20] [cursor=pointer]
+        - button "CA" [ref=f4e21] [cursor=pointer]
+        - button "EU" [ref=f4e22] [cursor=pointer]
+        - button "GL" [ref=f4e23] [cursor=pointer]
+        - button "EN" [ref=f4e24] [cursor=pointer]
+  - generic [ref=f4e25]:
+    - button "Sevilla ▾" [ref=f4e27] [cursor=pointer]
+    - generic [ref=f4e28]: bien
+    - generic [ref=f4e32]: ¡Hoy puedes jugar fuera todo el día!
+    - generic [ref=f4e33]: Cielo despejado.
+    - generic [ref=f4e34]: "PM2.5 9 µg/m³ · ICA: Buena"
+    - button "No lo entiendo, explícamelo" [ref=f4e35] [cursor=pointer]
+  - generic [ref=f4e36]:
+    - generic [ref=f4e37]: ¿Cómo quieres que te lo cuente?
+    - generic [ref=f4e38]:
+      - generic [ref=f4e39] [cursor=pointer]:
+        - generic [ref=f4e40]: "01"
+        - generic [ref=f4e41]: Ciudadano
+        - generic [ref=f4e42]: Claro y directo
+      - generic [ref=f4e43] [cursor=pointer]:
+        - generic [ref=f4e44]: "02"
+        - generic [ref=f4e45]: Científico
+        - generic [ref=f4e46]: Con los datos
+      - generic [ref=f4e47] [cursor=pointer]:
+        - generic [ref=f4e48]: "03"
+        - generic [ref=f4e49]: Abuela / Abuelo
+        - generic [ref=f4e50]: Letra grande, sin prisa
+      - generic [ref=f4e51] [cursor=pointer]:
+        - generic [ref=f4e52]: "04"
+        - generic [ref=f4e53]: Peque (5 años)
+        - generic [ref=f4e54]: Con dibujitos
+  - generic [ref=f4e55]:
+    - generic [ref=f4e56]:
+      - generic [ref=f4e57]: El aire de España, ahora mismo
+      - generic [ref=f4e58]:
+        - button "Península" [ref=f4e59] [cursor=pointer]
+        - button "Canarias" [ref=f4e60] [cursor=pointer]
+        - button "Baleares" [ref=f4e61] [cursor=pointer]
+        - button "Ceuta / Melilla" [ref=f4e62] [cursor=pointer]
+    - generic [ref=f4e63]:
+      - generic [ref=f4e64]:
+        - generic:
+          - generic:
+            - img:
+              - generic:
+                - generic [ref=f4e65] [cursor=pointer]
+                - generic [ref=f4e66] [cursor=pointer]
+                - generic [ref=f4e67] [cursor=pointer]
+                - generic [ref=f4e68] [cursor=pointer]
+                - generic [ref=f4e69] [cursor=pointer]
+                - generic [ref=f4e70] [cursor=pointer]
+                - generic [ref=f4e71] [cursor=pointer]
+                - generic [ref=f4e72] [cursor=pointer]
+                - generic [ref=f4e73] [cursor=pointer]
+                - generic [ref=f4e74] [cursor=pointer]
+                - generic [ref=f4e75] [cursor=pointer]
+                - generic [ref=f4e76] [cursor=pointer]
+                - generic [ref=f4e77] [cursor=pointer]
+                - generic [ref=f4e78] [cursor=pointer]
+                - generic [ref=f4e79] [cursor=pointer]
+                - generic [ref=f4e80] [cursor=pointer]
+                - generic [ref=f4e81] [cursor=pointer]
+                - generic [ref=f4e82] [cursor=pointer]
+                - generic [ref=f4e83] [cursor=pointer]
+                - generic [ref=f4e84] [cursor=pointer]
+                - generic [ref=f4e85] [cursor=pointer]
+                - generic [ref=f4e86] [cursor=pointer]
+                - generic [ref=f4e87] [cursor=pointer]
+                - generic [ref=f4e88] [cursor=pointer]
+                - generic [ref=f4e89] [cursor=pointer]
+                - generic [ref=f4e90] [cursor=pointer]
+                - generic [ref=f4e91] [cursor=pointer]
+                - generic [ref=f4e92] [cursor=pointer]
+                - generic [ref=f4e93] [cursor=pointer]
+                - generic [ref=f4e94] [cursor=pointer]
+                - generic [ref=f4e95] [cursor=pointer]
+                - generic [ref=f4e96] [cursor=pointer]
+                - generic [ref=f4e97] [cursor=pointer]
+                - generic [ref=f4e98] [cursor=pointer]
+                - generic [ref=f4e99] [cursor=pointer]
+                - generic [ref=f4e100] [cursor=pointer]
+                - generic [ref=f4e101] [cursor=pointer]
+                - generic [ref=f4e102] [cursor=pointer]
+                - generic [ref=f4e103] [cursor=pointer]
+                - generic [ref=f4e104] [cursor=pointer]
+                - generic [ref=f4e105] [cursor=pointer]
+                - generic [ref=f4e106] [cursor=pointer]
+                - generic [ref=f4e107] [cursor=pointer]
+                - generic [ref=f4e108] [cursor=pointer]
+                - generic [ref=f4e109] [cursor=pointer]
+                - generic [ref=f4e110] [cursor=pointer]
+                - generic [ref=f4e111] [cursor=pointer]
+                - generic [ref=f4e112] [cursor=pointer]
+                - generic [ref=f4e113] [cursor=pointer]
+                - generic [ref=f4e114] [cursor=pointer]
+                - generic [ref=f4e115] [cursor=pointer]
+                - generic [ref=f4e116] [cursor=pointer]
+                - generic [ref=f4e117] [cursor=pointer]
+                - generic [ref=f4e118] [cursor=pointer]
+                - generic [ref=f4e119] [cursor=pointer]
+                - generic [ref=f4e120] [cursor=pointer]
+                - generic [ref=f4e121] [cursor=pointer]
+                - generic [ref=f4e122] [cursor=pointer]
+                - generic [ref=f4e123] [cursor=pointer]
+                - generic [ref=f4e124] [cursor=pointer]
+                - generic [ref=f4e125] [cursor=pointer]
+                - generic [ref=f4e126] [cursor=pointer]
+                - generic [ref=f4e127] [cursor=pointer]
+                - generic [ref=f4e128] [cursor=pointer]
+                - generic [ref=f4e129] [cursor=pointer]
+                - generic [ref=f4e130] [cursor=pointer]
+                - generic [ref=f4e131] [cursor=pointer]
+                - generic [ref=f4e132] [cursor=pointer]
+                - generic [ref=f4e133] [cursor=pointer]
+                - generic [ref=f4e134] [cursor=pointer]
+                - generic [ref=f4e135] [cursor=pointer]
+                - generic [ref=f4e136] [cursor=pointer]
+                - generic [ref=f4e137] [cursor=pointer]
+                - generic [ref=f4e138] [cursor=pointer]
+                - generic [ref=f4e139] [cursor=pointer]
+                - generic [ref=f4e140] [cursor=pointer]
+                - generic [ref=f4e141] [cursor=pointer]
+                - generic [ref=f4e142] [cursor=pointer]
+                - generic [ref=f4e143] [cursor=pointer]
+                - generic [ref=f4e144] [cursor=pointer]
+                - generic [ref=f4e145] [cursor=pointer]
+                - generic [ref=f4e146] [cursor=pointer]
+                - generic [ref=f4e147] [cursor=pointer]
+                - generic [ref=f4e148] [cursor=pointer]
+                - generic [ref=f4e149] [cursor=pointer]
+                - generic [ref=f4e150] [cursor=pointer]
+                - generic [ref=f4e151] [cursor=pointer]
+                - generic [ref=f4e152] [cursor=pointer]
+                - generic [ref=f4e153] [cursor=pointer]
+                - generic [ref=f4e154] [cursor=pointer]
+                - generic [ref=f4e155] [cursor=pointer]
+                - generic [ref=f4e156] [cursor=pointer]
+                - generic [ref=f4e157] [cursor=pointer]
+                - generic [ref=f4e158] [cursor=pointer]
+                - generic [ref=f4e159] [cursor=pointer]
+                - generic [ref=f4e160] [cursor=pointer]
+                - generic [ref=f4e161] [cursor=pointer]
+                - generic [ref=f4e162] [cursor=pointer]
+                - generic [ref=f4e163] [cursor=pointer]
+                - generic [ref=f4e164] [cursor=pointer]
+                - generic [ref=f4e165] [cursor=pointer]
+                - generic [ref=f4e166] [cursor=pointer]
+                - generic [ref=f4e167] [cursor=pointer]
+                - generic [ref=f4e168] [cursor=pointer]
+                - generic [ref=f4e169] [cursor=pointer]
+                - generic [ref=f4e170] [cursor=pointer]
+                - generic [ref=f4e171] [cursor=pointer]
+                - generic [ref=f4e172] [cursor=pointer]
+                - generic [ref=f4e173] [cursor=pointer]
+                - generic [ref=f4e174] [cursor=pointer]
+                - generic [ref=f4e175] [cursor=pointer]
+                - generic [ref=f4e176] [cursor=pointer]
+                - generic [ref=f4e177] [cursor=pointer]
+                - generic [ref=f4e178] [cursor=pointer]
+                - generic [ref=f4e179] [cursor=pointer]
+                - generic [ref=f4e180] [cursor=pointer]
+                - generic [ref=f4e181] [cursor=pointer]
+                - generic [ref=f4e182] [cursor=pointer]
+                - generic [ref=f4e183] [cursor=pointer]
+                - generic [ref=f4e184] [cursor=pointer]
+                - generic [ref=f4e185] [cursor=pointer]
+                - generic [ref=f4e186] [cursor=pointer]
+                - generic [ref=f4e187] [cursor=pointer]
+                - generic [ref=f4e188] [cursor=pointer]
+                - generic [ref=f4e189] [cursor=pointer]
+                - generic [ref=f4e190] [cursor=pointer]
+                - generic [ref=f4e191] [cursor=pointer]
+                - generic [ref=f4e192] [cursor=pointer]
+                - generic [ref=f4e193] [cursor=pointer]
+                - generic [ref=f4e194] [cursor=pointer]
+                - generic [ref=f4e195] [cursor=pointer]
+                - generic [ref=f4e196] [cursor=pointer]
+                - generic [ref=f4e197] [cursor=pointer]
+                - generic [ref=f4e198] [cursor=pointer]
+                - generic [ref=f4e199] [cursor=pointer]
+                - generic [ref=f4e200] [cursor=pointer]
+                - generic [ref=f4e201] [cursor=pointer]
+                - generic [ref=f4e202] [cursor=pointer]
+                - generic [ref=f4e203] [cursor=pointer]
+                - generic [ref=f4e204] [cursor=pointer]
+                - generic [ref=f4e205] [cursor=pointer]
+                - generic [ref=f4e206] [cursor=pointer]
+                - generic [ref=f4e207] [cursor=pointer]
+                - generic [ref=f4e208] [cursor=pointer]
+                - generic [ref=f4e209] [cursor=pointer]
+                - generic [ref=f4e210] [cursor=pointer]
+                - generic [ref=f4e211] [cursor=pointer]
+                - generic [ref=f4e212] [cursor=pointer]
+                - generic [ref=f4e213] [cursor=pointer]
+                - generic [ref=f4e214] [cursor=pointer]
+                - generic [ref=f4e215] [cursor=pointer]
+                - generic [ref=f4e216] [cursor=pointer]
+                - generic [ref=f4e217] [cursor=pointer]
+                - generic [ref=f4e218] [cursor=pointer]
+                - generic [ref=f4e219] [cursor=pointer]
+                - generic [ref=f4e220] [cursor=pointer]
+                - generic [ref=f4e221] [cursor=pointer]
+                - generic [ref=f4e222] [cursor=pointer]
+                - generic [ref=f4e223] [cursor=pointer]
+                - generic [ref=f4e224] [cursor=pointer]
+                - generic [ref=f4e225] [cursor=pointer]
+                - generic [ref=f4e226] [cursor=pointer]
+                - generic [ref=f4e227] [cursor=pointer]
+                - generic [ref=f4e228] [cursor=pointer]
+                - generic [ref=f4e229] [cursor=pointer]
+                - generic [ref=f4e230] [cursor=pointer]
+                - generic [ref=f4e231] [cursor=pointer]
+                - generic [ref=f4e232] [cursor=pointer]
+                - generic [ref=f4e233] [cursor=pointer]
+                - generic [ref=f4e234] [cursor=pointer]
+                - generic [ref=f4e235] [cursor=pointer]
+                - generic [ref=f4e236] [cursor=pointer]
+                - generic [ref=f4e237] [cursor=pointer]
+                - generic [ref=f4e238] [cursor=pointer]
+                - generic [ref=f4e239] [cursor=pointer]
+                - generic [ref=f4e240] [cursor=pointer]
+                - generic [ref=f4e241] [cursor=pointer]
+                - generic [ref=f4e242] [cursor=pointer]
+                - generic [ref=f4e243] [cursor=pointer]
+                - generic [ref=f4e244] [cursor=pointer]
+                - generic [ref=f4e245] [cursor=pointer]
+                - generic [ref=f4e246] [cursor=pointer]
+                - generic [ref=f4e247] [cursor=pointer]
+                - generic [ref=f4e248] [cursor=pointer]
+                - generic [ref=f4e249] [cursor=pointer]
+                - generic [ref=f4e250] [cursor=pointer]
+                - generic [ref=f4e251] [cursor=pointer]
+                - generic [ref=f4e252] [cursor=pointer]
+                - generic [ref=f4e253] [cursor=pointer]
+                - generic [ref=f4e254] [cursor=pointer]
+                - generic [ref=f4e255] [cursor=pointer]
+                - generic [ref=f4e256] [cursor=pointer]
+                - generic [ref=f4e257] [cursor=pointer]
+                - generic [ref=f4e258] [cursor=pointer]
+                - generic [ref=f4e259] [cursor=pointer]
+                - generic [ref=f4e260] [cursor=pointer]
+                - generic [ref=f4e261] [cursor=pointer]
+                - generic [ref=f4e262] [cursor=pointer]
+                - generic [ref=f4e263] [cursor=pointer]
+                - generic [ref=f4e264] [cursor=pointer]
+                - generic [ref=f4e265] [cursor=pointer]
+                - generic [ref=f4e266] [cursor=pointer]
+                - generic [ref=f4e267] [cursor=pointer]
+                - generic [ref=f4e268] [cursor=pointer]
+                - generic [ref=f4e269] [cursor=pointer]
+                - generic [ref=f4e270] [cursor=pointer]
+                - generic [ref=f4e271] [cursor=pointer]
+                - generic [ref=f4e272] [cursor=pointer]
+                - generic [ref=f4e273] [cursor=pointer]
+                - generic [ref=f4e274] [cursor=pointer]
+                - generic [ref=f4e275] [cursor=pointer]
+                - generic [ref=f4e276] [cursor=pointer]
+                - generic [ref=f4e277] [cursor=pointer]
+                - generic [ref=f4e278] [cursor=pointer]
+                - generic [ref=f4e279] [cursor=pointer]
+                - generic [ref=f4e280] [cursor=pointer]
+                - generic [ref=f4e281] [cursor=pointer]
+                - generic [ref=f4e282] [cursor=pointer]
+                - generic [ref=f4e283] [cursor=pointer]
+                - generic [ref=f4e284] [cursor=pointer]
+                - generic [ref=f4e285] [cursor=pointer]
+                - generic [ref=f4e286] [cursor=pointer]
+                - generic [ref=f4e287] [cursor=pointer]
+                - generic [ref=f4e288] [cursor=pointer]
+                - generic [ref=f4e289] [cursor=pointer]
+                - generic [ref=f4e290] [cursor=pointer]
+                - generic [ref=f4e291] [cursor=pointer]
+                - generic [ref=f4e292] [cursor=pointer]
+                - generic [ref=f4e293] [cursor=pointer]
+                - generic [ref=f4e294] [cursor=pointer]
+                - generic [ref=f4e295] [cursor=pointer]
+                - generic [ref=f4e296] [cursor=pointer]
+                - generic [ref=f4e297] [cursor=pointer]
+                - generic [ref=f4e298] [cursor=pointer]
+                - generic [ref=f4e299] [cursor=pointer]
+                - generic [ref=f4e300] [cursor=pointer]
+                - generic [ref=f4e301] [cursor=pointer]
+                - generic [ref=f4e302] [cursor=pointer]
+                - generic [ref=f4e303] [cursor=pointer]
+                - generic [ref=f4e304] [cursor=pointer]
+                - generic [ref=f4e305] [cursor=pointer]
+                - generic [ref=f4e306] [cursor=pointer]
+                - generic [ref=f4e307] [cursor=pointer]
+                - generic [ref=f4e308] [cursor=pointer]
+                - generic [ref=f4e309] [cursor=pointer]
+                - generic [ref=f4e310] [cursor=pointer]
+                - generic [ref=f4e311] [cursor=pointer]
+                - generic [ref=f4e312] [cursor=pointer]
+                - generic [ref=f4e313] [cursor=pointer]
+                - generic [ref=f4e314] [cursor=pointer]
+                - generic [ref=f4e315] [cursor=pointer]
+                - generic [ref=f4e316] [cursor=pointer]
+                - generic [ref=f4e317] [cursor=pointer]
+                - generic [ref=f4e318] [cursor=pointer]
+                - generic [ref=f4e319] [cursor=pointer]
+                - generic [ref=f4e320] [cursor=pointer]
+                - generic [ref=f4e321] [cursor=pointer]
+                - generic [ref=f4e322] [cursor=pointer]
+                - generic [ref=f4e323] [cursor=pointer]
+                - generic [ref=f4e324] [cursor=pointer]
+                - generic [ref=f4e325] [cursor=pointer]
+                - generic [ref=f4e326] [cursor=pointer]
+                - generic [ref=f4e327] [cursor=pointer]
+                - generic [ref=f4e328] [cursor=pointer]
+                - generic [ref=f4e329] [cursor=pointer]
+                - generic [ref=f4e330] [cursor=pointer]
+                - generic [ref=f4e331] [cursor=pointer]
+                - generic [ref=f4e332] [cursor=pointer]
+                - generic [ref=f4e333] [cursor=pointer]
+                - generic [ref=f4e334] [cursor=pointer]
+                - generic [ref=f4e335] [cursor=pointer]
+                - generic [ref=f4e336] [cursor=pointer]
+                - generic [ref=f4e337] [cursor=pointer]
+                - generic [ref=f4e338] [cursor=pointer]
+                - generic [ref=f4e339] [cursor=pointer]
+                - generic [ref=f4e340] [cursor=pointer]
+                - generic [ref=f4e341] [cursor=pointer]
+                - generic [ref=f4e342] [cursor=pointer]
+                - generic [ref=f4e343] [cursor=pointer]
+                - generic [ref=f4e344] [cursor=pointer]
+                - generic [ref=f4e345] [cursor=pointer]
+                - generic [ref=f4e346] [cursor=pointer]
+                - generic [ref=f4e347] [cursor=pointer]
+                - generic [ref=f4e348] [cursor=pointer]
+                - generic [ref=f4e349] [cursor=pointer]
+                - generic [ref=f4e350] [cursor=pointer]
+                - generic [ref=f4e351] [cursor=pointer]
+                - generic [ref=f4e352] [cursor=pointer]
+                - generic [ref=f4e353] [cursor=pointer]
+                - generic [ref=f4e354] [cursor=pointer]
+                - generic [ref=f4e355] [cursor=pointer]
+                - generic [ref=f4e356] [cursor=pointer]
+                - generic [ref=f4e357] [cursor=pointer]
+                - generic [ref=f4e358] [cursor=pointer]
+                - generic [ref=f4e359] [cursor=pointer]
+                - generic [ref=f4e360] [cursor=pointer]
+                - generic [ref=f4e361] [cursor=pointer]
+                - generic [ref=f4e362] [cursor=pointer]
+                - generic [ref=f4e363] [cursor=pointer]
+                - generic [ref=f4e364] [cursor=pointer]
+                - generic [ref=f4e365] [cursor=pointer]
+                - generic [ref=f4e366] [cursor=pointer]
+                - generic [ref=f4e367] [cursor=pointer]
+                - generic [ref=f4e368] [cursor=pointer]
+                - generic [ref=f4e369] [cursor=pointer]
+                - generic [ref=f4e370] [cursor=pointer]
+                - generic [ref=f4e371] [cursor=pointer]
+                - generic [ref=f4e372] [cursor=pointer]
+                - generic [ref=f4e373] [cursor=pointer]
+                - generic [ref=f4e374] [cursor=pointer]
+                - generic [ref=f4e375] [cursor=pointer]
+                - generic [ref=f4e376] [cursor=pointer]
+                - generic [ref=f4e377] [cursor=pointer]
+                - generic [ref=f4e378] [cursor=pointer]
+                - generic [ref=f4e379] [cursor=pointer]
+                - generic [ref=f4e380] [cursor=pointer]
+                - generic [ref=f4e381] [cursor=pointer]
+                - generic [ref=f4e382] [cursor=pointer]
+                - generic [ref=f4e383] [cursor=pointer]
+                - generic [ref=f4e384] [cursor=pointer]
+                - generic [ref=f4e385] [cursor=pointer]
+                - generic [ref=f4e386] [cursor=pointer]
+                - generic [ref=f4e387] [cursor=pointer]
+                - generic [ref=f4e388] [cursor=pointer]
+                - generic [ref=f4e389] [cursor=pointer]
+                - generic [ref=f4e390] [cursor=pointer]
+                - generic [ref=f4e391] [cursor=pointer]
+                - generic [ref=f4e392] [cursor=pointer]
+                - generic [ref=f4e393] [cursor=pointer]
+                - generic [ref=f4e394] [cursor=pointer]
+                - generic [ref=f4e395] [cursor=pointer]
+                - generic [ref=f4e396] [cursor=pointer]
+                - generic [ref=f4e397] [cursor=pointer]
+                - generic [ref=f4e398] [cursor=pointer]
+                - generic [ref=f4e399] [cursor=pointer]
+                - generic [ref=f4e400] [cursor=pointer]
+                - generic [ref=f4e401] [cursor=pointer]
+                - generic [ref=f4e402] [cursor=pointer]
+                - generic [ref=f4e403] [cursor=pointer]
+                - generic [ref=f4e404] [cursor=pointer]
+                - generic [ref=f4e405] [cursor=pointer]
+                - generic [ref=f4e406] [cursor=pointer]
+                - generic [ref=f4e407] [cursor=pointer]
+                - generic [ref=f4e408] [cursor=pointer]
+                - generic [ref=f4e409] [cursor=pointer]
+                - generic [ref=f4e410] [cursor=pointer]
+                - generic [ref=f4e411] [cursor=pointer]
+                - generic [ref=f4e412] [cursor=pointer]
+                - generic [ref=f4e413] [cursor=pointer]
+                - generic [ref=f4e414] [cursor=pointer]
+                - generic [ref=f4e415] [cursor=pointer]
+                - generic [ref=f4e416] [cursor=pointer]
+                - generic [ref=f4e417] [cursor=pointer]
+                - generic [ref=f4e418] [cursor=pointer]
+                - generic [ref=f4e419] [cursor=pointer]
+                - generic [ref=f4e420] [cursor=pointer]
+                - generic [ref=f4e421] [cursor=pointer]
+                - generic [ref=f4e422] [cursor=pointer]
+                - generic [ref=f4e423] [cursor=pointer]
+                - generic [ref=f4e424] [cursor=pointer]
+                - generic [ref=f4e425] [cursor=pointer]
+                - generic [ref=f4e426] [cursor=pointer]
+                - generic [ref=f4e427] [cursor=pointer]
+                - generic [ref=f4e428] [cursor=pointer]
+                - generic [ref=f4e429] [cursor=pointer]
+                - generic [ref=f4e430] [cursor=pointer]
+                - generic [ref=f4e431] [cursor=pointer]
+                - generic [ref=f4e432] [cursor=pointer]
+                - generic [ref=f4e433] [cursor=pointer]
+                - generic [ref=f4e434] [cursor=pointer]
+                - generic [ref=f4e435] [cursor=pointer]
+                - generic [ref=f4e436] [cursor=pointer]
+                - generic [ref=f4e437] [cursor=pointer]
+                - generic [ref=f4e438] [cursor=pointer]
+                - generic [ref=f4e439] [cursor=pointer]
+                - generic [ref=f4e440] [cursor=pointer]
+                - generic [ref=f4e441] [cursor=pointer]
+                - generic [ref=f4e442] [cursor=pointer]
+                - generic [ref=f4e443] [cursor=pointer]
+                - generic [ref=f4e444] [cursor=pointer]
+                - generic [ref=f4e445] [cursor=pointer]
+                - generic [ref=f4e446] [cursor=pointer]
+                - generic [ref=f4e447] [cursor=pointer]
+                - generic [ref=f4e448] [cursor=pointer]
+                - generic [ref=f4e449] [cursor=pointer]
+                - generic [ref=f4e450] [cursor=pointer]
+                - generic [ref=f4e451] [cursor=pointer]
+                - generic [ref=f4e452] [cursor=pointer]
+                - generic [ref=f4e453] [cursor=pointer]
+                - generic [ref=f4e454] [cursor=pointer]
+                - generic [ref=f4e455] [cursor=pointer]
+                - generic [ref=f4e456] [cursor=pointer]
+                - generic [ref=f4e457] [cursor=pointer]
+                - generic [ref=f4e458] [cursor=pointer]
+                - generic [ref=f4e459] [cursor=pointer]
+                - generic [ref=f4e460] [cursor=pointer]
+                - generic [ref=f4e461] [cursor=pointer]
+                - generic [ref=f4e462] [cursor=pointer]
+                - generic [ref=f4e463] [cursor=pointer]
+                - generic [ref=f4e464] [cursor=pointer]
+                - generic [ref=f4e465] [cursor=pointer]
+                - generic [ref=f4e466] [cursor=pointer]
+                - generic [ref=f4e467] [cursor=pointer]
+                - generic [ref=f4e468] [cursor=pointer]
+                - generic [ref=f4e469] [cursor=pointer]
+                - generic [ref=f4e470] [cursor=pointer]
+                - generic [ref=f4e471] [cursor=pointer]
+                - generic [ref=f4e472] [cursor=pointer]
+                - generic [ref=f4e473] [cursor=pointer]
+                - generic [ref=f4e474] [cursor=pointer]
+                - generic [ref=f4e475] [cursor=pointer]
+                - generic [ref=f4e476] [cursor=pointer]
+                - generic [ref=f4e477] [cursor=pointer]
+                - generic [ref=f4e478] [cursor=pointer]
+                - generic [ref=f4e479] [cursor=pointer]
+                - generic [ref=f4e480] [cursor=pointer]
+                - generic [ref=f4e481] [cursor=pointer]
+                - generic [ref=f4e482] [cursor=pointer]
+                - generic [ref=f4e483] [cursor=pointer]
+                - generic [ref=f4e484] [cursor=pointer]
+                - generic [ref=f4e485] [cursor=pointer]
+                - generic [ref=f4e486] [cursor=pointer]
+                - generic [ref=f4e487] [cursor=pointer]
+                - generic [ref=f4e488] [cursor=pointer]
+                - generic [ref=f4e489] [cursor=pointer]
+                - generic [ref=f4e490] [cursor=pointer]
+                - generic [ref=f4e491] [cursor=pointer]
+                - generic [ref=f4e492] [cursor=pointer]
+                - generic [ref=f4e493] [cursor=pointer]
+                - generic [ref=f4e494] [cursor=pointer]
+                - generic [ref=f4e495] [cursor=pointer]
+                - generic [ref=f4e496] [cursor=pointer]
+                - generic [ref=f4e497] [cursor=pointer]
+                - generic [ref=f4e498] [cursor=pointer]
+                - generic [ref=f4e499] [cursor=pointer]
+                - generic [ref=f4e500] [cursor=pointer]
+                - generic [ref=f4e501] [cursor=pointer]
+                - generic [ref=f4e502] [cursor=pointer]
+                - generic [ref=f4e503] [cursor=pointer]
+                - generic [ref=f4e504] [cursor=pointer]
+                - generic [ref=f4e505] [cursor=pointer]
+                - generic [ref=f4e506] [cursor=pointer]
+                - generic [ref=f4e507] [cursor=pointer]
+                - generic [ref=f4e508] [cursor=pointer]
+                - generic [ref=f4e509] [cursor=pointer]
+                - generic [ref=f4e510] [cursor=pointer]
+                - generic [ref=f4e511] [cursor=pointer]
+                - generic [ref=f4e512] [cursor=pointer]
+                - generic [ref=f4e513] [cursor=pointer]
+                - generic [ref=f4e514] [cursor=pointer]
+                - generic [ref=f4e515] [cursor=pointer]
+                - generic [ref=f4e516] [cursor=pointer]
+                - generic [ref=f4e517] [cursor=pointer]
+                - generic [ref=f4e518] [cursor=pointer]
+                - generic [ref=f4e519] [cursor=pointer]
+                - generic [ref=f4e520] [cursor=pointer]
+                - generic [ref=f4e521] [cursor=pointer]
+                - generic [ref=f4e522] [cursor=pointer]
+                - generic [ref=f4e523] [cursor=pointer]
+                - generic [ref=f4e524] [cursor=pointer]
+                - generic [ref=f4e525] [cursor=pointer]
+                - generic [ref=f4e526] [cursor=pointer]
+                - generic [ref=f4e527] [cursor=pointer]
+                - generic [ref=f4e528] [cursor=pointer]
+                - generic [ref=f4e529] [cursor=pointer]
+                - generic [ref=f4e530] [cursor=pointer]
+                - generic [ref=f4e531] [cursor=pointer]
+                - generic [ref=f4e532] [cursor=pointer]
+                - generic [ref=f4e533] [cursor=pointer]
+                - generic [ref=f4e534] [cursor=pointer]
+                - generic [ref=f4e535] [cursor=pointer]
+                - generic [ref=f4e536] [cursor=pointer]
+                - generic [ref=f4e537] [cursor=pointer]
+                - generic [ref=f4e538] [cursor=pointer]
+                - generic [ref=f4e539] [cursor=pointer]
+                - generic [ref=f4e540] [cursor=pointer]
+                - generic [ref=f4e541] [cursor=pointer]
+                - generic [ref=f4e542] [cursor=pointer]
+                - generic [ref=f4e543] [cursor=pointer]
+                - generic [ref=f4e544] [cursor=pointer]
+                - generic [ref=f4e545] [cursor=pointer]
+                - generic [ref=f4e546] [cursor=pointer]
+                - generic [ref=f4e547] [cursor=pointer]
+                - generic [ref=f4e548] [cursor=pointer]
+                - generic [ref=f4e549] [cursor=pointer]
+                - generic [ref=f4e550] [cursor=pointer]
+                - generic [ref=f4e551] [cursor=pointer]
+                - generic [ref=f4e552] [cursor=pointer]
+                - generic [ref=f4e553] [cursor=pointer]
+                - generic [ref=f4e554] [cursor=pointer]
+                - generic [ref=f4e555] [cursor=pointer]
+                - generic [ref=f4e556] [cursor=pointer]
+                - generic [ref=f4e557] [cursor=pointer]
+                - generic [ref=f4e558] [cursor=pointer]
+                - generic [ref=f4e559] [cursor=pointer]
+                - generic [ref=f4e560] [cursor=pointer]
+                - generic [ref=f4e561] [cursor=pointer]
+                - generic [ref=f4e562] [cursor=pointer]
+        - generic:
+          - generic [ref=f4e563]:
+            - button "Zoom in" [ref=f4e564] [cursor=pointer]: +
+            - button "Zoom out" [ref=f4e565] [cursor=pointer]: −
+          - generic [ref=f4e566]:
+            - link "Leaflet" [ref=f4e567] [cursor=pointer]:
+              - /url: https://leafletjs.com
+            - text: "| © OpenStreetMap · © CARTO"
+      - generic [ref=f4e572]:
+        - generic [ref=f4e573]: Buena
+        - generic [ref=f4e576]: Moderada
+        - generic [ref=f4e579]: Mala
+        - generic [ref=f4e582]: Los puntos son estaciones reales. El color entre ciudades es estimado, no medido.
+    - generic [ref=f4e583]: Cargados 527/527 puntos en vivo.
+  - generic [ref=f4e584]:
+    - generic [ref=f4e585]: Evolución del aire — Sevilla
+    - generic [ref=f4e587]:
+      - paragraph [ref=f4e647]: No se pudo cargar el histórico ahora mismo (la API está saturada por las 500+ peticiones del mapa). Prueba a recargar en unos segundos.
+      - generic [ref=f4e590]:
+        - generic [ref=f4e591]: Últimas 48h (dato real)
+        - generic [ref=f4e593]: Próximas 48h (pronóstico Copernicus/CAMS)
+    - generic [ref=f4e595]:
+      - generic [ref=f4e596]:
+        - generic [ref=f4e597]: Manolit∞ Cuántico
+        - generic [ref=f4e598]: probabilidad simulada, día a día, para los próximos 5 días
+      - paragraph [ref=f4e649]: No se pudo cargar el histórico ahora mismo (la API está saturada por las 500+ peticiones del mapa). Prueba a recargar en unos segundos.
+      - paragraph [ref=f4e600]: Esto NO es una predicción meteorológica oficial. Es una simulación matemática (formalismo cuántico simulado por software, sin hardware cuántico real) que calcula probabilidades a partir del pronóstico real de arriba. Para decisiones de salud, guíate por el dato del gráfico y por fuentes oficiales, no por este número.
+  - generic [ref=f4e601]:
+    - generic [ref=f4e602]: Ruta y sombras 3D
+    - generic [ref=f4e604]:
+      - textbox "Punto de origen" [ref=f4e606]
+      - textbox "Punto de destino" [ref=f4e608]
+      - button "Buscar ruta" [ref=f4e609] [cursor=pointer]
+    - generic [ref=f4e610]:
+      - generic [ref=f4e611]:
+        - region "Map" [ref=f4e650]
+        - generic:
+          - generic [ref=f4e651]:
+            - button "Zoom in" [ref=f4e652] [cursor=pointer]
+            - button "Zoom out" [ref=f4e654] [cursor=pointer]
+            - button "Reset bearing to north" [ref=f4e656]
+          - group [ref=f4e658]:
+            - generic "Toggle attribution" [ref=f4e659] [cursor=pointer]
+            - generic [ref=f4e660]:
+              - link "MapLibre" [ref=f4e661] [cursor=pointer]:
+                - /url: https://maplibre.org/
+              - text: "|"
+              - link "OpenFreeMap" [ref=f4e662] [cursor=pointer]:
+                - /url: https://openfreemap.org
+              - link "© OpenMapTiles" [ref=f4e663] [cursor=pointer]:
+                - /url: https://www.openmaptiles.org/
+              - text: Data from
+              - link "OpenStreetMap" [ref=f4e664] [cursor=pointer]:
+                - /url: https://www.openstreetmap.org/copyright
+      - generic [ref=f4e666]:
+        - generic [ref=f4e667]: Posición solar
+        - button "Mostrar u ocultar el panel de posición solar" [ref=f4e672] [cursor=pointer]
+      - generic [ref=f4e675]:
+        - button "Elegir en el mapa" [ref=f4e676] [cursor=pointer]
+        - button "Mi ubicación" [ref=f4e677] [cursor=pointer]
+        - button "Iniciar caminata" [ref=f4e678] [cursor=pointer]
+        - button "Paseo virtual 3D" [ref=f4e679] [cursor=pointer]
+        - button "Reiniciar" [ref=f4e680] [cursor=pointer]
+        - button "Árboles" [ref=f4e681] [cursor=pointer]
+        - button "Irradiación Solar" [ref=f4e682] [cursor=pointer]
+      - button "Mapa oscuro" [ref=f4e684] [cursor=pointer]
+    - generic [ref=f4e612]:
+      - generic [ref=f4e613] [cursor=pointer]:
+        - checkbox "Edificios 3D" [checked] [ref=f4e614]
+        - generic [ref=f4e615]: Edificios 3D
+      - generic [ref=f4e616] [cursor=pointer]:
+        - checkbox "Sombras" [checked] [ref=f4e617]
+        - generic [ref=f4e618]: Sombras
+      - generic [ref=f4e619] [cursor=pointer]:
+        - checkbox "Ruta" [checked] [ref=f4e620]
+        - generic [ref=f4e621]: Ruta
+      - generic [ref=f4e622] [cursor=pointer]:
+        - checkbox "Posición del sol" [ref=f4e623]
+        - generic [ref=f4e624]: Posición del sol
+    - img [ref=f4e625]:
+      - generic [ref=f4e629]: "N"
+      - generic [ref=f4e630]: E
+      - generic [ref=f4e631]: S
+      - generic [ref=f4e632]: O
+  - generic [ref=f4e634]:
+    - paragraph [ref=f4e635]: Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro — herramientas gratuitas, sin registro y sin publicidad.
+    - generic [ref=f4e636]: Manolit∞ Forestal · Islas de Calor Sevilla · Manolit∞ Aire
+    - generic [ref=f4e637]:
+      - link "Aviso legal" [ref=f4e638] [cursor=pointer]:
+        - /url: aviso-legal.html
+      - text: ·
+      - link "Privacidad" [ref=f4e639] [cursor=pointer]:
+        - /url: privacidad.html
+      - text: ·
+      - link "Cookies" [ref=f4e640] [cursor=pointer]:
+        - /url: cookies.html
+    - generic [ref=f4e641]:
+      - paragraph [ref=f4e642]: Manolit∞ siempre sera gratis. Los servidores, por desgracia, no lo son...
+      - link "Apoyar en Ko‑fi" [ref=f4e643] [cursor=pointer]:
+        - /url: https://ko-fi.com/manolitoinfinito
+  - button "∞ Pregúntale a Manolit∞" [ref=f4e644] [cursor=pointer]:
+    - generic [ref=f4e645]: ∞
+    - generic [ref=f4e646]: Pregúntale a Manolit∞

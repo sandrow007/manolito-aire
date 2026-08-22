@@ -320,8 +320,18 @@
       if (!map.getSource('arboles-globales-sombra') || !capaVisible) return;
       const miVersion = ++versionSombra;
 
-      const centro = map.getCenter();
-      const posSol = SunCalc.getPosition(new Date(), centro.lat, centro.lng);
+      // Antes esto usaba new Date() y map.getCenter() propios: los árboles
+      // nunca se enteraban de que el slider de manolit-aire.js había
+      // cambiado la hora, así que sus sombras se quedaban fijas mientras
+      // las de los edificios sí se movían. Ahora usamos la MISMA hora y el
+      // MISMO punto de referencia solar que el resto del mapa, si existen.
+      const centro = typeof window.manolitAireCentroSol === 'function'
+        ? window.manolitAireCentroSol()
+        : map.getCenter();
+      const horaEfectiva = typeof window.manolitAireHoraEfectiva === 'function'
+        ? window.manolitAireHoraEfectiva()
+        : new Date();
+      const posSol = SunCalc.getPosition(horaEfectiva, centro.lat, centro.lon ?? centro.lng);
 
       // Igual que con los edificios: si el sol está bajo el horizonte no
       // hay sombra que proyectar. Nada de forzar una altitud inventada.

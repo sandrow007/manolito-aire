@@ -18,6 +18,10 @@
    - Corregido un error de sintaxis en calcularRutaConPrioridadSombra
      ("generarPoligonosSombra= await generarPoligonosSombraPara(...)")
      que rompía todo el script en cuanto se ejecutaba esa función.
+   - El badge de "% del trayecto en sombra" ya no se congela: se
+     recalcula cada vez que se recalculan los tramos en sombra de
+     la ruta (slider, paseo virtual, caminata...), y se oculta si
+     deja de haber ruta o sombras.
    ============================================================ */
 
 'use strict';
@@ -444,7 +448,9 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     if (!fuente) return;
     if (!rutaActual || !ultimaColeccionSombras.features.length) {
       fuente.setData(turf.featureCollection([]));
-      mostrarBadgeSombra(null); // AÑADIDO
+      // El badge de % de sombra ya no se queda con el valor viejo cuando
+      // deja de haber ruta o sombras que mostrar.
+      mostrarBadgeSombra(null);
       return;
     }
     try {
@@ -455,7 +461,12 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         return puntoEnSombra(medio);
       });
       fuente.setData(turf.featureCollection(tramosEnSombra));
-      if (tramos.features.length) { // AÑADIDO — todo este bloque if/else es nuevo
+      // Antes el badge de "% del trayecto en sombra" solo se calculaba una
+      // vez, al buscar la ruta, y se quedaba congelado aunque cambiaras la
+      // hora con el slider. Ahora se recalcula cada vez que se recalculan
+      // los tramos en sombra (que ya se llama desde el slider, el paseo
+      // virtual, la caminata, etc.), así que el badge siempre va en vivo.
+      if (tramos.features.length) {
         mostrarBadgeSombra(Math.round((tramosEnSombra.length / tramos.features.length) * 100));
       } else {
         mostrarBadgeSombra(null);
@@ -1648,9 +1659,6 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
       let poligonosSombra = [];
       if (posSolActual.altitude > 0 && capaEdificiosDisponible && edificiosCacheados.length) {
-        // FIX: aquí había un error de sintaxis
-        // ("generarPoligonosSombra= await generarPoligonosSombraPara(...)")
-        // que rompía todo el script en cuanto se llamaba a esta función.
         poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
       }
 

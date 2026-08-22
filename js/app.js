@@ -811,5 +811,10 @@ function initMap(){
 document.addEventListener('DOMContentLoaded', () => {
   initHeroControls();
   fetchCurrentCity();
-  initMap();
+  // El mapa Leaflet pesa (tiles + 486 KB de datos) y era el elemento LCP
+  // (~9,9 s en móvil). Se inicializa cuando el navegador está libre para
+  // que el mayor pintado con contenido sea el texto del hero.
+  const iniciarMapa = () => initMap();
+  if ('requestIdleCallback' in window) requestIdleCallback(iniciarMapa, { timeout: 2500 });
+  else window.addEventListener('load', () => setTimeout(iniciarMapa, 100));
 });

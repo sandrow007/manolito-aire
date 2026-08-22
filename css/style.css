@@ -160,6 +160,44 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .map-title{ font-family:var(--font-display); font-weight:600; font-size:1.15rem; color:var(--sky-deep); }
 .map-wrap{ position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); }
 #map{ height: 460px; width:100%; background:var(--mist); }
+
+/* El mapa de rutas y sombras 3D es la pieza protagonista: más alto y
+   con altura fluida según el viewport (dvh corrige la barra del
+   navegador en iPhone/Android, que con vh recortaba el mapa). */
+#shadowRouteMap{
+  width:100%;
+  height: clamp(440px, 62vh, 760px);
+  height: clamp(440px, 62dvh, 760px);
+  background:var(--mist);
+}
+
+/* En móvil el mapa de sombras rompe el margen lateral y crece hasta
+   casi toda la pantalla útil, respetando los bordes seguros del iPhone
+   (notch / barra inferior) con safe-area-inset. */
+@media (max-width: 640px){
+  .map-section{ padding: 0 8px; }
+  #shadowRouteMap{
+    height: calc(72vh);
+    height: calc(72dvh - env(safe-area-inset-top, 0px));
+  }
+  .map-wrap{ border-radius:12px; }
+}
+
+/* Rendimiento de scroll en móvil: las secciones largas que están
+   fuera de pantalla no se renderizan hasta acercarse al viewport.
+   contain-intrinsic-size evita saltos de barra de desplazamiento. */
+.forecast-section, .map-section, .explain, .content{
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
+/* Gestos táctiles fluidos sobre los mapas en iOS/Android */
+.map-wrap, #shadowRouteMap, #map{
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-x pan-y;
+}
+/* MapLibre gestiona sus propios gestos (pellizcar para zoom) */
+#shadowRouteMap .maplibregl-canvas{ touch-action: none; }
 .legend{ position:absolute; bottom:14px; left:14px; z-index:400; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 14px; font-size:0.7rem; box-shadow:0 4px 14px rgba(0,0,0,0.1); }
 .legend-row{ display:flex; align-items:center; gap:6px; margin:3px 0; }
 .legend-dot{ width:10px; height:10px; border-radius:50%; }

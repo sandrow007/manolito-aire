@@ -137,13 +137,45 @@
   un instrumento de precisión meteorológica y no debe emplearse para fines de navegación, aviación o mediciones técnicas.
 </p>
 
-<h2>11. Mapa e Irradiación Solar Real con Datos de la NASA</h2>
+<h2>11. Histórico de Irradiación Solar Real con Datos de la NASA</h2>
 <p>
-  La capa de irradiación térmica de nuestra plataforma es una <b>representación visual y orientativa</b> de la energía del sol. 
-  Para lograrlo, el mapa utiliza datos históricos mensuales de irradiancia global horizontal suministrados de forma oficial por la <strong>API de la NASA</strong>.
+  La capa de irradiación de nuestra plataforma es una <b>representación visual y orientativa</b> de la energía solar.
+  Utiliza datos históricos oficiales de la <strong>API NASA POWER</strong> (Prediction Of Worldwide Energy Resources):
+  irradiancia global horizontal (GHI), directa normal (DNI) y de cielo despejado, con resolución
+  <strong>diaria y horaria</strong> desde 1984 hasta la actualidad.
 </p>
 <p>
-  El cálculo final del color aplicado sobre el modelo de edificios en 3D (la rampa térmica) se obtiene cruzando este dato histórico medio con la altura solar real de la simulación, basándose en una aproximación a la conocida <b>ley del coseno de Lambert</b>. Al tratarse de una media histórica del clima aplicada a una geometría simplificada, <b>no representa el calor o la radiación exacta y actual</b> sobre cada inmueble. Esta herramienta gratuita tiene un propósito puramente divulgativo y de concienciación climática; por ello, no debe utilizarse bajo ningún concepto para certificaciones energéticas, cálculo de instalación de paneles solares fotovoltaicos, ni decisiones técnicas o médicas.
+  El panel permite navegar por el <strong>histórico real de cada fecha: año, mes, día y hora</strong> (en horario UTC),
+  mostrando el valor medido por los modelos de reanálisis de la NASA para la zona consultada, no un dato inventado.
+  El color del mapa responde al <b>índice de nubosidad instantáneo</b> (GHI ÷ cielo despejado) y la transposición a
+  plano inclinado se calcula aplicando la <b>ley del coseno de Lambert únicamente a la componente directa</b>,
+  conforme al modelo de difusa isotrópica estándar (IEC 61724 / ASHRAE). La altura y el acimut del sol se obtienen
+  con algoritmos astronómicos estándar (SunCalc).
+</p>
+<p>
+  Al tratarse de series climatológicas satelitales y de reanálisis aplicadas a una geometría simplificada,
+  <b>no representan la radiación exacta medida in situ</b> sobre cada inmueble. Esta herramienta gratuita tiene un
+  propósito puramente divulgativo y de concienciación climática; por ello, no debe utilizarse bajo ningún concepto
+  para certificaciones energéticas, dimensionado de instalaciones fotovoltaicas, ni decisiones técnicas o médicas.
+</p>
+
+<h2>11 bis. Atenuación Vegetal Real: Umbra, Penumbra y Sol Directo</h2>
+<p>
+  Al pinchar sobre el mapa con la capa de irradiación activa, el sistema clasifica el punto mediante
+  <strong>intersección geométrica 2D</strong> (librería Turf.js) contra los polígonos de sombra calculados en tiempo real,
+  sin simulación 3D pesada:
+</p>
+<ul>
+  <li><strong>Umbra (sombra de edificio):</strong> protección total — multiplicador de exposición solar ×1,0.</li>
+  <li><strong>Penumbra (sombra de árbol):</strong> la copa filtra parcialmente la radiación (transmitancia estimada ~50 %) — multiplicador ×2,0.</li>
+  <li><strong>Sol directo (sin sombra):</strong> exposición severa — multiplicador ×4,0.</li>
+</ul>
+<p>
+  Estos multiplicadores componen un <b>índice orientativo de castigo térmico al caminar</b>, no una medida física de
+  irradiancia. La transmitancia de las copas varía según especie, densidad foliar y época del año, y los polígonos de
+  sombra dependen de la altura estimada de edificios y árboles en OpenStreetMap, que puede faltar o estar desactualizada.
+  Por tanto, la clasificación umbra/penumbra/sol es <b>aproximada y didáctica</b>, y no debe emplearse para estudios
+  de confort térmico certificados, planificación urbanística oficial ni decisiones sanitarias.
 </p>
 
 <h2>12. El origen de Manolit∞: Supervivencia en Sevilla</h2>

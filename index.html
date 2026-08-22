@@ -2,14 +2,35 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manolit∞ Aire — ¿Cómo respiras hoy?</title>
-<meta name="description" content="Calidad del aire de España en tiempo real, gratis, sin registro y sin publicidad.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Manolit∞ Aire — Calidad del aire y sombra solar en tiempo real</title>
+<meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad.">
+<meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas">
+<meta name="theme-color" content="#1b2029">
+<link rel="canonical" href="https://manolito-aire.pages.dev/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Manolit∞ Aire — Calidad del aire y sombra solar en tiempo real">
+<meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro.">
+<meta property="og:image" content="nubes.png">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Manolit∞ Aire",
+  "applicationCategory": "WeatherApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "description": "Calidad del aire en tiempo real, rutas con sombra 3D e histórico de irradiación solar hora a hora (NASA POWER) con atenuación umbra/penumbra."
+}
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://unpkg.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://basemaps.cartocdn.com">
+<link rel="preconnect" href="https://tiles.openfreemap.org">
 <!-- Solo esta CSS bloquea el render: es la que afecta al primer pintado -->
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 
@@ -499,7 +520,7 @@
     <div id="rsStatus" class="chat-status" style="margin:8px 0 14px;"></div>
 
 <div class="map-wrap">
-  <div id="shadowRouteMap" style="height:440px;width:100%;">
+  <div id="shadowRouteMap">
   </div>
 </div>
 

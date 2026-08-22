@@ -27,26 +27,29 @@
     Domicilio: España<br>
   </p>
 
-  <h2>2. Objeto</h2>
-  <p>
-    Manolit∞ Aire es un proyecto ciudadano, gratuito y sin ánimo de lucro, que ofrece información
-    orientativa sobre la calidad del aire en España a partir de datos públicos de terceros y herramientas de simulación.
-  </p>
+<h2>2. Objeto del Proyecto: Monitoreo Climático Ciudadano</h2>
+<p>
+  Manolit∞ Aire es un proyecto ciudadano, gratuito y sin ánimo de lucro, diseñado para ofrecer información 
+  orientativa sobre la <strong>calidad del aire en España</strong>, mapas de sombras urbanas y simulación térmica. 
+  La plataforma unifica datos públicos de terceros y herramientas de simulación interactiva para hacer accesible la 
+  información ambiental a cualquier usuario.
+</p>
 
-  <h2>3. Naturaleza informativa del servicio</h2>
-  <p>
-    Los datos mostrados (calidad del aire, mensajes del chat, recomendaciones, métricas solares, irradiación térmica) tienen carácter
-    <b>orientativo</b> y no sustituyen el criterio médico, ni las alertas o recomendaciones
-    oficiales de organismos como el Ministerio de Sanidad, AEMET o las autoridades autonómicas
-    de salud pública. En caso de duda sobre tu salud, consulta siempre a un profesional sanitario.
-  </p>
+<h2>3. Naturaleza Informativa y Exención de Responsabilidad</h2>
+<p>
+  Los datos climáticos mostrados (índices de <strong>calidad del aire</strong>, mensajes del asistente, recomendaciones ante olas de calor, 
+  métricas solares e irradiación térmica) tienen un carácter estrictamente <b>orientativo y divulgativo</b>. Esta herramienta 
+  no sustituye bajo ningún concepto el criterio médico, ni las alertas meteorológicas o recomendaciones oficiales de organismos públicos 
+  como la <strong>AEMET</strong> (Agencia Estatal de Meteorología), el <strong>Ministerio de Sanidad</strong> o las autoridades autonómicas 
+  de salud pública. En caso de duda sobre tu salud o exposición a temperaturas extremas, consulta siempre a un profesional sanitario.
+</p>
 
-  <h2>4. Origen de los datos ambientales y geográficos</h2>
-  <p>
-    Los datos de calidad del aire proceden de fuentes públicas y abiertas (Copernicus/CAMS
-    a través de Open-Meteo, y estaciones oficiales de medición). Manolit∞ Aire no genera ni
-    mide directamente ningún dato ambiental, únicamente los presenta de forma accesible.
-  </p>
+
+<h2>4. Calidad del Aire y Origen de los Datos Geográficos</h2>
+<p>
+  Los datos de <strong>calidad del aire</strong> e índices de contaminación proceden de fuentes públicas y abiertas de alta fiabilidad, utilizando los modelos del programa europeo <strong>Copernicus (CAMS)</strong> a través de la API de <strong>Open-Meteo</strong>, además de complementar la información con las estaciones oficiales de medición locales. Manolit∞ Aire no genera ni mide directamente ningún parámetro ambiental, únicamente actúa como un visualizador interactivo para presentar estos datos climáticos de forma accesible y gratuita a los ciudadanos.
+</p>
+
   <p>
     La búsqueda de direcciones y el cálculo de rutas de la sección "Ruta y sombras 3D" utilizan
     los servicios públicos y gratuitos de <b>OpenStreetMap Nominatim</b> (geocodificación),
@@ -71,64 +74,87 @@
     los datos mostrados, al depender de servicios de terceros ajenos a su control y de aproximaciones matemáticas. El uso de esta web y las decisiones derivadas de ella son responsabilidad exclusiva de quien la usa.
   </p>
 
-  <h2>6. Propiedad</h2>
-  <p>
-    El diseño, código y contenidos propios de Manolit∞ Aire son propiedad de Sandro,
-    salvo los datos de terceros citados, que pertenecen a sus respectivas fuentes.
-  </p>
+<h2>6. Propiedad Intelectual y Autoría</h2>
+<p>
+  El diseño de la interfaz, el desarrollo del <strong>código fuente</strong> y los contenidos propios de la plataforma 
+  Manolit∞ Aire son propiedad exclusiva de <strong>Sandro</strong>, con la excepción de los datos ambientales y geográficos 
+  de terceros citados en este documento, los cuales pertenecen a sus respectivas fuentes y organismos oficiales. 
+  Este proyecto se comparte con la comunidad con un espíritu de transparencia y utilidad pública.
+</p>
 
-  <h2>7. Sobre el motor "Manolit∞ Cuántico"</h2>
-  <p>
-    La sección de probabilidad "Manolit∞ Cuántico" es una <b>simulación matemática por
-    software</b> que traduce el pronóstico real de contaminación (obtenido de Copernicus/CAMS
-    vía Open-Meteo) en una distribución de probabilidad, usando formalismo tomado de la
-    mecánica cuántica (amplitudes complejas, superposición, medición por regla de Born)
-    <b>ejecutado de forma clásica</b>, no en hardware cuántico real.
-  </p>
+<h2>7. ¿Cómo funciona Manolit∞ Cuántico? El motor de mapas de calor</h2>
 
-  <h2>8. Sobre las sombras 3D</h2>
   <p>
-    Las sombras que se muestran sobre los edificios se calculan a partir de la posición real
-    del sol (hora, fecha y ubicación) y la altura de cada edificio según los datos abiertos de
-    OpenStreetMap. Es una <b>aproximación geométrica</b>, no una simulación exacta de
-    proyección de sombras: la altura de los edificios puede faltar o ser incorrecta en OpenStreetMap,
-    y la forma del contorno de la sombra es estimada. No debe usarse como referencia técnica ni
-    de seguridad (por ejemplo, para instalaciones solares), solo como información orientativa.
-  </p>
+  La sección de probabilidad de <strong>Manolit∞ Cuántico</strong> es una <b>simulación matemática por 
+  software</b> que traduce el pronóstico real de contaminación atmosférica (obtenido de Copernicus/CAMS 
+  vía la API de Open-Meteo) en una distribución estadística. Para ello, el algoritmo utiliza un formalismo 
+  inspirado en la <strong>mecánica cuántica</strong> (como amplitudes complejas, estados de superposición y la 
+  medición mediante la regla de Born). Es importante destacar que este proceso es un <b>algoritmo ejecutado de forma clásica</b> 
+  en servidores estándar, y no en un ordenador o hardware cuántico real.
+</p>
+
+
+<h2>8. Visualización de Sombras 3D y Análisis Solar</h2>
   <p>
+  Las sombras proyectadas que se muestran sobre los edificios en el mapa 3D se calculan en tiempo real a partir de la 
+  <strong>posición real del sol</strong> (combinando la hora, fecha exacta y ubicación geográfica) y la altura estimada de cada inmueble 
+  según los datos abiertos de <strong>OpenStreetMap</strong>. El sistema realiza una <b>aproximación geométrica</b> y visual, por lo que 
+  no constituye una simulación exacta de proyección lumínica de ingeniería: la altura de las fachadas o bloques puede faltar, estar desactualizada 
+  o ser incorrecta en las bases de datos de OpenStreetMap, y la forma del contorno de la sombra es estimada por software. Por este motivo, 
+  no debe usarse bajo ningún concepto como referencia técnica, peritaje, ni de seguridad (por ejemplo, para estudios de sombreado en la 
+  <strong>instalación de paneles solares</strong> o placas fotovoltaicas), sirviendo únicamente como información orientativa y didáctica para los ciudadanos.
+</p>
+
     Esta función es <b>ilustrativa y experimental</b>. No es una predicción meteorológica
     oficial, no sustituye al dato de pronóstico mostrado en el gráfico principal, y no debe
     usarse como única base para decisiones.
   </p>
 
-  <h2>9. Sobre los árboles en 3D</h2>
-  <p>
-    La capa de árboles en 3D muestra los árboles registrados en OpenStreetMap dentro del área
-    visible del mapa. La información de cada árbol (altura, diámetro de copa) es aportada por
-    voluntarios de OpenStreetMap y puede estar incompleta. Cuando no existe ese dato, la
-    aplicación utiliza valores estimados (altura de 6 metros y copa de 2,2 metros de radio)
-    para poder representar el árbol de forma aproximada.
-  </p>
-  <p>
-    Los árboles se dibujan como volúmenes simplificados (tronco y copa escalonada) y sus
-    sombras se calculan con el mismo método geométrico que las de los edificios. Por tanto,
-    la forma, altura y proyección de sombra de cada árbol son <b>aproximadas</b> y tienen
-    únicamente una finalidad ilustrativa. No deben utilizarse para fines técnicos, de
-    inventario forestal ni de seguridad.
-  </p>
+<h2>9. Visualización de Árboles en 3D con OpenStreetMap</h2>
+<p>
+  La capa de <strong>árboles en 3D</strong> muestra la vegetación urbana registrada en 
+  <strong>OpenStreetMap</strong> dentro del área visible del mapa. La información técnica de cada ejemplar 
+  (como la altura del árbol o el diámetro de copa) es aportada por voluntarios y comunidad de mapeo, 
+  por lo que podría estar incompleta en algunas zonas. Cuando no existe ese registro exacto, nuestro simulador 
+  de clima urbano utiliza valores estimados (altura estándar de 6 metros y copa de 2,2 metros de radio) 
+  para lograr una <strong>representación 3D aproximada</strong> y calcular su sombra sobre el asfalto.
+</p>
 
-  <h2>10. Instrumento de posición solar</h2>
-  <p>
-    El panel de seguimiento solar (arco de horizonte a cenit) es un componente de cálculo autónomo. Determina la altitud y el azimut del sol utilizando algoritmos astronómicos estándar basados en las coordenadas geográficas de la consulta y la hora local del dispositivo. Es una representación matemática de carácter estrictamente visual e ilustrativo; no constituye un instrumento de precisión y no debe emplearse para fines de navegación, aviación o mediciones técnicas.
-  </p>
+ <p>
+  Los árboles se dibujan en el modelo como volúmenes simplificados (mediante un tronco y una copa escalonada) 
+  y sus proyecciones se calculan con el mismo método geométrico que las <strong>sombras de los edificios</strong>. 
+  Por lo tanto, la forma, la altura y la proyección de la <strong>sombra de cada árbol</strong> son <b>aproximadas</b> 
+  y tienen únicamente una finalidad ilustrativa dentro del diseño urbano. No deben utilizarse para fines técnicos, 
+  estudios de paisajismo, gestión de <strong>inventario forestal</strong> urbano ni normativas de seguridad vial o civil.
+</p>
 
-  <h2>11. Sobre la Capa de Irradiación Solar Real</h2>
-  <p>
-    La capa de irradiación térmica es una <b>representación visual y orientativa</b>. Utiliza datos históricos mensuales de irradiancia global horizontal suministrados por la API de la NASA.
-  </p>
-  <p>
-    El cálculo final del color aplicado sobre el modelo 3D (la rampa térmica) se obtiene cruzando este dato histórico medio con la altura solar real de la simulación, basándose en una aproximación a la <b>ley del coseno de Lambert</b>. Al tratarse de una media histórica aplicada a una geometría simplificada, <b>no representa el calor o la radiación exacta y actual</b> sobre cada inmueble. Esta herramienta tiene un propósito puramente divulgativo y no debe utilizarse bajo ningún concepto para certificaciones energéticas, cálculo de instalaciones fotovoltaicas, ni decisiones técnicas o médicas.
-  </p>
+  <h2>10. Simulador y Algoritmo de Posición Solar</h2>
+<p>
+  El panel de seguimiento solar (arco de horizonte a cenit) funciona como un componente de cálculo autónomo. 
+  Determina la <strong>altitud y el azimut del sol</strong> utilizando <strong>algoritmos astronómicos</strong> 
+  estándar basados en las coordenadas geográficas de la consulta y la hora local de tu dispositivo. Al ser una 
+  representación matemática del recorrido del sol de carácter estrictamente visual e ilustrativo, no constituye 
+  un instrumento de precisión meteorológica y no debe emplearse para fines de navegación, aviación o mediciones técnicas.
+</p>
+
+<h2>11. Mapa e Irradiación Solar Real con Datos de la NASA</h2>
+<p>
+  La capa de irradiación térmica de nuestra plataforma es una <b>representación visual y orientativa</b> de la energía del sol. 
+  Para lograrlo, el mapa utiliza datos históricos mensuales de irradiancia global horizontal suministrados de forma oficial por la <strong>API de la NASA</strong>.
+</p>
+<p>
+  El cálculo final del color aplicado sobre el modelo de edificios en 3D (la rampa térmica) se obtiene cruzando este dato histórico medio con la altura solar real de la simulación, basándose en una aproximación a la conocida <b>ley del coseno de Lambert</b>. Al tratarse de una media histórica del clima aplicada a una geometría simplificada, <b>no representa el calor o la radiación exacta y actual</b> sobre cada inmueble. Esta herramienta gratuita tiene un propósito puramente divulgativo y de concienciación climática; por ello, no debe utilizarse bajo ningún concepto para certificaciones energéticas, cálculo de instalación de paneles solares fotovoltaicos, ni decisiones técnicas o médicas.
+</p>
+
+<h2>12. El origen de Manolit∞: Supervivencia en Sevilla</h2>
+<p>
+  Este proyecto no nace en un laboratorio, nace de la pura necesidad. Cualquiera que viva o camine por 
+  <strong>Sevilla en verano</strong> sabe que te puedes literalmente morir ahogado de calor cruzando una calle al sol. 
+  En esta ciudad, una <strong>sombra en la calle</strong> ya no es un elemento estético de urbanismo; se ha convertido 
+  en un servicio público básico, vital y de primera necesidad, exactamente igual que tener <strong>agua potable</strong> o <strong>electricidad</strong> en casa. 
+  Manolit∞ Aire existe para que encuentres tu próximo refugio climático antes de que el asfalto te derrita.
+</p>
+
 </div>
 
 <div class="footer">

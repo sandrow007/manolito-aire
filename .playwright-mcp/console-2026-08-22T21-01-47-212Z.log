@@ -220,3 +220,4 @@
 [ 1148033ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=37.3891&longitude=-5.9845&hourly=pm2_5&past_days=2&forecast_days=5:0
 [ 1148033ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=35.2923&longitude=-2.9381&current=pm2_5,pm10,nitrogen_dioxide,ozone:0
 [ 1148086ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=37.3891&longitude=-5.9845&current=pm2_5,pm10,nitrogen_dioxide,ozone:0
+[ 1150587ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=37.3891&longitude=-5.9845&hourly=pm2_5&past_days=2&forecast_days=5:0

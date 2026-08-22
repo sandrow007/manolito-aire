@@ -1,11 +1,15 @@
 ﻿Set-Content -Path "wrangler.toml" -Encoding utf8 -Value @"
-name = "manolitoaire-api"
+name = "manolito-aire"
 main = "src/index.js"
 compatibility_date = "2024-09-23"
 
 [[kv_namespaces]]
 binding = "AIR_QUALITY_CACHE"
 id = "6212d41963034360bcda0f97ff459b9c"
+
+[vars]
+ALLOWED_ORIGIN = "*"
+
 
 [vars]
 ALLOWED_ORIGIN = "*"

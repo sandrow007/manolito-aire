@@ -1,16 +1,10 @@
 /* ============================================================
    MANOLIT∞ — Aire + Sombra
-   Único endpoint: Cloudflare Worker (API keys y LLM en backend)
+   Cascada: 1) Cloudflare Worker -> 2) OpenRouter -> 3) Error
    ============================================================ */
 const CLOUDFLARE_WORKER_URL = "https://manolito-aire.sandro-a007.workers.dev/manolito";
-
-// Fallback de emergencia. Solo se dispara si Cloudflare falla o no hay internet.
-// Cero bucles, cero falsas IA. Si el server cae, da la info mínima o avisa del error.
-const cannedFallback = {
-  aire: "Error de servidor IA. Datos offline: PM2.5 < 10 es ideal. Verde = Bueno, Rojo = Malo.",
-  sombra: "Error de servidor IA. Regla offline: por la mañana camina por la acera este, por la tarde por la oeste.",
-  error: "Error de conexión. La inteligencia artificial de Manolit∞ está inaccesible en este momento."
-};
+const OPENROUTER_API_KEY = ""; // <- Si Cloudflare falla, necesita esta clave para el fallback
+const OPENROUTER_MODEL = "google/gemma-3-27b-it";
 
 function getRobustLang() {
   if (typeof currentLang !== 'undefined' && currentLang) return currentLang;
@@ -29,39 +23,67 @@ async function askManolito(question) {
   const uiLang = getRobustLang();
   const uiLangName = langNames[uiLang] || 'español';
 
-  // Prompt ajustado para exigir respuesta universal y sin bloqueos de rol
   const systemPrompt = `Eres Manolit∞.
-Reglas estrictas de comportamiento:
-1. Responde SIEMPRE en el idioma del usuario (${uiLangName}).
-2. Eres experto en calidad del aire (PM2.5, ICA) y rutas de sombra urbana (capas 3D, edificios, OSRM).
-3. Si el usuario pregunta sobre CUALQUIER otro tema (Mona Lisa, historia, ciencia, programación, etc.), DEBES RESPONDER con total normalidad, precisión y seriedad, como un modelo de IA avanzado. No te limites a tu rol inicial si cambian de tema.
-4. Jamás entres en bucles de bienvenida. Responde a lo que se te pregunta directamente.`;
+Reglas estrictas:
+1. Responde SIEMPRE en ${uiLangName}.
+2. Eres experto en calidad del aire y rutas de sombra urbana.
+3. Si el usuario pregunta sobre cualquier otro tema fuera de tu especialidad, DEBES RESPONDER con total normalidad, precisión y seriedad (actúa como un LLM general de alta calidad).
+4. Jamás repitas frases de presentación ni entres en bucles de bienvenida.`;
 
   if (typeof cookiesAccepted === 'function' && !cookiesAccepted()){
-    return "Has rechazado las cookies. La conexión con la IA está bloqueada. Cambia la configuración para usar el chat.";
+    return "Conexión a la IA bloqueada por falta de permisos. Acepta las cookies para usar el chat.";
   }
 
-  try {
-    const r = await fetch(CLOUDFLARE_WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: question, idioma: uiLang, systemPrompt: systemPrompt })
-    });
-    
-    if (r.ok) {
-      const data = await r.json();
-      if (data.respuesta) return data.respuesta.trim();
+  // 1) Intentar Cloudflare AI (Worker)
+  if (CLOUDFLARE_WORKER_URL) {
+    try {
+      const resCF = await fetch(CLOUDFLARE_WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: question, idioma: uiLang, systemPrompt: systemPrompt })
+      });
+      
+      if (resCF.ok) {
+        const dataCF = await resCF.json();
+        if (dataCF.respuesta) return dataCF.respuesta.trim();
+      }
+    } catch (error) {
+      console.warn("Cloudflare Worker falló. Pasando al fallback de OpenRouter...");
     }
-  } catch (error) {
-    console.error("Fallo de red hacia el Cloudflare Worker:", error);
   }
 
-  // Si la ejecución llega hasta aquí, significa que tu Worker en Cloudflare devolvió un error (500, timeout) o el cliente no tiene internet.
-  const q = question.toLowerCase().trim();
-  if (/aire|pm|contaminaci|calidad|índice|bebé|deporte|ica|ventana|asma/.test(q)) return cannedFallback.aire;
-  if (/sombra|sol|calor|ruta|caminar|calle|aceras|orientación/.test(q)) return cannedFallback.sombra;
-  
-  return cannedFallback.error;
+  // 2) Intentar OpenRouter (Fallback)
+  if (OPENROUTER_API_KEY) {
+    try {
+      const resOR = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": window.location.href,
+          "X-Title": "Manolito Aire"
+        },
+        body: JSON.stringify({
+          model: OPENROUTER_MODEL,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: question }
+          ]
+        })
+      });
+
+      if (resOR.ok) {
+        const dataOR = await resOR.json();
+        const msgOR = dataOR.choices?.[0]?.message?.content;
+        if (msgOR) return msgOR.trim();
+      }
+    } catch (error) {
+      console.error("OpenRouter falló.");
+    }
+  }
+
+  // 3) Caída total del sistema
+  return "Error de conexión. Los servidores de IA están inaccesibles en este momento.";
 }
 
 function openChat(){ document.getElementById('chatOverlay').classList.add('open'); }
@@ -86,7 +108,7 @@ async function askQuick(key){
   const questionText = btn ? btn.textContent : key;
   if (btn) addBubble(questionText, 'user');
   
-  setChatStatus('Manolit∞ procesando...');
+  setChatStatus('Manolit∞ analizando...');
   const answer = await askManolito(questionText);
   addBubble(answer, 'mano');
   setChatStatus('');
@@ -100,7 +122,7 @@ async function askCustom(){
   addBubble(question, 'user');
   input.value = '';
   
-  setChatStatus('Manolit∞ procesando...');
+  setChatStatus('Manolit∞ analizando...');
   const answer = await askManolito(question);
   addBubble(answer, 'mano');
   setChatStatus('');

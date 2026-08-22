@@ -29,6 +29,142 @@
     esperaMapaMs: 15000,
   };
 
+  /* ---------------- Tipología de árboles (forma + sombra realista) ---------------- */
+
+  const TIPOS_ARBOL = {
+    palmera: {
+      keywords: ['phoenix', 'washingtonia', 'palma', 'palm', 'date palm', 'datilera'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 2.0,
+      forma: 'palmera',
+      color: '#7a9b4a',
+    },
+    pino: {
+      keywords: ['pinus', 'pino', 'pine', 'cedrus', 'cedro', 'cedar', 'ciprés', 'cypress', 'cupressus', 'abeto', 'fir'],
+      alturaMediaM: 14,
+      radioCopaMedioM: 3.0,
+      forma: 'conica',
+      color: '#2d5a3d',
+    },
+    encina_roble: {
+      keywords: ['quercus', 'encina', 'roble', 'oak', 'alcornoque', 'cork oak', 'quejigo'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 6.0,
+      forma: 'ancha_redondeada',
+      color: '#4f7a35',
+    },
+    olivo: {
+      keywords: ['olea', 'olivo', 'olive', 'acebuche'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_irregular',
+      color: '#6b8c42',
+    },
+    citrico: {
+      keywords: ['citrus', 'naranjo', 'limonero', 'orange', 'lemon', 'mandarino', 'pomelo'],
+      alturaMediaM: 5,
+      radioCopaMedioM: 2.8,
+      forma: 'redondeada',
+      color: '#5a8a3a',
+    },
+    platanero: {
+      keywords: ['platanus', 'plátano', 'platano', 'plane', 'sicomoro'],
+      alturaMediaM: 16,
+      radioCopaMedioM: 5.5,
+      forma: 'ancha_redondeada',
+      color: '#4a8a3f',
+    },
+    eucalipto: {
+      keywords: ['eucalyptus', 'eucalipto', 'gum'],
+      alturaMediaM: 18,
+      radioCopaMedioM: 3.0,
+      forma: 'oval_alargada',
+      color: '#3d6b4a',
+    },
+    olmo: {
+      keywords: ['ulmus', 'olmo', 'elm'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 5.0,
+      forma: 'ancha_redondeada',
+      color: '#5a8f3d',
+    },
+    chopo: {
+      keywords: ['populus', 'chopo', 'poplar', 'álamo', 'alamo'],
+      alturaMediaM: 15,
+      radioCopaMedioM: 4.0,
+      forma: 'oval_alargada',
+      color: '#4f9a45',
+    },
+    generico: {
+      alturaMediaM: CONFIG.alturaEstimadaSinDatoM,
+      radioCopaMedioM: CONFIG.radioCopaPorDefectoM,
+      forma: 'redondeada',
+      color: '#7fb069',
+    },
+  };
+
+  function clasificarArbol(tags) {
+    const texto = [
+      tags.species || '',
+      tags['species:es'] || '',
+      tags['species:en'] || '',
+      tags.genus || '',
+      tags.taxon || '',
+      tags.name || '',
+      tags['leaf_type'] || '',
+    ].join(' ').toLowerCase();
+
+    for (const [tipo, info] of Object.entries(TIPOS_ARBOL)) {
+      if (tipo === 'generico') continue;
+      for (const kw of info.keywords) {
+        if (texto.includes(kw.toLowerCase())) return { tipo, ...info };
+      }
+    }
+    return { tipo: 'generico', ...TIPOS_ARBOL.generico };
+  }
+
+  function estimarDimensionesArbol(tags, clasificacion) {
+    let altura = leerNumero(tags, ['height', 'maxheight']);
+    let diametroCopa = leerNumero(tags, ['diameter_crown', 'crown_diameter']);
+
+    if (altura == null) {
+      const circ = leerNumero(tags, ['circumference', 'circumference_dbh', 'dbh']);
+      if (circ) {
+        // Altura aproximada a partir del diámetro a la altura del pecho
+        const factor = clasificacion.forma === 'conica' ? 2.8 : clasificacion.forma === 'palmera' ? 5.0 : 2.0;
+        altura = Math.max(3, (circ / Math.PI) * factor);
+      } else {
+        altura = clasificacion.alturaMediaM;
+      }
+    }
+
+    if (diametroCopa == null) {
+      const circ = leerNumero(tags, ['circumference', 'circumference_dbh', 'dbh']);
+      if (circ) {
+        diametroCopa = circ / Math.PI;
+      } else {
+        const proporcion = {
+          palmera: 0.22,
+          conica: 0.30,
+          oval_alargada: 0.32,
+          ancha_redondeada: 0.75,
+          ancha_irregular: 0.65,
+          redondeada: 0.55,
+        }[clasificacion.forma] || 0.5;
+        diametroCopa = altura * proporcion;
+      }
+    }
+
+    // Palmera: copa siempre pequeña y alta
+    if (clasificacion.forma === 'palmera') {
+      diametroCopa = Math.min(diametroCopa, 3.5);
+      altura = Math.max(altura, 6);
+    }
+
+    const radioCopaM = Math.max(0.6, diametroCopa / 2);
+    return { altura, radioCopaM };
+  }
+
   function cederAlNavegador() {
     return new Promise((resolve) => {
       if ('requestIdleCallback' in window) requestIdleCallback(() => resolve(), { timeout: 120 });
@@ -218,12 +354,19 @@
     function procesarElementoOSM(el) {
       if (el.type !== 'node' || el.lat == null || el.lon == null) return null;
       const tags = el.tags || {};
-      const altura = leerNumero(tags, ['height']) || CONFIG.alturaEstimadaSinDatoM;
-      const diametroCopa = leerNumero(tags, ['diameter_crown']);
+      const clasificacion = clasificarArbol(tags);
+      const { altura, radioCopaM } = estimarDimensionesArbol(tags, clasificacion);
       if (altura <= CONFIG.alturaMinimaM) return null;
-      const radioCopaM = diametroCopa ? diametroCopa / 2 : CONFIG.radioCopaPorDefectoM;
-      const nombre = tags.species || tags['species:es'] || tags.genus || 'Árbol';
-      return { punto: turf.point([el.lon, el.lat]), altura, radioCopaM, nombre };
+      const nombre = tags.species || tags['species:es'] || tags.genus || clasificacion.tipo || 'Árbol';
+      return {
+        punto: turf.point([el.lon, el.lat]),
+        altura,
+        radioCopaM,
+        nombre,
+        forma: clasificacion.forma,
+        color: clasificacion.color,
+        tipo: clasificacion.tipo,
+      };
     }
 
     async function cargarArbolesDeLaVista() {

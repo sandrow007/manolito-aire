@@ -2,8 +2,15 @@
    MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
+   + Dijkstra térmico client-side (red peatonal local)
 
-   v4 (esta revisión) — sincronización con la capa de árboles:
+   v5 — FASE 1: motor Dijkstra térmico (Univ. Sevilla, "Mapas y rutas de sombra"):
+   - Grafo peatonal cargado desde GeoJSON estático local y filtrado por BBox +500 m.
+   - Peso térmico por arista: w(e) = Longitud(m) × (1 + penalización solar).
+   - Cola de prioridad binaria manual en Vanilla JS; objetivo < 15 ms.
+   - Fallback automático a OSRM si no hay red local disponible.
+
+   v4 (revisión anterior) — sincronización con la capa de árboles:
    - Se expone window.manolitAireHoraEfectiva() para que CUALQUIER
      otro script (como arboles-globales.js) use la MISMA hora que
      el slider de tiempo, en vez de tirar de su propio new Date().
@@ -48,12 +55,19 @@
     priorizarSombra: true,
     maxDetourSombra: 1.5,
     maxAlternativasSombra: 3,
-    // ----- Motor Dijkstra térmico (red peatonal local, cliente) -----
+    // ----- Motor Dijkstra térmico (red peatonal local + global bajo demanda) -----
     usarRedLocalTermica: true,
+    usarOverpassTermica: true,
     redPeatonalUrl: 'data/red-peatonal.geojson',
     redPeatonalMargenM: 500,
     factorPenalizacionSol: 0.7,
     maxNodosRedPeatonal: 80000,
+    overpassRedPeatonalUrls: [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass.osm.ch/api/interpreter',
+    ],
+    overpassTimeoutS: 25,
     // ----- Modo peatón virtual (cámara libre, sin GPS real) -----
     paseoAlturaOjoM: 1.7,
     paseoVelocidadMs: 3.5,
@@ -91,6 +105,357 @@
     return (...args) => {
       clearTimeout(temporizador);
       temporizador = setTimeout(() => fn(...args), esperaMs);
+    };
+  }
+
+  /* ============================================================
+     MOTOR DIJKSTRA TÉRMICO CLIENT-SIDE — FASE 1
+     Basado en el rigor de la Universidad de Sevilla
+     ("Mapas y rutas de sombra"). Grafo peatonal local filtrado
+     por BBox +500 m; peso térmico w(e) = L(m) × (1 + penalización
+     solar). Cola de prioridad binaria manual en Vanilla JS.
+     ============================================================ */
+
+  class MinHeap {
+    constructor() { this.heap = []; }
+    isEmpty() { return this.heap.length === 0; }
+    push(item) {
+      this.heap.push(item);
+      this._bubbleUp(this.heap.length - 1);
+    }
+    pop() {
+      const h = this.heap;
+      if (h.length === 0) return null;
+      const top = h[0];
+      const end = h.pop();
+      if (h.length > 0) {
+        h[0] = end;
+        this._sinkDown(0);
+      }
+      return top;
+    }
+    _bubbleUp(idx) {
+      const h = this.heap;
+      const item = h[idx];
+      while (idx > 0) {
+        const parentIdx = (idx - 1) >> 1;
+        if (h[parentIdx].dist <= item.dist) break;
+        h[idx] = h[parentIdx];
+        idx = parentIdx;
+      }
+      h[idx] = item;
+    }
+    _sinkDown(idx) {
+      const h = this.heap;
+      const len = h.length;
+      const item = h[idx];
+      while (true) {
+        let swap = idx;
+        const left = (idx << 1) + 1;
+        const right = left + 1;
+        if (left < len && h[left].dist < h[swap].dist) swap = left;
+        if (right < len && h[right].dist < h[swap].dist) swap = right;
+        if (swap === idx) break;
+        h[idx] = h[swap];
+        idx = swap;
+      }
+      h[idx] = item;
+    }
+  }
+
+  const cacheRedPeatonal = new Map(); // clave bbox -> {bbox, geojson}
+  let promesaCargaRedLocal = null;
+
+  function bboxClave(bbox) {
+    return bbox.map((v) => v.toFixed(5)).join(',');
+  }
+
+  function bboxContiene(bboxGrande, bboxPeque) {
+    return (
+      bboxPeque[0] >= bboxGrande[0] &&
+      bboxPeque[1] >= bboxGrande[1] &&
+      bboxPeque[2] <= bboxGrande[2] &&
+      bboxPeque[3] <= bboxGrande[3]
+    );
+  }
+
+  async function cargarRedPeatonalLocal() {
+    if (promesaCargaRedLocal) return promesaCargaRedLocal;
+    promesaCargaRedLocal = (async () => {
+      try {
+        const resp = await fetch(CONFIG.redPeatonalUrl);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const geojson = await resp.json();
+        if (!geojson || !Array.isArray(geojson.features)) throw new Error('GeoJSON inválido');
+        const bbox = turf.bbox(geojson);
+        cacheRedPeatonal.set(bboxClave(bbox), { bbox, geojson });
+        return { bbox, geojson };
+      } catch (e) {
+        console.warn('[Dijkstra térmico] No se pudo cargar la red peatonal local:', e.message);
+        return null;
+      } finally {
+        promesaCargaRedLocal = null;
+      }
+    })();
+    return promesaCargaRedLocal;
+  }
+
+  function overpassJsonAGeojson(datos) {
+    const nodes = {};
+    const ways = [];
+    for (const el of datos.elements || []) {
+      if (el.type === 'node') nodes[el.id] = [el.lon, el.lat];
+      else if (el.type === 'way') ways.push(el);
+    }
+
+    const features = [];
+    for (const way of ways) {
+      const coords = [];
+      for (const ref of way.nodes || []) {
+        if (nodes[ref]) coords.push(nodes[ref]);
+      }
+      if (coords.length >= 2) {
+        features.push({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: coords },
+          properties: way.tags || {},
+        });
+      }
+    }
+    return turf.featureCollection(features);
+  }
+
+  async function descargarRedPeatonalOverpass(bbox) {
+    const query = `[out:json][timeout:${CONFIG.overpassTimeoutS}]; way["highway"~"footway|pedestrian|path|living_street|steps|residential|tertiary|secondary|primary"](${bbox[1]},${bbox[0]},${bbox[3]},${bbox[2]}); out body; >; out skel qt;`;
+    let ultimoError = null;
+    for (const url of CONFIG.overpassRedPeatonalUrls) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), CONFIG.overpassTimeoutS * 1000 + 3000);
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: 'data=' + encodeURIComponent(query),
+          signal: controller.signal,
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const datos = await resp.json();
+        return overpassJsonAGeojson(datos);
+      } catch (e) {
+        ultimoError = e;
+        continue;
+      } finally {
+        clearTimeout(id);
+      }
+    }
+    throw ultimoError || new Error('Overpass no disponible');
+  }
+
+  async function obtenerRedPeatonal(bbox) {
+    // 1. Reutilizar cache si ya tenemos un bbox que cubre el solicitado
+    for (const entrada of cacheRedPeatonal.values()) {
+      if (bboxContiene(entrada.bbox, bbox)) return entrada.geojson;
+    }
+
+    // 2. Intentar archivo local (rápido, sin red)
+    if (CONFIG.usarRedLocalTermica) {
+      const local = await cargarRedPeatonalLocal();
+      if (local && local.geojson.features.length && bboxContiene(local.bbox, bbox)) {
+        return local.geojson;
+      }
+    }
+
+    // 3. Descargar el BBox concreto desde Overpass (global, bajo demanda)
+    if (CONFIG.usarOverpassTermica) {
+      const geojson = await descargarRedPeatonalOverpass(bbox);
+      if (geojson.features.length) {
+        cacheRedPeatonal.set(bboxClave(bbox), { bbox, geojson });
+        return geojson;
+      }
+    }
+
+    return null;
+  }
+
+  function coordKey(lon, lat) {
+    return `${lon.toFixed(8)},${lat.toFixed(8)}`;
+  }
+
+  function construirGrafoDesdeGeojson(geojson) {
+    const nodos = []; // [[lon, lat], ...]
+    const adj = [];   // [{to, longitudM}, ...]
+    const idxPorKey = new Map();
+
+    function getNodoIdx(lon, lat) {
+      const key = coordKey(lon, lat);
+      let idx = idxPorKey.get(key);
+      if (idx == null) {
+        idx = nodos.length;
+        nodos.push([lon, lat]);
+        adj.push([]);
+        idxPorKey.set(key, idx);
+      }
+      return idx;
+    }
+
+    turf.featureEach(geojson, (feature) => {
+      const geom = feature.geometry;
+      if (!geom) return;
+      let coordenadas;
+      if (geom.type === 'LineString') coordenadas = [geom.coordinates];
+      else if (geom.type === 'MultiLineString') coordenadas = geom.coordinates;
+      else return;
+
+      for (const anillo of coordenadas) {
+        if (!anillo || anillo.length < 2) continue;
+        for (let i = 0; i < anillo.length - 1; i++) {
+          const a = anillo[i], b = anillo[i + 1];
+          const idxA = getNodoIdx(a[0], a[1]);
+          const idxB = getNodoIdx(b[0], b[1]);
+          const longitudM = turf.distance(a, b, { units: 'meters' });
+          if (longitudM <= 0) continue;
+          adj[idxA].push({ to: idxB, longitudM });
+          adj[idxB].push({ to: idxA, longitudM });
+        }
+      }
+    });
+
+    return { nodos, adj, idxPorKey };
+  }
+
+  function filtrarRedPorBBox(geojson, bbox) {
+    try {
+      const poly = turf.bboxPolygon(bbox);
+      return turf.featureCollection(geojson.features.filter((f) => {
+        try { return turf.booleanIntersects(f, poly); } catch (e) { return false; }
+      }));
+    } catch (e) {
+      return turf.featureCollection([]);
+    }
+  }
+
+  function encontrarNodoCercano(grafo, lon, lat) {
+    let mejorIdx = -1;
+    let mejorDist = Infinity;
+    for (let i = 0; i < grafo.nodos.length; i++) {
+      const n = grafo.nodos[i];
+      const d = (n[0] - lon) * (n[0] - lon) + (n[1] - lat) * (n[1] - lat);
+      if (d < mejorDist) {
+        mejorDist = d;
+        mejorIdx = i;
+      }
+    }
+    return mejorIdx;
+  }
+
+  function calcularPenalizacionSolar(puntoMedio, posSol) {
+    if (!posSol || posSol.altitude <= 0) return 0;
+    try {
+      const sombras = (typeof ultimaColeccionSombras !== 'undefined' && ultimaColeccionSombras && ultimaColeccionSombras.features) ? ultimaColeccionSombras.features : [];
+      for (const poligono of sombras) {
+        if (turf.booleanPointInPolygon(turf.point(puntoMedio), poligono)) return 0;
+      }
+    } catch (e) { /* no hay sombras calculadas todavía */ }
+    const intensidad = Math.max(0, Math.sin(posSol.altitude));
+    return CONFIG.factorPenalizacionSol * intensidad;
+  }
+
+  function dijkstraTermico(grafo, inicioIdx, finIdx, posSol) {
+    const n = grafo.nodos.length;
+    const dist = new Float64Array(n).fill(Infinity);
+    const prev = new Int32Array(n).fill(-1);
+    const visitado = new Uint8Array(n);
+
+    dist[inicioIdx] = 0;
+    const heap = new MinHeap();
+    heap.push({ nodo: inicioIdx, dist: 0 });
+
+    while (!heap.isEmpty()) {
+      const actual = heap.pop();
+      if (!actual) break;
+      const u = actual.nodo;
+      if (visitado[u]) continue;
+      visitado[u] = 1;
+      if (u === finIdx) break;
+
+      const ux = grafo.nodos[u][0], uy = grafo.nodos[u][1];
+      for (let i = 0; i < grafo.adj[u].length; i++) {
+        const arista = grafo.adj[u][i];
+        const v = arista.to;
+        if (visitado[v]) continue;
+
+        const vx = grafo.nodos[v][0], vy = grafo.nodos[v][1];
+        const puntoMedio = [(ux + vx) * 0.5, (uy + vy) * 0.5];
+        const penalizacion = calcularPenalizacionSolar(puntoMedio, posSol);
+        const peso = arista.longitudM * (1 + penalizacion);
+
+        const nuevaDist = dist[u] + peso;
+        if (nuevaDist < dist[v]) {
+          dist[v] = nuevaDist;
+          prev[v] = u;
+          heap.push({ nodo: v, dist: nuevaDist });
+        }
+      }
+    }
+
+    if (dist[finIdx] === Infinity) return { camino: [], costeTermicoM: Infinity };
+
+    const camino = [];
+    for (let at = finIdx; at !== -1; at = prev[at]) {
+      camino.push(grafo.nodos[at]);
+    }
+    camino.reverse();
+    return { camino, costeTermicoM: dist[finIdx] };
+  }
+
+  async function calcularRutaDijkstraTermico(origen, destino) {
+    const t0 = performance.now();
+
+    const lineaOD = turf.lineString([[origen.lon, origen.lat], [destino.lon, destino.lat]]);
+    const bboxBase = turf.bboxPolygon(turf.bbox(lineaOD));
+    const bboxAmpliado = turf.bbox(turf.buffer(bboxBase, CONFIG.redPeatonalMargenM, { units: 'meters' }));
+    const redCompleta = await obtenerRedPeatonal(bboxAmpliado);
+    if (!redCompleta) throw new Error('Red peatonal no disponible (ni local ni Overpass)');
+
+    const redFiltrada = filtrarRedPorBBox(redCompleta, bboxAmpliado);
+    if (!redFiltrada.features.length) throw new Error('La red peatonal no cubre el área de la ruta');
+
+    const grafo = construirGrafoDesdeGeojson(redFiltrada);
+    if (grafo.nodos.length > CONFIG.maxNodosRedPeatonal) {
+      throw new Error('La red peatonal filtrada es demasiado densa para este cálculo');
+    }
+
+    const inicioIdx = encontrarNodoCercano(grafo, origen.lon, origen.lat);
+    const finIdx = encontrarNodoCercano(grafo, destino.lon, destino.lat);
+    if (inicioIdx === -1 || finIdx === -1) throw new Error('No se ha podido enganchar origen/destino a la red peatonal');
+
+    const centro = { lat: (origen.lat + destino.lat) * 0.5, lon: (origen.lon + destino.lon) * 0.5 };
+    const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+
+    const resultado = dijkstraTermico(grafo, inicioIdx, finIdx, posSol);
+    if (resultado.camino.length < 2) throw new Error('Dijkstra térmico no ha encontrado camino');
+
+    const distanciaRealKm = turf.length(turf.lineString(resultado.camino), { units: 'kilometers' });
+    const duracionMin = (distanciaRealKm / CONFIG.velocidadCaminandoKmh) * 60;
+
+    let coberturaSombraPct = null;
+    if (ultimaColeccionSombras && ultimaColeccionSombras.features && ultimaColeccionSombras.features.length) {
+      try {
+        const lineaRuta = turf.lineString(resultado.camino);
+        coberturaSombraPct = Math.round(calcularCoberturaSombra(lineaRuta, ultimaColeccionSombras.features) * 100);
+      } catch (e) { /* el badge se actualizará después con los tramos en sombra */ }
+    }
+
+    console.log(`[Dijkstra térmico] ${resultado.camino.length} nodos · coste ${resultado.costeTermicoM.toFixed(1)} m · ${(performance.now() - t0).toFixed(2)} ms`);
+
+    return {
+      geojson: { type: 'LineString', coordinates: resultado.camino },
+      distanciaKm: distanciaRealKm.toFixed(2),
+      duracionMin: Math.round(duracionMin),
+      esReal: true,
+      duracionEstimada: true,
+      coberturaSombraPct,
+      esDijkstraTermico: true,
     };
   }
 
@@ -1634,6 +1999,14 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   async function calcularRutaConPrioridadSombra(origen, destino) {
     if (!CONFIG.priorizarSombra) return calcularRutaReal(origen, destino);
+
+    if (CONFIG.usarRedLocalTermica) {
+      try {
+        return await calcularRutaDijkstraTermico(origen, destino);
+      } catch (e) {
+        console.warn('[Routing] Dijkstra térmico local no disponible, se recurre a OSRM:', e.message);
+      }
+    }
 
     try {
       const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;

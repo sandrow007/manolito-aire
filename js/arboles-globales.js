@@ -1,5 +1,7 @@
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
+
+   v5 — FIX CRÍTICO de unidades + Sombras Orgánicas Asimétricas
    ============================================================ */
 
 'use strict';
@@ -49,6 +51,32 @@
 
   esperarMapa().then(iniciar).catch((e) => console.warn('[arboles-globales]', e.message));
 
+  function obtenerHoraEfectiva() {
+    if (typeof window.manolitAireHoraEfectiva === 'function') {
+      try {
+        const h = window.manolitAireHoraEfectiva();
+        if (h instanceof Date && !isNaN(h)) return h;
+      } catch (e) { /* seguimos con el respaldo */ }
+    }
+    return new Date();
+  }
+
+  function obtenerCentroSolar(map) {
+    if (typeof window.manolitAireCentroSol === 'function') {
+      try {
+        const c = window.manolitAireCentroSol();
+        if (c && typeof c.lat === 'number' && typeof c.lon === 'number') return c;
+      } catch (e) { /* seguimos con el respaldo */ }
+    }
+    const c = map.getCenter();
+    return { lat: c.lat, lon: c.lng };
+  }
+
+  function sombrasActivadasEnPanel() {
+    const t = document.getElementById('rsToggleSombras');
+    return !t || t.checked;
+  }
+
   async function iniciar(map) {
 
     function primeraCapaEdificiosOSuelo() {
@@ -65,8 +93,6 @@
           type: 'fill',
           source: 'arboles-globales-sombra',
           paint: {
-            // Mismo tono "sombra" que usan los edificios en manolit-aire.js,
-            // para que ambas capas de sombra se vean coherentes.
             'fill-color': '#0b1220',
             'fill-opacity': 0.26,
           },
@@ -105,8 +131,9 @@
     }
 
     let capaVisible = true;
-    function crearBotonArboles(panel) {
-      if (document.getElementById('rsBtnArboles')) return;
+    function inyectarToggle() {
+      const panel = document.getElementById('rsMapControls');
+      if (!panel || document.getElementById('rsBtnArboles')) return;
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.id = 'rsBtnArboles';
@@ -125,25 +152,7 @@
       });
       panel.appendChild(btn);
     }
-
-    // Antes esto era un único setTimeout(inyectarToggle, 500): si el panel
-    // de controles (creado por manolit-aire.js) tardaba más de 500 ms en
-    // aparecer, el botón "Árboles" no se llegaba a crear NUNCA y no había
-    // segundo intento. Ahora reintentamos de verdad hasta encontrar el
-    // panel (o hasta 20s), igual que se hace con esperarMapa().
-    function inyectarToggleConReintentos() {
-      const t0 = Date.now();
-      (function intento() {
-        const panel = document.getElementById('rsMapControls');
-        if (panel) { crearBotonArboles(panel); return; }
-        if (Date.now() - t0 > 20000) {
-          console.warn('[arboles-globales] No ha aparecido #rsMapControls en 20s; no se pudo añadir el botón "Árboles".');
-          return;
-        }
-        setTimeout(intento, 300);
-      })();
-    }
-    inyectarToggleConReintentos();
+    setTimeout(inyectarToggle, 500);
 
     let arbolesGrandes = [];
     const celdasConsultadas = new Set();
@@ -278,63 +287,81 @@
       return enVista;
     }
 
-    /* ---------------- Sombra real por barrido (misma técnica que los edificios) ---------------- */
+    /* ---------------- Generación de Sombras Orgánicas ---------------- */
+
+    function pseudoRandom(x, y, seed) {
+      const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+      return n - Math.floor(n);
+    }
+
+    function crearCopaIrregular(centro, radioKm, lon, lat) {
+      const pasos = 16; 
+      const coords = [];
+      for (let i = 0; i < pasos; i++) {
+        const angulo = (i * 360) / pasos;
+        const variacion = 0.70 + (pseudoRandom(lon, lat, i) * 0.50);
+        const radioIrregular = radioKm * variacion;
+        const pt = turf.transformTranslate(centro, radioIrregular, angulo, { units: 'kilometers' }).geometry.coordinates;
+        coords.push(pt);
+      }
+      coords.push(coords[0]);
+      return turf.polygon([coords]);
+    }
 
     function unirDosPoligonos(a, b) {
       try {
         const r = turf.union(turf.featureCollection([a, b]));
         if (r) return r;
-      } catch (e) { /* probamos la otra firma */ }
+      } catch (e) { }
       try {
         const r = turf.union(a, b);
         if (r) return r;
-      } catch (e) { /* nos quedamos con lo que había */ }
+      } catch (e) { }
       return a;
     }
 
-    // Barre el contorno del círculo de la copa a lo largo de la dirección de
-    // la sombra y une los cuadriláteros resultantes: da la silueta cónica
-    // real de la sombra, no solo el círculo original pegado a una copia
-    // trasladada (eso último dejaba un hueco en forma de "cacahuete").
-    function calcularVolumenSombraCopa(circuloCopa, distanciaKm, bearingSombra) {
-      const anillo = circuloCopa.geometry.coordinates[0];
-      let resultado = circuloCopa;
-      for (let i = 0; i < anillo.length - 1; i++) {
-        const p1 = anillo[i];
-        const p2 = anillo[i + 1];
-        const p1t = turf.transformTranslate(turf.point(p1), distanciaKm, bearingSombra, { units: 'kilometers' }).geometry.coordinates;
-        const p2t = turf.transformTranslate(turf.point(p2), distanciaKm, bearingSombra, { units: 'kilometers' }).geometry.coordinates;
-        try {
-          const cuadrilatero = turf.polygon([[p1, p2, p2t, p1t, p1]]);
-          resultado = unirDosPoligonos(resultado, cuadrilatero);
-        } catch (e) {
-          continue;
-        }
+    function calcularSombraArbol(arbol, distanciaKm, bearingSombra) {
+      const perpendicular = (bearingSombra + 90) % 360;
+      const radioTroncoKm = Math.max(arbol.radioCopaM * 0.12, 0.35) / 1000;
+      const radioCopaKm = arbol.radioCopaM / 1000;
+      const [lon, lat] = arbol.punto.geometry.coordinates;
+
+      const lejano = turf.transformTranslate(arbol.punto, distanciaKm, bearingSombra, { units: 'kilometers' });
+      const copaIrregular = crearCopaIrregular(lejano, radioCopaKm, lon, lat);
+
+      const pBaseA = turf.transformTranslate(arbol.punto, radioTroncoKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+      const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+      const pLejosA = turf.transformTranslate(lejano, radioCopaKm * 0.75, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+      const pLejosB = turf.transformTranslate(lejano, radioCopaKm * 0.75, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+
+      let cuna;
+      try {
+        cuna = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
+      } catch (e) {
+        return copaIrregular;
       }
-      return resultado;
+
+      const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
+
+      let sombraFinal = unirDosPoligonos(cuna, copaIrregular);
+      return unirDosPoligonos(sombraFinal, baseRedondeada);
     }
 
     let versionSombra = 0;
 
     async function recalcularSombrasArboles() {
       if (!map.getSource('arboles-globales-sombra') || !capaVisible) return;
+
+      if (!sombrasActivadasEnPanel()) {
+        map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+        return;
+      }
+
       const miVersion = ++versionSombra;
 
-      // Antes esto usaba new Date() y map.getCenter() propios: los árboles
-      // nunca se enteraban de que el slider de manolit-aire.js había
-      // cambiado la hora, así que sus sombras se quedaban fijas mientras
-      // las de los edificios sí se movían. Ahora usamos la MISMA hora y el
-      // MISMO punto de referencia solar que el resto del mapa, si existen.
-      const centro = typeof window.manolitAireCentroSol === 'function'
-        ? window.manolitAireCentroSol()
-        : map.getCenter();
-      const horaEfectiva = typeof window.manolitAireHoraEfectiva === 'function'
-        ? window.manolitAireHoraEfectiva()
-        : new Date();
-      const posSol = SunCalc.getPosition(horaEfectiva, centro.lat, centro.lon ?? centro.lng);
+      const centro = obtenerCentroSolar(map);
+      const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
 
-      // Igual que con los edificios: si el sol está bajo el horizonte no
-      // hay sombra que proyectar. Nada de forzar una altitud inventada.
       if (posSol.altitude <= 0) {
         map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
         return;
@@ -357,8 +384,7 @@
           const longitudSombraM = arbol.altura / tangenteSol;
           if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
           const distanciaKm = longitudSombraM / 1000;
-          const circulo = turf.circle(arbol.punto, arbol.radioCopaM / 1000, { units: 'kilometers', steps: 10 });
-          const volumen = calcularVolumenSombraCopa(circulo, distanciaKm, bearingSombra);
+          const volumen = calcularSombraArbol(arbol, distanciaKm, bearingSombra);
           if (volumen) sombras.push(volumen);
         }
         if (miVersion !== versionSombra) return;
@@ -382,6 +408,8 @@
         recalcularSombrasArboles();
       }, CONFIG.esperaMoveendMs);
     });
+
+    window.manolitAireRecalcularArboles = recalcularSombrasArboles;
 
     await cargarArbolesDeLaVista();
     recalcularSombrasArboles();

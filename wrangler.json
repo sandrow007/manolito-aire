@@ -1,9 +1,11 @@
 {
   "name": "manolito-aire",
+  "main": "worker.js",
   "compatibility_date": "2026-08-03",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
-    "directory": "./"
+    "directory": "./",
+    "binding": "ASSETS"
   },
   "ai": {
     "binding": "AI"

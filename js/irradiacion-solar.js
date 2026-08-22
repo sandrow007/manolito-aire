@@ -1,28 +1,35 @@
+irradiacion-solar.js
 /* ============================================================
-   CAPA DE IRRADIACIÓN SOLAR REAL — NASA POWER API  (v2 mejorada)
+   CAPA DE IRRADIACIÓN SOLAR REAL — NASA POWER API  (v3)
    ------------------------------------------------------------
-   Se engancha a window.manolitAireMap (expuesto por
-   shadows-route.js) y no toca ningún archivo existente.
+   Novedades v3:
+     A. HISTÓRICO REAL NAVEGABLE: año → mes → día → hora.
+        - Endpoint temporal/daily: serie diaria del año completo
+          (1 petición por año, cacheada).
+        - Endpoint temporal/hourly: perfil horario del día elegido
+          (1 petición por día, cacheada). Valores en Wh/m² por hora.
+     B. ATENUACIÓN VEGETAL REAL (umbra vs penumbra) con Turf.js 2D
+        contra los polígonos de sombra ya existentes (sin
+        raycasting 3D):
+          · Umbra (edificios, fuente 'sombras'): protección total
+            → multiplicador de exposición solar = 1.0
+          · Penumbra (árboles, 'arboles-globales-sombra'): luz
+            filtrada por la copa (transmitancia ~50 %)
+            → multiplicador = 2.0
+          · Sol directo (sin intersección): penalización severa
+            → multiplicador = 4.0
+        La clasificación se expone en window.manolitAireAtenuacion
+        para que el cálculo de rutas la reutilice.
+     C. El popup de clic muestra el dato REAL de esa hora/día,
+        el índice de nubosidad instantáneo (GHI/cielo despejado)
+        y la exposición efectiva con la atenuación aplicada.
 
-   Qué hace:
-     1. Pide a la NASA POWER API, EN UNA SOLA PETICIÓN POR AÑO,
-        la irradiancia global horizontal (ALLSKY_SFC_SW_DWN),
-        la directa normal (ALLSKY_SFC_SW_DNI) y la de cielo
-        despejado (CLRSKY_SFC_SW_DWN) para Sevilla.
-     2. Aplica la ley del coseno de Lambert CORRECTAMENTE:
-        la GHI horizontal ya incluye el ángulo de incidencia, así
-        que no hay que multiplicarla otra vez por sin(altura).
-        El coseno solo se aplica a la componente DIRECTA al
-        transponer al plano de cada superficie:
-          G_tilt = DNI·cos(ángulo_incidencia) + DHI·(1+cosβ)/2
-        (modelo de difusa isotrópica, el estándar de la norma
-        IEC 61724 / ASHRAE para transposición de irradiancia).
-     3. Normaliza el color con el índice de claridad Kt
-        (GHI / radiación extraterrestre), que es físico y válido
-        para cualquier mes/año, en vez de constantes fijas.
-     4. Recolorea edificios, árboles y suelo con la rampa
-        violeta (sombra/frío) → rojo → naranja → blanco (pico).
-     Al desactivar la capa restaura los colores originales.
+   Física: la ley del coseno de Lambert solo se aplica a la
+   componente DIRECTA al transponer a plano inclinado:
+     G_plano = DNI·cos(θ) + DHI·(1+cosβ)/2
+   La GHI horizontal de la NASA ya incluye el ángulo de
+   incidencia; multiplicarla otra vez por sin(altura) lo
+   contaría dos veces.
    ============================================================ */
 
 'use strict';
@@ -31,22 +38,29 @@
   const CONFIG = {
     lat: 37.3891,
     lon: -5.9845,
-    nasaPowerUrl: 'https://power.larc.nasa.gov/api/temporal/monthly/point',
-    // GHI horizontal, DNI y cielo despejado — todo en kWh/m²/día
+    nasaDiario: 'https://power.larc.nasa.gov/api/temporal/daily/point',
+    nasaHorario: 'https://power.larc.nasa.gov/api/temporal/hourly/point',
+    // GHI horizontal, directa normal y cielo despejado
     parametrosNasa: ['ALLSKY_SFC_SW_DWN', 'ALLSKY_SFC_SW_DNI', 'CLRSKY_SFC_SW_DWN'],
-    anioMinimo: 1981,
+    anioMinimo: 1984, // las series horarias de POWER arrancan en 1984
     esperaMapaMs: 15000,
-    inclinacionPanelGrados: 30, // inclinación típica óptima en Sevilla (~latitud − 7°)
+    inclinacionPanelGrados: 30,
   };
 
-  const CONSTANTE_SOLAR = 1367; // W/m², radiación solar extraterrestre
+  // Multiplicadores de exposición solar (índice de castigo térmico al caminar)
+  const ATENUACION = {
+    UMBRA: { factor: 1.0, etiqueta: '🏢 Umbra — sombra de edificio (protección total)', color: '#7fa8c9' },
+    PENUMBRA: { factor: 2.0, etiqueta: '🌳 Penumbra — sombra de árbol (luz filtrada ~50 %)', color: '#8fbf7f' },
+    SOL: { factor: 4.0, etiqueta: '☀️ Sol directo — sin protección', color: '#e7b06a' },
+  };
 
-  // Rampa de color: de frío/sombra a pico de calor histórico
+  const CONSTANTE_SOLAR = 1367; // W/m²
+
   const RAMPA = [
-    { t: 0.0, color: [76, 0, 130] },    // morado/azul violeta — frío, sombra
-    { t: 0.35, color: [200, 30, 30] },  // rojo
-    { t: 0.65, color: [255, 140, 0] },  // naranja
-    { t: 1.0, color: [255, 250, 200] }, // blanco/amarillo — pico histórico de calor
+    { t: 0.0, color: [76, 0, 130] },
+    { t: 0.35, color: [200, 30, 30] },
+    { t: 0.65, color: [255, 140, 0] },
+    { t: 1.0, color: [255, 250, 200] },
   ];
 
   function interpolarColor(t) {
@@ -79,7 +93,7 @@
   async function iniciar(map) {
     const contenedorMapa = map.getContainer();
 
-    // ---- Capas a recolorear: edificios (shadows-route.js), árboles (arboles-globales.js), suelo ----
+    // ================= CAPAS A RECOLOREAR =================
     function capaEdificios() {
       return (map.getStyle().layers || [])
         .find((l) => l.type === 'fill-extrusion' && /building/i.test(l.id));
@@ -88,31 +102,23 @@
       return (map.getStyle().layers || [])
         .find((l) => l.type === 'fill' && /^(land|landuse|landcover)/i.test(l.id));
     }
-
     const capasRecoloreables = [
       { id: () => capaEdificios()?.id, prop: 'fill-extrusion-color' },
       { id: () => 'capa-arboles-globales-3d', prop: 'fill-extrusion-color' },
       { id: () => capaTerrenoOSuelo()?.id, prop: 'fill-color' },
     ];
-
-    const coloresOriginales = new Map(); // id -> valor original de paint
-
-    function guardarColorOriginal(id, prop) {
-      if (coloresOriginales.has(id)) return;
-      try { coloresOriginales.set(id, map.getPaintProperty(id, prop)); }
-      catch (e) { /* capa no lista todavía */ }
-    }
+    const coloresOriginales = new Map();
 
     function aplicarColorATodasLasCapas(colorCss) {
       capasRecoloreables.forEach(({ id, prop }) => {
         const capaId = id();
         if (!capaId || !map.getLayer(capaId)) return;
-        guardarColorOriginal(capaId, prop);
-        try { map.setPaintProperty(capaId, prop, colorCss); }
-        catch (e) { /* la capa puede no soportar ese paint todavía */ }
+        if (!coloresOriginales.has(capaId)) {
+          try { coloresOriginales.set(capaId, map.getPaintProperty(capaId, prop)); } catch (e) { }
+        }
+        try { map.setPaintProperty(capaId, prop, colorCss); } catch (e) { }
       });
     }
-
     function restaurarColoresOriginales() {
       capasRecoloreables.forEach(({ id, prop }) => {
         const capaId = id();
@@ -121,122 +127,172 @@
       });
     }
 
-    // ---- NASA POWER: UNA petición por año devuelve los 12 meses ----
-    // Cacheamos el año completo; así el resumen anual no repite 12 llamadas.
-    const cacheAnual = new Map(); // anio -> { [mes]: { ghi, dni, cieloDespejado } }
+    // ================= NASA POWER: CACHÉS =================
+    const cacheDiaria = new Map();   // anio -> { 'YYYYMMDD': {ghi, dni, cielo} }  (kWh/m²/día)
+    const cacheHoraria = new Map();  // 'YYYYMMDD' -> { hora(0-23): {ghi, dni, cielo} } (Wh/m² esa hora)
 
-    async function obtenerAnioCompleto(anio) {
-      if (cacheAnual.has(anio)) return cacheAnual.get(anio);
+    function claveFecha(anio, mes, dia) {
+      return `${anio}${String(mes).padStart(2, '0')}${String(dia).padStart(2, '0')}`;
+    }
+    function esValorValido(v) { return v != null && v !== -999; }
 
-      const url = new URL(CONFIG.nasaPowerUrl);
+    async function obtenerAnioDiario(anio) {
+      if (cacheDiaria.has(anio)) return cacheDiaria.get(anio);
+      const url = new URL(CONFIG.nasaDiario);
       url.searchParams.set('parameters', CONFIG.parametrosNasa.join(','));
       url.searchParams.set('community', 'RE');
       url.searchParams.set('longitude', CONFIG.lon);
       url.searchParams.set('latitude', CONFIG.lat);
-      url.searchParams.set('start', String(anio));
-      url.searchParams.set('end', String(anio));
+      url.searchParams.set('start', `${anio}0101`);
+      url.searchParams.set('end', `${anio}1231`);
       url.searchParams.set('format', 'JSON');
-
       const r = await fetch(url.toString());
       if (!r.ok) throw new Error(`NASA POWER HTTP ${r.status}`);
       const datos = await r.json();
       const series = datos?.properties?.parameter;
-      if (!series?.[CONFIG.parametrosNasa[0]]) throw new Error('La NASA no ha devuelto la serie esperada');
-
-      const porMes = {};
-      for (let mes = 1; mes <= 12; mes++) {
-        const clave = `${anio}${String(mes).padStart(2, '0')}`;
-        const ghi = series[CONFIG.parametrosNasa[0]]?.[clave];
+      if (!series?.[CONFIG.parametrosNasa[0]]) throw new Error('Serie diaria no recibida');
+      const porDia = {};
+      for (const [clave, ghi] of Object.entries(series[CONFIG.parametrosNasa[0]])) {
+        if (!esValorValido(ghi)) continue;
         const dni = series[CONFIG.parametrosNasa[1]]?.[clave];
         const cielo = series[CONFIG.parametrosNasa[2]]?.[clave];
-        if (ghi == null || ghi === -999) continue; // mes sin dato (p. ej. futuro)
-        porMes[mes] = {
+        porDia[clave] = {
           ghi,
-          dni: dni != null && dni !== -999 ? dni : null,
-          cieloDespejado: cielo != null && cielo !== -999 ? cielo : null,
+          dni: esValorValido(dni) ? dni : null,
+          cieloDespejado: esValorValido(cielo) ? cielo : null,
         };
       }
-      cacheAnual.set(anio, porMes);
-      return porMes;
+      cacheDiaria.set(anio, porDia);
+      return porDia;
     }
 
-    async function obtenerIrradianciaHistorica(anio, mes) {
-      const porMes = await obtenerAnioCompleto(anio);
-      const dato = porMes[mes];
-      if (!dato) throw new Error(`Sin dato NASA para ${anio}-${String(mes).padStart(2, '0')}`);
-      return dato;
+    async function obtenerDiaHorario(anio, mes, dia) {
+      const clave = claveFecha(anio, mes, dia);
+      if (cacheHoraria.has(clave)) return cacheHoraria.get(clave);
+      const url = new URL(CONFIG.nasaHorario);
+      url.searchParams.set('parameters', CONFIG.parametrosNasa.join(','));
+      url.searchParams.set('community', 'RE');
+      url.searchParams.set('longitude', CONFIG.lon);
+      url.searchParams.set('latitude', CONFIG.lat);
+      url.searchParams.set('start', clave);
+      url.searchParams.set('end', clave);
+      url.searchParams.set('format', 'JSON');
+      url.searchParams.set('time-standard', 'UTC');
+      const r = await fetch(url.toString());
+      if (!r.ok) throw new Error(`NASA POWER HTTP ${r.status}`);
+      const datos = await r.json();
+      const series = datos?.properties?.parameter;
+      if (!series?.[CONFIG.parametrosNasa[0]]) throw new Error('Serie horaria no recibida');
+      const porHora = {};
+      for (let h = 0; h < 24; h++) {
+        const claveHora = `${clave}${String(h).padStart(2, '0')}`;
+        const ghi = series[CONFIG.parametrosNasa[0]]?.[claveHora];
+        if (!esValorValido(ghi)) continue;
+        const dni = series[CONFIG.parametrosNasa[1]]?.[claveHora];
+        const cielo = series[CONFIG.parametrosNasa[2]]?.[claveHora];
+        porHora[h] = {
+          ghi, // Wh/m² en esa hora (media climatológica real)
+          dni: esValorValido(dni) ? dni : null,
+          cieloDespejado: esValorValido(cielo) ? cielo : null,
+        };
+      }
+      cacheHoraria.set(clave, porHora);
+      return porHora;
     }
 
-    // ---- Física solar ----
-
-    // Radiación extraterrestre horizontal del día 15 del mes (kWh/m²/día),
-    // integrando la ecuación de Spencer sobre las horas de sol.
-    function radiacionExtraterrestreDiaria(anio, mes) {
-      const diaJuliano = Math.floor((Date.UTC(anio, mes - 1, 15) - Date.UTC(anio, 0, 1)) / 86400000) + 1;
+    // ================= FÍSICA SOLAR =================
+    function radiacionExtraterrestreDiaria(anio, mes, dia) {
+      const diaJuliano = Math.floor((Date.UTC(anio, mes - 1, dia) - Date.UTC(anio, 0, 1)) / 86400000) + 1;
       const phi = (CONFIG.lat * Math.PI) / 180;
       const delta = ((23.45 * Math.PI) / 180) * Math.sin(((2 * Math.PI) * (284 + diaJuliano)) / 365);
       const omegaS = Math.acos(Math.max(-1, Math.min(1, -Math.tan(phi) * Math.tan(delta))));
       const e0 = 1 + 0.033 * Math.cos((2 * Math.PI * diaJuliano) / 365);
-      // kJ/m²/día -> kWh/m²/día
       return ((24 * 3600 * CONSTANTE_SOLAR * e0) / Math.PI) *
         (omegaS * Math.sin(phi) * Math.sin(delta) + Math.cos(phi) * Math.cos(delta) * Math.sin(omegaS)) / 3.6e6;
     }
 
-    // Transposición a plano inclinado (Lambert bien aplicado):
-    //   la directa se proyecta con cos(θ), la difusa con (1+cosβ)/2.
-    // La GHI horizontal NO se vuelve a multiplicar por sin(altura):
-    // ese ángulo ya está dentro del dato.
+    // Transposición a plano inclinado: Lambert solo a la directa
     function irradianciaEnPlanoInclinado(ghi, dni, alturaSolarRad, acimutSolRad) {
       const beta = (CONFIG.inclinacionPanelGrados * Math.PI) / 180;
       const sinAlt = Math.max(Math.sin(alturaSolarRad), 0.05);
-      // Difusa horizontal = GHI − directa horizontal
-      const directaHorizontal = dni != null ? dni * sinAlt : ghi * 0.7; // si no hay DNI, estimación 70/30
+      const directaHorizontal = dni != null ? dni * sinAlt : ghi * 0.7;
       const dhi = Math.max(0, ghi - directaHorizontal);
-
-      // Ángulo de incidencia sobre el panel (panel mirando al sur, acimut 0 en SunCalc = sur)
       const cosIncidencia = Math.max(0,
         Math.sin(alturaSolarRad) * Math.cos(beta) +
         Math.cos(alturaSolarRad) * Math.sin(beta) * Math.cos(acimutSolRad));
-      const factorRb = sinAlt > 0 ? cosIncidencia / sinAlt : 0;
-
+      const factorRb = cosIncidencia / sinAlt;
       const directaPlano = dni != null ? dni * cosIncidencia : directaHorizontal * factorRb;
       const difusaPlano = dhi * (1 + Math.cos(beta)) / 2;
-      return { total: directaPlano + difusaPlano, directa: directaPlano, difusa: difusaPlano };
+      return directaPlano + difusaPlano;
     }
 
-    async function aplicarIrradiancia(anio, mes) {
+    // ================= ATENUACIÓN VEGETAL (umbra/penumbra) =================
+    // Intersección 2D con Turf.js contra las fuentes de sombra existentes.
+    function clasificarPunto(lngLat) {
+      if (typeof turf === 'undefined') return { tipo: 'SOL', ...ATENUACION.SOL };
+      const punto = turf.point([lngLat.lng, lngLat.lat]);
+      const dentro = (idFuente) => {
+        const fuente = map.getSource(idFuente);
+        if (!fuente || !fuente._data) return false;
+        for (const poligono of (fuente._data.features || [])) {
+          try { if (turf.booleanPointInPolygon(punto, poligono)) return true; }
+          catch (e) { /* geometría rara */ }
+        }
+        return false;
+      };
+      if (dentro('sombras')) return { tipo: 'UMBRA', ...ATENUACION.UMBRA };
+      if (dentro('arboles-globales-sombra')) return { tipo: 'PENUMBRA', ...ATENUACION.PENUMBRA };
+      return { tipo: 'SOL', ...ATENUACION.SOL };
+    }
+    // API pública: el motor de rutas puede ponderar cada tramo con este factor
+    window.manolitAireAtenuacion = (lngLat) => clasificarPunto(lngLat);
+
+    // ================= APLICAR ESTADO (día + hora) =================
+    async function aplicarIrradiancia(anio, mes, dia, hora) {
       mostrarEstadoPanel('Consultando NASA POWER…');
       try {
         if (typeof SunCalc === 'undefined') throw new Error('SunCalc no está cargado');
-        const { ghi, dni, cieloDespejado } = await obtenerIrradianciaHistorica(anio, mes);
 
-        // Altura solar real al mediodía solar del día 15 (SunCalc)
-        const fecha = new Date(Date.UTC(anio, mes - 1, 15, 12, 0, 0));
+        // Dato diario (kWh/m²/día) — serie real del año completo
+        const porDia = await obtenerAnioDiario(anio);
+        const datoDia = porDia[claveFecha(anio, mes, dia)];
+        if (!datoDia) throw new Error('Sin dato diario para esa fecha');
+
+        // Dato horario (Wh/m²) — perfil real del día elegido
+        let datoHora = null;
+        try { datoHora = (await obtenerDiaHorario(anio, mes, dia))[hora] ?? null; }
+        catch (e) { /* el endpoint horario puede fallar en años antiguos */ }
+
+        // Posición solar real en esa fecha/hora (UTC ≈ hora civil −1/−2 en Sevilla;
+        // la serie horaria de POWER es UTC, así que comparamos en UTC)
+        const fecha = new Date(Date.UTC(anio, mes - 1, dia, hora, 0, 0));
         const posSol = SunCalc.getPosition(fecha, CONFIG.lat, CONFIG.lon);
+        const deNoche = posSol.altitude <= 0;
 
-        // Índice de claridad Kt = GHI / extraterrestre (0 = cubierto, ~0.75 = despejado)
-        const kt = ghi / radiacionExtraterrestreDiaria(anio, mes);
-        // El color responde al Kt: físicamente comparable entre meses y años
-        const colorFinal = interpolarColor((kt - 0.25) / 0.55);
+        // Color: índice de nubosidad instantáneo (GHI / cielo despejado),
+        // físico y comparable entre horas, días y años
+        let tColor;
+        if (deNoche) tColor = 0;
+        else if (datoHora?.cieloDespejado > 0) tColor = datoHora.ghi / datoHora.cieloDespejado;
+        else tColor = datoDia.ghi / radiacionExtraterrestreDiaria(anio, mes, dia); // Kt diario
+        aplicarColorATodasLasCapas(interpolarColor(deNoche ? 0 : (tColor - 0.2) / 0.85));
 
-        // Plano inclinado con Lambert correcto (solo a la directa)
-        const plano = irradianciaEnPlanoInclinado(ghi, dni, Math.max(posSol.altitude, 0), posSol.azimuth);
-
-        aplicarColorATodasLasCapas(colorFinal);
-        mostrarEstadoPanel(
-          `${ghi.toFixed(2)} kWh/m²/día (horizontal) · plano ${CONFIG.inclinacionPanelGrados}°: ${plano.total.toFixed(2)}` +
-          `${cieloDespejado != null ? ` · cielo despejado ${cieloDespejado.toFixed(2)}` : ''}` +
-          ` · Kt ${kt.toFixed(2)} · sol ${(posSol.altitude * 180 / Math.PI).toFixed(1)}°`
-        );
+        const partes = [
+          `Día: ${datoDia.ghi.toFixed(2)} kWh/m²`,
+          `· plano ${CONFIG.inclinacionPanelGrados}°: ${irradianciaEnPlanoInclinado(datoDia.ghi, datoDia.dni, Math.max(posSol.altitude, 0), posSol.azimuth).toFixed(2)}`,
+        ];
+        if (datoHora) partes.unshift(`Hora ${String(hora).padStart(2, '0')}:00 UTC: ${datoHora.ghi.toFixed(0)} Wh/m²`);
+        partes.push(`· sol ${(posSol.altitude * 180 / Math.PI).toFixed(1)}°${deNoche ? ' (noche)' : ''}`);
+        mostrarEstadoPanel(partes.join(' '));
       } catch (e) {
         console.warn('[irradiacion-solar]', e.message);
-        mostrarEstadoPanel(e.message.includes('SunCalc')
-          ? 'Error interno: falta la librería SunCalc.'
+        mostrarEstadoPanel(e.message.includes('Sin dato')
+          ? 'La NASA no tiene dato para esa fecha (¿futuro o demasiado reciente?).'
           : 'No se ha podido consultar la NASA ahora mismo. Reintenta en unos segundos.', true);
       }
     }
 
-    // ---- UI: botón de capa + panel de calendario histórico ----
+    // ================= UI =================
     let panelEl = null;
     let estadoEl = null;
     let capaActiva = false;
@@ -251,7 +307,7 @@
       const estilo = document.createElement('style');
       estilo.textContent = `
         #irrPanel{
-          position:absolute; right:12px; top:108px; z-index:6; width:230px;
+          position:absolute; right:12px; top:108px; z-index:6; width:245px;
           background:linear-gradient(160deg,#262c38,#1b2029 70%);
           border:1px solid #ffffff1f; border-right:2px solid #c98a4b;
           border-radius:3px 12px 3px 12px; padding:12px 14px; color:#e9e4d8;
@@ -260,26 +316,25 @@
         #irrPanel.rs-visible{ display:block; }
         #irrPanel .irr-cabecera{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
         #irrPanel label{ font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#c98a4b; display:block; margin-bottom:4px; }
-        #irrCerrar{
-          background:transparent; border:none; color:#999; font-size:16px; cursor:pointer; line-height:1; padding:0 2px;
-        }
+        #irrCerrar{ background:transparent; border:none; color:#999; font-size:16px; cursor:pointer; line-height:1; padding:0 2px; }
         #irrCerrar:hover{ color:#fff; }
-        #irrPanel select, #irrPanel input[type=number]{
+        #irrPanel input[type=number]{
           width:100%; margin-bottom:8px; background:#00000026; color:#e9e4d8;
           border:1px solid #ffffff1f; border-radius:2px; padding:6px; font-family:inherit; font-size:13px;
           color-scheme: dark;
         }
-        #irrMesSlider{
+        #irrPanel input[type=range]{
           -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; cursor:pointer; margin:4px 0 2px;
         }
-        #irrMesSlider::-webkit-slider-runnable-track{ height:3px; background:#3a4150; border-radius:2px; }
-        #irrMesSlider::-webkit-slider-thumb{
+        #irrPanel input[type=range]::-webkit-slider-runnable-track{ height:3px; background:#3a4150; border-radius:2px; }
+        #irrPanel input[type=range]::-webkit-slider-thumb{
           -webkit-appearance:none; margin-top:-6px; width:15px; height:15px; border-radius:50%;
           background:#e7b06a; border:2px solid #1b2029; box-shadow:0 0 0 3px #e7b06a2e;
         }
-        #irrMesEtiquetas{ display:flex; justify-content:space-between; font-size:9px; color:#8a8f9c; margin-bottom:6px; padding:0 2px; }
-        #irrAnual{ font-size:10.5px; line-height:1.6; border-top:1px dashed #c98a4b55; margin-top:8px; padding-top:8px; }
-        #irrAnual b{ color:#e7b06a; }
+        #irrPanel .irr-leyenda{ font-size:9.5px; color:#8a8f9c; margin-bottom:6px; padding:0 2px; display:flex; justify-content:space-between; }
+        #irrResumen{ font-size:10.5px; line-height:1.6; border-top:1px dashed #c98a4b55; margin-top:8px; padding-top:8px; }
+        #irrResumen b{ color:#e7b06a; }
+        #irrLeyendaAtenuacion{ font-size:9.5px; line-height:1.5; color:#8a8f9c; border-top:1px dashed #c98a4b55; margin-top:6px; padding-top:6px; }
         #irrEstado{ font-size:10.5px; margin-top:4px; line-height:1.4; }
         @media (max-width:480px){ #irrPanel{ width:calc(100vw - 24px); right:12px; top:100px; } }
       `;
@@ -292,7 +347,7 @@
       cabecera.className = 'irr-cabecera';
       const tituloCabecera = document.createElement('label');
       tituloCabecera.style.marginBottom = '0';
-      tituloCabecera.textContent = 'Irradiación histórica';
+      tituloCabecera.textContent = 'Histórico de irradiación';
       const btnCerrar = document.createElement('button');
       btnCerrar.type = 'button';
       btnCerrar.id = 'irrCerrar';
@@ -303,84 +358,135 @@
       const ahora = new Date();
       const anioMax = ahora.getFullYear();
 
+      // Año
       const labelAnio = document.createElement('label');
       labelAnio.textContent = 'Año';
       const inputAnio = document.createElement('input');
       inputAnio.type = 'number';
       inputAnio.min = String(CONFIG.anioMinimo);
       inputAnio.max = String(anioMax);
-      inputAnio.value = String(anioMax);
+      inputAnio.value = String(Math.min(anioMax, ahora.getFullYear() - 1)); // año cerrado por defecto
 
+      // Mes
       const labelMes = document.createElement('label');
       labelMes.textContent = 'Mes';
       const sliderMes = document.createElement('input');
       sliderMes.type = 'range';
-      sliderMes.id = 'irrMesSlider';
-      sliderMes.min = '1';
-      sliderMes.max = '12';
-      sliderMes.step = '1';
+      sliderMes.min = '1'; sliderMes.max = '12'; sliderMes.step = '1';
       sliderMes.value = String(ahora.getMonth() + 1);
-
-      const etiquetasMeses = document.createElement('div');
-      etiquetasMeses.id = 'irrMesEtiquetas';
-      ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].forEach((letra) => {
-        const span = document.createElement('span');
-        span.textContent = letra;
-        etiquetasMeses.appendChild(span);
+      const leyendaMes = document.createElement('div');
+      leyendaMes.className = 'irr-leyenda';
+      ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].forEach((l) => {
+        const s = document.createElement('span'); s.textContent = l; leyendaMes.appendChild(s);
       });
 
-      const anualEl = document.createElement('div');
-      anualEl.id = 'irrAnual';
-      anualEl.textContent = 'Cargando resumen anual…';
+      // Día
+      const labelDia = document.createElement('label');
+      labelDia.textContent = 'Día';
+      const sliderDia = document.createElement('input');
+      sliderDia.type = 'range';
+      sliderDia.min = '1'; sliderDia.max = '31'; sliderDia.step = '1';
+      sliderDia.value = String(Math.min(15, ahora.getDate()));
+      const leyendaDia = document.createElement('div');
+      leyendaDia.className = 'irr-leyenda';
+      const spanDia = document.createElement('span');
+      leyendaDia.append('Día del mes: ', spanDia);
+
+      // Hora
+      const labelHora = document.createElement('label');
+      labelHora.textContent = 'Hora (UTC)';
+      const sliderHora = document.createElement('input');
+      sliderHora.type = 'range';
+      sliderHora.min = '0'; sliderHora.max = '23'; sliderHora.step = '1';
+      sliderHora.value = '12';
+      const leyendaHora = document.createElement('div');
+      leyendaHora.className = 'irr-leyenda';
+      const spanHora = document.createElement('span');
+      leyendaHora.append('Hora del día: ', spanHora);
+
+      const resumenEl = document.createElement('div');
+      resumenEl.id = 'irrResumen';
+      resumenEl.textContent = 'Cargando resumen del año…';
+
+      const leyendaAtenuacion = document.createElement('div');
+      leyendaAtenuacion.id = 'irrLeyendaAtenuacion';
+      leyendaAtenuacion.innerHTML =
+        'Atenuación al pinchar en el mapa:<br>' +
+        `${ATENUACION.UMBRA.etiqueta} (×${ATENUACION.UMBRA.factor})<br>` +
+        `${ATENUACION.PENUMBRA.etiqueta} (×${ATENUACION.PENUMBRA.factor})<br>` +
+        `${ATENUACION.SOL.etiqueta} (×${ATENUACION.SOL.factor})`;
 
       estadoEl = document.createElement('div');
       estadoEl.id = 'irrEstado';
 
-      function mesAnioValidos() {
+      function diasDelMes(anio, mes) { return new Date(anio, mes, 0).getDate(); }
+
+      function fechaHoraValidos() {
         const anio = Math.max(CONFIG.anioMinimo, Math.min(anioMax, Number(inputAnio.value) || anioMax));
         let mes = Number(sliderMes.value);
         if (anio === anioMax) mes = Math.min(mes, ahora.getMonth() + 1);
-        return { anio, mes };
+        const maxDia = diasDelMes(anio, mes);
+        sliderDia.max = String(maxDia);
+        let dia = Math.min(Number(sliderDia.value), maxDia);
+        if (anio === anioMax && mes === ahora.getMonth() + 1) dia = Math.min(dia, ahora.getDate());
+        const hora = Number(sliderHora.value);
+        return { anio, mes, dia, hora };
       }
 
-      let temporizadorCambio = null;
+      let temporizador = null;
       function onCambio() {
+        const { anio, mes, dia, hora } = fechaHoraValidos();
+        sliderDia.value = String(dia);
+        spanDia.textContent = `${dia}/${mes}/${anio}`;
+        spanHora.textContent = `${String(hora).padStart(2, '0')}:00 UTC`;
         if (!capaActiva) return;
-        clearTimeout(temporizadorCambio);
-        temporizadorCambio = setTimeout(() => {
-          const { anio, mes } = mesAnioValidos();
-          sliderMes.value = String(mes);
-          aplicarIrradiancia(anio, mes);
-        }, 250);
+        clearTimeout(temporizador);
+        temporizador = setTimeout(() => aplicarIrradiancia(anio, mes, dia, hora), 250);
       }
-      sliderMes.addEventListener('input', onCambio);
-      inputAnio.addEventListener('change', () => { cargarResumenAnual(Number(inputAnio.value)); onCambio(); });
+      [sliderMes, sliderDia, sliderHora].forEach((s) => s.addEventListener('input', onCambio));
+      inputAnio.addEventListener('change', () => {
+        cargarResumenAnual(Number(inputAnio.value));
+        onCambio();
+      });
 
       btnCerrar.addEventListener('click', () => {
         if (capaActiva) document.getElementById('rsBtnIrradiacion')?.click();
       });
 
-      panelEl.append(cabecera, labelAnio, inputAnio, labelMes, sliderMes, etiquetasMeses, anualEl, estadoEl);
+      panelEl.append(
+        cabecera,
+        labelAnio, inputAnio,
+        labelMes, sliderMes, leyendaMes,
+        labelDia, sliderDia, leyendaDia,
+        labelHora, sliderHora, leyendaHora,
+        resumenEl, leyendaAtenuacion, estadoEl
+      );
       contenedorMapa.appendChild(panelEl);
 
-      return { inputAnio, sliderMes, anualEl, mesAnioValidos };
+      // Inicializar etiquetas
+      onCambio();
+
+      return { inputAnio, resumenEl, fechaHoraValidos, onCambio };
     }
 
-    const { inputAnio, sliderMes, anualEl, mesAnioValidos } = construirPanel();
+    const { inputAnio, resumenEl, fechaHoraValidos, onCambio } = construirPanel();
 
-    // ---- Resumen anual: reutiliza la MISMA petición por año (sin 12 llamadas) ----
+    // ---- Resumen anual: reutiliza la MISMA petición diaria del año ----
     async function cargarResumenAnual(anio) {
-      anualEl.textContent = 'Cargando resumen anual…';
+      resumenEl.textContent = 'Cargando resumen del año…';
       try {
-        const porMes = await obtenerAnioCompleto(anio);
-        const valores = Object.values(porMes).map((d) => d.ghi);
+        const porDia = await obtenerAnioDiario(anio);
+        const valores = Object.values(porDia).map((d) => d.ghi);
         if (!valores.length) throw new Error('sin datos');
-        const mediaDiaria = valores.reduce((a, b) => a + b, 0) / valores.length;
-        anualEl.innerHTML =
-          `Irradiancia anual: <b>${Math.round(mediaDiaria * 365)} kWh/m²</b><br>` +
-          `Horas de sol pico: <b>${mediaDiaria.toFixed(1)} h/día</b>`;
+        const media = valores.reduce((a, b) => a + b, 0) / valores.length;
+        const mejor = valores.reduce((a, b) => Math.max(a, b));
+        const peor = valores.reduce((a, b) => Math.min(a, b));
+        resumenEl.innerHTML =
+          `Irradiación anual: <b>${Math.round(media * 365)} kWh/m²</b> (${valores.length} días reales)<br>` +
+          `Mejor día: <b>${mejor.toFixed(2)}</b> · peor: <b>${peor.toFixed(2)} kWh/m²</b><br>` +
+          `Horas de sol pico: <b>${media.toFixed(1)} h/día</b>`;
       } catch (e) {
-        anualEl.textContent = 'No se ha podido calcular el resumen anual.';
+        resumenEl.textContent = 'No se ha podido calcular el resumen del año.';
       }
     }
 
@@ -396,9 +502,9 @@
         btn.classList.toggle('rs-activo', capaActiva);
         panelEl.classList.toggle('rs-visible', capaActiva);
         if (capaActiva) {
-          const { anio, mes } = mesAnioValidos();
+          const { anio, mes, dia, hora } = fechaHoraValidos();
           cargarResumenAnual(anio);
-          aplicarIrradiancia(anio, mes);
+          aplicarIrradiancia(anio, mes, dia, hora);
           activarInspeccionPorClic();
         } else {
           restaurarColoresOriginales();
@@ -410,36 +516,44 @@
     }
     setTimeout(inyectarBotonCapa, 600);
 
-    // ---- Inspección por clic: ¿sol directo o sombra AHORA en ese punto? ----
+    // ================= INSPECCIÓN POR CLIC =================
     let popupInspeccion = null;
 
-    function puntoEnSombra(lngLat) {
-      if (typeof turf === 'undefined') return false;
-      const punto = turf.point([lngLat.lng, lngLat.lat]);
-      for (const idFuente of ['sombras', 'arboles-globales-sombra']) {
-        const fuente = map.getSource(idFuente);
-        if (!fuente || !fuente._data) continue;
-        for (const poligono of (fuente._data.features || [])) {
-          try { if (turf.booleanPointInPolygon(punto, poligono)) return true; }
-          catch (e) { /* geometría rara, se ignora */ }
-        }
-      }
-      return false;
-    }
-
     async function alClicInspeccionar(e) {
-      const enSombra = puntoEnSombra(e.lngLat);
-      const { anio, mes } = mesAnioValidos();
-      let textoValor = 'consultando…';
+      const atenuacion = clasificarPunto(e.lngLat);
+      const { anio, mes, dia, hora } = fechaHoraValidos();
+
+      let bloqueHistorico = '<i>consultando histórico…</i>';
       try {
-        const { ghi } = await obtenerIrradianciaHistorica(anio, mes);
-        textoValor = `${ghi.toFixed(2)} kWh/m²/día (media Sevilla, ${mes}/${anio})`;
-      } catch (err) { textoValor = 'sin dato para ese mes'; }
+        const porDia = await obtenerAnioDiario(anio);
+        const datoDia = porDia[claveFecha(anio, mes, dia)];
+        let ghiHora = null, cieloHora = null;
+        try {
+          const datoHora = (await obtenerDiaHorario(anio, mes, dia))[hora];
+          if (datoHora) { ghiHora = datoHora.ghi; cieloHora = datoHora.cieloDespejado; }
+        } catch (err) { /* sin serie horaria */ }
+
+        if (datoDia) {
+          // Exposición efectiva = irradiancia horaria × multiplicador de atenuación
+          const base = ghiHora != null ? ghiHora : datoDia.ghi * 1000 / 12; // Wh/m² aprox. si no hay hora
+          const exposicion = base * (atenuacion.factor / ATENUACION.SOL.factor);
+          const nubosidad = cieloHora > 0 ? ` · ${(100 * ghiHora / cieloHora).toFixed(0)} % del cielo despejado` : '';
+          bloqueHistorico =
+            `<b>${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${anio}, ${String(hora).padStart(2, '0')}:00 UTC</b><br>` +
+            (ghiHora != null ? `Hora: <b>${ghiHora.toFixed(0)} Wh/m²</b>${nubosidad}<br>` : '') +
+            `Día completo: <b>${datoDia.ghi.toFixed(2)} kWh/m²</b><br>` +
+            `Exposición efectiva aquí: <b>${exposicion.toFixed(0)} Wh/m²</b>`;
+        }
+      } catch (err) {
+        bloqueHistorico = 'Sin dato NASA para esa fecha.';
+      }
 
       const html = `
-        <div style="font-family:inherit;font-size:12.5px;line-height:1.5;">
-          <b style="color:${enSombra ? '#7fa8c9' : '#e7b06a'}">${enSombra ? '🌥 En sombra ahora' : '☀️ Sol directo ahora'}</b><br>
-          ${textoValor}
+        <div style="font-family:inherit;font-size:12.5px;line-height:1.55;max-width:240px;">
+          <b style="color:${atenuacion.color}">${atenuacion.etiqueta}</b><br>
+          <span style="color:#999;">Factor de exposición ×${atenuacion.factor.toFixed(1)}</span><br>
+          <hr style="border:none;border-top:1px dashed #ccc;margin:5px 0;">
+          ${bloqueHistorico}
         </div>`;
 
       if (popupInspeccion) popupInspeccion.remove();

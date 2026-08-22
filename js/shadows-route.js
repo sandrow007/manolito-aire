@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -45,9 +45,15 @@
     maxEdificiosSombra: 220, 
     loteSombraSize: 30, 
     duracionVueloInicialMs: 2000,
-    priorizarSombra: true,       
-    maxDetourSombra: 1.5,        
-    maxAlternativasSombra: 3,    
+    priorizarSombra: true,
+    maxDetourSombra: 1.5,
+    maxAlternativasSombra: 3,
+    // ----- Motor Dijkstra térmico (red peatonal local, cliente) -----
+    usarRedLocalTermica: true,
+    redPeatonalUrl: 'data/red-peatonal.geojson',
+    redPeatonalMargenM: 500,
+    factorPenalizacionSol: 0.7,
+    maxNodosRedPeatonal: 80000,
     // ----- Modo peatón virtual (cámara libre, sin GPS real) -----
     paseoAlturaOjoM: 1.7,
     paseoVelocidadMs: 3.5,

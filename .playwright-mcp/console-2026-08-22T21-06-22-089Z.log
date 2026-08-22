@@ -1,0 +1,2 @@
+[    1732ms] [INFO] Autofocus processing was blocked because a document already has a focused element. @ https://www.google.com/search?q=&sourceid=chrome&ie=UTF-8&amc=1&udm=50&aep=48&cud=0&source=chrome.crn.obic&sei=TQ-KaorgFs6Ki-gPs82DkAs:65
+[    9037ms] [WARNING] The powerPreference option is currently ignored when calling requestAdapter() on Windows. See https://crbug.com/369219127 @ :0

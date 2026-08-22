@@ -1,27 +1,28 @@
 /* ============================================================
-   CAPA DE IRRADIACIÓN SOLAR REAL — NASA POWER API
+   CAPA DE IRRADIACIÓN SOLAR REAL — NASA POWER API  (v2 mejorada)
    ------------------------------------------------------------
-   Archivo aparte, mismo patrón que arboles-globales.js: se
-   engancha a window.manolitAireMap (ya expuesto por
+   Se engancha a window.manolitAireMap (expuesto por
    shadows-route.js) y no toca ningún archivo existente.
 
-   AVISO HONESTO: este proyecto usa MapLibre GL JS, no Three.js
-   — no existe tal archivo en esta conversación. MapLibre no deja
-   escribir shaders GLSL propios por vértice, así que "Lambert en
-   shaders" no es literal aquí. Lo que SÍ hace este archivo, y es
-   el equivalente funcional real:
-     1. Pide a la NASA POWER API la irradiancia solar histórica
-        real (ALLSKY_SFC_SW_DWN) para Sevilla, mes y año elegidos.
-     2. La combina con la altura solar real de ese día (vía
-        SunCalc) — esa combinación ES la ley del coseno de Lambert
-        aplicada al resultado (radiación_horizontal × sin(altura)
-        ≈ radiación × cos(cenit)).
-     3. Con ese número final, recolorea edificios, árboles y
-        (si tu estilo del mapa la tiene) la capa de terreno, con
-        una rampa: blanco/amarillo (pico de calor) → naranja →
-        rojo → morado/azul violeta (frío/sombra).
-   Al desactivar la capa, restaura los colores originales tal
-   cual estaban antes de tocarlos.
+   Qué hace:
+     1. Pide a la NASA POWER API, EN UNA SOLA PETICIÓN POR AÑO,
+        la irradiancia global horizontal (ALLSKY_SFC_SW_DWN),
+        la directa normal (ALLSKY_SFC_SW_DNI) y la de cielo
+        despejado (CLRSKY_SFC_SW_DWN) para Sevilla.
+     2. Aplica la ley del coseno de Lambert CORRECTAMENTE:
+        la GHI horizontal ya incluye el ángulo de incidencia, así
+        que no hay que multiplicarla otra vez por sin(altura).
+        El coseno solo se aplica a la componente DIRECTA al
+        transponer al plano de cada superficie:
+          G_tilt = DNI·cos(ángulo_incidencia) + DHI·(1+cosβ)/2
+        (modelo de difusa isotrópica, el estándar de la norma
+        IEC 61724 / ASHRAE para transposición de irradiancia).
+     3. Normaliza el color con el índice de claridad Kt
+        (GHI / radiación extraterrestre), que es físico y válido
+        para cualquier mes/año, en vez de constantes fijas.
+     4. Recolorea edificios, árboles y suelo con la rampa
+        violeta (sombra/frío) → rojo → naranja → blanco (pico).
+     Al desactivar la capa restaura los colores originales.
    ============================================================ */
 
 'use strict';
@@ -31,10 +32,14 @@
     lat: 37.3891,
     lon: -5.9845,
     nasaPowerUrl: 'https://power.larc.nasa.gov/api/temporal/monthly/point',
-    parametroNasa: 'ALLSKY_SFC_SW_DWN', // irradiancia global horizontal, kWh/m²/día (correcto; ALLSKY_SNDW_LW no existe)
+    // GHI horizontal, DNI y cielo despejado — todo en kWh/m²/día
+    parametrosNasa: ['ALLSKY_SFC_SW_DWN', 'ALLSKY_SFC_SW_DNI', 'CLRSKY_SFC_SW_DWN'],
     anioMinimo: 1981,
     esperaMapaMs: 15000,
+    inclinacionPanelGrados: 30, // inclinación típica óptima en Sevilla (~latitud − 7°)
   };
+
+  const CONSTANTE_SOLAR = 1367; // W/m², radiación solar extraterrestre
 
   // Rampa de color: de frío/sombra a pico de calor histórico
   const RAMPA = [
@@ -50,10 +55,7 @@
       const a = RAMPA[i], b = RAMPA[i + 1];
       if (t >= a.t && t <= b.t) {
         const f = (t - a.t) / (b.t - a.t);
-        const r = Math.round(a.color[0] + (b.color[0] - a.color[0]) * f);
-        const g = Math.round(a.color[1] + (b.color[1] - a.color[1]) * f);
-        const bl = Math.round(a.color[2] + (b.color[2] - a.color[2]) * f);
-        return `rgb(${r},${g},${bl})`;
+        return `rgb(${[0, 1, 2].map((c) => Math.round(a.color[c] + (b.color[c] - a.color[c]) * f)).join(',')})`;
       }
     }
     return `rgb(${RAMPA[RAMPA.length - 1].color.join(',')})`;
@@ -77,15 +79,14 @@
   async function iniciar(map) {
     const contenedorMapa = map.getContainer();
 
-    // ---- Identificar capas a recolorear: edificios (de shadows-route.js), árboles (de arboles-globales.js) ----
+    // ---- Capas a recolorear: edificios (shadows-route.js), árboles (arboles-globales.js), suelo ----
     function capaEdificios() {
-      const capas = map.getStyle().layers || [];
-      return capas.find((l) => l.type === 'fill-extrusion' && /building/i.test(l.id));
+      return (map.getStyle().layers || [])
+        .find((l) => l.type === 'fill-extrusion' && /building/i.test(l.id));
     }
     function capaTerrenoOSuelo() {
-      // Muchos estilos de MapLibre traen una capa 'land' o 'landuse' tipo fill.
-      const capas = map.getStyle().layers || [];
-      return capas.find((l) => l.type === 'fill' && /^(land|landuse|landcover)/i.test(l.id));
+      return (map.getStyle().layers || [])
+        .find((l) => l.type === 'fill' && /^(land|landuse|landcover)/i.test(l.id));
     }
 
     const capasRecoloreables = [
@@ -94,13 +95,12 @@
       { id: () => capaTerrenoOSuelo()?.id, prop: 'fill-color' },
     ];
 
-    const coloresOriginales = new Map(); // id -> valor original de paint (para restaurar)
+    const coloresOriginales = new Map(); // id -> valor original de paint
 
     function guardarColorOriginal(id, prop) {
       if (coloresOriginales.has(id)) return;
-      try {
-        coloresOriginales.set(id, map.getPaintProperty(id, prop));
-      } catch (e) { /* capa no lista todavía */ }
+      try { coloresOriginales.set(id, map.getPaintProperty(id, prop)); }
+      catch (e) { /* capa no lista todavía */ }
     }
 
     function aplicarColorATodasLasCapas(colorCss) {
@@ -108,31 +108,28 @@
         const capaId = id();
         if (!capaId || !map.getLayer(capaId)) return;
         guardarColorOriginal(capaId, prop);
-        try {
-          map.setPaintProperty(capaId, prop, colorCss);
-        } catch (e) { /* la capa puede no soportar ese paint todavía */ }
+        try { map.setPaintProperty(capaId, prop, colorCss); }
+        catch (e) { /* la capa puede no soportar ese paint todavía */ }
       });
     }
 
     function restaurarColoresOriginales() {
       capasRecoloreables.forEach(({ id, prop }) => {
         const capaId = id();
-        if (!capaId || !map.getLayer(capaId)) return;
-        if (coloresOriginales.has(capaId)) {
-          try { map.setPaintProperty(capaId, prop, coloresOriginales.get(capaId)); } catch (e) { }
-        }
+        if (!capaId || !map.getLayer(capaId) || !coloresOriginales.has(capaId)) return;
+        try { map.setPaintProperty(capaId, prop, coloresOriginales.get(capaId)); } catch (e) { }
       });
     }
 
-    // ---- NASA POWER: consulta con caché en memoria (año-mes) ----
-    const cacheNasa = new Map();
+    // ---- NASA POWER: UNA petición por año devuelve los 12 meses ----
+    // Cacheamos el año completo; así el resumen anual no repite 12 llamadas.
+    const cacheAnual = new Map(); // anio -> { [mes]: { ghi, dni, cieloDespejado } }
 
-    async function obtenerIrradianciaHistorica(anio, mes) {
-      const clave = `${anio}-${mes}`;
-      if (cacheNasa.has(clave)) return cacheNasa.get(clave);
+    async function obtenerAnioCompleto(anio) {
+      if (cacheAnual.has(anio)) return cacheAnual.get(anio);
 
       const url = new URL(CONFIG.nasaPowerUrl);
-      url.searchParams.set('parameters', CONFIG.parametroNasa);
+      url.searchParams.set('parameters', CONFIG.parametrosNasa.join(','));
       url.searchParams.set('community', 'RE');
       url.searchParams.set('longitude', CONFIG.lon);
       url.searchParams.set('latitude', CONFIG.lat);
@@ -143,44 +140,99 @@
       const r = await fetch(url.toString());
       if (!r.ok) throw new Error(`NASA POWER HTTP ${r.status}`);
       const datos = await r.json();
+      const series = datos?.properties?.parameter;
+      if (!series?.[CONFIG.parametrosNasa[0]]) throw new Error('La NASA no ha devuelto la serie esperada');
 
-      // La respuesta mensual trae claves tipo "202401".."202412" y "202413" (media anual)
-      const serie = datos?.properties?.parameter?.[CONFIG.parametroNasa];
-      if (!serie) throw new Error('La NASA no ha devuelto la serie esperada');
-      const claveMes = `${anio}${String(mes).padStart(2, '0')}`;
-      const valor = serie[claveMes];
-      if (valor == null || valor === -999) throw new Error(`Sin dato NASA para ${claveMes}`);
-
-      cacheNasa.set(clave, valor);
-      return valor; // kWh/m²/día
+      const porMes = {};
+      for (let mes = 1; mes <= 12; mes++) {
+        const clave = `${anio}${String(mes).padStart(2, '0')}`;
+        const ghi = series[CONFIG.parametrosNasa[0]]?.[clave];
+        const dni = series[CONFIG.parametrosNasa[1]]?.[clave];
+        const cielo = series[CONFIG.parametrosNasa[2]]?.[clave];
+        if (ghi == null || ghi === -999) continue; // mes sin dato (p. ej. futuro)
+        porMes[mes] = {
+          ghi,
+          dni: dni != null && dni !== -999 ? dni : null,
+          cieloDespejado: cielo != null && cielo !== -999 ? cielo : null,
+        };
+      }
+      cacheAnual.set(anio, porMes);
+      return porMes;
     }
 
-    // Rango histórico aproximado de referencia para normalizar el color (kWh/m²/día en Sevilla)
-    const IRRADIANCIA_MIN_REF = 1.5; // días de invierno flojos
-    const IRRADIANCIA_MAX_REF = 8.5; // picos de verano
+    async function obtenerIrradianciaHistorica(anio, mes) {
+      const porMes = await obtenerAnioCompleto(anio);
+      const dato = porMes[mes];
+      if (!dato) throw new Error(`Sin dato NASA para ${anio}-${String(mes).padStart(2, '0')}`);
+      return dato;
+    }
+
+    // ---- Física solar ----
+
+    // Radiación extraterrestre horizontal del día 15 del mes (kWh/m²/día),
+    // integrando la ecuación de Spencer sobre las horas de sol.
+    function radiacionExtraterrestreDiaria(anio, mes) {
+      const diaJuliano = Math.floor((Date.UTC(anio, mes - 1, 15) - Date.UTC(anio, 0, 1)) / 86400000) + 1;
+      const phi = (CONFIG.lat * Math.PI) / 180;
+      const delta = ((23.45 * Math.PI) / 180) * Math.sin(((2 * Math.PI) * (284 + diaJuliano)) / 365);
+      const omegaS = Math.acos(Math.max(-1, Math.min(1, -Math.tan(phi) * Math.tan(delta))));
+      const e0 = 1 + 0.033 * Math.cos((2 * Math.PI * diaJuliano) / 365);
+      // kJ/m²/día -> kWh/m²/día
+      return ((24 * 3600 * CONSTANTE_SOLAR * e0) / Math.PI) *
+        (omegaS * Math.sin(phi) * Math.sin(delta) + Math.cos(phi) * Math.cos(delta) * Math.sin(omegaS)) / 3.6e6;
+    }
+
+    // Transposición a plano inclinado (Lambert bien aplicado):
+    //   la directa se proyecta con cos(θ), la difusa con (1+cosβ)/2.
+    // La GHI horizontal NO se vuelve a multiplicar por sin(altura):
+    // ese ángulo ya está dentro del dato.
+    function irradianciaEnPlanoInclinado(ghi, dni, alturaSolarRad, acimutSolRad) {
+      const beta = (CONFIG.inclinacionPanelGrados * Math.PI) / 180;
+      const sinAlt = Math.max(Math.sin(alturaSolarRad), 0.05);
+      // Difusa horizontal = GHI − directa horizontal
+      const directaHorizontal = dni != null ? dni * sinAlt : ghi * 0.7; // si no hay DNI, estimación 70/30
+      const dhi = Math.max(0, ghi - directaHorizontal);
+
+      // Ángulo de incidencia sobre el panel (panel mirando al sur, acimut 0 en SunCalc = sur)
+      const cosIncidencia = Math.max(0,
+        Math.sin(alturaSolarRad) * Math.cos(beta) +
+        Math.cos(alturaSolarRad) * Math.sin(beta) * Math.cos(acimutSolRad));
+      const factorRb = sinAlt > 0 ? cosIncidencia / sinAlt : 0;
+
+      const directaPlano = dni != null ? dni * cosIncidencia : directaHorizontal * factorRb;
+      const difusaPlano = dhi * (1 + Math.cos(beta)) / 2;
+      return { total: directaPlano + difusaPlano, directa: directaPlano, difusa: difusaPlano };
+    }
 
     async function aplicarIrradiancia(anio, mes) {
       mostrarEstadoPanel('Consultando NASA POWER…');
       try {
-        const irradianciaDiaria = await obtenerIrradianciaHistorica(anio, mes);
+        if (typeof SunCalc === 'undefined') throw new Error('SunCalc no está cargado');
+        const { ghi, dni, cieloDespejado } = await obtenerIrradianciaHistorica(anio, mes);
 
-        // Ley del coseno de Lambert: la irradiancia efectiva depende del ángulo de
-        // incidencia del sol. Usamos la altura solar real (SunCalc) al mediodía
-        // solar del día 15 de ese mes/año como factor multiplicador —
-        // radiación_horizontal × sin(altura_solar) ≈ radiación × cos(cenit).
+        // Altura solar real al mediodía solar del día 15 (SunCalc)
         const fecha = new Date(Date.UTC(anio, mes - 1, 15, 12, 0, 0));
         const posSol = SunCalc.getPosition(fecha, CONFIG.lat, CONFIG.lon);
-        const factorLambert = Math.max(0, Math.sin(Math.max(posSol.altitude, 0)));
 
-        const irradianciaEfectiva = irradianciaDiaria * factorLambert;
-        const t = (irradianciaEfectiva - IRRADIANCIA_MIN_REF) / (IRRADIANCIA_MAX_REF - IRRADIANCIA_MIN_REF);
-        const colorFinal = interpolarColor(t);
+        // Índice de claridad Kt = GHI / extraterrestre (0 = cubierto, ~0.75 = despejado)
+        const kt = ghi / radiacionExtraterrestreDiaria(anio, mes);
+        // El color responde al Kt: físicamente comparable entre meses y años
+        const colorFinal = interpolarColor((kt - 0.25) / 0.55);
+
+        // Plano inclinado con Lambert correcto (solo a la directa)
+        const plano = irradianciaEnPlanoInclinado(ghi, dni, Math.max(posSol.altitude, 0), posSol.azimuth);
 
         aplicarColorATodasLasCapas(colorFinal);
-        mostrarEstadoPanel(`${irradianciaDiaria.toFixed(2)} kWh/m²/día (NASA POWER) · altura solar ${(posSol.altitude * 180 / Math.PI).toFixed(1)}°`);
+        mostrarEstadoPanel(
+          `${ghi.toFixed(2)} kWh/m²/día (horizontal) · plano ${CONFIG.inclinacionPanelGrados}°: ${plano.total.toFixed(2)}` +
+          `${cieloDespejado != null ? ` · cielo despejado ${cieloDespejado.toFixed(2)}` : ''}` +
+          ` · Kt ${kt.toFixed(2)} · sol ${(posSol.altitude * 180 / Math.PI).toFixed(1)}°`
+        );
       } catch (e) {
         console.warn('[irradiacion-solar]', e.message);
-        mostrarEstadoPanel('No se ha podido consultar la NASA ahora mismo. Reintenta en unos segundos.', true);
+        mostrarEstadoPanel(e.message.includes('SunCalc')
+          ? 'Error interno: falta la librería SunCalc.'
+          : 'No se ha podido consultar la NASA ahora mismo. Reintenta en unos segundos.', true);
       }
     }
 
@@ -198,7 +250,6 @@
     function construirPanel() {
       const estilo = document.createElement('style');
       estilo.textContent = `
-        /* Debajo del control de zoom (+/-) de MapLibre, para no taparlo ni estorbar al arrastrar el mapa */
         #irrPanel{
           position:absolute; right:12px; top:108px; z-index:6; width:230px;
           background:linear-gradient(160deg,#262c38,#1b2029 70%);
@@ -288,7 +339,7 @@
       function mesAnioValidos() {
         const anio = Math.max(CONFIG.anioMinimo, Math.min(anioMax, Number(inputAnio.value) || anioMax));
         let mes = Number(sliderMes.value);
-        if (anio === anioMax) mes = Math.min(mes, ahora.getMonth() + 1); // no permitir meses futuros del año en curso
+        if (anio === anioMax) mes = Math.min(mes, ahora.getMonth() + 1);
         return { anio, mes };
       }
 
@@ -317,36 +368,20 @@
 
     const { inputAnio, sliderMes, anualEl, mesAnioValidos } = construirPanel();
 
-    // ---- Resumen anual: irradiancia media anual + horas de sol estimadas, como en la referencia ----
-    const cacheResumenAnual = new Map();
+    // ---- Resumen anual: reutiliza la MISMA petición por año (sin 12 llamadas) ----
     async function cargarResumenAnual(anio) {
-      if (cacheResumenAnual.has(anio)) {
-        pintarResumenAnual(cacheResumenAnual.get(anio));
-        return;
-      }
       anualEl.textContent = 'Cargando resumen anual…';
       try {
-        const valores = [];
-        for (let m = 1; m <= 12; m++) {
-          try {
-            const v = await obtenerIrradianciaHistorica(anio, m);
-            valores.push(v);
-          } catch (e) { /* mes sin dato (p.ej. futuro): se ignora en la media */ }
-        }
+        const porMes = await obtenerAnioCompleto(anio);
+        const valores = Object.values(porMes).map((d) => d.ghi);
         if (!valores.length) throw new Error('sin datos');
         const mediaDiaria = valores.reduce((a, b) => a + b, 0) / valores.length;
-        const resumen = {
-          anual_kWh_m2: Math.round(mediaDiaria * 365),
-          horasSolDia: (mediaDiaria / 1.0).toFixed(1), // aproximación: 1 kWh/m² ≈ 1 "hora de sol pico"
-        };
-        cacheResumenAnual.set(anio, resumen);
-        pintarResumenAnual(resumen);
+        anualEl.innerHTML =
+          `Irradiancia anual: <b>${Math.round(mediaDiaria * 365)} kWh/m²</b><br>` +
+          `Horas de sol pico: <b>${mediaDiaria.toFixed(1)} h/día</b>`;
       } catch (e) {
         anualEl.textContent = 'No se ha podido calcular el resumen anual.';
       }
-    }
-    function pintarResumenAnual(r) {
-      anualEl.innerHTML = `Irradiancia anual: <b>${r.anual_kWh_m2} kWh/m²</b><br>Horas de sol pico: <b>${r.horasSolDia} h/día</b>`;
     }
 
     function inyectarBotonCapa() {
@@ -375,34 +410,31 @@
     }
     setTimeout(inyectarBotonCapa, 600);
 
-    // ---- Inspeccionar un punto al hacer clic: ¿sol directo o sombra AHORA, en ese punto exacto? ----
-    // La NASA da un único valor medio para toda Sevilla (no varía de un edificio a otro), pero si
-    // ese punto cae dentro de una sombra real (calculada por shadows-route.js o arboles-globales.js
-    // con la posición real del sol) sí es un dato que varía punto a punto y es fiable — combinamos
-    // ambas cosas para dar una respuesta honesta, no un número inventado por cada tejado.
+    // ---- Inspección por clic: ¿sol directo o sombra AHORA en ese punto? ----
     let popupInspeccion = null;
 
     function puntoEnSombra(lngLat) {
+      if (typeof turf === 'undefined') return false;
       const punto = turf.point([lngLat.lng, lngLat.lat]);
-      const fuentesSombra = ['sombras', 'arboles-globales-sombra'];
-      for (const idFuente of fuentesSombra) {
+      for (const idFuente of ['sombras', 'arboles-globales-sombra']) {
         const fuente = map.getSource(idFuente);
         if (!fuente || !fuente._data) continue;
         for (const poligono of (fuente._data.features || [])) {
-          try {
-            if (turf.booleanPointInPolygon(punto, poligono)) return true;
-          } catch (e) { /* geometría rara, se ignora */ }
+          try { if (turf.booleanPointInPolygon(punto, poligono)) return true; }
+          catch (e) { /* geometría rara, se ignora */ }
         }
       }
       return false;
     }
 
-    function alClicInspeccionar(e) {
+    async function alClicInspeccionar(e) {
       const enSombra = puntoEnSombra(e.lngLat);
       const { anio, mes } = mesAnioValidos();
-      cacheNasa.get(`${anio}-${mes}`); // por si ya está en caché
-      const valorCache = cacheNasa.get(`${anio}-${mes}`);
-      const textoValor = valorCache != null ? `${valorCache.toFixed(2)} kWh/m²/día (media Sevilla, ${mes}/${anio})` : 'consultando…';
+      let textoValor = 'consultando…';
+      try {
+        const { ghi } = await obtenerIrradianciaHistorica(anio, mes);
+        textoValor = `${ghi.toFixed(2)} kWh/m²/día (media Sevilla, ${mes}/${anio})`;
+      } catch (err) { textoValor = 'sin dato para ese mes'; }
 
       const html = `
         <div style="font-family:inherit;font-size:12.5px;line-height:1.5;">

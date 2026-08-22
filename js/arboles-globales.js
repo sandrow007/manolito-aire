@@ -1,12 +1,10 @@
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
 
-   v6 — Formas de árbol por especie + sombras realistas:
-   - Clasificación por species/genus (palmera, pino, encina, olivo,
-     cítrico, platanero, eucalipto, olmo, chopo, genérico).
-   - Dimensiones y proporciones ajustadas al tipo de árbol.
-   - Copa 3D y sombra proyectada con la silueta del tipo.
-   - Color por especie cuando está identificada.
+   v7 — Robustez Overpass + formas por especie:
+   - Cooldown exponencial ante errores 429/502/504/CORS para no saturar Overpass.
+   - Timeout y área de consulta reducidos.
+   - Clasificación por species/genus y sombras realistas por tipo de árbol.
 
    v5 — FIX CRÍTICO de unidades + Sombras Orgánicas Asimétricas
    ============================================================ */
@@ -20,7 +18,7 @@
       'https://overpass.kumi.systems/api/interpreter',
       'https://overpass.osm.ch/api/interpreter',
     ],
-    overpassTimeoutS: 20,
+    overpassTimeoutS: 15,
 
     alturaMinimaM: 2,
     alturaEstimadaSinDatoM: 6,
@@ -28,10 +26,10 @@
 
     maxArbolesEnPantalla: 1000,
     maxArbolesConSombra: 250,
-    loteSombraSize: 25,
+    loteSombraSize: 20,
     sincroSombraMs: 60 * 1000,
     esperaMoveendMs: 500,
-    maxLadoConsultaKm: 3,
+    maxLadoConsultaKm: 2.5,
     cacheCeldasGrados: 0.01,
     esperaMapaMs: 15000,
   };
@@ -172,6 +170,16 @@
     return { altura, radioCopaM };
   }
 
+  function leerNumero(tags, claves) {
+    for (const clave of claves) {
+      const v = tags?.[clave];
+      if (v == null || v === '') continue;
+      const n = parseFloat(String(v).replace(',', '.'));
+      if (!Number.isNaN(n) && n > 0) return n;
+    }
+    return null;
+  }
+
   function cederAlNavegador() {
     return new Promise((resolve) => {
       if ('requestIdleCallback' in window) requestIdleCallback(() => resolve(), { timeout: 120 });
@@ -278,6 +286,9 @@
     }
 
     let capaVisible = true;
+    let overpassBackoffHasta = 0;
+    let overpassErroresSeguidos = 0;
+
     function inyectarToggle() {
       const panel = document.getElementById('rsMapControls');
       if (!panel || document.getElementById('rsBtnArboles')) return;
@@ -329,9 +340,15 @@
     }
 
     async function consultarOverpass(bbox) {
+      const ahora = Date.now();
+      if (ahora < overpassBackoffHasta) {
+        throw new Error('Overpass en cooldown por errores recientes');
+      }
+
       const query = `[out:json][timeout:${CONFIG.overpassTimeoutS}];(node["natural"="tree"](${bbox.join(',')}););out body;`;
       let ultimoError = null;
-      for (const url of CONFIG.overpassUrls) {
+      for (let i = 0; i < CONFIG.overpassUrls.length; i++) {
+        const url = CONFIG.overpassUrls[i];
         try {
           const controller = new AbortController();
           const id = setTimeout(() => controller.abort(), CONFIG.overpassTimeoutS * 1000 + 3000);
@@ -343,23 +360,22 @@
           });
           clearTimeout(id);
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          overpassErroresSeguidos = 0;
           return await r.json();
         } catch (e) {
           ultimoError = e;
+          if (i < CONFIG.overpassUrls.length - 1) {
+            await new Promise((res) => setTimeout(res, 700 * (i + 1)));
+          }
           continue;
         }
       }
-      throw ultimoError || new Error('Overpass no disponible');
-    }
 
-    function leerNumero(tags, claves) {
-      for (const clave of claves) {
-        const v = tags?.[clave];
-        if (v == null || v === '') continue;
-        const n = parseFloat(String(v).replace(',', '.'));
-        if (!Number.isNaN(n) && n > 0) return n;
-      }
-      return null;
+      overpassErroresSeguidos++;
+      const backoffMs = Math.min(90000, 4000 * Math.pow(2, overpassErroresSeguidos - 1));
+      overpassBackoffHasta = Date.now() + backoffMs;
+      console.warn(`[arboles-globales] Overpass falló ${overpassErroresSeguidos} veces seguidas. Cooldown ${(backoffMs / 1000).toFixed(0)} s.`);
+      throw ultimoError || new Error('Overpass no disponible');
     }
 
     function procesarElementoOSM(el) {
@@ -387,6 +403,13 @@
 
       const celdas = celdasDeVista(bounds).filter((c) => !celdasConsultadas.has(c));
       if (!celdas.length) { dibujarArbolesVisibles(); return; }
+
+      // Si Overpass está en cooldown, no intentamos más consultas; usamos lo que haya
+      if (Date.now() < overpassBackoffHasta) {
+        dibujarArbolesVisibles();
+        return;
+      }
+
       celdas.forEach((c) => celdasConsultadas.add(c));
 
       consultaEnCurso = true;

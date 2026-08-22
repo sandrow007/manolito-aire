@@ -67,14 +67,15 @@
       'https://overpass.kumi.systems/api/interpreter',
       'https://overpass.osm.ch/api/interpreter',
     ],
-    overpassTimeoutS: 25,
+    overpassTimeoutS: 15,
     // ----- Modo peatón virtual (cámara libre, sin GPS real) -----
-    paseoAlturaOjoM: 1.7,
-    paseoVelocidadMs: 3.5,
-    paseoVelocidadGiro: 2.2,
+    paseoAlturaOjoM: 1.65,
+    paseoVelocidadMs: 2.0,
+    paseoVelocidadGiro: 1.6,
     paseoLookAheadM: 25,
-    paseoMaxPitch: 85, // Límite estricto de MapLibre
-    paseoSincroMs: 450, // Cada cuánto se refrescan edificios/sombras mientras caminas
+    paseoMaxPitch: 72, // Más suave y "virtual", sin pegarse al suelo
+    paseoSincroMs: 600, // Menos frecuente, más ligero
+    paseoSuavizado: 0.12, // Inercia en el movimiento
   };
 
   /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
@@ -505,6 +506,8 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   let paseoOrigenMercator = null;
   let paseoMetrosAU = 0; // metros a unidades mercator
   let paseoJugador = { x: 0, y: 0, bearing: 0 };
+  let paseoVelocidadSuavizada = 0; // inercia lineal
+  let paseoGiroSuavizado = 0;     // inercia angular
   let paseoToques = new Map(); // pointerId -> {x,y}
   let paseoJoystick = { active:false, startX:0, startY:0, dx:0, dy:0, pointerId:null };
   let paseoEstadoPrevio = null; // snapshot del mapa antes de entrar, para restaurarlo al salir
@@ -561,21 +564,43 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     );
 
     map.addSource('ruta', { type: 'geojson', data: turf.featureCollection([]) });
+    // Outline para que la ruta no se confunda con calles del mapa
+    map.addLayer({
+      id: 'capa-ruta-outline',
+      type: 'line',
+      source: 'ruta',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#1a0d00', 'line-width': 9, 'line-opacity': 0.85 },
+    });
+    map.addLayer({
+      id: 'capa-ruta-glow',
+      type: 'line',
+      source: 'ruta',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#ff9500', 'line-width': 11, 'line-opacity': 0.35, 'line-blur': 8 },
+    });
     map.addLayer({
       id: 'capa-ruta',
       type: 'line',
       source: 'ruta',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': leerVar('--accent') || '#00f2ff', 'line-width': 5, 'line-opacity': 0.9 },
+      paint: { 'line-color': '#ff7b00', 'line-width': 5, 'line-opacity': 1 },
     });
 
     map.addSource('ruta-sombra', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-ruta-sombra-outline',
+      type: 'line',
+      source: 'ruta-sombra',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#00151a', 'line-width': 9, 'line-opacity': 0.9 },
+    });
     map.addLayer({
       id: 'capa-ruta-sombra',
       type: 'line',
       source: 'ruta-sombra',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#0e5439', 'line-width': 5, 'line-opacity': 0.95 },
+      paint: { 'line-color': '#00d4ff', 'line-width': 5, 'line-opacity': 0.95 },
     });
 
     map.addSource('puntos-manuales', { type: 'geojson', data: turf.featureCollection([]) });
@@ -1406,6 +1431,8 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       paseoJugador.x = 0;
       paseoJugador.y = 0;
       paseoJugador.bearing = map.getBearing() || 0;
+      paseoVelocidadSuavizada = 0;
+      paseoGiroSuavizado = 0;
 
       map.dragPan.disable();
       map.scrollZoom.disable();
@@ -1519,25 +1546,30 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       const dt = Math.min(0.05, (now - paseoUltimoFrame) / 1000);
       paseoUltimoFrame = now;
 
-      let avance = 0;
-      let giro = 0;
+      let avanceObjetivo = 0;
+      let giroObjetivo = 0;
 
-      if (keysDown.has('KeyW') || keysDown.has('ArrowUp')) avance += 1;
-      if (keysDown.has('KeyS') || keysDown.has('ArrowDown')) avance -= 1;
-      if (keysDown.has('KeyA') || keysDown.has('ArrowLeft')) giro -= 1;
-      if (keysDown.has('KeyD') || keysDown.has('ArrowRight')) giro += 1;
+      if (keysDown.has('KeyW') || keysDown.has('ArrowUp')) avanceObjetivo += 1;
+      if (keysDown.has('KeyS') || keysDown.has('ArrowDown')) avanceObjetivo -= 1;
+      if (keysDown.has('KeyA') || keysDown.has('ArrowLeft')) giroObjetivo -= 1;
+      if (keysDown.has('KeyD') || keysDown.has('ArrowRight')) giroObjetivo += 1;
 
       if (paseoJoystick.active) {
-        avance = -paseoJoystick.dy;
-        giro = paseoJoystick.dx * 0.6;
+        avanceObjetivo = -paseoJoystick.dy;
+        giroObjetivo = paseoJoystick.dx * 0.6;
       }
 
-      if (giro !== 0) {
-        paseoJugador.bearing += giro * 100 * dt;
+      // Suavizado tipo inercia para que el movimiento sea más "virtual" y menos brusco
+      const suavizado = Math.min(1, CONFIG.paseoSuavizado + dt * 2);
+      paseoGiroSuavizado += (giroObjetivo - paseoGiroSuavizado) * suavizado;
+      paseoVelocidadSuavizada += (avanceObjetivo - paseoVelocidadSuavizada) * suavizado;
+
+      if (Math.abs(paseoGiroSuavizado) > 0.01) {
+        paseoJugador.bearing += paseoGiroSuavizado * 90 * dt;
       }
 
-      if (avance !== 0) {
-        const step = avance * CONFIG.paseoVelocidadMs * dt;
+      if (Math.abs(paseoVelocidadSuavizada) > 0.01) {
+        const step = paseoVelocidadSuavizada * CONFIG.paseoVelocidadMs * dt;
         const rad = paseoJugador.bearing * Math.PI / 180;
         // En proyecciones Mercator, -Y es el Norte absoluto
         paseoJugador.x += Math.sin(rad) * step;
@@ -1831,7 +1863,12 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       sincronizarArboles();
     });
     tRuta?.addEventListener('change', () => {
-      map.setLayoutProperty('capa-ruta', 'visibility', tRuta.checked ? 'visible' : 'none');
+      const vis = tRuta.checked ? 'visible' : 'none';
+      map.setLayoutProperty('capa-ruta', 'visibility', vis);
+      map.setLayoutProperty('capa-ruta-outline', 'visibility', vis);
+      map.setLayoutProperty('capa-ruta-glow', 'visibility', vis);
+      map.setLayoutProperty('capa-ruta-sombra', 'visibility', vis);
+      map.setLayoutProperty('capa-ruta-sombra-outline', 'visibility', vis);
     });
     tSol?.addEventListener('change', () => { asegurarActivacionSolar(); actualizarIluminacionSolar(); });
   }
@@ -2407,9 +2444,8 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     });
   });
 
-  document.getElementById('themeToggle')?.addEventListener('click', () => setTimeout(() => {
-    if (map.getLayer('capa-ruta')) map.setPaintProperty('capa-ruta', 'line-color', leerVar('--accent'));
-  }, 50));
+  // Los colores de ruta son fijos y de alto contraste (naranja al sol, cyan en sombra)
+  // para que se distingan siempre del mapa base, independientemente del tema.
 
   document.addEventListener('langChanged', () => {
     if (btnModoClickRef) btnModoClickRef.textContent = t('pickMap', 'Elegir en el mapa');

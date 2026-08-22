@@ -444,6 +444,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     if (!fuente) return;
     if (!rutaActual || !ultimaColeccionSombras.features.length) {
       fuente.setData(turf.featureCollection([]));
+      mostrarBadgeSombra(null); // AÑADIDO
       return;
     }
     try {
@@ -454,12 +455,16 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         return puntoEnSombra(medio);
       });
       fuente.setData(turf.featureCollection(tramosEnSombra));
+      if (tramos.features.length) { // AÑADIDO — todo este bloque if/else es nuevo
+        mostrarBadgeSombra(Math.round((tramosEnSombra.length / tramos.features.length) * 100));
+      } else {
+        mostrarBadgeSombra(null);
+      }
     } catch (e) {
       console.warn('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
       fuente.setData(turf.featureCollection([]));
     }
   }
-
   function calcularAnguloSol(horaOverride) {
     const centro = puntoReferenciaSol || map.getCenter();
     const lat = centro.lat;

@@ -1,6 +1,13 @@
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
 
+   v6 — Formas de árbol por especie + sombras realistas:
+   - Clasificación por species/genus (palmera, pino, encina, olivo,
+     cítrico, platanero, eucalipto, olmo, chopo, genérico).
+   - Dimensiones y proporciones ajustadas al tipo de árbol.
+   - Copa 3D y sombra proyectada con la silueta del tipo.
+   - Color por especie cuando está identificada.
+
    v5 — FIX CRÍTICO de unidades + Sombras Orgánicas Asimétricas
    ============================================================ */
 
@@ -245,10 +252,14 @@
               'case',
               ['==', ['get', 'tipo'], 'tronco'], '#8b5a2b',
               ['==', ['get', 'tipo'], 'copa'], [
-                'interpolate', ['linear'], ['get', 'altura'],
-                3, '#7fb069',
-                8, '#4f8a3d',
-                15, '#2f5d2a',
+                'case',
+                ['has', 'color'], ['get', 'color'],
+                [
+                  'interpolate', ['linear'], ['get', 'altura'],
+                  3, '#7fb069',
+                  8, '#4f8a3d',
+                  15, '#2f5d2a',
+                ]
               ],
               '#7fb069'
             ],
@@ -409,21 +420,37 @@
 
       const features = [];
       for (const a of enVista) {
-        const alturaTroncoM = Math.max(1, a.altura * 0.35);
-        const alturaCopaInferiorM = a.altura * 0.40;
-        const alturaCopaSuperiorM = a.altura - alturaTroncoM - alturaCopaInferiorM;
-        const radioTroncoM = Math.max(0.15, a.radioCopaM * 0.15);
+        const forma = a.forma || 'redondeada';
+        const [lon, lat] = a.punto.geometry.coordinates;
+
+        // Proporciones del tronco y las copas según la forma real del árbol
+        let factorTronco = 0.35, factorCopaBaja = 0.40, factorCopaAlta = 0.25;
+        if (forma === 'palmera') { factorTronco = 0.80; factorCopaBaja = 0.15; factorCopaAlta = 0.05; }
+        else if (forma === 'conica') { factorTronco = 0.45; factorCopaBaja = 0.35; factorCopaAlta = 0.20; }
+        else if (forma === 'oval_alargada') { factorTronco = 0.50; factorCopaBaja = 0.30; factorCopaAlta = 0.20; }
+        else if (forma === 'ancha_redondeada') { factorTronco = 0.30; factorCopaBaja = 0.45; factorCopaAlta = 0.25; }
+        else if (forma === 'ancha_irregular') { factorTronco = 0.32; factorCopaBaja = 0.43; factorCopaAlta = 0.25; }
+
+        const alturaTroncoM = Math.max(1, a.altura * factorTronco);
+        const alturaCopaInferiorM = a.altura * factorCopaBaja;
+        const alturaCopaSuperiorM = Math.max(0.5, a.altura * factorCopaAlta);
+        const radioTroncoM = Math.max(0.15, a.radioCopaM * (forma === 'palmera' ? 0.10 : 0.15));
 
         const tronco = turf.circle(a.punto, radioTroncoM / 1000, { units: 'kilometers', steps: 8 });
-        tronco.properties = { altura: a.altura, baseM: 0, alturaTotalM: alturaTroncoM, nombre: a.nombre, tipo: 'tronco' };
+        tronco.properties = { altura: a.altura, baseM: 0, alturaTotalM: alturaTroncoM, nombre: a.nombre, tipo: 'tronco', forma, color: a.color };
         features.push(tronco);
 
-        const copaInferior = turf.circle(a.punto, a.radioCopaM / 1000, { units: 'kilometers', steps: 14 });
-        copaInferior.properties = { altura: a.altura, baseM: alturaTroncoM, alturaTotalM: alturaTroncoM + alturaCopaInferiorM, nombre: a.nombre, tipo: 'copa' };
+        // Copa inferior: forma realista según especie
+        const radioInferior = forma === 'palmera' ? a.radioCopaM * 0.90 : a.radioCopaM;
+        const copaInferior = crearFormaCopa(a.punto, radioInferior / 1000, forma, lon, lat);
+        copaInferior.properties = { altura: a.altura, baseM: alturaTroncoM, alturaTotalM: alturaTroncoM + alturaCopaInferiorM, nombre: a.nombre, tipo: 'copa', forma, color: a.color };
         features.push(copaInferior);
 
-        const copaSuperior = turf.circle(a.punto, (a.radioCopaM * 0.65) / 1000, { units: 'kilometers', steps: 14 });
-        copaSuperior.properties = { altura: a.altura, baseM: alturaTroncoM + alturaCopaInferiorM, alturaTotalM: a.altura, nombre: a.nombre, tipo: 'copa' };
+        // Copa superior: más pequeña y cerrada (salvo palmera)
+        const radioSuperior = forma === 'palmera' ? a.radioCopaM * 0.80 : a.radioCopaM * 0.65;
+        const formaSuperior = forma === 'palmera' ? 'palmera' : forma === 'conica' ? 'conica' : 'redondeada';
+        const copaSuperior = crearFormaCopa(a.punto, radioSuperior / 1000, formaSuperior, lon, lat + 0.0001);
+        copaSuperior.properties = { altura: a.altura, baseM: alturaTroncoM + alturaCopaInferiorM, alturaTotalM: a.altura, nombre: a.nombre, tipo: 'copa', forma, color: a.color };
         features.push(copaSuperior);
       }
       map.getSource('arboles-globales-copas').setData(turf.featureCollection(features));
@@ -437,18 +464,55 @@
       return n - Math.floor(n);
     }
 
-    function crearCopaIrregular(centro, radioKm, lon, lat) {
-      const pasos = 16; 
+    function crearFormaCopa(centro, radioKm, forma, lon, lat) {
+      const pasos = {
+        palmera: 28,
+        conica: 14,
+        oval_alargada: 18,
+        ancha_redondeada: 22,
+        ancha_irregular: 26,
+        redondeada: 18,
+      }[forma] || 18;
+
       const coords = [];
       for (let i = 0; i < pasos; i++) {
-        const angulo = (i * 360) / pasos;
-        const variacion = 0.70 + (pseudoRandom(lon, lat, i) * 0.50);
-        const radioIrregular = radioKm * variacion;
-        const pt = turf.transformTranslate(centro, radioIrregular, angulo, { units: 'kilometers' }).geometry.coordinates;
+        const anguloDeg = (i * 360) / pasos;
+        const anguloRad = (anguloDeg * Math.PI) / 180;
+        let factorRadio = 1;
+
+        switch (forma) {
+          case 'ancha_redondeada':
+            factorRadio = 1.0 + 0.22 * Math.cos(2 * anguloRad);
+            break;
+          case 'ancha_irregular':
+            factorRadio = 0.92 + 0.28 * Math.cos(2 * anguloRad) + 0.18 * pseudoRandom(lon, lat, i + 50);
+            break;
+          case 'conica':
+            factorRadio = 0.82 + 0.12 * Math.cos(2 * anguloRad);
+            break;
+          case 'oval_alargada':
+            factorRadio = 0.88 + 0.18 * Math.cos(2 * anguloRad);
+            break;
+          case 'palmera':
+            // Palmera: corona pequeña con palmas que sobresalen
+            const esPalma = i % 4 === 0;
+            factorRadio = esPalma ? 1.55 : 0.72;
+            break;
+        }
+
+        // Ruido orgánico general
+        factorRadio *= 0.82 + pseudoRandom(lon, lat, i) * 0.30;
+
+        const radioEfectivo = Math.max(0.000001, radioKm * factorRadio);
+        const pt = turf.transformTranslate(centro, radioEfectivo, anguloDeg, { units: 'kilometers' }).geometry.coordinates;
         coords.push(pt);
       }
       coords.push(coords[0]);
       return turf.polygon([coords]);
+    }
+
+    function crearCopaIrregular(centro, radioKm, lon, lat) {
+      return crearFormaCopa(centro, radioKm, 'redondeada', lon, lat);
     }
 
     function unirDosPoligonos(a, b) {
@@ -464,29 +528,43 @@
     }
 
     function calcularSombraArbol(arbol, distanciaKm, bearingSombra) {
+      const forma = arbol.forma || 'redondeada';
       const perpendicular = (bearingSombra + 90) % 360;
-      const radioTroncoKm = Math.max(arbol.radioCopaM * 0.12, 0.35) / 1000;
+      const radioTroncoKm = Math.max(arbol.radioCopaM * (forma === 'palmera' ? 0.08 : 0.12), 0.25) / 1000;
       const radioCopaKm = arbol.radioCopaM / 1000;
       const [lon, lat] = arbol.punto.geometry.coordinates;
 
       const lejano = turf.transformTranslate(arbol.punto, distanciaKm, bearingSombra, { units: 'kilometers' });
-      const copaIrregular = crearCopaIrregular(lejano, radioCopaKm, lon, lat);
 
+      // Copa proyectada: mantiene la silueta realista del tipo de árbol
+      const radioProyectado = forma === 'palmera' ? radioCopaKm * 0.85 : radioCopaKm;
+      const copaProyectada = crearFormaCopa(lejano, radioProyectado, forma, lon, lat);
+
+      // Para palmeras la sombra es casi solo la corona proyectada (poco volumen lateral)
+      if (forma === 'palmera') {
+        const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
+        return unirDosPoligonos(copaProyectada, baseRedondeada);
+      }
+
+      // Cuerpo de la sombra entre el tronco y la copa proyectada
       const pBaseA = turf.transformTranslate(arbol.punto, radioTroncoKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
       const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
-      const pLejosA = turf.transformTranslate(lejano, radioCopaKm * 0.75, perpendicular, { units: 'kilometers' }).geometry.coordinates;
-      const pLejosB = turf.transformTranslate(lejano, radioCopaKm * 0.75, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+
+      // Ancho de la cuna según la forma (copas anchas proyectan más volumen lateral)
+      const factorAncho = { ancha_redondeada: 0.90, ancha_irregular: 0.85, redondeada: 0.75, conica: 0.55, oval_alargada: 0.60 }[forma] || 0.75;
+      const pLejosA = turf.transformTranslate(lejano, radioCopaKm * factorAncho, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+      const pLejosB = turf.transformTranslate(lejano, radioCopaKm * factorAncho, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
 
       let cuna;
       try {
         cuna = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
       } catch (e) {
-        return copaIrregular;
+        return copaProyectada;
       }
 
       const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
 
-      let sombraFinal = unirDosPoligonos(cuna, copaIrregular);
+      let sombraFinal = unirDosPoligonos(cuna, copaProyectada);
       return unirDosPoligonos(sombraFinal, baseRedondeada);
     }
 

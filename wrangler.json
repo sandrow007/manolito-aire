@@ -6,9 +6,6 @@
   "ai": {
     "binding": "AI"
   },
-  "assets": {
-    "binding": "ASSETS"
-  },
   "kv_namespaces": [
     {
       "binding": "AIR_QUALITY_CACHE",

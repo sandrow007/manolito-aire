@@ -1,38 +1,62 @@
 /* ============================================================
    MANOLIT∞ — Aire + Sombras 3D
    VERSIÓN DEFINITIVA: CONTEXTO TÉCNICO ROBUSTO + IA UNIVERSAL
+
+   FIX: este archivo declaraba "let currentLang = '';" en la
+   primera línea, pero i18n.js ya declara esa misma variable a
+   nivel global con let/const. Dos <script> normales comparten el
+   mismo ámbito léxico para let/const, así que la segunda
+   declaración lanzaba:
+     "Uncaught SyntaxError: Identifier 'currentLang' has already
+      been declared (at chat.js:1:1)"
+   y eso abortaba TODO el archivo (nada de lo que hay aquí se
+   llegaba a ejecutar: ni el chat, ni sus botones).
+
+   Se quita esa redeclaración (este script ya sabía leer la
+   variable global de i18n.js vía "typeof currentLang") y además
+   se envuelve todo en una IIFE para que nada de lo que declaremos
+   aquí pueda volver a chocar con otro script en el futuro. Las
+   funciones que el HTML pueda llamar directamente (onclick="...")
+   se exponen explícitamente en window al final.
    ============================================================ */
 
-let currentLang = '';
-const CLOUDFLARE_WORKER_URL = "https://manolito-aire.sandro-a007.workers.dev/manolito";
-const OPENROUTER_API_KEY = "";
-const OPENROUTER_MODEL = "google/gemma-3-27b-it";
+(function () {
+  'use strict';
 
-let chatHistory = [];
-const QUESTION_CACHE = new Map();
+  const CLOUDFLARE_WORKER_URL = "https://manolito-aire.sandro-a007.workers.dev/manolito";
+  const OPENROUTER_API_KEY = "";
+  const OPENROUTER_MODEL = "google/gemma-3-27b-it";
 
-function getRobustLang() {
-  if (typeof currentLang !== 'undefined' && currentLang) return currentLang;
-  const htmlLang = document.documentElement.getAttribute('lang');
-  if (htmlLang) return htmlLang.split('-')[0];
-  try {
-    const storedLang = localStorage.getItem('manolito_lang') || localStorage.getItem('lang');
-    if (storedLang) return storedLang.split('-')[0];
-  } catch (e) {}
-  return 'es';
-}
+  let chatHistory = [];
+  const QUESTION_CACHE = new Map();
 
-function parseMarkdownToHTML(text) {
-  let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  html = html.replace(/`(.*?)`/g, '<code>$1</code>');
-  html = html.replace(/^### (.*$)/gm, '<h4>$1</h4>');
-  html = html.replace(/^## (.*$)/gm, '<h3>$1</h3>');
-  html = html.replace(/\n/g, '<br>');
-  return html;
-}
+  function getRobustLang() {
+    // OJO: "currentLang" aquí NO se declara en este archivo — se lee la
+    // variable global que ya crea i18n.js. Si i18n.js aún no ha cargado,
+    // "typeof" no revienta y caemos a los siguientes métodos.
+    try {
+      if (typeof currentLang !== 'undefined' && currentLang) return currentLang;
+    } catch (e) { /* currentLang no existe todavía, seguimos */ }
+    const htmlLang = document.documentElement.getAttribute('lang');
+    if (htmlLang) return htmlLang.split('-')[0];
+    try {
+      const storedLang = localStorage.getItem('manolito_lang') || localStorage.getItem('lang');
+      if (storedLang) return storedLang.split('-')[0];
+    } catch (e) {}
+    return 'es';
+  }
 
-const MANOLITO_SYSTEM_CONTEXT = `[INSTRUCCIONES SISTEMA - CUMPLIR ESTRICTAMENTE]
+  function parseMarkdownToHTML(text) {
+    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+    html = html.replace(/^### (.*$)/gm, '<h4>$1</h4>');
+    html = html.replace(/^## (.*$)/gm, '<h3>$1</h3>');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  }
+
+  const MANOLITO_SYSTEM_CONTEXT = `[INSTRUCCIONES SISTEMA - CUMPLIR ESTRICTAMENTE]
 
 IDENTIDAD:
 Eres Manolit∞, asistente experto de la plataforma web "Manolit∞ Aire" (manolitoaire.com), un proyecto climático ciudadano avanzado. Operas con precisión técnica y conocimiento universal.
@@ -127,23 +151,23 @@ CARACTERÍSTICAS PRINCIPALES DE LA WEB:
 
 [FIN DE INSTRUCCIONES SISTEMA]`;
 
-async function askManolito(question) {
-  const uiLang = getRobustLang();
+  async function askManolito(question) {
+    const uiLang = getRobustLang();
 
-  if (typeof cookiesAccepted === 'function' && !cookiesAccepted()) {
-    return "Conexión bloqueada. Acepta las cookies para interactuar con la IA.";
-  }
+    if (typeof cookiesAccepted === 'function' && !cookiesAccepted()) {
+      return "Conexión bloqueada. Acepta las cookies para interactuar con la IA.";
+    }
 
-  let historyText = "";
-  if (chatHistory.length > 0) {
-    historyText = "\n--- HISTORIAL DE CONVERSACIÓN ---\n";
-    chatHistory.forEach(m => {
-      historyText += `🔹 ${m.role === 'user' ? "TÚ" : "MANOLIT∞"}: ${m.content}\n`;
-    });
-    historyText += "-------------------------\n";
-  }
+    let historyText = "";
+    if (chatHistory.length > 0) {
+      historyText = "\n--- HISTORIAL DE CONVERSACIÓN ---\n";
+      chatHistory.forEach(m => {
+        historyText += `🔹 ${m.role === 'user' ? "TÚ" : "MANOLIT∞"}: ${m.content}\n`;
+      });
+      historyText += "-------------------------\n";
+    }
 
-  const fullContext = `${MANOLITO_SYSTEM_CONTEXT}
+    const fullContext = `${MANOLITO_SYSTEM_CONTEXT}
 
 ${historyText}
 
@@ -161,242 +185,250 @@ INSTRUCCIÓN FINAL:
 RESPUESTA REQUERIDA: En el mismo idioma del usuario. 
 === FIN PREGUNTA ===`;
 
-  chatHistory.push({ role: 'user', content: question });
-  if (chatHistory.length > 8) chatHistory.shift();
+    chatHistory.push({ role: 'user', content: question });
+    if (chatHistory.length > 8) chatHistory.shift();
 
-  let finalAnswer = "";
-  let errors = [];
+    let finalAnswer = "";
+    let errors = [];
 
-  if (CLOUDFLARE_WORKER_URL) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      
-      const res = await fetch(CLOUDFLARE_WORKER_URL, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        signal: controller.signal,
-        body: JSON.stringify({ 
-          message: question, 
-          idioma: uiLang, 
-          systemPrompt: MANOLITO_SYSTEM_CONTEXT,
-          history: chatHistory.slice(-6)
-        })
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (res.ok) {
-        const data = await res.json();
-        if (data.respuesta && data.respuesta.trim().length > 0) {
-          finalAnswer = data.respuesta.trim();
-        } else if (data.error) {
-          errors.push(`Worker: ${data.error}`);
+    if (CLOUDFLARE_WORKER_URL) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const res = await fetch(CLOUDFLARE_WORKER_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            message: question,
+            idioma: uiLang,
+            systemPrompt: MANOLITO_SYSTEM_CONTEXT,
+            history: chatHistory.slice(-6)
+          })
+        });
+
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.respuesta && data.respuesta.trim().length > 0) {
+            finalAnswer = data.respuesta.trim();
+          } else if (data.error) {
+            errors.push(`Worker: ${data.error}`);
+          }
+        } else {
+          errors.push(`Worker HTTP ${res.status}`);
         }
-      } else {
-        errors.push(`Worker HTTP ${res.status}`);
+      } catch (e) {
+        errors.push(`Worker: ${e.name === 'AbortError' ? 'Timeout' : e.message}`);
+        console.warn("Fallo de conexión con el Worker de Cloudflare:", e);
       }
-    } catch (e) {
-      errors.push(`Worker: ${e.name === 'AbortError' ? 'Timeout' : e.message}`);
-      console.warn("Fallo de conexión con el Worker de Cloudflare:", e);
     }
-  }
 
-  if (!finalAnswer && OPENROUTER_API_KEY) {
-    try {
-      const messagesForOR = [
-        { role: "system", content: MANOLITO_SYSTEM_CONTEXT },
-        ...chatHistory.map(m => ({
-          role: m.role,
-          content: m.content
-        }))
-      ];
+    if (!finalAnswer && OPENROUTER_API_KEY) {
+      try {
+        const messagesForOR = [
+          { role: "system", content: MANOLITO_SYSTEM_CONTEXT },
+          ...chatHistory.map(m => ({
+            role: m.role,
+            content: m.content
+          }))
+        ];
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
-      
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://manolitoaire.com",
-          "X-Title": "Manolit∞ Aire"
-        },
-        signal: controller.signal,
-        body: JSON.stringify({ 
-          model: OPENROUTER_MODEL, 
-          messages: messagesForOR,
-          temperature: 0.7,
-          max_tokens: 1000
-        })
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (res.ok) {
-        const data = await res.json();
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-          finalAnswer = data.choices[0].message.content.trim();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://manolitoaire.com",
+            "X-Title": "Manolit∞ Aire"
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: OPENROUTER_MODEL,
+            messages: messagesForOR,
+            temperature: 0.7,
+            max_tokens: 1000
+          })
+        });
+
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.choices && data.choices[0] && data.choices[0].message) {
+            finalAnswer = data.choices[0].message.content.trim();
+          }
+        } else {
+          errors.push(`OpenRouter HTTP ${res.status}`);
         }
-      } else {
-        errors.push(`OpenRouter HTTP ${res.status}`);
+      } catch (e) {
+        errors.push(`OpenRouter: ${e.name === 'AbortError' ? 'Timeout' : e.message}`);
+        console.error("Fallo en OpenRouter:", e);
       }
-    } catch (e) {
-      errors.push(`OpenRouter: ${e.name === 'AbortError' ? 'Timeout' : e.message}`);
-      console.error("Fallo en OpenRouter:", e);
     }
-  }
 
-  if (!finalAnswer) {
-    console.error("Errores acumulados:", errors);
-    finalAnswer = `⚠️ Conexión inestable detectada. 
+    if (!finalAnswer) {
+      console.error("Errores acumulados:", errors);
+      finalAnswer = `⚠️ Conexión inestable detectada. 
 
 Sin embargo, puedo ayudarte: manolitoaire.com ofrece mapas 3D con cálculo de sombras solares en tiempo real, rutas peatonales bajo sombra, mapas de irradiación solar (NASA POWER) y calidad del aire (Copernicus CAMS).
 
 Reformula tu pregunta en un momento. Si el problema persiste, verifica tu conexión a internet.`;
-    chatHistory.pop();
+      chatHistory.pop();
+    }
+
+    if (finalAnswer) {
+      const normalizedQuestion = question.trim().toLowerCase();
+      QUESTION_CACHE.set(normalizedQuestion, finalAnswer);
+    }
+
+    return finalAnswer;
   }
 
-  if (finalAnswer) {
-    const normalizedQuestion = question.trim().toLowerCase();
-    QUESTION_CACHE.set(normalizedQuestion, finalAnswer);
+  function openChat() {
+    const overlay = document.getElementById('chatOverlay');
+    if (overlay) {
+      overlay.classList.add('open');
+      setTimeout(() => {
+        const input = document.getElementById('chatInputField');
+        if (input) input.focus();
+      }, 300);
+    }
   }
 
-  return finalAnswer;
-}
-
-function openChat() {
-  const overlay = document.getElementById('chatOverlay');
-  if (overlay) {
-    overlay.classList.add('open');
-    setTimeout(() => {
-      const input = document.getElementById('chatInputField');
-      if (input) input.focus();
-    }, 300);
+  function closeChat() {
+    const overlay = document.getElementById('chatOverlay');
+    if (overlay) overlay.classList.remove('open');
   }
-}
 
-function closeChat() {
-  const overlay = document.getElementById('chatOverlay');
-  if (overlay) overlay.classList.remove('open');
-}
+  function addBubble(text, who) {
+    const body = document.getElementById('chatBody');
+    if (!body) return;
 
-function addBubble(text, who) {
-  const body = document.getElementById('chatBody');
-  if (!body) return;
-  
-  const div = document.createElement('div');
-  div.className = 'chat-msg ' + (who === 'user' ? 'user' : 'mano');
-  
-  if (who === 'mano') {
-    div.innerHTML = parseMarkdownToHTML(text);
-  } else {
-    div.textContent = text;
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + (who === 'user' ? 'user' : 'mano');
+
+    if (who === 'mano') {
+      div.innerHTML = parseMarkdownToHTML(text);
+    } else {
+      div.textContent = text;
+    }
+
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
   }
-  
-  body.appendChild(div);
-  body.scrollTop = body.scrollHeight;
-}
 
-function setChatStatus(text) {
-  const el = document.getElementById('chatStatus');
-  if (el) {
-    el.textContent = text;
-    el.style.opacity = text ? '1' : '0';
+  function setChatStatus(text) {
+    const el = document.getElementById('chatStatus');
+    if (el) {
+      el.textContent = text;
+      el.style.opacity = text ? '1' : '0';
+    }
   }
-}
 
-function toggleInputState(disabled) {
-  const input = document.getElementById('chatInputField');
-  const sendBtn = document.getElementById('chatSendBtn');
-  if (input) input.disabled = disabled;
-  if (sendBtn) sendBtn.disabled = disabled;
-}
-
-const QUICK_QUESTIONS = {
-  es: [
-    "¿Cómo funcionan las sombras 3D?",
-    "¿Qué es la irradiación solar?",
-    "¿De dónde viene la calidad del aire?",
-    "¿Puedo trazar rutas bajo sombra?"
-  ],
-  en: [
-    "How do 3D shadows work?",
-    "What is solar irradiation?",
-    "Where does air quality data come from?",
-    "Can I route under shade?"
-  ]
-};
-
-async function askQuick(key) {
-  const btn = document.querySelector(`[data-quick="${key}"]`);
-  const questionText = btn ? btn.textContent : key;
-  if (!questionText) return;
-
-  await sendQuestion(questionText);
-}
-
-async function askCustom() {
-  const input = document.getElementById('chatInputField');
-  if (!input) return;
-  const question = input.value.trim();
-  if (!question) return;
-  
-  input.value = '';
-  await sendQuestion(question);
-  if (input) input.focus();
-}
-
-async function sendQuestion(question) {
-  toggleInputState(true);
-  addBubble(question, 'user');
-  setChatStatus('Manolit∞ analizando contexto...');
-  
-  try {
-    const answer = await askManolito(question);
-    addBubble(answer, 'mano');
-  } catch (e) {
-    addBubble("Error inesperado. Reinténtalo en un momento.", 'mano');
-    console.error("Error crítico:", e);
-  } finally {
-    setChatStatus('');
-    toggleInputState(false);
+  function toggleInputState(disabled) {
+    const input = document.getElementById('chatInputField');
+    const sendBtn = document.getElementById('chatSendBtn');
+    if (input) input.disabled = disabled;
+    if (sendBtn) sendBtn.disabled = disabled;
   }
-}
 
-document.addEventListener('DOMContentLoaded', () => {
-  const input = document.getElementById('chatInputField');
-  if (input) {
-    input.addEventListener('keydown', (e) => { 
-      if (e.key === 'Enter' && !input.disabled) {
-        e.preventDefault();
-        askCustom();
-      } 
-    });
-  }
-  
-  const chatTrigger = document.querySelector('[data-chat-trigger]');
-  if (chatTrigger) {
-    chatTrigger.addEventListener('click', () => {
-      setTimeout(openChat, 100);
-    });
-  }
-});
+  const QUICK_QUESTIONS = {
+    es: [
+      "¿Cómo funcionan las sombras 3D?",
+      "¿Qué es la irradiación solar?",
+      "¿De dónde viene la calidad del aire?",
+      "¿Puedo trazar rutas bajo sombra?"
+    ],
+    en: [
+      "How do 3D shadows work?",
+      "What is solar irradiation?",
+      "Where does air quality data come from?",
+      "Can I route under shade?"
+    ]
+  };
 
-function initWelcomeMessage() {
-  const lang = getRobustLang();
-  const welcome = lang === 'en' 
-    ? "Hola! Soy Manolit∞, asistente de manolitoaire.com. Pregúntame sobre sombras 3D, irradiación solar, calidad del aire, rutas bajo sombra... o cualquier otro tema. ¿En qué puedo ayudarte?"
-    : "¡Hola! Soy Manolit∞, asistente de manolitoaire.com. Pregúntame sobre sombras 3D, irradiación solar, calidad del aire, rutas bajo sombra... o sobre cualquier otro tema. ¿En qué puedo ayudarte?";
-  
-  const body = document.getElementById('chatBody');
-  if (body && body.children.length === 0) {
-    addBubble(welcome, 'mano');
-  }
-}
+  async function askQuick(key) {
+    const btn = document.querySelector(`[data-quick="${key}"]`);
+    const questionText = btn ? btn.textContent : key;
+    if (!questionText) return;
 
-setTimeout(initWelcomeMessage, 500);
+    await sendQuestion(questionText);
+  }
+
+  async function askCustom() {
+    const input = document.getElementById('chatInputField');
+    if (!input) return;
+    const question = input.value.trim();
+    if (!question) return;
+
+    input.value = '';
+    await sendQuestion(question);
+    if (input) input.focus();
+  }
+
+  async function sendQuestion(question) {
+    toggleInputState(true);
+    addBubble(question, 'user');
+    setChatStatus('Manolit∞ analizando contexto...');
+
+    try {
+      const answer = await askManolito(question);
+      addBubble(answer, 'mano');
+    } catch (e) {
+      addBubble("Error inesperado. Reinténtalo en un momento.", 'mano');
+      console.error("Error crítico:", e);
+    } finally {
+      setChatStatus('');
+      toggleInputState(false);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('chatInputField');
+    if (input) {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !input.disabled) {
+          e.preventDefault();
+          askCustom();
+        }
+      });
+    }
+
+    const chatTrigger = document.querySelector('[data-chat-trigger]');
+    if (chatTrigger) {
+      chatTrigger.addEventListener('click', () => {
+        setTimeout(openChat, 100);
+      });
+    }
+  });
+
+  function initWelcomeMessage() {
+    const lang = getRobustLang();
+    const welcome = lang === 'en'
+      ? "Hola! Soy Manolit∞, asistente de manolitoaire.com. Pregúntame sobre sombras 3D, irradiación solar, calidad del aire, rutas bajo sombra... o cualquier otro tema. ¿En qué puedo ayudarte?"
+      : "¡Hola! Soy Manolit∞, asistente de manolitoaire.com. Pregúntame sobre sombras 3D, irradiación solar, calidad del aire, rutas bajo sombra... o sobre cualquier otro tema. ¿En qué puedo ayudarte?";
+
+    const body = document.getElementById('chatBody');
+    if (body && body.children.length === 0) {
+      addBubble(welcome, 'mano');
+    }
+  }
+
+  setTimeout(initWelcomeMessage, 500);
+
+  // Si tu HTML llama a estas funciones con onclick="askCustom()", etc.,
+  // necesitan existir en window porque ahora viven dentro de una IIFE.
+  window.openChat = openChat;
+  window.closeChat = closeChat;
+  window.askQuick = askQuick;
+  window.askCustom = askCustom;
+})();

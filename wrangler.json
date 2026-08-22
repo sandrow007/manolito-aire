@@ -1,19 +1,21 @@
-﻿{
-  "$schema": "node_modules/wrangler/config-schema.json",
+{
   "name": "manolito-aire",
-  "main": "worker.js",
+  "pages_build_output_dir": ".",
   "compatibility_date": "2026-08-03",
-  "observability": {
-    "enabled": true
-  },
-  "assets": {
-    "directory": ".",
-    "binding": "ASSETS"
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "ai": {
     "binding": "AI"
+  },
+  "assets": {
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "AIR_QUALITY_CACHE",
+      "id": "6212d41963034360bcda0f97ff459b9c"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGIN": "*"
   }
 }

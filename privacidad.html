@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manolit∞ Aire — Privacidad</title>
+<title>Política de Privacidad y Protección de Datos | Manolit∞ Aire</title>
+<meta name="description" content="Consulta la política de privacidad de Manolit∞ Aire. Tu mapa interactivo 3D 100% privado: sin registros, sin cookies de rastreo y con almacenamiento local seguro.">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -18,71 +19,60 @@
 </div>
 
 <div class="content">
-  <h1>Privacidad</h1>
+  <h1>Política de Privacidad y Seguridad de Datos</h1>
   <p class="lead">
-    Resumen fundamental: no hay registro, no hay cuentas, no hay perfiles de usuario.
-    Los datos de configuración se guardan en tu propio navegador, no en un servidor nuestro.
+    Resumen fundamental: tu privacidad es lo primero. No hay registro de usuarios, no hay cuentas ni se crean perfiles. 
+    Todos tus datos de configuración se guardan de forma local en tu propio navegador, nunca en un servidor externo.
   </p>
 
-  <h2>1. Qué NO recogemos</h2>
+  <h2>1. Qué NO recogemos (Cero Datos Personales)</h2>
   <p>
-    No pedimos email, ni nombre, ni contraseña. No hay sistema de cuentas. No hay perfiles
-    de usuario ni identificadores publicitarios.
+    Esta plataforma no solicita correos electrónicos, nombres, contraseñas ni números de teléfono. No existe un sistema de cuentas de usuario 
+    ni se utilizan identificadores publicitarios para rastrear tu actividad en internet. Navegas de forma 100% anónima.
   </p>
 
-  <h2>2. Qué se guarda en tu navegador (no en la nube)</h2>
+  <h2>2. Almacenamiento Local en tu Navegador (Local Storage)</h2>
   <p>
-    Tu idioma elegido, el modo claro/oscuro, la paleta de color y el modo de lectura
-    (ciudadano, científico, abuela/abuelo, peque) se guardan con <code>localStorage</code>,
-    una memoria local de tu propio navegador. Nosotros no vemos ni recibimos ese dato:
-    se queda en tu dispositivo, y desaparece si borras los datos de navegación.
+    Tus preferencias personalizadas como el idioma elegido, el modo claro/oscuro de la interfaz, la paleta de color del mapa 3D y el modo de lectura adaptado 
+    (ya sea ciudadano, científico, abuela/abuelo o peque) se almacenan exclusivamente mediante la tecnología <code>localStorage</code>, 
+    una memoria local dentro de tu propio navegador web. Nosotros no recibimos, vemos ni almacenamos esta información: se queda en tu dispositivo móvil u ordenador, 
+    y se eliminará por completo si decides borrar los datos de navegación de tu historial.
   </p>
 
-  <h2>3. El chat de Manolit∞ (Interacciones con IA)</h2>
+  <h2>3. El Asistente de Manolit∞ (Privacidad en Consultas con IA)</h2>
   <p>
-    Cuando escribes una pregunta en el chat, ese texto <b>se envía a un servicio externo de
-    inteligencia artificial</b> para generar la respuesta. Usamos dos posibles proveedores,
-    en este orden de prioridad:
+    Cuando redactas una pregunta en nuestro chat, ese texto <b>se envía a un servicio externo de inteligencia artificial</b> con la única finalidad de procesar y generar la respuesta climática. Para garantizar el servicio, utilizamos dos proveedores de confianza en este orden de prioridad:
   </p>
   <p>
-    1) <b>Cloudflare Workers AI</b> — un servicio operado por Cloudflare bajo nuestra propia
-    cuenta, que procesa el texto en sus servidores para generar la respuesta.<br>
-    2) <b>Pollinations</b> — un servicio de IA gratuito de terceros, usado como alternativa
-    si el anterior no está disponible.
+    1) <b>Cloudflare Workers AI</b> — un entorno seguro operado directamente por Cloudflare bajo nuestra propia cuenta técnica, que procesa el texto en sus servidores globales para devolverte la respuesta de forma inmediata.<br>
+    2) <b>Pollinations</b> — un servicio de IA alternativo y gratuito de terceros, utilizado exclusivamente como pasarela de respaldo si el servidor principal no está disponible.
   </p>
   <p>
-    En ambos casos, el texto que escribes sale de esta web y pasa por servidores de ese
-    proveedor para poder responderte. No incluyas datos personales sensibles en tus preguntas
-    al chat (nombre completo, dirección exacta, datos médicos concretos, etc.). No usamos ese
-    texto para identificarte ni lo asociamos a ningún perfil, y no lo almacenamos nosotros más
-    allá de la propia conversación en curso.
+    En ambos casos, el texto de tu consulta sale temporalmente de esta web hacia los servidores de dichos proveedores. Por tu propia seguridad, te recomendamos encarecidamente <strong>no incluir datos personales sensibles</strong> en el chat (como tu nombre completo, dirección exacta del domicilio, contraseñas o datos médicos concretos). Nosotros no usamos ese texto para identificarte, no lo asociamos a ningún perfil de usuario y no almacenamos el historial de tus conversaciones en ninguna base de datos externa más allá de la sesión actual del chat.
   </p>
 
-  <h2>4. Datos de ubicación, hora local y posición solar</h2>
+  <h2>4. Datos de Ubicación GPS, Hora Local y Posición Solar</h2>
   <p>
-    Para proporcionar el pronóstico ambiental de tu zona y operar el panel de instrumentos de la posición solar (arco de horizonte a cenit), la web utiliza tu ubicación (si otorgas permisos de geolocalización al navegador) y la hora de tu sistema informático.
+    Para proporcionar el pronóstico ambiental y de contaminación de tu zona exacta y operar el panel de instrumentos de la posición solar (arco de horizonte a cenit), la web requiere el uso de tu ubicación geográfica (siempre que otorgues permisos de geolocalización al navegador) y la hora configurada en tu sistema.
   </p>
   <p>
-    La petición de datos de calidad del aire se envía a Open-Meteo/Copernicus. Sin embargo, <b>los cálculos trigonométricos de la posición del sol se ejecutan íntegramente de forma local en tu dispositivo</b>. Manolit∞ Aire no rastrea, ni envía a servidores propios, ni almacena tus coordenadas, IPs o husos horarios. Si prefieres no usar el GPS, puedes introducir la ciudad manualmente y el sistema operará bajo los mismos principios.
-  </p>
-
-  <h2>5. Búsqueda de direcciones y rutas ("Ruta y sombras 3D")</h2>
-  <p>
-    Cuando escribes una dirección de origen o destino en esta sección, ese texto se envía a
-    <b>OpenStreetMap Nominatim</b> (para localizarla en el mapa) y, si buscas una ruta,
-    las coordenadas resultantes se envían a <b>OSRM</b> (para calcular el trayecto real por
-    calles). El mapa y los edificios en 3D se cargan desde <b>OpenFreeMap</b>.
-  </p>
-  <p>
-    Estos tres son servicios públicos y gratuitos de terceros, ajenos a Manolit∞ Aire.
-    No te identifican por nombre ni cuenta: solo reciben el texto de la dirección y, para
-    calcular la ruta, las coordenadas. Nosotros no guardamos esas búsquedas en ningún
-    servidor propio. Evita introducir datos personales que te identifiquen directamente en estas búsquedas.
+    La solicitud de datos de calidad del aire se transmite directamente a los modelos de Open-Meteo y Copernicus. Sin embargo, <b>todos los cálculos trigonométricos para proyectar la posición del sol y las sombras en 3D se ejecutan íntegramente de forma local en tu dispositivo</b>. Manolit∞ Aire jamás rastrea, guarda ni almacena en servidores propios tus coordenadas GPS, direcciones IP o husos horarios. Si prefieres no activar el GPS para proteger tu privacidad, puedes escribir tu ciudad manualmente y el simulador de calor urbano funcionará bajo los mismos principios de seguridad.
   </p>
 
-  <h2>6. Tus derechos</h2>
+  <h2>5. Búsqueda de Direcciones y Rutas con Sombra 3D</h2>
   <p>
-    Dado que nuestra arquitectura no almacena datos de carácter personal en bases de datos propias, no existe un perfil asociado a ti que podamos extraer, modificar o borrar. Si tienes requerimientos técnicos o legales, contacta en: SANDRO.A007@GMAIL.COM.
+    Cuando buscas una calle o trayecto en la sección "Ruta y sombras 3D", el texto introducido se envía a 
+    <b>OpenStreetMap Nominatim</b> (el motor para localizarla geográficamente en el mapa) y las coordenadas resultantes se procesan a través de 
+    <b>OSRM</b> (para calcular la ruta a pie o trayecto real por las calles). Las geometrías del mapa y los edificios en 3D se cargan de forma segura desde los servidores de 
+    <b>OpenFreeMap</b>.
+  </p>
+  <p>
+    Estos componentes son servicios públicos, abiertos e independientes de Manolit∞ Aire. No te identifican de forma personal ni comercial: solo reciben las coordenadas indispensables para trazar las líneas del camino y renderizar las fachadas 3D en tu pantalla. Nosotros no guardamos tus búsquedas ni tus rutas en ningún servidor propio. Evita introducir datos que te identifiquen directamente en los campos de búsqueda.
+  </p>
+
+  <h2>6. Derechos de los Usuarios y RGPD</h2>
+  <p>
+    Debido a que la arquitectura técnica de Manolit∞ Aire está diseñada para no almacenar ningún dato de carácter personal en bases de datos propias, no existe ningún perfil o registro asociado a tu persona que podamos extraer, modificar, transferir o borrar de nuestros sistemas. Para cualquier consulta técnica, legal o relacionada con el proyecto de software, puedes ponerte en contacto directamente con el desarrollador del sitio web a través del correo electrónico: <strong>SANDRO.A007@GMAIL.COM</strong>.
   </p>
 </div>
 

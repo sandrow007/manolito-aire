@@ -1,4 +1,4 @@
-﻿﻿const CORS_HEADERS = {
+﻿﻿﻿const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
@@ -95,6 +95,46 @@ export default {
         return new Response(data, {
           status: resp.status,
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: String(err.message || err) }), {
+          status: 502,
+          headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+        });
+      }
+    }
+
+    // --- Proxy anti-CORS para los árboles (Overpass / OpenStreetMap) ---
+    // Los espejos públicos de Overpass a veces quitan las cabeceras CORS y el
+    // navegador bloquea la petición. Como el Worker pregunta servidor a
+    // servidor, no hay CORS de por medio, y responde al navegador con
+    // Access-Control-Allow-Origin: * como el resto de rutas.
+    if (url.pathname === '/arboles') {
+      if (request.method !== 'POST') {
+        return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
+      }
+      try {
+        const rawBody = await request.text();
+        const espejos = [
+          'https://overpass-api.de/api/interpreter',
+          'https://overpass.private.coffee/api/interpreter',
+          'https://overpass.kumi.systems/api/interpreter',
+          'https://overpass.osm.ch/api/interpreter',
+        ];
+        let respuesta = null;
+        for (const espejo of espejos) {
+          try {
+            const r = await fetch(espejo, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+              body: rawBody,
+            });
+            if (r.ok) { respuesta = await r.text(); break; }
+          } catch (e) { /* espejo caído: probamos el siguiente */ }
+        }
+        if (!respuesta) throw new Error('Overpass no disponible en ningún espejo');
+        return new Response(respuesta, {
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
         });
       } catch (err) {
         return new Response(JSON.stringify({ error: String(err.message || err) }), {

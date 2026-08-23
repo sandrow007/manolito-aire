@@ -14,9 +14,14 @@
 (function () {
   const CONFIG = {
     overpassUrls: [
+      // 1º: nuestro propio proxy en Cloudflare (sin CORS posible). Si el
+      // Worker aún no se ha redesplegado con la ruta /arboles, devuelve 404
+      // y se cae automáticamente a los espejos públicos de abajo.
+      'https://manolito-aire.sandro-a007.workers.dev/arboles',
       'https://overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
       'https://overpass.osm.ch/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
     ],
     overpassTimeoutS: 15,
 

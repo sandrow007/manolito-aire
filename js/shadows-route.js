@@ -1115,6 +1115,15 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   async function aplicarCambioDeHora(contexto) {
     actualizarEtiquetaTiempo(contexto);
+    // Avisar al planetario: el sol y la luna siguen la hora elegida a mano.
+    try {
+      const centroPlan = puntoReferenciaSol || map.getCenter();
+      window.planetarioNotificarHora?.(
+        obtenerFechaDelSlider(),
+        centroPlan.lat,
+        centroPlan.lon ?? centroPlan.lng
+      );
+    } catch (e) { /* el planetario es opcional */ }
     await recalcularSombrasVisibles();
     actualizarIluminacionSolar();
     await actualizarTramosSombraRuta();

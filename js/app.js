@@ -151,7 +151,7 @@ const messages = {
 // Traducciones ES/EN/CA/EU/GL completas. Las de CA/EU/GL las hice yo sin ser
 // hablante nativo de esas lenguas — antes de darlo por definitivo, que las
 // revise alguien que las hable de verdad, sobre todo el euskera y el gallego.
-function getMessages(lang){
+function getHeroMessages(lang){
   return messages[lang] || messages.es;
 }
 
@@ -177,7 +177,7 @@ function renderHero(){
   const d = cityData[currentCity];
   const state = stateFromPM25(currentPM25);
   const lang = (typeof currentLang !== 'undefined') ? currentLang : 'es';
-  const [line1, line2] = getMessages(lang)[currentMode][state](d.name);
+  const [line1, line2] = getHeroMessages(lang)[currentMode][state](d.name);
   const humanLineEl = document.getElementById('humanLine');
   const subLineEl = document.getElementById('subLine');
   const techEl = document.getElementById('techReadout');

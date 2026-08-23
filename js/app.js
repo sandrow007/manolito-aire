@@ -215,18 +215,53 @@ function initHeroControls(){
       document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active'));
       card.classList.add('active');
       currentMode = card.dataset.mode;
-      document.body.setAttribute('data-mode', currentMode);
+      applyMode(currentMode);
       renderHero();
     });
   });
 }
 
+// Activa el modo en <body> como CLASE (el CSS de los modos usa body.mode-yayo etc.)
+// y como atributo data-mode por compatibilidad. Además avisa a los efectos (peque).
+function applyMode(mode){
+  document.body.classList.remove('mode-ciudadano','mode-cientifico','mode-yayo','mode-peque');
+  document.body.classList.add('mode-' + mode);
+  document.body.setAttribute('data-mode', mode);
+  if (typeof window.syncModeFx === 'function') window.syncModeFx(mode);
+}
+
+// ICA (AQI de EE. UU.) calculado a partir de PM2.5 con los tramos oficiales de la EPA.
+function aqiFromPM25(pm){
+  if (pm == null || isNaN(pm)) return null;
+  const bp = [
+    [0.0, 12.0, 0, 50], [12.1, 35.4, 51, 100], [35.5, 55.4, 101, 150],
+    [55.5, 150.4, 151, 200], [150.5, 250.4, 201, 300], [250.5, 500.4, 301, 500]
+  ];
+  for (const [cl, ch, il, ih] of bp){
+    if (pm <= ch) return Math.round(((ih - il) / (ch - cl)) * (pm - cl) + il);
+  }
+  return 500;
+}
+
 async function fetchCurrentCity(){
   const d = cityData[currentCity];
   try{
-    const r = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${d.lat}&longitude=${d.lon}&current=pm2_5`);
+    const r = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${d.lat}&longitude=${d.lon}&current=pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto`);
     const data = await r.json();
-    currentPM25 = data.current?.pm2_5 ?? currentPM25;
+    const c = data.current || {};
+    currentPM25 = c.pm2_5 ?? currentPM25;
+    // Alimenta el panel del modo científico con datos reales.
+    if (typeof window.actualizarPanelCientifico === 'function'){
+      const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      window.actualizarPanelCientifico({
+        pm25: (c.pm2_5 != null) ? c.pm2_5.toFixed(1) : '--',
+        pm10: (c.pm10 != null) ? c.pm10.toFixed(1) : '--',
+        no2:  (c.nitrogen_dioxide != null) ? c.nitrogen_dioxide.toFixed(1) : '--',
+        o3:   (c.ozone != null) ? c.ozone.toFixed(1) : '--',
+        ica:  aqiFromPM25(c.pm2_5) ?? '--',
+        hora
+      });
+    }
   } catch(e){ /* se queda con el último valor conocido */ }
   renderHero();
 }
@@ -767,7 +802,7 @@ const regionView = {
   baleares:     { center:[39.3, 2.6], zoom:8 },
   ceutamelilla: { center:[35.6, -4.1], zoom:7 },
 };
-const stateColor = { good:'#7FA98C', mid:'#E0A93E', bad:'#B5543A', unknown:'#9AA5AC' };
+const stateColor = { good:'#00B98A', mid:'#FFB800', bad:'#E63E5F', unknown:'#9AA5AC' };
 
 function initMap(){
   const mapEl = document.getElementById('map');
@@ -833,8 +868,37 @@ function initMap(){
     });
   }
 }
+// Refuerzo de letra (modo yayo): escala la raíz tipográfica en rem.
+// Pasos: 100% → 118% → 136% → 155%. Se guarda en localStorage.
+const FONT_STEPS = [100, 118, 136, 155];
+function applyFontBoost(){
+  let idx = parseInt(localStorage.getItem('manolito_fontboost') || '0', 10);
+  if (isNaN(idx) || idx < 0) idx = 0;
+  if (idx >= FONT_STEPS.length) idx = FONT_STEPS.length - 1;
+  document.documentElement.style.fontSize = FONT_STEPS[idx] + '%';
+  return idx;
+}
+function initFontBoostControls(){
+  const up = document.getElementById('fontUp');
+  const down = document.getElementById('fontDown');
+  if (!up || !down) return;
+  let idx = applyFontBoost();
+  up.addEventListener('click', () => {
+    idx = Math.min(idx + 1, FONT_STEPS.length - 1);
+    localStorage.setItem('manolito_fontboost', String(idx));
+    applyFontBoost();
+  });
+  down.addEventListener('click', () => {
+    idx = Math.max(idx - 1, 0);
+    localStorage.setItem('manolito_fontboost', String(idx));
+    applyFontBoost();
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  applyMode(currentMode);
   initHeroControls();
+  initFontBoostControls();
   fetchCurrentCity();
   // El mapa Leaflet pesa (tiles + 486 KB de datos) y era el elemento LCP
   // (~9,9 s en móvil). Se inicializa cuando el navegador está libre para

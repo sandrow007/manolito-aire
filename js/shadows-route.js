@@ -1037,17 +1037,17 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         position:absolute; left:50%; transform:translateX(-50%); bottom:12px;
         z-index:6; display:none; align-items:center; gap:8px;
         background:rgba(251,250,247,0.94); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-        border:1px solid var(--line, rgba(28,49,68,0.14)); border-radius:999px;
-        padding:5px 10px 5px 13px; font-size:10.5px; color:var(--sky-deep, #1C3144);
+        border:1px solid var(--line, rgba(14,59,71,0.14)); border-radius:999px;
+        padding:5px 10px 5px 13px; font-size:10.5px; color:var(--sky-deep, #0E3B47);
         box-shadow:0 6px 16px rgba(22,35,46,0.16); max-width:calc(100% - 24px);
         white-space:nowrap;
       }
       #rsShadowBadge.rs-visible{ display:inline-flex; }
       #rsShadowBadgeCerrar{
-        background:transparent; border:none; color:var(--sky-mid, #2B4A63); font-size:14px;
+        background:transparent; border:none; color:var(--sky-mid, #17788A); font-size:14px;
         cursor:pointer; line-height:1; padding:0 2px;
       }
-      #rsShadowBadgeCerrar:hover{ color:var(--ink, #16232E); }
+      #rsShadowBadgeCerrar:hover{ color:var(--ink, #0D1F26); }
       @media (max-width:480px){ #rsShadowBadge{ font-size:10.5px; bottom:8px; padding:5px 8px 5px 12px; } }
     `;
     document.head.appendChild(estilo);
@@ -1131,11 +1131,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       #rsTimeControls{
         position:absolute; left:12px; bottom:12px; z-index:5;
         width:max-content; min-width:190px; max-width:calc(100% - 24px);
-        background:rgba(251,250,247,0.94);
+        background:linear-gradient(160deg, rgba(251,250,247,0.96) 0%, rgba(255,107,26,0.16) 100%);
         backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-        border:1px solid var(--line, rgba(28,49,68,0.14)); border-radius:14px;
+        border:1px solid rgba(255,107,26,0.4); border-radius:14px;
         box-shadow:0 8px 22px rgba(22,35,46,0.16);
-        padding:10px 13px; font-family:inherit; color:var(--ink, #16232E);
+        padding:10px 13px; font-family:inherit; color:var(--ink, #0D1F26);
         transition:opacity .18s ease, transform .18s ease;
       }
       #rsTimeControls .rs-cuerpo{ overflow:visible; }
@@ -1145,11 +1145,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       #rsTimeControls.rs-cerrado .rs-cabecera{ margin-bottom:0; }
       #rsTimeControls:not(.rs-cerrado) .rs-cabecera{ margin-bottom:7px; }
       #rsTimeControls .rs-eyebrow{
-        font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--sky-mid, #2B4A63);
+        font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--sky-mid, #17788A);
         font-weight:700;
       }
       #rsPlegarBtn{
-        appearance:none; border:none; background:transparent; color:var(--sky-mid, #2B4A63);
+        appearance:none; border:none; background:transparent; color:var(--sky-mid, #17788A);
         cursor:pointer; padding:2px 4px; opacity:.75; line-height:0;
       }
       #rsPlegarBtn:hover{ opacity:1; }
@@ -1157,41 +1157,42 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       #rsTimeControls.rs-cerrado #rsPlegarBtn svg{ transform:rotate(180deg); }
       #rsTimeLabel{
         font-family:var(--font-mono, 'IBM Plex Mono', monospace);
-        font-size:12px; letter-spacing:.02em; color:var(--sky-deep, #1C3144);
+        font-size:12px; letter-spacing:.02em; color:#C24500; font-weight:700;
       }
       #rsGoldenBadge{
         font-size:8.5px; font-weight:700; letter-spacing:.04em; padding:2px 7px 2px 5px;
-        border-radius:999px; border:1px solid var(--line, rgba(28,49,68,0.14)); white-space:nowrap;
-        display:inline-flex; align-items:center; gap:4px; color:var(--sky-mid, #2B4A63);
+        border-radius:999px; border:1px solid rgba(255,107,26,0.5); white-space:nowrap;
+        background:rgba(255,107,26,0.14);
+        display:inline-flex; align-items:center; gap:4px; color:#C24500;
       }
       #rsGoldenBadge::before{ content:''; width:5px; height:5px; border-radius:50%; background:currentColor; }
       #rsTimeControls .rs-divisor{
-        height:1px; margin:8px 0; background:var(--line, rgba(28,49,68,0.14));
+        height:1px; margin:8px 0; background:var(--line, rgba(14,59,71,0.14));
       }
       #rsTimeSlider{
         -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; cursor:pointer; margin:4px 0 1px;
       }
       #rsTimeSlider::-webkit-slider-runnable-track{
-        height:3px; background:var(--line, rgba(28,49,68,0.18)); border-radius:2px;
+        height:3px; background:var(--line, rgba(14,59,71,0.18)); border-radius:2px;
       }
       #rsTimeSlider::-webkit-slider-thumb{
         -webkit-appearance:none; margin-top:-6px; width:14px; height:14px; border-radius:50%;
-        background:var(--accent, #F4A66B); border:2px solid var(--paper, #FBFAF7); box-shadow:0 1px 4px rgba(22,35,46,0.25);
+        background:var(--accent, #FF6B1A); border:2px solid var(--paper, #FBFAF7); box-shadow:0 1px 4px rgba(22,35,46,0.25);
       }
-      #rsTimeSlider::-moz-range-track{ height:3px; background:var(--line, rgba(28,49,68,0.18)); border-radius:2px; }
+      #rsTimeSlider::-moz-range-track{ height:3px; background:var(--line, rgba(14,59,71,0.18)); border-radius:2px; }
       #rsTimeSlider::-moz-range-thumb{
-        width:12px; height:12px; border-radius:50%; background:var(--accent, #F4A66B); border:2px solid var(--paper, #FBFAF7);
+        width:12px; height:12px; border-radius:50%; background:var(--accent, #FF6B1A); border:2px solid var(--paper, #FBFAF7);
       }
       #rsTimeControls .rs-botones{ display:flex; gap:5px; flex-wrap:wrap; margin-top:8px; }
       #rsTimeControls button{
         flex:1; min-width:0; font-size:9px; letter-spacing:.04em; text-transform:uppercase;
-        padding:6px 6px; border-radius:9px; border:1px solid var(--line, rgba(28,49,68,0.14));
-        background:var(--mist, #EDF1F0); color:var(--sky-deep, #1C3144);
+        padding:6px 6px; border-radius:9px; border:1px solid var(--line, rgba(14,59,71,0.14));
+        background:var(--mist, #EDF1F0); color:var(--sky-deep, #0E3B47);
         cursor:pointer; font-weight:700; transition:background .15s,border-color .15s;
       }
-      #rsTimeControls button:hover{ background:var(--accent-soft, rgba(244,166,107,0.16)); border-color:var(--accent, #F4A66B); }
-      #rsTimeControls button:active{ background:var(--accent-soft, rgba(244,166,107,0.3)); }
-      #rsTimeControls button.rs-btn-capturar{ flex-basis:100%; color:var(--sky-mid, #2B4A63); }
+      #rsTimeControls button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
+      #rsTimeControls button:active{ background:var(--accent-soft, rgba(255,107,26,0.3)); }
+      #rsTimeControls button.rs-btn-capturar{ flex-basis:100%; color:var(--sky-mid, #17788A); }
       @media (max-width:480px){ #rsTimeControls{ min-width:170px; } } }
     `;
     document.head.appendChild(estilo);
@@ -1214,27 +1215,27 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       #rsMapControls button{
         font-family:inherit; font-size:9.5px; letter-spacing:.04em; text-transform:uppercase;
         font-weight:700; padding:6px 11px; border-radius:999px;
-        border:1px solid var(--line, rgba(28,49,68,0.14));
-        background:rgba(251,250,247,0.92); color:var(--sky-deep, #1C3144);
+        border:1px solid var(--line, rgba(14,59,71,0.14));
+        background:rgba(251,250,247,0.92); color:var(--sky-deep, #0E3B47);
         backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
         cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12); transition:background .15s,border-color .15s,color .15s;
       }
-      #rsMapControls button:hover{ background:var(--accent-soft, rgba(244,166,107,0.16)); border-color:var(--accent, #F4A66B); }
-      #rsMapControls button.rs-activo{ background:var(--accent-soft, rgba(244,166,107,0.16)); border-color:var(--accent, #F4A66B); color:var(--sky-deep, #1C3144); }
+      #rsMapControls button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
+      #rsMapControls button.rs-activo{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); color:var(--sky-deep, #0E3B47); }
       @media (max-width:480px){ #rsMapControls button{ padding:5px 9px; font-size:8.5px; } }
 
       /* Joystick virtual para paseo 3D */
       #rsJoystick{
         position:absolute; right:24px; bottom:24px; width:96px; height:96px;
         border-radius:50%; background:rgba(251,250,247,0.5);
-        border:1px solid var(--line, rgba(28,49,68,0.2)); touch-action:none;
+        border:1px solid var(--line, rgba(14,59,71,0.2)); touch-action:none;
         backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
         z-index:6; display:none; pointer-events:auto;
       }
       #rsJoystickKnob{
         position:absolute; left:50%; top:50%; width:38px; height:38px;
         transform:translate(-50%,-50%); border-radius:50%;
-        background:var(--accent, #F4A66B); border:2px solid var(--paper, #FBFAF7);
+        background:var(--accent, #FF6B1A); border:2px solid var(--paper, #FBFAF7);
         box-shadow:0 3px 10px rgba(22,35,46,0.3); touch-action:none;
       }
       #rsJoystick.rs-visible{ display:block; }
@@ -1388,7 +1389,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
 
       const el = document.createElement('div');
-      el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#1C3144'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#1C3144')}33;`;
+      el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#0E3B47'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#0E3B47')}33;`;
       marcadorCaminando = new maplibregl.Marker({ element: el });
 
       watchId = navigator.geolocation.watchPosition(
@@ -1792,12 +1793,12 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       #rsMapStyleToggle button{
         font-family:inherit; font-size:9.5px; letter-spacing:.04em; text-transform:uppercase;
         font-weight:700; padding:6px 11px; border-radius:999px;
-        border:1px solid var(--line, rgba(28,49,68,0.14));
-        background:rgba(251,250,247,0.92); color:var(--sky-deep, #1C3144);
+        border:1px solid var(--line, rgba(14,59,71,0.14));
+        background:rgba(251,250,247,0.92); color:var(--sky-deep, #0E3B47);
         backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
         cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12); transition:background .15s,border-color .15s;
       }
-      #rsMapStyleToggle button:hover{ background:var(--accent-soft, rgba(244,166,107,0.16)); border-color:var(--accent, #F4A66B); }
+      #rsMapStyleToggle button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
       .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
         filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
       }
@@ -2182,7 +2183,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       .setPopup(new maplibregl.Popup().setHTML(`<b>${t('origin', 'Origen')}</b><br>${origen.nombre}`))
       .addTo(map);
 
-    marcadorDestino = new maplibregl.Marker({ element: pin(leerVar('--sky-deep') || '#1C3144') })
+    marcadorDestino = new maplibregl.Marker({ element: pin(leerVar('--sky-deep') || '#0E3B47') })
       .setLngLat([destino.lon, destino.lat])
       .setPopup(new maplibregl.Popup().setHTML(`<b>${t('destiny', 'Destino')}</b><br>${destino.nombre}`))
       .addTo(map);

@@ -7,7 +7,7 @@
 <meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad.">
 <meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas">
 <meta name="theme-color" content="#1b2029">
-<script type="text/javascript" nonce="41d28b1c97d5466ab554037c3a8" src="//local.adguard.org?ts=1787468133347&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Fmanolito-aire%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260823%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260823T081815Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Ddf37edfffdd95e0b182ef0061d539b67b32dd67577f590d0ade0c51c73ee7408%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="41d28b1c97d5466ab554037c3a8" src="//local.adguard.org?ts=1787468133347&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolito-aire.pages.dev/">
+<script type="text/javascript" nonce="41d28b1c97d5466ab554037c3a8" src="//local.adguard.org?ts=1787476977273&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Fmanolito-aire%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260823%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260823T094419Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Df7c75a5d744480627e87eba303cfa277a209212fd9c55d01162d67a2a066ea49%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="41d28b1c97d5466ab554037c3a8" src="//local.adguard.org?ts=1787476977273&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolito-aire.pages.dev/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manolit∞ Aire — Calidad del aire y sombra solar en tiempo real">
 <meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro.">
@@ -51,8 +51,8 @@
 
 <style>
   #manolitoSplash{
-    --splash-sky-deep:#1C3144; --splash-sky-mid:#2B4A63;
-    --splash-dawn:#F4A66B; --splash-dawn-rgb:244, 166, 107; --splash-paper:#FBFAF7;
+    --splash-sky-deep:#0E3B47; --splash-sky-mid:#17788A;
+    --splash-dawn:#FF6B1A; --splash-dawn-rgb:244, 166, 107; --splash-paper:#FBFAF7;
     position:fixed; inset:0; width:100vw; height:100vh; z-index:99999;
     overflow:hidden; background: radial-gradient(120% 140% at 50% 100%, var(--splash-sky-mid) 0%, var(--splash-sky-deep) 55%, #10202E 100%);
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -375,82 +375,6 @@
   </div>
 </div>
 
-<div class="hero">
-  <div class="city-picker" id="cityPickerContainer">
-    <button class="city-dropdown-btn" id="cityDropdownBtn">Sevilla</button>
-    <ul class="city-dropdown-list" id="cityDropdownList">
-      <li data-value="sevilla" class="selected">Sevilla</li>
-      <li data-value="madrid">Madrid</li>
-      <li data-value="barcelona">Barcelona</li>
-      <li data-value="valencia">Valencia</li>
-      <li data-value="laspalmas">Las Palmas de Gran Canaria</li>
-      <li data-value="palma">Palma de Mallorca</li>
-      <li data-value="ceuta">Ceuta</li>
-      <li data-value="melilla">Melilla</li>
-      <li data-value="pamplona">Pamplona</li>
-      <li data-value="santiago">Santiago de Compostela</li>
-      <li data-value="zaragoza">Zaragoza</li>
-      <li data-value="malaga">Málaga</li>
-      <li data-value="eivissa">Eivissa</li>
-      <li data-value="menorca">Menorca</li>
-      <li data-value="badajoz">Badajoz</li>
-    </ul>
-  </div>
-
-  <div class="orb-wrap">
-    <div class="orb-ring"></div>
-    <div class="orb"><div class="orb-face" id="orbFace">bien</div></div>
-    <div class="peque-character" id="pequeCharacter">
-      <div class="peque-cloud" id="pequeCloudSvg"></div>
-      <div class="peque-message" id="pequeMessage">El aire está contento!</div>
-    </div>
-  </div>
-
-  <div class="human-line" id="humanLine">Cargando el aire de tu ciudad…</div>
-  <div class="sub-line" id="subLine">Un momento.</div>
-  <div class="tech-readout" id="techReadout">—</div>
-
-  <div class="sci-panel" id="sciPanel">
-    <table>
-      <tr><td>PM2.5</td><td id="sciPM25">-- µg/m³</td></tr>
-      <tr><td>PM10</td><td id="sciPM10">-- µg/m³</td></tr>
-      <tr><td>NO₂</td><td id="sciNO2">-- µg/m³</td></tr>
-      <tr><td>O₃</td><td id="sciO3">-- µg/m³</td></tr>
-      <tr><td>ICA</td><td id="sciICA">--</td></tr>
-    </table>
-    <div class="sci-updated" id="sciUpdated">Actualizado: --</div>
-  </div>
-
-  <br>
-  <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
-</div>
-
-<div class="modes">
-  <div class="modes-label" data-i18n="modesLabel">¿Cómo quieres que te lo cuente?</div>
-  <div class="mode-grid" id="modeGrid">
-    <div class="mode-card active" data-mode="ciudadano">
-      <span class="mode-mark">01</span>
-      <div class="mode-title" data-i18n="mode_ciudadano_title">Ciudadano</div>
-      <div class="mode-sub" data-i18n="mode_ciudadano_sub">Claro y directo</div>
-    </div>
-    <div class="mode-card" data-mode="cientifico">
-      <span class="mode-mark">02</span>
-      <div class="mode-title" data-i18n="mode_cientifico_title">Científico</div>
-      <div class="mode-sub" data-i18n="mode_cientifico_sub">Con los datos</div>
-    </div>
-    <div class="mode-card" data-mode="yayo">
-      <span class="mode-mark">03</span>
-      <div class="mode-title" data-i18n="mode_yayo_title">Abuela / Abuelo</div>
-      <div class="mode-sub" data-i18n="mode_yayo_sub">Letra grande, sin prisa</div>
-    </div>
-    <div class="mode-card" data-mode="peque">
-      <span class="mode-mark">04</span>
-      <div class="mode-title" data-i18n="mode_peque_title">Peque (5 años)</div>
-      <div class="mode-sub" data-i18n="mode_peque_sub">Con dibujitos</div>
-    </div>
-  </div>
-</div>
-
 <div class="map-section">
   <div class="map-head">
     <div class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</div>
@@ -506,6 +430,87 @@
     </div>
   </div>
 </div>
+</div>
+
+<div class="hero">
+  <div class="city-picker" id="cityPickerContainer">
+    <button class="city-dropdown-btn" id="cityDropdownBtn">Sevilla</button>
+    <ul class="city-dropdown-list" id="cityDropdownList">
+      <li data-value="sevilla" class="selected">Sevilla</li>
+      <li data-value="madrid">Madrid</li>
+      <li data-value="barcelona">Barcelona</li>
+      <li data-value="valencia">Valencia</li>
+      <li data-value="laspalmas">Las Palmas de Gran Canaria</li>
+      <li data-value="palma">Palma de Mallorca</li>
+      <li data-value="ceuta">Ceuta</li>
+      <li data-value="melilla">Melilla</li>
+      <li data-value="pamplona">Pamplona</li>
+      <li data-value="santiago">Santiago de Compostela</li>
+      <li data-value="zaragoza">Zaragoza</li>
+      <li data-value="malaga">Málaga</li>
+      <li data-value="eivissa">Eivissa</li>
+      <li data-value="menorca">Menorca</li>
+      <li data-value="badajoz">Badajoz</li>
+    </ul>
+  </div>
+
+  <div class="orb-wrap">
+    <div class="orb-ring"></div>
+    <div class="orb"><div class="orb-face" id="orbFace">bien</div></div>
+    <div class="peque-character" id="pequeCharacter">
+      <div class="peque-cloud" id="pequeCloudSvg"></div>
+      <div class="peque-message" id="pequeMessage">El aire está contento!</div>
+    </div>
+  </div>
+
+  <div class="human-line" id="humanLine">Cargando el aire de tu ciudad…</div>
+  <div class="sub-line" id="subLine">Un momento.</div>
+  <div class="tech-readout" id="techReadout">—</div>
+
+  <div class="sci-panel" id="sciPanel">
+    <table>
+      <tr><td>PM2.5</td><td id="sciPM25">-- µg/m³</td></tr>
+      <tr><td>PM10</td><td id="sciPM10">-- µg/m³</td></tr>
+      <tr><td>NO₂</td><td id="sciNO2">-- µg/m³</td></tr>
+      <tr><td>O₃</td><td id="sciO3">-- µg/m³</td></tr>
+      <tr><td>ICA</td><td id="sciICA">--</td></tr>
+    </table>
+    <div class="sci-updated" id="sciUpdated">Actualizado: --</div>
+  </div>
+
+  <br>
+  <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
+
+  <div class="yayo-zoom-controls" role="group" aria-label="Tamaño de la letra">
+    <button type="button" class="yayo-zoom-btn" id="fontDown" aria-label="Letra más pequeña">A−</button>
+    <button type="button" class="yayo-zoom-btn" id="fontUp" aria-label="Letra más grande">A+</button>
+  </div>
+</div>
+
+<div class="modes">
+  <div class="modes-label" data-i18n="modesLabel">¿Cómo quieres que te lo cuente?</div>
+  <div class="mode-grid" id="modeGrid">
+    <div class="mode-card active" data-mode="ciudadano">
+      <span class="mode-mark">01</span>
+      <div class="mode-title" data-i18n="mode_ciudadano_title">Ciudadano</div>
+      <div class="mode-sub" data-i18n="mode_ciudadano_sub">Claro y directo</div>
+    </div>
+    <div class="mode-card" data-mode="cientifico">
+      <span class="mode-mark">02</span>
+      <div class="mode-title" data-i18n="mode_cientifico_title">Científico</div>
+      <div class="mode-sub" data-i18n="mode_cientifico_sub">Con los datos</div>
+    </div>
+    <div class="mode-card" data-mode="yayo">
+      <span class="mode-mark">03</span>
+      <div class="mode-title" data-i18n="mode_yayo_title">Abuela / Abuelo</div>
+      <div class="mode-sub" data-i18n="mode_yayo_sub">Letra grande, sin prisa</div>
+    </div>
+    <div class="mode-card" data-mode="peque">
+      <span class="mode-mark">04</span>
+      <div class="mode-title" data-i18n="mode_peque_title">Peque (5 años)</div>
+      <div class="mode-sub" data-i18n="mode_peque_sub">Con dibujitos</div>
+    </div>
+  </div>
 </div>
 
 <div class="map-section">
@@ -855,6 +860,27 @@
       setVal('sciO3',   o3 + ' µg/m³');
       setVal('sciICA',  ica);
       setVal('sciUpdated', 'Actualizado: ' + hora);
+    };
+
+    // Efecto mágico del modo peque: emojis que suben flotando por el hero.
+    // app.js llama a syncModeFx(mode) cada vez que cambia el modo.
+    window.syncModeFx = function(mode) {
+      const hero = document.querySelector('.hero');
+      if (!hero) return;
+      hero.querySelectorAll('.peque-sparkle').forEach(e => e.remove());
+      if (mode !== 'peque') return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const emojis = ['🎈', '⭐', '🫧', '🌈', '🦋', '☀️', '🍃'];
+      for (let i = 0; i < 10; i++) {
+        const s = document.createElement('span');
+        s.className = 'peque-sparkle';
+        s.textContent = emojis[i % emojis.length];
+        s.style.left = (4 + Math.random() * 92) + '%';
+        s.style.animationDuration = (5 + Math.random() * 5) + 's';
+        s.style.animationDelay = (Math.random() * 6) + 's';
+        s.style.fontSize = (1.1 + Math.random() * 1.2) + 'rem';
+        hero.appendChild(s);
+      }
     };
 
   })();

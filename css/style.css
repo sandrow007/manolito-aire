@@ -5,22 +5,25 @@
    ============================================================ */
 
 :root{
-  /* --- tema claro (por defecto) --- */
-  --sky-deep:#1C3144;
-  --sky-mid:#2B4A63;
-  --mist:#EDF1F0;
-  --paper:#FBFAF7;
-  --ink:#16232E;
-  --line: rgba(28,49,68,0.14);
+  /* --- tema claro (por defecto) — paleta propia "Aire de Sevilla":
+         petróleo de azulejo, mandarina eléctrica, jacarandá y menta viva.
+         Nada de melocotones genéricos: esta paleta es solo de Manolit∞ --- */
+  --sky-deep:#0E3B47;
+  --sky-mid:#17788A;
+  --mist:#E4F1EB;
+  --paper:#F6FAF7;
+  --ink:#0D1F26;
+  --line: rgba(14,59,71,0.14);
 
   /* --- acento (tema de color, cambiable) --- */
-  --accent: #F4A66B;      /* "amanecer" — por defecto */
-  --accent-soft: rgba(244,166,107,0.16);
+  --accent: #FF6B1A;      /* mandarina de Sevilla — por defecto */
+  --accent-soft: rgba(255,107,26,0.16);
+  --accent-2: #7B2FFF;    /* jacarandá */
 
   /* --- estados del aire (no cambian con el tema) --- */
-  --breath-good:#7FA98C;
-  --breath-mid:#E0A93E;
-  --breath-bad:#B5543A;
+  --breath-good:#00B98A;  /* menta viva */
+  --breath-mid:#FFB800;   /* sol de albero */
+  --breath-bad:#E63E5F;   /* flamenco */
 
   --font-display:'Fraunces', serif;
   --font-body:'Karla', sans-serif;
@@ -29,19 +32,22 @@
 
 /* --- modo oscuro --- */
 [data-theme="dark"]{
-  --sky-deep:#EDF1F0;
-  --sky-mid:#B7C4CC;
-  --mist:#233240;
-  --paper:#151F27;
-  --ink:#EDF1F0;
-  --line: rgba(237,241,240,0.14);
+  --sky-deep:#E8F4F0;
+  --sky-mid:#9FD8CE;
+  --mist:#14343E;
+  --paper:#081C23;
+  --ink:#E8F4F0;
+  --line: rgba(232,244,240,0.14);
+  --accent:#FF7A33;
+  --accent-soft: rgba(255,122,51,0.18);
+  --breath-good:#2BD9A4;
 }
 
-/* --- variantes de acento (paletas alternativas) --- */
-[data-palette="amanecer"]{ --accent:#F4A66B; --accent-soft: rgba(244,166,107,0.16); }
-[data-palette="salvia"]{   --accent:#7FA98C; --accent-soft: rgba(127,169,140,0.16); }
-[data-palette="lavanda"]{  --accent:#8C82B0; --accent-soft: rgba(140,130,176,0.16); }
-[data-palette="coral"]{    --accent:#D6684F; --accent-soft: rgba(214,104,79,0.16); }
+/* --- variantes de acento (paletas alternativas, todas con carácter) --- */
+[data-palette="amanecer"]{ --accent:#FF6B1A; --accent-soft: rgba(255,107,26,0.16); }
+[data-palette="salvia"]{   --accent:#00B98A; --accent-soft: rgba(0,185,138,0.16); }
+[data-palette="lavanda"]{  --accent:#7B2FFF; --accent-soft: rgba(123,47,255,0.14); }
+[data-palette="coral"]{    --accent:#E63E5F; --accent-soft: rgba(230,62,95,0.14); }
 
 *{ box-sizing:border-box; }
 html,body{ margin:0; padding:0; }
@@ -82,11 +88,11 @@ a{ color: var(--sky-mid); }
 .wordmark .wordmark-name{
   font-family: var(--font-display); font-size: inherit; font-weight: inherit;
   padding: 0; border-radius: 0; letter-spacing: inherit;
-  background: linear-gradient(110deg, var(--sky-deep) 0%, var(--sky-mid) 28%, var(--accent) 50%, var(--breath-good) 72%, var(--sky-deep) 100%);
+  background: linear-gradient(110deg, var(--sky-deep) 0%, var(--sky-mid) 22%, var(--accent) 45%, var(--accent-2) 68%, var(--breath-good) 86%, var(--sky-deep) 100%);
   background-size: 300% 100%;
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
-  filter: drop-shadow(0 0 9px rgba(244,166,107,0.28));
+  filter: drop-shadow(0 0 9px rgba(255,107,26,0.32));
   animation: wordmarkFlow 6s ease-in-out infinite;
 }
 @keyframes wordmarkFlow{
@@ -173,14 +179,26 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 /* ---------- mapa ---------- */
 .map-section{ max-width: 1000px; margin: 46px auto 0; padding: 0 24px; }
 .map-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px; }
-.map-title{ font-family:var(--font-display); font-weight:600; font-size:1.15rem; color:var(--sky-deep); }
+/* Títulos de sección con el mismo degradado fluido que la marca:
+   la página respira color, no un funeral blanco */
+.map-title{
+  font-family:var(--font-display); font-weight:600; font-size:1.15rem;
+  background: linear-gradient(110deg, var(--sky-deep) 0%, var(--sky-mid) 30%, var(--accent) 55%, var(--breath-good) 80%, var(--sky-deep) 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: wordmarkFlow 8s ease-in-out infinite;
+}
 .map-wrap{ position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); }
 
-/* El mapa de sombras 3D abre la página: marco con más presencia para que
-   no se mezcle con el fondo en ningún dispositivo */
+/* El mapa de sombras 3D abre la página: marco de degradado cálido
+   (naranja → azul → verde) para que tenga vida y no se mezcle con el fondo */
 .map-section:has(#shadowRouteMap) .map-wrap{
-  border-color: rgba(28,49,68,0.22);
-  box-shadow: 0 18px 44px rgba(22,35,46,0.14), 0 2px 8px rgba(22,35,46,0.08);
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--paper), var(--paper)) padding-box,
+    linear-gradient(120deg, var(--accent) 0%, var(--sky-mid) 50%, var(--breath-good) 100%) border-box;
+  box-shadow: 0 18px 44px rgba(22,35,46,0.16), 0 0 0 5px rgba(255,107,26,0.07);
 }
 #map{ height: 460px; width:100%; background:var(--mist); }
 
@@ -381,7 +399,16 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .qday-seg{ height:100%; transition:width 0.6s ease; }
 .qday-dominant{ width:78px; text-align:right; font-family:var(--font-display); font-weight:600; font-size:0.78rem; color:var(--sky-deep); flex-shrink:0; }
 
-.yayo-zoom-controls { display: none; }
+.yayo-zoom-controls { display: none; gap: 16px; justify-content: center; align-items: center; margin-top: 18px; }
+.yayo-zoom-btn {
+  width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--sky-deep, #0E3B47);
+  background: var(--paper, #FBFAF7); color: var(--sky-deep, #0E3B47);
+  font-family: var(--font-display, 'Fraunces', serif); font-size: 1.6rem; font-weight: 700;
+  cursor: pointer; box-shadow: 0 4px 14px rgba(14,59,71,0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.yayo-zoom-btn:hover { background: var(--accent-soft, rgba(255,107,26,0.16)); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14,59,71,0.22); }
+.yayo-zoom-btn:active { transform: translateY(1px); }
 
 /* ============================================================
    MEJORAS PARA LOS MODOS (CIENTÍFICO, YAYO, PEQUE)
@@ -449,6 +476,31 @@ body.mode-peque .im-lost-btn {
 body.mode-peque .im-lost-btn:hover { background: #FFC033; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(255, 179, 71, 0.3); }
 body.mode-peque .im-lost-btn:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(255, 179, 71, 0.2); }
 
+/* ---- Efectos mágicos del modo peque ---- */
+body.mode-peque .hero { position: relative; overflow: hidden; }
+.peque-sparkle {
+  position: absolute; bottom: -48px; pointer-events: none; z-index: 1;
+  opacity: 0; will-change: transform, opacity;
+  animation: pequeRise linear infinite;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
+}
+@keyframes pequeRise {
+  0%   { transform: translateY(0) rotate(-8deg) scale(0.7); opacity: 0; }
+  12%  { opacity: 0.95; }
+  50%  { transform: translateY(-44vh) rotate(10deg) scale(1.08); }
+  100% { transform: translateY(-88vh) rotate(-6deg) scale(0.85); opacity: 0; }
+}
+/* La nube respira y baila con squash & stretch */
+body.mode-peque .peque-cloud { animation: floatY 2.2s ease-in-out infinite, pequeSquash 1.6s ease-in-out infinite; }
+@keyframes pequeSquash { 0%, 100% { scale: 1 1; } 30% { scale: 1.07 0.93; } 60% { scale: 0.95 1.07; } }
+/* El mensaje aparece con un rebote alegre */
+body.mode-peque .peque-message { animation: pequePop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes pequePop { from { transform: scale(0.55); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .peque-sparkle { display: none; }
+  body.mode-peque .peque-cloud { animation: floatY 3s ease-in-out infinite; }
+}
+
 .orb-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
 /* ============================================================
@@ -495,10 +547,21 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
   border-radius:10px; background:var(--paper); color:var(--ink);
   font-family:var(--font-body); font-size:0.9rem; outline:none;
 }
-.rs-form input[type="text"]:focus{ border-color:var(--accent); }
+.rs-form input[type="text"]:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,107,26,0.18); }
 .rs-form .im-lost-btn{ margin:0; }
-.rs-layer-toggles{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px; font-size:0.8rem; color:var(--sky-mid); }
+/* El botón protagonista del mapa luce el naranja cálido de la casa */
+#rsBuscarBtn{
+  border:none;
+  background: linear-gradient(120deg, var(--accent) 0%, #E04E00 100%);
+  color: var(--ink); font-weight:700;
+  box-shadow: 0 6px 18px rgba(255,107,26,0.38);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+#rsBuscarBtn:hover{ background: linear-gradient(120deg, var(--accent) 0%, #E04E00 100%); color:var(--ink); transform:translateY(-1px); filter:brightness(1.06); box-shadow:0 10px 24px rgba(255,107,26,0.45); }
+#rsBuscarBtn:active{ transform:translateY(1px); }
+.rs-layer-toggles{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px; font-size:0.8rem; color:var(--sky-deep); font-weight:600; }
 .rs-layer-toggles label{ display:flex; align-items:center; gap:6px; cursor:pointer; }
+.rs-layer-toggles input[type="checkbox"]{ accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
 .rs-sol-widget{
   position:absolute; bottom:14px; right:14px; z-index:400;
   background:var(--paper); border:1px solid var(--line); border-radius:14px;

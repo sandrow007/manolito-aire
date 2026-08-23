@@ -1800,13 +1800,16 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       }
       #rsMapStyleToggle button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
       .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
-            [data-theme="dark"] #shadowRouteMap .maplibregl-canvas{
         filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
       }
+      /* Cuando TODA la web está en modo oscuro, el mapa se oscurece solo:
+         si no, queda como un foco blanco en medio de la página */
+      [data-theme="dark"] #shadowRouteMap .maplibregl-canvas{
+        filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
+      }
+      /* Web oscura + botón pulsado a mano = el usuario pide el mapa claro */
       [data-theme="dark"] .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
         filter: none;
-      }
-        filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
       }
     `;
     document.head.appendChild(estilo);
@@ -1817,11 +1820,21 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     btn.type = 'button';
     btn.id = 'rsBtnMapaOscuro';
     btn.textContent = t('darkMapOn', 'Mapa oscuro');
+    // La etiqueta del botón refleja el estado EFECTIVO del mapa: con la web
+    // en modo oscuro el mapa ya nace oscuro y el botón pasa a "Mapa claro".
+    const sincronizarEtiquetaMapa = () => {
+      const webOscura = document.documentElement.getAttribute('data-theme') === 'dark';
+      const efectivoOscuro = webOscura ? !mapaOscuro : mapaOscuro;
+      btn.textContent = efectivoOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
+    };
+    new MutationObserver(sincronizarEtiquetaMapa)
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     btn.addEventListener('click', () => {
       mapaOscuro = !mapaOscuro;
       contenedorMapa.classList.toggle('rs-mapa-oscuro-activo', mapaOscuro);
-      btn.textContent = mapaOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
+      sincronizarEtiquetaMapa();
     });
+    sincronizarEtiquetaMapa();
     wrap.appendChild(btn);
     contenedorMapa.appendChild(wrap);
   }
@@ -2466,7 +2479,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     if (btnPaseo) btnPaseo.textContent = paseoActivo ? t('virtualWalkStop', 'Salir del paseo') : t('virtualWalkStart', 'Paseo virtual 3D');
 
     const btnDark = document.getElementById('rsBtnMapaOscuro');
-    if (btnDark) btnDark.textContent = mapaOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
+    if (btnDark){
+      const webOscura = document.documentElement.getAttribute('data-theme') === 'dark';
+      const efectivoOscuro = webOscura ? !mapaOscuro : mapaOscuro;
+      btnDark.textContent = efectivoOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
+    }
     const eyebrow = document.getElementById('rsEyebrowSol');
     if (eyebrow) eyebrow.textContent = t('sunPosition', 'Posición solar');
     const btnCapturar = document.getElementById('rsBtnCapturar');

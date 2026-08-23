@@ -14,6 +14,8 @@
   --paper:#F6FAF7;
   --ink:#0D1F26;
   --line: rgba(14,59,71,0.14);
+  --surface: rgba(255,255,255,0.85);
+  --border: rgba(14,59,71,0.14);
 
   /* --- acento (tema de color, cambiable) --- */
   --accent: #FF6B1A;      /* mandarina de Sevilla — por defecto */
@@ -41,6 +43,8 @@
   --accent:#FF7A33;
   --accent-soft: rgba(255,122,51,0.18);
   --breath-good:#2BD9A4;
+  --surface: rgba(16,38,48,0.88);
+  --border: rgba(232,244,240,0.16);
 }
 
 /* --- variantes de acento (paletas alternativas, todas con carácter) --- */
@@ -597,7 +601,115 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
    el filtro CSS que oscurece de verdad el lienzo lo añade
    shadows-route.js sobre #shadowRouteMap .maplibregl-canvas; esto es
    solo el color de fondo mientras cargan los tiles. */
-.rs-mapa-oscuro-activo{ background:#336096; }
+.rs-mapa-oscuro-activo{ background:#0b0f14; }
+
+/* El mapa nacional (Leaflet) también se oscurece con la web:
+   solo las teselas, los puntos de colores quedan intactos */
 [data-theme="dark"] #map .leaflet-tile-pane{
   filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
 }
+/* ============================================================
+   MODO NOCHE — widgets flotantes del mapa
+   Cuando la web está en modo oscuro (o el usuario pulsa
+   "Mapa oscuro" a mano), TODOS los paneles sobre el mapa pasan
+   a cristal oscuro con acento mandarina: nada de focos blancos.
+   ============================================================ */
+[data-theme="dark"] #rsTimeControls,
+.rs-mapa-oscuro-activo #rsTimeControls,
+[data-theme="dark"] #irrPanel,
+.rs-mapa-oscuro-activo #irrPanel,
+[data-theme="dark"] #rsShadowBadge,
+.rs-mapa-oscuro-activo #rsShadowBadge{
+  background: linear-gradient(160deg, rgba(10,30,38,0.95) 0%, rgba(64,32,10,0.42) 100%);
+  border-color: rgba(255,122,51,0.38);
+  color: #E8F4F0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+[data-theme="dark"] #rsTimeLabel,
+.rs-mapa-oscuro-activo #rsTimeLabel{ color:#FF9A5C; }
+[data-theme="dark"] #rsTimeControls .rs-eyebrow,
+.rs-mapa-oscuro-activo #rsTimeControls .rs-eyebrow{ color:#9FD8CE; }
+[data-theme="dark"] #rsGoldenBadge,
+.rs-mapa-oscuro-activo #rsGoldenBadge{
+  background:rgba(255,122,51,0.16); border-color:rgba(255,122,51,0.45); color:#FF9A5C;
+}
+[data-theme="dark"] #rsTimeControls .rs-divisor,
+.rs-mapa-oscuro-activo #rsTimeControls .rs-divisor{ background:rgba(232,244,240,0.16); }
+[data-theme="dark"] #rsTimeControls button,
+.rs-mapa-oscuro-activo #rsTimeControls button{
+  background:rgba(232,244,240,0.09); color:#E8F4F0; border-color:rgba(232,244,240,0.2);
+}
+[data-theme="dark"] #rsTimeControls button:hover,
+.rs-mapa-oscuro-activo #rsTimeControls button:hover{
+  background:rgba(255,122,51,0.22); border-color:#FF7A33;
+}
+[data-theme="dark"] #rsTimeControls button.rs-btn-capturar,
+.rs-mapa-oscuro-activo #rsTimeControls button.rs-btn-capturar{ color:#9FD8CE; }
+[data-theme="dark"] #rsPlegarBtn,
+.rs-mapa-oscuro-activo #rsPlegarBtn{ color:#9FD8CE; }
+[data-theme="dark"] #rsTimeSlider::-webkit-slider-runnable-track,
+.rs-mapa-oscuro-activo #rsTimeSlider::-webkit-slider-runnable-track{ background:rgba(232,244,240,0.25); }
+[data-theme="dark"] #rsTimeSlider::-moz-range-track,
+.rs-mapa-oscuro-activo #rsTimeSlider::-moz-range-track{ background:rgba(232,244,240,0.25); }
+[data-theme="dark"] #rsTimeSlider::-webkit-slider-thumb,
+.rs-mapa-oscuro-activo #rsTimeSlider::-webkit-slider-thumb{ border-color:#0A1E26; }
+[data-theme="dark"] #rsTimeSlider::-moz-range-thumb,
+.rs-mapa-oscuro-activo #rsTimeSlider::-moz-range-thumb{ border-color:#0A1E26; }
+
+[data-theme="dark"] #rsMapControls button,
+.rs-mapa-oscuro-activo #rsMapControls button,
+[data-theme="dark"] #rsMapStyleToggle button,
+.rs-mapa-oscuro-activo #rsMapStyleToggle button{
+  background:rgba(10,30,38,0.88); color:#E8F4F0;
+  border-color:rgba(232,244,240,0.22); box-shadow:0 3px 10px rgba(0,0,0,0.4);
+}
+[data-theme="dark"] #rsMapControls button:hover,
+.rs-mapa-oscuro-activo #rsMapControls button:hover,
+[data-theme="dark"] #rsMapStyleToggle button:hover,
+.rs-mapa-oscuro-activo #rsMapStyleToggle button:hover{
+  background:rgba(255,122,51,0.22); border-color:#FF7A33;
+}
+[data-theme="dark"] #rsMapControls button.rs-activo,
+.rs-mapa-oscuro-activo #rsMapControls button.rs-activo{
+  background:linear-gradient(120deg, #FF7A33 0%, #E04E00 100%);
+  color:#0D1F26; border-color:transparent; box-shadow:0 4px 14px rgba(255,122,51,0.4);
+}
+[data-theme="dark"] #rsShadowBadgeCerrar,
+.rs-mapa-oscuro-activo #rsShadowBadgeCerrar{ color:#9FD8CE; }
+[data-theme="dark"] #rsJoystick,
+.rs-mapa-oscuro-activo #rsJoystick{
+  background:rgba(10,30,38,0.55); border-color:rgba(232,244,240,0.25);
+}
+[data-theme="dark"] #rsJoystickKnob,
+.rs-mapa-oscuro-activo #rsJoystickKnob{ border-color:#0A1E26; }
+
+[data-theme="dark"] #irrPanel .irr-cabecera,
+.rs-mapa-oscuro-activo #irrPanel .irr-cabecera{ color:#E8F4F0; }
+[data-theme="dark"] #irrPanel label,
+.rs-mapa-oscuro-activo #irrPanel label,
+[data-theme="dark"] #irrPanel .irr-leyenda,
+.rs-mapa-oscuro-activo #irrPanel .irr-leyenda,
+[data-theme="dark"] #irrLeyendaAtenuacion,
+.rs-mapa-oscuro-activo #irrLeyendaAtenuacion{ color:#9FD8CE; }
+[data-theme="dark"] #irrPanel input[type=number],
+.rs-mapa-oscuro-activo #irrPanel input[type=number]{
+  background:rgba(232,244,240,0.09); color:#E8F4F0; border-color:rgba(232,244,240,0.2);
+}
+[data-theme="dark"] #irrPanel input[type=range]::-webkit-slider-runnable-track,
+.rs-mapa-oscuro-activo #irrPanel input[type=range]::-webkit-slider-runnable-track{ background:rgba(232,244,240,0.25); }
+[data-theme="dark"] #irrPanel input[type=range]::-webkit-slider-thumb,
+.rs-mapa-oscuro-activo #irrPanel input[type=range]::-webkit-slider-thumb{ border-color:#0A1E26; }
+[data-theme="dark"] #irrResumen b,
+.rs-mapa-oscuro-activo #irrResumen b{ color:#E8F4F0; }
+[data-theme="dark"] #irrCerrar,
+.rs-mapa-oscuro-activo #irrCerrar{ color:#9FD8CE; }
+
+/* Atribución del mapa y mini-controles nativos en noche */
+[data-theme="dark"] .maplibregl-ctrl-attrib,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-attrib{ background:rgba(10,30,38,0.72); }
+[data-theme="dark"] .maplibregl-ctrl-attrib a,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-attrib a{ color:#9FD8CE; }
+[data-theme="dark"] .maplibregl-ctrl-group,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-group{ background:rgba(10,30,38,0.88); }
+[data-theme="dark"] .maplibregl-ctrl-group button,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-group button{ background:transparent; }

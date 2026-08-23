@@ -609,13 +609,14 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 .rs-sol-info{ font-family:var(--font-mono); font-size:0.62rem; color:var(--sky-mid); display:flex; flex-direction:column; gap:1px; margin-top:4px; }
 
 /* Planetario: canica azul (Tierra) + Sol + Luna, centrado y vivo */
-.rs-planetario{ width:max-content; margin:14px auto 4px; text-align:center; }
+.rs-planetario{ display:flex; flex-direction:column; align-items:center; width:100%; margin:16px auto 4px; text-align:center; }
 .rs-planetario svg{ display:block; filter:drop-shadow(0 6px 18px rgba(14,59,71,0.18)); }
-.rs-planetario-cielo{ fill:rgba(25,158,243,0.08); transition:fill 1.2s ease; }
-.rs-planetario[data-cielo="tarde"] .rs-planetario-cielo{ fill:rgba(255,138,61,0.16); }
+/* La cúpula respira con el tema y la paleta elegidos (color-mix con variables vivas) */
+.rs-planetario-cielo{ fill:rgba(23,120,138,0.10); fill:color-mix(in srgb, var(--sky-mid) 11%, color-mix(in srgb, var(--accent) 11%, transparent)); transition:fill 1.2s ease; }
+.rs-planetario[data-cielo="tarde"] .rs-planetario-cielo{ fill:rgba(255,107,26,0.18); fill:color-mix(in srgb, var(--accent) 22%, transparent); }
 .rs-planetario[data-cielo="noche"] .rs-planetario-cielo{ fill:rgba(8,20,38,0.88); }
-[data-theme="dark"] .rs-planetario-cielo{ fill:rgba(25,158,243,0.12); }
-[data-theme="dark"] .rs-planetario[data-cielo="tarde"] .rs-planetario-cielo{ fill:rgba(255,138,61,0.14); }
+[data-theme="dark"] .rs-planetario-cielo{ fill:rgba(159,216,206,0.12); fill:color-mix(in srgb, var(--sky-mid) 15%, color-mix(in srgb, var(--accent) 12%, transparent)); }
+[data-theme="dark"] .rs-planetario[data-cielo="tarde"] .rs-planetario-cielo{ fill:color-mix(in srgb, var(--accent) 24%, transparent); }
 [data-theme="dark"] .rs-planetario[data-cielo="noche"] .rs-planetario-cielo{ fill:rgba(2,8,18,0.92); }
 .rs-planetario[data-cielo="noche"] .rs-sol-cardinal{ fill:#9FD8CE; }
 .rs-estrella{ fill:#ffffff; opacity:0; transition:opacity 1.2s ease; }

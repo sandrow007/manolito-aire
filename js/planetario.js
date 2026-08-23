@@ -49,20 +49,14 @@
   }
 
   function posicionOrbe(azimutRad, alturaRad, radioBase) {
-    var az = azimutRad; // SunCalc: 0 = sur, oeste positivo
+    // El astro orbita siempre sobre su anillo (como un reloj):
+    // azimut fija la posición; la altura solo cambia brillo y tamaño.
     var alt = (alturaRad * 180) / Math.PI;
-    // Azimut en grados desde el norte, sentido horario:
-    var azimutDeg = ((az * 180) / Math.PI + 180) % 360;
+    var azimutDeg = ((azimutRad * 180) / Math.PI + 180) % 360;
     var rad = (azimutDeg * Math.PI) / 180;
-    // La altura acerca el astro al centro (cenit = sobre la Tierra);
-    // bajo el horizonte se aleja un poco más allá de su anillo.
-    var factor;
-    if (alt >= 0) factor = 1 - Math.min(alt, 90) / 90 * 0.82;
-    else factor = 1 + Math.min(-alt, 90) / 90 * 0.28;
-    var r = radioBase * factor;
     return {
-      x: CX + r * Math.sin(rad),
-      y: CY - r * Math.cos(rad),
+      x: CX + radioBase * Math.sin(rad),
+      y: CY - radioBase * Math.cos(rad),
       alturaDeg: alt,
       azimutDeg: azimutDeg
     };

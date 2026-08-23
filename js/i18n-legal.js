@@ -1,0 +1,100 @@
+/* ============================================================
+   i18n-legal.js — Traducción del cuerpo de las páginas legales
+   ------------------------------------------------------------
+   Mecanismo: al cargar, guarda el HTML original (castellano,
+   texto legal de referencia) de cada elemento [data-i18n-legal].
+   Al cambiar el idioma (evento 'langChanged' de i18n.js):
+     - EN: aplica la traducción inglesa completa.
+     - CA/EU/GL/KA: se mantiene el castellano, la versión legal
+       de referencia (lenguas cooficiales plenamente comprensibles
+       en España; el georgiano no es lengua de la normativa).
+   ============================================================ */
+
+'use strict';
+
+(function () {
+  const originales = new Map(); // clave -> innerHTML en castellano
+
+  function capturarOriginales() {
+    document.querySelectorAll('[data-i18n-legal]').forEach((el) => {
+      const clave = el.getAttribute('data-i18n-legal');
+      if (!originales.has(clave)) originales.set(clave, el.innerHTML);
+    });
+  }
+
+  // ---------- ENGLISH (full legal translation) ----------
+  const en = {
+    /* ---------- PRIVACIDAD ---------- */
+    priv_1: 'Privacy Policy and Data Security',
+    priv_2: 'Fundamental summary: your privacy comes first. There is no user registration, no accounts and no profiles are created. All your settings data is stored locally in your own browser, never on an external server.',
+    priv_3: '1. What we do NOT collect (Zero Personal Data)',
+    priv_4: 'This platform does not request email addresses, names, passwords or phone numbers. There is no user account system and no advertising identifiers are used to track your activity on the internet. You browse 100% anonymously.',
+    priv_5: '2. Local Storage in your Browser (Local Storage)',
+    priv_6: 'Your personal preferences such as the chosen language, the light/dark interface mode, the 3D map color palette and the adapted reading mode (citizen, scientist, grandma/grandpa or kid) are stored exclusively using <code>localStorage</code> technology, a local memory inside your own web browser. We do not receive, see or store this information: it stays on your mobile device or computer, and it is completely deleted if you choose to clear your browsing data.',
+    priv_7: '3. The Manolit∞ Assistant (Privacy in AI Queries)',
+    priv_8: 'When you type a question in our chat, that text <b>is sent to an external artificial intelligence service</b> for the sole purpose of processing and generating the climate answer. To provide the service we use two trusted providers in this priority order:',
+    priv_9: '1) <b>Cloudflare Workers AI</b> — a secure environment operated directly by Cloudflare under our own technical account, which processes the text on its global servers to return the answer immediately.<br>2) <b>OpenRouter</b> — an alternative, free third-party AI service, used exclusively as a fallback gateway if the main server is unavailable.',
+    priv_10: 'In both cases, the text of your query temporarily leaves this website towards those providers\u2019 servers. For your own safety, we strongly recommend <strong>not including sensitive personal data</strong> in the chat (such as your full name, exact home address, passwords or specific medical data). We do not use that text to identify you, we do not associate it with any user profile and we do not store your conversation history in any external database beyond the current chat session.',
+    priv_11: '4. GPS Location Data, Local Time and Sun Position',
+    priv_12: 'To provide the environmental and pollution forecast for your exact area and to operate the sun position instrument panel (horizon-to-zenith arc), the website requires the use of your geographic location (only if you grant geolocation permission to the browser) and the time configured on your system.',
+    priv_13: 'The air quality request is transmitted directly to the Open-Meteo and Copernicus models. However, <b>all trigonometric calculations that project the sun position and 3D shadows run entirely locally on your device</b>. Manolit∞ Aire never tracks, saves or stores your GPS coordinates, IP addresses or time zones on its own servers. If you prefer not to enable GPS to protect your privacy, you can type your city manually and the urban heat simulator will work under the same security principles.',
+    priv_14: '5. Address Search and 3D Shade Routes',
+    priv_15: 'When you search for a street or a journey in the "3D route and shadows" section, the entered text is sent to <b>OpenStreetMap Nominatim</b> (the engine that locates it geographically on the map) and the resulting coordinates are processed through <b>OSRM</b> (to calculate the walking route along real streets). The map geometries and 3D buildings are loaded securely from <b>OpenFreeMap</b> servers.',
+    priv_16: 'These components are public, open services independent from Manolit∞ Aire. They do not identify you personally or commercially: they only receive the coordinates needed to draw the path lines and render the 3D facades on your screen. We do not store your searches or your routes on any server of our own. Avoid entering data that directly identifies you in the search fields.',
+    priv_17: '6. User Rights and GDPR',
+    priv_18: 'Because the technical architecture of Manolit∞ Aire is designed not to store any personal data in its own databases, there is no profile or record associated with you that we could extract, modify, transfer or delete from our systems. For any technical, legal or software-project-related query, you can contact the website developer directly at: <strong>SANDRO.A007@GMAIL.COM</strong>.',
+
+    /* ---------- AVISO LEGAL ---------- */
+    avis_1: 'Legal notice',
+    avis_2: '1. Site owner',
+    avis_3: 'Owner: Sandro<br>\n    Contact: SANDRO.A007@GMAIL.COM<br>\n    Address: Spain<br>',
+    avis_4: '2. Purpose of the Project: Citizen Climate Monitoring',
+    avis_5: 'Manolit∞ Aire is a free, non-profit citizen project designed to provide indicative information about <strong>air quality in Spain</strong>, urban shade maps and thermal simulation. The platform unifies public third-party data and interactive simulation tools to make environmental information accessible to any user.',
+    avis_6: '3. Informational Nature and Disclaimer',
+    avis_7: 'The climate data shown (<strong>air quality</strong> indices, assistant messages, heat-wave recommendations, solar metrics and thermal irradiation) is strictly <b>indicative and informative</b>. This tool does not replace, under any circumstances, medical judgment nor the official weather alerts or recommendations of public bodies such as <strong>AEMET</strong> (the Spanish State Meteorological Agency), the <strong>Ministry of Health</strong> or regional public health authorities. If in doubt about your health or exposure to extreme temperatures, always consult a healthcare professional.',
+    avis_8: '4. Air Quality and Origin of Geographic Data',
+    avis_9: 'The <strong>air quality</strong> data and pollution indices come from highly reliable public and open sources, using the models of the European <strong>Copernicus (CAMS)</strong> programme through the <strong>Open-Meteo</strong> API, complemented with local official measurement stations. Manolit∞ Aire does not generate or directly measure any environmental parameter; it only acts as an interactive viewer to present this climate data in an accessible and free way for citizens.',
+    avis_10: 'The address search and route calculation of the "3D route and shadows" section use the free public services of <b>OpenStreetMap Nominatim</b> (geocoding), <b>OSRM</b> (route calculation) and <b>OpenFreeMap / MapLibre</b> (vector maps and 3D buildings). The address you type in that section is sent to these external servers so it can be located on the map; Manolit∞ Aire does not store it.',
+    avis_11: 'The <b>3D trees</b> layer obtains its data from <b>OpenStreetMap</b> through the <b>public Overpass API</b>, which allows querying point elements such as trees (tagged as <code>natural=tree</code>). This data is crowdsourced and may be incomplete or unverified.',
+    avis_12: 'The historical solar radiation data used by the irradiation layer comes from the public API of the <b>NASA POWER</b> project (Prediction of Worldwide Energy Resources).',
+    avis_13: '5. Disclaimer of liability',
+    avis_14: 'The owner does not guarantee the accuracy, continuous availability or absence of errors in the displayed data, as it depends on third-party services beyond their control and on mathematical approximations. The use of this website and any decisions derived from it are the exclusive responsibility of the user.',
+    avis_15: '6. Intellectual Property and Authorship',
+    avis_16: 'The interface design, the <strong>source code</strong> development and the platform\u2019s own content are the exclusive property of <strong>Sandro</strong>, with the exception of the third-party environmental and geographic data cited in this document, which belongs to its respective official sources and bodies. This project is shared with the community in a spirit of transparency and public utility.',
+    avis_17: '7. How does Manolit∞ Cuántico work? The air-map engine',
+    avis_18: 'The <strong>Manolit∞ Cuántico</strong> probability section is a <b>software-based mathematical simulation</b> that translates the real atmospheric pollution forecast (obtained from Copernicus/CAMS via the Open-Meteo API) into a statistical distribution. To do so, the algorithm uses a formalism inspired by <strong>quantum mechanics</strong> (such as complex amplitudes, superposition states and measurement via the Born rule). It is important to stress that this process is a <b>classically executed algorithm</b> running on standard servers, not on a real quantum computer or quantum hardware.\n    This feature is <b>illustrative and experimental</b>. It is not an official weather forecast, it does not replace the forecast data shown in the main chart, and it must not be used as the sole basis for decisions.',
+    avis_19: '8. 3D Shadow Visualization and Solar Analysis',
+    avis_20: 'The projected shadows shown over the buildings on the 3D map are calculated in real time from the <strong>real position of the sun</strong> (combining the exact time, date and geographic location) and the estimated height of each building according to open data from <strong>OpenStreetMap</strong>. The system makes a <b>geometric and visual approximation</b>, so it does not constitute an exact engineering light-projection simulation: facade or block heights may be missing, outdated or incorrect in the OpenStreetMap databases, and the shadow outline shape is software-estimated. For this reason, it must not be used under any circumstances as a technical reference, expert report or safety reference (for example, for shading studies when <strong>installing solar panels</strong> or photovoltaic systems), serving only as indicative and educational information for citizens.',
+    avis_21: '9. 3D Tree Visualization with OpenStreetMap',
+    avis_22: 'The <strong>3D trees</strong> layer shows the urban vegetation recorded in <strong>OpenStreetMap</strong> within the visible map area. The technical information for each tree (such as tree height or crown diameter) is contributed by volunteers and the mapping community, so it may be incomplete in some areas. When that exact record does not exist, our urban climate simulator uses estimated values (standard height of 6 metres and a crown radius of 2.2 metres) to achieve an <strong>approximate 3D representation</strong> and calculate its shadow on the asphalt.',
+    avis_23: 'Trees are drawn in the model as simplified volumes (a trunk and a stepped crown) and their projections are calculated with the same geometric method as the <strong>building shadows</strong>. Therefore, the shape, height and projection of <strong>each tree\u2019s shadow</strong> are <b>approximate</b> and have an illustrative purpose only within urban design. They must not be used for technical purposes, landscaping studies, urban <strong>forest inventory</strong> management, or road or civil safety regulations.',
+    avis_24: '10. Sun Position Simulator and Algorithm',
+    avis_25: 'The sun tracking panel (horizon-to-zenith arc) works as a self-contained calculation component. It determines the <strong>altitude and azimuth of the sun</strong> using standard <strong>astronomical algorithms</strong> based on the geographic coordinates of the query and the local time of your device. Being a strictly visual and illustrative mathematical representation of the sun\u2019s path, it is not a precision meteorological instrument and must not be used for navigation, aviation or technical measurements.',
+    avis_26: '11. Real Solar Irradiation History with NASA Data',
+    avis_27: 'The irradiation layer of our platform is a <b>visual and indicative representation</b> of solar energy. It uses official historical data from the <strong>NASA POWER API</strong> (Prediction Of Worldwide Energy Resources): global horizontal irradiance (GHI), direct normal irradiance (DNI) and clear-sky irradiance, with <strong>daily and hourly</strong> resolution from 1984 to the present.',
+    avis_28: 'The panel lets you browse the <strong>real history of each date: year, month, day and hour</strong> (in UTC time), showing the value measured by NASA\u2019s reanalysis models for the queried area — not an invented figure. The map color responds to the <b>instant cloudiness index</b> (GHI ÷ clear sky) and the tilted-plane transposition is calculated applying the <b>cosine law of Lambert only to the direct component</b>, following the standard isotropic diffuse model (IEC 61724 / ASHRAE). The sun\u2019s altitude and azimuth are obtained with standard astronomical algorithms (SunCalc).',
+    avis_29: 'Since these are satellite and reanalysis climatological series applied to simplified geometry, <b>they do not represent the exact radiation measured on site</b> on each building. This free tool has a purely informative and climate-awareness purpose; therefore it must not be used under any circumstances for energy certifications, photovoltaic system sizing, or technical or medical decisions.',
+    avis_30: '11 bis. Real Vegetation Attenuation: Umbra, Penumbra and Direct Sun',
+    avis_31: 'When you click on the map with the irradiation layer active, the system classifies the point using <strong>2D geometric intersection</strong> (Turf.js library) against the shadow polygons calculated in real time, with no heavy 3D simulation:',
+    avis_32: '<li><strong>Umbra (building shadow):</strong> full protection — solar exposure multiplier ×1.0.</li>\n  <li><strong>Penumbra (tree shadow):</strong> the crown partially filters the radiation (estimated transmittance ~50%) — multiplier ×2.0.</li>\n  <li><strong>Direct sun (no shade):</strong> severe exposure — multiplier ×4.0.</li>',
+    avis_33: 'These multipliers make up an <b>indicative walking heat-penalty index</b>, not a physical irradiance measurement. Crown transmittance varies by species, foliage density and season, and the shadow polygons depend on the estimated height of buildings and trees in OpenStreetMap, which may be missing or outdated. Therefore the umbra/penumbra/sun classification is <b>approximate and educational</b>, and must not be used for certified thermal comfort studies, official urban planning or health decisions.',
+    avis_34: '12. The origin of Manolit∞: Survival in Seville',
+    avis_35: 'This project was not born in a laboratory — it was born out of pure necessity. Anyone who lives in or walks through <strong>Seville in summer</strong> knows you can literally feel yourself suffocating from the heat crossing a sunny street. In this city, a <strong>shaded spot on the street</strong> is no longer an aesthetic piece of urban design; it has become a basic, vital, first-necessity public service, exactly like having <strong>drinking water</strong> or <strong>electricity</strong> at home. Manolit∞ Aire exists so you can find your next climate refuge before the asphalt melts you.',
+  };
+
+  function aplicar(lang) {
+    const dict = lang === 'en' ? en : null; // resto de idiomas: castellano (texto legal de referencia)
+    document.querySelectorAll('[data-i18n-legal]').forEach((el) => {
+      const clave = el.getAttribute('data-i18n-legal');
+      const original = originales.get(clave);
+      el.innerHTML = (dict && dict[clave] != null) ? dict[clave] : (original != null ? original : el.innerHTML);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    capturarOriginales();
+    // Por si llegamos con un idioma ya elegido en otra página
+    aplicar(localStorage.getItem('manolito_lang') || 'es');
+  });
+  document.addEventListener('langChanged', (e) => aplicar(e.detail?.lang || 'es'));
+})();

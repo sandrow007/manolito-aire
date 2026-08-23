@@ -295,7 +295,7 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.id = 'rsBtnArboles';
-      btn.textContent = 'Árboles';
+      btn.textContent = (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
       btn.classList.add('rs-activo');
       btn.addEventListener('click', () => {
         capaVisible = !capaVisible;
@@ -310,6 +310,11 @@
       });
       panel.appendChild(btn);
     }
+    // Retraducir el botón al cambiar el idioma (evento de i18n.js)
+    document.addEventListener('langChanged', () => {
+      const b = document.getElementById('rsBtnArboles');
+      if (b && typeof window.getMessages === 'function') b.textContent = window.getMessages().treesBtn || 'Árboles';
+    });
     setTimeout(inyectarToggle, 500);
 
     let arbolesGrandes = [];

@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -2475,6 +2475,8 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     if (inputDestino && !inputDestino.value) inputDestino.setAttribute('placeholder', t('destinationPlaceholder', inputDestino.getAttribute('placeholder')));
     const tituloRuta = document.getElementById('rsRouteMapTitle');
     if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
+    const btnReset = document.getElementById('rsBtnReset');
+    if (btnReset) btnReset.textContent = t('resetBtn', 'Reiniciar');
   });
 
   /* ============================================================

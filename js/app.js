@@ -124,6 +124,28 @@ const messages = {
       mid: ()=>[`O aire hoxe está un pouco regulero.`, `Podes xogar fóra, pero sen correr demasiado, vale?`],
       bad: ()=>[`Hoxe o aire está un pouco malo.`, `Mellor xogamos dentro da casa un ratiño, parécheche?`],
     }
+  },
+  ka: {
+    ciudadano: {
+      good:(c)=>[`დღეს ${c}-ში გარეთ შეგვიძლია ნებისმიერი შეშფოთების გარეშე გავიდეთ.`, `კარგია სასეირნოდ, სპორტისთვის ან ბავშვების პარკში წასაყვანად.`],
+      mid: (c)=>[`დღეს ${c}-ში ჰაერი ისე-ისე არის.`, `თუ ასთმა ან სასუნთქი პრობლემები გაქვს, მოერიდე ინტენსიურ ვარჯიშს გარეთ.`],
+      bad: (c)=>[`დღეს ${c}-ში უმჯობესია შინ დარჩე, თუ შეიძლება.`, `ჰაერი საკმაოდ მძიმეა. მოერიდე სირბილს გარეთ და გაანიავე ფრთხილად.`],
+    },
+    cientifico: {
+      good:()=>[`ჰაერის ხარისხი: კარგი.`, `ყველა ძირითადი დამაბინძურებელი ჯანდაცვის ორგანიზაციის ზღვარებზე დაბლაა.`],
+      mid: ()=>[`ჰაერის ხარისხი: ზომიერი.`, `NO2 და ოზონი კვირის საშუალოზე მაღალია. მგრძნობიარე ჯგუფები: სიფრთხილე.`],
+      bad: ()=>[`ჰაერის ხარისხი: ცუდი.`, `PM2.5-ის კონცენტრაცია ჯანდაცვის 24სთ ზღვარს აღემატება. სასუნთქი რისკი დაუცველი ჯგუფებისთვის.`],
+    },
+    yayo: {
+      good:(c)=>[`მშვიდად, დღეს ცოტა ხნით გარეთ გასვლა შეიძლება პრობლემის გარეშე.`, `ისარგებლე სასეირნოდ — ${c}-ში ჰაერი დღეს ძალიან კარგია.`],
+      mid: (c)=>[`დღეს უმჯობესია ძალიან ნუ იძლევი, ჰო?`, `მოკლე, მშვიდი სეირნობა კარგია, მაგრამ იჩქარებისა და ძალისხმევის გარეშე ${c}-ში.`],
+      bad: (c)=>[`დღეს უმჯობესია ცოტა ხნით სახლში დარჩე.`, `${c}-ში ჰაერი ცოტა მძიმეა, უმჯობესია დიდხანს ნუ იქნები გარეთ.`],
+    },
+    peque: {
+      good:()=>[`დღეს ჰაერი მშვენიერია.`, `გარეთ შეგიძლია ითამაშო რამდენიც გინდა.`],
+      mid: ()=>[`დღეს ჰაერი ცოტა რთულია.`, `გარეთ თამაში შეიძლება, მაგრამ ძალიან ნუ ირბენ, კარგი?`],
+      bad: ()=>[`დღეს ჰაერი ცოტა ცუდია.`, `უმჯობესია სახლში ვითამაშოთ ცოტა ხანი, რას იტყვი?`],
+    }
   }
 };
 // Traducciones ES/EN/CA/EU/GL completas. Las de CA/EU/GL las hice yo sin ser
@@ -162,7 +184,10 @@ function renderHero(){
   const orbFaceEl = document.getElementById('orbFace');
   if (humanLineEl) humanLineEl.textContent = line1;
   if (subLineEl) subLineEl.textContent = line2;
-  if (techEl) techEl.textContent = `PM2.5 ${currentPM25} µg/m³ · ICA: ${state==='good'?'Buena':state==='mid'?'Moderada':'Mala'}`;
+  const dictIca = (typeof translations !== 'undefined') ? (translations[lang] || translations.es) : null;
+  const icaTxt = dictIca ? (state==='good'?dictIca.aqiGood:state==='mid'?dictIca.aqiModerate:dictIca.aqiBad)
+                         : (state==='good'?'Buena':state==='mid'?'Moderada':'Mala');
+  if (techEl) techEl.textContent = `PM2.5 ${currentPM25} µg/m³ · ICA: ${icaTxt}`;
   const dict = (typeof translations !== 'undefined') ? (translations[lang] || translations.es) : null;
   if (orbFaceEl) orbFaceEl.textContent = dict ? dict[`orb_${state}`] : state;
   document.documentElement.style.setProperty('--state-color',

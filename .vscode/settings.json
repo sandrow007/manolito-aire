@@ -3,5 +3,6 @@
     "deepseek.model": "deepseek-v4-pro",
     "deepseek-copilot.maxTokens": 80000,
     "deepseek.maxTokens": 8100,
-    "deepseek-copilot.experimental.stabilizeToolList": true
+    "deepseek-copilot.experimental.stabilizeToolList": true,
+    "liveServer.settings.port": 5501
 }

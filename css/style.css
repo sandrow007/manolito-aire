@@ -598,3 +598,6 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
    shadows-route.js sobre #shadowRouteMap .maplibregl-canvas; esto es
    solo el color de fondo mientras cargan los tiles. */
 .rs-mapa-oscuro-activo{ background:#0b0f14; }
+[data-theme="dark"] #map .leaflet-tile-pane{
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
+}

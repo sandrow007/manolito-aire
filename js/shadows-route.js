@@ -1800,6 +1800,12 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       }
       #rsMapStyleToggle button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
       .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
+            [data-theme="dark"] #shadowRouteMap .maplibregl-canvas{
+        filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
+      }
+      [data-theme="dark"] .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
+        filter: none;
+      }
         filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
       }
     `;

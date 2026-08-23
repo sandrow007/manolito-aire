@@ -320,36 +320,36 @@
       const estilo = document.createElement('style');
       estilo.textContent = `
         #irrPanel{
-          position:absolute; right:12px; top:108px; z-index:6; width:245px;
-          background:linear-gradient(160deg,#262c38,#1b2029 70%);
-          border:1px solid #ffffff1f; border-right:2px solid #c98a4b;
-          border-radius:3px 12px 3px 12px; padding:12px 14px; color:#e9e4d8;
-          font-family:inherit; box-shadow:0 8px 18px rgba(0,0,0,.28); display:none;
+          position:absolute; right:12px; top:108px; z-index:6; width:235px;
+          background:rgba(251,250,247,0.94);
+          backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+          border:1px solid var(--line, rgba(28,49,68,0.14));
+          border-radius:14px; padding:11px 13px; color:var(--ink, #16232E);
+          font-family:inherit; box-shadow:0 8px 22px rgba(22,35,46,0.16); display:none;
         }
         #irrPanel.rs-visible{ display:block; }
-        #irrPanel .irr-cabecera{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-        #irrPanel label{ font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#c98a4b; display:block; margin-bottom:4px; }
-        #irrCerrar{ background:transparent; border:none; color:#999; font-size:16px; cursor:pointer; line-height:1; padding:0 2px; }
-        #irrCerrar:hover{ color:#fff; }
+        #irrPanel .irr-cabecera{ display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; color:var(--sky-deep, #1C3144); }
+        #irrPanel label{ font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--sky-mid, #2B4A63); display:block; margin-bottom:3px; }
+        #irrCerrar{ background:transparent; border:none; color:var(--sky-mid, #2B4A63); font-size:15px; cursor:pointer; line-height:1; padding:0 2px; }
+        #irrCerrar:hover{ color:var(--ink, #16232E); }
         #irrPanel input[type=number]{
-          width:100%; margin-bottom:8px; background:#00000026; color:#e9e4d8;
-          border:1px solid #ffffff1f; border-radius:2px; padding:6px; font-family:inherit; font-size:13px;
-          color-scheme: dark;
+          width:100%; margin-bottom:7px; background:var(--mist, #EDF1F0); color:var(--ink, #16232E);
+          border:1px solid var(--line, rgba(28,49,68,0.14)); border-radius:9px; padding:5px 8px; font-family:inherit; font-size:12px;
         }
         #irrPanel input[type=range]{
-          -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; cursor:pointer; margin:4px 0 2px;
+          -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; cursor:pointer; margin:3px 0 1px;
         }
-        #irrPanel input[type=range]::-webkit-slider-runnable-track{ height:3px; background:#3a4150; border-radius:2px; }
+        #irrPanel input[type=range]::-webkit-slider-runnable-track{ height:3px; background:var(--line, rgba(28,49,68,0.18)); border-radius:2px; }
         #irrPanel input[type=range]::-webkit-slider-thumb{
-          -webkit-appearance:none; margin-top:-6px; width:15px; height:15px; border-radius:50%;
-          background:#e7b06a; border:2px solid #1b2029; box-shadow:0 0 0 3px #e7b06a2e;
+          -webkit-appearance:none; margin-top:-6px; width:14px; height:14px; border-radius:50%;
+          background:var(--accent, #F4A66B); border:2px solid var(--paper, #FBFAF7); box-shadow:0 1px 4px rgba(22,35,46,0.25);
         }
-        #irrPanel .irr-leyenda{ font-size:9.5px; color:#8a8f9c; margin-bottom:6px; padding:0 2px; display:flex; justify-content:space-between; }
-        #irrResumen{ font-size:10.5px; line-height:1.6; border-top:1px dashed #c98a4b55; margin-top:8px; padding-top:8px; }
-        #irrResumen b{ color:#e7b06a; }
-        #irrLeyendaAtenuacion{ font-size:9.5px; line-height:1.5; color:#8a8f9c; border-top:1px dashed #c98a4b55; margin-top:6px; padding-top:6px; }
-        #irrEstado{ font-size:10.5px; margin-top:4px; line-height:1.4; }
-        @media (max-width:480px){ #irrPanel{ width:calc(100vw - 24px); right:12px; top:100px; } }
+        #irrPanel .irr-leyenda{ font-size:8.5px; color:var(--sky-mid, #2B4A63); margin-bottom:5px; padding:0 2px; display:flex; justify-content:space-between; }
+        #irrResumen{ font-size:10px; line-height:1.6; border-top:1px solid var(--line, rgba(28,49,68,0.14)); margin-top:7px; padding-top:7px; }
+        #irrResumen b{ color:var(--sky-deep, #1C3144); }
+        #irrLeyendaAtenuacion{ font-size:9px; line-height:1.5; color:var(--sky-mid, #2B4A63); border-top:1px solid var(--line, rgba(28,49,68,0.14)); margin-top:6px; padding-top:6px; }
+        #irrEstado{ font-size:10px; margin-top:4px; line-height:1.4; }
+        @media (max-width:480px){ #irrPanel{ width:calc(100% - 24px); max-width:235px; right:12px; top:100px; } }
       `;
       document.head.appendChild(estilo);
 

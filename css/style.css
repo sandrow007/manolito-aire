@@ -77,6 +77,22 @@ a{ color: var(--sky-mid); }
   font-family: var(--font-mono); font-size: 0.6rem; font-weight:500; color: var(--accent);
   background: var(--accent-soft); padding: 2px 7px; border-radius: 999px; letter-spacing: 0.02em;
 }
+/* El nombre de la marca lleva un degradado animado que fluye por las letras
+   (guiño al estilo de Islas de Calor Sevilla), con la paleta de esta web */
+.wordmark .wordmark-name{
+  font-family: var(--font-display); font-size: inherit; font-weight: inherit;
+  padding: 0; border-radius: 0; letter-spacing: inherit;
+  background: linear-gradient(110deg, var(--sky-deep) 0%, var(--sky-mid) 28%, var(--accent) 50%, var(--breath-good) 72%, var(--sky-deep) 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 0 9px rgba(244,166,107,0.28));
+  animation: wordmarkFlow 6s ease-in-out infinite;
+}
+@keyframes wordmarkFlow{
+  0%,100%{ background-position: 0% 50%; }
+  50%{ background-position: 100% 50%; }
+}
 .topbar-right{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
 
 .chip-toggle{ display:flex; gap:2px; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
@@ -159,6 +175,13 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .map-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px; }
 .map-title{ font-family:var(--font-display); font-weight:600; font-size:1.15rem; color:var(--sky-deep); }
 .map-wrap{ position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); }
+
+/* El mapa de sombras 3D abre la página: marco con más presencia para que
+   no se mezcle con el fondo en ningún dispositivo */
+.map-section:has(#shadowRouteMap) .map-wrap{
+  border-color: rgba(28,49,68,0.22);
+  box-shadow: 0 18px 44px rgba(22,35,46,0.14), 0 2px 8px rgba(22,35,46,0.08);
+}
 #map{ height: 460px; width:100%; background:var(--mist); }
 
 /* El mapa de rutas y sombras 3D es la pieza protagonista: más alto y

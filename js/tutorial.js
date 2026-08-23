@@ -155,15 +155,18 @@
 
   function construirPasos() {
     const t = obtenerTraducciones();
+    // El orden sigue la página: ciudad y modos arriba, luego el mapa de
+    // sombras 3D (la pieza principal, ahora primera), y después el mapa
+    // nacional del aire.
     return [
       { element: '#cityDropdownBtn', popover: { title: t.pasos[0].title, description: t.pasos[0].desc, side: 'bottom', align: 'start' } },
       { element: '#modeGrid', popover: { title: t.pasos[1].title, description: t.pasos[1].desc, side: 'top', align: 'start' } },
-      { element: '#map', popover: { title: t.pasos[2].title, description: t.pasos[2].desc, side: 'top', align: 'center' } },
       { element: '.rs-form', popover: { title: t.pasos[3].title, description: t.pasos[3].desc, side: 'top', align: 'start' } },
       { element: '#shadowRouteMap', popover: { title: t.pasos[4].title, description: t.pasos[4].desc, side: 'top', align: 'center' } },
       { element: '.rs-layer-toggles', popover: { title: t.pasos[5].title, description: t.pasos[5].desc, side: 'top', align: 'center' } },
       { element: '#shadowRouteMap', popover: { title: t.pasos[6].title, description: t.pasos[6].desc, side: 'top', align: 'center' } },
       { element: '#shadowRouteMap', popover: { title: t.pasos[7].title, description: t.pasos[7].desc, side: 'top', align: 'center' } },
+      { element: '#map', popover: { title: t.pasos[2].title, description: t.pasos[2].desc, side: 'top', align: 'center' } },
       { element: '.chat-fab', popover: { title: t.pasos[8].title, description: t.pasos[8].desc, side: 'left', align: 'end' } },
       { element: '.donacion-boton', popover: { title: t.pasos[9].title, description: t.pasos[9].desc, side: 'top', align: 'center' } },
       { element: '.footer-family', popover: { title: t.pasos[10].title, description: t.pasos[10].desc, side: 'top', align: 'center' } }

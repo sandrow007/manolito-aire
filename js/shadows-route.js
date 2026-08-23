@@ -612,7 +612,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         'circle-radius': 7,
         'circle-color': leerVar('--accent') || '#0eedc0',
         'circle-stroke-width': 2,
-        'circle-stroke-color': '#1b2029',
+        'circle-stroke-color': '#FBFAF7',
       },
     });
 
@@ -1036,18 +1036,18 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       #rsShadowBadge{
         position:absolute; left:50%; transform:translateX(-50%); bottom:12px;
         z-index:6; display:none; align-items:center; gap:8px;
-        background:rgba(10,10,12,0.88); backdrop-filter:blur(8px);
-        border:1px solid rgba(255,255,255,0.12); border-radius:999px;
-        padding:6px 10px 6px 14px; font-size:11.5px; color:#e9e4d8;
-        box-shadow:0 8px 18px rgba(0,0,0,.28); max-width:calc(100vw - 24px);
+        background:rgba(251,250,247,0.94); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+        border:1px solid var(--line, rgba(28,49,68,0.14)); border-radius:999px;
+        padding:5px 10px 5px 13px; font-size:10.5px; color:var(--sky-deep, #1C3144);
+        box-shadow:0 6px 16px rgba(22,35,46,0.16); max-width:calc(100% - 24px);
         white-space:nowrap;
       }
       #rsShadowBadge.rs-visible{ display:inline-flex; }
       #rsShadowBadgeCerrar{
-        background:transparent; border:none; color:#999; font-size:15px;
+        background:transparent; border:none; color:var(--sky-mid, #2B4A63); font-size:14px;
         cursor:pointer; line-height:1; padding:0 2px;
       }
-      #rsShadowBadgeCerrar:hover{ color:#fff; }
+      #rsShadowBadgeCerrar:hover{ color:var(--ink, #16232E); }
       @media (max-width:480px){ #rsShadowBadge{ font-size:10.5px; bottom:8px; padding:5px 8px 5px 12px; } }
     `;
     document.head.appendChild(estilo);
@@ -1129,72 +1129,70 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     estilo.id = 'rsPanelEstilos';
     estilo.textContent = `
       #rsTimeControls{
-        --rs-metal-1:#1b2029; --rs-metal-2:#262c38; --rs-latón:#c98a4b;
-        --rs-latón-vivo:#e7b06a; --rs-verdigris:#6f9c8b; --rs-hueso:#e9e4d8;
-        position:absolute; left:12px; bottom:12px; z-index:5; width:246px;
-        background:linear-gradient(160deg,var(--rs-metal-2),var(--rs-metal-1) 70%);
-        border-radius:3px 16px 3px 16px;
-        border:1px solid #00000055; border-left:2px solid var(--rs-latón);
-        box-shadow:0 12px 28px rgba(0,0,0,.32), inset 0 1px 0 #ffffff0c;
-        padding:13px 15px; font-family:inherit; color:var(--rs-hueso);
+        position:absolute; left:12px; bottom:12px; z-index:5;
+        width:max-content; min-width:190px; max-width:calc(100% - 24px);
+        background:rgba(251,250,247,0.94);
+        backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+        border:1px solid var(--line, rgba(28,49,68,0.14)); border-radius:14px;
+        box-shadow:0 8px 22px rgba(22,35,46,0.16);
+        padding:10px 13px; font-family:inherit; color:var(--ink, #16232E);
         transition:opacity .18s ease, transform .18s ease;
       }
-      #rsTimeControls.rs-cerrado{ padding-bottom:13px; }
-      #rsTimeControls .rs-cuerpo{ overflow:hidden; }
+      #rsTimeControls .rs-cuerpo{ overflow:visible; }
       #rsTimeControls.rs-cerrado .rs-cuerpo{ display:none; }
-      #rsTimeControls .rs-fila{ display:flex; align-items:center; gap:10px; }
+      #rsTimeControls .rs-fila{ display:flex; align-items:center; gap:8px; }
       #rsTimeControls .rs-cabecera{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
       #rsTimeControls.rs-cerrado .rs-cabecera{ margin-bottom:0; }
-      #rsTimeControls:not(.rs-cerrado) .rs-cabecera{ margin-bottom:10px; }
+      #rsTimeControls:not(.rs-cerrado) .rs-cabecera{ margin-bottom:7px; }
       #rsTimeControls .rs-eyebrow{
-        font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--rs-latón);
-        font-weight:700; opacity:.9;
+        font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--sky-mid, #2B4A63);
+        font-weight:700;
       }
       #rsPlegarBtn{
-        appearance:none; border:none; background:transparent; color:var(--rs-hueso);
+        appearance:none; border:none; background:transparent; color:var(--sky-mid, #2B4A63);
         cursor:pointer; padding:2px 4px; opacity:.75; line-height:0;
       }
       #rsPlegarBtn:hover{ opacity:1; }
       #rsPlegarBtn svg{ display:block; transition:transform .2s ease; }
       #rsTimeControls.rs-cerrado #rsPlegarBtn svg{ transform:rotate(180deg); }
       #rsTimeLabel{
-        font-family:'Space Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
-        font-size:15px; letter-spacing:.03em; color:var(--rs-hueso); white-space:nowrap;
+        font-family:var(--font-mono, 'IBM Plex Mono', monospace);
+        font-size:12px; letter-spacing:.02em; color:var(--sky-deep, #1C3144);
       }
       #rsGoldenBadge{
-        font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 8px 3px 6px;
-        border-radius:3px; border:1px solid transparent; white-space:nowrap;
-        display:inline-flex; align-items:center; gap:5px;
+        font-size:8.5px; font-weight:700; letter-spacing:.04em; padding:2px 7px 2px 5px;
+        border-radius:999px; border:1px solid var(--line, rgba(28,49,68,0.14)); white-space:nowrap;
+        display:inline-flex; align-items:center; gap:4px; color:var(--sky-mid, #2B4A63);
       }
-      #rsGoldenBadge::before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+      #rsGoldenBadge::before{ content:''; width:5px; height:5px; border-radius:50%; background:currentColor; }
       #rsTimeControls .rs-divisor{
-        height:1px; margin:10px 0; background:repeating-linear-gradient(90deg,#c98a4b55 0 4px,transparent 4px 8px);
+        height:1px; margin:8px 0; background:var(--line, rgba(28,49,68,0.14));
       }
       #rsTimeSlider{
-        -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; cursor:pointer; margin:6px 0 2px;
+        -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; cursor:pointer; margin:4px 0 1px;
       }
       #rsTimeSlider::-webkit-slider-runnable-track{
-        height:3px; background:linear-gradient(90deg,var(--rs-latón),#00000000),#3a4150; border-radius:2px;
+        height:3px; background:var(--line, rgba(28,49,68,0.18)); border-radius:2px;
       }
       #rsTimeSlider::-webkit-slider-thumb{
-        -webkit-appearance:none; margin-top:-6px; width:15px; height:15px; border-radius:50%;
-        background:var(--rs-latón-vivo); border:2px solid #1b2029; box-shadow:0 0 0 3px #e7b06a2e;
+        -webkit-appearance:none; margin-top:-6px; width:14px; height:14px; border-radius:50%;
+        background:var(--accent, #F4A66B); border:2px solid var(--paper, #FBFAF7); box-shadow:0 1px 4px rgba(22,35,46,0.25);
       }
-      #rsTimeSlider::-moz-range-track{ height:3px; background:#3a4150; border-radius:2px; }
-      #rsTimeSlider::-moz-range-progress{ height:3px; background:var(--rs-latón); border-radius:2px; }
+      #rsTimeSlider::-moz-range-track{ height:3px; background:var(--line, rgba(28,49,68,0.18)); border-radius:2px; }
       #rsTimeSlider::-moz-range-thumb{
-        width:15px; height:15px; border-radius:50%; background:var(--rs-latón-vivo); border:2px solid #1b2029;
+        width:12px; height:12px; border-radius:50%; background:var(--accent, #F4A66B); border:2px solid var(--paper, #FBFAF7);
       }
-      #rsTimeControls .rs-botones{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+      #rsTimeControls .rs-botones{ display:flex; gap:5px; flex-wrap:wrap; margin-top:8px; }
       #rsTimeControls button{
-        flex:1; min-width:0; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
-        padding:7px 6px; border-radius:2px; border:1px solid #ffffff1f; background:#00000026;
-        color:var(--rs-hueso); cursor:pointer; font-weight:700; transition:background .15s,border-color .15s;
+        flex:1; min-width:0; font-size:9px; letter-spacing:.04em; text-transform:uppercase;
+        padding:6px 6px; border-radius:9px; border:1px solid var(--line, rgba(28,49,68,0.14));
+        background:var(--mist, #EDF1F0); color:var(--sky-deep, #1C3144);
+        cursor:pointer; font-weight:700; transition:background .15s,border-color .15s;
       }
-      #rsTimeControls button:hover{ background:#c98a4b22; border-color:#c98a4b66; }
-      #rsTimeControls button:active{ background:#c98a4b3a; }
-      #rsTimeControls button.rs-btn-capturar{ flex-basis:100%; color:var(--rs-latón-vivo); border-color:#c98a4b44; }
-      @media (max-width:480px){ #rsTimeControls{ width:calc(100vw - 24px); max-width:250px; } }
+      #rsTimeControls button:hover{ background:var(--accent-soft, rgba(244,166,107,0.16)); border-color:var(--accent, #F4A66B); }
+      #rsTimeControls button:active{ background:var(--accent-soft, rgba(244,166,107,0.3)); }
+      #rsTimeControls button.rs-btn-capturar{ flex-basis:100%; color:var(--sky-mid, #2B4A63); }
+      @media (max-width:480px){ #rsTimeControls{ min-width:170px; } } }
     `;
     document.head.appendChild(estilo);
   }
@@ -1211,31 +1209,33 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     estilo.id = 'rsMapaEstilos';
     estilo.textContent = `
       #rsMapControls{
-        position:absolute; left:12px; top:12px; z-index:5; display:flex; gap:6px; flex-wrap:wrap;
+        position:absolute; left:12px; top:12px; right:12px; z-index:5; display:flex; gap:5px; flex-wrap:wrap;
       }
       #rsMapControls button{
-        font-family:inherit; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
-        font-weight:700; padding:8px 11px; border-radius:3px 12px 3px 12px;
-        border:1px solid #ffffff1f; border-left:2px solid #c98a4b;
-        background:linear-gradient(160deg,#262c38,#1b2029 70%); color:#e9e4d8;
-        cursor:pointer; box-shadow:0 8px 18px rgba(0,0,0,.28); transition:background .15s,border-color .15s;
+        font-family:inherit; font-size:9.5px; letter-spacing:.04em; text-transform:uppercase;
+        font-weight:700; padding:6px 11px; border-radius:999px;
+        border:1px solid var(--line, rgba(28,49,68,0.14));
+        background:rgba(251,250,247,0.92); color:var(--sky-deep, #1C3144);
+        backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+        cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12); transition:background .15s,border-color .15s,color .15s;
       }
-      #rsMapControls button:hover{ background:#c98a4b22; }
-      #rsMapControls button.rs-activo{ border-left-color:#e7b06a; color:#e7b06a; }
-      @media (max-width:480px){ #rsMapControls button{ padding:7px 8px; font-size:9.5px; } }
+      #rsMapControls button:hover{ background:var(--accent-soft, rgba(244,166,107,0.16)); border-color:var(--accent, #F4A66B); }
+      #rsMapControls button.rs-activo{ background:var(--accent-soft, rgba(244,166,107,0.16)); border-color:var(--accent, #F4A66B); color:var(--sky-deep, #1C3144); }
+      @media (max-width:480px){ #rsMapControls button{ padding:5px 9px; font-size:8.5px; } }
 
       /* Joystick virtual para paseo 3D */
       #rsJoystick{
         position:absolute; right:24px; bottom:24px; width:96px; height:96px;
-        border-radius:50%; background:rgba(255,255,255,0.06);
-        border:1px solid rgba(255,255,255,0.15); touch-action:none;
+        border-radius:50%; background:rgba(251,250,247,0.5);
+        border:1px solid var(--line, rgba(28,49,68,0.2)); touch-action:none;
+        backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
         z-index:6; display:none; pointer-events:auto;
       }
       #rsJoystickKnob{
         position:absolute; left:50%; top:50%; width:38px; height:38px;
         transform:translate(-50%,-50%); border-radius:50%;
-        background:rgba(201,138,75,0.85); border:2px solid #e9e4d8;
-        box-shadow:0 4px 12px rgba(0,0,0,.35); touch-action:none;
+        background:var(--accent, #F4A66B); border:2px solid var(--paper, #FBFAF7);
+        box-shadow:0 3px 10px rgba(22,35,46,0.3); touch-action:none;
       }
       #rsJoystick.rs-visible{ display:block; }
       @media (max-width:480px){
@@ -1790,13 +1790,14 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         position:absolute; right:12px; bottom:12px; z-index:5;
       }
       #rsMapStyleToggle button{
-        font-family:inherit; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
-        font-weight:700; padding:8px 12px; border-radius:12px 3px 12px 3px;
-        border:1px solid #ffffff1f; border-right:2px solid #c98a4b;
-        background:linear-gradient(160deg,#262c38,#1b2029 70%); color:#e9e4d8;
-        cursor:pointer; box-shadow:0 8px 18px rgba(0,0,0,.28);
+        font-family:inherit; font-size:9.5px; letter-spacing:.04em; text-transform:uppercase;
+        font-weight:700; padding:6px 11px; border-radius:999px;
+        border:1px solid var(--line, rgba(28,49,68,0.14));
+        background:rgba(251,250,247,0.92); color:var(--sky-deep, #1C3144);
+        backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+        cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12); transition:background .15s,border-color .15s;
       }
-      #rsMapStyleToggle button:hover{ background:#c98a4b22; }
+      #rsMapStyleToggle button:hover{ background:var(--accent-soft, rgba(244,166,107,0.16)); border-color:var(--accent, #F4A66B); }
       .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
         filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
       }

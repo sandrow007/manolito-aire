@@ -7,7 +7,7 @@
 <meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad.">
 <meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas">
 <meta name="theme-color" content="#1b2029">
-<link rel="canonical" href="https://manolito-aire.pages.dev/">
+<script type="text/javascript" nonce="41d28b1c97d5466ab554037c3a8" src="//local.adguard.org?ts=1787468133347&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Fmanolito-aire%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260823%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260823T081815Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Ddf37edfffdd95e0b182ef0061d539b67b32dd67577f590d0ade0c51c73ee7408%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="41d28b1c97d5466ab554037c3a8" src="//local.adguard.org?ts=1787468133347&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolito-aire.pages.dev/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manolit∞ Aire — Calidad del aire y sombra solar en tiempo real">
 <meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro.">
@@ -350,7 +350,7 @@
 </script>
 
 <div class="topbar">
-  <a href="index.html" class="wordmark">Manolit∞ Aire<span data-i18n="tagline">MAPA NACIONAL · DATOS EN VIVO</span></a>
+  <a href="index.html" class="wordmark"><span class="wordmark-name">Manolit∞ Aire</span><span data-i18n="tagline">MAPA NACIONAL · DATOS EN VIVO</span></a>
   <div class="topbar-right">
     <a class="family-link" href="about.html" data-i18n="aboutLink">¿Por qué existe esto?</a>
     <a class="family-link" href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a>
@@ -364,7 +364,7 @@
       <button data-palette="coral">◓</button>
     </div>
     <button class="icon-btn" id="themeToggle" title="Modo claro/oscuro">☾</button>
-    <div class="chip-toggle" id="langToggle">
+    <div class="chip-toggle notranslate" id="langToggle" translate="no">
       <button data-lang="es" class="active">ES</button>
       <button data-lang="ca">CA</button>
       <button data-lang="eu">EU</button>
@@ -453,58 +453,6 @@
 
 <div class="map-section">
   <div class="map-head">
-    <div class="map-title" data-i18n="mapTitle">El aire de España, ahora mismo</div>
-    <div class="chip-toggle" id="regionJump">
-      <button data-r="peninsula" class="active" data-i18n="region_peninsula">Península</button>
-      <button data-r="canarias" data-i18n="region_canarias">Canarias</button>
-      <button data-r="baleares" data-i18n="region_baleares">Baleares</button>
-      <button data-r="ceutamelilla" data-i18n="region_ceutamelilla">Ceuta / Melilla</button>
-    </div>
-  </div>
-  <div class="map-wrap">
-    <div id="map"></div>
-    <div class="legend">
-      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-good)"></span> <span data-i18n="legendGood">Buena</span></div>
-      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-mid)"></span> <span data-i18n="legendMid">Moderada</span></div>
-      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-bad)"></span> <span data-i18n="legendBad">Mala</span></div>
-      <div class="legend-note" data-i18n="legendNote">Los puntos son estaciones reales. El color entre ciudades es estimado, no medido.</div>
-    </div>
-  </div>
-  <div class="status-line" id="statusLine">Cargando datos en vivo…</div>
-</div>
-
-<div class="forecast-section">
-  <div class="map-head">
-    <div class="map-title">Evolución del aire — <span id="forecastCityName">Sevilla</span></div>
-  </div>
-  <div class="chart-card">
-    <div id="airChart"></div>
-    <div class="chart-legend">
-      <span><i class="dot-hist"></i> Últimas 48h (dato real)</span>
-      <span><i class="dot-fore"></i> Próximas 48h (pronóstico Copernicus/CAMS)</span>
-    </div>
-  </div>
-
-  <div class="quantum-card">
-    <div class="quantum-head">
-      <span class="quantum-badge">Manolit∞ Cuántico</span>
-      <span class="quantum-sub">probabilidad simulada, día a día, para los próximos 5 días</span>
-    </div>
-    <div id="quantumBars" class="quantum-bars"></div>
-
-    <div class="week-label"></div>
-    <div id="quantumWeek" class="quantum-week"></div>
-
-    <p class="quantum-disclaimer">
-      Esto NO es una predicción meteorológica oficial. Es una simulación matemática
-      (formalismo cuántico simulado por software, sin hardware cuántico real) que calcula
-      probabilidades a partir del pronóstico real de arriba. Para decisiones de salud,
-      guíate por el dato del gráfico y por fuentes oficiales, no por este número.
-    </p>
-  </div>
-</div>
-<div class="map-section">
-  <div class="map-head">
     <div class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</div>
   </div>
 
@@ -559,6 +507,60 @@
   </div>
 </div>
 </div>
+
+<div class="map-section">
+  <div class="map-head">
+    <div class="map-title" data-i18n="mapTitle">El aire de España, ahora mismo</div>
+    <div class="chip-toggle" id="regionJump">
+      <button data-r="peninsula" class="active" data-i18n="region_peninsula">Península</button>
+      <button data-r="canarias" data-i18n="region_canarias">Canarias</button>
+      <button data-r="baleares" data-i18n="region_baleares">Baleares</button>
+      <button data-r="ceutamelilla" data-i18n="region_ceutamelilla">Ceuta / Melilla</button>
+    </div>
+  </div>
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="legend">
+      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-good)"></span> <span data-i18n="legendGood">Buena</span></div>
+      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-mid)"></span> <span data-i18n="legendMid">Moderada</span></div>
+      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-bad)"></span> <span data-i18n="legendBad">Mala</span></div>
+      <div class="legend-note" data-i18n="legendNote">Los puntos son estaciones reales. El color entre ciudades es estimado, no medido.</div>
+    </div>
+  </div>
+  <div class="status-line" id="statusLine">Cargando datos en vivo…</div>
+</div>
+
+
+<div class="forecast-section">
+  <div class="map-head">
+    <div class="map-title">Evolución del aire — <span id="forecastCityName">Sevilla</span></div>
+  </div>
+  <div class="chart-card">
+    <div id="airChart"></div>
+    <div class="chart-legend">
+      <span><i class="dot-hist"></i> Últimas 48h (dato real)</span>
+      <span><i class="dot-fore"></i> Próximas 48h (pronóstico Copernicus/CAMS)</span>
+    </div>
+  </div>
+
+  <div class="quantum-card">
+    <div class="quantum-head">
+      <span class="quantum-badge">Manolit∞ Cuántico</span>
+      <span class="quantum-sub">probabilidad simulada, día a día, para los próximos 5 días</span>
+    </div>
+    <div id="quantumBars" class="quantum-bars"></div>
+
+    <div class="week-label"></div>
+    <div id="quantumWeek" class="quantum-week"></div>
+
+    <p class="quantum-disclaimer">
+      Esto NO es una predicción meteorológica oficial. Es una simulación matemática
+      (formalismo cuántico simulado por software, sin hardware cuántico real) que calcula
+      probabilidades a partir del pronóstico real de arriba. Para decisiones de salud,
+      guíate por el dato del gráfico y por fuentes oficiales, no por este número.
+    </p>
+  </div>
+</div>
 <div class="footer">
   <p>Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro — herramientas gratuitas, sin registro y sin publicidad.</p>
   <div class="footer-family" data-i18n="footerFamily">Manolit∞ Forestal · Islas de Calor Sevilla · Manolit∞ Aire</div>
@@ -580,7 +582,7 @@
 </div>
 
 <button class="chat-fab" onclick="openChat()">
-  <span class="chat-fab-logo"></span> <span data-i18n="chatOpen">Pregúntale a Manolit∞</span>
+  <span class="chat-fab-logo">∞</span> <span data-i18n="chatOpen">Pregúntale a Manolit∞</span>
 </button>
 
 <div class="chat-overlay" id="chatOverlay">
@@ -592,20 +594,13 @@
     <div class="chat-msg mano" data-i18n="chatWelcome">Tranquilo/a, vamos con calma. Dime qué no entiendes, o elige una pregunta.</div>
     <div id="chatBody"></div>
     <div class="quick-qs">
-      <button data-quick="pm25" onclick="askQuick('pm25')" data-i18n="quick_pm25">¿Qué es el PM2.5?</button>
-      <button data-quick="color" onclick="askQuick('color')" data-i18n="quick_color">¿Por qué cambia el color?</button>
-      <button data-quick="bebe" onclick="askQuick('bebe')" data-i18n="quick_bebe">¿Es seguro salir con mi bebé?</button>
-      <button data-quick="deporte" onclick="askQuick('deporte')" data-i18n="quick_deporte">¿Puedo hacer deporte hoy?</button>
-      <button data-quick="ica" onclick="askQuick('ica')" data-i18n="quick_ica">¿Qué significa ICA?</button>
-      <button data-quick="ventanas" onclick="askQuick('ventanas')" data-i18n="quick_ventanas">¿Abro las ventanas o no?</button>
-      <button data-quick="asma" onclick="askQuick('asma')" data-i18n="quick_asma">Tengo asma, ¿qué debo saber?</button>
-      <button data-quick="sombra_como" onclick="askQuick('sombra_como')" data-i18n="quick_sombra_como">¿Cómo busco una ruta con sombra?</button>
-      <button data-quick="sombra_capas" onclick="askQuick('sombra_capas')" data-i18n="quick_sombra_capas">¿Qué son las capas del mapa?</button>  
-      <button data-quick="sombra_noveo" onclick="askQuick('sombra_noveo')" data-i18n="quick_sombra_noveo">No veo ninguna sombra, ¿por qué?</button>
-      <button data-quick="sombra_esreal" onclick="askQuick('sombra_esreal')" data-i18n="quick_sombra_esreal">¿La ruta es real o una línea recta?</button>
-      <button data-quick="sombra_iluminacion" onclick="askQuick('sombra_iluminacion')" data-i18n="quick_sombra_iluminacion">¿Qué es la iluminación solar del mapa?</button>
-      <button data-quick="sombra_direccion" onclick="askQuick('sombra_direccion')" data-i18n="quick_sombra_direccion">No encuentra mi dirección, ¿qué hago?</button>
-      <button data-quick="sombra_horas" onclick="askQuick('sombra_horas')" data-i18n="quick_sombra_horas">¿A qué hora hay más sombra en la calle?</button>
+      <button data-quick="q1" onclick="askQuick('q1')" data-i18n="quick_q1">¿Qué es Manolito Aire?</button>
+      <button data-quick="q2" onclick="askQuick('q2')" data-i18n="quick_q2">¿Qué significan los colores del aire?</button>
+      <button data-quick="q3" onclick="askQuick('q3')" data-i18n="quick_q3">¿Puedo salir a hacer deporte hoy?</button>
+      <button data-quick="q4" onclick="askQuick('q4')" data-i18n="quick_q4">¿Cómo funcionan las sombras 3D?</button>
+      <button data-quick="q5" onclick="askQuick('q5')" data-i18n="quick_q5">¿Cómo busco una ruta con sombra?</button>
+      <button data-quick="q6" onclick="askQuick('q6')" data-i18n="quick_q6">¿Qué es la irradiación solar?</button>
+      <button data-quick="q7" onclick="askQuick('q7')" data-i18n="quick_q7">¿Qué es el paseo virtual 3D?</button>
     </div>
     <div class="chat-input-row">
       <input type="text" id="chatInputField" data-i18n-placeholder="chatPlaceholder" placeholder="Escribe tu pregunta aquí...">
@@ -618,7 +613,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <script src="js/theme.js" defer></script>
 <script src="js/i18n.js" defer></script>
-<script src="js/cookie-banner.js" defer></script>
+
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>

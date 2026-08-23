@@ -1,5 +1,5 @@
 /* ============================================================
-   MANOLIT∞ AIRE — tutorial.js (Definitivo 8 Pasos, 5 Idiomas, Botón X Activo)
+   MANOLIT∞ AIRE — tutorial.js (Definitivo 11 Pasos, 6 Idiomas, Botón X Activo)
    ============================================================ */
 
 'use strict';
@@ -16,8 +16,11 @@
         { title: "Elige tu ciudad", desc: "Cambia aquí la ciudad para ver su aire en tiempo real." },
         { title: "¿Cómo quieres que te lo cuente?", desc: "Elige el modo que mejor te venga — mismo dato, explicado distinto." },
         { title: "El aire de España, ahora mismo", desc: "Cada punto es una estación real. Tócalo para ver el detalle." },
-        { title: "Ruta y origen", desc: "Escribe aquí tu punto de partida y destino para trazar el camino." },
-        { title: "Mapa 3D y sombras", desc: "Visualiza el mapa 3D en tiempo real para calcular tu ruta evitando el sol y aprovecha las sombras completamente gratis." },
+        { title: "Tu ruta bajo la sombra", desc: "Escribe tu punto de partida y destino y pulsa «Buscar ruta»: trazamos el camino a pie con más sombra a esa hora." },
+        { title: "Mapa 3D y sombras en vivo", desc: "Los edificios proyectan su sombra real según la posición del sol a cada minuto. Gira, acerca y explora." },
+        { title: "Capas del mapa", desc: "Activa o quita edificios 3D, sombras, ruta o la posición del sol para ver el mapa a tu gusto." },
+        { title: "Irradiación solar histórica", desc: "Pulsa el botón «Irradiación Solar» y toca cualquier punto: verás cuánto sol recibe según la NASA, por año, mes, día y hora." },
+        { title: "Árboles y paseo virtual", desc: "Activa «Árboles» para ver su sombra fresca, y con «Paseo virtual 3D» camina en primera persona por las calles sin salir de casa." },
         { title: "Pregúntale a Manolit∞", desc: "¿Algo no te queda claro? Pregúntaselo aquí en cualquier momento." },
         { title: "Apoya la causa", desc: "Manolit∞ siempre será gratis. Si quieres colaborar con los servidores, puedes apoyar en Ko-fi aquí." },
         { title: "Los hermanos de Manolit∞", desc: "Puedes visitar los proyectos (como Manolit∞ Forestal e Islas de Calor Sevilla)." }
@@ -31,9 +34,12 @@
         { title: "Escull la teva ciutat", desc: "Canvia aquí la ciutat per veure el seu aire en temps real." },
         { title: "Com vols que t'ho expliqui?", desc: "Tria el mode que millor et vagi — mateixa dada, explicat diferent." },
         { title: "L'aire d'Espanya, ara mateix", desc: "Cada punt és una estació real. Toca'l per veure el detall." },
-        { title: "Ruta i origen", desc: "Escriu aquí el teu punt de partida i destí per traçar el camí." },
-        { title: "Mapa 3D i ombres", desc: "Visualiza el mapa 3D en temps real per calcular la teva ruta evitant el sol i aprofitant les ombres completament gratis." },
-        { title: "Pregunta a Manolit∞", desc: "Alguna cosa no et queda clara? Pregunta'm-ho aquí en qualsevol moment." },
+        { title: "La teva ruta sota l'ombra", desc: "Escriu el punt de partida i destí i prem «Cerca ruta»: tracem el camí a peu amb més ombra a aquella hora." },
+        { title: "Mapa 3D i ombres en viu", desc: "Els edificis projecten la seva ombra real segons la posició del sol a cada minut. Gira, apropa i explora." },
+        { title: "Capes del mapa", desc: "Activa o treu edificis 3D, ombres, ruta o la posició del sol per veure el mapa al teu gust." },
+        { title: "Irradiació solar històrica", desc: "Prem el botó «Irradiació solar» i toca qualsevol punt: veuràs quant sol rep segons la NASA, per any, mes, dia i hora." },
+        { title: "Arbres i passeig virtual", desc: "Activa «Arbres» per veure la seva ombra fresca, i amb «Passeig virtual 3D» camina en primera persona pels carrers sense sortir de casa." },
+        { title: "Pregunta a Manolit∞", desc: "Alguna cosa no et queda clara? Pregunta-li aquí en qualsevol moment." },
         { title: "Dona suport a la causa", desc: "Manolit∞ sempre serà gratis. Si vols col·laborar amb els servidors, pots donar suport a Ko-fi aquí." },
         { title: "Els germans de Manolit∞", desc: "Pots visitar els projectes (com ara Manolit∞ Forestal i Illes de Calor Sevilla)." }
       ]
@@ -43,13 +49,16 @@
       prev: "Aurrekoa",
       done: "Amaitu",
       pasos: [
-        { title: "Hautu zure hiria", desc: "Aldatu hemen hiria denbora errealean bere airea ikusteko." },
-        { title: "Nola kontatzea nahi duzu?", desc: "Aukeratu onenak datorkizun modua — datu bera, ezberdin azaldua." },
-        { title: "Espainiako airea, orain bertan", desc: "Puntu bakoitza benetako estazio bat da. Ukitu xehetasuna ikusteko." },
-        { title: "Ibilbidea eta jatorria", desc: "Idatzi hemen zure abiapuntua eta helmuga bidea marrazteko." },
-        { title: "3D mapa eta itzalak", desc: "Ikusi 3D mapa denbora errealean zure ibilbidea kalkulatuz eguzkia saihestuz eta itzalak aprobetxatuz, guztiz doan." },
+        { title: "Hautatu zure hiria", desc: "Aldatu hemen hiria bere airea denbora errealean ikusteko." },
+        { title: "Nola kontatzea nahi duzu?", desc: "Aukeratu onena datorkizun modua — datu bera, ezberdin azaldua." },
+        { title: "Espainiako airea, orain bertan", desc: "Puntu bakoitza benetako estazioa da. Ukitu xehetasuna ikusteko." },
+        { title: "Zure ibilbidea itzalpean", desc: "Idatzi abiapuntua eta helmuga eta sakatu «Bilatu ibilbidea»: oinezko bidea marrazten dugu itzal gehien dagoela ordu horretan." },
+        { title: "3D mapa eta zuzeneko itzalak", desc: "Eraikinek benetako itzala proiektatzen dute eguzkiaren posizioaren arabera minuturo. Biratu, hurbildu eta arakatu." },
+        { title: "Maparen geruzak", desc: "Aktibatu edo desaktibatu 3D eraikinak, itzalak, ibilbidea edo eguzkiaren posizioa mapa zure gustura ikusteko." },
+        { title: "Eguzki-irradiazio historikoa", desc: "Sakatu «Eguzki-irradiazioa» botoia eta ukitu edozein puntu: NASAren arabera zenbat eguzki jasotzen duen ikusiko duzu, urtez, hilabetez, egunez eta orduz." },
+        { title: "Zuhaitzak eta paseo birtuala", desc: "Aktibatu «Zuhaitzak» haien itzal freskoa ikusteko, eta «3D paseo birtuala»-rekin lehen pertsonan ibili kaleetan etxetik atera gabe." },
         { title: "Galdetu Manolit∞-ri", desc: "Zerbait ez zaizu argi geratzen? Galdetu hemen edozein unetan." },
-        { title: "Babestu kausa", desc: "Manolit∞ beti doakoa izango da. Zerbitzariak lagundu nahi badituzu, Ko-fi bidez egin dezakezu." },
+        { title: "Babestu kausa", desc: "Manolit∞ beti doakoa izango da. Zerbitzariak lagundu nahi baduzu, Ko-fi bidez egin dezakezu hemen." },
         { title: "Manolit∞ren anai-arrebak", desc: "Proiektuak bisitatu ditzakezu (hala nola Manolit∞ Forestal eta Sevillako Bero-Uharteak)." }
       ]
     },
@@ -59,11 +68,14 @@
       done: "Rematar",
       pasos: [
         { title: "Escolle a túa cidade", desc: "Cambia aquí a cidade para ver o seu aire en tempo real." },
-        { title: "Como queres que o conte?", desc: "Escolle o modo que mellor te veña — mesmo dato, explicado distinto." },
+        { title: "Como queres que o conte?", desc: "Escolle o modo que mellor che veña — mesmo dato, explicado distinto." },
         { title: "O aire de España, agora mesmo", desc: "Cada punto é unha estación real. Tócao para ver o detalle." },
-        { title: "Ruta e orixe", desc: "Escribe aquí o teu punto de partida e destino para trazar o camiño." },
-        { title: "Mapa 3D e sombras", desc: "Visualiza o mapa 3D en tempo real para calcular a túa ruta evitando o sol e aproveitando as sombras completamente gratis." },
-        { title: "Pregúntalle a Manolit∞", desc: "Algo non che queda claro? Pregúntamo aquí en calquera momento." },
+        { title: "A túa ruta baixo a sombra", desc: "Escribe o punto de partida e destino e preme «Buscar ruta»: trazamos o camiño a pé con máis sombra a esa hora." },
+        { title: "Mapa 3D e sombras en vivo", desc: "Os edificios proxectan a súa sombra real segundo a posición do sol a cada minuto. Xira, achega e explora." },
+        { title: "Capas do mapa", desc: "Activa ou quita edificios 3D, sombras, ruta ou a posición do sol para ver o mapa ao teu gusto." },
+        { title: "Irradiación solar histórica", desc: "Preme o botón «Irradiación solar» e toca calquera punto: verás canto sol recibe segundo a NASA, por ano, mes, día e hora." },
+        { title: "Árbores e paseo virtual", desc: "Activa «Árbores» para ver a súa sombra fresca, e con «Paseo virtual 3D» camiña en primeira persoa polas rúas sen saír da casa." },
+        { title: "Pregúntalle a Manolit∞", desc: "Algo non che queda claro? Pregúntallo aquí en calquera momento." },
         { title: "Apoia a causa", desc: "Manolit∞ sempre será gratis. Se queres colaborar cos servidores, podes apoiar en Ko-fi aquí." },
         { title: "Os irmáns de Manolit∞", desc: "Podes visitar os proxectos (como Manolit∞ Forestal e Illas de Calor Sevilla)." }
       ]
@@ -76,11 +88,32 @@
         { title: "Choose your city", desc: "Change the city here to see its air in real time." },
         { title: "How do you want me to tell you?", desc: "Choose the mode that suits you best — same data, explained differently." },
         { title: "Spain's air, right now", desc: "Each point is a real station. Tap it to see details." },
-        { title: "Route and origin", desc: "Type your starting point and destination here to trace the path." },
-        { title: "3D Map & Shadows", desc: "View the 3D map in real time to calculate your route avoiding the sun and taking advantage of shadows, completely free." },
+        { title: "Your route in the shade", desc: "Type your start and destination and tap 'Find route': we trace the walking path with the most shade at that time." },
+        { title: "3D map and live shadows", desc: "Buildings cast their real shadow based on the sun's position every minute. Rotate, zoom and explore." },
+        { title: "Map layers", desc: "Turn 3D buildings, shadows, route or the sun's position on and off to see the map your way." },
+        { title: "Historical solar irradiation", desc: "Tap the 'Solar Irradiation' button and touch any point: see how much sun it gets from NASA data, by year, month, day and hour." },
+        { title: "Trees and virtual walk", desc: "Turn on 'Trees' to see their cool shade, and with '3D virtual walk' stroll first-person through the streets without leaving home." },
         { title: "Ask Manolit∞", desc: "Something not clear? Ask here at any time." },
         { title: "Support the cause", desc: "Manolit∞ will always be free. If you want to help with servers, you can support via Ko-fi here." },
-        { title: "Manolit∞'s Siblings", desc: "You can visit our projects (such as Manolit∞ Forestal and Seville Heat Islands)." }
+        { title: "Manolit∞'s siblings", desc: "You can visit our projects (such as Manolit∞ Forestal and Seville Heat Islands)." }
+      ]
+    },
+    ka: {
+      next: "შემდეგი",
+      prev: "წინა",
+      done: "დასრულება",
+      pasos: [
+        { title: "აირჩიე შენი ქალაქი", desc: "შეცვალე აქ ქალაქი, რომ მისი ჰაერი რეალურ დროში ნახო." },
+        { title: "როგორ გინდა, რომ მოგიყვე?", desc: "აირჩიე შესაბამისი რეჟიმი — იგივე მონაცემი, სხვაგვარად ახსნილი." },
+        { title: "ესპანეთის ჰაერი, ამ წუთას", desc: "თითოეული წერტილი ნამდვილი სადგურია. შეეხე დეტალების სანახავად." },
+        { title: "შენი მარშრუტი ჩრდილში", desc: "შეიყვანე საწყისი და დანიშნულება და დააჭირე «მარშრუტის ძიებას»: დაგიხაზავთ საფეხმავლო გზას ყველაზე მეტი ჩრდილით იმ საათისთვის." },
+        { title: "3D რუკა და ცოცხალი ჩრდილები", desc: "შენობები ასახავს რეალურ ჩრდილს მზის მდებარეობის მიხედვით ყოველ წუთს. შეატრიალე, მოაუარე და გამოიკვლიე." },
+        { title: "რუკის ფენები", desc: "ჩართე ან გამორთე 3D შენობები, ჩრდილები, მარშრუტი ან მზის პოზიცია, რომ რუკა შენივნაირად ნახო." },
+        { title: "მზის ისტორიული ინსოლაცია", desc: "დააჭირე ღილაკს «მზის ინსოლაცია» და შეეხე ნებისმიერ წერტილს: ნახავ, რამდენ მზეს იღებს NASA-ს მონაცემებით — წლით, თვით, დღით და საათით." },
+        { title: "ხეები და ვირტუალური გასეირნება", desc: "ჩართე «ხეები» მათი გრილი ჩრდილის სანახავად, ხოლო «3D ვირტუალური გასეირნებით» პირველი პირის ხედით ისეირნე ქუჩებში სახლიდან გაუსვლელად." },
+        { title: "ჰკითხე Manolit∞-ს", desc: "რაღაც გაუგებარია? ჰკითხე აქ, ნებისმიერ დროს." },
+        { title: "მხარი დაუჭირე საქმეს", desc: "Manolit∞ ყოველთვის უფასო იქნება. თუ გინდა სერვერების მხარდაჭერა, შეგიძლია Ko-fi-ზე აქ." },
+        { title: "Manolit∞-ს ძმები", desc: "შეგიძლია ეწვიო პროექტებს (მაგ. Manolit∞ Forestal და Sevilla Heat Islands)." }
       ]
     }
   };
@@ -128,9 +161,12 @@
       { element: '#map', popover: { title: t.pasos[2].title, description: t.pasos[2].desc, side: 'top', align: 'center' } },
       { element: '.rs-form', popover: { title: t.pasos[3].title, description: t.pasos[3].desc, side: 'top', align: 'start' } },
       { element: '#shadowRouteMap', popover: { title: t.pasos[4].title, description: t.pasos[4].desc, side: 'top', align: 'center' } },
-      { element: '.chat-fab', popover: { title: t.pasos[5].title, description: t.pasos[5].desc, side: 'left', align: 'end' } },
-      { element: '.donacion-boton', popover: { title: t.pasos[6].title, description: t.pasos[6].desc, side: 'top', align: 'center' } },
-      { element: '.footer-family', popover: { title: t.pasos[7].title, description: t.pasos[7].desc, side: 'top', align: 'center' } }
+      { element: '.rs-layer-toggles', popover: { title: t.pasos[5].title, description: t.pasos[5].desc, side: 'top', align: 'center' } },
+      { element: '#shadowRouteMap', popover: { title: t.pasos[6].title, description: t.pasos[6].desc, side: 'top', align: 'center' } },
+      { element: '#shadowRouteMap', popover: { title: t.pasos[7].title, description: t.pasos[7].desc, side: 'top', align: 'center' } },
+      { element: '.chat-fab', popover: { title: t.pasos[8].title, description: t.pasos[8].desc, side: 'left', align: 'end' } },
+      { element: '.donacion-boton', popover: { title: t.pasos[9].title, description: t.pasos[9].desc, side: 'top', align: 'center' } },
+      { element: '.footer-family', popover: { title: t.pasos[10].title, description: t.pasos[10].desc, side: 'top', align: 'center' } }
     ];
   }
 
@@ -179,6 +215,15 @@
       doneBtnText: t.done,
       steps: construirPasos(),
     });
+    // setConfig actualiza los pasos, pero el popover que YA está en pantalla
+    // conserva el idioma viejo; volvemos a "conducir" al paso activo para
+    // repintarlo con el idioma nuevo sin reiniciar el tutorial.
+    try {
+      const idx = (typeof driverObjActivo.getActiveIndex === 'function') ? driverObjActivo.getActiveIndex() : 0;
+      if (typeof idx === 'number' && typeof driverObjActivo.drive === 'function') {
+        driverObjActivo.drive(idx);
+      }
+    } catch (e) {}
   });
 
   window.iniciarTutorialManolito = function () {

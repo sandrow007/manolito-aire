@@ -133,9 +133,9 @@ CARACTERÍSTICAS PRINCIPALES DE LA WEB:
 - Si hay errores gramaticales, deduce el idioma y responde correctamente
 
 4. ACTITUD Y TONO:
-- Directo, técnico, sin rodeos
-- Ciencia pura, sin fantasía ni adornos innecesarios
-- Profesional pero accesible
+- Cercano, claro y amable: hablas a vecinos, no a ingenieros
+- Respuestas breves (2-4 frases) en lenguaje sencillo, sin tecnicismos
+- Solo entra en detalle técnico si el usuario lo pide expresamente
 - Sin disculpas innecesarias
 
 5. CONTINUIDAD GARANTIZADA:
@@ -147,7 +147,7 @@ CARACTERÍSTICAS PRINCIPALES DE LA WEB:
 6. RESPUESTAS COHERENTES:
 - SI LA PREGUNTA HA SIDO RESPUESTA ANTERIOR, DEBE SER EXACTAMENTE IGUAL
 - Reutiliza respuesta previa para preguntas idénticas (mismo texto, mismo idioma)
-- Si la pregunta es nueva, responde con profundidad técnica
+- Si la pregunta es nueva, responde de forma breve y clara
 
 [FIN DE INSTRUCCIONES SISTEMA]`;
 
@@ -177,7 +177,7 @@ Pregunta: "${question}"
 
 INSTRUCCIÓN FINAL: 
 1. Si esta pregunta ya fue respondida antes, usa la respuesta previa.
-2. Si la pregunta es nueva, responde con profundidad técnica.
+2. Si la pregunta es nueva, responde de forma breve y clara.
 3. Si es sobre manolitoaire.com, usa tu conocimiento específico. 
 4. Si es sobre otro tema, responde como experto universal.
 5. JAMÁS inventes información nueva si ya existe en la historia.
@@ -277,11 +277,9 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
 
     if (!finalAnswer) {
       console.error("Errores acumulados:", errors);
-      finalAnswer = `⚠️ Conexión inestable detectada. 
+      finalAnswer = `⚠️ Ahora mismo no puedo conectar con el servidor de Manolit∞.
 
-Sin embargo, puedo ayudarte: manolitoaire.com ofrece mapas 3D con cálculo de sombras solares en tiempo real, rutas peatonales bajo sombra, mapas de irradiación solar (NASA POWER) y calidad del aire (Copernicus CAMS).
-
-Reformula tu pregunta en un momento. Si el problema persiste, verifica tu conexión a internet.`;
+Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de abajo tienen respuesta inmediata.`;
       chatHistory.pop();
     }
 
@@ -341,25 +339,24 @@ Reformula tu pregunta en un momento. Si el problema persiste, verifica tu conexi
     if (sendBtn) sendBtn.disabled = disabled;
   }
 
-  const QUICK_QUESTIONS = {
-    es: [
-      "¿Cómo funcionan las sombras 3D?",
-      "¿Qué es la irradiación solar?",
-      "¿De dónde viene la calidad del aire?",
-      "¿Puedo trazar rutas bajo sombra?"
-    ],
-    en: [
-      "How do 3D shadows work?",
-      "What is solar irradiation?",
-      "Where does air quality data come from?",
-      "Can I route under shade?"
-    ]
-  };
-
   async function askQuick(key) {
     const btn = document.querySelector(`[data-quick="${key}"]`);
-    const questionText = btn ? btn.textContent : key;
+    const questionText = btn ? btn.textContent.trim() : key;
     if (!questionText) return;
+
+    // Respuesta local inmediata: las preguntas rápidas tienen respuesta
+    // fija en i18n.js (quick_aN), así que funcionan siempre, incluso sin
+    // conexión, y no hace falta llamar al servidor.
+    try {
+      const msgs = (typeof window.getMessages === 'function') ? window.getMessages(getRobustLang()) : null;
+      const aKey = 'quick_a' + String(key).replace(/^q/, '');
+      const canned = msgs && msgs[aKey];
+      if (canned) {
+        addBubble(questionText, 'user');
+        addBubble(canned, 'mano');
+        return;
+      }
+    } catch (e) { /* si falla, seguimos con la IA */ }
 
     await sendQuestion(questionText);
   }
@@ -409,6 +406,19 @@ Reformula tu pregunta en un momento. Si el problema persiste, verifica tu conexi
         setTimeout(openChat, 100);
       });
     }
+
+    // Cerrar al pulsar FUERA del panel (el overlay cubre toda la pantalla;
+    // si el clic cae en el propio overlay y no en el panel, se cierra).
+    // El botón X sigue funcionando igual que antes.
+    const overlay = document.getElementById('chatOverlay');
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeChat();
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeChat();
+    });
   });
 
   function initWelcomeMessage() {

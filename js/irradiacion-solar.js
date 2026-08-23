@@ -1,575 +1,874 @@
 /* ============================================================
-   CAPA DE IRRADIACIÓN SOLAR REAL — NASA POWER API  (v3)
-   ------------------------------------------------------------
-   Novedades v3:
-     A. HISTÓRICO REAL NAVEGABLE: año → mes → día → hora.
-        - Endpoint temporal/daily: serie diaria del año completo
-          (1 petición por año, cacheada).
-        - Endpoint temporal/hourly: perfil horario del día elegido
-          (1 petición por día, cacheada). Valores en Wh/m² por hora.
-     B. ATENUACIÓN VEGETAL REAL (umbra vs penumbra) con Turf.js 2D
-        contra los polígonos de sombra ya existentes (sin
-        raycasting 3D):
-          · Umbra (edificios, fuente 'sombras'): protección total
-            → multiplicador de exposición solar = 1.0
-          · Penumbra (árboles, 'arboles-globales-sombra'): luz
-            filtrada por la copa (transmitancia ~50 %)
-            → multiplicador = 2.0
-          · Sol directo (sin intersección): penalización severa
-            → multiplicador = 4.0
-        La clasificación se expone en window.manolitAireAtenuacion
-        para que el cálculo de rutas la reutilice.
-     C. El popup de clic muestra el dato REAL de esa hora/día,
-        el índice de nubosidad instantáneo (GHI/cielo despejado)
-        y la exposición efectiva con la atenuación aplicada.
-
-   Física: la ley del coseno de Lambert solo se aplica a la
-   componente DIRECTA al transponer a plano inclinado:
-     G_plano = DNI·cos(θ) + DHI·(1+cosβ)/2
-   La GHI horizontal de la NASA ya incluye el ángulo de
-   incidencia; multiplicarla otra vez por sin(altura) lo
-   contaría dos veces.
+   MANOLITO AIRE — i18n
+   Castellano, català, euskera, galego, English, ქართული (georgiano).
+   
+   v3: Añadidas traducciones para el sistema de rutas alternativas
+   con evaluación de porcentaje de sombra.
    ============================================================ */
 
-'use strict';
-
-(function () {
-  const CONFIG = {
-    lat: 37.3891,
-    lon: -5.9845,
-    nasaDiario: 'https://power.larc.nasa.gov/api/temporal/daily/point',
-    nasaHorario: 'https://power.larc.nasa.gov/api/temporal/hourly/point',
-    // GHI horizontal, directa normal y cielo despejado
-    parametrosNasa: ['ALLSKY_SFC_SW_DWN', 'ALLSKY_SFC_SW_DNI', 'CLRSKY_SFC_SW_DWN'],
-    anioMinimo: 1984, // las series horarias de POWER arrancan en 1984
-    esperaMapaMs: 15000,
-    inclinacionPanelGrados: 30,
-  };
-
-  // Multiplicadores de exposición solar (índice de castigo térmico al caminar)
-  const ATENUACION = {
-    UMBRA: { factor: 1.0, etiqueta: '🏢 Umbra — sombra de edificio (protección total)', color: '#7fa8c9' },
-    PENUMBRA: { factor: 2.0, etiqueta: '🌳 Penumbra — sombra de árbol (luz filtrada ~50 %)', color: '#8fbf7f' },
-    SOL: { factor: 4.0, etiqueta: '☀️ Sol directo — sin protección', color: '#e7b06a' },
-  };
-
-  const CONSTANTE_SOLAR = 1367; // W/m²
-
-  const RAMPA = [
-    { t: 0.0, color: [76, 0, 130] },
-    { t: 0.35, color: [200, 30, 30] },
-    { t: 0.65, color: [255, 140, 0] },
-    { t: 1.0, color: [255, 250, 200] },
-  ];
-
-  function interpolarColor(t) {
-    t = Math.max(0, Math.min(1, t));
-    for (let i = 0; i < RAMPA.length - 1; i++) {
-      const a = RAMPA[i], b = RAMPA[i + 1];
-      if (t >= a.t && t <= b.t) {
-        const f = (t - a.t) / (b.t - a.t);
-        return `rgb(${[0, 1, 2].map((c) => Math.round(a.color[c] + (b.color[c] - a.color[c]) * f)).join(',')})`;
-      }
-    }
-    return `rgb(${RAMPA[RAMPA.length - 1].color.join(',')})`;
+const translations = {
+  es: {
+    // General
+    tagline: "MAPA NACIONAL · DATOS EN VIVO",
+    modesLabel: "¿Cómo quieres que te lo cuente?",
+    mode_ciudadano_title: "Ciudadano",
+    mode_ciudadano_sub: "Claro y directo",
+    mode_cientifico_title: "Científico",
+    mode_cientifico_sub: "Con los datos",
+    mode_yayo_title: "Abuela / Abuelo",
+    mode_yayo_sub: "Letra grande, sin prisa",
+    mode_peque_title: "Peque (5 años)",
+    mode_peque_sub: "Con dibujitos",
+    imLost: "No lo entiendo, explícamelo",
+    mapTitle: "El aire de España, ahora mismo",
+    legendGood: "Buena",
+    legendMid: "Moderada",
+    legendBad: "Mala",
+    legendNote: "Los puntos son estaciones reales. El color entre ciudades es estimado, no medido.",
+    aboutLink: "¿Por qué existe esto?",
+    chatOpen: "Pregúntale a Manolit∞",
+    chatTitle: "Manolit∞ te lo explica",
+    chatWelcome: "Tranquilo/a, vamos con calma. Dime qué no entiendes, o elige una pregunta.",
+    chatPlaceholder: "Escribe tu pregunta aquí...",
+    chatSend: "Enviar",
+    footerFamily: "Manolit∞ Forestal · Islas de Calor Sevilla · Manolit∞ Aire",
+    orb_good: "bien", orb_mid: "regular", orb_bad: "malo",
+    quick_pm25: "¿Qué es el PM2.5?", quick_color: "¿Por qué cambia el color?", quick_bebe: "¿Es seguro salir con mi bebé?",
+    region_peninsula: "Península", region_canarias: "Canarias", region_baleares: "Baleares", region_ceutamelilla: "Ceuta / Melilla",
+    statusLoading: "Cargando datos en vivo…",
+    legalNotice: "Aviso legal",
+    backToMap: "← Volver al mapa",
+    privacy: "Privacidad",
+    cookies: "Cookies",
+    // shadows-route.js
+    searching: "Buscando…",
+    searchBtn: "Buscar ruta",
+    calculating: "Calculando ruta real por calles…",
+    geocoding: "Geocodificando direcciones…",
+    fillBoth: "Introduce origen y destino.",
+    notFound: "No se ha encontrado",
+    tryFormat: "Prueba a escribirla como calle, número, ciudad",
+    clickOrigin: "Haz clic en el mapa para marcar el origen.",
+    clickDestiny: "Origen marcado — haz clic en el destino.",
+    chooseDestination: "toca un punto del mapa para poner el destino.",
+    pointMap: "Punto marcado en el mapa",
+    myLocation: "Mi ubicación",
+    locationMarked: "Ubicación marcada como origen",
+    locationPrecision: "precisión reportada por el navegador",
+    locationNote: "sin GPS real puede ser orientativa",
+    locationDenied: "No se ha podido obtener tu ubicación (¿has denegado el permiso?).",
+    locationAsking: "Pidiendo permiso de ubicación…",
+    errorGeolocation: "Este navegador no permite compartir tu ubicación.",
+    errorSearch: "Error al buscar la ruta. Inténtalo de nuevo.",
+    routeReal: "Ruta",
+    routeFallback: "No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.",
+    routeEstimated: "tiempo estimado a paso normal",
+    minWalk: "min a pie",
+    sunPosition: "Posición solar",
+    sunBelow: "El sol está bajo el horizonte a esa hora — no hay sombras que proyectar.",
+    goldenHour: "Hora dorada",
+    blueHour: "Hora azul",
+    now: "Ahora",
+    simulating: "Simulando",
+    summerSolstice: "Solsticio de verano",
+    winterSolstice: "Solsticio de invierno",
+    btnSummer: "Verano",
+    btnWinter: "Invierno",
+    pickMap: "Elegir en el mapa",
+    captureView: "Capturar vista",
+    captureError: "No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.",
+    origin: "Origen",
+    destiny: "Destino",
+    noResults: "Sin resultados",
+    aqiGood: "Buena",
+    aqiModerate: "Moderada",
+    aqiBad: "Mala",
+    aqiNoData: "Sin datos",
+    layerBuildings: "Edificios 3D",
+    layerShadows: "Sombras",
+    layerRoute: "Ruta",
+    walkModeStart: "Iniciar caminata",
+    walkModeStop: "Detener caminata",
+    walkModeTracking: "Siguiendo tu posición…",
+    darkMapOn: "Mapa oscuro",
+    darkMapOff: "Mapa claro",
+    routeMapTitle: "Ruta y sombras 3D",
+    originPlaceholder: "Punto de origen",
+    destinationPlaceholder: "Punto de destino",
+    layerSun: "Posición del sol",
+    resetBtn: "Reiniciar",
+    // ============================================================
+    // NUEVO v3: Sistema de rutas alternativas con evaluación de sombra
+    // ============================================================
+    evaluatingShadows: "Evaluando sombra en rutas alternativas…",
+    inShadow: "en sombra",
+    chosenMoreShadow: "elegida por más sombra",
+    chosenShorter: "sombra similar, elegida la más corta",
+    shadowStats: "Sombra en tu ruta",
+    noShadowData: "Calculando…",
+    shadowGreat: "¡Excelente! La mitad de tu ruta está protegida del sol",
+    shadowGood: "Buena sombra en partes de la ruta",
+    shadowSome: "Algo de sombra disponible",
+    shadowNone: "Poca o ninguna sombra en esta ruta",
+    of: "de",
+    inShadowShort: "a la sombra",
+    alternativesAvailable: "Hay rutas alternativas comparadas",
+    // v4: claves que shadows-route.js pedía y no existían
+    virtualWalkStart: "Paseo virtual 3D",
+    virtualWalkStop: "Salir del paseo",
+    virtualWalkHint: "Recorre la ruta en primera persona, como si caminaras",
+    virtualWalkUnsupported: "Tu navegador no soporta el paseo virtual 3D.",
+    shadeCoverage: "Cobertura de sombra",
+    airDataUnavailable: "Datos de aire no disponibles ahora mismo.",
+    irrLayerBtn: "Irradiación Solar",
+    irrPanelTitle: "Histórico de irradiación",
+    irrYear: "Año",
+    irrMonth: "Mes",
+    irrDay: "Día",
+    irrHour: "Hora (UTC)",
+    irrLoading: "Consultando NASA POWER…",
+    irrAnnualLoading: "Cargando resumen del año…",
+    irrNoData: "La NASA no tiene dato para esa fecha (¿futuro o demasiado reciente?).",
+    irrError: "No se ha podido consultar la NASA ahora mismo. Reintenta en unos segundos.",
+    irrDayOfMonth: "Día del mes: ",
+    irrHourOfDay: "Hora del día: ",
+    irrUmbra: "🏢 Umbra — sombra de edificio (protección total)",
+    irrPenumbra: "🌳 Penumbra — sombra de árbol (luz filtrada ~50 %)",
+    irrSol: "☀️ Sol directo — sin protección",
+    irrExposureFactor: "Factor de exposición",
+    irrEffectiveExposure: "Exposición efectiva aquí",
+    irrAnnual: "Irradiación anual",
+    irrBestDay: "Mejor día",
+    irrWorstDay: "peor",
+    irrPeakHours: "Horas de sol pico",
+    irrRealDays: "días reales"
+  },
+  ca: {
+    tagline: "MAPA NACIONAL · DADES EN VIU",
+    modesLabel: "Com vols que t'ho expliqui?",
+    mode_ciudadano_title: "Ciutadà",
+    mode_ciudadano_sub: "Clar i directe",
+    mode_cientifico_title: "Científic",
+    mode_cientifico_sub: "Amb les dades",
+    mode_yayo_title: "Àvia / Avi",
+    mode_yayo_sub: "Lletra gran, sense pressa",
+    mode_peque_title: "Petit (5 anys)",
+    mode_peque_sub: "Amb dibuixos",
+    imLost: "No ho entenc, explica-m'ho",
+    mapTitle: "L'aire d'Espanya, ara mateix",
+    legendGood: "Bona",
+    legendMid: "Moderada",
+    legendBad: "Dolenta",
+    legendNote: "Els punts són estacions reals. El color entre ciutats és estimat, no mesurat.",
+    aboutLink: "Per què existeix això?",
+    chatOpen: "Pregunta-li a Manolit∞",
+    chatTitle: "Manolit∞ t'ho explica",
+    chatWelcome: "Tranquil·litat, anem a poc a poc. Digue'm què no entens, o tria una pregunta.",
+    chatPlaceholder: "Escriu la teva pregunta aquí...",
+    chatSend: "Enviar",
+    footerFamily: "Manolit∞ Forestal · Illes de Calor Sevilla · Manolit∞ Aire",
+    orb_good: "bé", orb_mid: "regular", orb_bad: "dolent",
+    quick_pm25: "Què és el PM2.5?", quick_color: "Per què canvia el color?", quick_bebe: "És segur sortir amb el meu nadó?",
+    region_peninsula: "Península", region_canarias: "Canàries", region_baleares: "Balears", region_ceutamelilla: "Ceuta / Melilla",
+    statusLoading: "Carregant dades en directe…",
+    legalNotice: "Avís legal",
+    backToMap: "← Torna al mapa",
+    privacy: "Privacitat",
+    cookies: "Cookies",
+    searching: "Buscant…",
+    searchBtn: "Buscar ruta",
+    calculating: "Calculant ruta real pels carrers…",
+    geocoding: "Geocodificant adreces…",
+    fillBoth: "Introdueix origen i destí.",
+    notFound: "No s'ha trobat",
+    tryFormat: "Prova d'escriure-la com carrer, número, ciutat",
+    clickOrigin: "Fes clic al mapa per marcar l'origen.",
+    clickDestiny: "Origen marcat — fes clic al destí.",
+    chooseDestination: "toca un punt del mapa per posar el destí.",
+    pointMap: "Punt marcat al mapa",
+    myLocation: "La meva ubicació",
+    locationMarked: "Ubicació marcada com a origen",
+    locationPrecision: "precisió reportada pel navegador",
+    locationNote: "sense GPS real pot ser orientativa",
+    locationDenied: "No s'ha pogut obtenir la teva ubicació (has denegat el permís?).",
+    locationAsking: "Demanant permís d'ubicació…",
+    errorGeolocation: "Aquest navegador no permet compartir la teva ubicació.",
+    errorSearch: "Error en buscar la ruta. Torna-ho a intentar.",
+    routeReal: "Ruta",
+    routeFallback: "No s'ha pogut calcular la ruta pels carrers (servidor de rutes ocupat) — mostrant línia directa.",
+    routeEstimated: "temps estimat a pas normal",
+    minWalk: "min a peu",
+    sunPosition: "Posició solar",
+    sunBelow: "El sol està sota l'horitzó a aquesta hora — no hi ha ombres que projectar.",
+    goldenHour: "Hora daurada",
+    blueHour: "Hora blava",
+    now: "Ara",
+    simulating: "Simulant",
+    summerSolstice: "Solstici d'estiu",
+    winterSolstice: "Solstici d'hivern",
+    btnSummer: "Estiu",
+    btnWinter: "Hivern",
+    pickMap: "Triar al mapa",
+    captureView: "Capturar vista",
+    captureError: "No s'ha pogut generar la imatge (limitació del servidor de mapes). Prova de fer una captura de pantalla normal.",
+    origin: "Origen",
+    destiny: "Destí",
+    noResults: "Sense resultats",
+    aqiGood: "Bona",
+    aqiModerate: "Moderada",
+    aqiBad: "Dolenta",
+    aqiNoData: "Sense dades",
+    layerBuildings: "Edificis 3D",
+    layerShadows: "Ombres",
+    layerRoute: "Ruta",
+    walkModeStart: "Iniciar caminada",
+    walkModeStop: "Aturar caminada",
+    walkModeTracking: "Seguint la teva posició…",
+    darkMapOn: "Mapa fosc",
+    darkMapOff: "Mapa clar",
+    routeMapTitle: "Ruta i ombres 3D",
+    originPlaceholder: "Punt d'origen",
+    destinationPlaceholder: "Punt de destí",
+    layerSun: "Posició del sol",
+    resetBtn: "Reiniciar",
+    // ============================================================
+    // NUEVO v3: Sistema de rutas alternativas amb avaluació d'ombra
+    // ============================================================
+    evaluatingShadows: "Avaluant ombra en rutes alternatives…",
+    inShadow: "en ombra",
+    chosenMoreShadow: "triada per més ombra",
+    chosenShorter: "ombra similar, triada la més curta",
+    shadowStats: "Ombra a la teva ruta",
+    noShadowData: "Calculant…",
+    shadowGreat: "¡Excel·lent! La meitat de la teva ruta està protegida del sol",
+    shadowGood: "Bona ombra en parts de la ruta",
+    shadowSome: "Una mica d'ombra disponible",
+    shadowNone: "Poca o cap ombra en aquesta ruta",
+    of: "de",
+    inShadowShort: "a l'ombra",
+    alternativesAvailable: "Hi ha rutes alternatives comparades",
+    virtualWalkStart: "Passeig virtual 3D",
+    virtualWalkStop: "Surt del passeig",
+    virtualWalkHint: "Recorre la ruta en primera persona, com si hi caminéssis",
+    virtualWalkUnsupported: "El teu navegador no suporta el passeig virtual 3D.",
+    shadeCoverage: "Cobertura d'ombra",
+    airDataUnavailable: "Dades de l'aire no disponibles ara mateix.",
+    irrLayerBtn: "Irradiació Solar",
+    irrPanelTitle: "Històric d'irradiació",
+    irrYear: "Any",
+    irrMonth: "Mes",
+    irrDay: "Dia",
+    irrHour: "Hora (UTC)",
+    irrLoading: "Consultant NASA POWER…",
+    irrAnnualLoading: "Carregant resum de l'any…",
+    irrNoData: "La NASA no té dada per a eixa data (futur o massa recent?).",
+    irrError: "No s'ha pogut consultar la NASA ara mateix. Torna-ho a provar en uns segons.",
+    irrDayOfMonth: "Dia del mes: ",
+    irrHourOfDay: "Hora del dia: ",
+    irrUmbra: "🏢 Umbra — ombra d'edifici (protecció total)",
+    irrPenumbra: "🌳 Penumbra — ombra d'arbre (llum filtrada ~50 %)",
+    irrSol: "☀️ Sol directe — sense protecció",
+    irrExposureFactor: "Factor d'exposició",
+    irrEffectiveExposure: "Exposició efectiva ací",
+    irrAnnual: "Irradiació anual",
+    irrBestDay: "Millor dia",
+    irrWorstDay: "pitjor",
+    irrPeakHours: "Hores de sol pic",
+    irrRealDays: "dies reals"
+  },
+  eu: {
+    tagline: "ESTATU MAPA · ZUZENEKO DATUAK",
+    modesLabel: "Nola nahi duzu azaltzea?",
+    mode_ciudadano_title: "Herritarra",
+    mode_ciudadano_sub: "Argi eta zuzen",
+    mode_cientifico_title: "Zientifikoa",
+    mode_cientifico_sub: "Datuekin",
+    mode_yayo_title: "Amona / Aitona",
+    mode_yayo_sub: "Letra handia, lasai",
+    mode_peque_title: "Txikia (5 urte)",
+    mode_peque_sub: "Marrazkiekin",
+    imLost: "Ez dut ulertzen, azaldu",
+    mapTitle: "Espainiako airea, orain",
+    legendGood: "Ona",
+    legendMid: "Ertaina",
+    legendBad: "Txarra",
+    legendNote: "Puntuak benetako estazioak dira. Hirien arteko kolorea estimatua da, ez neurtua.",
+    aboutLink: "Zergatik dago hau?",
+    chatOpen: "Galdetu Manolitori",
+    chatTitle: "Manolitok azalduko dizu",
+    chatWelcome: "Lasai, poliki-poliki goaz. Esan zer ez duzun ulertzen, edo aukeratu galdera bat.",
+    chatPlaceholder: "Idatzi zure galdera hemen...",
+    chatSend: "Bidali",
+    footerFamily: "Manolit∞ Forestal · Sevillako Bero Uharteak · Manolito Aire",
+    orb_good: "ondo", orb_mid: "erdi", orb_bad: "gaizki",
+    quick_pm25: "Zer da PM2.5?", quick_color: "Zergatik aldatzen da kolorea?", quick_bebe: "Seguru al dago haurrarekin irtetea?",
+    region_peninsula: "Penintsula", region_canarias: "Kanariar Uharteak", region_baleares: "Balear Uharteak", region_ceutamelilla: "Ceuta / Melilla",
+    statusLoading: "Zuzeneko datuak kargatzen…",
+    legalNotice: "Lege oharra",
+    backToMap: "← Itzuli mapara",
+    privacy: "Pribatutasuna",
+    cookies: "Cookieak",
+    searching: "Bilatzen…",
+    searchBtn: "Ibilbidea bilatu",
+    calculating: "Kaleetako benetako ibilbidea kalkulatzen…",
+    geocoding: "Helbideak geokodifikatzen…",
+    fillBoth: "Sartu jatorria eta helmuga.",
+    notFound: "Ez da aurkitu",
+    tryFormat: "Saiatu kalea, zenbakia, hiria formatuan idazten",
+    clickOrigin: "Egin klik mapan jatorria markatzeko.",
+    clickDestiny: "Jatorria markatuta — egin klik helmugan.",
+    chooseDestination: "sakatu mapako puntu bat helmuga jartzeko.",
+    pointMap: "Mapan markatutako puntua",
+    myLocation: "Nire kokapena",
+    locationMarked: "Kokapena jatorri gisa markatuta",
+    locationPrecision: "nabigatzaileak jakinarazitako zehaztasuna",
+    locationNote: "benetako GPSik gabe orientagarria izan daiteke",
+    locationDenied: "Ezin izan da zure kokapena lortu (baimena ukatu duzu?).",
+    locationAsking: "Kokapen baimena eskatzen…",
+    errorGeolocation: "Nabigatzaile honek ez du zure kokapena partekatzea onartzen.",
+    errorSearch: "Errorea ibilbidea bilatzean. Saiatu berriro.",
+    routeReal: "Ibilbidea",
+    routeFallback: "Ezin izan da kaleetako ibilbidea kalkulatu (zerbitzaria okupatuta) — lerro zuzena erakusten.",
+    routeEstimated: "denbora estimatua pausu normalean",
+    minWalk: "min oinez",
+    sunPosition: "Eguzkiaren posizioa",
+    sunBelow: "Eguzkia horizontearen azpian dago ordu horretan — ez dago itzalik proiektatzeko.",
+    goldenHour: "Urrezko ordua",
+    blueHour: "Ordu urdina",
+    now: "Orain",
+    simulating: "Simulatzen",
+    summerSolstice: "Udako solstizioa",
+    winterSolstice: "Neguko solstizioa",
+    btnSummer: "Uda",
+    btnWinter: "Negua",
+    pickMap: "Aukeratu mapan",
+    captureView: "Ikuspegia atera",
+    captureError: "Ezin izan da irudia sortu (mapa-zerbitzariaren muga). Probatu pantaila-argazki arrunt bat.",
+    origin: "Jatorria",
+    destiny: "Helmuga",
+    noResults: "Emaitzarik gabe",
+    aqiGood: "Ona",
+    aqiModerate: "Ertaina",
+    aqiBad: "Txarra",
+    aqiNoData: "Daturik gabe",
+    layerBuildings: "3D eraikinak",
+    layerShadows: "Itzalak",
+    layerRoute: "Ibilbidea",
+    walkModeStart: "Oinez hasi",
+    walkModeStop: "Oinez gelditu",
+    walkModeTracking: "Zure kokapena jarraitzen…",
+    darkMapOn: "Mapa iluna",
+    darkMapOff: "Mapa argia",
+    routeMapTitle: "Ibilbidea eta itzal 3D",
+    originPlaceholder: "Jatorri puntua",
+    destinationPlaceholder: "Helmuga puntua",
+    layerSun: "Eguzkiaren posizioa",
+    resetBtn: "Berriz hasi",
+    // ============================================================
+    // NUEVO v3: Ibilbide alternatiboen sistema itzulpenarekin
+    // ============================================================
+    evaluatingShadows: "Ibilbide alternatiboetan itzala ebaluatzen…",
+    inShadow: "itzalean",
+    chosenMoreShadow: "itzal gehiago duelako aukeratua",
+    chosenShorter: "itzal antzekoa, motzena aukeratua",
+    shadowStats: "Itzala zure ibilbidean",
+    noShadowData: "Kalkulatzen…",
+    shadowGreat: "Bikain! Zure ibilbidearen erdia eguzkitik babestuta dago",
+    shadowGood: "Itzal ona ibilbidearen zatietan",
+    shadowSome: "Itzal apur bat eskuragarri",
+    shadowNone: "Itzal gutxi edo bat ere ez ibilbide honetan",
+    of: "-",
+    inShadowShort: "itzalean",
+    alternativesAvailable: "Ibilbide alternatiboak daude konparatuta",
+    virtualWalkStart: "Paseo birtuala 3D",
+    virtualWalkStop: "Irten paseotik",
+    virtualWalkHint: "Ibilbidea lehen pertsonan zeharkatu, oinez joango bazina bezala",
+    virtualWalkUnsupported: "Zure nabigatzaileak ez du 3D paseo birtuala onartzen.",
+    shadeCoverage: "Itzal-estaldura",
+    airDataUnavailable: "Airearen datuak ez daude eskuragarri oraintxe.",
+    irrLayerBtn: "Eguzki-irradiazioa",
+    irrPanelTitle: "Irradiazio-historikoa",
+    irrYear: "Urtea",
+    irrMonth: "Hilabetea",
+    irrDay: "Eguna",
+    irrHour: "Ordua (UTC)",
+    irrLoading: "NASA POWER kontsultatzen…",
+    irrAnnualLoading: "Urteko laburpena kargatzen…",
+    irrNoData: "NASAk ez du daturik data horretarako (etorkizuna edo berrieegia?).",
+    irrError: "Ezin izan da NASA kontsultatu oraintxe. Saiatu berriz segundo batzuetan.",
+    irrDayOfMonth: "Hilabetearen eguna: ",
+    irrHourOfDay: "Eguneko ordua: ",
+    irrUmbra: "🏢 Umbra — eraikinaren itzala (babes osoa)",
+    irrPenumbra: "🌳 Penumbra — zuhaitzaren itzala (iragazitako argia ~%50)",
+    irrSol: "☀️ Eguzki zuzena — babesik gabe",
+    irrExposureFactor: "Esposizio-faktorea",
+    irrEffectiveExposure: "Benetako esposizioa hemen",
+    irrAnnual: "Urteko irradiazioa",
+    irrBestDay: "Egun onena",
+    irrWorstDay: "txarrena",
+    irrPeakHours: "Eguzki-puntako orduak",
+    irrRealDays: "egun erreala"
+  },
+  gl: {
+    tagline: "MAPA NACIONAL · DATOS EN VIVO",
+    modesLabel: "Como queres que cho conte?",
+    mode_ciudadano_title: "Cidadán",
+    mode_ciudadano_sub: "Claro e directo",
+    mode_cientifico_title: "Científico",
+    mode_cientifico_sub: "Cos datos",
+    mode_yayo_title: "Avoa / Avó",
+    mode_yayo_sub: "Letra grande, sen présa",
+    mode_peque_title: "Peque (5 anos)",
+    mode_peque_sub: "Con debuxos",
+    imLost: "Non o entendo, explícamo",
+    mapTitle: "O aire de España, agora mesmo",
+    legendGood: "Boa",
+    legendMid: "Moderada",
+    legendBad: "Mala",
+    legendNote: "Os puntos son estacións reais. A cor entre cidades é estimada, non medida.",
+    aboutLink: "Por que existe isto?",
+    chatOpen: "Pregúntalle a Manolit∞",
+    chatTitle: "Manolit∞ cho explica",
+    chatWelcome: "Tranquilo/a, imos con calma. Dime que non entendes, ou escolle unha pregunta.",
+    chatPlaceholder: "Escribe a túa pregunta aquí...",
+    chatSend: "Enviar",
+    footerFamily: "Manolit∞ Forestal · Illas de Calor Sevilla · Manolito Aire",
+    orb_good: "ben", orb_mid: "regular", orb_bad: "mal",
+    quick_pm25: "Que é o PM2.5?", quick_color: "Por que cambia a cor?", quick_bebe: "É seguro saír co meu bebé?",
+    region_peninsula: "Península", region_canarias: "Canarias", region_baleares: "Baleares", region_ceutamelilla: "Ceuta / Melilla",
+    statusLoading: "Cargando datos en vivo…",
+    legalNotice: "Aviso legal",
+    backToMap: "← Volver ao mapa",
+    backToMap: "← Volver al mapa",
+    privacy: "Privacidade",
+    cookies: "Cookies",
+    searching: "Buscando…",
+    searchBtn: "Buscar ruta",
+    calculating: "Calculando ruta real polas rúas…",
+    geocoding: "Xeocodificando enderezos…",
+    fillBoth: "Introduce orixe e destino.",
+    notFound: "Non se atopou",
+    tryFormat: "Proba a escribila como rúa, número, cidade",
+    clickOrigin: "Fai clic no mapa para marcar a orixe.",
+    clickDestiny: "Orixe marcada — fai clic no destino.",
+    chooseDestination: "toca un punto do mapa para pór o destino.",
+    pointMap: "Punto marcado no mapa",
+    myLocation: "A miña ubicación",
+    locationMarked: "Ubicación marcada como orixe",
+    locationPrecision: "precisión reportada polo navegador",
+    locationNote: "sen GPS real pode ser orientativa",
+    locationDenied: "Non se puido obter a túa ubicación (denegaches o permiso?).",
+    locationAsking: "Pedindo permiso de ubicación…",
+    errorGeolocation: "Este navegador non permite compartir a túa ubicación.",
+    errorSearch: "Erro ao buscar a ruta. Inténtao de novo.",
+    routeReal: "Ruta",
+    routeFallback: "Non se puido calcular a ruta polas rúas (servidor de rutas ocupado) — mostrando liña directa.",
+    routeEstimated: "tempo estimado a paso normal",
+    minWalk: "min a pé",
+    sunPosition: "Posición solar",
+    sunBelow: "O sol está baixo o horizonte a esa hora — non hai sombras que proxectar.",
+    goldenHour: "Hora dourada",
+    blueHour: "Hora azul",
+    now: "Agora",
+    simulating: "Simulando",
+    summerSolstice: "Solsticio de verán",
+    winterSolstice: "Solsticio de inverno",
+    btnSummer: "Verán",
+    btnWinter: "Inverno",
+    pickMap: "Elixir no mapa",
+    captureView: "Capturar vista",
+    captureError: "Non se puido xerar a imaxe (limitación do servidor de mapas). Proba a facer unha captura de pantalla normal.",
+    origin: "Orixe",
+    destiny: "Destino",
+    noResults: "Sen resultados",
+    aqiGood: "Boa",
+    aqiModerate: "Moderada",
+    aqiBad: "Mala",
+    aqiNoData: "Sen datos",
+    layerBuildings: "Edificios 3D",
+    layerShadows: "Sombras",
+    layerRoute: "Ruta",
+    walkModeStart: "Iniciar camiñata",
+    walkModeStop: "Deter camiñata",
+    walkModeTracking: "Seguindo a túa posición…",
+    darkMapOn: "Mapa escuro",
+    darkMapOff: "Mapa claro",
+    routeMapTitle: "Ruta e sombras 3D",
+    originPlaceholder: "Punto de orixe",
+    destinationPlaceholder: "Punto de destino",
+    layerSun: "Posición do sol",
+    resetBtn: "Reiniciar",
+    // ============================================================
+    // NUEVO v3: Sistema de rutas alternativas con avaliación de sombra
+    // ============================================================
+    evaluatingShadows: "Avaliando sombra en rutas alternativas…",
+    inShadow: "en sombra",
+    chosenMoreShadow: "elixida por máis sombra",
+    chosenShorter: "sombra similar, elixida a máis curta",
+    shadowStats: "Sombra na túa ruta",
+    noShadowData: "Calculando…",
+    shadowGreat: "¡Excelente! A metade da túa ruta está protexida do sol",
+    shadowGood: "Boa sombra en partes da ruta",
+    shadowSome: "Algo de sombra dispoñible",
+    shadowNone: "Pouca ou ningunha sombra nesta ruta",
+    of: "de",
+    inShadowShort: "á sombra",
+    alternativesAvailable: "Hai rutas alternativas comparadas",
+    virtualWalkStart: "Paseo virtual 3D",
+    virtualWalkStop: "Saír do paseo",
+    virtualWalkHint: "Percorre a ruta en primeira persoa, coma se camiñaras",
+    virtualWalkUnsupported: "O teu navegador non soporta o paseo virtual 3D.",
+    shadeCoverage: "Cobertura de sombra",
+    airDataUnavailable: "Datos do aire non dispoñibles agora mesmo.",
+    irrLayerBtn: "Irradiación Solar",
+    irrPanelTitle: "Histórico de irradiación",
+    irrYear: "Ano",
+    irrMonth: "Mes",
+    irrDay: "Día",
+    irrHour: "Hora (UTC)",
+    irrLoading: "Consultando NASA POWER…",
+    irrAnnualLoading: "Cargando resumo do ano…",
+    irrNoData: "A NASA non ten dato para esa data (futuro ou recente de máis?).",
+    irrError: "Non se puido consultar a NASA agora mesmo. Téntao de novo nuns segundos.",
+    irrDayOfMonth: "Día do mes: ",
+    irrHourOfDay: "Hora do día: ",
+    irrUmbra: "🏢 Umbra — sombra de edificio (protección total)",
+    irrPenumbra: "🌳 Penumbra — sombra de árbore (luz filtrada ~50 %)",
+    irrSol: "☀️ Sol directo — sen protección",
+    irrExposureFactor: "Factor de exposición",
+    irrEffectiveExposure: "Exposición efectiva aquí",
+    irrAnnual: "Irradiación anual",
+    irrBestDay: "Mellor día",
+    irrWorstDay: "peor",
+    irrPeakHours: "Horas de sol pico",
+    irrRealDays: "días reais"
+  },
+  en: {
+    tagline: "NATIONAL MAP · LIVE DATA",
+    modesLabel: "How do you want it explained?",
+    mode_ciudadano_title: "Everyday",
+    mode_ciudadano_sub: "Clear and direct",
+    mode_cientifico_title: "Scientific",
+    mode_cientifico_sub: "With the data",
+    mode_yayo_title: "Grandparent",
+    mode_yayo_sub: "Big text, no rush",
+    mode_peque_title: "Kid (age 5)",
+    mode_peque_sub: "With little drawings",
+    imLost: "I don't get it, explain please",
+    mapTitle: "Spain's air, right now",
+    legendGood: "Good",
+    legendMid: "Moderate",
+    legendBad: "Bad",
+    legendNote: "Dots are real stations. The colour between cities is estimated, not measured.",
+    aboutLink: "Why does this exist?",
+    chatOpen: "Ask Manolit∞",
+    chatTitle: "Manolit∞ explains it",
+    chatWelcome: "No worries, let's take it slow. Tell me what you don't understand, or pick a question.",
+    chatPlaceholder: "Type your question here...",
+    chatSend: "Send",
+    footerFamily: "Manolit∞ Forestal · Sevilla Heat Islands · Manolit∞ Aire",
+    orb_good: "good", orb_mid: "moderate", orb_bad: "bad",
+    quick_pm25: "What is PM2.5?", quick_color: "Why does the colour change?", quick_bebe: "Is it safe to go out with my baby?",
+    region_peninsula: "Mainland", region_canarias: "Canary Islands", region_baleares: "Balearic Islands", region_ceutamelilla: "Ceuta / Melilla",
+    statusLoading: "Loading live data…",
+    legalNotice: "Legal notice",
+    backToMap: "← Back to the map",
+    privacy: "Privacy",
+    cookies: "Cookies",
+    searching: "Searching…",
+    searchBtn: "Search route",
+    calculating: "Calculating real walking route…",
+    geocoding: "Geocoding addresses…",
+    fillBoth: "Enter origin and destination.",
+    notFound: "Not found",
+    tryFormat: "Try writing it as street, number, city",
+    clickOrigin: "Click on the map to mark the origin.",
+    clickDestiny: "Origin marked — click on the destination.",
+    chooseDestination: "tap a point on the map to set the destination.",
+    pointMap: "Point marked on map",
+    myLocation: "My location",
+    locationMarked: "Location marked as origin",
+    locationPrecision: "precision reported by browser",
+    locationNote: "without real GPS it may be approximate",
+    locationDenied: "Could not get your location (did you deny permission?).",
+    locationAsking: "Requesting location permission…",
+    errorGeolocation: "This browser does not allow sharing your location.",
+    errorSearch: "Error searching route. Try again.",
+    routeReal: "Route",
+    routeFallback: "Could not calculate walking route (routing server busy) — showing straight line.",
+    routeEstimated: "estimated time at normal pace",
+    minWalk: "min walking",
+    sunPosition: "Sun position",
+    sunBelow: "The sun is below the horizon at that time — no shadows to project.",
+    goldenHour: "Golden hour",
+    blueHour: "Blue hour",
+    now: "Now",
+    simulating: "Simulating",
+    summerSolstice: "Summer solstice",
+    winterSolstice: "Winter solstice",
+    btnSummer: "Summer",
+    btnWinter: "Winter",
+    pickMap: "Pick on map",
+    captureView: "Capture view",
+    captureError: "Could not generate image (map server limitation). Try a regular screenshot.",
+    origin: "Origin",
+    destiny: "Destination",
+    noResults: "No results",
+    aqiGood: "Good",
+    aqiModerate: "Moderate",
+    aqiBad: "Bad",
+    aqiNoData: "No data",
+    layerBuildings: "3D buildings",
+    layerShadows: "Shadows",
+    layerRoute: "Route",
+    walkModeStart: "Start walking",
+    walkModeStop: "Stop walking",
+    walkModeTracking: "Tracking your position…",
+    darkMapOn: "Dark map",
+    darkMapOff: "Light map",
+    routeMapTitle: "Route & 3D shadows",
+    originPlaceholder: "Starting point",
+    destinationPlaceholder: "Destination point",
+    layerSun: "Sun position",
+    resetBtn: "Reset",
+    // ============================================================
+    // NUEVO v3: Alternative route system with shadow evaluation
+    // ============================================================
+    evaluatingShadows: "Evaluating shadow on alternative routes…",
+    inShadow: "in shadow",
+    chosenMoreShadow: "chosen for more shadow",
+    chosenShorter: "similar shadow, chosen the shorter one",
+    shadowStats: "Shadow on your route",
+    noShadowData: "Calculating…",
+    shadowGreat: "Excellent! Half your route is protected from the sun",
+    shadowGood: "Good shadow on parts of the route",
+    shadowSome: "Some shadow available",
+    shadowNone: "Little or no shadow on this route",
+    of: "of",
+    inShadowShort: "in shadow",
+    alternativesAvailable: "Alternative routes compared",
+    virtualWalkStart: "3D virtual walk",
+    virtualWalkStop: "Exit walk",
+    virtualWalkHint: "Travel the route in first person, as if you were walking",
+    virtualWalkUnsupported: "Your browser does not support the 3D virtual walk.",
+    shadeCoverage: "Shade coverage",
+    airDataUnavailable: "Air data unavailable right now.",
+    irrLayerBtn: "Solar Irradiation",
+    irrPanelTitle: "Irradiation history",
+    irrYear: "Year",
+    irrMonth: "Month",
+    irrDay: "Day",
+    irrHour: "Hour (UTC)",
+    irrLoading: "Querying NASA POWER…",
+    irrAnnualLoading: "Loading yearly summary…",
+    irrNoData: "NASA has no data for that date (future or too recent?).",
+    irrError: "Could not query NASA right now. Try again in a few seconds.",
+    irrDayOfMonth: "Day of month: ",
+    irrHourOfDay: "Hour of day: ",
+    irrUmbra: "🏢 Umbra — building shadow (full protection)",
+    irrPenumbra: "🌳 Penumbra — tree shadow (filtered light ~50 %)",
+    irrSol: "☀️ Direct sun — unprotected",
+    irrExposureFactor: "Exposure factor",
+    irrEffectiveExposure: "Effective exposure here",
+    irrAnnual: "Yearly irradiation",
+    irrBestDay: "Best day",
+    irrWorstDay: "worst",
+    irrPeakHours: "Peak sun hours",
+    irrRealDays: "real days"
+  },
+  ka: {
+    tagline: "ეროვნული რუკა · ცოცხალი მონაცემები",
+    modesLabel: "როგორ გინდა, რომ გითხრა?",
+    mode_ciudadano_title: "მოქალაქე",
+    mode_ciudadano_sub: "მარტივად და ნათლად",
+    mode_cientifico_title: "მეცნიერი",
+    mode_cientifico_sub: "მონაცემებით",
+    mode_yayo_title: "ბებია / ბაბუა",
+    mode_yayo_sub: "დიდი ასოებით, ნელა",
+    mode_peque_title: "პატარა (5 წლის)",
+    mode_peque_sub: "სურათებით",
+    imLost: "ვერ გავიგე, ამიხსენი",
+    mapTitle: "ესპანეთის ჰაერი, ახლავე",
+    legendGood: "კარგი",
+    legendMid: "ზომიერი",
+    legendBad: "ცუდი",
+    legendNote: "წერტილები ნამდვილი სადგურებია. ქალაქებს შორის ფერი შეფასებულია, არა გაზომილი.",
+    aboutLink: "რატომ არსებობს ეს?",
+    chatOpen: "ჰკითხე Manolit∞-ს",
+    chatTitle: "Manolit∞ გიხსნის",
+    chatWelcome: "მშვიდად, ნელ-ნელა. მითხარი, რა ვერ გაიგე, ან აირჩიე კითხვა.",
+    chatPlaceholder: "დაწერე შენი კითხვა აქ...",
+    chatSend: "გაგზავნა",
+    footerFamily: "Manolit∞ Forestal · სითბოს კუნძულები სევილია · Manolit∞ Aire",
+    orb_good: "კარგი",
+    orb_mid: "საშუალო",
+    orb_bad: "ცუდი",
+    quick_pm25: "რა არის PM2.5?",
+    quick_color: "რატომ იცვლება ფერი?",
+    quick_bebe: "უსაფრთხოა თუ არა ჩვილთან გასვლა?",
+    region_peninsula: "ნახევარკუნძული",
+    region_canarias: "კანარი",
+    region_baleares: "ბალეარი",
+    region_ceutamelilla: "სეუტა / მელილია",
+    statusLoading: "ცოცხალი მონაცემები იტვირთება…",
+    legalNotice: "სამართლებრივი შეტყობინება",
+    backToMap: "← რუკაზე დაბრუნება",
+    privacy: "კონფიდენციალურობა",
+    cookies: "ქუქიები",
+    searching: "ძებნა…",
+    searchBtn: "მარშრუტის ძებნა",
+    calculating: "რეალური მარშრუტი ქუჩებით ითვლება…",
+    geocoding: "მისამართები გეოკოდირდება…",
+    fillBoth: "შეიყვანე საწყისი და დანიშნულება.",
+    notFound: "ვერ მოიძებნა",
+    tryFormat: "სცადე ფორმატი: ქუჩა, ნომერი, ქალაქი",
+    clickOrigin: "დააწკაპუნე რუკაზე საწყისის მოსანიშნად.",
+    clickDestiny: "საწყისი მონიშნულია — დააწკაპუნე დანიშნულებაზე.",
+    chooseDestination: "შეეხე რუკის წერტილს დანიშნულების დასაყენებლად.",
+    pointMap: "წერტილი მონიშნულია რუკაზე",
+    myLocation: "ჩემი მდებარეობა",
+    locationMarked: "მდებარეობა მონიშნულია როგორც საწყისი",
+    locationPrecision: "ბრაუზერის მიერ მოცემული სიზუსტე",
+    locationNote: "ნამდვილი GPS-ის გარეშე შეიძლება სავარაუდო იყოს",
+    locationDenied: "მდებარეობის მიღება ვერ მოხერხდა (ხომ არ უარს თქვი ნებართვაზე?).",
+    locationAsking: "მდებარეობის ნებართვა ითხოვება…",
+    errorGeolocation: "ეს ბრაუზერი არ იზიარებს შენს მდებარეობას.",
+    errorSearch: "მარშრუტის ძებნის შეცდომა. სცადე თავიდან.",
+    routeReal: "მარშრუტი",
+    routeFallback: "ქუჩების მარშრუტი ვერ გამოითვალა (სერვერი დაკავებულია) — ჩანს პირდაპირი ხაზი.",
+    routeEstimated: "სავარაუდო დრო ჩვეულებრივი სვლით",
+    minWalk: "წთ ფეხით",
+    sunPosition: "მზის პოზიცია",
+    sunBelow: "მზე ჰორიზონტქვეშაა იმ დროს — ჩრდილი არ არის.",
+    goldenHour: "ოქროს საათი",
+    blueHour: "ლურჯი საათი",
+    now: "ახლა",
+    simulating: "სიმულაცია",
+    summerSolstice: "ზაფხულის მზედგომა",
+    winterSolstice: "ზამთრის მზედგომა",
+    btnSummer: "ზაფხული",
+    btnWinter: "ზამთარი",
+    pickMap: "არჩევა რუკაზე",
+    captureView: "ხედის გადაღება",
+    captureError: "სურათის გენერაცია ვერ მოხერხდა (რუკის სერვერის შეზღუდვა). სცადე ჩვეულებრივი ეკრანის ანაბეჭდი.",
+    origin: "საწყისი",
+    destiny: "დანიშნულება",
+    noResults: "შედეგები არ არის",
+    aqiGood: "კარგი",
+    aqiModerate: "ზომიერი",
+    aqiBad: "ცუდი",
+    aqiNoData: "მონაცემები არ არის",
+    layerBuildings: "3D შენობები",
+    layerShadows: "ჩრდილები",
+    layerRoute: "მარშრუტი",
+    walkModeStart: "სეირნობის დაწყება",
+    walkModeStop: "სეირნობის შეჩერება",
+    walkModeTracking: "შენი პოზიცია ითვალთვალება…",
+    darkMapOn: "ბნელი რუკა",
+    darkMapOff: "ნათელი რუკა",
+    routeMapTitle: "მარშრუტი და 3D ჩრდილები",
+    originPlaceholder: "საწყისი წერტილი",
+    destinationPlaceholder: "დანიშნულების წერტილი",
+    layerSun: "მზის პოზიცია",
+    resetBtn: "გადატვირთვა",
+    evaluatingShadows: "ალტერნატიულ მარშრუტებზე ჩრდილი ფასდება…",
+    s: "წმ",
+    inShadow: "ჩრდილში",
+    chosenMoreShadow: "არჩეულია მეტი ჩრდილის გამო",
+    chosenShorter: "ჩრდილი მსგავსია, არჩეულია უფრო მოკლე",
+    shadowStats: "ჩრდილი შენს მარშრუტზე",
+    noShadowData: "ითვლება…",
+    shadowGreat: "შესანიშნავია! შენი მარშრუტის ნახევარი მზისგან დაცულია",
+    shadowGood: "მარშრუტის ნაწილებში კარგი ჩრდილია",
+    shadowSome: "ცოტა ჩრდილია ხელმისაწვდომი",
+    shadowNone: "ამ მარშრუტზე ჩრდილი თითქმის არ არის",
+    of: "-დან",
+    inShadowShort: "ჩრდილში",
+    alternativesAvailable: "ალტერნატიული მარშრუტები შედარებულია",
+    virtualWalkStart: "ვირტუალური სეირნობა 3D",
+    virtualWalkStop: "სეირნობიდან გასვლა",
+    virtualWalkHint: "გაიარე მარშრუტი პირველი პირის თვალით, თითქოს დადიხარ",
+    virtualWalkUnsupported: "შენი ბრაუზერი არ უჭერ მხარს 3D ვირტუალურ სეირნობას.",
+    shadeCoverage: "ჩრდილის დაფარვა",
+    airDataUnavailable: "ჰაერის მონაცემები ახლა მიუწვდომელია.",
+    irrLayerBtn: "მზის რადიაცია",
+    irrPanelTitle: "რადიაციის ისტორია",
+    irrYear: "წელი",
+    irrMonth: "თვე",
+    irrDay: "დღე",
+    irrHour: "საათი (UTC)",
+    irrLoading: "NASA POWER-ის მოთხოვნა…",
+    irrAnnualLoading: "წლის შეჯამება იტვირთება…",
+    irrNoData: "NASA-ს ამ თარიღისთვის მონაცემი არ აქვს.",
+    irrError: "NASA-სთან კავშირი ახლა ვერ ხერხდება. სცადე რამდენიმე წამში.",
+    irrDayOfMonth: "თვის დღე: ",
+    irrHourOfDay: "დღის საათი: ",
+    irrUmbra: "🏢 უმბრა — შენობის ჩრდილი (სრული დაცვა)",
+    irrPenumbra: "🌳 პენუმბრა — ხის ჩრდილი (გაფილტრული სინათლე ~50 %)",
+    irrSol: "☀️ პირდაპირი მზე — დაცვის გარეშე",
+    irrExposureFactor: "ექსპოზიციის ფაქტორი",
+    irrEffectiveExposure: "ეფექტური ექსპოზიცია აქ",
+    irrAnnual: "წლიური რადიაცია",
+    irrBestDay: "საუკეთესო დღე",
+    irrWorstDay: "უარესი დღე",
+    irrPeakHours: "მზის პიკური საათები",
+    irrRealDays: "რეალური დღე",
   }
+};
 
-  function esperarMapa() {
-    return new Promise((resolve, reject) => {
-      const t0 = Date.now();
-      (function intento() {
-        if (window.manolitAireMap) return resolve(window.manolitAireMap);
-        if (Date.now() - t0 > CONFIG.esperaMapaMs) {
-          return reject(new Error('No se ha encontrado window.manolitAireMap'));
-        }
-        setTimeout(intento, 200);
-      })();
+let currentLang = localStorage.getItem('manolito_lang') || 'es';
+
+function getMessages() {
+  return translations[currentLang] || translations.es;
+}
+
+let dict = translations[currentLang] || translations.es;
+
+function applyTranslations() {
+  dict = translations[currentLang] || translations.es;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key]) el.textContent = dict[key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (dict[key]) el.setAttribute('placeholder', dict[key]);
+  });
+  document.querySelectorAll('#langToggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === currentLang);
+  });
+  document.documentElement.setAttribute('lang', currentLang);
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('manolito_lang', lang);
+  applyTranslations();
+  // Disparamos evento para que shadows-route.js y otros scripts sepan que
+  // cambió el idioma y retraduzcan sus propios textos dinámicos — sin
+  // recargar la página.
+  document.dispatchEvent(new CustomEvent('langChanged', { detail: { lang: lang } }));
+  if (typeof renderHero === 'function') renderHero();
+}
+
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', () => {
+  applyTranslations();
+  const toggle = document.getElementById('langToggle');
+  if (toggle) {
+    toggle.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') setLang(e.target.dataset.lang);
     });
   }
+});
 
-  esperarMapa().then(iniciar).catch((e) => console.warn('[irradiacion-solar]', e.message));
-
-  async function iniciar(map) {
-    const contenedorMapa = map.getContainer();
-
-    // ================= CAPAS A RECOLOREAR =================
-    function capaEdificios() {
-      return (map.getStyle().layers || [])
-        .find((l) => l.type === 'fill-extrusion' && /building/i.test(l.id));
-    }
-    function capaTerrenoOSuelo() {
-      return (map.getStyle().layers || [])
-        .find((l) => l.type === 'fill' && /^(land|landuse|landcover)/i.test(l.id));
-    }
-    const capasRecoloreables = [
-      { id: () => capaEdificios()?.id, prop: 'fill-extrusion-color' },
-      { id: () => 'capa-arboles-globales-3d', prop: 'fill-extrusion-color' },
-      { id: () => capaTerrenoOSuelo()?.id, prop: 'fill-color' },
-    ];
-    const coloresOriginales = new Map();
-
-    function aplicarColorATodasLasCapas(colorCss) {
-      capasRecoloreables.forEach(({ id, prop }) => {
-        const capaId = id();
-        if (!capaId || !map.getLayer(capaId)) return;
-        if (!coloresOriginales.has(capaId)) {
-          try { coloresOriginales.set(capaId, map.getPaintProperty(capaId, prop)); } catch (e) { }
-        }
-        try { map.setPaintProperty(capaId, prop, colorCss); } catch (e) { }
-      });
-    }
-    function restaurarColoresOriginales() {
-      capasRecoloreables.forEach(({ id, prop }) => {
-        const capaId = id();
-        if (!capaId || !map.getLayer(capaId) || !coloresOriginales.has(capaId)) return;
-        try { map.setPaintProperty(capaId, prop, coloresOriginales.get(capaId)); } catch (e) { }
-      });
-    }
-
-    // ================= NASA POWER: CACHÉS =================
-    const cacheDiaria = new Map();   // anio -> { 'YYYYMMDD': {ghi, dni, cielo} }  (kWh/m²/día)
-    const cacheHoraria = new Map();  // 'YYYYMMDD' -> { hora(0-23): {ghi, dni, cielo} } (Wh/m² esa hora)
-
-    function claveFecha(anio, mes, dia) {
-      return `${anio}${String(mes).padStart(2, '0')}${String(dia).padStart(2, '0')}`;
-    }
-    function esValorValido(v) { return v != null && v !== -999; }
-
-    async function obtenerAnioDiario(anio) {
-      if (cacheDiaria.has(anio)) return cacheDiaria.get(anio);
-      const url = new URL(CONFIG.nasaDiario);
-      url.searchParams.set('parameters', CONFIG.parametrosNasa.join(','));
-      url.searchParams.set('community', 'RE');
-      url.searchParams.set('longitude', CONFIG.lon);
-      url.searchParams.set('latitude', CONFIG.lat);
-      url.searchParams.set('start', `${anio}0101`);
-      url.searchParams.set('end', `${anio}1231`);
-      url.searchParams.set('format', 'JSON');
-      const r = await fetch(url.toString());
-      if (!r.ok) throw new Error(`NASA POWER HTTP ${r.status}`);
-      const datos = await r.json();
-      const series = datos?.properties?.parameter;
-      if (!series?.[CONFIG.parametrosNasa[0]]) throw new Error('Serie diaria no recibida');
-      const porDia = {};
-      for (const [clave, ghi] of Object.entries(series[CONFIG.parametrosNasa[0]])) {
-        if (!esValorValido(ghi)) continue;
-        const dni = series[CONFIG.parametrosNasa[1]]?.[clave];
-        const cielo = series[CONFIG.parametrosNasa[2]]?.[clave];
-        porDia[clave] = {
-          ghi,
-          dni: esValorValido(dni) ? dni : null,
-          cieloDespejado: esValorValido(cielo) ? cielo : null,
-        };
-      }
-      cacheDiaria.set(anio, porDia);
-      return porDia;
-    }
-
-    async function obtenerDiaHorario(anio, mes, dia) {
-      const clave = claveFecha(anio, mes, dia);
-      if (cacheHoraria.has(clave)) return cacheHoraria.get(clave);
-      const url = new URL(CONFIG.nasaHorario);
-      url.searchParams.set('parameters', CONFIG.parametrosNasa.join(','));
-      url.searchParams.set('community', 'RE');
-      url.searchParams.set('longitude', CONFIG.lon);
-      url.searchParams.set('latitude', CONFIG.lat);
-      url.searchParams.set('start', clave);
-      url.searchParams.set('end', clave);
-      url.searchParams.set('format', 'JSON');
-      url.searchParams.set('time-standard', 'UTC');
-      const r = await fetch(url.toString());
-      if (!r.ok) throw new Error(`NASA POWER HTTP ${r.status}`);
-      const datos = await r.json();
-      const series = datos?.properties?.parameter;
-      if (!series?.[CONFIG.parametrosNasa[0]]) throw new Error('Serie horaria no recibida');
-      const porHora = {};
-      for (let h = 0; h < 24; h++) {
-        const claveHora = `${clave}${String(h).padStart(2, '0')}`;
-        const ghi = series[CONFIG.parametrosNasa[0]]?.[claveHora];
-        if (!esValorValido(ghi)) continue;
-        const dni = series[CONFIG.parametrosNasa[1]]?.[claveHora];
-        const cielo = series[CONFIG.parametrosNasa[2]]?.[claveHora];
-        porHora[h] = {
-          ghi, // Wh/m² en esa hora (media climatológica real)
-          dni: esValorValido(dni) ? dni : null,
-          cieloDespejado: esValorValido(cielo) ? cielo : null,
-        };
-      }
-      cacheHoraria.set(clave, porHora);
-      return porHora;
-    }
-
-    // ================= FÍSICA SOLAR =================
-    function radiacionExtraterrestreDiaria(anio, mes, dia) {
-      const diaJuliano = Math.floor((Date.UTC(anio, mes - 1, dia) - Date.UTC(anio, 0, 1)) / 86400000) + 1;
-      const phi = (CONFIG.lat * Math.PI) / 180;
-      const delta = ((23.45 * Math.PI) / 180) * Math.sin(((2 * Math.PI) * (284 + diaJuliano)) / 365);
-      const omegaS = Math.acos(Math.max(-1, Math.min(1, -Math.tan(phi) * Math.tan(delta))));
-      const e0 = 1 + 0.033 * Math.cos((2 * Math.PI * diaJuliano) / 365);
-      return ((24 * 3600 * CONSTANTE_SOLAR * e0) / Math.PI) *
-        (omegaS * Math.sin(phi) * Math.sin(delta) + Math.cos(phi) * Math.cos(delta) * Math.sin(omegaS)) / 3.6e6;
-    }
-
-    // Transposición a plano inclinado: Lambert solo a la directa
-    function irradianciaEnPlanoInclinado(ghi, dni, alturaSolarRad, acimutSolRad) {
-      const beta = (CONFIG.inclinacionPanelGrados * Math.PI) / 180;
-      const sinAlt = Math.max(Math.sin(alturaSolarRad), 0.05);
-      const directaHorizontal = dni != null ? dni * sinAlt : ghi * 0.7;
-      const dhi = Math.max(0, ghi - directaHorizontal);
-      const cosIncidencia = Math.max(0,
-        Math.sin(alturaSolarRad) * Math.cos(beta) +
-        Math.cos(alturaSolarRad) * Math.sin(beta) * Math.cos(acimutSolRad));
-      const factorRb = cosIncidencia / sinAlt;
-      const directaPlano = dni != null ? dni * cosIncidencia : directaHorizontal * factorRb;
-      const difusaPlano = dhi * (1 + Math.cos(beta)) / 2;
-      return directaPlano + difusaPlano;
-    }
-
-    // ================= ATENUACIÓN VEGETAL (umbra/penumbra) =================
-    // Intersección 2D con Turf.js contra las fuentes de sombra existentes.
-    function clasificarPunto(lngLat) {
-      if (typeof turf === 'undefined') return { tipo: 'SOL', ...ATENUACION.SOL };
-      const punto = turf.point([lngLat.lng, lngLat.lat]);
-      const dentro = (idFuente) => {
-        const fuente = map.getSource(idFuente);
-        if (!fuente || !fuente._data) return false;
-        for (const poligono of (fuente._data.features || [])) {
-          try { if (turf.booleanPointInPolygon(punto, poligono)) return true; }
-          catch (e) { /* geometría rara */ }
-        }
-        return false;
-      };
-      if (dentro('sombras')) return { tipo: 'UMBRA', ...ATENUACION.UMBRA };
-      if (dentro('arboles-globales-sombra')) return { tipo: 'PENUMBRA', ...ATENUACION.PENUMBRA };
-      return { tipo: 'SOL', ...ATENUACION.SOL };
-    }
-    // API pública: el motor de rutas puede ponderar cada tramo con este factor
-    window.manolitAireAtenuacion = (lngLat) => clasificarPunto(lngLat);
-
-    // ================= APLICAR ESTADO (día + hora) =================
-    async function aplicarIrradiancia(anio, mes, dia, hora) {
-      mostrarEstadoPanel('Consultando NASA POWER…');
-      try {
-        if (typeof SunCalc === 'undefined') throw new Error('SunCalc no está cargado');
-
-        // Dato diario (kWh/m²/día) — serie real del año completo
-        const porDia = await obtenerAnioDiario(anio);
-        const datoDia = porDia[claveFecha(anio, mes, dia)];
-        if (!datoDia) throw new Error('Sin dato diario para esa fecha');
-
-        // Dato horario (Wh/m²) — perfil real del día elegido
-        let datoHora = null;
-        try { datoHora = (await obtenerDiaHorario(anio, mes, dia))[hora] ?? null; }
-        catch (e) { /* el endpoint horario puede fallar en años antiguos */ }
-
-        // Posición solar real en esa fecha/hora (UTC ≈ hora civil −1/−2 en Sevilla;
-        // la serie horaria de POWER es UTC, así que comparamos en UTC)
-        const fecha = new Date(Date.UTC(anio, mes - 1, dia, hora, 0, 0));
-        const posSol = SunCalc.getPosition(fecha, CONFIG.lat, CONFIG.lon);
-        const deNoche = posSol.altitude <= 0;
-
-        // Color: índice de nubosidad instantáneo (GHI / cielo despejado),
-        // físico y comparable entre horas, días y años
-        let tColor;
-        if (deNoche) tColor = 0;
-        else if (datoHora?.cieloDespejado > 0) tColor = datoHora.ghi / datoHora.cieloDespejado;
-        else tColor = datoDia.ghi / radiacionExtraterrestreDiaria(anio, mes, dia); // Kt diario
-        aplicarColorATodasLasCapas(interpolarColor(deNoche ? 0 : (tColor - 0.2) / 0.85));
-
-        const partes = [
-          `Día: ${datoDia.ghi.toFixed(2)} kWh/m²`,
-          `· plano ${CONFIG.inclinacionPanelGrados}°: ${irradianciaEnPlanoInclinado(datoDia.ghi, datoDia.dni, Math.max(posSol.altitude, 0), posSol.azimuth).toFixed(2)}`,
-        ];
-        if (datoHora) partes.unshift(`Hora ${String(hora).padStart(2, '0')}:00 UTC: ${datoHora.ghi.toFixed(0)} Wh/m²`);
-        partes.push(`· sol ${(posSol.altitude * 180 / Math.PI).toFixed(1)}°${deNoche ? ' (noche)' : ''}`);
-        mostrarEstadoPanel(partes.join(' '));
-      } catch (e) {
-        console.warn('[irradiacion-solar]', e.message);
-        mostrarEstadoPanel(e.message.includes('Sin dato')
-          ? 'La NASA no tiene dato para esa fecha (¿futuro o demasiado reciente?).'
-          : 'No se ha podido consultar la NASA ahora mismo. Reintenta en unos segundos.', true);
-      }
-    }
-
-    // ================= UI =================
-    let panelEl = null;
-    let estadoEl = null;
-    let capaActiva = false;
-
-    function mostrarEstadoPanel(texto, esError) {
-      if (!estadoEl) return;
-      estadoEl.textContent = texto;
-      estadoEl.style.color = esError ? '#e05252' : '#c9a86f';
-    }
-
-    function construirPanel() {
-      const estilo = document.createElement('style');
-      estilo.textContent = `
-        #irrPanel{
-          position:absolute; right:12px; top:108px; z-index:6; width:245px;
-          background:linear-gradient(160deg,#262c38,#1b2029 70%);
-          border:1px solid #ffffff1f; border-right:2px solid #c98a4b;
-          border-radius:3px 12px 3px 12px; padding:12px 14px; color:#e9e4d8;
-          font-family:inherit; box-shadow:0 8px 18px rgba(0,0,0,.28); display:none;
-        }
-        #irrPanel.rs-visible{ display:block; }
-        #irrPanel .irr-cabecera{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-        #irrPanel label{ font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#c98a4b; display:block; margin-bottom:4px; }
-        #irrCerrar{ background:transparent; border:none; color:#999; font-size:16px; cursor:pointer; line-height:1; padding:0 2px; }
-        #irrCerrar:hover{ color:#fff; }
-        #irrPanel input[type=number]{
-          width:100%; margin-bottom:8px; background:#00000026; color:#e9e4d8;
-          border:1px solid #ffffff1f; border-radius:2px; padding:6px; font-family:inherit; font-size:13px;
-          color-scheme: dark;
-        }
-        #irrPanel input[type=range]{
-          -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; cursor:pointer; margin:4px 0 2px;
-        }
-        #irrPanel input[type=range]::-webkit-slider-runnable-track{ height:3px; background:#3a4150; border-radius:2px; }
-        #irrPanel input[type=range]::-webkit-slider-thumb{
-          -webkit-appearance:none; margin-top:-6px; width:15px; height:15px; border-radius:50%;
-          background:#e7b06a; border:2px solid #1b2029; box-shadow:0 0 0 3px #e7b06a2e;
-        }
-        #irrPanel .irr-leyenda{ font-size:9.5px; color:#8a8f9c; margin-bottom:6px; padding:0 2px; display:flex; justify-content:space-between; }
-        #irrResumen{ font-size:10.5px; line-height:1.6; border-top:1px dashed #c98a4b55; margin-top:8px; padding-top:8px; }
-        #irrResumen b{ color:#e7b06a; }
-        #irrLeyendaAtenuacion{ font-size:9.5px; line-height:1.5; color:#8a8f9c; border-top:1px dashed #c98a4b55; margin-top:6px; padding-top:6px; }
-        #irrEstado{ font-size:10.5px; margin-top:4px; line-height:1.4; }
-        @media (max-width:480px){ #irrPanel{ width:calc(100vw - 24px); right:12px; top:100px; } }
-      `;
-      document.head.appendChild(estilo);
-
-      panelEl = document.createElement('div');
-      panelEl.id = 'irrPanel';
-
-      const cabecera = document.createElement('div');
-      cabecera.className = 'irr-cabecera';
-      const tituloCabecera = document.createElement('label');
-      tituloCabecera.style.marginBottom = '0';
-      tituloCabecera.textContent = 'Histórico de irradiación';
-      const btnCerrar = document.createElement('button');
-      btnCerrar.type = 'button';
-      btnCerrar.id = 'irrCerrar';
-      btnCerrar.textContent = '×';
-      btnCerrar.setAttribute('aria-label', 'Cerrar');
-      cabecera.append(tituloCabecera, btnCerrar);
-
-      const ahora = new Date();
-      const anioMax = ahora.getFullYear();
-
-      // Año
-      const labelAnio = document.createElement('label');
-      labelAnio.textContent = 'Año';
-      const inputAnio = document.createElement('input');
-      inputAnio.type = 'number';
-      inputAnio.min = String(CONFIG.anioMinimo);
-      inputAnio.max = String(anioMax);
-      inputAnio.value = String(Math.min(anioMax, ahora.getFullYear() - 1)); // año cerrado por defecto
-
-      // Mes
-      const labelMes = document.createElement('label');
-      labelMes.textContent = 'Mes';
-      const sliderMes = document.createElement('input');
-      sliderMes.type = 'range';
-      sliderMes.min = '1'; sliderMes.max = '12'; sliderMes.step = '1';
-      sliderMes.value = String(ahora.getMonth() + 1);
-      const leyendaMes = document.createElement('div');
-      leyendaMes.className = 'irr-leyenda';
-      ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].forEach((l) => {
-        const s = document.createElement('span'); s.textContent = l; leyendaMes.appendChild(s);
-      });
-
-      // Día
-      const labelDia = document.createElement('label');
-      labelDia.textContent = 'Día';
-      const sliderDia = document.createElement('input');
-      sliderDia.type = 'range';
-      sliderDia.min = '1'; sliderDia.max = '31'; sliderDia.step = '1';
-      sliderDia.value = String(Math.min(15, ahora.getDate()));
-      const leyendaDia = document.createElement('div');
-      leyendaDia.className = 'irr-leyenda';
-      const spanDia = document.createElement('span');
-      leyendaDia.append('Día del mes: ', spanDia);
-
-      // Hora
-      const labelHora = document.createElement('label');
-      labelHora.textContent = 'Hora (UTC)';
-      const sliderHora = document.createElement('input');
-      sliderHora.type = 'range';
-      sliderHora.min = '0'; sliderHora.max = '23'; sliderHora.step = '1';
-      sliderHora.value = '12';
-      const leyendaHora = document.createElement('div');
-      leyendaHora.className = 'irr-leyenda';
-      const spanHora = document.createElement('span');
-      leyendaHora.append('Hora del día: ', spanHora);
-
-      const resumenEl = document.createElement('div');
-      resumenEl.id = 'irrResumen';
-      resumenEl.textContent = 'Cargando resumen del año…';
-
-      const leyendaAtenuacion = document.createElement('div');
-      leyendaAtenuacion.id = 'irrLeyendaAtenuacion';
-      leyendaAtenuacion.innerHTML =
-        'Atenuación al pinchar en el mapa:<br>' +
-        `${ATENUACION.UMBRA.etiqueta} (×${ATENUACION.UMBRA.factor})<br>` +
-        `${ATENUACION.PENUMBRA.etiqueta} (×${ATENUACION.PENUMBRA.factor})<br>` +
-        `${ATENUACION.SOL.etiqueta} (×${ATENUACION.SOL.factor})`;
-
-      estadoEl = document.createElement('div');
-      estadoEl.id = 'irrEstado';
-
-      function diasDelMes(anio, mes) { return new Date(anio, mes, 0).getDate(); }
-
-      function fechaHoraValidos() {
-        const anio = Math.max(CONFIG.anioMinimo, Math.min(anioMax, Number(inputAnio.value) || anioMax));
-        let mes = Number(sliderMes.value);
-        if (anio === anioMax) mes = Math.min(mes, ahora.getMonth() + 1);
-        const maxDia = diasDelMes(anio, mes);
-        sliderDia.max = String(maxDia);
-        let dia = Math.min(Number(sliderDia.value), maxDia);
-        if (anio === anioMax && mes === ahora.getMonth() + 1) dia = Math.min(dia, ahora.getDate());
-        const hora = Number(sliderHora.value);
-        return { anio, mes, dia, hora };
-      }
-
-      let temporizador = null;
-      function onCambio() {
-        const { anio, mes, dia, hora } = fechaHoraValidos();
-        sliderDia.value = String(dia);
-        spanDia.textContent = `${dia}/${mes}/${anio}`;
-        spanHora.textContent = `${String(hora).padStart(2, '0')}:00 UTC`;
-        if (!capaActiva) return;
-        clearTimeout(temporizador);
-        temporizador = setTimeout(() => aplicarIrradiancia(anio, mes, dia, hora), 250);
-      }
-      [sliderMes, sliderDia, sliderHora].forEach((s) => s.addEventListener('input', onCambio));
-      inputAnio.addEventListener('change', () => {
-        cargarResumenAnual(Number(inputAnio.value));
-        onCambio();
-      });
-
-      btnCerrar.addEventListener('click', () => {
-        if (capaActiva) document.getElementById('rsBtnIrradiacion')?.click();
-      });
-
-      panelEl.append(
-        cabecera,
-        labelAnio, inputAnio,
-        labelMes, sliderMes, leyendaMes,
-        labelDia, sliderDia, leyendaDia,
-        labelHora, sliderHora, leyendaHora,
-        resumenEl, leyendaAtenuacion, estadoEl
-      );
-      contenedorMapa.appendChild(panelEl);
-
-      // Inicializar etiquetas
-      onCambio();
-
-      return { inputAnio, resumenEl, fechaHoraValidos, onCambio };
-    }
-
-    const { inputAnio, resumenEl, fechaHoraValidos, onCambio } = construirPanel();
-
-    // ---- Resumen anual: reutiliza la MISMA petición diaria del año ----
-    async function cargarResumenAnual(anio) {
-      resumenEl.textContent = 'Cargando resumen del año…';
-      try {
-        const porDia = await obtenerAnioDiario(anio);
-        const valores = Object.values(porDia).map((d) => d.ghi);
-        if (!valores.length) throw new Error('sin datos');
-        const media = valores.reduce((a, b) => a + b, 0) / valores.length;
-        const mejor = valores.reduce((a, b) => Math.max(a, b));
-        const peor = valores.reduce((a, b) => Math.min(a, b));
-        resumenEl.innerHTML =
-          `Irradiación anual: <b>${Math.round(media * 365)} kWh/m²</b> (${valores.length} días reales)<br>` +
-          `Mejor día: <b>${mejor.toFixed(2)}</b> · peor: <b>${peor.toFixed(2)} kWh/m²</b><br>` +
-          `Horas de sol pico: <b>${media.toFixed(1)} h/día</b>`;
-      } catch (e) {
-        resumenEl.textContent = 'No se ha podido calcular el resumen del año.';
-      }
-    }
-
-    function inyectarBotonCapa() {
-      const panelControles = document.getElementById('rsMapControls');
-      if (!panelControles || document.getElementById('rsBtnIrradiacion')) return;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'rsBtnIrradiacion';
-      btn.textContent = 'Irradiación Solar';
-      btn.addEventListener('click', () => {
-        capaActiva = !capaActiva;
-        btn.classList.toggle('rs-activo', capaActiva);
-        panelEl.classList.toggle('rs-visible', capaActiva);
-        if (capaActiva) {
-          const { anio, mes, dia, hora } = fechaHoraValidos();
-          cargarResumenAnual(anio);
-          aplicarIrradiancia(anio, mes, dia, hora);
-          activarInspeccionPorClic();
-        } else {
-          restaurarColoresOriginales();
-          mostrarEstadoPanel('');
-          desactivarInspeccionPorClic();
-        }
-      });
-      panelControles.appendChild(btn);
-    }
-    setTimeout(inyectarBotonCapa, 600);
-
-    // ================= INSPECCIÓN POR CLIC =================
-    let popupInspeccion = null;
-
-    async function alClicInspeccionar(e) {
-      const atenuacion = clasificarPunto(e.lngLat);
-      const { anio, mes, dia, hora } = fechaHoraValidos();
-
-      let bloqueHistorico = '<i>consultando histórico…</i>';
-      try {
-        const porDia = await obtenerAnioDiario(anio);
-        const datoDia = porDia[claveFecha(anio, mes, dia)];
-        let ghiHora = null, cieloHora = null;
-        try {
-          const datoHora = (await obtenerDiaHorario(anio, mes, dia))[hora];
-          if (datoHora) { ghiHora = datoHora.ghi; cieloHora = datoHora.cieloDespejado; }
-        } catch (err) { /* sin serie horaria */ }
-
-        if (datoDia) {
-          // Exposición efectiva = irradiancia horaria × multiplicador de atenuación
-          const base = ghiHora != null ? ghiHora : datoDia.ghi * 1000 / 12; // Wh/m² aprox. si no hay hora
-          const exposicion = base * (atenuacion.factor / ATENUACION.SOL.factor);
-          const nubosidad = cieloHora > 0 ? ` · ${(100 * ghiHora / cieloHora).toFixed(0)} % del cielo despejado` : '';
-          bloqueHistorico =
-            `<b>${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${anio}, ${String(hora).padStart(2, '0')}:00 UTC</b><br>` +
-            (ghiHora != null ? `Hora: <b>${ghiHora.toFixed(0)} Wh/m²</b>${nubosidad}<br>` : '') +
-            `Día completo: <b>${datoDia.ghi.toFixed(2)} kWh/m²</b><br>` +
-            `Exposición efectiva aquí: <b>${exposicion.toFixed(0)} Wh/m²</b>`;
-        }
-      } catch (err) {
-        bloqueHistorico = 'Sin dato NASA para esa fecha.';
-      }
-
-      const html = `
-        <div style="font-family:inherit;font-size:12.5px;line-height:1.55;max-width:240px;">
-          <b style="color:${atenuacion.color}">${atenuacion.etiqueta}</b><br>
-          <span style="color:#999;">Factor de exposición ×${atenuacion.factor.toFixed(1)}</span><br>
-          <hr style="border:none;border-top:1px dashed #ccc;margin:5px 0;">
-          ${bloqueHistorico}
-        </div>`;
-
-      if (popupInspeccion) popupInspeccion.remove();
-      popupInspeccion = new maplibregl.Popup({ closeOnClick: true })
-        .setLngLat(e.lngLat)
-        .setHTML(html)
-        .addTo(map);
-    }
-
-    function activarInspeccionPorClic() {
-      map.on('click', alClicInspeccionar);
-      map.getCanvas().style.cursor = 'crosshair';
-    }
-    function desactivarInspeccionPorClic() {
-      map.off('click', alClicInspeccionar);
-      map.getCanvas().style.cursor = '';
-      if (popupInspeccion) { popupInspeccion.remove(); popupInspeccion = null; }
-    }
-  }
-})();
+// Enganche explícito a window: otros scripts (shadows-route.js) leen estas
+// funciones desde window en vez de asumir que las variables de nivel
+// superior de este <script> se ven directamente desde el suyo — si el
+// bundler/orden de carga aísla cada script en su propio scope, esto sigue
+// funcionando igual porque window es siempre el mismo objeto global.
+window.translations = translations;
+window.getMessages = getMessages;
+window.applyTranslations = applyTranslations;
+window.setLang = setLang;

@@ -7,13 +7,22 @@
 <meta name="description" content="Consulta la política de privacidad de Manolit∞ Aire. Tu mapa interactivo 3D 100% privado: sin registros, sin cookies de rastreo y con almacenamiento local seguro.">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<base target="_blank">
 </head>
 <body>
 
 <div class="topbar">
   <a href="index.html" class="wordmark">Manolit∞ Aire <span>PRIVACIDAD</span></a>
   <div class="topbar-right">
-    <a class="family-link" href="index.html">← Volver al mapa</a>
+    <a class="family-link" href="index.html" data-i18n="backToMap">← Volver al mapa</a>
+    <div class="chip-toggle" id="langToggle">
+      <button data-lang="es">ES</button>
+      <button data-lang="ca">CA</button>
+      <button data-lang="eu">EU</button>
+      <button data-lang="gl">GL</button>
+      <button data-lang="en">EN</button>
+      <button data-lang="ka">KA</button>
+    </div>
     <button class="icon-btn" id="themeToggle" title="Modo claro/oscuro">☾</button>
   </div>
 </div>
@@ -80,6 +89,7 @@
   <a href="aviso-legal.html">Aviso legal</a> · <a href="privacidad.html">Privacidad</a> · <a href="cookies.html">Cookies</a>
 </div>
 
+<script src="js/i18n.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/cookie-banner.js"></script>
 </body>

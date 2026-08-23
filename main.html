@@ -233,11 +233,11 @@
 
 <div class="rs-form">
   <div class="rs-field">
-    <input type="text" id="rsOrigen" placeholder="Punto de origen" autocomplete="off">
+    <input type="text" id="rsOrigen" name="origen" placeholder="Punto de origen" autocomplete="off">
     <ul class="rs-sugerencias" id="rsSugerenciasOrigen"></ul>
   </div>
   <div class="rs-field">
-    <input type="text" id="rsDestino" placeholder="Punto de destino" autocomplete="off">
+    <input type="text" id="rsDestino" name="destino" placeholder="Punto de destino" autocomplete="off">
     <ul class="rs-sugerencias" id="rsSugerenciasDestino"></ul>
   </div>
   <button id="rsBuscarBtn" class="im-lost-btn">Buscar ruta</button>
@@ -314,14 +314,14 @@
   </div>
 </div>
 
-<button class="chat-fab" onclick="openChat()">
-  <span class="chat-fab-logo">∞</span> <span data-i18n="chatOpen">Pregúntale a Manolito</span>
+<button class="chat-fab" onclick="openChat()" aria-label="Pregúntale a Manolit∞" title="Pregúntale a Manolit∞">
+  <span class="chat-fab-ring"><span class="chat-fab-core">M∞</span></span>
 </button>
 
 <div class="chat-overlay" id="chatOverlay">
   <div class="chat-panel">
     <div class="chat-head">
-      <div class="chat-title"><span class="chat-logo">∞</span> <span data-i18n="chatTitle">Manolito te lo explica</span></div>
+      <div class="chat-title"><span class="chat-logo"><i>M∞</i></span> <span data-i18n="chatTitle">Manolit∞ te lo explica</span></div>
       <button class="icon-btn" onclick="closeChat()">✕</button>
     </div>
     <div class="chat-msg mano" data-i18n="chatWelcome">Tranquilo/a, vamos con calma. Dime qué no entiendes, o elige una pregunta.</div>
@@ -336,7 +336,7 @@
       <button data-quick="q7" onclick="askQuick('q7')" data-i18n="quick_q7">¿Qué es el paseo virtual 3D?</button>
     </div>
     <div class="chat-input-row">
-      <input type="text" id="chatInputField" data-i18n-placeholder="chatPlaceholder" placeholder="Escribe tu pregunta aquí...">
+      <input type="text" id="chatInputField" name="pregunta" data-i18n-placeholder="chatPlaceholder" placeholder="Escribe tu pregunta aquí...">
       <button onclick="askCustom()" data-i18n="chatSend">Enviar</button>
     </div>
     <div class="chat-status" id="chatStatus"></div>

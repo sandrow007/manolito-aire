@@ -34,6 +34,11 @@
 'use strict';
 
 (function () {
+  // El botón del mapa puede cargar este script dos veces (precarga en cadena
+  // + carga perezosa al pulsar). La segunda ejecución no debe hacer nada.
+  if (window.__irradiacionSolarCargada) return;
+  window.__irradiacionSolarCargada = true;
+
   // Traducción: enganche al diccionario global de i18n.js (mismo patrón que shadows-route.js)
   function t(clave, fallback) {
     try {
@@ -528,12 +533,13 @@
       }
     });
 
+    // El botón ya lo crea SIEMPRE shadows-route.js (fijo en el mapa); aquí
+    // solo lo "adoptamos": texto traducido + lógica de la capa.
     function inyectarBotonCapa() {
-      const panelControles = document.getElementById('rsMapControls');
-      if (!panelControles || document.getElementById('rsBtnIrradiacion')) return;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'rsBtnIrradiacion';
+      const btn = document.getElementById('rsBtnIrradiacion');
+      if (!btn || btn.dataset.listo === '1') return false;
+      btn.dataset.listo = '1';
+      delete btn.dataset.cargando;
       btn.textContent = t('irrLayerBtn', 'Irradiación Solar');
       btn.addEventListener('click', () => {
         capaActiva = !capaActiva;
@@ -550,9 +556,20 @@
           desactivarInspeccionPorClic();
         }
       });
-      panelControles.appendChild(btn);
+      // Si el botón fijo cargó este módulo bajo demanda, el primer clic del
+      // usuario ya significaba "actívalo": lo cumplimos ahora que estamos listos.
+      if (btn.dataset.autoActivar === '1') {
+        delete btn.dataset.autoActivar;
+        btn.click();
+      }
+      return true;
     }
-    setTimeout(inyectarBotonCapa, 600);
+    // Reintenta hasta que el botón fijo exista (antes, si el panel no estaba
+    // en ese momento, el botón no aparecía jamás).
+    (function intentarBoton(n) {
+      if (inyectarBotonCapa()) return;
+      if (n > 0) setTimeout(() => intentarBoton(n - 1), 400);
+    })(50);
 
     // ================= INSPECCIÓN POR CLIC =================
     let popupInspeccion = null;

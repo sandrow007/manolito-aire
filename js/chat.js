@@ -407,19 +407,37 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
       });
     }
 
-    // Cerrar al pulsar FUERA del panel (el overlay cubre toda la pantalla;
-    // si el clic cae en el propio overlay y no en el panel, se cierra).
-    // El botón X sigue funcionando igual que antes.
-    const overlay = document.getElementById('chatOverlay');
-    if (overlay) {
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) closeChat();
-      });
-    }
+    // El chat NO es modal: no hay fondo que intercepte clics, así que se
+    // puede navegar por la web con el chat abierto. Se cierra con la X
+    // del panel o con la tecla Escape.
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeChat();
     });
+
+    initLogoVariantes();
   });
+
+  /* ---- Logo M∞: 7 combinaciones de color que rotan en cada carga ----
+     Cada vez que alguien entra a la web, el anillo del widget estrena
+     paleta (se guarda el índice y avanza de uno en uno). */
+  const LOGO_VARIANTES = [
+    { ring: 'conic-gradient(from 0deg,#00f0ff,#7b2fff,#ff00e5,#ff8800,#ffee00,#00ffc8,#00f0ff)',  ink: 'linear-gradient(100deg,#00f0ff,#7b2fff,#ff00e5)' },
+    { ring: 'conic-gradient(from 40deg,#ff6b1a,#ffee00,#00ffc8,#00f0ff,#7b2fff,#ff00e5,#ff6b1a)', ink: 'linear-gradient(100deg,#ffee00,#ff6b1a,#ff00e5)' },
+    { ring: 'conic-gradient(from 90deg,#00ffc8,#00f0ff,#7b2fff,#ff00e5,#ff3366,#ffee00,#00ffc8)', ink: 'linear-gradient(100deg,#00ffc8,#00f0ff,#7b2fff)' },
+    { ring: 'conic-gradient(from 160deg,#ffee00,#00ff88,#00f0ff,#7b2fff,#ff00e5,#ff4400,#ffee00)', ink: 'linear-gradient(100deg,#00ff88,#00f0ff,#ffee00)' },
+    { ring: 'conic-gradient(from 220deg,#7b2fff,#ff00e5,#ff4400,#ffee00,#00ffc8,#00f0ff,#7b2fff)', ink: 'linear-gradient(100deg,#ff00e5,#7b2fff,#00f0ff)' },
+    { ring: 'conic-gradient(from 300deg,#00f0ff,#00ff88,#ffee00,#ff8800,#ff00e5,#7b2fff,#00f0ff)', ink: 'linear-gradient(100deg,#00f0ff,#00ff88,#ffee00)' },
+    { ring: 'conic-gradient(from 120deg,#ff3366,#ff8800,#ffee00,#00ffc8,#00f0ff,#7b2fff,#ff3366)', ink: 'linear-gradient(100deg,#ff8800,#ff3366,#7b2fff)' }
+  ];
+
+  function initLogoVariantes() {
+    let i = parseInt(localStorage.getItem('manolito_logo_variant') || '-1', 10);
+    i = (isNaN(i) ? 0 : i + 1) % LOGO_VARIANTES.length;
+    localStorage.setItem('manolito_logo_variant', String(i));
+    const v = LOGO_VARIANTES[i];
+    document.documentElement.style.setProperty('--chat-ring', v.ring);
+    document.documentElement.style.setProperty('--chat-ink', v.ink);
+  }
 
   function initWelcomeMessage() {
     const lang = getRobustLang();

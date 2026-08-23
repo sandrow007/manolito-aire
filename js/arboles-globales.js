@@ -12,6 +12,11 @@
 'use strict';
 
 (function () {
+  // El botón del mapa puede cargar este script dos veces (precarga en cadena
+  // + carga perezosa al pulsar). La segunda ejecución no debe hacer nada.
+  if (window.__arbolesGlobalesCargado) return;
+  window.__arbolesGlobalesCargado = true;
+
   const CONFIG = {
     overpassUrls: [
       // 1º: nuestro propio proxy en Cloudflare (sin CORS posible). Si el
@@ -294,12 +299,13 @@
     let overpassBackoffHasta = 0;
     let overpassErroresSeguidos = 0;
 
+    // El botón ya lo crea SIEMPRE shadows-route.js (fijo en el mapa); aquí
+    // solo lo "adoptamos": le ponemos el texto traducido y la lógica.
     function inyectarToggle() {
-      const panel = document.getElementById('rsMapControls');
-      if (!panel || document.getElementById('rsBtnArboles')) return;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'rsBtnArboles';
+      const btn = document.getElementById('rsBtnArboles');
+      if (!btn || btn.dataset.listo === '1') return false;
+      btn.dataset.listo = '1';
+      delete btn.dataset.cargando;
       btn.textContent = (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
       btn.classList.add('rs-activo');
       btn.addEventListener('click', () => {
@@ -313,14 +319,19 @@
           recalcularSombrasArboles();
         }
       });
-      panel.appendChild(btn);
+      return true;
     }
     // Retraducir el botón al cambiar el idioma (evento de i18n.js)
     document.addEventListener('langChanged', () => {
       const b = document.getElementById('rsBtnArboles');
       if (b && typeof window.getMessages === 'function') b.textContent = window.getMessages().treesBtn || 'Árboles';
     });
-    setTimeout(inyectarToggle, 500);
+    // Reintenta hasta que el botón fijo exista (antes, si el panel no estaba
+    // en ese momento, el botón no aparecía jamás).
+    (function intentarToggle(n) {
+      if (inyectarToggle()) return;
+      if (n > 0) setTimeout(() => intentarToggle(n - 1), 400);
+    })(50);
 
     let arbolesGrandes = [];
     const celdasConsultadas = new Set();

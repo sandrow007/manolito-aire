@@ -1597,7 +1597,47 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     // Se exponen para poder usarlas desde fuera de esta función (reiniciarTodo, etc.)
     window.__rsDetenerPaseoVirtual = detenerPaseoVirtual;
 
-    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar);
+    /* ---- Botones FIJOS de Árboles e Irradiación Solar ----
+       Antes los creaban sus módulos (arboles-globales.js / irradiacion-solar.js)
+       cuando conseguían cargar y encontrar este panel; si no, el botón no
+       aparecía NUNCA (de ahí lo de "unas veces sale y otras no").
+       Ahora los crea el propio mapa y son fijos: si el módulo aún no está,
+       el primer clic lo carga y lo activa; si ya está, manda el módulo. */
+    function cargarScriptLocal(src) {
+      if (document.querySelector(`script[src="${src}"]`)) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.body.appendChild(s);
+      });
+    }
+    function botonCapaFijo(id, texto, src) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.id = id;
+      b.textContent = texto;
+      b.addEventListener('click', () => {
+        if (b.dataset.listo === '1') return; // el módulo ya gestiona este botón
+        if (b.dataset.cargando === '1') return;
+        b.dataset.cargando = '1';
+        b.dataset.autoActivar = '1';
+        const textoPrev = b.textContent;
+        b.textContent = '…';
+        cargarScriptLocal(src).catch(() => {
+          delete b.dataset.cargando;
+          delete b.dataset.autoActivar;
+          b.textContent = textoPrev;
+          mostrarEstado(t('layerLoadError', 'No se ha podido cargar la capa. Inténtalo de nuevo.'), 'error');
+        });
+      });
+      return b;
+    }
+    const btnArboles = botonCapaFijo('rsBtnArboles', t('treesBtn', 'Árboles'), 'js/arboles-globales.js');
+    const btnIrradiacion = botonCapaFijo('rsBtnIrradiacion', t('irrLayerBtn', 'Irradiación Solar'), 'js/irradiacion-solar.js');
+
+    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
     contenedorMapa.appendChild(panelMapa);
 
     map.on('click', (e) => {

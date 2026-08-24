@@ -4,21 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manolit∞ Aire — Aviso legal</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-</noscript>
-
-<link rel="stylesheet" href="css/style.css" fetchpriority="high">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="apple-mobile-web-app-title" content="Manolit∞ Aire">
-<base target="_blank">
+<meta name="apple-mobile-web-app-title" content="Manolit 3D">
 </head>
 <body>
 
@@ -126,6 +119,7 @@
   <strong>instalación de paneles solares</strong> o placas fotovoltaicas), sirviendo únicamente como información orientativa y didáctica para los ciudadanos.
 </p>
 
+  <p>
     Esta función es <b>ilustrativa y experimental</b>. No es una predicción meteorológica
     oficial, no sustituye al dato de pronóstico mostrado en el gráfico principal, y no debe
     usarse como única base para decisiones.
@@ -199,7 +193,32 @@
   de confort térmico certificados, planificación urbanística oficial ni decisiones sanitarias.
 </p>
 
-<h2 data-i18n-legal="avis_34">12. El origen de Manolit∞: Supervivencia en Sevilla</h2>
+<h2 data-i18n-legal="avis_36">12. Cálculo de Rutas Peatonales: el Algoritmo de Dijkstra Térmico</h2>
+<p data-i18n-legal="avis_37">
+  El buscador de la sección "Ruta y sombras 3D" no elige la calle más corta, sino la más fresca:
+  aplica el clásico <strong>algoritmo de Dijkstra</strong> sobre un <b>grafo peatonal</b> construido
+  con las calles de <strong>OpenStreetMap</strong> (una red local precargada, filtrada a un radio de
+  unos 500&nbsp;m alrededor del recorrido, con ampliación bajo demanda vía la API Overpass para
+  trayectos largos). La particularidad de Manolit∞ Aire es que el <b>peso de cada tramo no es solo
+  su longitud</b>: cada arista del grafo se pondera con la fórmula
+  <code>w(e) = longitud (m) × (1 + penalización solar)</code>, donde la penalización se calcula en el
+  punto medio del tramo cruzando la <strong>posición real del sol</strong> (altitud y azimut, mediante
+  algoritmos astronómicos estándar de SunCalc) con las sombras que proyectan los edificios y los árboles
+  en ese instante. Caminar al sol "cuesta" hasta un 70&nbsp;% más que hacerlo a la sombra, de modo que
+  el algoritmo devuelve el camino de <b>menor coste térmico total</b>, no el más corto en metros.
+</p>
+<p data-i18n-legal="avis_38">
+  Todo el cálculo se ejecuta <b>íntegramente en tu navegador</b>, con una implementación propia en
+  JavaScript que usa una cola de prioridad binaria (<i>min-heap</i>) escrita desde cero: tus posiciones
+  de origen y destino no se envían a ningún servidor de rutas para este cálculo. El enfoque está
+  inspirado en los trabajos académicos de la <strong>Universidad de Sevilla</strong> sobre mapas y rutas
+  de sombra urbana. El resultado depende de la cobertura de OpenStreetMap (las alturas de edificios y el
+  arbolado se estiman cuando faltan datos) y de una posición solar calculada por software, por lo que la
+  ruta propuesta es <b>orientativa y didáctica</b>: no constituye asesoramiento técnico, urbanístico ni
+  sanitario, y ante episodios de calor extremo deben seguirse siempre las recomendaciones oficiales.
+</p>
+
+<h2 data-i18n-legal="avis_34">13. El origen de Manolit∞: Supervivencia en Sevilla</h2>
 <p data-i18n-legal="avis_35">
   Este proyecto no nace en un laboratorio, nace de la pura necesidad. Cualquiera que viva o camine por 
   <strong>Sevilla en verano</strong> sabe que te puedes literalmente morir ahogado de calor cruzando una calle al sol. 
@@ -217,6 +236,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/i18n-legal.js"></script>
 <script src="js/theme.js"></script>
-
+<script src="js/cookie-banner.js"></script>
 </body>
 </html>

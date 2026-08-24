@@ -1,4 +1,4 @@
-﻿﻿const CORS_HEADERS = {
+﻿﻿﻿const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
@@ -266,6 +266,52 @@ export default {
         return new Response(JSON.stringify({ error: String(err.message || err) }), {
           status: 502,
           headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+        });
+      }
+    }
+
+    // --- Tiles de nubes reales (OpenWeatherMap) para pintarlas sobre el mapa ---
+    // GET /tiles/nubes/{z}/{x}/{y}.png -> PNG de la capa clouds_new de OWM.
+    // La API key vive SOLO aquí (secret del Worker): el navegador jamás la ve.
+    // Cloudflare edge cachea cada tesela 10 min (OWM las renueva ~cada 10 min),
+    // así que miles de visitas a la misma zona cuestan UNA llamada a OWM.
+    const mNubes = url.pathname.match(/^\/tiles\/nubes\/(\d+)\/(\d+)\/(\d+)\.png$/);
+    if (mNubes) {
+      try {
+        if (!env.OPENWEATHER_API_KEY) {
+          return new Response(JSON.stringify({ error: 'OPENWEATHER_API_KEY no configurada' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+          });
+        }
+        const z = parseInt(mNubes[1], 10), x = parseInt(mNubes[2], 10), y = parseInt(mNubes[3], 10);
+        const max = 2 ** z;
+        if (!(z >= 0 && z <= 19) || !(x >= 0 && x < max) || !(y >= 0 && y < max)) {
+          return new Response(JSON.stringify({ error: 'z/x/y fuera de rango' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+          });
+        }
+        const owm = `https://tile.openweathermap.org/map/clouds_new/${z}/${x}/${y}.png?appid=${env.OPENWEATHER_API_KEY}`;
+        const r = await fetch(owm, {
+          headers: { 'User-Agent': 'manolito-aire/1.0' },
+          cf: { cacheTtl: 600, cacheEverything: true },
+        });
+        if (!r.ok) throw new Error(`OpenWeatherMap tiles HTTP ${r.status}`);
+        return new Response(r.body, {
+          headers: {
+            'Content-Type': r.headers.get('Content-Type') || 'image/png',
+            'Cache-Control': 'public, max-age=600',
+            ...CORS_HEADERS
+          }
+        });
+      } catch (err) {
+        // Tesela transparente de 1×1: el mapa simplemente no pinta nubes ahí
+        // y no ensucia la consola con errores de imagen rotos.
+        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+        return new Response(transparente, {
+          status: 200,
+          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=60', ...CORS_HEADERS }
         });
       }
     }

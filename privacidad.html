@@ -4,23 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Política de Privacidad y Protección de Datos | Manolit∞ Aire</title>
-<link rel="canonical" href="https://manolitoaire.com/privacidad">
-<meta name="theme-color" content="#1b2029">
 <meta name="description" content="Consulta la política de privacidad de Manolit∞ Aire. Tu mapa interactivo 3D 100% privado: sin registros, sin cookies de rastreo y con almacenamiento local seguro.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-</noscript>
-
-<link rel="stylesheet" href="css/style.css" fetchpriority="high">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="apple-mobile-web-app-title" content="Manolit∞ Aire">
+<meta name="apple-mobile-web-app-title" content="Manolit 3D">
 <base target="_blank">
 </head>
 <body>
@@ -93,6 +85,11 @@
     Estos componentes son servicios públicos, abiertos e independientes de Manolit∞ Aire. No te identifican de forma personal ni comercial: solo reciben las coordenadas indispensables para trazar las líneas del camino y renderizar las fachadas 3D en tu pantalla. Nosotros no guardamos tus búsquedas ni tus rutas en ningún servidor propio. Evita introducir datos que te identifiquen directamente en los campos de búsqueda.
   </p>
 
+  <h2 data-i18n-legal="priv_19">5 bis. Datos de Nubosidad en Tiempo Real (OpenWeatherMap)</h2>
+  <p data-i18n-legal="priv_20">
+    Para pintar las sombras con realismo físico según el cielo actual y dibujar la capa de nubes visible sobre el mapa, la web consulta el porcentaje de cobertura nubosa y las teselas del mapa de nubes de <b>OpenWeatherMap</b>. Ambas peticiones viajan a través de un proxy propio en <b>Cloudflare Workers</b>: tu navegador solo envía a ese proxy las coordenadas del centro del mapa (o tu punto de referencia, si usaste "Mi ubicación") redondeadas a tres decimales — una precisión de unos 100&nbsp;m — y las coordenadas de tesela de la zona visible, sin ningún dato personal adjunto; la clave de API permanece en el servidor, nunca en tu dispositivo. Los resultados se guardan en caché unos 10 minutos y no se almacenan en ningún servidor propio. OpenWeatherMap procesa esas solicitudes según su propia política de privacidad; si prefieres no enviar coordenada alguna, ten en cuenta que el mapa siempre usa el centro de la vista y nunca tu GPS, salvo que actives la ubicación manualmente.
+  </p>
+
   <h2 data-i18n-legal="priv_17">6. Derechos de los Usuarios y RGPD</h2>
   <p data-i18n-legal="priv_18">
     Debido a que la arquitectura técnica de Manolit∞ Aire está diseñada para no almacenar ningún dato de carácter personal en bases de datos propias, no existe ningún perfil o registro asociado a tu persona que podamos extraer, modificar, transferir o borrar de nuestros sistemas. Para cualquier consulta técnica, legal o relacionada con el proyecto de software, puedes ponerte en contacto directamente con el desarrollador del sitio web a través del correo electrónico: <strong>SANDRO.A007@GMAIL.COM</strong>.
@@ -106,6 +103,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/i18n-legal.js"></script>
 <script src="js/theme.js"></script>
-
+<script src="js/cookie-banner.js"></script>
 </body>
 </html>

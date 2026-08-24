@@ -1,0 +1,202 @@
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /index.html HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /css/style.css HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /site.webmanifest HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /js/i18n.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /js/theme.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /js/cookie-banner.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /js/app.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /js/chat.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /js/air-forecast.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /js/tutorial.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:24] "GET /js/planetario.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:25] "GET /js/shadows-route.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:25] "GET /js/arboles-globales.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:25] "GET /js/irradiacion-solar.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:25] "GET /favicon.svg HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:25] "GET /icon-192.png HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:25] "GET /favicon.png HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:25] "GET /favicon.ico HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:28] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:28] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:37] "GET /index.html HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:46] "GET /index.html HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:49] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 18:29:49] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:35:35] "GET /js/arboles-globales.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:35:35] "GET /icon-192.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:35:38] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 18:35:38] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /css/style.css HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /js/theme.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /js/i18n.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /js/chat.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /js/app.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /js/cookie-banner.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /js/air-forecast.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /site.webmanifest HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /js/planetario.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:58] "GET /js/tutorial.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:59] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:59] "GET /js/arboles-globales.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:59] "GET /js/irradiacion-solar.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:42:59] "GET /icon-192.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:02] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:02] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /index.html HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /css/style.css HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /js/theme.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /js/cookie-banner.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /js/air-forecast.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /js/app.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /js/i18n.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /js/chat.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /js/planetario.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /js/tutorial.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:43] "GET /site.webmanifest HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:44] "GET /js/shadows-route.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:44] "GET /js/arboles-globales.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:44] "GET /js/irradiacion-solar.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:45] "GET /favicon.svg HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:45] "GET /favicon.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:45] "GET /favicon.ico HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:48] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 18:43:48] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:14] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:14] "GET /css/style.css HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:14] "GET /js/theme.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:14] "GET /js/i18n.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:14] "GET /js/cookie-banner.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:14] "GET /js/chat.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:14] "GET /js/app.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:14] "GET /js/air-forecast.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:14] "GET /js/planetario.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:14] "GET /js/tutorial.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:15] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:15] "GET /js/arboles-globales.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:15] "GET /js/irradiacion-solar.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:15] "GET /icon-192.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:18] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 18:53:18] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /css/style.css HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/theme.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/i18n.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/cookie-banner.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/chat.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/app.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /site.webmanifest HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/air-forecast.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/planetario.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/tutorial.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/arboles-globales.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /js/irradiacion-solar.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:23] "GET /icon-192.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:26] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:26] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:44] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:44] "GET /favicon.svg HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:44] "GET /favicon.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:44] "GET /js/arboles-globales.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:44] "GET /favicon.ico HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:47] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 19:09:47] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:12:29] "GET /js/arboles-globales.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:12:32] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 19:12:32] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /css/style.css HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /js/chat.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /js/i18n.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /js/cookie-banner.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /js/theme.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /js/app.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /site.webmanifest HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /js/air-forecast.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /js/planetario.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /js/tutorial.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:42] "GET /js/arboles-globales.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:43] "GET /js/irradiacion-solar.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:43] "GET /icon-192.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:46] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 19:33:46] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:36:42] "GET /js/arboles-globales.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:36:46] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 19:36:46] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:37:05] "GET /main.html HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:39:25] "GET /js/arboles-globales.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:39:28] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 19:39:28] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:48:13] "GET /css/style.css HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:48:13] "GET /js/theme.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:48:13] "GET /js/i18n.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:48:13] "GET /js/chat.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:48:13] "GET /js/app.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:48:13] "GET /js/air-forecast.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:48:13] "GET /js/cookie-banner.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:48:14] "GET /icon-192.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:48:24] "GET /js/shadows-route.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:49:35] "GET /site.webmanifest HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:49:39] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:49:42] "GET /main.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:49:42] "GET /favicon.svg HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:49:42] "GET /favicon.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:49:42] "GET /favicon.ico HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:50:19] "GET /main.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:50:20] "GET /main.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:50:21] "GET /main.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:50:21] "GET /main.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:50:24] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:50:30] "GET /main.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:55:34] "GET /js/shadows-route.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:31] "GET /main.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:31] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:32] "GET /main.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:33] "GET /main.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:34] "GET /main.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:51] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:51] "GET /js/planetario.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:51] "GET /js/tutorial.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:51] "GET /js/arboles-globales.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:51] "GET /js/irradiacion-solar.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:54] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:54] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:57] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:56:57] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:57:00] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 19:57:00] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:57:35] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:57:35] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:57:35] "GET /js/arboles-globales.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:57:38] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 19:57:38] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:58:23] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:58:23] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:58:23] "GET /js/arboles-globales.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 19:58:26] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 19:58:26] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /css/style.css HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /js/theme.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /js/i18n.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /js/cookie-banner.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /js/app.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /js/air-forecast.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /js/chat.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /site.webmanifest HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /js/shadows-route.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /js/arboles-globales.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:36] "GET /icon-192.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:39] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 20:08:39] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:09:12] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:09:12] "GET /favicon.svg HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:09:12] "GET /favicon.png HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:09:12] "GET /js/arboles-globales.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:09:12] "GET /favicon.ico HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:09:15] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 20:09:15] "POST /arboles HTTP/1.1" 501 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:09:19] "GET /index.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [24/Aug/2026 20:09:26] code 501, message Unsupported method ('POST')
+::ffff:127.0.0.1 - - [24/Aug/2026 20:09:26] "POST /arboles HTTP/1.1" 501 -

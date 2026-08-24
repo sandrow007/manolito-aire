@@ -1,1 +1,599 @@
-"use strict";!function(){if(window.__arbolesGlobalesCargado)return;window.__arbolesGlobalesCargado=!0;const e={overpassUrls:["/arboles","https://overpass-api.de/api/interpreter","https://overpass.private.coffee/api/interpreter","https://overpass.kumi.systems/api/interpreter"],overpassTimeoutS:15,alturaMinimaM:2,alturaEstimadaSinDatoM:6,radioCopaPorDefectoM:2.2,maxArbolesEnPantalla:1e3,maxArbolesConSombra:250,loteSombraSize:20,sincroSombraMs:6e4,esperaMoveendMs:500,maxLadoConsultaKm:2.5,cacheCeldasGrados:.01,esperaMapaMs:15e3},a={palmera:{keywords:["phoenix","washingtonia","palma","palm","date palm","datilera"],alturaMediaM:10,radioCopaMedioM:2,forma:"palmera",color:"#7a9b4a"},pino:{keywords:["pinus","pino","pine","cedrus","cedro","cedar","ciprés","cypress","cupressus","abeto","fir"],alturaMediaM:14,radioCopaMedioM:3,forma:"conica",color:"#2d5a3d"},encina_roble:{keywords:["quercus","encina","roble","oak","alcornoque","cork oak","quejigo"],alturaMediaM:10,radioCopaMedioM:6,forma:"ancha_redondeada",color:"#4f7a35"},olivo:{keywords:["olea","olivo","olive","acebuche"],alturaMediaM:8,radioCopaMedioM:4,forma:"ancha_irregular",color:"#6b8c42"},citrico:{keywords:["citrus","naranjo","limonero","orange","lemon","mandarino","pomelo"],alturaMediaM:5,radioCopaMedioM:2.8,forma:"redondeada",color:"#5a8a3a"},platanero:{keywords:["platanus","plátano","platano","plane","sicomoro"],alturaMediaM:16,radioCopaMedioM:5.5,forma:"ancha_redondeada",color:"#4a8a3f"},eucalipto:{keywords:["eucalyptus","eucalipto","gum"],alturaMediaM:18,radioCopaMedioM:3,forma:"oval_alargada",color:"#3d6b4a"},olmo:{keywords:["ulmus","olmo","elm"],alturaMediaM:12,radioCopaMedioM:5,forma:"ancha_redondeada",color:"#5a8f3d"},chopo:{keywords:["populus","chopo","poplar","álamo","alamo"],alturaMediaM:15,radioCopaMedioM:4,forma:"oval_alargada",color:"#4f9a45"},generico:{alturaMediaM:e.alturaEstimadaSinDatoM,radioCopaMedioM:e.radioCopaPorDefectoM,forma:"redondeada",color:"#7fb069"}};function leerNumero(e,a){for(const o of a){const a=e?.[o];if(null==a||""===a)continue;const r=parseFloat(String(a).replace(",","."));if(!Number.isNaN(r)&&r>0)return r}return null}function cederAlNavegador(){return new Promise(e=>{"requestIdleCallback"in window?requestIdleCallback(()=>e(),{timeout:120}):setTimeout(e,0)})}(function esperarMapa(){return new Promise((a,o)=>{const r=Date.now();!function intento(){return window.manolitAireMap?a(window.manolitAireMap):Date.now()-r>e.esperaMapaMs?o(new Error('No se ha encontrado window.manolitAireMap — añade "window.manolitAireMap = map;" justo después de crear el mapa en manolit-aire.js')):void setTimeout(intento,200)}()})})().then(async function iniciar(o){function asegurarCapas(){o.getSource("arboles-globales-sombra")||(o.addSource("arboles-globales-sombra",{type:"geojson",data:turf.featureCollection([])}),o.addLayer({id:"capa-sombra-arboles-globales",type:"fill",source:"arboles-globales-sombra",paint:{"fill-color":"#0b1220","fill-opacity":.26}},function primeraCapaEdificiosOSuelo(){const e=(o.getStyle().layers||[]).find(e=>"fill-extrusion"===e.type&&/building/i.test(e.id));return e?e.id:void 0}())),o.getSource("arboles-globales-copas")||(o.addSource("arboles-globales-copas",{type:"geojson",data:turf.featureCollection([])}),o.addLayer({id:"capa-arboles-globales-3d",type:"fill-extrusion",source:"arboles-globales-copas",paint:{"fill-extrusion-color":["case",["==",["get","tipo"],"tronco"],"#8b5a2b",["==",["get","tipo"],"copa"],["case",["has","color"],["get","color"],["interpolate",["linear"],["get","altura"],3,"#7fb069",8,"#4f8a3d",15,"#2f5d2a"]],"#7fb069"],"fill-extrusion-base":["get","baseM"],"fill-extrusion-height":["get","alturaTotalM"],"fill-extrusion-opacity":.92}}))}o.loaded()?asegurarCapas():o.once("load",asegurarCapas);let r=!0,t=0,n=0;function inyectarToggle(){const e=document.getElementById("rsBtnArboles");if(!e||"1"===e.dataset.listo)return!1;e.dataset.listo="1",delete e.dataset.cargando,e.textContent="function"==typeof window.getMessages&&window.getMessages().treesBtn||"Árboles",e.classList.add("rs-activo");return e.addEventListener("click",async()=>{if(r=!r,e.classList.toggle("rs-activo",r),["capa-arboles-globales-3d","capa-sombra-arboles-globales"].forEach(e=>{o.getLayer(e)&&o.setLayoutProperty(e,"visibility",r?"visible":"none")}),r){e.textContent="Cargando árboles…";try{await cargarArbolesDeLaVista(),recalcularSombrasArboles()}finally{e.textContent="function"==typeof window.getMessages&&window.getMessages().treesBtn||"Árboles"}}}),!0}document.addEventListener("langChanged",()=>{const e=document.getElementById("rsBtnArboles");e&&"function"==typeof window.getMessages&&(e.textContent=window.getMessages().treesBtn||"Árboles")}),function intentarToggle(e){inyectarToggle()||e>0&&setTimeout(()=>intentarToggle(e-1),400)}(50);let s=[];const l=new Set;let i=!1;function procesarElementoOSM(o){if("node"!==o.type||null==o.lat||null==o.lon)return null;const r=o.tags||{},t=function clasificarArbol(e){const o=[e.species||"",e["species:es"]||"",e["species:en"]||"",e.genus||"",e.taxon||"",e.name||"",e.leaf_type||""].join(" ").toLowerCase();for(const[e,r]of Object.entries(a))if("generico"!==e)for(const a of r.keywords)if(o.includes(a.toLowerCase()))return{tipo:e,...r};return{tipo:"generico",...a.generico}}(r),{altura:n,radioCopaM:s}=function estimarDimensionesArbol(e,a){let o=leerNumero(e,["height","maxheight"]),r=leerNumero(e,["diameter_crown","crown_diameter"]);if(null==o){const r=leerNumero(e,["circumference","circumference_dbh","dbh"]);if(r){const e="conica"===a.forma?2.8:"palmera"===a.forma?5:2;o=Math.max(3,r/Math.PI*e)}else o=a.alturaMediaM}if(null==r){const t=leerNumero(e,["circumference","circumference_dbh","dbh"]);r=t?t/Math.PI:o*({palmera:.22,conica:.3,oval_alargada:.32,ancha_redondeada:.75,ancha_irregular:.65,redondeada:.55}[a.forma]||.5)}return"palmera"===a.forma&&(r=Math.min(r,3.5),o=Math.max(o,6)),{altura:o,radioCopaM:Math.max(.6,r/2)}}(r,t);if(n<=e.alturaMinimaM)return null;const l=r.species||r["species:es"]||r.genus||t.tipo||"Árbol";return{punto:turf.point([o.lon,o.lat]),altura:n,radioCopaM:s,nombre:l,forma:t.forma,color:t.color,tipo:t.tipo}}async function cargarArbolesDeLaVista(){if(!r||i)return;const a=o.getBounds();if(function anchoVistaKm(e){return turf.distance(turf.point([e.getWest(),e.getCenter?e.getCenter().lat:(e.getNorth()+e.getSouth())/2]),turf.point([e.getEast(),e.getCenter?e.getCenter().lat:(e.getNorth()+e.getSouth())/2]),{units:"kilometers"})}(a)>e.maxLadoConsultaKm)return;const c=function celdasDeVista(a){const o=e.cacheCeldasGrados,r=[],t=Math.floor(a.getSouth()/o)*o,n=Math.ceil(a.getNorth()/o)*o,s=Math.floor(a.getWest()/o)*o,l=Math.ceil(a.getEast()/o)*o;for(let e=t;e<n;e+=o)for(let a=s;a<l;a+=o)r.push(`${e.toFixed(3)},${a.toFixed(3)}`);return r}(a).filter(e=>!l.has(e));if(c.length)if(Date.now()<t)dibujarArbolesVisibles();else{c.forEach(e=>l.add(e)),i=!0;try{const o=[a.getSouth(),a.getWest(),a.getNorth(),a.getEast()],r=await async function consultarOverpass(a){if(Date.now()<t)throw new Error("Overpass en cooldown por errores recientes");const o=`[out:json][timeout:${e.overpassTimeoutS}];(node["natural"="tree"](${a.join(",")}););out body;`;let r=null;for(let a=0;a<e.overpassUrls.length;a++){const t=e.overpassUrls[a];try{const a=new AbortController,r=setTimeout(()=>a.abort(),1e3*e.overpassTimeoutS+3e3),s=await fetch(t,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:"data="+encodeURIComponent(o),signal:a.signal});if(clearTimeout(r),!s.ok)throw new Error(`HTTP ${s.status}`);const l=await s.json(),i=l?.osm3s?.timestamp_osm_base;if(Array.isArray(l?.elements)&&0===l.elements.length&&"string"==typeof i&&""!==i&&!i.includes("T"))throw new Error("Espejo Overpass con datos corruptos");if(!l||!Array.isArray(l.elements))throw new Error("Respuesta Overpass inválida");return n=0,l}catch(o){r=o,a<e.overpassUrls.length-1&&await new Promise(e=>setTimeout(e,700*(a+1)));continue}}n++;const s=Math.min(9e4,4e3*Math.pow(2,n-1));throw t=Date.now()+s,console.warn(`[arboles-globales] Overpass falló ${n} veces seguidas. Cooldown ${(s/1e3).toFixed(0)} s.`),r||new Error("Overpass no disponible")}(o),l=r.elements||[];for(const e of l){const a=procesarElementoOSM(e);a&&s.push(a),s.length%200==0&&await cederAlNavegador()}}catch(e){console.warn("[arboles-globales] Overpass no disponible ahora mismo:",e.message),c.forEach(e=>l.delete(e))}finally{i=!1}dibujarArbolesVisibles(),function programarSincroSombra(a){clearInterval(u),a&&recalcularSombrasArboles();u=setInterval(recalcularSombrasArboles,e.sincroSombraMs)}(!0)}else dibujarArbolesVisibles()}function dibujarArbolesVisibles(){if(!o.getSource("arboles-globales-copas")||!r)return[];const a=o.getBounds(),t=s.filter(e=>{const[o,r]=e.punto.geometry.coordinates;return o>=a.getWest()&&o<=a.getEast()&&r>=a.getSouth()&&r<=a.getNorth()}).slice(0,e.maxArbolesEnPantalla),n=[];for(const e of t){const a=e.forma||"redondeada",[o,r]=e.punto.geometry.coordinates;let t=.35,s=.4,l=.25;"palmera"===a?(t=.8,s=.15,l=.05):"conica"===a?(t=.45,s=.35,l=.2):"oval_alargada"===a?(t=.5,s=.3,l=.2):"ancha_redondeada"===a?(t=.3,s=.45,l=.25):"ancha_irregular"===a&&(t=.32,s=.43,l=.25);const i=Math.max(1,e.altura*t),c=e.altura*s,u=(Math.max(.5,e.altura*l),Math.max(.15,e.radioCopaM*("palmera"===a?.1:.15))),d=turf.circle(e.punto,u/1e3,{units:"kilometers",steps:8});d.properties={altura:e.altura,baseM:0,alturaTotalM:i,nombre:e.nombre,tipo:"tronco",forma:a,color:e.color},n.push(d);const m="palmera"===a?.9*e.radioCopaM:e.radioCopaM,p=crearFormaCopa(e.punto,m/1e3,a,o,r);p.properties={altura:e.altura,baseM:i,alturaTotalM:i+c,nombre:e.nombre,tipo:"copa",forma:a,color:e.color},n.push(p);const f="palmera"===a?.8*e.radioCopaM:.65*e.radioCopaM,b="palmera"===a?"palmera":"conica"===a?"conica":"redondeada",g=crearFormaCopa(e.punto,f/1e3,b,o,r+1e-4);g.properties={altura:e.altura,baseM:i+c,alturaTotalM:e.altura,nombre:e.nombre,tipo:"copa",forma:a,color:e.color},n.push(g)}return o.getSource("arboles-globales-copas").setData(turf.featureCollection(n)),t}function pseudoRandom(e,a,o){const r=43758.5453*Math.sin(12.9898*e+78.233*a+o);return r-Math.floor(r)}function crearFormaCopa(e,a,o,r,t){const n={palmera:28,conica:14,oval_alargada:18,ancha_redondeada:22,ancha_irregular:26,redondeada:18}[o]||18,s=[];for(let l=0;l<n;l++){const i=360*l/n,c=i*Math.PI/180;let u=1;switch(o){case"ancha_redondeada":u=1+.22*Math.cos(2*c);break;case"ancha_irregular":u=.92+.28*Math.cos(2*c)+.18*pseudoRandom(r,t,l+50);break;case"conica":u=.82+.12*Math.cos(2*c);break;case"oval_alargada":u=.88+.18*Math.cos(2*c);break;case"palmera":u=l%4==0?1.55:.72}u*=.82+.3*pseudoRandom(r,t,l);const d=Math.max(1e-6,a*u),m=turf.transformTranslate(e,d,i,{units:"kilometers"}).geometry.coordinates;s.push(m)}return s.push(s[0]),turf.polygon([s])}function unirDosPoligonos(e,a){try{const o=turf.union(turf.featureCollection([e,a]));if(o)return o}catch(e){}try{const o=turf.union(e,a);if(o)return o}catch(e){}return e}function calcularSombraArbol(e,a,o){const r=e.forma||"redondeada",t=(o+90)%360,n=Math.max(e.radioCopaM*("palmera"===r?.08:.12),.25)/1e3,s=e.radioCopaM/1e3,[l,i]=e.punto.geometry.coordinates,c=turf.transformTranslate(e.punto,a,o,{units:"kilometers"}),u=crearFormaCopa(c,"palmera"===r?.85*s:s,r,l,i);if("palmera"===r){return unirDosPoligonos(u,turf.circle(e.punto,n,{units:"kilometers",steps:8}))}const d=turf.transformTranslate(e.punto,n,t,{units:"kilometers"}).geometry.coordinates,m=turf.transformTranslate(e.punto,n,(t+180)%360,{units:"kilometers"}).geometry.coordinates,p={ancha_redondeada:.9,ancha_irregular:.85,redondeada:.75,conica:.55,oval_alargada:.6}[r]||.75,f=turf.transformTranslate(c,s*p,t,{units:"kilometers"}).geometry.coordinates,b=turf.transformTranslate(c,s*p,(t+180)%360,{units:"kilometers"}).geometry.coordinates;let g;try{g=turf.polygon([[d,f,b,m,d]])}catch(e){return u}const M=turf.circle(e.punto,n,{units:"kilometers",steps:8});let h=unirDosPoligonos(g,u);return unirDosPoligonos(h,M)}let c=0;async function recalcularSombrasArboles(){if(!o.getSource("arboles-globales-sombra")||!r)return;if(!function sombrasActivadasEnPanel(){const e=document.getElementById("rsToggleSombras");return!e||e.checked}())return void o.getSource("arboles-globales-sombra").setData(turf.featureCollection([]));const a=++c,t=function obtenerCentroSolar(e){if("function"==typeof window.manolitAireCentroSol)try{const e=window.manolitAireCentroSol();if(e&&"number"==typeof e.lat&&"number"==typeof e.lon)return e}catch(e){}const a=e.getCenter();return{lat:a.lat,lon:a.lng}}(o),n=SunCalc.getPosition(function obtenerHoraEfectiva(){if("function"==typeof window.manolitAireHoraEfectiva)try{const e=window.manolitAireHoraEfectiva();if(e instanceof Date&&!isNaN(e))return e}catch(e){}return new Date}(),t.lat,t.lon);if(n.altitude<=0)return void o.getSource("arboles-globales-sombra").setData(turf.featureCollection([]));const s=(180*n.azimuth/Math.PI+180+180)%360,l=dibujarArbolesVisibles().slice(0,e.maxArbolesConSombra),i=Math.tan(n.altitude);if(!i)return;const u=[];for(let r=0;r<l.length;r+=e.loteSombraSize){if(a!==c)return;const t=l.slice(r,r+e.loteSombraSize);for(const e of t){const a=e.altura/i;if(!isFinite(a)||a<=0)continue;const o=calcularSombraArbol(e,a/1e3,s);o&&u.push(o)}if(a!==c)return;o.getSource("arboles-globales-sombra")?.setData(turf.featureCollection(u)),r+e.loteSombraSize<l.length&&await cederAlNavegador()}}let u=null;let d=null;o.on("moveend",()=>{clearTimeout(d),d=setTimeout(()=>{cargarArbolesDeLaVista(),recalcularSombrasArboles()},e.esperaMoveendMs)}),window.manolitAireRecalcularArboles=recalcularSombrasArboles,await cargarArbolesDeLaVista(),recalcularSombrasArboles()}).catch(e=>console.warn("[arboles-globales]",e.message))}();
+"use strict";
+! function() {
+    if (window.__arbolesGlobalesCargado) return;
+    window.__arbolesGlobalesCargado = !0;
+    const e = {
+            overpassUrls: ["/arboles", "https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter"],
+            overpassTimeoutS: 15,
+            alturaMinimaM: 2,
+            alturaEstimadaSinDatoM: 6,
+            radioCopaPorDefectoM: 2.2,
+            maxArbolesEnPantalla: 1e3,
+            maxArbolesConSombra: 250,
+            loteSombraSize: 20,
+            sincroSombraMs: 6e4,
+            esperaMoveendMs: 500,
+            maxLadoConsultaKm: 2.5,
+            cacheCeldasGrados: .01,
+            esperaMapaMs: 15e3
+        },
+        a = {
+            palmera: {
+                keywords: ["phoenix", "washingtonia", "palma", "palm", "date palm", "datilera"],
+                alturaMediaM: 10,
+                radioCopaMedioM: 2,
+                forma: "palmera",
+                color: "#7a9b4a"
+            },
+            pino: {
+                keywords: ["pinus", "pino", "pine", "cedrus", "cedro", "cedar", "ciprés", "cypress", "cupressus", "abeto", "fir"],
+                alturaMediaM: 14,
+                radioCopaMedioM: 3,
+                forma: "conica",
+                color: "#2d5a3d"
+            },
+            encina_roble: {
+                keywords: ["quercus", "encina", "roble", "oak", "alcornoque", "cork oak", "quejigo"],
+                alturaMediaM: 10,
+                radioCopaMedioM: 6,
+                forma: "ancha_redondeada",
+                color: "#4f7a35"
+            },
+            olivo: {
+                keywords: ["olea", "olivo", "olive", "acebuche"],
+                alturaMediaM: 8,
+                radioCopaMedioM: 4,
+                forma: "ancha_irregular",
+                color: "#6b8c42"
+            },
+            citrico: {
+                keywords: ["citrus", "naranjo", "limonero", "orange", "lemon", "mandarino", "pomelo"],
+                alturaMediaM: 5,
+                radioCopaMedioM: 2.8,
+                forma: "redondeada",
+                color: "#5a8a3a"
+            },
+            platanero: {
+                keywords: ["platanus", "plátano", "platano", "plane", "sicomoro"],
+                alturaMediaM: 16,
+                radioCopaMedioM: 5.5,
+                forma: "ancha_redondeada",
+                color: "#4a8a3f"
+            },
+            eucalipto: {
+                keywords: ["eucalyptus", "eucalipto", "gum"],
+                alturaMediaM: 18,
+                radioCopaMedioM: 3,
+                forma: "oval_alargada",
+                color: "#3d6b4a"
+            },
+            olmo: {
+                keywords: ["ulmus", "olmo", "elm"],
+                alturaMediaM: 12,
+                radioCopaMedioM: 5,
+                forma: "ancha_redondeada",
+                color: "#5a8f3d"
+            },
+            chopo: {
+                keywords: ["populus", "chopo", "poplar", "álamo", "alamo"],
+                alturaMediaM: 15,
+                radioCopaMedioM: 4,
+                forma: "oval_alargada",
+                color: "#4f9a45"
+            },
+            generico: {
+                alturaMediaM: e.alturaEstimadaSinDatoM,
+                radioCopaMedioM: e.radioCopaPorDefectoM,
+                forma: "redondeada",
+                color: "#7fb069"
+            }
+        };
+
+    function leerNumero(e, a) {
+        for (const o of a) {
+            const a = e?.[o];
+            if (null == a || "" === a) continue;
+            const r = parseFloat(String(a).replace(",", "."));
+            if (!Number.isNaN(r) && r > 0) return r
+        }
+        return null
+    }
+
+    function cederAlNavegador() {
+        return new Promise(e => {
+            "requestIdleCallback" in window ? requestIdleCallback(() => e(), {
+                timeout: 120
+            }) : setTimeout(e, 0)
+        })
+    }(function esperarMapa() {
+        return new Promise((a, o) => {
+            const r = Date.now();
+            ! function intento() {
+                return window.manolitAireMap ? a(window.manolitAireMap) : Date.now() - r > e.esperaMapaMs ? o(new Error('No se ha encontrado window.manolitAireMap — añade "window.manolitAireMap = map;" justo después de crear el mapa en manolit-aire.js')) : void setTimeout(intento, 200)
+            }()
+        })
+    })().then(async function iniciar(o) {
+        function asegurarCapas() {
+            o.getSource("arboles-globales-sombra") || (o.addSource("arboles-globales-sombra", {
+                type: "geojson",
+                data: turf.featureCollection([])
+            }), o.addLayer({
+                id: "capa-sombra-arboles-globales",
+                type: "fill",
+                source: "arboles-globales-sombra",
+                paint: {
+                    "fill-color": "#0b1220",
+                    "fill-opacity": .26
+                }
+            }, function primeraCapaEdificiosOSuelo() {
+                const e = (o.getStyle().layers || []).find(e => "fill-extrusion" === e.type && /building/i.test(e.id));
+                return e ? e.id : void 0
+            }())), o.getSource("arboles-globales-copas") || (o.addSource("arboles-globales-copas", {
+                type: "geojson",
+                data: turf.featureCollection([])
+            }), o.addLayer({
+                id: "capa-arboles-globales-3d",
+                type: "fill-extrusion",
+                source: "arboles-globales-copas",
+                paint: {
+                    "fill-extrusion-color": ["case", ["==", ["get", "tipo"], "tronco"], "#8b5a2b", ["==", ["get", "tipo"], "copa"],
+                        ["case", ["has", "color"],
+                            ["get", "color"],
+                            ["interpolate", ["linear"],
+                                ["get", "altura"], 3, "#7fb069", 8, "#4f8a3d", 15, "#2f5d2a"
+                            ]
+                        ], "#7fb069"
+                    ],
+                    "fill-extrusion-base": ["get", "baseM"],
+                    "fill-extrusion-height": ["get", "alturaTotalM"],
+                    "fill-extrusion-opacity": .92
+                }
+            }))
+        }
+        o.loaded() ? asegurarCapas() : o.once("load", asegurarCapas);
+        let r = !0,
+            t = 0,
+            n = 0;
+
+        function inyectarToggle() {
+            const e = document.getElementById("rsBtnArboles");
+            if (!e || "1" === e.dataset.listo) return !1;
+            e.dataset.listo = "1", delete e.dataset.cargando, e.textContent = "function" == typeof window.getMessages && window.getMessages().treesBtn || "Árboles", e.classList.add("rs-activo");
+            return e.addEventListener("click", async () => {
+                if (r = !r, e.classList.toggle("rs-activo", r), ["capa-arboles-globales-3d", "capa-sombra-arboles-globales"].forEach(e => {
+                        o.getLayer(e) && o.setLayoutProperty(e, "visibility", r ? "visible" : "none")
+                    }), r) {
+                    e.textContent = "Cargando árboles…";
+                    try {
+                        await cargarArbolesDeLaVista(), recalcularSombrasArboles()
+                    } finally {
+                        e.textContent = "function" == typeof window.getMessages && window.getMessages().treesBtn || "Árboles"
+                    }
+                }
+            }), !0
+        }
+        document.addEventListener("langChanged", () => {
+                const e = document.getElementById("rsBtnArboles");
+                e && "function" == typeof window.getMessages && (e.textContent = window.getMessages().treesBtn || "Árboles")
+            }),
+            function intentarToggle(e) {
+                inyectarToggle() || e > 0 && setTimeout(() => intentarToggle(e - 1), 400)
+            }(50);
+        let s = [];
+        const l = new Set;
+        let i = !1;
+
+        function procesarElementoOSM(o) {
+            if ("node" !== o.type || null == o.lat || null == o.lon) return null;
+            const r = o.tags || {},
+                t = function clasificarArbol(e) {
+                    const o = [e.species || "", e["species:es"] || "", e["species:en"] || "", e.genus || "", e.taxon || "", e.name || "", e.leaf_type || ""].join(" ").toLowerCase();
+                    for (const [e, r] of Object.entries(a))
+                        if ("generico" !== e)
+                            for (const a of r.keywords)
+                                if (o.includes(a.toLowerCase())) return {
+                                    tipo: e,
+                                    ...r
+                                };
+                    return {
+                        tipo: "generico",
+                        ...a.generico
+                    }
+                }(r),
+                {
+                    altura: n,
+                    radioCopaM: s
+                } = function estimarDimensionesArbol(e, a) {
+                    let o = leerNumero(e, ["height", "maxheight"]),
+                        r = leerNumero(e, ["diameter_crown", "crown_diameter"]);
+                    if (null == o) {
+                        const r = leerNumero(e, ["circumference", "circumference_dbh", "dbh"]);
+                        if (r) {
+                            const e = "conica" === a.forma ? 2.8 : "palmera" === a.forma ? 5 : 2;
+                            o = Math.max(3, r / Math.PI * e)
+                        } else o = a.alturaMediaM
+                    }
+                    if (null == r) {
+                        const t = leerNumero(e, ["circumference", "circumference_dbh", "dbh"]);
+                        r = t ? t / Math.PI : o * ({
+                            palmera: .22,
+                            conica: .3,
+                            oval_alargada: .32,
+                            ancha_redondeada: .75,
+                            ancha_irregular: .65,
+                            redondeada: .55
+                        } [a.forma] || .5)
+                    }
+                    return "palmera" === a.forma && (r = Math.min(r, 3.5), o = Math.max(o, 6)), {
+                        altura: o,
+                        radioCopaM: Math.max(.6, r / 2)
+                    }
+                }(r, t);
+            if (n <= e.alturaMinimaM) return null;
+            const l = r.species || r["species:es"] || r.genus || t.tipo || "Árbol";
+            return {
+                punto: turf.point([o.lon, o.lat]),
+                altura: n,
+                radioCopaM: s,
+                nombre: l,
+                forma: t.forma,
+                color: t.color,
+                tipo: t.tipo
+            }
+        }
+        async function cargarArbolesDeLaVista() {
+            if (!r || i) return;
+            const a = o.getBounds();
+            if (function anchoVistaKm(e) {
+                    return turf.distance(turf.point([e.getWest(), e.getCenter ? e.getCenter().lat : (e.getNorth() + e.getSouth()) / 2]), turf.point([e.getEast(), e.getCenter ? e.getCenter().lat : (e.getNorth() + e.getSouth()) / 2]), {
+                        units: "kilometers"
+                    })
+                }(a) > e.maxLadoConsultaKm) return;
+            const c = function celdasDeVista(a) {
+                const o = e.cacheCeldasGrados,
+                    r = [],
+                    t = Math.floor(a.getSouth() / o) * o,
+                    n = Math.ceil(a.getNorth() / o) * o,
+                    s = Math.floor(a.getWest() / o) * o,
+                    l = Math.ceil(a.getEast() / o) * o;
+                for (let e = t; e < n; e += o)
+                    for (let a = s; a < l; a += o) r.push(`${e.toFixed(3)},${a.toFixed(3)}`);
+                return r
+            }(a).filter(e => !l.has(e));
+            if (c.length)
+                if (Date.now() < t) dibujarArbolesVisibles();
+                else {
+                    c.forEach(e => l.add(e)), i = !0;
+                    try {
+                        const o = [a.getSouth(), a.getWest(), a.getNorth(), a.getEast()],
+                            r = await async function consultarOverpass(a) {
+                                if (Date.now() < t) throw new Error("Overpass en cooldown por errores recientes");
+                                const o = `[out:json][timeout:${e.overpassTimeoutS}];(node["natural"="tree"](${a.join(",")}););out body;`;
+                                let r = null;
+                                for (let a = 0; a < e.overpassUrls.length; a++) {
+                                    const t = e.overpassUrls[a];
+                                    try {
+                                        const a = new AbortController,
+                                            r = setTimeout(() => a.abort(), 1e3 * e.overpassTimeoutS + 3e3),
+                                            s = await fetch(t, {
+                                                method: "POST",
+                                                headers: {
+                                                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+                                                },
+                                                body: "data=" + encodeURIComponent(o),
+                                                signal: a.signal
+                                            });
+                                        if (clearTimeout(r), !s.ok) throw new Error(`HTTP ${s.status}`);
+                                        const l = await s.json(),
+                                            i = l?.osm3s?.timestamp_osm_base;
+                                        if (Array.isArray(l?.elements) && 0 === l.elements.length && "string" == typeof i && "" !== i && !i.includes("T")) throw new Error("Espejo Overpass con datos corruptos");
+                                        if (!l || !Array.isArray(l.elements)) throw new Error("Respuesta Overpass inválida");
+                                        return n = 0, l
+                                    } catch (o) {
+                                        r = o, a < e.overpassUrls.length - 1 && await new Promise(e => setTimeout(e, 700 * (a + 1)));
+                                        continue
+                                    }
+                                }
+                                n++;
+                                const s = Math.min(9e4, 4e3 * Math.pow(2, n - 1));
+                                throw t = Date.now() + s, console.warn(`[arboles-globales] Overpass falló ${n} veces seguidas. Cooldown ${(s/1e3).toFixed(0)} s.`), r || new Error("Overpass no disponible")
+                            }(o), l = r.elements || [];
+                        for (const e of l) {
+                            const a = procesarElementoOSM(e);
+                            a && s.push(a), s.length % 200 == 0 && await cederAlNavegador()
+                        }
+                    } catch (e) {
+                        console.warn("[arboles-globales] Overpass no disponible ahora mismo:", e.message), c.forEach(e => l.delete(e))
+                    } finally {
+                        i = !1
+                    }
+                    dibujarArbolesVisibles(),
+                        function programarSincroSombra(a) {
+                            clearInterval(u), a && recalcularSombrasArboles();
+                            u = setInterval(recalcularSombrasArboles, e.sincroSombraMs)
+                        }(!0)
+                }
+            else dibujarArbolesVisibles()
+        }
+
+        function dibujarArbolesVisibles() {
+            if (!o.getSource("arboles-globales-copas") || !r) return [];
+            const a = o.getBounds(),
+                t = s.filter(e => {
+                    const [o, r] = e.punto.geometry.coordinates;
+                    return o >= a.getWest() && o <= a.getEast() && r >= a.getSouth() && r <= a.getNorth()
+                }).slice(0, e.maxArbolesEnPantalla),
+                n = [];
+            for (const e of t) {
+                const a = e.forma || "redondeada",
+                    [o, r] = e.punto.geometry.coordinates;
+                let t = .35,
+                    s = .4,
+                    l = .25;
+                "palmera" === a ? (t = .8, s = .15, l = .05) : "conica" === a ? (t = .45, s = .35, l = .2) : "oval_alargada" === a ? (t = .5, s = .3, l = .2) : "ancha_redondeada" === a ? (t = .3, s = .45, l = .25) : "ancha_irregular" === a && (t = .32, s = .43, l = .25);
+                const i = Math.max(1, e.altura * t),
+                    c = e.altura * s,
+                    u = (Math.max(.5, e.altura * l), Math.max(.15, e.radioCopaM * ("palmera" === a ? .1 : .15))),
+                    d = turf.circle(e.punto, u / 1e3, {
+                        units: "kilometers",
+                        steps: 8
+                    });
+                d.properties = {
+                    altura: e.altura,
+                    baseM: 0,
+                    alturaTotalM: i,
+                    nombre: e.nombre,
+                    tipo: "tronco",
+                    forma: a,
+                    color: e.color
+                }, n.push(d);
+                const m = "palmera" === a ? .9 * e.radioCopaM : e.radioCopaM,
+                    p = crearFormaCopa(e.punto, m / 1e3, a, o, r);
+                p.properties = {
+                    altura: e.altura,
+                    baseM: i,
+                    alturaTotalM: i + c,
+                    nombre: e.nombre,
+                    tipo: "copa",
+                    forma: a,
+                    color: e.color
+                }, n.push(p);
+                const f = "palmera" === a ? .8 * e.radioCopaM : .65 * e.radioCopaM,
+                    b = "palmera" === a ? "palmera" : "conica" === a ? "conica" : "redondeada",
+                    g = crearFormaCopa(e.punto, f / 1e3, b, o, r + 1e-4);
+                g.properties = {
+                    altura: e.altura,
+                    baseM: i + c,
+                    alturaTotalM: e.altura,
+                    nombre: e.nombre,
+                    tipo: "copa",
+                    forma: a,
+                    color: e.color
+                }, n.push(g)
+            }
+            return o.getSource("arboles-globales-copas").setData(turf.featureCollection(n)), t
+        }
+
+        function pseudoRandom(e, a, o) {
+            const r = 43758.5453 * Math.sin(12.9898 * e + 78.233 * a + o);
+            return r - Math.floor(r)
+        }
+
+        function crearFormaCopa(e, a, o, r, t) {
+            const n = {
+                    palmera: 28,
+                    conica: 14,
+                    oval_alargada: 18,
+                    ancha_redondeada: 22,
+                    ancha_irregular: 26,
+                    redondeada: 18
+                } [o] || 18,
+                s = [];
+            for (let l = 0; l < n; l++) {
+                const i = 360 * l / n,
+                    c = i * Math.PI / 180;
+                let u = 1;
+                switch (o) {
+                    case "ancha_redondeada":
+                        u = 1 + .22 * Math.cos(2 * c);
+                        break;
+                    case "ancha_irregular":
+                        u = .92 + .28 * Math.cos(2 * c) + .18 * pseudoRandom(r, t, l + 50);
+                        break;
+                    case "conica":
+                        u = .82 + .12 * Math.cos(2 * c);
+                        break;
+                    case "oval_alargada":
+                        u = .88 + .18 * Math.cos(2 * c);
+                        break;
+                    case "palmera":
+                        u = l % 4 == 0 ? 1.55 : .72
+                }
+                u *= .82 + .3 * pseudoRandom(r, t, l);
+                const d = Math.max(1e-6, a * u),
+                    m = turf.transformTranslate(e, d, i, {
+                        units: "kilometers"
+                    }).geometry.coordinates;
+                s.push(m)
+            }
+            return s.push(s[0]), turf.polygon([s])
+        }
+
+        function unirDosPoligonos(e, a) {
+            try {
+                const o = turf.union(turf.featureCollection([e, a]));
+                if (o) return o
+            } catch (e) {}
+            try {
+                const o = turf.union(e, a);
+                if (o) return o
+            } catch (e) {}
+            return e
+        }
+
+        function restarPoligonos(e, a) {
+            try {
+                const o = turf.difference(turf.featureCollection([e, a]));
+                if (o) return o
+            } catch (e) {}
+            try {
+                const o = turf.difference(e, a);
+                if (o) return o
+            } catch (e) {}
+            return e
+        }
+
+        function idsCapasEdificios(e) {
+            return (e.getStyle().layers || []).filter((e => "fill-extrusion" === e.type && /building/i.test(e.id))).map((e => e.id))
+        }
+
+        function obtenerEdificiosCercanos(e) {
+            const a = idsCapasEdificios(e);
+            if (!a.length) return [];
+            try {
+                return e.queryRenderedFeatures({
+                    layers: a
+                }).slice(0, 220)
+            } catch (e) {
+                return []
+            }
+        }
+
+        function recortarSombraConEdificios(e, a, o, r) {
+            if (!o || !o.length) return e;
+            const t = Math.tan(r.altitude);
+            if (!isFinite(t) || t <= 0) return e;
+            const n = (180 * r.azimuth / Math.PI + 180 + 180) % 360,
+                s = a.altura / t / 1e3;
+            let l = e;
+            for (const e of o) {
+                try {
+                    const o = e.geometry;
+                    if (!o || "Polygon" !== o.type && "MultiPolygon" !== o.type) continue;
+                    const i = turf.centroid(e),
+                        c = turf.distance(a.punto, i, {
+                            units: "kilometers"
+                        });
+                    if (c > s + .05) continue;
+                    const u = turf.bearing(a.punto, i),
+                        d = Math.abs((u - n + 540) % 360 - 180);
+                    if (d > 80) continue;
+                    const m = turf.flatten(turf.feature(o)).features;
+                    for (const e of m) {
+                        const a = restarPoligonos(l, e);
+                        a && (l = a)
+                    }
+                } catch (e) {
+                    continue
+                }
+            }
+            return l
+        }
+
+        function calcularSombraArbol(e, a, o) {
+            const r = e.forma || "redondeada",
+                t = (o + 90) % 360,
+                n = Math.max(e.radioCopaM * ("palmera" === r ? .08 : .12), .25) / 1e3,
+                s = e.radioCopaM / 1e3,
+                [l, i] = e.punto.geometry.coordinates,
+                c = turf.transformTranslate(e.punto, a, o, {
+                    units: "kilometers"
+                }),
+                u = crearFormaCopa(c, "palmera" === r ? .85 * s : s, r, l, i);
+            if ("palmera" === r) {
+                return unirDosPoligonos(u, turf.circle(e.punto, n, {
+                    units: "kilometers",
+                    steps: 8
+                }))
+            }
+            const d = turf.transformTranslate(e.punto, n, t, {
+                    units: "kilometers"
+                }).geometry.coordinates,
+                m = turf.transformTranslate(e.punto, n, (t + 180) % 360, {
+                    units: "kilometers"
+                }).geometry.coordinates,
+                p = {
+                    ancha_redondeada: .9,
+                    ancha_irregular: .85,
+                    redondeada: .75,
+                    conica: .55,
+                    oval_alargada: .6
+                } [r] || .75,
+                f = turf.transformTranslate(c, s * p, t, {
+                    units: "kilometers"
+                }).geometry.coordinates,
+                b = turf.transformTranslate(c, s * p, (t + 180) % 360, {
+                    units: "kilometers"
+                }).geometry.coordinates;
+            let g;
+            try {
+                g = turf.polygon([
+                    [d, f, b, m, d]
+                ])
+            } catch (e) {
+                return u
+            }
+            const M = turf.circle(e.punto, n, {
+                units: "kilometers",
+                steps: 8
+            });
+            let h = unirDosPoligonos(g, u);
+            return unirDosPoligonos(h, M)
+        }
+        let c = 0;
+        async function recalcularSombrasArboles() {
+            if (!o.getSource("arboles-globales-sombra") || !r) return;
+            if (! function sombrasActivadasEnPanel() {
+                    const e = document.getElementById("rsToggleSombras");
+                    return !e || e.checked
+                }()) return void o.getSource("arboles-globales-sombra").setData(turf.featureCollection([]));
+            const a = ++c,
+                t = function obtenerCentroSolar(e) {
+                    if ("function" == typeof window.manolitAireCentroSol) try {
+                        const e = window.manolitAireCentroSol();
+                        if (e && "number" == typeof e.lat && "number" == typeof e.lon) return e
+                    } catch (e) {}
+                    const a = e.getCenter();
+                    return {
+                        lat: a.lat,
+                        lon: a.lng
+                    }
+                }(o),
+                n = SunCalc.getPosition(function obtenerHoraEfectiva() {
+                    if ("function" == typeof window.manolitAireHoraEfectiva) try {
+                        const e = window.manolitAireHoraEfectiva();
+                        if (e instanceof Date && !isNaN(e)) return e
+                    } catch (e) {}
+                    return new Date
+                }(), t.lat, t.lon);
+            if (n.altitude <= 0) return void o.getSource("arboles-globales-sombra").setData(turf.featureCollection([]));
+            const s = (180 * n.azimuth / Math.PI + 180 + 180) % 360,
+                l = dibujarArbolesVisibles().slice(0, e.maxArbolesConSombra),
+                i = Math.tan(n.altitude);
+            if (!i) return;
+            const u = obtenerEdificiosCercanos(o);
+            const d = [];
+            for (let r = 0; r < l.length; r += e.loteSombraSize) {
+                if (a !== c) return;
+                const t = l.slice(r, r + e.loteSombraSize);
+                for (const e of t) {
+                    const a = e.altura / i;
+                    if (!isFinite(a) || a <= 0) continue;
+                    const m = calcularSombraArbol(e, a / 1e3, s);
+                    if (!m) continue;
+                    const p = recortarSombraConEdificios(m, e, u, n);
+                    p && d.push(p)
+                }
+                if (a !== c) return;
+                o.getSource("arboles-globales-sombra")?.setData(turf.featureCollection(d)), r + e.loteSombraSize < l.length && await cederAlNavegador()
+            }
+        }
+        let u = null;
+        let d = null;
+        o.on("moveend", () => {
+            clearTimeout(d), d = setTimeout(() => {
+                cargarArbolesDeLaVista(), recalcularSombrasArboles()
+            }, e.esperaMoveendMs)
+        }), window.manolitAireRecalcularArboles = recalcularSombrasArboles, await cargarArbolesDeLaVista(), recalcularSombrasArboles()
+    }).catch(e => console.warn("[arboles-globales]", e.message))
+}();

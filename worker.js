@@ -1,4 +1,4 @@
-﻿﻿﻿const CORS_HEADERS = {
+﻿﻿const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
@@ -9,7 +9,7 @@ const SYSTEM_PROMPT_AIRE = (idioma) => `Eres Manolit, un asistente amable que ex
 const langNames = { es:'español', ca:'català', eu:'euskera', gl:'galego', en:'English' };
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
@@ -104,49 +104,162 @@ export default {
       }
     }
 
-    // --- Proxy anti-CORS para los árboles (Overpass / OpenStreetMap) ---
-    // Los espejos públicos de Overpass a veces quitan las cabeceras CORS y el
-    // navegador bloquea la petición. Como el Worker pregunta servidor a
-    // servidor, no hay CORS de por medio, y responde al navegador con
-    // Access-Control-Allow-Origin: * como el resto de rutas.
+    // --- Proxy anti-CORS + caché KV para los árboles (Overpass / OpenStreetMap) ---
+    // Los espejos públicos de Overpass se caen a menudo (502/504/silencio
+    // total), así que la defensa va en tres capas:
+    //   1) KV: si esta misma zona se pidió hace <6 h, se sirve al instante
+    //      sin tocar Overpass (rápido y además protege los espejos).
+    //   2) Carrera de espejos: se lanzan todos EN PARALELO con 15 s de
+    //      timeout cada uno y gana el primero que responda bien. El Worker
+    //      nunca se cuelga (15 s máx.) ni espera a espejos muertos.
+    //   3) Si todos los espejos fallan, se sirve la copia del KV aunque sea
+    //      vieja (los árboles no se mueven: un dato de hace 2 días es
+    //      infinitamente mejor que ningún dato).
     if (url.pathname === '/arboles') {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
       }
       try {
         const rawBody = await request.text();
+
+        // Clave de caché = bbox de la consulta Overpass, redondeado a 3
+        // decimales (~100 m): la misma calle comparte caché entre usuarios.
+        let claveKv = null;
+        try {
+          const m = decodeURIComponent(rawBody).match(/\(([-\d.,\s]+)\)/);
+          if (m) claveKv = 'arboles:' + m[1].split(',').map((n) => parseFloat(n).toFixed(3)).join(',');
+        } catch (e) { /* sin clave: seguimos sin caché */ }
+
+        const kv = env.AIR_QUALITY_CACHE || null;
+        const FRESCA_MS = 6 * 3600 * 1000; // 6 h = "fresca", se sirve directa
+
+        if (kv && claveKv) {
+          try {
+            const { value, metadata } = await kv.getWithMetadata(claveKv);
+            if (value && metadata && metadata.ts && Date.now() - metadata.ts < FRESCA_MS) {
+              return new Response(value, {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
+              });
+            }
+          } catch (e) { /* KV inaccesible: seguimos a los espejos */ }
+        }
+
         const espejos = [
+          // Espejos públicos de Overpass en Europa y Taiwán (nada de
+          // infraestructura rusa). DA IGUAL el orden: se lanzan TODOS EN
+          // PARALELO y gana el primero que responda con datos válidos
+          // (carrera), con 15 s de timeout por espejo. Así el Worker nunca
+          // se cuelga ni espera a un espejo muerto. Los tres dominios
+          // *.overpass-api.de son colas independientes del mismo operador
+          // alemán (el principal suele ser el más saturado).
+          'https://lz4.overpass-api.de/api/interpreter',
+          'https://z.overpass-api.de/api/interpreter',
           'https://overpass-api.de/api/interpreter',
-          'https://overpass.private.coffee/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
+          'https://overpass.private.coffee/api/interpreter',
+          'https://overpass.nchc.org.tw/api/interpreter',
           // OJO: overpass.osm.ch devuelve 200 con elements vacío y fecha
           // basura (timestamp_osm_base:"116617") — corrupto, fuera.
         ];
-        let respuesta = null;
-        for (const espejo of espejos) {
+        const intentarEspejo = async (espejo) => {
+          const controller = new AbortController();
+          const temporizador = setTimeout(() => controller.abort(), 15000);
           try {
             const r = await fetch(espejo, {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
               body: rawBody,
+              signal: controller.signal,
             });
-            if (!r.ok) continue;
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const txt = await r.text();
             // Validar el contenido: un 200 con JSON vacío corrupto no vale.
             let datos = null;
-            try { datos = JSON.parse(txt); } catch (e) { continue; }
+            try { datos = JSON.parse(txt); } catch (e) { throw new Error('no JSON'); }
             const ts = datos?.osm3s?.timestamp_osm_base;
             const corrupto =
               Array.isArray(datos?.elements) && datos.elements.length === 0 &&
               typeof ts === 'string' && ts !== '' && !ts.includes('T');
-            if (corrupto) continue;
-            if (!datos || !Array.isArray(datos.elements)) continue;
-            respuesta = txt;
-            break;
-          } catch (e) { /* espejo caído: probamos el siguiente */ }
+            if (corrupto) throw new Error('espejo corrupto');
+            if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
+            return txt;
+          } finally {
+            clearTimeout(temporizador);
+          }
+        };
+        // Promise.any: el primer espejo bueno gana al instante; solo se
+        // espera a todos (máx. 15 s) si TODOS fallan.
+        let respuesta = null;
+        try {
+          respuesta = await Promise.any(espejos.map(intentarEspejo));
+        } catch (e) { /* AggregateError: todos fallaron */ }
+
+        if (respuesta) {
+          // Guardamos en KV en segundo plano (7 días de vida) sin retrasar
+          // la respuesta al navegador.
+          if (kv && claveKv && ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(
+              kv.put(claveKv, respuesta, { expirationTtl: 604800, metadata: { ts: Date.now() } }).catch(() => {})
+            );
+          }
+          return new Response(respuesta, {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'nueva', ...CORS_HEADERS }
+          });
         }
-        if (!respuesta) throw new Error('Overpass no disponible en ningún espejo');
-        return new Response(respuesta, {
+
+        // Todos los espejos caídos: servimos la copia del KV aunque esté vieja.
+        if (kv && claveKv) {
+          try {
+            const vieja = await kv.get(claveKv);
+            if (vieja) {
+              return new Response(vieja, {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Arboles-Cache': 'vieja', ...CORS_HEADERS }
+              });
+            }
+          } catch (e) { /* sin copia: error abajo */ }
+        }
+
+        throw new Error('Overpass no disponible en ningún espejo');
+      } catch (err) {
+        return new Response(JSON.stringify({ error: String(err.message || err) }), {
+          status: 502,
+          headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+        });
+      }
+    }
+
+    // --- Nubosidad en tiempo real (OpenWeatherMap) para la luz difusa ---
+    // GET /clima?lat=..&lon=.. -> { nubes: 0-100, descripcion, humedad }
+    // La API key vive SOLO aquí, como secret del Worker (nunca en el cliente):
+    //   npx wrangler secret put OPENWEATHER_API_KEY
+    if (url.pathname === '/clima') {
+      try {
+        if (!env.OPENWEATHER_API_KEY) {
+          return new Response(JSON.stringify({ error: 'OPENWEATHER_API_KEY no configurada' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+          });
+        }
+        const lat = parseFloat(url.searchParams.get('lat'));
+        const lon = parseFloat(url.searchParams.get('lon'));
+        if (!isFinite(lat) || !isFinite(lon)) {
+          return new Response(JSON.stringify({ error: 'lat/lon requeridos' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+          });
+        }
+        const owm = `https://api.openweathermap.org/data/2.5/weather?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}&appid=${env.OPENWEATHER_API_KEY}&units=metric&lang=es`;
+        const r = await fetch(owm, { headers: { 'User-Agent': 'manolito-aire/1.0' } });
+        if (!r.ok) throw new Error(`OpenWeatherMap HTTP ${r.status}`);
+        const d = await r.json();
+        const salida = {
+          nubes: Math.max(0, Math.min(100, Number(d?.clouds?.all ?? 0))),
+          descripcion: d?.weather?.[0]?.description || '',
+          humedad: d?.main?.humidity ?? null,
+          amanecer: d?.sys?.sunrise ?? null,
+          atardecer: d?.sys?.sunset ?? null,
+        };
+        return new Response(JSON.stringify(salida), {
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
         });
       } catch (err) {

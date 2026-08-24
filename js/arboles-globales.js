@@ -20,12 +20,18 @@
   const CONFIG = {
     overpassUrls: [
       // 1º: nuestro propio proxy en Cloudflare, same-origin (sin CORS y sin
-      // depender del dominio workers.dev). Si el Worker no tiene la ruta,
-      // cae automáticamente a los espejos públicos de abajo.
+      // depender del dominio workers.dev). Lleva caché KV de 6 h: si la zona
+      // ya se pidió, responde al instante aunque Overpass esté caído.
+      // Si el Worker no tiene la ruta, cae a los espejos públicos de abajo.
       '/arboles',
+      // Espejos públicos de respaldo en Europa y Taiwán (nada de
+      // infraestructura rusa). lz4/z.overpass-api.de son colas alternativas
+      // del operador alemán, suelen ir menos saturadas que la principal.
+      'https://lz4.overpass-api.de/api/interpreter',
       'https://overpass-api.de/api/interpreter',
-      'https://overpass.private.coffee/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter',
+      'https://overpass.nchc.org.tw/api/interpreter',
       // OJO: overpass.osm.ch está devolviendo respuestas 200 VACÍAS y
       // corruptas (timestamp_osm_base:"116617") — fuera de la lista.
     ],
@@ -397,7 +403,11 @@
         const url = CONFIG.overpassUrls[i];
         try {
           const controller = new AbortController();
-          const id = setTimeout(() => controller.abort(), CONFIG.overpassTimeoutS * 1000 + 3000);
+          // El proxy propio (/arboles) prueba varios espejos en cadena con
+          // timeout individual, así que le damos más margen (25 s); a los
+          // espejos públicos directos los cortamos antes (18 s).
+          const presupuestoMs = url.startsWith('/') ? 25000 : CONFIG.overpassTimeoutS * 1000 + 3000;
+          const id = setTimeout(() => controller.abort(), presupuestoMs);
           const r = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },

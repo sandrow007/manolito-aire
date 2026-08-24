@@ -12,10 +12,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
-<<<<<<< HEAD
 <base target="_blank">
-=======
->>>>>>> 0f3a39ffe8925a0a2e12eb09ebacb0b9a97bc888
 </head>
 <body>
 
@@ -222,7 +219,31 @@
   sanitario, y ante episodios de calor extremo deben seguirse siempre las recomendaciones oficiales.
 </p>
 
-<h2 data-i18n-legal="avis_34">13. El origen de Manolit∞: Supervivencia en Sevilla</h2>
+<h2 data-i18n-legal="avis_39">12 bis. Óptica Atmosférica en Tiempo Real: Nubes, Luz Difusa y Sombras Suaves</h2>
+<p data-i18n-legal="avis_40">
+  El motor de sombras no solo conoce la posición del sol: también escucha el cielo real.
+  Manolit∞ Aire consulta la <strong>cobertura nubosa actual</strong> (0–100&nbsp;%) de
+  <strong>OpenWeatherMap</strong> a través de un proxy propio desplegado en <b>Cloudflare Workers</b>
+  (la clave de API permanece en el servidor como secreto y jamás llega a tu navegador), con caché de
+  unos 10 minutos por zona. Con ese dato, la escena aplica <b>física de luz difusa</b>: la opacidad de
+  cada sombra se multiplica por <code>1 − nubosidad × 0,6</code>, de modo que con cielo despejado las
+  sombras son duras y oscuras, y bajo la nube se vuelven tenues y translúcidas <b>sin llegar a
+  desaparecer nunca</b> — igual que en la calle, donde una nube difumina la sombra pero no la borra.
+  El color de la sombra deriva además de un azul casi negro a un gris azulado, y la iluminación
+  direccional y el color del cielo del mapa 3D se atenúan hacia el gris en proporción a la nubosidad.
+</p>
+<p data-i18n-legal="avis_41">
+  Encima, una <b>macro-sombra de la masa de nubes</b> envuelve la escena: un velo sutil con mezcla
+  <code>multiply</code> y manchas suaves que se desplazan muy despacio, como la sombra real de una nube
+  arrastrada por el viento (desactivado si tu sistema pide reducir el movimiento). Este velo se acopla
+  al <b>motor de zoom</b>: la densidad atmosférica simulada crece al alejarse (0,3 a pie de calle → 0,8
+  en vista lejana), de modo que a nivel de calle la luz difusa en el suelo es la protagonista. La
+  nubosidad procede de observaciones puntuales de OpenWeatherMap con actualización aproximada de
+  10 minutos, por lo que el efecto es <b>representativo y didáctico</b>: no es una predicción
+  meteorológica ni una medición certificada.
+</p>
+
+<h2 data-i18n-legal="avis_34">13. El origen de Manolit∞ - Supervivencia en Sevilla</h2>
 <p data-i18n-legal="avis_35">
   Este proyecto no nace en un laboratorio, nace de la pura necesidad. Cualquiera que viva o camine por 
   <strong>Sevilla en verano</strong> sabe que te puedes literalmente morir ahogado de calor cruzando una calle al sol. 

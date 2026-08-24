@@ -352,7 +352,10 @@
   function calcularPenalizacionSolar(puntoMedio, posSol) {
     if (!posSol || posSol.altitude <= 0) return 0;
     try {
-      const sombras = (typeof ultimaColeccionSombras !== 'undefined' && ultimaColeccionSombras && ultimaColeccionSombras.features) ? ultimaColeccionSombras.features : [];
+      // Sombra de edificios + sombra de árboles: ambas refrescan el paso.
+      const sombras = typeof obtenerTodasLasSombras === 'function'
+        ? obtenerTodasLasSombras()
+        : ((typeof ultimaColeccionSombras !== 'undefined' && ultimaColeccionSombras && ultimaColeccionSombras.features) ? ultimaColeccionSombras.features : []);
       for (const poligono of sombras) {
         if (turf.booleanPointInPolygon(turf.point(puntoMedio), poligono)) return 0;
       }
@@ -440,10 +443,13 @@
     const duracionMin = (distanciaRealKm / CONFIG.velocidadCaminandoKmh) * 60;
 
     let coberturaSombraPct = null;
-    if (ultimaColeccionSombras && ultimaColeccionSombras.features && ultimaColeccionSombras.features.length) {
+    const sombrasParaCobertura = typeof obtenerTodasLasSombras === 'function'
+      ? obtenerTodasLasSombras()
+      : (ultimaColeccionSombras?.features || []);
+    if (sombrasParaCobertura.length) {
       try {
         const lineaRuta = turf.lineString(resultado.camino);
-        coberturaSombraPct = Math.round(calcularCoberturaSombra(lineaRuta, ultimaColeccionSombras.features) * 100);
+        coberturaSombraPct = Math.round(calcularCoberturaSombra(lineaRuta, sombrasParaCobertura) * 100);
       } catch (e) { /* el badge se actualizará después con los tramos en sombra */ }
     }
 
@@ -1067,8 +1073,33 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   let puntoReferenciaSol = null;
   let rutaActual = null;
 
+  // TODAS las sombras que hay en escena ahora mismo: las de los edificios
+  // (ultimaColeccionSombras, calculadas en este archivo) MÁS las de los
+  // árboles (fuente 'arboles-globales-sombra', que rellena
+  // arboles-globales.js). Sin esto, pasar bajo la sombra de un árbol no
+  // contaba como sombra ni en el % ni en el pintado cian de la ruta.
+  function obtenerSombrasDeArboles() {
+    try {
+      const fuente = map.getSource('arboles-globales-sombra');
+      if (!fuente) return [];
+      const datos = fuente._data || (fuente.serialize && fuente.serialize().data);
+      if (!datos || !datos.features) return [];
+      return datos.features.filter(
+        (f) => f && f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
+      );
+    } catch (e) { /* la capa de árboles no está cargada o activada */ }
+    return [];
+  }
+
+  function obtenerTodasLasSombras() {
+    const edificios = (ultimaColeccionSombras && ultimaColeccionSombras.features) || [];
+    const arboles = obtenerSombrasDeArboles();
+    return arboles.length ? edificios.concat(arboles) : edificios;
+  }
+
   function puntoEnSombra(punto) {
-    for (const poligono of ultimaColeccionSombras.features) {
+    const sombras = obtenerTodasLasSombras();
+    for (const poligono of sombras) {
       try {
         if (turf.booleanPointInPolygon(punto, poligono)) return true;
       } catch (e) { /* geometría rara: la ignoramos */ }
@@ -1079,7 +1110,8 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   async function actualizarTramosSombraRuta() {
     const fuente = map.getSource('ruta-sombra');
     if (!fuente) return;
-    if (!rutaActual || !ultimaColeccionSombras.features.length) {
+    const haySombras = (ultimaColeccionSombras?.features?.length || 0) + obtenerSombrasDeArboles().length;
+    if (!rutaActual || !haySombras) {
       fuente.setData(turf.featureCollection([]));
       // El badge de % de sombra ya no se queda con el valor viejo cuando
       // deja de haber ruta o sombras que mostrar.

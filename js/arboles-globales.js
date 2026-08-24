@@ -692,10 +692,23 @@
       const radioProyectado = forma === 'palmera' ? radioCopaKm * 0.85 : radioCopaKm;
       const copaProyectada = crearFormaCopa(lejano, radioProyectado, forma, lon, lat);
 
-      // Para palmeras la sombra es casi solo la corona proyectada (poco volumen lateral)
+      // Para palmeras la sombra es la corona proyectada + una banda fina y
+      // alargada: el tronco de la palmera es estrecho pero ALTO, y proyecta
+      // una línea de sombra desde la base hasta la corona (falta no tenerla).
       if (forma === 'palmera') {
         const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
-        return unirDosPoligonos(copaProyectada, baseRedondeada);
+        // Cuna del tronco: base fina (radio del tronco) ensanchándose apenas
+        // un poco hacia donde cae la corona (el penacho abre un pelín el haz).
+        try {
+          const pBaseA = turf.transformTranslate(arbol.punto, radioTroncoKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+          const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+          const pLejosA = turf.transformTranslate(lejano, radioTroncoKm * 1.6, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+          const pLejosB = turf.transformTranslate(lejano, radioTroncoKm * 1.6, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+          const cunaTronco = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
+          return unirDosPoligonos(unirDosPoligonos(cunaTronco, copaProyectada), baseRedondeada);
+        } catch (e) {
+          return unirDosPoligonos(copaProyectada, baseRedondeada);
+        }
       }
 
       // Cuerpo de la sombra entre el tronco y la copa proyectada

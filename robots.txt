@@ -1,0 +1,41 @@
+# Manolit∞ Aire — robots.txt
+# Bloquea los rastreadores de IA (sin entrenar modelos con el contenido)
+# usando solo directivas estándar válidas (Disallow), y deja pasar a Google.
+
+User-agent: *
+Allow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: OAI-SearchBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+Sitemap: https://manolitoaire.com/sitemap.xml

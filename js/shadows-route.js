@@ -2112,7 +2112,9 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     estilo.id = 'rsMapStyleToggleEstilos';
     estilo.textContent = `
       #rsMapStyleToggle{
-        position:absolute; right:12px; bottom:12px; z-index:5;
+        /* subido 60px para no tapar el botón de atribución de MapLibre
+           (WCAG 2.5.8: los objetivos táctiles no pueden quedar parcialmente ocultos) */
+        position:absolute; right:12px; bottom:72px; z-index:5;
       }
       #rsMapStyleToggle button{
         font-family:inherit; font-size:9.5px; letter-spacing:.04em; text-transform:uppercase;

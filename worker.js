@@ -119,7 +119,8 @@ export default {
           'https://overpass-api.de/api/interpreter',
           'https://overpass.private.coffee/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
-          'https://overpass.osm.ch/api/interpreter',
+          // OJO: overpass.osm.ch devuelve 200 con elements vacío y fecha
+          // basura (timestamp_osm_base:"116617") — corrupto, fuera.
         ];
         let respuesta = null;
         for (const espejo of espejos) {
@@ -129,7 +130,19 @@ export default {
               headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
               body: rawBody,
             });
-            if (r.ok) { respuesta = await r.text(); break; }
+            if (!r.ok) continue;
+            const txt = await r.text();
+            // Validar el contenido: un 200 con JSON vacío corrupto no vale.
+            let datos = null;
+            try { datos = JSON.parse(txt); } catch (e) { continue; }
+            const ts = datos?.osm3s?.timestamp_osm_base;
+            const corrupto =
+              Array.isArray(datos?.elements) && datos.elements.length === 0 &&
+              typeof ts === 'string' && ts !== '' && !ts.includes('T');
+            if (corrupto) continue;
+            if (!datos || !Array.isArray(datos.elements)) continue;
+            respuesta = txt;
+            break;
           } catch (e) { /* espejo caído: probamos el siguiente */ }
         }
         if (!respuesta) throw new Error('Overpass no disponible en ningún espejo');

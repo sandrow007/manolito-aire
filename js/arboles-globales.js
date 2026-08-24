@@ -19,14 +19,15 @@
 
   const CONFIG = {
     overpassUrls: [
-      // 1º: nuestro propio proxy en Cloudflare (sin CORS posible). Si el
-      // Worker aún no se ha redesplegado con la ruta /arboles, devuelve 404
-      // y se cae automáticamente a los espejos públicos de abajo.
-      'https://manolito-aire.sandro-a007.workers.dev/arboles',
+      // 1º: nuestro propio proxy en Cloudflare, same-origin (sin CORS y sin
+      // depender del dominio workers.dev). Si el Worker no tiene la ruta,
+      // cae automáticamente a los espejos públicos de abajo.
+      '/arboles',
       'https://overpass-api.de/api/interpreter',
-      'https://overpass.osm.ch/api/interpreter',
       'https://overpass.private.coffee/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
+      // OJO: overpass.osm.ch está devolviendo respuestas 200 VACÍAS y
+      // corruptas (timestamp_osm_base:"116617") — fuera de la lista.
     ],
     overpassTimeoutS: 15,
 
@@ -308,15 +309,23 @@
       delete btn.dataset.cargando;
       btn.textContent = (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
       btn.classList.add('rs-activo');
-      btn.addEventListener('click', () => {
+      const textoBoton = () => (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
+      btn.addEventListener('click', async () => {
         capaVisible = !capaVisible;
         btn.classList.toggle('rs-activo', capaVisible);
         ['capa-arboles-globales-3d', 'capa-sombra-arboles-globales'].forEach((id) => {
           if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', capaVisible ? 'visible' : 'none');
         });
         if (capaVisible) {
-          cargarArbolesDeLaVista();
-          recalcularSombrasArboles();
+          // Feedback de carga: la consulta a Overpass puede tardar unos
+          // segundos; sin aviso parece que el botón "no hace nada".
+          btn.textContent = 'Cargando árboles…';
+          try {
+            await cargarArbolesDeLaVista();
+            recalcularSombrasArboles();
+          } finally {
+            btn.textContent = textoBoton();
+          }
         }
       });
       return true;
@@ -381,8 +390,17 @@
           });
           clearTimeout(id);
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const datos = await r.json();
+          // Espejo corrupto: 200 con lista vacía y fecha basura (p. ej.
+          // timestamp_osm_base:"116617"). Un vacío real tiene fecha válida.
+          const ts = datos?.osm3s?.timestamp_osm_base;
+          const corrupto =
+            Array.isArray(datos?.elements) && datos.elements.length === 0 &&
+            typeof ts === 'string' && ts !== '' && !ts.includes('T');
+          if (corrupto) throw new Error('Espejo Overpass con datos corruptos');
+          if (!datos || !Array.isArray(datos.elements)) throw new Error('Respuesta Overpass inválida');
           overpassErroresSeguidos = 0;
-          return await r.json();
+          return datos;
         } catch (e) {
           ultimoError = e;
           if (i < CONFIG.overpassUrls.length - 1) {

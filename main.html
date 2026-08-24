@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
 </noscript>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css" fetchpriority="high">
 
 <script type="application/ld+json">
 {
@@ -66,7 +66,7 @@
 
   <div class="topbar-right" id="topbarRight">
     <a class="family-link" href="about.html" data-i18n="aboutLink">¿Por qué existe esto?</a>
-    <a class="family-link" href="https://wwww.manolitoforestal.space" target="_blank" rel="noopener">Manolito Forestal</a>
+    <a class="family-link" href="https://www.manolitoforestal.space" target="_blank" rel="noopener">Manolito Forestal</a>
     <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
 
     <div class="chip-toggle" id="paletteToggle" title="Color de acento">
@@ -359,10 +359,46 @@
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
-<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js" defer></script>
-<script src="https://unpkg.com/@turf/turf@6/turf.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js" defer></script>
-<script src="js/shadows-route.js" defer></script>
+<script>
+(function () {
+  const objetivo = document.getElementById('shadowRouteMap');
+  if (!objetivo) return;
+
+  let cargado = false;
+  function cargarScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.body.appendChild(s);
+    });
+  }
+  function cargarMapaSombras() {
+    if (cargado) return;
+    cargado = true;
+    cargarScript('https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js')
+      .then(() => cargarScript('https://unpkg.com/@turf/turf@6/turf.min.js'))
+      .then(() => cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'))
+      .then(() => cargarScript('js/shadows-route.js'))
+      .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
+  }
+
+  if ('IntersectionObserver' in window) {
+    const observador = new IntersectionObserver((entradas) => {
+      entradas.forEach((entrada) => {
+        if (entrada.isIntersecting) {
+          cargarMapaSombras();
+          observador.disconnect();
+        }
+      });
+    }, { rootMargin: '600px 0px' });
+    observador.observe(objetivo);
+  } else {
+    cargarMapaSombras();
+  }
+})();
+</script>
 <script src="js/cookie-banner.js" defer></script>
 
 <!-- ========== LÓGICA EN LINEA (modos, UI helpers) ========== -->

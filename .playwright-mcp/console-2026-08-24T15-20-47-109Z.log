@@ -1,0 +1,1 @@
+[    3414ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ https://air-quality-api.open-meteo.com/v1/air-quality?latitude=41.9111&longitude=0.1942&current=pm2_5,pm10,nitrogen_dioxide,ozone:0

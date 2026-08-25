@@ -10,6 +10,10 @@ function initCookieBanner(){
 
   const gate = document.createElement('div');
   gate.id = 'cookieGate';
+  // Es un modal real (bloquea la página): aviso de consentimiento.
+  gate.setAttribute('role', 'dialog');
+  gate.setAttribute('aria-modal', 'true');
+  gate.setAttribute('aria-label', 'Aviso de cookies');
   
   gate.style.cssText = `
     position: fixed; inset: 0; z-index: 100000; background: rgba(1, 2, 3, 0.85);
@@ -39,16 +43,48 @@ function initCookieBanner(){
   
   document.body.appendChild(gate);
 
+  /* Focus trap: mientras el aviso está abierto, Tab no puede salir de él.
+     Al cerrarse, el foco vuelve al elemento que lo tenía antes. */
+  const focoPrevio = document.activeElement;
+  const focoables = () => Array.from(gate.querySelectorAll('button, a[href]'));
+  const btnAceptar = document.getElementById('cookieAcceptBtn');
+  if (btnAceptar) btnAceptar.focus();
+
+  function cerrarGate() {
+    gate.remove();
+    if (focoPrevio && typeof focoPrevio.focus === 'function') focoPrevio.focus();
+  }
+
+  gate.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      const elems = focoables();
+      if (!elems.length) return;
+      const primero = elems[0];
+      const ultimo = elems[elems.length - 1];
+      if (e.shiftKey && document.activeElement === primero) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && document.activeElement === ultimo) {
+        e.preventDefault();
+        primero.focus();
+      }
+    } else if (e.key === 'Escape') {
+      // Escape = rechazar (cerrar sin aceptar, como el botón "Rechazar")
+      e.preventDefault();
+      document.getElementById('cookieRejectBtn')?.click();
+    }
+  });
+
   document.getElementById('cookieAcceptBtn').addEventListener('click', () => {
     localStorage.setItem('manolito_cookies_choice', 'accepted');
-    gate.remove();
+    cerrarGate();
     document.dispatchEvent(new CustomEvent('cookiesAceptadas'));
   });
   
   document.getElementById('cookieRejectBtn').addEventListener('click', () => {
     localStorage.setItem('manolito_cookies_choice', 'rejected');
     ['manolito_lang','manolito_theme','manolito_palette'].forEach(k => localStorage.removeItem(k));
-    gate.remove();
+    cerrarGate();
   });
 }
 

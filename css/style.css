@@ -777,3 +777,91 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 /* ---------- Accesibilidad: objetivos táctiles ---------- */
 /* El botón "i" de atribución de MapLibre medía 20×20px (mínimo táctil 24×24) */
 .maplibregl-ctrl-attrib-button{ min-width:26px !important; min-height:26px !important; }
+
+/* ============================================================
+   ACCESIBILIDAD — lectores de pantalla y modo accesible
+   ============================================================ */
+
+/* Texto solo para lectores de pantalla (invisible, pero en el DOM) */
+.visually-hidden{
+  position:absolute !important; width:1px !important; height:1px !important;
+  padding:0 !important; margin:-1px !important; overflow:hidden !important;
+  clip:rect(0 0 0 0) !important; clip-path:inset(50%) !important;
+  white-space:nowrap !important; border:0 !important;
+}
+
+/* Skip link: oculto hasta que recibe foco con Tab */
+.skip-link{
+  position:absolute; left:12px; top:-64px; z-index:100002;
+  background:var(--paper, #FBFAF7); color:var(--ink, #0D1F26);
+  font-family:var(--font-mono); font-size:0.8rem; font-weight:700;
+  padding:10px 14px; border:2px solid var(--accent-text, #C24500);
+  border-radius:8px; text-decoration:none;
+}
+.skip-link:focus{ top:12px; }
+
+/* Foco visible SIEMPRE con teclado (mínimo 3px, contraste AA sobre fondo) */
+:focus-visible{
+  outline:3px solid var(--accent-text, #C24500) !important;
+  outline-offset:2px;
+}
+
+/* Botón "Modo accesible" del header (lo inyecta i18n.js en todas las páginas) */
+.acc-mode-btn{
+  font-family:var(--font-mono); font-size:0.7rem; font-weight:700;
+  letter-spacing:0.02em; padding:6px 12px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--line); background:transparent; color:var(--sky-mid);
+  white-space:nowrap;
+}
+.acc-mode-btn:hover{ border-color:var(--accent); color:var(--accent); }
+.acc-mode-btn[aria-pressed="true"]{
+  background:var(--sky-deep); color:var(--paper); border-color:var(--sky-deep);
+}
+
+/* ---------- Modo accesible (baja visión) ---------- */
+/* Letra base más grande y aireada */
+body.modo-accesible{
+  font-size:1.25rem !important;
+  line-height:1.7 !important;
+  background:#FFFFFF !important;
+  color:#000000 !important;
+}
+
+/* Sin animaciones ni transiciones: nada se mueve */
+body.modo-accesible *{
+  animation:none !important;
+  transition:none !important;
+  scroll-behavior:auto !important;
+}
+
+/* Contraste máximo: fondo blanco y texto negro en todo el contenido
+   (se respetan canvas y SVG: el mapa y el planetario siguen dibujándose) */
+body.modo-accesible :not(canvas):not(svg):not(svg *){
+  background-color:transparent !important;
+  color:#000000 !important;
+  border-color:#000000 !important;
+  box-shadow:none !important;
+  text-shadow:none !important;
+}
+body.modo-accesible input,
+body.modo-accesible select,
+body.modo-accesible textarea{
+  background:#FFFFFF !important;
+  border:2px solid #000000 !important;
+  color:#000000 !important;
+}
+
+/* Enlaces y botones: subrayados y con contorno permanente de 3px */
+body.modo-accesible a,
+body.modo-accesible button{
+  text-decoration:underline !important;
+  outline:3px solid #000000 !important;
+  outline-offset:1px;
+}
+
+/* Imágenes un poco más contrastadas */
+body.modo-accesible img{ filter:contrast(1.1) !important; }
+
+/* En modo accesible el mapa no se invierte: fondo claro predecible */
+body.modo-accesible #shadowRouteMap .maplibregl-canvas,
+body.modo-accesible #map .leaflet-tile-pane{ filter:none !important; }

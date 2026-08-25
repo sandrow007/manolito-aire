@@ -79,6 +79,18 @@ const translations = {
     routeFallback: "No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.",
     routeEstimated: "tiempo estimado a paso normal",
     routeRecalcWeather: "Ha cambiado la nubosidad — recalculando la ruta más fresca…",
+    skipToContent: "Saltar al contenido principal",
+    accModeBtn: "♿ Modo accesible",
+    layerGroup: "Capas del mapa",
+    timePresets: "Preajustes de hora",
+    timeSlider: "Hora del día",
+    aqiTitle: "Calidad del aire en el punto de origen",
+    chatDialogLabel: "Chat con Manolit",
+    chatClose: "Cerrar chat",
+    sunSummaryAbove: "Sol a",
+    sunSummaryDeg: "grados de altura",
+    sunSummaryAzimuth: "azimut",
+    sunSummaryBelow: "De noche: el sol está bajo el horizonte.",
     minWalk: "min a pie",
     sunPosition: "Posición solar",
     sunBelow: "El sol está bajo el horizonte a esa hora — no hay sombras que proyectar.",
@@ -230,6 +242,18 @@ const translations = {
     routeFallback: "No s'ha pogut calcular la ruta pels carrers (servidor de rutes ocupat) — mostrant línia directa.",
     routeEstimated: "temps estimat a pas normal",
     routeRecalcWeather: "Ha canviat la nuvolositat — recalculant la ruta més fresca…",
+    skipToContent: "Salta al contingut principal",
+    accModeBtn: "♿ Mode accessible",
+    layerGroup: "Capes del mapa",
+    timePresets: "Preajustos d'hora",
+    timeSlider: "Hora del dia",
+    aqiTitle: "Qualitat de l'aire al punt d'origen",
+    chatDialogLabel: "Xat amb en Manolit",
+    chatClose: "Tanca el xat",
+    sunSummaryAbove: "Sol a",
+    sunSummaryDeg: "graus d'altitud",
+    sunSummaryAzimuth: "azimut",
+    sunSummaryBelow: "De nit: el sol està sota l'horitzó.",
     minWalk: "min a peu",
     sunPosition: "Posició solar",
     sunBelow: "El sol està sota l'horitzó a aquesta hora — no hi ha ombres que projectar.",
@@ -380,6 +404,18 @@ const translations = {
     routeFallback: "Ezin izan da kaleetako ibilbidea kalkulatu (zerbitzaria okupatuta) — lerro zuzena erakusten.",
     routeEstimated: "denbora estimatua pausu normalean",
     routeRecalcWeather: "Hodeitza aldatu da — bide freskoena berriz kalkulatzen…",
+    skipToContent: "Joan eduki nagusira",
+    accModeBtn: "♿ Modu irisgarria",
+    layerGroup: "Mapako geruzak",
+    timePresets: "Ordu-aurrezarpenak",
+    timeSlider: "Eguneko ordua",
+    aqiTitle: "Airearen kalitatea jatorri puntuan",
+    chatDialogLabel: "Txata Manolitekin",
+    chatClose: "Itxi txata",
+    sunSummaryAbove: "Eguzkia",
+    sunSummaryDeg: "graduko altueran",
+    sunSummaryAzimuth: "azimut",
+    sunSummaryBelow: "Gauez: eguzkia horizontearen azpian dago.",
     minWalk: "min oinez",
     sunPosition: "Eguzkiaren posizioa",
     sunBelow: "Eguzkia horizontearen azpian dago ordu horretan — ez dago itzalik proiektatzeko.",
@@ -531,6 +567,18 @@ const translations = {
     routeFallback: "Non se puido calcular a ruta polas rúas (servidor de rutas ocupado) — mostrando liña directa.",
     routeEstimated: "tempo estimado a paso normal",
     routeRecalcWeather: "Cambiou a nubosidade — recalculando a ruta máis fresca…",
+    skipToContent: "Saltar ao contido principal",
+    accModeBtn: "♿ Modo accesible",
+    layerGroup: "Capas do mapa",
+    timePresets: "Presets de hora",
+    timeSlider: "Hora do día",
+    aqiTitle: "Calidade do aire no punto de orixe",
+    chatDialogLabel: "Chat con Manolit",
+    chatClose: "Pechar o chat",
+    sunSummaryAbove: "Sol a",
+    sunSummaryDeg: "graos de altura",
+    sunSummaryAzimuth: "acimut",
+    sunSummaryBelow: "De noite: o sol está baixo o horizonte.",
     minWalk: "min a pé",
     sunPosition: "Posición solar",
     sunBelow: "O sol está baixo o horizonte a esa hora — non hai sombras que proxectar.",
@@ -681,6 +729,18 @@ const translations = {
     routeFallback: "Could not calculate walking route (routing server busy) — showing straight line.",
     routeEstimated: "estimated time at normal pace",
     routeRecalcWeather: "Cloud cover changed — recalculating the coolest route…",
+    skipToContent: "Skip to main content",
+    accModeBtn: "♿ Accessible mode",
+    layerGroup: "Map layers",
+    timePresets: "Time presets",
+    timeSlider: "Time of day",
+    aqiTitle: "Air quality at the origin point",
+    chatDialogLabel: "Chat with Manolit",
+    chatClose: "Close chat",
+    sunSummaryAbove: "Sun at",
+    sunSummaryDeg: "degrees altitude",
+    sunSummaryAzimuth: "azimuth",
+    sunSummaryBelow: "Night time: the sun is below the horizon.",
     minWalk: "min walking",
     sunPosition: "Sun position",
     sunBelow: "The sun is below the horizon at that time — no shadows to project.",
@@ -838,6 +898,18 @@ const translations = {
     routeFallback: "ქუჩების მარშრუტი ვერ გამოითვალა (სერვერი დაკავებულია) — ჩანს პირდაპირი ხაზი.",
     routeEstimated: "სავარაუდო დრო ჩვეულებრივი სვლით",
     routeRecalcWeather: "ღრუბლიანობა შეიცვალა — ყველაზე გრილი მარშრუტი თავიდან ითვლება…",
+    skipToContent: "მთავარ შინაარსზე გადასვლა",
+    accModeBtn: "♿ ხელმისაწვდომი რეჟიმი",
+    layerGroup: "რუკის ფენები",
+    timePresets: "დროის პრესეტები",
+    timeSlider: "დღის დრო",
+    aqiTitle: "ჰაერის ხარისხი საწყის წერტილში",
+    chatDialogLabel: "ჩატი მანოლიტთან",
+    chatClose: "ჩატის დახურვა",
+    sunSummaryAbove: "მზე",
+    sunSummaryDeg: "გრადუსი სიმაღლეზე",
+    sunSummaryAzimuth: "აზიმუთი",
+    sunSummaryBelow: "ღამეა: მზე ჰორიზონტის ქვემოთაა.",
     minWalk: "წთ ფეხით",
     sunPosition: "მზის პოზიცია",
     sunBelow: "მზე ჰორიზონტქვეშაა იმ დროს — ჩრდილი არ არის.",
@@ -936,6 +1008,10 @@ function applyTranslations() {
     const key = el.getAttribute('data-i18n-placeholder');
     if (dict[key]) el.setAttribute('placeholder', dict[key]);
   });
+  document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+    const key = el.getAttribute('data-i18n-aria-label');
+    if (dict[key]) el.setAttribute('aria-label', dict[key]);
+  });
   document.querySelectorAll('#langToggle button').forEach(b => {
     b.classList.toggle('active', b.dataset.lang === currentLang);
   });
@@ -963,7 +1039,56 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target.tagName === 'BUTTON') setLang(e.target.dataset.lang);
     });
   }
+  initModoAccesible();
 });
+
+/* ============================================================
+   MODO ACCESIBLE (baja visión) — botón fijo en el header.
+   Se inyecta desde aquí porque i18n.js carga en TODAS las
+   páginas: así el botón existe en toda la web sin tocar cada
+   HTML. La clase .modo-accesible y sus estilos viven en
+   css/style.css. La preferencia se guarda en localStorage.
+   ============================================================ */
+const MODO_ACC_KEY = 'manolito_modo_accesible';
+
+function aplicarModoAccesible(activo, boton) {
+  document.body.classList.toggle('modo-accesible', activo);
+  const btn = boton || document.getElementById('btn-accesibilidad');
+  if (btn) btn.setAttribute('aria-pressed', activo ? 'true' : 'false');
+  try { localStorage.setItem(MODO_ACC_KEY, activo ? '1' : '0'); } catch (e) {}
+}
+
+function initModoAccesible() {
+  // Restaurar la preferencia guardada SIEMPRE, aunque esta página
+  // concreta no tenga topbar donde poner el botón (p. ej. legales).
+  let guardado = null;
+  try { guardado = localStorage.getItem(MODO_ACC_KEY); } catch (e) {}
+  if (guardado === '1') aplicarModoAccesible(true);
+
+  const topbarRight = document.querySelector('.topbar-right');
+  if (!topbarRight || document.getElementById('btn-accesibilidad')) return;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.id = 'btn-accesibilidad';
+  btn.className = 'acc-mode-btn';
+  btn.setAttribute('aria-pressed', document.body.classList.contains('modo-accesible') ? 'true' : 'false');
+  btn.textContent = (dict && dict.accModeBtn) || '♿ Modo accesible';
+
+  // Va el primero dentro de topbar-right: es lo primero actionable
+  // del header tras el logotipo, fácil de encontrar con Tab.
+  topbarRight.insertBefore(btn, topbarRight.firstChild);
+
+  btn.addEventListener('click', () => {
+    aplicarModoAccesible(!document.body.classList.contains('modo-accesible'), btn);
+  });
+
+  // El texto del botón sigue al idioma elegido sin recargar.
+  document.addEventListener('langChanged', () => {
+    const d = translations[currentLang] || translations.es;
+    if (d.accModeBtn) btn.textContent = d.accModeBtn;
+  });
+}
 
 // Enganche explícito a window: otros scripts (shadows-route.js) leen estas
 // funciones desde window en vez de asumir que las variables de nivel

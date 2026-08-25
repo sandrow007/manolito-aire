@@ -7,7 +7,7 @@
 <meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad.">
 <meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas">
 <meta name="theme-color" content="#1b2029">
-<link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="2c81d66898164d068036cb4c5d8" src="//local.adguard.org?ts=1787635455896&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Fmanolito-aire%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260825%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260825T054146Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Dd0d62bb1705fc70754366da01204a95917ce706e193f75ff1a2a3a7598525a61%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="2c81d66898164d068036cb4c5d8" src="//local.adguard.org?ts=1787635455896&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manolit∞ Aire — Calidad del aire y sombra solar en tiempo real">
 <meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro.">
@@ -194,6 +194,8 @@
 </head>
 <body>
 
+<a href="#main-content" class="skip-link" data-i18n="skipToContent">Saltar al contenido principal</a>
+
 <div id="manolitoSplash">
   <div class="sky-glow"></div>
   <svg class="wind-field" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid slice">
@@ -362,14 +364,14 @@
     <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
     <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener">Que es Manolit∞ ©</a>
 
-    <div class="chip-toggle" id="paletteToggle" title="Color de acento">
-      <button data-palette="amanecer" class="active">◐</button>
-      <button data-palette="salvia">◑</button>
-      <button data-palette="lavanda">◒</button>
-      <button data-palette="coral">◓</button>
+    <div class="chip-toggle" id="paletteToggle" title="Color de acento" role="group" aria-label="Color de acento">
+      <button data-palette="amanecer" class="active" aria-label="Paleta amanecer">◐</button>
+      <button data-palette="salvia" aria-label="Paleta salvia">◑</button>
+      <button data-palette="lavanda" aria-label="Paleta lavanda">◒</button>
+      <button data-palette="coral" aria-label="Paleta coral">◓</button>
     </div>
-    <button class="icon-btn" id="themeToggle" title="Modo claro/oscuro">☾</button>
-    <div class="chip-toggle notranslate" id="langToggle" translate="no">
+    <button class="icon-btn" id="themeToggle" title="Modo claro/oscuro" aria-label="Modo claro/oscuro">☾</button>
+    <div class="chip-toggle notranslate" id="langToggle" translate="no" role="group" aria-label="Idioma">
       <button data-lang="es" class="active">ES</button>
       <button data-lang="ca">CA</button>
       <button data-lang="eu">EU</button>
@@ -380,30 +382,37 @@
   </div>
 </div>
 
-<div class="map-section">
+<div class="map-section" id="main-content" tabindex="-1">
   <div class="map-head">
     <div class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</div>
   </div>
 
 <div class="rs-form">
   <div class="rs-field">
-    <input type="text" id="rsOrigen" name="origen" placeholder="Punto de origen" data-i18n-placeholder="originPlaceholder" autocomplete="off">
-    <ul class="rs-sugerencias" id="rsSugerenciasOrigen"></ul>
+    <label for="rsOrigen" class="visually-hidden" data-i18n="origin">Origen</label>
+    <input type="text" id="rsOrigen" name="origen" placeholder="Punto de origen" data-i18n-placeholder="originPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasOrigen" aria-autocomplete="list">
+    <ul class="rs-sugerencias" id="rsSugerenciasOrigen" role="listbox" data-i18n-aria-label="origin" aria-label="Origen"></ul>
   </div>
   <div class="rs-field">
-    <input type="text" id="rsDestino" name="destino" placeholder="Punto de destino" data-i18n-placeholder="destinationPlaceholder" autocomplete="off">
-    <ul class="rs-sugerencias" id="rsSugerenciasDestino"></ul>
+    <label for="rsDestino" class="visually-hidden" data-i18n="destiny">Destino</label>
+    <input type="text" id="rsDestino" name="destino" placeholder="Punto de destino" data-i18n-placeholder="destinationPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasDestino" aria-autocomplete="list">
+    <ul class="rs-sugerencias" id="rsSugerenciasDestino" role="listbox" data-i18n-aria-label="destiny" aria-label="Destino"></ul>
   </div>
   <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar ruta</button>
 </div>
-    <div id="rsStatus" class="chat-status" style="margin:8px 0 14px;"></div>
+    <div id="rsStatus" class="chat-status" style="margin:8px 0 14px;" role="status" aria-live="polite" aria-atomic="true"></div>
+    <!-- Resumen accesible de la ruta: el mapa es un canvas y un lector de
+         pantalla no puede verlo; esta región role="status" lleva siempre el
+         mismo dato en texto (distancia, duración, % sombra y posición del
+         sol). La rellena shadows-route.js con los mismos datos del cálculo. -->
+    <div id="rsLiveSummary" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <div class="map-wrap">
   <div id="shadowRouteMap">
   </div>
 </div>
 
-<div class="rs-layer-toggles">
+<div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
   <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
   <label><input type="checkbox" id="rsToggleSombras" checked> <span data-i18n="layerShadows">Sombras</span></label>
   <label><input type="checkbox" id="rsToggleRuta" checked> <span data-i18n="layerRoute">Ruta</span></label>
@@ -462,26 +471,27 @@
   <div class="rs-planetario-info" id="rsPlanetarioInfo">--</div>
 </div>
 
-<div id="rsAqiPanel" style="margin-top:16px;">
+<section id="rsAqiPanel" style="margin-top:16px;" aria-labelledby="rsAqiTitle">
+  <h2 id="rsAqiTitle" class="visually-hidden" data-i18n="aqiTitle">Calidad del aire en el punto de origen</h2>
   <div id="rsAqiContent" style="display:none;">
     <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;">
       <span id="rsAqiValue" style="font-family:var(--font-display);font-weight:700;font-size:2rem;color:var(--sky-deep);">--</span>
       <span id="rsAqiCategory" style="font-family:var(--font-mono);font-size:0.72rem;padding:3px 9px;border-radius:999px;"></span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">PM2.5</span><br><span id="rsPm25">--</span></div>
-      <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">PM10</span><br><span id="rsPm10">--</span></div>
-      <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">O₃</span><br><span id="rsO3">--</span></div>
-      <div class="sci-panel" style="display:block;padding:8px 12px;"><span style="font-size:0.65rem;color:var(--sky-mid);">NO₂</span><br><span id="rsNo2">--</span></div>
-    </div>
+    <dl style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0;">
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">PM2.5</dt><dd style="margin:0;"><span id="rsPm25">--</span></dd></div>
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">PM10</dt><dd style="margin:0;"><span id="rsPm10">--</span></dd></div>
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">O₃</dt><dd style="margin:0;"><span id="rsO3">--</span></dd></div>
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">NO₂</dt><dd style="margin:0;"><span id="rsNo2">--</span></dd></div>
+    </dl>
   </div>
-</div>
+</section>
 </div>
 
 <div class="hero">
   <div class="city-picker" id="cityPickerContainer">
-    <button class="city-dropdown-btn" id="cityDropdownBtn">Sevilla</button>
-    <ul class="city-dropdown-list" id="cityDropdownList">
+    <button class="city-dropdown-btn" id="cityDropdownBtn" aria-haspopup="listbox" aria-expanded="false">Sevilla</button>
+    <ul class="city-dropdown-list" id="cityDropdownList" role="listbox" aria-label="Ciudad">
       <li data-value="sevilla" class="selected">Sevilla</li>
       <li data-value="madrid">Madrid</li>
       <li data-value="barcelona">Barcelona</li>
@@ -637,10 +647,10 @@
 </button>
 
 <div class="chat-overlay" id="chatOverlay">
-  <div class="chat-panel">
+  <div class="chat-panel" role="dialog" aria-modal="false" data-i18n-aria-label="chatDialogLabel" aria-label="Chat con Manolit">
     <div class="chat-head">
       <div class="chat-title"><span class="chat-logo"><i>M∞</i></span> <span data-i18n="chatTitle">Manolit∞ te lo explica</span></div>
-      <button class="icon-btn" onclick="closeChat()">✕</button>
+      <button class="icon-btn" onclick="closeChat()" data-i18n-aria-label="chatClose" aria-label="Cerrar chat">✕</button>
     </div>
     <div class="chat-msg mano" data-i18n="chatWelcome">Tranquilo/a, vamos con calma. Dime qué no entiendes, o elige una pregunta.</div>
     <div id="chatBody"></div>
@@ -654,6 +664,7 @@
       <button data-quick="q7" onclick="askQuick('q7')" data-i18n="quick_q7">¿Qué es el paseo virtual 3D?</button>
     </div>
     <div class="chat-input-row">
+      <label for="chatInputField" class="visually-hidden" data-i18n="chatPlaceholder">Escribe tu pregunta aquí...</label>
       <input type="text" id="chatInputField" name="pregunta" data-i18n-placeholder="chatPlaceholder" placeholder="Escribe tu pregunta aquí...">
       <button onclick="askCustom()" data-i18n="chatSend">Enviar</button>
     </div>
@@ -664,7 +675,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <script src="js/theme.js" defer></script>
 <script src="js/i18n.js" defer></script>
-<script src="js/cookie-banner.js" defer></script>
+
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
@@ -731,8 +742,25 @@
     }
 
     modeCards.forEach(card => {
+      // Teclado: las tarjetas son divs, así que les damos foco y activación
+      // con Enter/Espacio para que funcionen sin ratón.
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-pressed', card.classList.contains('active') ? 'true' : 'false');
       card.addEventListener('click', () => setMode(card.getAttribute('data-mode')));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setMode(card.getAttribute('data-mode'));
+        }
+      });
     });
+
+    // aria-pressed debe seguir al estado visual .active
+    const observarModos = new MutationObserver(() => {
+      modeCards.forEach(c => c.setAttribute('aria-pressed', c.classList.contains('active') ? 'true' : 'false'));
+    });
+    modeCards.forEach(c => observarModos.observe(c, { attributes: true, attributeFilter: ['class'] }));
 
     function getRobustLang() {
       if (typeof currentLang !== 'undefined' && currentLang) return currentLang;
@@ -940,25 +968,38 @@
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       list.classList.toggle('open');
+      btn.setAttribute('aria-expanded', list.classList.contains('open') ? 'true' : 'false');
     });
 
     items.forEach(item => {
+      // Las opciones de ciudad también se eligen solo con teclado.
+      item.setAttribute('role', 'option');
+      item.setAttribute('tabindex', '0');
+      item.setAttribute('aria-selected', item.classList.contains('selected') ? 'true' : 'false');
       item.addEventListener('click', () => {
         const value = item.getAttribute('data-value');
         const text = item.textContent;
         btn.firstChild.textContent = text;
-        items.forEach(i => i.classList.remove('selected'));
+        items.forEach(i => { i.classList.remove('selected'); i.setAttribute('aria-selected', 'false'); });
         item.classList.add('selected');
+        item.setAttribute('aria-selected', 'true');
         list.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
 
         if (typeof window.setCurrentCity === 'function') {
           window.setCurrentCity(value);
         }
         if (forecastCityName) forecastCityName.textContent = text;
       });
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          item.click();
+        }
+      });
     });
 
-    document.addEventListener('click', () => list.classList.remove('open'));
+    document.addEventListener('click', () => { list.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); });
   })();
 </script>
 </body>

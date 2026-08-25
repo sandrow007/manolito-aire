@@ -1068,6 +1068,34 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     map.setLayoutProperty(CAPA_NUBES_ID, 'visibility', visible ? 'visible' : 'none');
   }
 
+  // Visibilidad de las nubes según ZOOM y modo claro/oscuro:
+  // - De cerca (calle): sutiles, para no tapar edificios ni sombras.
+  // - De lejos (país): bien visibles, se leen como nubes de verdad.
+  // - Mapa oscuro: el canvas lleva un filtro CSS invert(), así que las nubes
+  //   blancas se vuelven negras y desaparecen. Bajando el brillo del raster
+  //   las nubes "naceen oscuras" y el filtro las devuelve claras: visibles.
+  //   Es solo pintura: el algoritmo de sombras ni se entera.
+  function mapaEfectivamenteOscuro() {
+    const webOscura = document.documentElement.getAttribute('data-theme') === 'dark';
+    return webOscura ? !mapaOscuro : mapaOscuro;
+  }
+
+  function aplicarEstiloNubes() {
+    if (!map.getLayer(CAPA_NUBES_ID)) return;
+    const oscuro = mapaEfectivamenteOscuro();
+    try {
+      map.setPaintProperty(CAPA_NUBES_ID, 'raster-opacity', oscuro
+        ? ['interpolate', ['linear'], ['zoom'], 3, 0.92, 8, 0.78, 11, 0.55, 13, 0.42]
+        : ['interpolate', ['linear'], ['zoom'], 3, 0.85, 8, 0.62, 11, 0.42, 13, 0.32]);
+      // En oscuro: nubes oscuras antes del filtro = claras después del invert()
+      map.setPaintProperty(CAPA_NUBES_ID, 'raster-brightness-max', oscuro ? 0.16 : 1);
+      map.setPaintProperty(CAPA_NUBES_ID, 'raster-brightness-min', 0);
+      // Un poco más de contraste de lejos: las masas de nubes se distinguen mejor
+      map.setPaintProperty(CAPA_NUBES_ID, 'raster-contrast', ['interpolate', ['linear'], ['zoom'], 3, 0.28, 10, 0.12, 13, 0.05]);
+      map.setPaintProperty(CAPA_NUBES_ID, 'raster-saturation', -0.35);
+    } catch (e) { /* capa a medio crear */ }
+  }
+
   function instalarCapaNubes() {
     if (!map.getSource('nubes-owm')) {
       map.addSource('nubes-owm', {
@@ -1086,6 +1114,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         paint: { 'raster-opacity': 0.55, 'raster-fade-duration': 400 },
       });
     }
+    aplicarEstiloNubes();
     aplicarVisibilidadNubes();
   }
 
@@ -1401,6 +1430,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
     const badge = document.createElement('div');
     badge.id = 'rsShadowBadge';
+    // El badge vive SIEMPRE en el DOM (solo se muestra/oculta con la clase)
+    // y anuncia el % de sombra al cambiar: aria-live polite + atomic.
+    badge.setAttribute('role', 'status');
+    badge.setAttribute('aria-live', 'polite');
+    badge.setAttribute('aria-atomic', 'true');
     const texto = document.createElement('span');
     texto.id = 'rsShadowBadgeTexto';
     const cerrar = document.createElement('button');
@@ -1428,6 +1462,9 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   let sliderTiempo = null;
   let etiquetaTiempo = null;
   let temporizadorSlider = null;
+  let anunciadorHora = null;
+  let temporizadorAnuncio = null;
+  let resumenRutaAccesible = '';
 
   function fechaSolsticio(tipo) {
     const anio = new Date().getFullYear();
@@ -1458,6 +1495,36 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       modoManual ? t('simulating', 'Simulando') + ' — ' :
       t('now', 'Ahora') + ' — ';
     etiquetaTiempo.textContent = prefijo + formatoHora(fecha);
+    // El slider anuncia la hora en formato legible, no los minutos crudos.
+    if (sliderTiempo) sliderTiempo.setAttribute('aria-valuetext', formatoHora(fecha));
+    // Anuncio por lector de pantalla con debounce (~400 ms): mientras se
+    // arrastra no se machaca al usuario; al soltar, escucha la hora final.
+    clearTimeout(temporizadorAnuncio);
+    temporizadorAnuncio = setTimeout(() => {
+      if (anunciadorHora) {
+        const badge = document.getElementById('rsShadowBadgeTexto');
+        const sombraTxt = badge && badge.textContent ? ` · ${badge.textContent}` : '';
+        anunciadorHora.textContent = etiquetaTiempo.textContent + sombraTxt;
+      }
+      actualizarResumenAccesible();
+    }, 400);
+  }
+
+  // El mapa es un canvas: invisible para lectores de pantalla. Esta región
+  // role="status" (oculta visualmente, en index.html) repite en texto lo
+  // que el mapa enseña: resumen de la ruta (distancia, duración, % sombra)
+  // y la posición del sol, con los mismos datos del cálculo.
+  function actualizarResumenAccesible() {
+    const el = document.getElementById('rsLiveSummary');
+    if (!el) return;
+    let texto = resumenRutaAccesible ? resumenRutaAccesible + ' ' : '';
+    try {
+      const { azimutDeg, alturaDeg } = calcularAnguloSol();
+      texto += alturaDeg > 0
+        ? `${t('sunSummaryAbove', 'Sol a')} ${Math.round(alturaDeg)} ${t('sunSummaryDeg', 'grados de altura')}, ${t('sunSummaryAzimuth', 'azimut')} ${Math.round(azimutDeg)}°.`
+        : t('sunSummaryBelow', 'De noche: el sol está bajo el horizonte.');
+    } catch (e) { /* sin mapa o sin SunCalc todavía: queda solo el resumen */ }
+    el.textContent = texto;
   }
 
   async function aplicarCambioDeHora(contexto) {
@@ -2117,6 +2184,16 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     sliderTiempo.max = '1439';
     sliderTiempo.step = '5';
     sliderTiempo.value = String(minutosDesdeFecha(new Date()));
+    sliderTiempo.setAttribute('aria-label', t('timeSlider', 'Hora del día'));
+
+    // Región aria-live separada para anunciar la hora mientras se arrastra
+    // el slider, con debounce de ~400 ms para no saturar al lector de
+    // pantalla (solo anuncia cuando el usuario se detiene un momento).
+    anunciadorHora = document.createElement('div');
+    anunciadorHora.id = 'rsTimeAnnouncer';
+    anunciadorHora.className = 'visually-hidden';
+    anunciadorHora.setAttribute('aria-live', 'polite');
+    anunciadorHora.setAttribute('aria-atomic', 'true');
 
     sliderTiempo.addEventListener('input', () => {
       modoManual = true;
@@ -2175,7 +2252,15 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     btnCapturar.addEventListener('click', capturarVista);
 
     filaBotones.append(btnAhora, btnVerano, btnInvierno, btnCapturar);
-    cuerpo.append(filaEtiqueta, sliderTiempo, divisor, filaBotones);
+    // "Ahora / Verano / Invierno" forman un grupo lógico de preajustes;
+    // display:contents mantiene el layout exacto sin cambiar el HTML visual.
+    const grupoPreajustes = document.createElement('div');
+    grupoPreajustes.setAttribute('role', 'group');
+    grupoPreajustes.setAttribute('aria-label', t('timePresets', 'Preajustes de hora'));
+    grupoPreajustes.style.display = 'contents';
+    filaBotones.insertBefore(grupoPreajustes, filaBotones.firstChild);
+    grupoPreajustes.append(btnAhora, btnVerano, btnInvierno);
+    cuerpo.append(filaEtiqueta, sliderTiempo, divisor, filaBotones, anunciadorHora);
     panel.append(cabecera, cuerpo);
     contenedorMapa.appendChild(panel);
 
@@ -2231,13 +2316,15 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       const webOscura = document.documentElement.getAttribute('data-theme') === 'dark';
       const efectivoOscuro = webOscura ? !mapaOscuro : mapaOscuro;
       btn.textContent = efectivoOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
+      btn.setAttribute('aria-pressed', efectivoOscuro ? 'true' : 'false');
     };
-    new MutationObserver(sincronizarEtiquetaMapa)
+    new MutationObserver(() => { sincronizarEtiquetaMapa(); aplicarEstiloNubes(); })
       .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     btn.addEventListener('click', () => {
       mapaOscuro = !mapaOscuro;
       contenedorMapa.classList.toggle('rs-mapa-oscuro-activo', mapaOscuro);
       sincronizarEtiquetaMapa();
+      aplicarEstiloNubes(); // las nubes cambian de brillo para seguir viéndose
     });
     sincronizarEtiquetaMapa();
     wrap.appendChild(btn);
@@ -2654,6 +2741,8 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       if (texto.length < 3) {
         contenedor.innerHTML = '';
         contenedor.style.display = 'none';
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
         return;
       }
 
@@ -2703,23 +2792,32 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       contenedor.innerHTML = '';
       contenedor.style.display = 'none';
       indiceActivo = -1;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
     }
 
     function resaltarActivo() {
       const items = contenedor.querySelectorAll('li[data-idx]');
       items.forEach((li, i) => {
         li.style.background = i === indiceActivo ? (leerVar('--accent') || '#09ffbd') + '22' : '';
+        li.setAttribute('aria-selected', i === indiceActivo ? 'true' : 'false');
       });
+      // Patrón combobox: el foco queda en el input y el lector de pantalla
+      // sabe qué opción está activa por aria-activedescendant.
       if (indiceActivo >= 0 && items[indiceActivo]) {
         items[indiceActivo].scrollIntoView({ block: 'nearest' });
+        input.setAttribute('aria-activedescendant', items[indiceActivo].id);
+      } else {
+        input.removeAttribute('aria-activedescendant');
       }
     }
 
     function pintarSugerencias(resultados, textoOriginal) {
       ultimosResultados = [];
       if (!resultados || resultados.length === 0) {
-        contenedor.innerHTML = `<li class="rs-sug-empty">${t('noResults', 'Sin resultados')}</li>`;
+        contenedor.innerHTML = `<li class="rs-sug-empty" role="option" aria-disabled="true">${t('noResults', 'Sin resultados')}</li>`;
         contenedor.style.display = 'block';
+        input.setAttribute('aria-expanded', 'true');
         return;
       }
 
@@ -2731,13 +2829,15 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         .map((r, i) => {
           const ciudad = r.address?.city || r.address?.town || r.address?.village || r.address?.municipality || '';
           const resto = r.display_name.split(',')[0];
-          return `<li data-idx="${i}">
+          return `<li data-idx="${i}" id="${contenedorSugerenciasId}-opt-${i}" role="option" aria-selected="false">
             <span class="rs-sug-linea1">${resto}</span>
             <span class="rs-sug-linea2">${ciudad ? ciudad + ' — ' : ''}${r.address?.state || ''}</span>
           </li>`;
         })
         .join('');
       contenedor.style.display = 'block';
+      input.setAttribute('aria-expanded', 'true');
+      input.removeAttribute('aria-activedescendant');
 
       contenedor.querySelectorAll('li[data-idx]').forEach((li) => {
         li.addEventListener('click', () => seleccionarSugerencia(resultados[Number(li.dataset.idx)]));
@@ -2763,12 +2863,16 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       } else if (e.key === 'Escape') {
         contenedor.style.display = 'none';
         indiceActivo = -1;
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
       }
     });
 
     document.addEventListener('click', (e) => {
       if (e.target !== input && !contenedor.contains(e.target)) {
         contenedor.style.display = 'none';
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
       }
     });
   }
@@ -2837,7 +2941,10 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       if (ruta.esReal) {
         const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
         const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
-        mostrarEstado(`${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`, 'ok');
+        const resumenRuta = `${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`;
+        mostrarEstado(resumenRuta, 'ok');
+        resumenRutaAccesible = resumenRuta;
+        actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);
       } else {
         mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
@@ -3336,10 +3443,12 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       delete btn.dataset.cargando;
       btn.textContent = (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
       btn.classList.add('rs-activo');
+      btn.setAttribute('aria-pressed', 'true');
       const textoBoton = () => (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
       btn.addEventListener('click', async () => {
         capaVisible = !capaVisible;
         btn.classList.toggle('rs-activo', capaVisible);
+        btn.setAttribute('aria-pressed', capaVisible ? 'true' : 'false');
         ['capa-arboles-globales-3d', 'capa-sombra-arboles-globales'].forEach((id) => {
           if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', capaVisible ? 'visible' : 'none');
         });

@@ -1118,6 +1118,25 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     return false;
   }
 
+  // ¿Un tramo de ruta TOCA la sombra de algún árbol? La sombra de un tronco
+  // de palmera mide ~1 m de ancha y los tramos son de 10 m: mirar solo el
+  // punto medio la perdía casi siempre. Aquí se comprueba la INTERSECCIÓN
+  // real línea-polígono, así cualquier cruce cuenta, por fina que sea.
+  function tramoTocaSombraDeArbol(tramo, sombrasArboles) {
+    for (const poligono of sombrasArboles) {
+      try {
+        if (turf.booleanIntersects(tramo, poligono)) return true;
+      } catch (e) { /* geometría rara: probamos por puntos */
+        try {
+          for (const c of tramo.geometry.coordinates) {
+            if (turf.booleanPointInPolygon(turf.point(c), poligono)) return true;
+          }
+        } catch (e2) { /* la ignoramos */ }
+      }
+    }
+    return false;
+  }
+
   async function actualizarTramosSombraRuta() {
     const fuente = map.getSource('ruta-sombra');
     if (!fuente) return;
@@ -1131,10 +1150,19 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     }
     try {
       const tramos = turf.lineChunk(rutaActual, 0.01, { units: 'kilometers' });
+      const sombrasEdificios = (ultimaColeccionSombras && ultimaColeccionSombras.features) || [];
+      const sombrasArboles = obtenerSombrasDeArboles();
       const tramosEnSombra = tramos.features.filter((tramo) => {
         const coords = tramo.geometry.coordinates;
         const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
-        return puntoEnSombra(medio);
+        // Edificios: sombra grande, basta el punto medio (rápido).
+        for (const poligono of sombrasEdificios) {
+          try {
+            if (turf.booleanPointInPolygon(medio, poligono)) return true;
+          } catch (e) { /* geometría rara: la ignoramos */ }
+        }
+        // Árboles: sombra fina, hace falta intersección real con el tramo.
+        return tramoTocaSombraDeArbol(tramo, sombrasArboles);
       });
       fuente.setData(turf.featureCollection(tramosEnSombra));
       // Antes el badge de "% del trayecto en sombra" solo se calculaba una
@@ -1152,6 +1180,14 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       fuente.setData(turf.featureCollection([]));
     }
   }
+
+  // El módulo de árboles (integrado al final de este archivo) avisa por aquí
+  // cada vez que recalcula sus sombras: la ruta se repinta y el badge se
+  // actualiza SOLO, sin esperar a que toques el slider. Si no, los tramos
+  // cian de los árboles llegaban tarde o no llegaban.
+  window.manolitAireActualizarSombraRuta = () => {
+    try { actualizarTramosSombraRuta(); } catch (e) { /* la ruta aún no existe */ }
+  };
   function calcularAnguloSol(horaOverride) {
     const centro = puntoReferenciaSol || map.getCenter();
     const lat = centro.lat;
@@ -3679,11 +3715,23 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
     let versionSombra = 0;
 
+    // Avisa a la ruta (si existe) de que las sombras de los árboles han
+    // cambiado, para que repinte sus tramos cian y el % en ese momento.
+    // Debounce corto: el recálculo escribe en lotes y no queremos 15 repintados.
+    let avisoRutaSombra = null;
+    function avisarARutaDeNuevasSombras() {
+      clearTimeout(avisoRutaSombra);
+      avisoRutaSombra = setTimeout(() => {
+        try { window.manolitAireActualizarSombraRuta?.(); } catch (e) { /* sin ruta activa */ }
+      }, 150);
+    }
+
     async function recalcularSombrasArboles() {
       if (!map.getSource('arboles-globales-sombra') || !capaVisible) return;
 
       if (!sombrasActivadasEnPanel()) {
         map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+        avisarARutaDeNuevasSombras();
         return;
       }
 
@@ -3694,6 +3742,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
       if (posSol.altitude <= 0) {
         map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+        avisarARutaDeNuevasSombras();
         return;
       }
 
@@ -3724,6 +3773,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         }
         if (miVersion !== versionSombra) return;
         map.getSource('arboles-globales-sombra')?.setData(turf.featureCollection(sombras));
+        avisarARutaDeNuevasSombras();
         if (i + CONFIG.loteSombraSize < paraSombra.length) await cederAlNavegador();
       }
     }

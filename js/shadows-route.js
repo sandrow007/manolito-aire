@@ -501,6 +501,17 @@
 // AHORA SÍ: El mapa está creado, lo pasamos a global para que los árboles lo enganchen
 window.manolitAireMap = map;
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
+
+  // El estilo base pide iconos (office, gate, swimming_pool...) que su sprite
+  // no incluye: MapLibre llenaba la consola de avisos "Image could not be
+  // loaded". Servimos un píxel transparente bajo demanda y silencio total.
+  map.on('styleimagemissing', (e) => {
+    try {
+      if (!map.hasImage(e.id)) {
+        map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
+      }
+    } catch (err) { /* estilo a medio cargar */ }
+  });
   let capaEdificiosDisponible = false;
   let edificiosCacheados = [];
   let cieloSolActivo = false;
@@ -1918,7 +1929,14 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       });
       return b;
     }
-    const btnArboles = botonCapaFijo('rsBtnArboles', t('treesBtn', 'Árboles'), 'js/arboles-globales.js');
+    // Árboles: el módulo ya vive INTEGRADO al final de este mismo archivo,
+    // así que el botón es un botón normal (lo "adopta" el módulo en cuanto
+    // arranca). Nada de carga perezosa: cero puntos de fallo.
+    const btnArboles = document.createElement('button');
+    btnArboles.type = 'button';
+    btnArboles.id = 'rsBtnArboles';
+    btnArboles.textContent = t('treesBtn', 'Árboles');
+    // Irradiación Solar: sigue siendo un módulo aparte con carga perezosa.
     const btnIrradiacion = botonCapaFijo('rsBtnIrradiacion', t('irrLayerBtn', 'Irradiación Solar'), 'js/irradiacion-solar.js');
 
     panelMapa.append(btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
@@ -2914,4 +2932,821 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   mapEl.addEventListener('pointerup', (e) => paseoToques.delete(e.pointerId));
   mapEl.addEventListener('pointercancel', (e) => paseoToques.delete(e.pointerId));
 
+})();
+
+/* ============================================================
+   MÓDULO DE ÁRBOLES GLOBALES (INTEGRADO)
+   Antes era js/arboles-globales.js, un archivo aparte con carga
+   perezosa que daba fallos ("unas veces sale y otras no"). Ahora
+   vive aquí dentro: un solo motor de sombras, un solo archivo,
+   cero puntos de fallo de carga. Sigue esperando a
+   window.manolitAireMap, que este mismo archivo define arriba.
+   ============================================================ */
+/* ============================================================
+   ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
+
+   v7 — Robustez Overpass + formas por especie:
+   - Cooldown exponencial ante errores 429/502/504/CORS para no saturar Overpass.
+   - Timeout y área de consulta reducidos.
+   - Clasificación por species/genus y sombras realistas por tipo de árbol.
+
+   v5 — FIX CRÍTICO de unidades + Sombras Orgánicas Asimétricas
+   ============================================================ */
+
+'use strict';
+
+(function () {
+  // El botón del mapa puede cargar este script dos veces (precarga en cadena
+  // + carga perezosa al pulsar). La segunda ejecución no debe hacer nada.
+  if (window.__arbolesGlobalesCargado) return;
+  window.__arbolesGlobalesCargado = true;
+
+  const CONFIG = {
+    overpassUrls: [
+      // 1º: nuestro propio proxy en Cloudflare, same-origin (sin CORS y sin
+      // depender del dominio workers.dev). Lleva caché KV de 6 h: si la zona
+      // ya se pidió, responde al instante aunque Overpass esté caído.
+      // Si el Worker no tiene la ruta, cae a los espejos públicos de abajo.
+      '/arboles',
+      // Espejos públicos de respaldo en Europa y Taiwán (nada de
+      // infraestructura rusa). lz4/z.overpass-api.de son colas alternativas
+      // del operador alemán, suelen ir menos saturadas que la principal.
+      'https://lz4.overpass-api.de/api/interpreter',
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter',
+      'https://overpass.nchc.org.tw/api/interpreter',
+      // OJO: overpass.osm.ch está devolviendo respuestas 200 VACÍAS y
+      // corruptas (timestamp_osm_base:"116617") — fuera de la lista.
+    ],
+    overpassTimeoutS: 15,
+
+    alturaMinimaM: 2,
+    alturaEstimadaSinDatoM: 6,
+    radioCopaPorDefectoM: 2.2,
+
+    maxArbolesEnPantalla: 1000,
+    maxArbolesConSombra: 250,
+    loteSombraSize: 20,
+    sincroSombraMs: 60 * 1000,
+    esperaMoveendMs: 500,
+    maxLadoConsultaKm: 2.5,
+    cacheCeldasGrados: 0.01,
+    esperaMapaMs: 15000,
+  };
+
+  /* ---------------- Tipología de árboles (forma + sombra realista) ---------------- */
+
+  const TIPOS_ARBOL = {
+    palmera: {
+      keywords: ['phoenix', 'washingtonia', 'palma', 'palm', 'date palm', 'datilera'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 2.0,
+      forma: 'palmera',
+      color: '#7a9b4a',
+    },
+    pino: {
+      keywords: ['pinus', 'pino', 'pine', 'cedrus', 'cedro', 'cedar', 'ciprés', 'cypress', 'cupressus', 'abeto', 'fir'],
+      alturaMediaM: 14,
+      radioCopaMedioM: 3.0,
+      forma: 'conica',
+      color: '#2d5a3d',
+    },
+    encina_roble: {
+      keywords: ['quercus', 'encina', 'roble', 'oak', 'alcornoque', 'cork oak', 'quejigo'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 6.0,
+      forma: 'ancha_redondeada',
+      color: '#4f7a35',
+    },
+    olivo: {
+      keywords: ['olea', 'olivo', 'olive', 'acebuche'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_irregular',
+      color: '#6b8c42',
+    },
+    citrico: {
+      keywords: ['citrus', 'naranjo', 'limonero', 'orange', 'lemon', 'mandarino', 'pomelo'],
+      alturaMediaM: 5,
+      radioCopaMedioM: 2.8,
+      forma: 'redondeada',
+      color: '#5a8a3a',
+    },
+    platanero: {
+      keywords: ['platanus', 'plátano', 'platano', 'plane', 'sicomoro'],
+      alturaMediaM: 16,
+      radioCopaMedioM: 5.5,
+      forma: 'ancha_redondeada',
+      color: '#4a8a3f',
+    },
+    eucalipto: {
+      keywords: ['eucalyptus', 'eucalipto', 'gum'],
+      alturaMediaM: 18,
+      radioCopaMedioM: 3.0,
+      forma: 'oval_alargada',
+      color: '#3d6b4a',
+    },
+    olmo: {
+      keywords: ['ulmus', 'olmo', 'elm'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 5.0,
+      forma: 'ancha_redondeada',
+      color: '#5a8f3d',
+    },
+    chopo: {
+      keywords: ['populus', 'chopo', 'poplar', 'álamo', 'alamo'],
+      alturaMediaM: 15,
+      radioCopaMedioM: 4.0,
+      forma: 'oval_alargada',
+      color: '#4f9a45',
+    },
+    generico: {
+      alturaMediaM: CONFIG.alturaEstimadaSinDatoM,
+      radioCopaMedioM: CONFIG.radioCopaPorDefectoM,
+      forma: 'redondeada',
+      color: '#7fb069',
+    },
+  };
+
+  function clasificarArbol(tags) {
+    const texto = [
+      tags.species || '',
+      tags['species:es'] || '',
+      tags['species:en'] || '',
+      tags.genus || '',
+      tags.taxon || '',
+      tags.name || '',
+      tags['leaf_type'] || '',
+    ].join(' ').toLowerCase();
+
+    for (const [tipo, info] of Object.entries(TIPOS_ARBOL)) {
+      if (tipo === 'generico') continue;
+      for (const kw of info.keywords) {
+        if (texto.includes(kw.toLowerCase())) return { tipo, ...info };
+      }
+    }
+    return { tipo: 'generico', ...TIPOS_ARBOL.generico };
+  }
+
+  function estimarDimensionesArbol(tags, clasificacion) {
+    let altura = leerNumero(tags, ['height', 'maxheight']);
+    let diametroCopa = leerNumero(tags, ['diameter_crown', 'crown_diameter']);
+
+    if (altura == null) {
+      const circ = leerNumero(tags, ['circumference', 'circumference_dbh', 'dbh']);
+      if (circ) {
+        // Altura aproximada a partir del diámetro a la altura del pecho
+        const factor = clasificacion.forma === 'conica' ? 2.8 : clasificacion.forma === 'palmera' ? 5.0 : 2.0;
+        altura = Math.max(3, (circ / Math.PI) * factor);
+      } else {
+        altura = clasificacion.alturaMediaM;
+      }
+    }
+
+    if (diametroCopa == null) {
+      const circ = leerNumero(tags, ['circumference', 'circumference_dbh', 'dbh']);
+      if (circ) {
+        diametroCopa = circ / Math.PI;
+      } else {
+        const proporcion = {
+          palmera: 0.22,
+          conica: 0.30,
+          oval_alargada: 0.32,
+          ancha_redondeada: 0.75,
+          ancha_irregular: 0.65,
+          redondeada: 0.55,
+        }[clasificacion.forma] || 0.5;
+        diametroCopa = altura * proporcion;
+      }
+    }
+
+    // Palmera: copa siempre pequeña y alta
+    if (clasificacion.forma === 'palmera') {
+      diametroCopa = Math.min(diametroCopa, 3.5);
+      altura = Math.max(altura, 6);
+    }
+
+    const radioCopaM = Math.max(0.6, diametroCopa / 2);
+    return { altura, radioCopaM };
+  }
+
+  function leerNumero(tags, claves) {
+    for (const clave of claves) {
+      const v = tags?.[clave];
+      if (v == null || v === '') continue;
+      const n = parseFloat(String(v).replace(',', '.'));
+      if (!Number.isNaN(n) && n > 0) return n;
+    }
+    return null;
+  }
+
+  function cederAlNavegador() {
+    return new Promise((resolve) => {
+      if ('requestIdleCallback' in window) requestIdleCallback(() => resolve(), { timeout: 120 });
+      else setTimeout(resolve, 0);
+    });
+  }
+
+  function esperarMapa() {
+    return new Promise((resolve, reject) => {
+      const t0 = Date.now();
+      (function intento() {
+        if (window.manolitAireMap) return resolve(window.manolitAireMap);
+        if (Date.now() - t0 > CONFIG.esperaMapaMs) {
+          return reject(new Error('No se ha encontrado window.manolitAireMap — añade "window.manolitAireMap = map;" justo después de crear el mapa en manolit-aire.js'));
+        }
+        setTimeout(intento, 200);
+      })();
+    });
+  }
+
+  esperarMapa().then(iniciar).catch((e) => console.warn('[arboles-globales]', e.message));
+
+  function obtenerHoraEfectiva() {
+    if (typeof window.manolitAireHoraEfectiva === 'function') {
+      try {
+        const h = window.manolitAireHoraEfectiva();
+        if (h instanceof Date && !isNaN(h)) return h;
+      } catch (e) { /* seguimos con el respaldo */ }
+    }
+    return new Date();
+  }
+
+  function obtenerCentroSolar(map) {
+    if (typeof window.manolitAireCentroSol === 'function') {
+      try {
+        const c = window.manolitAireCentroSol();
+        if (c && typeof c.lat === 'number' && typeof c.lon === 'number') return c;
+      } catch (e) { /* seguimos con el respaldo */ }
+    }
+    const c = map.getCenter();
+    return { lat: c.lat, lon: c.lng };
+  }
+
+  function sombrasActivadasEnPanel() {
+    const t = document.getElementById('rsToggleSombras');
+    return !t || t.checked;
+  }
+
+  async function iniciar(map) {
+
+    function primeraCapaEdificiosOSuelo() {
+      const capas = map.getStyle().layers || [];
+      const edificios = capas.find((l) => l.type === 'fill-extrusion' && /building/i.test(l.id));
+      return edificios ? edificios.id : undefined;
+    }
+
+    // Garantiza (también tras cada recarga de estilo) que la capa plana de
+    // sombra de los árboles queda SIEMPRE por debajo de la extrusión 3D de
+    // los edificios: así el edificio tapa físicamente cualquier fragmento
+    // de sombra que intente colarse en su base.
+    function asegurarOrdenCapas() {
+      try {
+        const idEdificios = primeraCapaEdificiosOSuelo();
+        if (!idEdificios) return;
+        if (map.getLayer('capa-sombra-arboles-globales')) {
+          map.moveLayer('capa-sombra-arboles-globales', idEdificios);
+        }
+      } catch (e) { /* el estilo aún no está listo; se reintentará */ }
+    }
+    map.on('styledata', asegurarOrdenCapas);
+
+    function asegurarCapas() {
+      if (!map.getSource('arboles-globales-sombra')) {
+        map.addSource('arboles-globales-sombra', { type: 'geojson', data: turf.featureCollection([]) });
+        map.addLayer({
+          id: 'capa-sombra-arboles-globales',
+          type: 'fill',
+          source: 'arboles-globales-sombra',
+          paint: {
+            'fill-color': '#0b1220',
+            'fill-opacity': 0.26,
+          },
+        }, primeraCapaEdificiosOSuelo());
+      }
+      asegurarOrdenCapas();
+      if (!map.getSource('arboles-globales-copas')) {
+        map.addSource('arboles-globales-copas', { type: 'geojson', data: turf.featureCollection([]) });
+        map.addLayer({
+          id: 'capa-arboles-globales-3d',
+          type: 'fill-extrusion',
+          source: 'arboles-globales-copas',
+          paint: {
+            'fill-extrusion-color': [
+              'case',
+              ['==', ['get', 'tipo'], 'tronco'], '#8b5a2b',
+              ['==', ['get', 'tipo'], 'copa'], [
+                'case',
+                ['has', 'color'], ['get', 'color'],
+                [
+                  'interpolate', ['linear'], ['get', 'altura'],
+                  3, '#7fb069',
+                  8, '#4f8a3d',
+                  15, '#2f5d2a',
+                ]
+              ],
+              '#7fb069'
+            ],
+            'fill-extrusion-base': ['get', 'baseM'],
+            'fill-extrusion-height': ['get', 'alturaTotalM'],
+            'fill-extrusion-opacity': 0.92,
+          },
+        });
+      }
+    }
+
+    if (map.loaded()) {
+      asegurarCapas();
+    } else {
+      map.once('load', asegurarCapas);
+    }
+
+    let capaVisible = true;
+    let overpassBackoffHasta = 0;
+    let overpassErroresSeguidos = 0;
+
+    // El botón ya lo crea SIEMPRE shadows-route.js (fijo en el mapa); aquí
+    // solo lo "adoptamos": le ponemos el texto traducido y la lógica.
+    function inyectarToggle() {
+      const btn = document.getElementById('rsBtnArboles');
+      if (!btn || btn.dataset.listo === '1') return false;
+      btn.dataset.listo = '1';
+      delete btn.dataset.cargando;
+      btn.textContent = (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
+      btn.classList.add('rs-activo');
+      const textoBoton = () => (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
+      btn.addEventListener('click', async () => {
+        capaVisible = !capaVisible;
+        btn.classList.toggle('rs-activo', capaVisible);
+        ['capa-arboles-globales-3d', 'capa-sombra-arboles-globales'].forEach((id) => {
+          if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', capaVisible ? 'visible' : 'none');
+        });
+        if (capaVisible) {
+          // Feedback de carga: la consulta a Overpass puede tardar unos
+          // segundos; sin aviso parece que el botón "no hace nada".
+          btn.textContent = 'Cargando árboles…';
+          try {
+            await cargarArbolesDeLaVista();
+            recalcularSombrasArboles();
+          } finally {
+            btn.textContent = textoBoton();
+          }
+        }
+      });
+      return true;
+    }
+    // Retraducir el botón al cambiar el idioma (evento de i18n.js)
+    document.addEventListener('langChanged', () => {
+      const b = document.getElementById('rsBtnArboles');
+      if (b && typeof window.getMessages === 'function') b.textContent = window.getMessages().treesBtn || 'Árboles';
+    });
+    // Reintenta hasta que el botón fijo exista (antes, si el panel no estaba
+    // en ese momento, el botón no aparecía jamás).
+    (function intentarToggle(n) {
+      if (inyectarToggle()) return;
+      if (n > 0) setTimeout(() => intentarToggle(n - 1), 400);
+    })(50);
+
+    let arbolesGrandes = [];
+    const celdasConsultadas = new Set();
+    let consultaEnCurso = false;
+
+    function celdasDeVista(bounds) {
+      const paso = CONFIG.cacheCeldasGrados;
+      const celdas = [];
+      const minLat = Math.floor(bounds.getSouth() / paso) * paso;
+      const maxLat = Math.ceil(bounds.getNorth() / paso) * paso;
+      const minLon = Math.floor(bounds.getWest() / paso) * paso;
+      const maxLon = Math.ceil(bounds.getEast() / paso) * paso;
+      for (let lat = minLat; lat < maxLat; lat += paso) {
+        for (let lon = minLon; lon < maxLon; lon += paso) {
+          celdas.push(`${lat.toFixed(3)},${lon.toFixed(3)}`);
+        }
+      }
+      return celdas;
+    }
+
+    function anchoVistaKm(bounds) {
+      return turf.distance(
+        turf.point([bounds.getWest(), bounds.getCenter ? bounds.getCenter().lat : (bounds.getNorth() + bounds.getSouth()) / 2]),
+        turf.point([bounds.getEast(), bounds.getCenter ? bounds.getCenter().lat : (bounds.getNorth() + bounds.getSouth()) / 2]),
+        { units: 'kilometers' }
+      );
+    }
+
+    async function consultarOverpass(bbox) {
+      const ahora = Date.now();
+      if (ahora < overpassBackoffHasta) {
+        throw new Error('Overpass en cooldown por errores recientes');
+      }
+
+      const query = `[out:json][timeout:${CONFIG.overpassTimeoutS}];(node["natural"="tree"](${bbox.join(',')}););out body;`;
+      let ultimoError = null;
+      for (let i = 0; i < CONFIG.overpassUrls.length; i++) {
+        const url = CONFIG.overpassUrls[i];
+        try {
+          const controller = new AbortController();
+          // El proxy propio (/arboles) prueba varios espejos en cadena con
+          // timeout individual, así que le damos más margen (25 s); a los
+          // espejos públicos directos los cortamos antes (18 s).
+          const presupuestoMs = url.startsWith('/') ? 25000 : CONFIG.overpassTimeoutS * 1000 + 3000;
+          const id = setTimeout(() => controller.abort(), presupuestoMs);
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: 'data=' + encodeURIComponent(query),
+            signal: controller.signal,
+          });
+          clearTimeout(id);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const datos = await r.json();
+          // Espejo corrupto: 200 con lista vacía y fecha basura (p. ej.
+          // timestamp_osm_base:"116617"). Un vacío real tiene fecha válida.
+          const ts = datos?.osm3s?.timestamp_osm_base;
+          const corrupto =
+            Array.isArray(datos?.elements) && datos.elements.length === 0 &&
+            typeof ts === 'string' && ts !== '' && !ts.includes('T');
+          if (corrupto) throw new Error('Espejo Overpass con datos corruptos');
+          if (!datos || !Array.isArray(datos.elements)) throw new Error('Respuesta Overpass inválida');
+          overpassErroresSeguidos = 0;
+          return datos;
+        } catch (e) {
+          ultimoError = e;
+          if (i < CONFIG.overpassUrls.length - 1) {
+            await new Promise((res) => setTimeout(res, 700 * (i + 1)));
+          }
+          continue;
+        }
+      }
+
+      overpassErroresSeguidos++;
+      const backoffMs = Math.min(90000, 4000 * Math.pow(2, overpassErroresSeguidos - 1));
+      overpassBackoffHasta = Date.now() + backoffMs;
+      console.warn(`[arboles-globales] Overpass falló ${overpassErroresSeguidos} veces seguidas. Cooldown ${(backoffMs / 1000).toFixed(0)} s.`);
+      throw ultimoError || new Error('Overpass no disponible');
+    }
+
+    function procesarElementoOSM(el) {
+      if (el.type !== 'node' || el.lat == null || el.lon == null) return null;
+      const tags = el.tags || {};
+      const clasificacion = clasificarArbol(tags);
+      const { altura, radioCopaM } = estimarDimensionesArbol(tags, clasificacion);
+      if (altura <= CONFIG.alturaMinimaM) return null;
+      const nombre = tags.species || tags['species:es'] || tags.genus || clasificacion.tipo || 'Árbol';
+      return {
+        punto: turf.point([el.lon, el.lat]),
+        altura,
+        radioCopaM,
+        nombre,
+        forma: clasificacion.forma,
+        color: clasificacion.color,
+        tipo: clasificacion.tipo,
+      };
+    }
+
+    async function cargarArbolesDeLaVista() {
+      if (!capaVisible || consultaEnCurso) return;
+      const bounds = map.getBounds();
+      if (anchoVistaKm(bounds) > CONFIG.maxLadoConsultaKm) return;
+
+      const celdas = celdasDeVista(bounds).filter((c) => !celdasConsultadas.has(c));
+      if (!celdas.length) { dibujarArbolesVisibles(); return; }
+
+      // Si Overpass está en cooldown, no intentamos más consultas; usamos lo que haya
+      if (Date.now() < overpassBackoffHasta) {
+        dibujarArbolesVisibles();
+        return;
+      }
+
+      celdas.forEach((c) => celdasConsultadas.add(c));
+
+      consultaEnCurso = true;
+      try {
+        const bbox = [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()];
+        const datos = await consultarOverpass(bbox);
+        const elementos = datos.elements || [];
+        for (const el of elementos) {
+          const arbol = procesarElementoOSM(el);
+          if (arbol) arbolesGrandes.push(arbol);
+          if (arbolesGrandes.length % 200 === 0) await cederAlNavegador();
+        }
+      } catch (e) {
+        console.warn('[arboles-globales] Overpass no disponible ahora mismo:', e.message);
+        celdas.forEach((c) => celdasConsultadas.delete(c));
+      } finally {
+        consultaEnCurso = false;
+      }
+
+      dibujarArbolesVisibles();
+      programarSincroSombra(true);
+    }
+
+    function dibujarArbolesVisibles() {
+      if (!map.getSource('arboles-globales-copas') || !capaVisible) return [];
+      const b = map.getBounds();
+      const enVista = arbolesGrandes.filter((a) => {
+        const [lon, lat] = a.punto.geometry.coordinates;
+        return lon >= b.getWest() && lon <= b.getEast() && lat >= b.getSouth() && lat <= b.getNorth();
+      }).slice(0, CONFIG.maxArbolesEnPantalla);
+
+      const features = [];
+      for (const a of enVista) {
+        const forma = a.forma || 'redondeada';
+        const [lon, lat] = a.punto.geometry.coordinates;
+
+        // Proporciones del tronco y las copas según la forma real del árbol
+        let factorTronco = 0.35, factorCopaBaja = 0.40, factorCopaAlta = 0.25;
+        if (forma === 'palmera') { factorTronco = 0.80; factorCopaBaja = 0.15; factorCopaAlta = 0.05; }
+        else if (forma === 'conica') { factorTronco = 0.45; factorCopaBaja = 0.35; factorCopaAlta = 0.20; }
+        else if (forma === 'oval_alargada') { factorTronco = 0.50; factorCopaBaja = 0.30; factorCopaAlta = 0.20; }
+        else if (forma === 'ancha_redondeada') { factorTronco = 0.30; factorCopaBaja = 0.45; factorCopaAlta = 0.25; }
+        else if (forma === 'ancha_irregular') { factorTronco = 0.32; factorCopaBaja = 0.43; factorCopaAlta = 0.25; }
+
+        const alturaTroncoM = Math.max(1, a.altura * factorTronco);
+        const alturaCopaInferiorM = a.altura * factorCopaBaja;
+        const alturaCopaSuperiorM = Math.max(0.5, a.altura * factorCopaAlta);
+        const radioTroncoM = Math.max(0.15, a.radioCopaM * (forma === 'palmera' ? 0.10 : 0.15));
+
+        const tronco = turf.circle(a.punto, radioTroncoM / 1000, { units: 'kilometers', steps: 8 });
+        tronco.properties = { altura: a.altura, baseM: 0, alturaTotalM: alturaTroncoM, nombre: a.nombre, tipo: 'tronco', forma, color: a.color };
+        features.push(tronco);
+
+        // Copa inferior: forma realista según especie
+        const radioInferior = forma === 'palmera' ? a.radioCopaM * 0.90 : a.radioCopaM;
+        const copaInferior = crearFormaCopa(a.punto, radioInferior / 1000, forma, lon, lat);
+        copaInferior.properties = { altura: a.altura, baseM: alturaTroncoM, alturaTotalM: alturaTroncoM + alturaCopaInferiorM, nombre: a.nombre, tipo: 'copa', forma, color: a.color };
+        features.push(copaInferior);
+
+        // Copa superior: más pequeña y cerrada (salvo palmera)
+        const radioSuperior = forma === 'palmera' ? a.radioCopaM * 0.80 : a.radioCopaM * 0.65;
+        const formaSuperior = forma === 'palmera' ? 'palmera' : forma === 'conica' ? 'conica' : 'redondeada';
+        const copaSuperior = crearFormaCopa(a.punto, radioSuperior / 1000, formaSuperior, lon, lat + 0.0001);
+        copaSuperior.properties = { altura: a.altura, baseM: alturaTroncoM + alturaCopaInferiorM, alturaTotalM: a.altura, nombre: a.nombre, tipo: 'copa', forma, color: a.color };
+        features.push(copaSuperior);
+      }
+      map.getSource('arboles-globales-copas').setData(turf.featureCollection(features));
+      return enVista;
+    }
+
+    /* ---------------- Generación de Sombras Orgánicas ---------------- */
+
+    function pseudoRandom(x, y, seed) {
+      const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+      return n - Math.floor(n);
+    }
+
+    function crearFormaCopa(centro, radioKm, forma, lon, lat) {
+      const pasos = {
+        palmera: 28,
+        conica: 14,
+        oval_alargada: 18,
+        ancha_redondeada: 22,
+        ancha_irregular: 26,
+        redondeada: 18,
+      }[forma] || 18;
+
+      const coords = [];
+      for (let i = 0; i < pasos; i++) {
+        const anguloDeg = (i * 360) / pasos;
+        const anguloRad = (anguloDeg * Math.PI) / 180;
+        let factorRadio = 1;
+
+        switch (forma) {
+          case 'ancha_redondeada':
+            factorRadio = 1.0 + 0.22 * Math.cos(2 * anguloRad);
+            break;
+          case 'ancha_irregular':
+            factorRadio = 0.92 + 0.28 * Math.cos(2 * anguloRad) + 0.18 * pseudoRandom(lon, lat, i + 50);
+            break;
+          case 'conica':
+            factorRadio = 0.82 + 0.12 * Math.cos(2 * anguloRad);
+            break;
+          case 'oval_alargada':
+            factorRadio = 0.88 + 0.18 * Math.cos(2 * anguloRad);
+            break;
+          case 'palmera':
+            // Palmera: corona pequeña con palmas que sobresalen
+            const esPalma = i % 4 === 0;
+            factorRadio = esPalma ? 1.55 : 0.72;
+            break;
+        }
+
+        // Ruido orgánico general
+        factorRadio *= 0.82 + pseudoRandom(lon, lat, i) * 0.30;
+
+        const radioEfectivo = Math.max(0.000001, radioKm * factorRadio);
+        const pt = turf.transformTranslate(centro, radioEfectivo, anguloDeg, { units: 'kilometers' }).geometry.coordinates;
+        coords.push(pt);
+      }
+      coords.push(coords[0]);
+      return turf.polygon([coords]);
+    }
+
+    function crearCopaIrregular(centro, radioKm, lon, lat) {
+      return crearFormaCopa(centro, radioKm, 'redondeada', lon, lat);
+    }
+
+    function unirDosPoligonos(a, b) {
+      try {
+        const r = turf.union(turf.featureCollection([a, b]));
+        if (r) return r;
+      } catch (e) { }
+      try {
+        const r = turf.union(a, b);
+        if (r) return r;
+      } catch (e) { }
+      return a;
+    }
+
+    /* --------- Recorte geométrico: la sombra NUNCA entra en un edificio ---------
+       Sombra_Final = Sombra_Proyectada − Planta_Edificio (turf.difference).
+       Las plantas se obtienen de la propia capa 3D de edificios ya pintada
+       (queryRenderedFeatures), se precalcula su bbox y solo se recorta contra
+       los edificios cuya caja toca la de la sombra: O(sombras × edificios)
+       en cajas baratas y difference solo cuando hay solape real. */
+
+    function obtenerHuellasEdificios() {
+      try {
+        const capas = map.getStyle().layers || [];
+        const capaEd = capas.find((l) => l.type === 'fill-extrusion' && /building/i.test(l.id));
+        if (!capaEd || !map.getLayer(capaEd.id)) return [];
+        const vistos = new Set();
+        const huellas = [];
+        for (const f of map.queryRenderedFeatures({ layers: [capaEd.id] })) {
+          if (!f || !f.geometry) continue;
+          if (f.geometry.type !== 'Polygon' && f.geometry.type !== 'MultiPolygon') continue;
+          const clave = f.id != null ? f.id : JSON.stringify(f.geometry.coordinates[0] && f.geometry.coordinates[0][0]);
+          if (vistos.has(clave)) continue;
+          vistos.add(clave);
+          try {
+            huellas.push({ feature: f, caja: turf.bbox(f) });
+          } catch (e) { /* geometría rara: la ignoramos */ }
+        }
+        return huellas;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function cajasSeTocan(a, b) {
+      return !(b[0] > a[2] || b[2] < a[0] || b[1] > a[3] || b[3] < a[1]);
+    }
+
+    function restarEdificio(sombra, edificio) {
+      // Turf v6 usa FeatureCollection de 2 polígonos; probamos también la
+      // firma clásica de 2 argumentos por compatibilidad.
+      try {
+        const r = turf.difference(turf.featureCollection([sombra, edificio]));
+        if (r) return r;
+      } catch (e) { /* probamos la otra firma */ }
+      try {
+        const r = turf.difference(sombra, edificio);
+        if (r) return r;
+      } catch (e) { /* nos quedamos con la sombra sin recortar */ }
+      return sombra;
+    }
+
+    function recortarContraEdificios(sombra, huellas) {
+      if (!huellas.length) return sombra;
+      let resultado = sombra;
+      let caja;
+      try { caja = turf.bbox(resultado); } catch (e) { return sombra; }
+      for (const h of huellas) {
+        if (!cajasSeTocan(caja, h.caja)) continue;
+        const antes = resultado;
+        resultado = restarEdificio(resultado, h.feature);
+        if (resultado !== antes) {
+          try { caja = turf.bbox(resultado); } catch (e) { return antes; }
+        }
+      }
+      return resultado;
+    }
+
+    function calcularSombraArbol(arbol, distanciaKm, bearingSombra) {
+      const forma = arbol.forma || 'redondeada';
+      const perpendicular = (bearingSombra + 90) % 360;
+      const radioTroncoKm = Math.max(arbol.radioCopaM * (forma === 'palmera' ? 0.08 : 0.12), 0.25) / 1000;
+      const radioCopaKm = arbol.radioCopaM / 1000;
+      const [lon, lat] = arbol.punto.geometry.coordinates;
+
+      const lejano = turf.transformTranslate(arbol.punto, distanciaKm, bearingSombra, { units: 'kilometers' });
+
+      // Copa proyectada: mantiene la silueta realista del tipo de árbol
+      const radioProyectado = forma === 'palmera' ? radioCopaKm * 0.85 : radioCopaKm;
+      const copaProyectada = crearFormaCopa(lejano, radioProyectado, forma, lon, lat);
+
+      // Para palmeras la sombra es la corona proyectada + una banda fina y
+      // alargada: el tronco de la palmera es estrecho pero ALTO, y proyecta
+      // una línea de sombra desde la base hasta la corona (falta no tenerla).
+      if (forma === 'palmera') {
+        const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
+        // Cuna del tronco: base fina (radio del tronco) ensanchándose apenas
+        // un poco hacia donde cae la corona (el penacho abre un pelín el haz).
+        try {
+          const pBaseA = turf.transformTranslate(arbol.punto, radioTroncoKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+          const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+          const pLejosA = turf.transformTranslate(lejano, radioTroncoKm * 1.6, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+          const pLejosB = turf.transformTranslate(lejano, radioTroncoKm * 1.6, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+          const cunaTronco = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
+          return unirDosPoligonos(unirDosPoligonos(cunaTronco, copaProyectada), baseRedondeada);
+        } catch (e) {
+          return unirDosPoligonos(copaProyectada, baseRedondeada);
+        }
+      }
+
+      // Cuerpo de la sombra entre el tronco y la copa proyectada
+      const pBaseA = turf.transformTranslate(arbol.punto, radioTroncoKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+      const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+
+      // Ancho de la cuna según la forma (copas anchas proyectan más volumen lateral)
+      const factorAncho = { ancha_redondeada: 0.90, ancha_irregular: 0.85, redondeada: 0.75, conica: 0.55, oval_alargada: 0.60 }[forma] || 0.75;
+      const pLejosA = turf.transformTranslate(lejano, radioCopaKm * factorAncho, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+      const pLejosB = turf.transformTranslate(lejano, radioCopaKm * factorAncho, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+
+      let cuna;
+      try {
+        cuna = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
+      } catch (e) {
+        return copaProyectada;
+      }
+
+      const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
+
+      let sombraFinal = unirDosPoligonos(cuna, copaProyectada);
+      return unirDosPoligonos(sombraFinal, baseRedondeada);
+    }
+
+    let versionSombra = 0;
+
+    async function recalcularSombrasArboles() {
+      if (!map.getSource('arboles-globales-sombra') || !capaVisible) return;
+
+      if (!sombrasActivadasEnPanel()) {
+        map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+        return;
+      }
+
+      const miVersion = ++versionSombra;
+
+      const centro = obtenerCentroSolar(map);
+      const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+
+      if (posSol.altitude <= 0) {
+        map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+        return;
+      }
+
+      const azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;
+      const bearingSombra = (azimutGrados + 180) % 360;
+
+      const enVista = dibujarArbolesVisibles();
+      const paraSombra = enVista.slice(0, CONFIG.maxArbolesConSombra);
+
+      const tangenteSol = Math.tan(posSol.altitude);
+      if (!tangenteSol) return;
+
+      // Plantas de los edificios 3D visibles: las sombras se recortan
+      // contra ellas para que jamás se dibujen "dentro" de un edificio.
+      const huellasEdificios = obtenerHuellasEdificios();
+
+      const sombras = [];
+      for (let i = 0; i < paraSombra.length; i += CONFIG.loteSombraSize) {
+        if (miVersion !== versionSombra) return;
+        const lote = paraSombra.slice(i, i + CONFIG.loteSombraSize);
+        for (const arbol of lote) {
+          const longitudSombraM = arbol.altura / tangenteSol;
+          if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+          const distanciaKm = longitudSombraM / 1000;
+          let volumen = calcularSombraArbol(arbol, distanciaKm, bearingSombra);
+          if (volumen) volumen = recortarContraEdificios(volumen, huellasEdificios);
+          if (volumen) sombras.push(volumen);
+        }
+        if (miVersion !== versionSombra) return;
+        map.getSource('arboles-globales-sombra')?.setData(turf.featureCollection(sombras));
+        if (i + CONFIG.loteSombraSize < paraSombra.length) await cederAlNavegador();
+      }
+    }
+
+    let temporizadorSombra = null;
+    function programarSincroSombra(inmediato) {
+      clearInterval(temporizadorSombra);
+      if (inmediato) recalcularSombrasArboles();
+      temporizadorSombra = setInterval(recalcularSombrasArboles, CONFIG.sincroSombraMs);
+    }
+
+    let esperaMoveend = null;
+    map.on('moveend', () => {
+      clearTimeout(esperaMoveend);
+      esperaMoveend = setTimeout(() => {
+        cargarArbolesDeLaVista();
+        recalcularSombrasArboles();
+      }, CONFIG.esperaMoveendMs);
+    });
+
+    window.manolitAireRecalcularArboles = recalcularSombrasArboles;
+
+    await cargarArbolesDeLaVista();
+    recalcularSombrasArboles();
+  }
 })();

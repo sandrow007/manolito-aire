@@ -1,10 +1,10 @@
 /* Planetario: mini sistema solar vivo (Tierra + Sol + Luna) para Manolito Aire.
    - La hora es SIEMPRE la hora efectiva de la app (slider o reloj real).
    - Sin emojis. Sin colores ajenos al diseño existente.
-   - Fase lunar realista: el terminador (línea luz/sombra) se orienta según
-     el ángulo real sol→luna calculado por SunCalc (.angle), igual que en
-     los diagramas astronómicos reales. Rota con cada cambio de hora.
-   - Satélites orbitando + estrellas fugaces y cometas finos y aleatorios. */
+   - Fase lunar realista: terminador orientado por ángulo real sol→luna (SunCalc.angle).
+     Sin clipPath (incompatible con CSS transform en Safari/Chrome) — el path
+     de sombra es autocontenido y siempre queda dentro del disco lunar.
+   - Satélites orbitando + estrellas fugaces y cometas finos aleatorios. */
 (function () {
   'use strict';
 
@@ -17,15 +17,11 @@
   var RADIO_LUNA = 60;
   var GRACIA_INTERACCION_MS = 4000;
 
-  var fechaMostrada    = new Date();
+  var fechaMostrada     = new Date();
   var ultimaInteraccion = 0;
-  var coords           = null;
+  var coords            = null;
+  var lunaSombraEl      = null; // <path> de la zona oscura, creado una sola vez
 
-  // elementos SVG de fase lunar (creados una sola vez)
-  var lunaClipCirc  = null;   // el <circle> dentro del <clipPath>
-  var lunaSombraEl  = null;   // el <path> de la zona oscura
-
-  // satélites y fenómenos
   var SATELITES = [
     { radio: 34, velocidadGrad:  14, faseInicial:  40 },
     { radio: 29, velocidadGrad: -10, faseInicial: 200 }
@@ -64,9 +60,9 @@
   }
 
   function posicionOrbe(azimutRad, alturaRad, radioBase) {
-    var alt      = (alturaRad * 180) / Math.PI;
+    var alt       = (alturaRad * 180) / Math.PI;
     var azimutDeg = ((azimutRad * 180) / Math.PI + 180) % 360;
-    var rad      = (azimutDeg * Math.PI) / 180;
+    var rad       = (azimutDeg * Math.PI) / 180;
     return {
       x: CX + radioBase * Math.sin(rad),
       y: CY - radioBase * Math.cos(rad),
@@ -76,93 +72,71 @@
   }
 
   // ---------------------------------------------------------------------------
-  // FASE LUNAR REALISTA
+  // FASE LUNAR — path autocontenido, sin clipPath
   //
-  // El terminador (frontera luz/sombra) no es siempre vertical: su ángulo
-  // depende de dónde está el sol respecto a la luna en ese instante.
-  // SunCalc.getMoonIllumination() devuelve exactamente ese ángulo en .angle
-  // (radianes, desde el norte celeste). Lo usamos para rotar el path SVG.
-  //
-  // El path en coordenadas locales (cx=0, cy=0):
-  //   - Semicírculo del limbo (borde exterior del lado iluminado)
-  //   - Elipse del terminador (la frontera, que se achata según la fase)
-  // Luego se rota todo según ilumInfo.angle.
+  // Dibuja la zona oscura de la luna como un path SVG que nunca sale del disco.
+  // Dos arcos comparten los polos norte/sur del círculo:
+  //   1. Arco del limbo oscuro (semicírculo exterior)
+  //   2. Arco del terminador  (elipse que se aplana según la fase)
+  // El path se genera en coordenadas locales (centro en 0,0) y luego se
+  // traslada+rota al centro real del círculo lunar y al ángulo sol→luna.
   // ---------------------------------------------------------------------------
 
-  function trazadoTerminador(r, fraccion, creciente) {
-    // rx: semieje horizontal del terminador.
-    //   fraccion=0   → luna nueva  → rx=r  (semicírculo, toda en sombra)
-    //   fraccion=0.5 → cuarto      → rx=0  (línea recta)
-    //   fraccion=1   → luna llena  → rx=r  (semicírculo, sin sombra)
+  function pathSombraLocal(r, fraccion, creciente) {
+    // rx: semieje horizontal del terminador
+    //   fraccion=0   → luna nueva  → rx=r (sombra total)
+    //   fraccion=0.5 → cuarto      → rx=0 (línea recta)
+    //   fraccion=1   → luna llena  → rx=r (sin sombra, pero no se llama)
     var rx = r * Math.abs(1 - fraccion * 2);
 
-    // El path traza la zona OSCURA:
-    // - Limbo oscuro: el semicírculo del lado NO iluminado
-    // - Terminador: la elipse que une los polos
-    //
-    // creciente=true  → lado iluminado a la derecha → sombra a la izquierda
-    //   limbo oscuro: semicírculo izquierdo (sweep=0, anti-horario)
-    //   terminador:   si fraccion<0.5, barre hacia afuera (sweep=1)
-    //                 si fraccion>0.5, barre hacia adentro (sweep=0)
-    var sweepLimbo       = creciente ? 0 : 1;
-    var sweepTerminador;
-    if (fraccion <= 0.5) {
-      sweepTerminador = creciente ? 1 : 0;
+    // sweeps para que la zona oscura quede siempre del lado correcto
+    var sweepLimbo, sweepTerm;
+    if (creciente) {
+      // iluminado a la derecha → sombra a la izquierda
+      sweepLimbo = 0; // arco izquierdo
+      sweepTerm  = fraccion < 0.5 ? 1 : 0;
     } else {
-      sweepTerminador = creciente ? 0 : 1;
+      // iluminado a la izquierda → sombra a la derecha
+      sweepLimbo = 1; // arco derecho
+      sweepTerm  = fraccion < 0.5 ? 0 : 1;
     }
 
-    // El path empieza en el polo norte del círculo (0, -r) y termina en el polo sur (0, r)
     return (
-      'M 0,' + (-r) +
-      ' A ' + r  + ',' + r + ' 0 0,' + sweepLimbo       + ' 0,' + r +
-      ' A ' + rx + ',' + r + ' 0 0,' + sweepTerminador  + ' 0,' + (-r) +
+      'M 0 ' + (-r) +
+      ' A ' + r  + ' ' + r + ' 0 0 ' + sweepLimbo + ' 0 ' + r +
+      ' A ' + rx + ' ' + r + ' 0 0 ' + sweepTerm  + ' 0 ' + (-r) +
       ' Z'
     );
   }
 
-  function iniciarElementosFaseLunar(lunaOrbe) {
-    if (lunaSombraEl) return; // ya creados
-    var ns  = 'http://www.w3.org/2000/svg';
-    var cid = 'rsLunaClip';
-
-    // clipPath para recortar la sombra al círculo lunar
-    var clip = document.createElementNS(ns, 'clipPath');
-    clip.setAttribute('id', cid);
-    lunaClipCirc = document.createElementNS(ns, 'circle');
-    clip.appendChild(lunaClipCirc);
-    lunaOrbe.insertBefore(clip, lunaOrbe.firstChild);
-
-    // path de la zona oscura
-    lunaSombraEl = document.createElementNS(ns, 'path');
-    lunaSombraEl.setAttribute('fill',        'rgba(0,0,0,0.86)');
-    lunaSombraEl.setAttribute('clip-path',   'url(#' + cid + ')');
-    lunaOrbe.appendChild(lunaSombraEl);
-  }
-
   function actualizarFaseLunar(lunaOrbe, fraccion, creciente, anguloRad) {
-    var lunaCircle = lunaOrbe.querySelector('circle:not([clip-path])');
+    // Si la luna está casi llena (>98%) o nueva (<2%), la sombra es mínima
+    // o total — igual se dibuja pero no se nota o es el disco entero.
+    var lunaCircle = lunaOrbe.querySelector('circle');
     if (!lunaCircle) return;
 
     var r  = parseFloat(lunaCircle.getAttribute('r'))  || 6;
     var cx = parseFloat(lunaCircle.getAttribute('cx')) || 0;
     var cy = parseFloat(lunaCircle.getAttribute('cy')) || 0;
 
-    iniciarElementosFaseLunar(lunaOrbe);
+    // Crear el elemento de sombra la primera vez
+    if (!lunaSombraEl) {
+      var ns       = 'http://www.w3.org/2000/svg';
+      lunaSombraEl = document.createElementNS(ns, 'path');
+      lunaSombraEl.setAttribute('fill', 'rgba(0,0,0,0.88)');
+      lunaOrbe.appendChild(lunaSombraEl);
+    }
 
-    // actualizar clip al radio actual de la luna
-    lunaClipCirc.setAttribute('cx', cx);
-    lunaClipCirc.setAttribute('cy', cy);
-    lunaClipCirc.setAttribute('r',  r);
+    // path en coordenadas locales (0,0) luego transformado
+    lunaSombraEl.setAttribute('d', pathSombraLocal(r, fraccion, creciente));
 
-    // dibujar el terminador en coordenadas locales centradas en (cx,cy)
-    lunaSombraEl.setAttribute('d', trazadoTerminador(r, fraccion, creciente));
-
-    // rotar según el ángulo real sol→luna (en grados, desde norte celeste)
-    // + 90 para pasar de coordenadas celestes a SVG (eje Y invertido)
-    var anguloDeg = anguloRad * 180 / Math.PI + 90;
-    lunaSombraEl.setAttribute('transform',
-      'translate(' + cx + ',' + cy + ') rotate(' + anguloDeg.toFixed(2) + ')');
+    // translate al centro del círculo + rotate según ángulo real sol→luna
+    // +90° para convertir de coordenadas celestes (norte arriba) a SVG (Y invertido)
+    var angDeg = anguloRad * 180 / Math.PI + 90;
+    lunaSombraEl.setAttribute(
+      'transform',
+      'translate(' + cx + ',' + cy + ') rotate(' + angDeg.toFixed(2) + ')'
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -178,13 +152,12 @@
     var posSol  = SunCalc.getPosition(fechaMostrada, p.lat, p.lon);
     var posLuna = SunCalc.getMoonPosition(fechaMostrada, p.lat, p.lon);
 
-    // Fase lunar: fraccion, phase y ángulo del terminador
     var ilumFraccion = 0, faseLuna = 0, anguloTerminador = 0;
     try {
       var ilumInfo     = SunCalc.getMoonIllumination(fechaMostrada);
-      ilumFraccion     = ilumInfo.fraction; // 0..1
-      faseLuna         = ilumInfo.phase;    // 0..1: <0.5 creciente
-      anguloTerminador = ilumInfo.angle;    // radianes: ángulo real sol→luna
+      ilumFraccion     = ilumInfo.fraction;
+      faseLuna         = ilumInfo.phase;
+      anguloTerminador = ilumInfo.angle; // radianes: ángulo real sol→luna
     } catch (e) {}
 
     var s = posicionOrbe(posSol.azimuth,  posSol.altitude,  RADIO_SOL);
@@ -193,7 +166,7 @@
     solOrbe.style.transform  = 'translate(' + s.x.toFixed(1) + 'px, ' + s.y.toFixed(1) + 'px)';
     lunaOrbe.style.transform = 'translate(' + l.x.toFixed(1) + 'px, ' + l.y.toFixed(1) + 'px)';
 
-    // Sol: brillo según altura
+    // Sol
     var solCircle = solOrbe.querySelector('circle');
     if (solCircle) {
       if (s.alturaDeg <= 0) {
@@ -205,17 +178,17 @@
       }
     }
 
-    // Luna: opacidad según momento del día
+    // Luna
     lunaOrbe.style.opacity = l.alturaDeg <= 0 ? '0.12' : (s.alturaDeg > 0 ? '0.55' : '0.95');
 
-    // Fase lunar con ángulo real del terminador
+    // Fase lunar con ángulo real
     actualizarFaseLunar(lunaOrbe, ilumFraccion, faseLuna < 0.5, anguloTerminador);
 
-    // Cielo de la cúpula
+    // Cielo
     var cielo = s.alturaDeg > 15 ? 'dia' : s.alturaDeg > -6 ? 'tarde' : 'noche';
     if (widget.getAttribute('data-cielo') !== cielo) widget.setAttribute('data-cielo', cielo);
 
-    // Texto informativo
+    // Texto
     var info = $('rsPlanetarioInfo');
     if (info) {
       var ilum    = Math.round(ilumFraccion * 100);

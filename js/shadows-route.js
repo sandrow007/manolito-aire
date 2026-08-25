@@ -361,7 +361,12 @@
       }
     } catch (e) { /* no hay sombras calculadas todavía */ }
     const intensidad = Math.max(0, Math.sin(posSol.altitude));
-    return CONFIG.factorPenalizacionSol * intensidad;
+    // Nubosidad real (OpenWeatherMap vía /clima): la nube difunde la
+    // radiación directa, así que el sol "quema menos" y exponerte a él
+    // penaliza menos en el Dijkstra térmico. Máximo -85%: ni con el cielo
+    // cubierto del todo la sombra deja de ser el sitio más fresco.
+    const factorSolNubes = 1 - (typeof nubosidadActual !== 'undefined' ? nubosidadActual : 0) * 0.85;
+    return CONFIG.factorPenalizacionSol * intensidad * factorSolNubes;
   }
 
   function dijkstraTermico(grafo, inicioIdx, finIdx, posSol) {
@@ -1000,10 +1005,30 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     ultimaConsultaNubesMs = Date.now();
     const valor = await consultarNubosidad(lat, lon);
     if (valor !== nubosidadActual) {
+      const salto = Math.abs(valor - nubosidadActual);
       nubosidadActual = valor;
       aplicarOpticaNubes();
       actualizarIluminacionSolar();
+      // Si la nubosidad cambia MUCHO (frente nuboso entrando o saliendo) y
+      // hay una ruta activa, se recalcula sola: el Dijkstra térmico pondera
+      // la penalización solar con la nubosidad real, así que el camino más
+      // fresco con sol puede dejar de serlo con el cielo cubierto.
+      if (salto >= 0.25) recalcularRutaPorTiempo();
     }
+  }
+
+  let recalculandoRutaPorNubes = false;
+  async function recalcularRutaPorTiempo() {
+    if (recalculandoRutaPorNubes || !rutaActual) return;
+    const o = seleccionPorInput.get(inputOrigen);
+    const d = seleccionPorInput.get(inputDestino);
+    if (!o || !d || o.lat == null || d.lat == null) return;
+    recalculandoRutaPorNubes = true;
+    try {
+      mostrarEstado(t('routeRecalcWeather', 'Ha cambiado la nubosidad — recalculando la ruta más fresca…'));
+      await ejecutarBusquedaConPuntos(o, d);
+    } catch (e) { /* si falla, se queda la ruta que había */ }
+    finally { recalculandoRutaPorNubes = false; }
   }
 
   // Hooks de depuración/integración: otros scripts pueden leer la nubosidad

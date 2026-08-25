@@ -92,13 +92,12 @@ a{ color: var(--sky-mid); }
 .wordmark span{
   font-family: var(--font-mono); font-size: 0.7rem; font-weight:600; color: var(--accent-text);
   background: var(--paper); padding: 2px 7px; border-radius: 999px; letter-spacing: 0.02em;
-  border: 1px solid color-mix(in srgb, var(--accent-text) 30%, transparent);
 }
 /* El nombre de la marca lleva un degradado animado que fluye por las letras
    (guiño al estilo de Islas de Calor Sevilla), con la paleta de esta web */
 .wordmark .wordmark-name{
   font-family: var(--font-display); font-size: inherit; font-weight: inherit;
-  padding: 0; border-radius: 0; letter-spacing: inherit;
+  padding: 0; border: none; border-radius: 0; letter-spacing: inherit;
   background: linear-gradient(110deg, var(--sky-deep) 0%, var(--sky-mid) 22%, var(--accent) 45%, var(--accent-2) 68%, var(--breath-good) 86%, var(--sky-deep) 100%);
   background-size: 300% 100%;
   -webkit-background-clip: text; background-clip: text;

@@ -309,14 +309,17 @@
 
       for (const anillo of coordenadas) {
         if (!anillo || anillo.length < 2) continue;
+        // El nombre de la calle viaja en cada arista: es lo que permite la
+        // guía paso a paso accesible ("gira a la izquierda en Calle Feria…").
+        const nombreCalle = (feature.properties && feature.properties.name) || '';
         for (let i = 0; i < anillo.length - 1; i++) {
           const a = anillo[i], b = anillo[i + 1];
           const idxA = getNodoIdx(a[0], a[1]);
           const idxB = getNodoIdx(b[0], b[1]);
           const longitudM = turf.distance(a, b, { units: 'meters' });
           if (longitudM <= 0) continue;
-          adj[idxA].push({ to: idxB, longitudM });
-          adj[idxB].push({ to: idxA, longitudM });
+          adj[idxA].push({ to: idxB, longitudM, nombre: nombreCalle });
+          adj[idxB].push({ to: idxA, longitudM, nombre: nombreCalle });
         }
       }
     });
@@ -407,14 +410,17 @@
       }
     }
 
-    if (dist[finIdx] === Infinity) return { camino: [], costeTermicoM: Infinity };
+    if (dist[finIdx] === Infinity) return { camino: [], caminoIdx: [], costeTermicoM: Infinity };
 
     const camino = [];
+    const caminoIdx = [];
     for (let at = finIdx; at !== -1; at = prev[at]) {
       camino.push(grafo.nodos[at]);
+      caminoIdx.push(at);
     }
     camino.reverse();
-    return { camino, costeTermicoM: dist[finIdx] };
+    caminoIdx.reverse();
+    return { camino, caminoIdx, costeTermicoM: dist[finIdx] };
   }
 
   async function calcularRutaDijkstraTermico(origen, destino) {
@@ -460,6 +466,13 @@
 
     console.log(`[Dijkstra térmico] ${resultado.camino.length} nodos · coste ${resultado.costeTermicoM.toFixed(1)} m · ${(performance.now() - t0).toFixed(2)} ms`);
 
+    let pasos = [];
+    try {
+      pasos = generarPasosDesdeGrafo(grafo, resultado.caminoIdx, sombrasParaCobertura);
+    } catch (e) {
+      console.warn('No se han podido generar las indicaciones de la ruta:', e);
+    }
+
     return {
       geojson: { type: 'LineString', coordinates: resultado.camino },
       distanciaKm: distanciaRealKm.toFixed(2),
@@ -468,6 +481,7 @@
       duracionEstimada: true,
       coberturaSombraPct,
       esDijkstraTermico: true,
+      pasos,
     };
   }
 
@@ -2456,11 +2470,16 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   async function calcularRutaReal(origen, destino) {
     const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
-    const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson`;
+    const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&steps=true`;
 
     try {
       const datos = await fetchConReintentos(url);
       if (datos?.code === 'Ok' && datos.routes?.[0]) {
+        let pasos = [];
+        try {
+          const sombras = typeof obtenerTodasLasSombras === 'function' ? obtenerTodasLasSombras() : [];
+          pasos = generarPasosDesdeOSRM(datos.routes[0], sombras);
+        } catch (ePasos) { /* las indicaciones son un extra: nunca rompen la ruta */ }
         const distanciaKmNum = datos.routes[0].distance / 1000;
         let duracionMinNum = datos.routes[0].duration / 60;
 
@@ -2477,6 +2496,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
           duracionMin: Math.round(duracionMinNum),
           esReal: true,
           duracionEstimada,
+          pasos,
         };
       }
       throw new Error('OSRM no ha devuelto una ruta válida.');
@@ -2515,6 +2535,186 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     }
   }
 
+  /* ---------------- Guía paso a paso accesible (calle a calle, sombra a sombra) ----------------
+     Para personas ciegas o con baja visión: la ruta calculada se convierte en
+     una lista de indicaciones en texto plano ("Gira a la izquierda en Calle
+     Feria y sigue 120 m — tramo en sombra"), que un lector de pantalla lee
+     directamente o el botón "Escuchar indicaciones" lee en voz alta con la
+     voz del propio navegador (speechSynthesis, 100% local). */
+
+  // Interpola {tokens} en las plantillas de i18n: t() + reemplazo simple.
+  function tp(clave, fallback, vars) {
+    let texto = t(clave, fallback);
+    for (const k in vars) texto = texto.split('{' + k + '}').join(vars[k]);
+    return texto;
+  }
+
+  function direccionCardinalTexto(bearing) {
+    // 8 rumbos; el bearing 0 es norte y crece en sentido horario.
+    const claves = ['dirN', 'dirNE', 'dirE', 'dirSE', 'dirS', 'dirSW', 'dirW', 'dirNW'];
+    const idx = ((Math.round(bearing / 45) % 8) + 8) % 8;
+    return t(claves[idx], ['norte', 'noreste', 'este', 'sureste', 'sur', 'suroeste', 'oeste', 'noroeste'][idx]);
+  }
+
+  function normalizarGiro(bearingPrevio, bearingNuevo) {
+    // Diferencia de rumbo en [-180, 180]: negativo = izquierda, positivo = derecha.
+    let d = ((bearingNuevo - bearingPrevio + 540) % 360) - 180;
+    return d;
+  }
+
+  function fraccionSombraTramo(coords, sombras) {
+    // null = no hay sombras calculadas (de noche, capa apagada…): no se dice nada.
+    if (!sombras || !sombras.length || !coords || coords.length < 2) return null;
+    try {
+      const linea = turf.lineString(coords);
+      const tramos = turf.lineChunk(linea, 0.02, { units: 'kilometers' }).features;
+      if (!tramos.length) return null;
+      let enSombra = 0;
+      for (const tramo of tramos) {
+        const c = tramo.geometry.coordinates;
+        const medio = turf.point(c[Math.floor(c.length / 2)] || c[0]);
+        for (const poligono of sombras) {
+          try { if (turf.booleanPointInPolygon(medio, poligono)) { enSombra++; break; } } catch (e) { }
+        }
+      }
+      return enSombra / tramos.length;
+    } catch (e) { return null; }
+  }
+
+  function textoSombra(fraccion, metros) {
+    if (fraccion == null) return { frase: '', consejo: '' };
+    let frase;
+    if (fraccion >= 0.6) frase = t('shadeShade', 'tramo en sombra');
+    else if (fraccion <= 0.25) frase = t('shadeSun', 'tramo al sol');
+    else frase = t('shadeMixed', 'tramo con sol y sombra');
+    // Consejo de calor solo donde de verdad duele: tramo largo y casi sin sombra.
+    const consejo = (fraccion <= 0.25 && metros >= 120)
+      ? t('shadeTip', 'Consejo: es un tramo largo al sol — ve despacio, camina por el lado con edificios y lleva agua.')
+      : '';
+    return { frase, consejo };
+  }
+
+  function redondearMetros(m) {
+    return Math.max(10, Math.round(m / 5) * 5);
+  }
+
+  function nombreCalleBonito(nombre) {
+    return nombre && nombre.trim() ? nombre.trim() : t('stepUnnamed', 'la calle sin nombre');
+  }
+
+  // Construye los pasos a partir del camino del Dijkstra térmico (grafo propio).
+  function generarPasosDesdeGrafo(grafo, caminoIdx, sombras) {
+    const pasos = [];
+    if (!grafo || !caminoIdx || caminoIdx.length < 2) return pasos;
+
+    // 1. Agrupar aristas consecutivas de la misma calle.
+    const grupos = [];
+    for (let i = 0; i < caminoIdx.length - 1; i++) {
+      const u = caminoIdx[i], v = caminoIdx[i + 1];
+      const arista = (grafo.adj[u] || []).find(a => a.to === v && a.nombre) || (grafo.adj[u] || []).find(a => a.to === v);
+      if (!arista) continue;
+      const nombre = arista.nombre || '';
+      const a = grafo.nodos[u], b = grafo.nodos[v];
+      const ultimo = grupos[grupos.length - 1];
+      if (ultimo && ultimo.nombre === nombre) {
+        ultimo.metros += arista.longitudM;
+        ultimo.coords.push(b);
+      } else {
+        grupos.push({ nombre, metros: arista.longitudM, coords: [a, b] });
+      }
+    }
+    if (!grupos.length) return pasos;
+
+    // 2. Convertir cada grupo en una frase con su giro y su sombra.
+    let bearingAnterior = null;
+    grupos.forEach((g, i) => {
+      const metros = redondearMetros(g.metros);
+      const calle = nombreCalleBonito(g.nombre);
+      const bearingIni = turf.bearing(g.coords[0], g.coords[1]);
+      const bearingFin = turf.bearing(g.coords[g.coords.length - 2], g.coords[g.coords.length - 1]);
+      const { frase, consejo } = textoSombra(fraccionSombraTramo(g.coords, sombras), metros);
+      const colaSombra = frase ? ' — ' + frase : '';
+
+      let texto;
+      if (i === 0) {
+        texto = tp('stepDepart', 'Sal por {calle} hacia el {dir}, {metros} metros', {
+          calle, dir: direccionCardinalTexto(bearingIni), metros,
+        }) + colaSombra + '.';
+      } else {
+        const giro = normalizarGiro(bearingAnterior, bearingIni);
+        const abs = Math.abs(giro);
+        if (abs < 25) {
+          texto = tp('stepContinue', 'Sigue por {calle} durante {metros} metros', { calle, metros }) + colaSombra + '.';
+        } else if (abs > 135) {
+          texto = tp('stepUturn', 'Da la vuelta y toma {calle}, {metros} metros', { calle, metros }) + colaSombra + '.';
+        } else {
+          const leve = abs < 60;
+          const clave = giro < 0 ? (leve ? 'stepSlightLeft' : 'stepTurnLeft') : (leve ? 'stepSlightRight' : 'stepTurnRight');
+          const fallback = giro < 0
+            ? (leve ? 'Gira levemente a la izquierda en {calle} y sigue {metros} metros' : 'Gira a la izquierda en {calle} y sigue {metros} metros')
+            : (leve ? 'Gira levemente a la derecha en {calle} y sigue {metros} metros' : 'Gira a la derecha en {calle} y sigue {metros} metros');
+          texto = tp(clave, fallback, { calle, metros }) + colaSombra + '.';
+        }
+      }
+      if (consejo) texto += ' ' + consejo;
+      pasos.push(texto);
+      bearingAnterior = bearingFin;
+    });
+
+    pasos.push(t('stepArrive', 'Has llegado a tu destino.') + '');
+    return pasos;
+  }
+
+  // Lo mismo pero para las rutas OSRM (respaldo y alternativas): la respuesta
+  // con steps=true ya trae maniobras, nombres de calle y distancias.
+  function generarPasosDesdeOSRM(rutaOsrm, sombras) {
+    const pasos = [];
+    const pasosOsrm = (rutaOsrm.legs || []).flatMap(l => l.steps || []);
+    if (!pasosOsrm.length) return pasos;
+
+    for (const s of pasosOsrm) {
+      const calle = nombreCalleBonito(s.name);
+      const metros = redondearMetros(s.distance || 0);
+      const coords = s.geometry?.coordinates || [];
+      const { frase, consejo } = textoSombra(fraccionSombraTramo(coords, sombras), metros);
+      const colaSombra = frase ? ' — ' + frase : '';
+      const maniobra = s.maneuver || {};
+      const tipo = maniobra.type || '';
+      const mod = maniobra.modifier || '';
+
+      let texto = null;
+      if (tipo === 'depart') {
+        const dir = coords.length >= 2 ? direccionCardinalTexto(turf.bearing(coords[0], coords[1])) : '';
+        texto = tp('stepDepart', 'Sal por {calle} hacia el {dir}, {metros} metros', { calle, dir, metros }) + colaSombra + '.';
+      } else if (tipo === 'arrive') {
+        texto = t('stepArrive', 'Has llegado a tu destino.');
+      } else if (tipo === 'roundabout' || tipo === 'rotary') {
+        texto = tp('stepRoundabout', 'En la rotonda, toma la salida hacia {calle} y sigue {metros} metros', { calle, metros }) + colaSombra + '.';
+      } else if (mod === 'uturn') {
+        texto = tp('stepUturn', 'Da la vuelta y toma {calle}, {metros} metros', { calle, metros }) + colaSombra + '.';
+      } else if (mod.includes('left') || mod.includes('right')) {
+        const izq = mod.includes('left');
+        const leve = mod.includes('slight');
+        const clave = izq ? (leve ? 'stepSlightLeft' : 'stepTurnLeft') : (leve ? 'stepSlightRight' : 'stepTurnRight');
+        const fallback = izq
+          ? (leve ? 'Gira levemente a la izquierda en {calle} y sigue {metros} metros' : 'Gira a la izquierda en {calle} y sigue {metros} metros')
+          : (leve ? 'Gira levemente a la derecha en {calle} y sigue {metros} metros' : 'Gira a la derecha en {calle} y sigue {metros} metros');
+        texto = tp(clave, fallback, { calle, metros }) + colaSombra + '.';
+      } else if (metros > 0) {
+        texto = tp('stepContinue', 'Sigue por {calle} durante {metros} metros', { calle, metros }) + colaSombra + '.';
+      }
+      if (texto) {
+        if (consejo && tipo !== 'arrive') texto += ' ' + consejo;
+        pasos.push(texto);
+      }
+    }
+    // Si OSRM no cerró con "arrive", lo añadimos nosotros.
+    const ultimo = pasos[pasos.length - 1] || '';
+    if (!ultimo.startsWith(t('stepArrive', 'Has llegado').slice(0, 10))) pasos.push(t('stepArrive', 'Has llegado a tu destino.'));
+    return pasos;
+  }
+
+  // Genera los polígonos de sombra proyectados por una lista de edificios.
   async function generarPoligonosSombraPara(listaEdificios, posSolActual) {
     if (!posSolActual || posSolActual.altitude <= 0) return [];
     const azimutGrados = (posSolActual.azimuth * 180) / Math.PI + 180;
@@ -2562,7 +2762,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
     try {
       const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
-      const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&alternatives=true`;
+      const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&alternatives=true&steps=true`;
       const datos = await fetchConReintentos(url);
 
       if (datos?.code !== 'Ok' || !datos.routes?.length) {
@@ -2625,6 +2825,10 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         esReal: true,
         duracionEstimada,
         coberturaSombraPct: poligonosSombra.length ? Math.round(mejor.cobertura * 100) : null,
+        pasos: (() => {
+          try { return generarPasosDesdeOSRM(mejor.ruta, poligonosSombra); }
+          catch (ePasos) { return []; }
+        })(),
       };
     } catch (err) {
       console.warn('Routing con prioridad de sombra no disponible, usando ruta normal:', err);
@@ -2912,6 +3116,89 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     }
   }
 
+  /* ---------------- Indicaciones paso a paso accesibles ---------------- */
+
+  let pasosActuales = [];
+  let lecturaEnCurso = false;
+
+  function vozNavegadorDisponible() {
+    return typeof window !== 'undefined' && 'speechSynthesis' in window;
+  }
+
+  function detenerLecturaPasos() {
+    if (vozNavegadorDisponible()) {
+      try { window.speechSynthesis.cancel(); } catch (e) { }
+    }
+    lecturaEnCurso = false;
+    const btn = document.getElementById('rsBtnEscucharPasos');
+    if (btn) {
+      btn.textContent = t('stepsListen', 'Escuchar indicaciones');
+      btn.setAttribute('aria-pressed', 'false');
+    }
+  }
+
+  function alternarLecturaPasos() {
+    if (!vozNavegadorDisponible() || !pasosActuales.length) return;
+    if (lecturaEnCurso) { detenerLecturaPasos(); return; }
+    const btn = document.getElementById('rsBtnEscucharPasos');
+    lecturaEnCurso = true;
+    if (btn) {
+      btn.textContent = t('stepsStop', 'Detener lectura');
+      btn.setAttribute('aria-pressed', 'true');
+    }
+    const idioma = (document.documentElement.lang || 'es').slice(0, 5);
+    const textos = [];
+    if (resumenRutaAccesible) textos.push(resumenRutaAccesible);
+    textos.push(...pasosActuales);
+    let restantes = textos.length;
+    for (const texto of textos) {
+      const frase = new SpeechSynthesisUtterance(texto);
+      frase.lang = idioma;
+      frase.rate = 0.95;
+      frase.onend = () => {
+        restantes -= 1;
+        if (restantes <= 0) detenerLecturaPasos();
+      };
+      frase.onerror = frase.onend;
+      window.speechSynthesis.speak(frase);
+    }
+  }
+
+  function renderizarPasosAccesibles(pasos) {
+    pasosActuales = Array.isArray(pasos) ? pasos : [];
+    detenerLecturaPasos();
+    const seccion = document.getElementById('rsPasosSection');
+    const lista = document.getElementById('rsListaPasos');
+    if (!seccion || !lista) return;
+    lista.innerHTML = '';
+    if (!pasosActuales.length) {
+      seccion.hidden = true;
+      return;
+    }
+    for (const texto of pasosActuales) {
+      const li = document.createElement('li');
+      li.textContent = texto;
+      lista.appendChild(li);
+    }
+    const btn = document.getElementById('rsBtnEscucharPasos');
+    if (btn) btn.hidden = !vozNavegadorDisponible();
+    seccion.hidden = false;
+  }
+
+  function ocultarPasosAccesibles() {
+    pasosActuales = [];
+    detenerLecturaPasos();
+    const seccion = document.getElementById('rsPasosSection');
+    if (seccion) seccion.hidden = true;
+  }
+
+  document.addEventListener('langChanged', () => {
+    const btn = document.getElementById('rsBtnEscucharPasos');
+    if (btn) btn.textContent = lecturaEnCurso ? t('stepsStop', 'Detener lectura') : t('stepsListen', 'Escuchar indicaciones');
+    const titulo = document.getElementById('rsPasosTitulo');
+    if (titulo) titulo.textContent = t('stepsTitle', 'Indicaciones paso a paso');
+  });
+
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
     mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
@@ -2946,9 +3233,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);
+        renderizarPasosAccesibles(ruta.pasos || []);
       } else {
         mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
         mostrarBadgeSombra(null);
+        ocultarPasosAccesibles();
       }
 
       try {
@@ -2960,6 +3249,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       }
     } catch (err) {
       console.error(err);
+      ocultarPasosAccesibles();
       mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
     } finally {
       ponerCargando(false);
@@ -2973,6 +3263,8 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
 
   btnBuscar.addEventListener('click', manejarBusqueda);
+  const btnEscucharPasos = document.getElementById('rsBtnEscucharPasos');
+  if (btnEscucharPasos) btnEscucharPasos.addEventListener('click', alternarLecturaPasos);
   [inputOrigen, inputDestino].forEach((input) => {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); manejarBusqueda(); }

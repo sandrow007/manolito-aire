@@ -407,6 +407,18 @@
          sol). La rellena shadows-route.js con los mismos datos del cálculo. -->
     <div id="rsLiveSummary" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
+    <!-- Indicaciones paso a paso accesibles: la misma información que se ve
+         en el mapa, en texto ordenado, con lectura por voz (TTS del propio
+         navegador, sin servicios externos). Pensado para personas ciegas o
+         con baja visión, y útil para cualquiera. -->
+    <section id="rsPasosSection" class="rs-pasos" aria-labelledby="rsPasosTitulo" hidden>
+      <div class="rs-pasos-cabecera">
+        <h3 id="rsPasosTitulo" data-i18n="stepsTitle">Indicaciones paso a paso</h3>
+        <button id="rsBtnEscucharPasos" type="button" class="rs-btn-escuchar" aria-pressed="false" data-i18n="stepsListen">Escuchar indicaciones</button>
+      </div>
+      <ol id="rsListaPasos" class="rs-lista-pasos"></ol>
+    </section>
+
 <div class="map-wrap">
   <div id="shadowRouteMap">
   </div>

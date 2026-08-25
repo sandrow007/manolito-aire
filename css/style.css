@@ -891,3 +891,38 @@ body.modo-accesible img{ filter:contrast(1.1) !important; }
 /* En modo accesible el mapa no se invierte: fondo claro predecible */
 body.modo-accesible #shadowRouteMap .maplibregl-canvas,
 body.modo-accesible #map .leaflet-tile-pane{ filter:none !important; }
+
+/* ===== Indicaciones paso a paso (accesibilidad) ===== */
+.rs-pasos{
+  margin:10px 0 16px;
+  padding:14px 16px;
+  border:1px solid var(--border-color, rgba(127,127,127,.35));
+  border-radius:12px;
+  background:var(--card-bg, rgba(127,127,127,.07));
+}
+.rs-pasos-cabecera{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; flex-wrap:wrap; margin-bottom:8px;
+}
+.rs-pasos-cabecera h3{ margin:0; font-size:1.05rem; }
+.rs-btn-escuchar{
+  cursor:pointer;
+  padding:8px 14px;
+  border-radius:999px;
+  border:2px solid var(--accent-text, #2563eb);
+  background:transparent;
+  color:var(--accent-text, #2563eb);
+  font-weight:600;
+}
+.rs-btn-escuchar[aria-pressed="true"]{
+  background:var(--accent-text, #2563eb);
+  color:#fff;
+}
+.rs-lista-pasos{
+  margin:0; padding-left:1.4em;
+  display:flex; flex-direction:column; gap:6px;
+}
+.rs-lista-pasos li{ line-height:1.55; }
+body.modo-accesible .rs-pasos{ background:#fff !important; color:#000 !important; border-color:#000 !important; }
+body.modo-accesible .rs-btn-escuchar{ border-color:#000 !important; color:#000 !important; }
+body.modo-accesible .rs-btn-escuchar[aria-pressed="true"]{ background:#000 !important; color:#fff !important; }

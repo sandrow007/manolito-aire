@@ -1,0 +1,14 @@
+# Archivos que NO se suben como assets públicos del Worker.
+# Sin esto, worker.js / wrangler.json / index.js quedaban servidos en
+# manolitoaire.com/worker.js y cualquiera con F12 podía leer el código
+# fuente del servidor (los NOMBRES de las variables de entorno, rutas
+# internas, etc.). Las claves en sí nunca estuvieron ahí (viven como
+# secrets de Cloudflare), pero el código del servidor no debe colgarse.
+worker.js
+index.js
+wrangler.json
+.git
+.gitignore
+.gitignore.bak
+.vscode
+*.bak

@@ -153,8 +153,26 @@
     }
     function esValorValido(v) { return v != null && v !== -999; }
 
+    // Caché persistente (localStorage): los datos históricos de la NASA no
+    // cambian, así que se guardan 7 días y no se repiten llamadas.
+    const NASA_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+    function nasaCacheObtener(clave) {
+      try {
+        const crudo = localStorage.getItem(`manolito_cache_nasa_${clave}`);
+        if (!crudo) return null;
+        const entrada = JSON.parse(crudo);
+        if (!entrada || Date.now() - entrada.t > NASA_CACHE_TTL) return null;
+        return entrada.v;
+      } catch (e) { return null; }
+    }
+    function nasaCacheGuardar(clave, valor) {
+      try { localStorage.setItem(`manolito_cache_nasa_${clave}`, JSON.stringify({ t: Date.now(), v: valor })); } catch (e) { }
+    }
+
     async function obtenerAnioDiario(anio) {
       if (cacheDiaria.has(anio)) return cacheDiaria.get(anio);
+      const persistente = nasaCacheObtener(`d_${anio}`);
+      if (persistente) { cacheDiaria.set(anio, persistente); return persistente; }
       const url = new URL(CONFIG.nasaDiario);
       url.searchParams.set('parameters', CONFIG.parametrosNasa.join(','));
       url.searchParams.set('community', 'RE');
@@ -180,12 +198,15 @@
         };
       }
       cacheDiaria.set(anio, porDia);
+      nasaCacheGuardar(`d_${anio}`, porDia);
       return porDia;
     }
 
     async function obtenerDiaHorario(anio, mes, dia) {
       const clave = claveFecha(anio, mes, dia);
       if (cacheHoraria.has(clave)) return cacheHoraria.get(clave);
+      const persistente = nasaCacheObtener(`h_${clave}`);
+      if (persistente) { cacheHoraria.set(clave, persistente); return persistente; }
       const url = new URL(CONFIG.nasaHorario);
       url.searchParams.set('parameters', CONFIG.parametrosNasa.join(','));
       url.searchParams.set('community', 'RE');
@@ -214,6 +235,7 @@
         };
       }
       cacheHoraria.set(clave, porHora);
+      nasaCacheGuardar(`h_${clave}`, porHora);
       return porHora;
     }
 

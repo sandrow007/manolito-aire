@@ -252,17 +252,26 @@
     throw ultimoError || new Error('Overpass no disponible');
   }
 
-  async function obtenerRedPeatonal(bbox) {
+  function bboxContienePunto(bbox, lon, lat) {
+    return lon >= bbox[0] && lat >= bbox[1] && lon <= bbox[2] && lat <= bbox[3];
+  }
+
+  async function obtenerRedPeatonal(bbox, puntosClave) {
     // 1. Reutilizar cache si ya tenemos un bbox que cubre el solicitado
     for (const entrada of cacheRedPeatonal.values()) {
       if (bboxContiene(entrada.bbox, bbox)) return entrada.geojson;
     }
 
-    // 2. Intentar archivo local (rápido, sin red)
+    // 2. Intentar archivo local (rápido, sin red). Basta con que cubra los
+    //    puntos de la ruta: el bbox lleva un colchón de 500 m que a veces se
+    //    sale un poco del área descargada, y eso antes tiraba toda la red.
     if (CONFIG.usarRedLocalTermica) {
       const local = await cargarRedPeatonalLocal();
-      if (local && local.geojson.features.length && bboxContiene(local.bbox, bbox)) {
-        return local.geojson;
+      if (local && local.geojson.features.length) {
+        const cubierto = bboxContiene(local.bbox, bbox)
+          || (Array.isArray(puntosClave) && puntosClave.length
+            && puntosClave.every((p) => bboxContienePunto(local.bbox, p.lon, p.lat)));
+        if (cubierto) return local.geojson;
       }
     }
 
@@ -429,7 +438,7 @@
     const lineaOD = turf.lineString([[origen.lon, origen.lat], [destino.lon, destino.lat]]);
     const bboxBase = turf.bboxPolygon(turf.bbox(lineaOD));
     const bboxAmpliado = turf.bbox(turf.buffer(bboxBase, CONFIG.redPeatonalMargenM, { units: 'meters' }));
-    const redCompleta = await obtenerRedPeatonal(bboxAmpliado);
+    const redCompleta = await obtenerRedPeatonal(bboxAmpliado, [origen, destino]);
     if (!redCompleta) throw new Error('Red peatonal no disponible (ni local ni Overpass)');
 
     const redFiltrada = filtrarRedPorBBox(redCompleta, bboxAmpliado);
@@ -467,8 +476,11 @@
     console.log(`[Dijkstra térmico] ${resultado.camino.length} nodos · coste ${resultado.costeTermicoM.toFixed(1)} m · ${(performance.now() - t0).toFixed(2)} ms`);
 
     let pasos = [];
+    let pasosGuiados = [];
     try {
-      pasos = generarPasosDesdeGrafo(grafo, resultado.caminoIdx, sombrasParaCobertura);
+      const generados = generarPasosDesdeGrafo(grafo, resultado.caminoIdx, sombrasParaCobertura);
+      pasos = generados.pasos;
+      pasosGuiados = generados.guiados;
     } catch (e) {
       console.warn('No se han podido generar las indicaciones de la ruta:', e);
     }
@@ -482,6 +494,7 @@
       coberturaSombraPct,
       esDijkstraTermico: true,
       pasos,
+      pasosGuiados,
     };
   }
 
@@ -507,6 +520,30 @@
 
   /* ---------------- Mapa MapLibre con edificios 3D reales ---------------- */
 
+  /* ---------------- Ahorro de batería/CPU: detección de gama baja --------
+     Si el dispositivo tiene ≤4 núcleos o ≤4 GB de RAM, renderizamos el
+     canvas WebGL a densidad 1 (en vez de 2-3 en pantallas retina) y
+     omitimos los efectos más caros (halo atmosférico de las sombras). */
+  const esGamaBaja = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
+    || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+
+  // Caché persistente (localStorage) con caducidad, para no repetir llamadas
+  // a APIs externas (aire, nubosidad) cuando el dato aún es reciente.
+  function cacheLocalObtener(clave, ttlMs) {
+    try {
+      const crudo = localStorage.getItem(clave);
+      if (!crudo) return null;
+      const entrada = JSON.parse(crudo);
+      if (!entrada || typeof entrada.t !== 'number' || Date.now() - entrada.t > ttlMs) return null;
+      return entrada.v;
+    } catch (e) { return null; }
+  }
+  function cacheLocalGuardar(clave, valor) {
+    try { localStorage.setItem(clave, JSON.stringify({ t: Date.now(), v: valor })); } catch (e) { /* almacenamiento lleno o privado */ }
+  }
+  const CACHE_AIRE_TTL_MS = 10 * 60 * 1000;   // el aire no cambia en minutos
+  const CACHE_CLIMA_TTL_MS = 10 * 60 * 1000;  // OWM actualiza cada ~10 min
+
  const map = new maplibregl.Map({
     container: 'shadowRouteMap',
     style: CONFIG.styleUrlClaro,
@@ -514,6 +551,7 @@
     zoom: Math.max(CONFIG.zoomInicial - 2.3, 1),
     pitch: 0,
     bearing: 0,
+    pixelRatio: esGamaBaja ? 1 : (window.devicePixelRatio || 1),
     attributionControl: true
 });
 
@@ -725,9 +763,34 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   function actualizarCacheEdificios() {
     if (!capaEdificiosDisponible || !map.getLayer(CONFIG.edificiosLayerId)) return;
-    edificiosCacheados = map
-      .queryRenderedFeatures({ layers: [CONFIG.edificiosLayerId] })
-      .slice(0, CONFIG.maxEdificiosSombra);
+    const crudos = map.queryRenderedFeatures({ layers: [CONFIG.edificiosLayerId] });
+    // Las teselas de zoom bajo traen los edificios FUSIONADOS en
+    // MultiPolygons de miles de partes (un solo feature puede ser media
+    // ciudad). Si se usan tal cual, se generan miles de sombras
+    // superpuestas: el móvil se ahoga y el mapa pinta sombra donde hay sol.
+    // Aquí se descomponen en edificios individuales, se deduplican los que
+    // se repiten al cruzar bordes de tesela y se descartan restos diminutos.
+    const vistos = new Set();
+    const limpios = [];
+    for (const f of crudos) {
+      const geom = f && f.geometry;
+      if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
+      let partes;
+      try {
+        partes = turf.flatten(turf.feature(geom)).features;
+      } catch (e) { continue; }
+      for (const parte of partes) {
+        const anillo = parte.geometry && parte.geometry.coordinates && parte.geometry.coordinates[0];
+        if (!anillo || anillo.length < 4) continue;
+        const clave = anillo[0][0].toFixed(5) + ',' + anillo[0][1].toFixed(5) + ':' + anillo.length;
+        if (vistos.has(clave)) continue;
+        vistos.add(clave);
+        limpios.push({ type: 'Feature', properties: f.properties || {}, geometry: parte.geometry });
+        if (limpios.length >= CONFIG.maxEdificiosSombra) break;
+      }
+      if (limpios.length >= CONFIG.maxEdificiosSombra) break;
+    }
+    edificiosCacheados = limpios;
   }
 
   /* ---------------- Sombras reales: sol + altura de edificios ---------------- */
@@ -776,19 +839,20 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   // la ruta, tu posición al caminar, etc.), en vez de un centro de mapa
   // potencialmente distinto.
   window.manolitAireCentroSol = () => {
-    const c = puntoReferenciaSol || map.getCenter();
+    const c = centroSolarEfectivo();
     return { lat: c.lat, lon: c.lon ?? c.lng };
   };
 
   let versionCalculoSombras = 0;
   let ultimaColeccionSombras = turf.featureCollection([]);
+  let reintentoIdlePendiente = false;
 
   async function recalcularSombrasVisibles(horaOverride) {
     if (!map.getSource('sombras')) return;
     const miVersion = ++versionCalculoSombras;
 
     const ahora = horaOverride || obtenerHoraEfectiva();
-    const centro = puntoReferenciaSol || map.getCenter();
+    const centro = centroSolarEfectivo();
     const lat = centro.lat, lon = centro.lon ?? centro.lng;
     const posSol = SunCalc.getPosition(ahora, lat, lon);
     actualizarBadgeHoraDorada(ahora, lat, lon);
@@ -809,11 +873,34 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     }
     mostrarAvisoSol('');
 
-    if (!capaEdificiosDisponible || !edificiosCacheados.length) {
+    if (!capaEdificiosDisponible) {
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
       ultimaColeccionSombras = turf.featureCollection([]);
       return;
+    }
+
+    // Antes: si la caché estaba vacía (teselas cargadas DESPUÉS del último
+    // moveend, o el usuario solo tocó el slider sin mover el mapa) se
+    // vaciaban las sombras en silencio y el mapa se quedaba "al revés":
+    // calles al sol que en la realidad tienen sombra. Ahora la caché se
+    // rellena aquí mismo, y si las teselas aún no han llegado se reintenta
+    // solo cuando el mapa termine de cargarlas (evento idle).
+    if (!edificiosCacheados.length) {
+      actualizarCacheEdificios();
+      if (!edificiosCacheados.length) {
+        if (!reintentoIdlePendiente) {
+          reintentoIdlePendiente = true;
+          map.once('idle', () => {
+            reintentoIdlePendiente = false;
+            if (document.getElementById('rsToggleSombras')?.checked) {
+              actualizarCacheEdificios();
+              recalcularSombrasVisibles(horaOverride);
+            }
+          });
+        }
+        return;
+      }
     }
 
     const azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;
@@ -854,7 +941,9 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     map.getSource('sombras')?.setData(coleccionSombras);
     ultimaColeccionSombras = coleccionSombras;
 
-    if (poligonosSombra.length <= 160) {
+    // El halo atmosférico es el efecto más caro (buffer de toda la escena):
+    // en gama baja se omite — las sombras planas ya comunican lo mismo.
+    if (!esGamaBaja && poligonosSombra.length <= 160) {
       try {
         const halo = turf.buffer(coleccionSombras, 3.5, { units: 'meters', steps: 4 });
         if (miVersion === versionCalculoSombras) map.getSource('sombras-halo')?.setData(halo || turf.featureCollection([]));
@@ -872,6 +961,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   }
 
   setInterval(() => {
+    if (document.hidden) return; // pestaña oculta: cero gasto de CPU/batería
     if (!solarActivado || modoManual || paseoActivo) return;
     if (map.loaded()) recalcularSombrasVisibles();
     actualizarIluminacionSolar();
@@ -913,12 +1003,20 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     const clave = celdaNubes(lat, lon);
     const cacheada = NUBES.cache.get(clave);
     if (cacheada && Date.now() - cacheada.t < NUBES.refrescoMs) return cacheada.valor;
+    // Segunda capa: localStorage, para no repetir la llamada aunque el
+    // usuario recargue la página o vuelva unos minutos después.
+    const persistente = cacheLocalObtener(`manolito_cache_clima_${clave}`, CACHE_CLIMA_TTL_MS);
+    if (persistente != null) {
+      NUBES.cache.set(clave, { t: Date.now(), valor: persistente });
+      return persistente;
+    }
     try {
       const resp = await fetch(`/clima?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const datos = await resp.json();
       const valor = Math.max(0, Math.min(1, Number(datos.nubes ?? 0) / 100));
       NUBES.cache.set(clave, { t: Date.now(), valor });
+      cacheLocalGuardar(`manolito_cache_clima_${clave}`, valor);
       return valor;
     } catch (e) {
       // Sin Worker/clave/red: cielo despejado por defecto, sin romper nada.
@@ -1013,7 +1111,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   }
 
   async function refrescarNubosidad(forzar) {
-    const centro = puntoReferenciaSol || map.getCenter();
+    const centro = centroSolarEfectivo();
     const lat = centro.lat, lon = centro.lon ?? centro.lng;
     if (!forzar && Date.now() - ultimaConsultaNubesMs < NUBES.refrescoMs) return;
     ultimaConsultaNubesMs = Date.now();
@@ -1048,6 +1146,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   // Hooks de depuración/integración: otros scripts pueden leer la nubosidad
   // y las pruebas pueden simular una nube sin tocar OpenWeatherMap.
   window.manolitAireNubosidad = () => nubosidadActual;
+  // Diagnóstico: cuántos edificios alimentan las sombras y cuántas hay.
+  window.manolitAireDebugSombras = () => ({
+    edificios: edificiosCacheados.length,
+    sombras: (ultimaColeccionSombras && ultimaColeccionSombras.features.length) || 0,
+  });
   window.manolitAireSimularNubes = (v) => {
     nubosidadActual = Math.max(0, Math.min(1, Number(v) || 0));
     aplicarOpticaNubes();
@@ -1059,7 +1162,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   map.on('zoomend', () => aplicarOpticaNubes());
   // Y al mover el mapa, la nubosidad se reconsulta solo si toca (celda/tiempo).
   map.on('moveend', () => { refrescarNubosidad(false); });
-  setInterval(() => refrescarNubosidad(false), NUBES.refrescoMs);
+  setInterval(() => { if (!document.hidden) refrescarNubosidad(false); }, NUBES.refrescoMs);
 
   /* --------- Capa raster de nubes REALES sobre el mapa (OpenWeatherMap) ---------
      Las teselas llegan proxiedas por el Worker (/tiles/nubes/...): la API key
@@ -1135,6 +1238,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   // OWM renueva sus tiles cada ~10 min: cambiamos el sello para que el mapa
   // pida la versión nueva (las teselas viejas las sirve la caché edge).
   setInterval(() => {
+    if (document.hidden) return; // pestaña oculta: no pedir tiles nuevas
     if (!map.getSource('nubes-owm')) return;
     selloTilesNubes = Date.now();
     try { map.getSource('nubes-owm').setTiles(urlTilesNubes()); } catch (e) { /* fuente a medio cargar */ }
@@ -1151,6 +1255,22 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   let puntoReferenciaSol = null;
   let rutaActual = null;
+
+  // Las sombras deben corresponderse con lo que el usuario ESTÁ VIENDO,
+  // esté donde esté (Sevilla, Madrid, México DF…). Si el punto de
+  // referencia guardado (tu GPS, el origen de la última ruta) está lejos
+  // del centro actual del mapa, se usa el centro de la pantalla: el sol de
+  // otra ciudad no sirve para la calle que tienes delante.
+  function centroSolarEfectivo() {
+    const c = map.getCenter();
+    if (puntoReferenciaSol) {
+      const lonRef = puntoReferenciaSol.lon ?? puntoReferenciaSol.lng;
+      if (Math.abs(puntoReferenciaSol.lat - c.lat) < 0.6 && Math.abs(lonRef - c.lng) < 0.6) {
+        return puntoReferenciaSol;
+      }
+    }
+    return c;
+  }
 
   // TODAS las sombras que hay en escena ahora mismo: las de los edificios
   // (ultimaColeccionSombras, calculadas en este archivo) MÁS las de los
@@ -1257,7 +1377,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     try { actualizarTramosSombraRuta(); } catch (e) { /* la ruta aún no existe */ }
   };
   function calcularAnguloSol(horaOverride) {
-    const centro = puntoReferenciaSol || map.getCenter();
+    const centro = centroSolarEfectivo();
     const lat = centro.lat;
     const lon = centro.lon ?? centro.lng;
     const pos = SunCalc.getPosition(horaOverride || obtenerHoraEfectiva(), lat, lon);
@@ -1545,7 +1665,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     actualizarEtiquetaTiempo(contexto);
     // Avisar al planetario: el sol y la luna siguen la hora elegida a mano.
     try {
-      const centroPlan = puntoReferenciaSol || map.getCenter();
+      const centroPlan = centroSolarEfectivo();
       window.planetarioNotificarHora?.(
         obtenerFechaDelSlider(),
         centroPlan.lat,
@@ -1824,6 +1944,9 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
       mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
+      // Si hay una ruta calculada con indicaciones, arranca la guía por voz:
+      // anuncia el primer paso ya y los siguientes al acercarte a cada punto.
+      iniciarGuiaCaminata();
 
       const el = document.createElement('div');
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#0E3B47'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#0E3B47')}33;`;
@@ -1832,10 +1955,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
+          marcadorCaminando.setLngLat([lon, lat]); // primero la posición: un Marker sin LngLat rompe al añadirse
           if (!marcadorCaminando._map) marcadorCaminando.addTo(map);
-          marcadorCaminando.setLngLat([lon, lat]);
           map.easeTo({ center: [lon, lat], duration: 600 });
           puntoReferenciaSol = { lat, lon };
+          avanzarGuiaCaminata(lat, lon); // anuncia el siguiente paso si ya toca
           if (rutaActual) actualizarTramosSombraRuta();
           sincronizarArboles();
         },
@@ -2212,8 +2336,10 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     sliderTiempo.addEventListener('input', () => {
       modoManual = true;
       fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual : new Date();
+      // Debounce de 250 ms: arrastrar el slider NO recalcula la geometría 3D
+      // en cada evento; solo al detenerse un momento (ahorro enorme de CPU).
       clearTimeout(temporizadorSlider);
-      temporizadorSlider = setTimeout(() => aplicarCambioDeHora(esFechaSolsticioActiva), 90);
+      temporizadorSlider = setTimeout(() => aplicarCambioDeHora(esFechaSolsticioActiva), 250);
       actualizarEtiquetaTiempo(esFechaSolsticioActiva);
     });
 
@@ -2476,9 +2602,12 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       const datos = await fetchConReintentos(url);
       if (datos?.code === 'Ok' && datos.routes?.[0]) {
         let pasos = [];
+        let pasosGuiados = [];
         try {
           const sombras = typeof obtenerTodasLasSombras === 'function' ? obtenerTodasLasSombras() : [];
-          pasos = generarPasosDesdeOSRM(datos.routes[0], sombras);
+          const generados = generarPasosDesdeOSRM(datos.routes[0], sombras);
+          pasos = generados.pasos;
+          pasosGuiados = generados.guiados;
         } catch (ePasos) { /* las indicaciones son un extra: nunca rompen la ruta */ }
         const distanciaKmNum = datos.routes[0].distance / 1000;
         let duracionMinNum = datos.routes[0].duration / 60;
@@ -2497,6 +2626,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
           esReal: true,
           duracionEstimada,
           pasos,
+          pasosGuiados,
         };
       }
       throw new Error('OSRM no ha devuelto una ruta válida.');
@@ -2603,9 +2733,13 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   }
 
   // Construye los pasos a partir del camino del Dijkstra térmico (grafo propio).
+  // Devuelve { pasos: [texto...], guiados: [{ texto, punto }] }: cada paso
+  // lleva el punto del mapa donde empieza, para que la caminata con GPS
+  // pueda anunciarlo justo al llegar.
   function generarPasosDesdeGrafo(grafo, caminoIdx, sombras) {
     const pasos = [];
-    if (!grafo || !caminoIdx || caminoIdx.length < 2) return pasos;
+    const guiados = [];
+    if (!grafo || !caminoIdx || caminoIdx.length < 2) return { pasos, guiados };
 
     // 1. Agrupar aristas consecutivas de la misma calle.
     const grupos = [];
@@ -2623,7 +2757,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         grupos.push({ nombre, metros: arista.longitudM, coords: [a, b] });
       }
     }
-    if (!grupos.length) return pasos;
+    if (!grupos.length) return { pasos, guiados };
 
     // 2. Convertir cada grupo en una frase con su giro y su sombra.
     let bearingAnterior = null;
@@ -2658,19 +2792,24 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       }
       if (consejo) texto += ' ' + consejo;
       pasos.push(texto);
+      guiados.push({ texto, punto: g.coords[0] });
       bearingAnterior = bearingFin;
     });
 
-    pasos.push(t('stepArrive', 'Has llegado a tu destino.') + '');
-    return pasos;
+    const textoLlegada = t('stepArrive', 'Has llegado a tu destino.');
+    pasos.push(textoLlegada);
+    const ultimoGrupo = grupos[grupos.length - 1];
+    guiados.push({ texto: textoLlegada, punto: ultimoGrupo.coords[ultimoGrupo.coords.length - 1], esLlegada: true });
+    return { pasos, guiados };
   }
 
   // Lo mismo pero para las rutas OSRM (respaldo y alternativas): la respuesta
   // con steps=true ya trae maniobras, nombres de calle y distancias.
   function generarPasosDesdeOSRM(rutaOsrm, sombras) {
     const pasos = [];
+    const guiados = [];
     const pasosOsrm = (rutaOsrm.legs || []).flatMap(l => l.steps || []);
-    if (!pasosOsrm.length) return pasos;
+    if (!pasosOsrm.length) return { pasos, guiados };
 
     for (const s of pasosOsrm) {
       const calle = nombreCalleBonito(s.name);
@@ -2706,12 +2845,22 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       if (texto) {
         if (consejo && tipo !== 'arrive') texto += ' ' + consejo;
         pasos.push(texto);
+        // Punto de la maniobra: donde empieza este paso, para la guía GPS.
+        const puntoManiobra = Array.isArray(maniobra.location) ? maniobra.location
+          : (coords.length ? coords[0] : null);
+        if (puntoManiobra) guiados.push({ texto, punto: puntoManiobra, esLlegada: tipo === 'arrive' });
       }
     }
     // Si OSRM no cerró con "arrive", lo añadimos nosotros.
     const ultimo = pasos[pasos.length - 1] || '';
-    if (!ultimo.startsWith(t('stepArrive', 'Has llegado').slice(0, 10))) pasos.push(t('stepArrive', 'Has llegado a tu destino.'));
-    return pasos;
+    if (!ultimo.startsWith(t('stepArrive', 'Has llegado').slice(0, 10))) {
+      const textoLlegada = t('stepArrive', 'Has llegado a tu destino.');
+      pasos.push(textoLlegada);
+      const ultCoords = pasosOsrm[pasosOsrm.length - 1]?.geometry?.coordinates;
+      const puntoFin = ultCoords?.length ? ultCoords[ultCoords.length - 1] : null;
+      if (puntoFin) guiados.push({ texto: textoLlegada, punto: puntoFin, esLlegada: true });
+    }
+    return { pasos, guiados };
   }
 
   // Genera los polígonos de sombra proyectados por una lista de edificios.
@@ -2826,7 +2975,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         duracionEstimada,
         coberturaSombraPct: poligonosSombra.length ? Math.round(mejor.cobertura * 100) : null,
         pasos: (() => {
-          try { return generarPasosDesdeOSRM(mejor.ruta, poligonosSombra); }
+          try { return generarPasosDesdeOSRM(mejor.ruta, poligonosSombra).pasos; }
+          catch (ePasos) { return []; }
+        })(),
+        pasosGuiados: (() => {
+          try { return generarPasosDesdeOSRM(mejor.ruta, poligonosSombra).guiados; }
           catch (ePasos) { return []; }
         })(),
       };
@@ -2839,6 +2992,12 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   /* ---------------- Calidad del aire (Open-Meteo) ---------------- */
 
   async function obtenerCalidadAire(lat, lon) {
+    // Caché de 10 min por zona (~1 km): la calidad del aire no cambia en
+    // minutos y así mover el slider o recalcular la ruta no repite la llamada.
+    const claveCache = `manolito_cache_aire_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+    const cacheado = cacheLocalObtener(claveCache, CACHE_AIRE_TTL_MS);
+    if (cacheado) return cacheado;
+
     const url = new URL(CONFIG.airQualityUrl);
     url.searchParams.set('latitude', lat);
     url.searchParams.set('longitude', lon);
@@ -2847,6 +3006,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
     const datos = await fetchConReintentos(url.toString());
     if (!datos || !datos.current) throw new Error('La API de calidad del aire no ha devuelto datos.');
+    cacheLocalGuardar(claveCache, datos.current);
     return datos.current;
   }
 
@@ -3119,7 +3279,67 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   /* ---------------- Indicaciones paso a paso accesibles ---------------- */
 
   let pasosActuales = [];
+  let pasosGuiadosActuales = []; // [{ texto, punto:[lon,lat], esLlegada? }]
   let lecturaEnCurso = false;
+
+  /* ---- Guía por voz durante la caminata real (GPS) ----
+     Al pulsar "Iniciar caminata" con una ruta calculada, la app va
+     anunciando cada indicación en voz alta justo al acercarse al punto
+     donde toca (giro, calle, sombra…), y avisa al llegar al destino.
+     Pensado para quien camina sin poder mirar la pantalla. */
+  let guiaCaminataActiva = false;
+  let indicePasoGuiado = 0;
+
+  function hablarPasoGuia(texto) {
+    // Siempre se refleja en la región viva (los lectores de pantalla la
+    // anuncian solos) y además suena en voz alta con la voz del dispositivo.
+    const resumen = document.getElementById('rsLiveSummary');
+    if (resumen) resumen.textContent = texto;
+    if (!vozNavegadorDisponible()) return;
+    try {
+      const frase = new SpeechSynthesisUtterance(texto);
+      frase.lang = (document.documentElement.lang || 'es').slice(0, 5);
+      frase.rate = 1;
+      window.speechSynthesis.speak(frase);
+    } catch (e) { /* voz no disponible: queda el anuncio escrito */ }
+  }
+
+  function iniciarGuiaCaminata() {
+    indicePasoGuiado = 0;
+    guiaCaminataActiva = pasosGuiadosActuales.length > 0;
+    if (!guiaCaminataActiva) return;
+    hablarPasoGuia(t('walkGuidanceStart', 'Guía de caminata activada. Te iré diciendo cada paso en voz alta.') + ' ' + pasosGuiadosActuales[0].texto);
+    indicePasoGuiado = 1;
+  }
+
+  function avanzarGuiaCaminata(lat, lon) {
+    if (!guiaCaminataActiva || indicePasoGuiado >= pasosGuiadosActuales.length) return;
+    try {
+      const aqui = turf.point([lon, lat]);
+      // Se busca el paso MÁS AVANZADO cuyo punto ya está al alcance: si el GPS
+      // da un salto (o el usuario se adelanta), no se queda la guía atrás.
+      let alcanzado = -1;
+      for (let i = indicePasoGuiado; i < pasosGuiadosActuales.length; i++) {
+        const paso = pasosGuiadosActuales[i];
+        if (!paso || !paso.punto) continue;
+        const umbral = paso.esLlegada ? 20 : 30;
+        if (turf.distance(aqui, turf.point(paso.punto), { units: 'meters' }) <= umbral) alcanzado = i;
+      }
+      if (alcanzado < 0) return;
+      const paso = pasosGuiadosActuales[alcanzado];
+      hablarPasoGuia(paso.texto);
+      indicePasoGuiado = alcanzado + 1;
+      if (paso.esLlegada) guiaCaminataActiva = false;
+    } catch (e) { /* geometría rara: se reintenta en la próxima lectura GPS */ }
+  }
+
+  function detenerGuiaCaminata() {
+    guiaCaminataActiva = false;
+    indicePasoGuiado = 0;
+    if (vozNavegadorDisponible()) {
+      try { window.speechSynthesis.cancel(); } catch (e) { }
+    }
+  }
 
   function vozNavegadorDisponible() {
     return typeof window !== 'undefined' && 'speechSynthesis' in window;
@@ -3164,8 +3384,10 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     }
   }
 
-  function renderizarPasosAccesibles(pasos) {
+  function renderizarPasosAccesibles(pasos, guiados) {
     pasosActuales = Array.isArray(pasos) ? pasos : [];
+    pasosGuiadosActuales = Array.isArray(guiados) ? guiados : [];
+    detenerGuiaCaminata();
     detenerLecturaPasos();
     const seccion = document.getElementById('rsPasosSection');
     const lista = document.getElementById('rsListaPasos');
@@ -3187,6 +3409,8 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   function ocultarPasosAccesibles() {
     pasosActuales = [];
+    pasosGuiadosActuales = [];
+    detenerGuiaCaminata();
     detenerLecturaPasos();
     const seccion = document.getElementById('rsPasosSection');
     if (seccion) seccion.hidden = true;
@@ -3233,7 +3457,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);
-        renderizarPasosAccesibles(ruta.pasos || []);
+        renderizarPasosAccesibles(ruta.pasos || [], ruta.pasosGuiados || []);
       } else {
         mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
         mostrarBadgeSombra(null);
@@ -3641,7 +3865,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       } catch (e) { /* seguimos con el respaldo */ }
     }
     const c = map.getCenter();
-    return { lat: c.lat, lon: c.lng };
+    return { lat: c.lat, lon: c.lng != null ? c.lng : c.lon };
   }
 
   function sombrasActivadasEnPanel() {
@@ -4208,7 +4432,10 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     function programarSincroSombra(inmediato) {
       clearInterval(temporizadorSombra);
       if (inmediato) recalcularSombrasArboles();
-      temporizadorSombra = setInterval(recalcularSombrasArboles, CONFIG.sincroSombraMs);
+      temporizadorSombra = setInterval(() => {
+        if (document.hidden) return; // pestaña oculta: no recalcular nada
+        recalcularSombrasArboles();
+      }, CONFIG.sincroSombraMs);
     }
 
     let esperaMoveend = null;

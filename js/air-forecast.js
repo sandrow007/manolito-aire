@@ -12,6 +12,17 @@
    ============================================================ */
 
 async function fetchAirSeries(lat, lon){
+  // Caché local de 15 min por zona (~1 km): mover el slider o reabrir la
+  // página no repite la llamada mientras el dato siga fresco (ahorro de red/batería).
+  const claveCache = `manolito_cache_airseries_${Number(lat).toFixed(2)}_${Number(lon).toFixed(2)}`;
+  try {
+    const crudo = localStorage.getItem(claveCache);
+    if (crudo) {
+      const entrada = JSON.parse(crudo);
+      if (entrada && Date.now() - entrada.t < 15 * 60 * 1000) return entrada.v;
+    }
+  } catch (e) { /* almacenamiento no disponible: se pide a la red */ }
+
   const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&past_days=2&forecast_days=5`;
   const r = await fetch(url);
   if (!r.ok) throw new Error(`Open-Meteo respondió ${r.status}`);
@@ -20,7 +31,9 @@ async function fetchAirSeries(lat, lon){
   const values = data.hourly?.pm2_5 || [];
   if (times.length === 0) throw new Error('Respuesta sin datos horarios');
   const nowIndex = times.findIndex(t => new Date(t) > new Date());
-  return { times, values, nowIndex: nowIndex === -1 ? Math.floor(times.length/2) : nowIndex };
+  const salida = { times, values, nowIndex: nowIndex === -1 ? Math.floor(times.length/2) : nowIndex };
+  try { localStorage.setItem(claveCache, JSON.stringify({ t: Date.now(), v: salida })); } catch (e) { }
+  return salida;
 }
 
 /* ---------- gráfico SVG a mano, en el mismo estilo visual del resto de la web ---------- */

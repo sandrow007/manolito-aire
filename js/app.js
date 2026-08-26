@@ -246,7 +246,7 @@ function aqiFromPM25(pm){
 async function fetchCurrentCity(){
   const d = cityData[currentCity];
   try{
-    const r = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${d.lat}&longitude=${d.lon}&current=pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto`);
+    const r = await fetch(`/api/air-quality?latitude=${d.lat}&longitude=${d.lon}&current=pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto`);
     const data = await r.json();
     const c = data.current || {};
     currentPM25 = c.pm2_5 ?? currentPM25;
@@ -838,7 +838,7 @@ function initMap(){
     const marker = L.circleMarker([st.lat, st.lon], { radius:9, color:'#fff', weight:2, fillColor:'#9AA5AC', fillOpacity:0.95 }).addTo(map);
     marker.bindPopup(`<div class="popup-human">${st.name}</div><div class="popup-tech">Cargando dato en vivo…</div>`);
 
-    fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${st.lat}&longitude=${st.lon}&current=pm2_5,pm10,nitrogen_dioxide,ozone`)
+    fetch(`/api/air-quality?latitude=${st.lat}&longitude=${st.lon}&current=pm2_5,pm10,nitrogen_dioxide,ozone`)
       .then(r => r.json())
       .then(data => {
         const c = data.current || {};

@@ -225,7 +225,7 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
         }
       } catch (e) {
         errors.push(`Worker: ${e.name === 'AbortError' ? 'Timeout' : e.message}`);
-        console.warn("Fallo de conexión con el Worker de Cloudflare:", e);
+        console.debug("Fallo de conexión con el Worker de Cloudflare:", e);
       }
     }
 
@@ -271,12 +271,12 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
         }
       } catch (e) {
         errors.push(`OpenRouter: ${e.name === 'AbortError' ? 'Timeout' : e.message}`);
-        console.error("Fallo en OpenRouter:", e);
+        console.debug("Fallo en OpenRouter:", e);
       }
     }
 
     if (!finalAnswer) {
-      console.error("Errores acumulados:", errors);
+      console.debug("Errores acumulados:", errors);
       finalAnswer = `⚠️ Ahora mismo no puedo conectar con el servidor de Manolit∞.
 
 Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de abajo tienen respuesta inmediata.`;
@@ -382,7 +382,7 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
       addBubble(answer, 'mano');
     } catch (e) {
       addBubble("Error inesperado. Reinténtalo en un momento.", 'mano');
-      console.error("Error crítico:", e);
+      console.debug("Error crítico:", e);
     } finally {
       setChatStatus('');
       toggleInputState(false);

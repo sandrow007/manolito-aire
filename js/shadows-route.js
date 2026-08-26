@@ -43,7 +43,7 @@
     nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
     osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
     velocidadCaminandoKmh: 4.8, 
-    airQualityUrl: 'https://air-quality-api.open-meteo.com/v1/air-quality',
+    airQualityUrl: '/api/air-quality',
     styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', 
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
@@ -193,7 +193,7 @@
         cacheRedPeatonal.set(bboxClave(bbox), { bbox, geojson });
         return { bbox, geojson };
       } catch (e) {
-        console.warn('[Dijkstra térmico] No se pudo cargar la red peatonal local:', e.message);
+        console.debug('[Dijkstra térmico] No se pudo cargar la red peatonal local:', e.message);
         return null;
       } finally {
         promesaCargaRedLocal = null;
@@ -483,7 +483,7 @@
       pasos = generados.pasos;
       pasosGuiados = generados.guiados;
     } catch (e) {
-      console.warn('No se han podido generar las indicaciones de la ruta:', e);
+      console.debug('No se han podido generar las indicaciones de la ruta:', e);
     }
 
     return {
@@ -507,7 +507,7 @@
         window.manolitAireRecalcularArboles();
       }
     } catch (e) {
-      console.warn('No se ha podido sincronizar la sombra de los árboles:', e);
+      console.debug('No se ha podido sincronizar la sombra de los árboles:', e);
     }
   }
 
@@ -612,7 +612,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-opacity', 0.93);
         map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-vertical-gradient', true);
       } catch (e) {
-        console.warn('No se ha podido aplicar el color vivo a los edificios:', e);
+        console.debug('No se ha podido aplicar el color vivo a los edificios:', e);
       }
     }
 
@@ -909,13 +909,20 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       if (!edificiosCacheados.length) {
         if (!reintentoIdlePendiente) {
           reintentoIdlePendiente = true;
-          map.once('idle', () => {
+          let reintentoHecho = false;
+          const reintentar = () => {
+            if (reintentoHecho) return;
+            reintentoHecho = true;
             reintentoIdlePendiente = false;
             if (document.getElementById('rsToggleSombras')?.checked) {
               actualizarCacheEdificios();
               recalcularSombrasVisibles(horaOverride);
             }
-          });
+          };
+          map.once('idle', reintentar);
+          // Red lenta o teselas que no acaban de llegar: el evento idle podría
+          // no dispararse nunca, así que hay un reintento por temporizador.
+          setTimeout(reintentar, 2500);
         }
         return;
       }
@@ -950,7 +957,13 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       }
 
       if (miVersion !== versionCalculoSombras) return;
-      map.getSource('sombras')?.setData(turf.featureCollection(poligonosSombra));
+      // La fuente del mapa y la colección en memoria avanzan JUNTAS por
+      // lotes: si otro recálculo pisa a este a mitad, ambas dicen lo mismo
+      // (antes la fuente llevaba sombras parciales y la memoria decía 0,
+      // y el badge de "% de sombra" leía el dato fantasma).
+      const parcial = turf.featureCollection(poligonosSombra.slice());
+      map.getSource('sombras')?.setData(parcial);
+      ultimaColeccionSombras = parcial;
       if (i + CONFIG.loteSombraSize < edificiosCacheados.length) await cederAlNavegador();
     }
 
@@ -1165,10 +1178,26 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   // y las pruebas pueden simular una nube sin tocar OpenWeatherMap.
   window.manolitAireNubosidad = () => nubosidadActual;
   // Diagnóstico: cuántos edificios alimentan las sombras y cuántas hay.
-  window.manolitAireDebugSombras = () => ({
-    edificios: edificiosCacheados.length,
-    sombras: (ultimaColeccionSombras && ultimaColeccionSombras.features.length) || 0,
-  });
+  window.manolitAireDebugSombras = () => {
+    let enFuente = -1;
+    try {
+      const src = map.getSource('sombras');
+      const datos = src && (src._data || (src.serialize && src.serialize().data));
+      enFuente = datos && datos.features ? datos.features.length : -1;
+    } catch (e) { /* sin acceso a la fuente */ }
+    let altSol = null;
+    try {
+      const c = centroSolarEfectivo();
+      altSol = +(SunCalc.getPosition(obtenerHoraEfectiva(), c.lat, c.lon ?? c.lng).altitude * 180 / Math.PI).toFixed(1);
+    } catch (e) { /* sin sol */ }
+    return {
+      edificios: edificiosCacheados.length,
+      sombras: (ultimaColeccionSombras && ultimaColeccionSombras.features.length) || 0,
+      enFuente,
+      capaEdificios: capaEdificiosDisponible,
+      altitudSol: altSol,
+    };
+  };
   window.manolitAireSimularNubes = (v) => {
     nubosidadActual = Math.max(0, Math.min(1, Number(v) || 0));
     aplicarOpticaNubes();
@@ -1382,7 +1411,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         mostrarBadgeSombra(null);
       }
     } catch (e) {
-      console.warn('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
+      console.debug('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
       fuente.setData(turf.featureCollection([]));
     }
   }
@@ -2096,7 +2125,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         // Esta versión de MapLibre GL JS no trae la API de cámara libre (FreeCameraOptions,
         // disponible desde MapLibre GL JS 3+). En vez de reventar con un error en cadena,
         // avisamos una sola vez y salimos limpiamente del paseo.
-        console.warn('[paseo virtual] Esta versión de MapLibre GL JS no soporta cámara libre (getFreeCameraOptions). Revisa la versión cargada en el HTML.');
+        console.debug('[paseo virtual] Esta versión de MapLibre GL JS no soporta cámara libre (getFreeCameraOptions). Revisa la versión cargada en el HTML.');
         mostrarEstado(t('virtualWalkUnsupported', 'Tu navegador o la versión del mapa cargada no soporta el paseo virtual 3D ahora mismo.'), 'error');
         detenerPaseoVirtual();
         return;
@@ -2502,13 +2531,13 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
           enlace.click();
           enlace.remove();
         } catch (errInterno) {
-          console.error('No se ha podido exportar la vista como imagen:', errInterno);
+          console.debug('No se ha podido exportar la vista como imagen:', errInterno);
           mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
         }
       });
       map.triggerRepaint();
     } catch (e) {
-      console.error('No se ha podido exportar la vista como imagen:', e);
+      console.debug('No se ha podido exportar la vista como imagen:', e);
       mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
     }
   }
@@ -2649,7 +2678,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       }
       throw new Error('OSRM no ha devuelto una ruta válida.');
     } catch (err) {
-      console.warn('Routing real no disponible, usando línea directa:', err);
+      console.debug('Routing real no disponible, usando línea directa:', err);
       return {
         geojson: { type: 'LineString', coordinates: [[origen.lon, origen.lat], [destino.lon, destino.lat]] },
         distanciaKm: null,
@@ -2923,7 +2952,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       try {
         return await calcularRutaDijkstraTermico(origen, destino);
       } catch (e) {
-        console.warn('[Routing] Dijkstra térmico local no disponible, se recurre a OSRM:', e.message);
+        console.debug('[Routing] Dijkstra térmico local no disponible, se recurre a OSRM:', e.message);
       }
     }
 
@@ -3002,7 +3031,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         })(),
       };
     } catch (err) {
-      console.warn('Routing con prioridad de sombra no disponible, usando ruta normal:', err);
+      console.debug('Routing con prioridad de sombra no disponible, usando ruta normal:', err);
       return calcularRutaReal(origen, destino);
     }
   }
@@ -3016,7 +3045,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     const cacheado = cacheLocalObtener(claveCache, CACHE_AIRE_TTL_MS);
     if (cacheado) return cacheado;
 
-    const url = new URL(CONFIG.airQualityUrl);
+    const url = new URL(CONFIG.airQualityUrl, window.location.origin);
     url.searchParams.set('latitude', lat);
     url.searchParams.set('longitude', lon);
     url.searchParams.set('current', ['us_aqi', 'pm2_5', 'pm10', 'ozone', 'nitrogen_dioxide'].join(','));
@@ -3288,7 +3317,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       const [origen, destino] = await Promise.all([resolverPunto(inputOrigen), resolverPunto(inputDestino)]);
       await ejecutarBusquedaConPuntos(origen, destino);
     } catch (err) {
-      console.error(err);
+      console.debug(err);
       mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
       ponerCargando(false);
     }
@@ -3486,11 +3515,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         const aire = await obtenerCalidadAire(origen.lat, origen.lon);
         pintarPanelAQI(aire);
       } catch (errAire) {
-        console.error(errAire);
+        console.debug(errAire);
         mostrarEstado(t('airDataUnavailable', 'No se ha podido cargar la calidad del aire ahora mismo (demasiadas peticiones). Prueba de nuevo en unos segundos.'), 'error');
       }
     } catch (err) {
-      console.error(err);
+      console.debug(err);
       ocultarPasosAccesibles();
       mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
     } finally {
@@ -3863,7 +3892,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     });
   }
 
-  esperarMapa().then(iniciar).catch((e) => console.warn('[arboles-globales]', e.message));
+  esperarMapa().then(iniciar).catch((e) => console.debug('[arboles-globales]', e.message));
 
   function obtenerHoraEfectiva() {
     if (typeof window.manolitAireHoraEfectiva === 'function') {
@@ -4087,7 +4116,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       overpassErroresSeguidos++;
       const backoffMs = Math.min(90000, 4000 * Math.pow(2, overpassErroresSeguidos - 1));
       overpassBackoffHasta = Date.now() + backoffMs;
-      console.warn(`[arboles-globales] Overpass falló ${overpassErroresSeguidos} veces seguidas. Cooldown ${(backoffMs / 1000).toFixed(0)} s.`);
+      console.debug(`[arboles-globales] Overpass falló ${overpassErroresSeguidos} veces seguidas. Cooldown ${(backoffMs / 1000).toFixed(0)} s.`);
       throw ultimoError || new Error('Overpass no disponible');
     }
 
@@ -4136,7 +4165,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
           if (arbolesGrandes.length % 200 === 0) await cederAlNavegador();
         }
       } catch (e) {
-        console.warn('[arboles-globales] Overpass no disponible ahora mismo:', e.message);
+        console.debug('[arboles-globales] Overpass no disponible ahora mismo:', e.message);
         celdas.forEach((c) => celdasConsultadas.delete(c));
       } finally {
         consultaEnCurso = false;

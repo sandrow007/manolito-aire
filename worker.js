@@ -109,18 +109,23 @@ export default {
     if (url.pathname.startsWith('/api/air-quality')) {
       const params = url.search || '';
       const targetUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality' + params;
+      // Regla de oro de esta casa: el navegador NUNCA ve un error en F12.
+      // Si Open-Meteo falla o nos limita (429), devolvemos 200 con objeto
+      // vacío y el frontend muestra "—" / "sin datos" sin ensuciar consola.
+      const vacio = () => new Response('{}', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+      });
       try {
         const resp = await fetch(targetUrl, { headers: { 'User-Agent': 'manolito-aire/1.0' } });
+        if (!resp.ok) return vacio();
         const data = await resp.text();
         return new Response(data, {
-          status: resp.status,
+          status: 200,
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
         });
       } catch (err) {
-        return new Response(JSON.stringify({ error: String(err.message || err) }), {
-          status: 502,
-          headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
-        });
+        return vacio();
       }
     }
 
@@ -241,9 +246,11 @@ export default {
 
         throw new Error('Overpass no disponible en ningún espejo');
       } catch (err) {
-        return new Response(JSON.stringify({ error: String(err.message || err) }), {
-          status: 502,
-          headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+        // 200 con lista vacía: el mapa pinta la zona sin árboles y F12
+        // queda limpio (un 502 aparecería como error aunque la web funcione).
+        return new Response(JSON.stringify({ elements: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
         });
       }
     }
@@ -253,13 +260,14 @@ export default {
     // La API key vive SOLO aquí, como secret del Worker (nunca en el cliente):
     //   npx wrangler secret put OPENWEATHER_API_KEY
     if (url.pathname === '/clima') {
+      // Respuesta neutra 200 cuando falta la clave o falla OWM: el frontend
+      // asume cielo despejado y la consola (F12) queda limpia, sin errores.
+      const cieloDespejado = () => new Response(JSON.stringify({ nubes: 0, descripcion: '', humedad: null, amanecer: null, atardecer: null }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+      });
       try {
-        if (!env.OPENWEATHER_API_KEY) {
-          return new Response(JSON.stringify({ error: 'OPENWEATHER_API_KEY no configurada' }), {
-            status: 503,
-            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
-          });
-        }
+        if (!env.OPENWEATHER_API_KEY) return cieloDespejado();
         const lat = parseFloat(url.searchParams.get('lat'));
         const lon = parseFloat(url.searchParams.get('lon'));
         if (!isFinite(lat) || !isFinite(lon)) {
@@ -283,10 +291,7 @@ export default {
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
         });
       } catch (err) {
-        return new Response(JSON.stringify({ error: String(err.message || err) }), {
-          status: 502,
-          headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
-        });
+        return cieloDespejado();
       }
     }
 
@@ -297,13 +302,17 @@ export default {
     // así que miles de visitas a la misma zona cuestan UNA llamada a OWM.
     const mNubes = url.pathname.match(/^\/tiles\/nubes\/(\d+)\/(\d+)\/(\d+)\.png$/);
     if (mNubes) {
+      // Tesela transparente de 1×1: si falta la clave o falla OWM, el mapa
+      // simplemente no pinta nubes ahí y F12 queda limpio (200, no error).
+      const teselaVacia = () => {
+        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+        return new Response(transparente, {
+          status: 200,
+          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=60', ...CORS_HEADERS }
+        });
+      };
       try {
-        if (!env.OPENWEATHER_API_KEY) {
-          return new Response(JSON.stringify({ error: 'OPENWEATHER_API_KEY no configurada' }), {
-            status: 503,
-            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
-          });
-        }
+        if (!env.OPENWEATHER_API_KEY) return teselaVacia();
         const z = parseInt(mNubes[1], 10), x = parseInt(mNubes[2], 10), y = parseInt(mNubes[3], 10);
         const max = 2 ** z;
         if (!(z >= 0 && z <= 19) || !(x >= 0 && x < max) || !(y >= 0 && y < max)) {
@@ -326,13 +335,7 @@ export default {
           }
         });
       } catch (err) {
-        // Tesela transparente de 1×1: el mapa simplemente no pinta nubes ahí
-        // y no ensucia la consola con errores de imagen rotos.
-        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
-        return new Response(transparente, {
-          status: 200,
-          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=60', ...CORS_HEADERS }
-        });
+        return teselaVacia();
       }
     }
 

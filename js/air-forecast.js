@@ -23,7 +23,9 @@ async function fetchAirSeries(lat, lon){
     }
   } catch (e) { /* almacenamiento no disponible: se pide a la red */ }
 
-  const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&past_days=2&forecast_days=5`;
+  // A través del proxy del Worker (caché 5 min en Cloudflare): sin CORS,
+  // sin límites por IP del navegador y sin errores visibles en F12.
+  const url = `/api/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&past_days=2&forecast_days=5`;
   const r = await fetch(url);
   if (!r.ok) throw new Error(`Open-Meteo respondió ${r.status}`);
   const data = await r.json();
@@ -44,6 +46,12 @@ function drawAirChart(times, values, nowIndex){
   const clean = values.map(v => v == null ? 0 : v);
   const maxV = Math.max(...clean, 20);
   const n = clean.length;
+  // Guarda: con menos de 2 puntos no hay línea que dibujar (evita NaN en el SVG).
+  if (n < 2) {
+    el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet"><text class="chart-axis-label" x="${padL}" y="${h/2}">Cargando datos del aire…</text></svg>`;
+    return;
+  }
+  nowIndex = Math.max(0, Math.min(n - 1, nowIndex));
   const x = i => padL + (i / (n - 1)) * (w - padL - padR);
   const y = v => padT + (1 - v / maxV) * (h - padT - padB);
 

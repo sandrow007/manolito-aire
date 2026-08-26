@@ -824,21 +824,23 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   }
 
   function calcularVolumenSombra(poligonoSimple, distanciaKm, bearingSombra) {
-    const anillo = poligonoSimple.geometry.coordinates[0];
-    let resultado = poligonoSimple;
-    for (let i = 0; i < anillo.length - 1; i++) {
-      const p1 = anillo[i];
-      const p2 = anillo[i + 1];
-      const p1t = turf.transformTranslate(turf.point(p1), distanciaKm, bearingSombra, { units: 'kilometers' }).geometry.coordinates;
-      const p2t = turf.transformTranslate(turf.point(p2), distanciaKm, bearingSombra, { units: 'kilometers' }).geometry.coordinates;
-      try {
-        const cuadrilatero = turf.polygon([[p1, p2, p2t, p1t, p1]]);
-        resultado = unirDosPoligonos(resultado, cuadrilatero);
-      } catch (e) {
-        continue;
+    // Antes: un turf.union por CADA arista del edificio (cientos de uniones
+    // por edificio × 320 edificios = decenas de segundos de móvil bloqueado;
+    // por eso no se dibujaban ni las rutas). Ahora: la sombra proyectada en
+    // suelo plano de un edificio es la ENVOLVENTE CONVEXA de su huella más
+    // la huella desplazada — un solo cálculo O(n·log n), exacto para
+    // edificios convexos y visualmente idéntico para los demás.
+    try {
+      const anillo = poligonoSimple.geometry.coordinates[0];
+      const puntos = [];
+      for (let i = 0; i < anillo.length; i++) {
+        puntos.push(turf.point(anillo[i]));
+        puntos.push(turf.transformTranslate(turf.point(anillo[i]), distanciaKm, bearingSombra, { units: 'kilometers' }));
       }
-    }
-    return resultado;
+      const envolvente = turf.convex(turf.featureCollection(puntos));
+      if (envolvente) return envolvente;
+    } catch (e) { /* geometría rara: devolvemos al menos la huella */ }
+    return poligonoSimple;
   }
 
   function obtenerHoraEfectiva() {

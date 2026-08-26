@@ -1,38 +1,23 @@
 {
-	"name": "manolito-aire",
-	"main": "worker.js",
-	"compatibility_date": "2026-08-03",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"assets": {
-		"directory": "./",
-		"binding": "ASSETS"
-	},
-	"ai": {
-		"binding": "AI"
-	},
-	"kv_namespaces": [
-		{
-			"binding": "AIR_QUALITY_CACHE",
-			"id": "6212d41963034360bcda0f97ff459b9c"
-		}
-	],
-	"vars": {
-		"ALLOWED_ORIGIN": "*",
-		"OPENWEATHER_API_KEY": "2632f140e4bd87a9352dfc3807a6a753 "
-	},
-	"routes": [
-		{
-			"pattern": "manolitoaire.com",
-			"zone_name": "manolitoaire.com"
-		},
-		{
-			"pattern": "manolitoaire.com",
-			"zone_name": "manolitoaire.com",
-			"custom_domain": true,
-			"enabled": true,
-			"previews_enabled": false
-		}
-	]
+  "name": "manolito-aire",
+  "main": "worker.js",
+  "compatibility_date": "2026-08-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "assets": {
+    "directory": "./",
+    "binding": "ASSETS"
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "AIR_QUALITY_CACHE",
+      "id": "6212d41963034360bcda0f97ff459b9c"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGIN": "*"
+  }
 }

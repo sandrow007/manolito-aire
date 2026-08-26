@@ -48,8 +48,9 @@
     edificiosLayerId: 'building-3d',
     fetchTimeoutMs: 9000,
     fetchRetries: 2,
-    alturaPorDefectoM: 9, 
-    maxEdificiosSombra: 220, 
+    alturaPorDefectoM: 15,  // ~5 plantas: los edificios siempre superan a los árboles
+    alturaPorPlantaM: 3.2,  // si solo sabemos las plantas (levels), estimamos así
+    maxEdificiosSombra: 320, 
     loteSombraSize: 30, 
     duracionVueloInicialMs: 2000,
     priorizarSombra: true,
@@ -761,6 +762,21 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     actualizarCacheEdificios();
   }
 
+  // Altura del edificio con la mejor fuente disponible. Muchos edificios
+  // reales no tienen 'height' en los datos abiertos (sobre todo bloques
+  // modernos fuera del centro): antes caían a 9 m y su sombra salía tres
+  // veces más corta que la real. Ahora se prueba altura exacta, altura de
+  // renderizado, número de plantas × 3.2 m y, por último, 13 m (unas 4
+  // plantas, lo típico urbano) — la sombra se acerca mucho más a la calle.
+  function alturaDeEdificio(props) {
+    if (!props) return CONFIG.alturaPorDefectoM;
+    const directa = Number(props.height ?? props.render_height);
+    if (isFinite(directa) && directa > 0) return directa;
+    const plantas = Number(props.levels ?? props['building:levels'] ?? props.render_levels);
+    if (isFinite(plantas) && plantas > 0) return plantas * CONFIG.alturaPorPlantaM;
+    return CONFIG.alturaPorDefectoM;
+  }
+
   function actualizarCacheEdificios() {
     if (!capaEdificiosDisponible || !map.getLayer(CONFIG.edificiosLayerId)) return;
     const crudos = map.queryRenderedFeatures({ layers: [CONFIG.edificiosLayerId] });
@@ -913,7 +929,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       const lote = edificiosCacheados.slice(i, i + CONFIG.loteSombraSize);
       for (const edificio of lote) {
         try {
-          const altura = Number(edificio.properties.height ?? edificio.properties.render_height) || CONFIG.alturaPorDefectoM;
+          const altura = alturaDeEdificio(edificio.properties);
           const longitudSombraM = altura / Math.tan(posSol.altitude);
           if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
 
@@ -2871,7 +2887,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     const poligonos = [];
     for (const edificio of listaEdificios) {
       try {
-        const altura = Number(edificio.properties.height ?? edificio.properties.render_height) || CONFIG.alturaPorDefectoM;
+        const altura = alturaDeEdificio(edificio.properties);
         const longitudSombraM = altura / Math.tan(posSolActual.altitude);
         if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
         const geom = edificio.geometry;

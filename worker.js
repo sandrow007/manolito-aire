@@ -1,4 +1,4 @@
-﻿﻿﻿const CORS_HEADERS = {
+﻿﻿const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
@@ -192,7 +192,12 @@ export default {
           try {
             const r = await fetch(espejo, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                // User-Agent identificativo: los espejos Overpass limitan o
+                // bloquean peticiones anónimas (técnica anti-bot).
+                'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)',
+              },
               body: rawBody,
               signal: controller.signal,
             });
@@ -336,6 +341,50 @@ export default {
         });
       } catch (err) {
         return teselaVacia();
+      }
+    }
+
+    // --- Proxy Nominatim (buscar calles / nombre de un punto) -------------
+    // GET /geo?q=calle -> [] si falla; GET /geo-reverso?lat&lon -> {} si falla.
+    // El navegador nunca ve un 4xx/5xx: F12 limpio y la web degrada en silencio.
+    if (url.pathname === '/geo' || url.pathname === '/geo-reverso') {
+      const vacio = url.pathname === '/geo' ? '[]' : '{}';
+      try {
+        const destino = 'https://nominatim.openstreetmap.org' +
+          (url.pathname === '/geo' ? '/search' : '/reverse') + url.search +
+          (url.search ? '&' : '?') + 'accept-language=es';
+        const r = await fetch(destino, { headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' } });
+        if (!r.ok) throw new Error(`Nominatim HTTP ${r.status}`);
+        return new Response(await r.text(), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return new Response(vacio, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      }
+    }
+
+    // --- Proxy OSRM (ruta a pie por calles reales) -------------------------
+    // GET /ruta/foot/{lon,lat;lon,lat}?... -> {"code":"Error"} si falla:
+    // el frontend ya tiene plan B (línea directa / Dijkstra) y F12 no se entera.
+    if (url.pathname.startsWith('/ruta/')) {
+      try {
+        const destino = 'https://routing.openstreetmap.de/routed-foot/route/v1' +
+          url.pathname.slice('/ruta'.length) + url.search;
+        const r = await fetch(destino, { headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' } });
+        if (!r.ok) throw new Error(`OSRM HTTP ${r.status}`);
+        return new Response(await r.text(), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return new Response('{"code":"Error"}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
       }
     }
 

@@ -1,4 +1,4 @@
-﻿﻿const CORS_HEADERS = {
+const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
@@ -117,7 +117,15 @@ export default {
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
       });
       try {
-        const resp = await fetch(targetUrl, { headers: { 'User-Agent': 'manolito-aire/1.0' } });
+        // Caché en el edge de Cloudflare (10 min): las consultas van en TANDAS
+        // de ~40 estaciones (13 URLs únicas para toda España), así que casi
+        // todas las visitas se sirven de la caché sin tocar Open-Meteo. Esto
+        // es lo que evita el rate-limit del origen: el tráfico que sale hacia
+        // Open-Meteo pasa de ~500 peticiones por visita a ~13 cada 10 minutos.
+        const resp = await fetch(targetUrl, {
+          headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+          cf: { cacheTtl: 600, cacheEverything: true },
+        });
         if (!resp.ok) return vacio();
         const data = await resp.text();
         return new Response(data, {

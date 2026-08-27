@@ -646,6 +646,24 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       } catch (e) { /* el estilo está a medio cargar; se reintentará */ }
     });
 
+    // Sombra recibida EN los edificios: las fachadas que caen dentro de la
+    // sombra de otro edificio se oscurecen también en 3D, no solo el suelo.
+    // Es una extrusión oscura semitransparente con la MISMA huella y altura
+    // del edificio, dibujada por encima de la extrusión normal.
+    map.addSource('edificios-en-sombra', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-edificios-en-sombra',
+      type: 'fill-extrusion',
+      source: 'edificios-en-sombra',
+      paint: {
+        'fill-extrusion-color': '#0b1220',
+        'fill-extrusion-opacity': 0.42,
+        'fill-extrusion-height': ['get', 'alturaSombra'],
+        'fill-extrusion-base': 0,
+        'fill-extrusion-vertical-gradient': false,
+      },
+    });
+
     map.addSource('ruta', { type: 'geojson', data: turf.featureCollection([]) });
     // Outline para que la ruta no se confunda con calles del mapa
     map.addLayer({
@@ -729,6 +747,20 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     refrescarNubosidad(true);
     // Capa raster con las nubes reales (tiles OWM vía proxy del Worker)
     instalarCapaNubes();
+
+    // SOMBRAS DE EDIFICIOS DESDE EL PRIMER MOMENTO: antes el motor solar
+    // solo despertaba al buscar una ruta o tocar un toggle, así que quien
+    // abría el mapa veía sombras de árboles pero NINGUNA de edificios.
+    // Ahora se activa en cuanto el estilo y las teselas están listos.
+    map.once('idle', () => {
+      asegurarActivacionSolar();
+      // Si ya hay sombras calculadas (p. ej. el usuario movió el slider
+      // antes de que el mapa quedara idle), no lanzar otro recálculo que
+      // lo abortaría a mitad de lote.
+      if (document.getElementById('rsToggleSombras')?.checked && !ultimaColeccionSombras.features.length) {
+        recalcularSombrasVisibles();
+      }
+    });
 
     setTimeout(() => {
       map.easeTo({
@@ -861,6 +893,53 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   let ultimaColeccionSombras = turf.featureCollection([]);
   let reintentoIdlePendiente = false;
 
+  function limpiarCapaEdificiosEnSombra() {
+    try { map.getSource('edificios-en-sombra')?.setData(turf.featureCollection([])); } catch (e) { /* sin fuente */ }
+  }
+
+  // Oscurece en 3D los edificios cuya huella cae dentro de la sombra de OTRO
+  // edificio (cada sombra lleva properties.d = índice del edificio que la
+  // proyecta, para no oscurecer a un edificio con su propia sombra).
+  function actualizarEdificiosEnSombra(coleccionSombras) {
+    const fuente = map.getSource('edificios-en-sombra');
+    if (!fuente) return;
+    try {
+      const poligonos = (coleccionSombras && coleccionSombras.features) || [];
+      if (!poligonos.length || !edificiosCacheados.length) {
+        limpiarCapaEdificiosEnSombra();
+        return;
+      }
+      // Prefiltro por bbox: sin esto serían ~100.000 point-in-polygon a ciegas.
+      const cajas = poligonos.map((p) => { try { return turf.bbox(p); } catch (e) { return null; } });
+      const enSombra = [];
+      for (let idx = 0; idx < edificiosCacheados.length; idx++) {
+        const edificio = edificiosCacheados[idx];
+        try {
+          const centroide = turf.centroid(edificio).geometry.coordinates;
+          const lng = centroide[0], lat = centroide[1];
+          let tapado = false;
+          for (let k = 0; k < poligonos.length; k++) {
+            if (poligonos[k].properties && poligonos[k].properties.d === idx) continue; // su propia sombra no cuenta
+            const caja = cajas[k];
+            if (!caja) continue;
+            if (lng < caja[0] || lat < caja[1] || lng > caja[2] || lat > caja[3]) continue;
+            if (turf.booleanPointInPolygon(turf.point(centroide), poligonos[k])) { tapado = true; break; }
+          }
+          if (tapado) {
+            enSombra.push({
+              type: 'Feature',
+              properties: { alturaSombra: alturaDeEdificio(edificio.properties) + 0.4 },
+              geometry: edificio.geometry,
+            });
+          }
+        } catch (e) { continue; }
+      }
+      fuente.setData(turf.featureCollection(enSombra));
+    } catch (e) {
+      limpiarCapaEdificiosEnSombra();
+    }
+  }
+
   async function recalcularSombrasVisibles(horaOverride) {
     if (!map.getSource('sombras')) return;
     const miVersion = ++versionCalculoSombras;
@@ -874,6 +953,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     if (!document.getElementById('rsToggleSombras')?.checked) {
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+      limpiarCapaEdificiosEnSombra();
       ultimaColeccionSombras = turf.featureCollection([]);
       return;
     }
@@ -881,6 +961,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     if (posSol.altitude <= 0) {
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+      limpiarCapaEdificiosEnSombra();
       ultimaColeccionSombras = turf.featureCollection([]);
       mostrarAvisoSol(t('sunBelow', 'El sol está bajo el horizonte a esa hora — no hay sombras que proyectar.'));
       return;
@@ -890,6 +971,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     if (!capaEdificiosDisponible) {
       map.getSource('sombras').setData(turf.featureCollection([]));
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+      limpiarCapaEdificiosEnSombra();
       ultimaColeccionSombras = turf.featureCollection([]);
       return;
     }
@@ -932,7 +1014,9 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       if (miVersion !== versionCalculoSombras) return;
 
       const lote = edificiosCacheados.slice(i, i + CONFIG.loteSombraSize);
-      for (const edificio of lote) {
+      for (let j = 0; j < lote.length; j++) {
+        const edificio = lote[j];
+        const indiceDueno = i + j; // para no oscurecer un edificio con su propia sombra
         try {
           const altura = alturaDeEdificio(edificio.properties);
           const longitudSombraM = altura / Math.tan(posSol.altitude);
@@ -945,7 +1029,10 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
           const partes = turf.flatten(turf.feature(geom)).features;
           for (const parte of partes) {
             const volumen = calcularVolumenSombra(parte, distanciaKm, bearingSombra);
-            if (volumen) poligonosSombra.push(volumen);
+            if (volumen) {
+              volumen.properties = Object.assign({}, volumen.properties, { d: indiceDueno });
+              poligonosSombra.push(volumen);
+            }
           }
         } catch (e) {
           continue;
@@ -960,6 +1047,10 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       const parcial = turf.featureCollection(poligonosSombra.slice());
       map.getSource('sombras')?.setData(parcial);
       ultimaColeccionSombras = parcial;
+      // Las fachadas en sombra se actualizan EN EL MISMO bloque síncrono que
+      // las sombras del suelo: si otro recálculo pisa a este entre lotes,
+      // las fachadas nunca quedan desfasadas (ni vacías) respecto al suelo.
+      actualizarEdificiosEnSombra(parcial);
       if (i + CONFIG.loteSombraSize < edificiosCacheados.length) await cederAlNavegador();
     }
 
@@ -967,6 +1058,11 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     const coleccionSombras = turf.featureCollection(poligonosSombra);
     map.getSource('sombras')?.setData(coleccionSombras);
     ultimaColeccionSombras = coleccionSombras;
+
+    // Y ahora el paso que faltaba: la sombra también se REFLEJA EN LOS
+    // EDIFICIOS — las fachadas tapadas por la sombra de otro edificio se
+    // oscurecen en 3D, no solo el suelo.
+    actualizarEdificiosEnSombra(coleccionSombras);
 
     // El halo atmosférico es el efecto más caro (buffer de toda la escena):
     // en gama baja se omite — las sombras planas ya comunican lo mismo.
@@ -2603,8 +2699,14 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     const tSol = document.getElementById('rsToggleSol');
 
     tEdificios?.addEventListener('change', () => {
+      const vis = tEdificios.checked ? 'visible' : 'none';
       if (capaEdificiosDisponible) {
-        map.setLayoutProperty(CONFIG.edificiosLayerId, 'visibility', tEdificios.checked ? 'visible' : 'none');
+        map.setLayoutProperty(CONFIG.edificiosLayerId, 'visibility', vis);
+      }
+      // Las fachadas en sombra son una extrusión aparte: si se ocultan los
+      // edificios, sus sombras recibidas también deben desaparecer.
+      if (map.getLayer('capa-edificios-en-sombra')) {
+        map.setLayoutProperty('capa-edificios-en-sombra', 'visibility', vis);
       }
     });
     tSombras?.addEventListener('change', () => {

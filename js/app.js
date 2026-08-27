@@ -839,31 +839,55 @@ function initMap(){
     });
   }
 
-  let loaded = 0;
   const statusLine = document.getElementById('statusLine');
 
-  stations.forEach(st => {
+  // 1) Todos los marcadores nacen grises con su popup "cargando".
+  const marcadores = stations.map(st => {
     const marker = L.circleMarker([st.lat, st.lon], { radius:9, color:'#fff', weight:2, fillColor:'#9AA5AC', fillOpacity:0.95 }).addTo(map);
     marker.bindPopup(`<div class="popup-human">${st.name}</div><div class="popup-tech">Cargando dato en vivo…</div>`);
+    return marker;
+  });
 
-    fetch(`/api/air-quality?latitude=${st.lat}&longitude=${st.lon}&current=pm2_5,pm10,nitrogen_dioxide,ozone`)
+  const pintarEstacion = (i, c) => {
+    const st = stations[i], marker = marcadores[i];
+    if (!c || typeof c !== 'object') return; // sin dato: se queda gris, sin errores
+    const state = stateFromPM25(c.pm2_5);
+    marker.setStyle({ fillColor: stateColor[state] });
+    marker.setPopupContent(
+      `<div class="popup-human">${st.name}</div>` +
+      `<div class="popup-tech">PM2.5 ${c.pm2_5 ?? '—'} µg/m³ · PM10 ${c.pm10 ?? '—'} µg/m³ · NO2 ${c.nitrogen_dioxide ?? '—'} µg/m³ · O3 ${c.ozone ?? '—'} µg/m³</div>` +
+      `<span class="popup-tag">Estación real · dato en vivo</span>`
+    );
+  };
+
+  // 2) Datos en TANDAS: Open-Meteo acepta lat/lon separados por comas, así que
+  //    las ~500 estaciones se piden en bloques de 40 (≈12 peticiones en vez de
+  //    500+). Mucho más rápido, amable con la API y con el móvil del usuario.
+  //    Si una tanda falla, el worker ya devuelve 200 neutro ('{}' o '[]') y
+  //    esos puntos simplemente se quedan grises: F12 jamás ve un error.
+  const TAM_TANDA = 40;
+  let cargados = 0;
+  const tandas = [];
+  for (let i = 0; i < stations.length; i += TAM_TANDA) {
+    tandas.push({ inicio: i, grupo: stations.slice(i, i + TAM_TANDA) });
+  }
+  Promise.all(tandas.map(({ inicio, grupo }) => {
+    const lats = grupo.map(s => s.lat).join(',');
+    const lons = grupo.map(s => s.lon).join(',');
+    return fetch(`/api/air-quality?latitude=${lats}&longitude=${lons}&current=pm2_5,pm10,nitrogen_dioxide,ozone`)
       .then(r => r.json())
       .then(data => {
-        const c = data.current || {};
-        const state = stateFromPM25(c.pm2_5);
-        marker.setStyle({ fillColor: stateColor[state] });
-        marker.setPopupContent(
-          `<div class="popup-human">${st.name}</div>` +
-          `<div class="popup-tech">PM2.5 ${c.pm2_5 ?? '—'} µg/m³ · PM10 ${c.pm10 ?? '—'} µg/m³ · NO2 ${c.nitrogen_dioxide ?? '—'} µg/m³ · O3 ${c.ozone ?? '—'} µg/m³</div>` +
-          `<span class="popup-tag">Estación real · dato en vivo</span>`
-        );
+        // Open-Meteo devuelve un array en el mismo orden que las coordenadas;
+        // con una sola coordenada devuelve objeto, y el worker en fallo da '{}'.
+        const lista = Array.isArray(data) ? data : (data && data.current ? [data] : []);
+        lista.forEach((item, j) => pintarEstacion(inicio + j, item && item.current));
       })
-      .catch(() => { marker.setPopupContent(`<div class="popup-human">${st.name}</div><div class="popup-tech">No se pudo cargar el dato ahora mismo.</div>`); })
+      .catch(() => { /* la tanda entera queda en gris, sin ruido en consola */ })
       .finally(() => {
-        loaded++;
-        if (statusLine) statusLine.textContent = `Cargados ${loaded}/${stations.length} puntos en vivo.`;
+        cargados += grupo.length;
+        if (statusLine) statusLine.textContent = `Cargados ${cargados}/${stations.length} puntos en vivo.`;
       });
-  });
+  }));
 
   const regionJump = document.getElementById('regionJump');
   if (regionJump){

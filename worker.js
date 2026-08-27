@@ -388,6 +388,36 @@ export default {
       }
     }
 
+    // --- Proxy WMS del IGN (capa base opcional "Mapa IGN") ----------------
+    // El WMS del IGN no envía cabeceras CORS: llamado directo desde el
+    // navegador llenaría F12 de errores. Lo servimos same-origin, con caché
+    // en el edge 1 h, y si el IGN falla devolvemos tesela transparente 200.
+    if (url.pathname === '/ign-wms') {
+      const teselaVaciaIGN = () => {
+        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+        return new Response(transparente, {
+          status: 200,
+          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      };
+      try {
+        const destino = 'https://www.ign.es/wms-inspire/ign-base' + url.search;
+        const r = await fetch(destino, {
+          headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+          cf: { cacheTtl: 3600, cacheEverything: true },
+        });
+        if (!r.ok) throw new Error(`IGN WMS HTTP ${r.status}`);
+        const ct = r.headers.get('Content-Type') || '';
+        if (!ct.includes('image')) throw new Error('IGN no devolvió imagen');
+        return new Response(r.body, {
+          status: 200,
+          headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=3600', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return teselaVaciaIGN();
+      }
+    }
+
     return env.ASSETS.fetch(request);
   }
 };

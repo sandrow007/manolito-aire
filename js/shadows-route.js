@@ -39,9 +39,9 @@
     zoomInicial: 15.5,
     pitchInicial: 55,
     bearingInicial: -15,
-    nominatimUrl: 'https://nominatim.openstreetmap.org/search',
-    nominatimReverseUrl: 'https://nominatim.openstreetmap.org/reverse',
-    osrmUrl: 'https://routing.openstreetmap.de/routed-foot/route/v1',
+    nominatimUrl: '/geo',
+    nominatimReverseUrl: '/geo-reverso',
+    osrmUrl: '/ruta',
     velocidadCaminandoKmh: 4.8, 
     airQualityUrl: '/api/air-quality',
     styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', 
@@ -63,11 +63,7 @@
     redPeatonalMargenM: 500,
     factorPenalizacionSol: 0.7,
     maxNodosRedPeatonal: 80000,
-    overpassRedPeatonalUrls: [
-      'https://overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
-      'https://overpass.osm.ch/api/interpreter',
-    ],
+    overpassRedPeatonalUrls: ['/arboles'],
     overpassTimeoutS: 15,
     // ----- Modo peatón virtual (cámara libre, sin GPS real) -----
     paseoAlturaOjoM: 1.65,
@@ -2515,6 +2511,60 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     });
     sincronizarEtiquetaMapa();
     wrap.appendChild(btn);
+
+    /* --- Capa base IGN (WMS público del Instituto Geográfico Nacional) ---
+       Teselas WMS gratuitas y reutilizables (CC BY 4.0 scne.es). Se pintan
+       ENCIMA del mapa vectorial pero DEBAJO de los edificios 3D y las
+       sombras, como cartografía de fondo alternativa. */
+    const IGN_SRC = 'ign-wms-base';
+    const IGN_CAPA = 'ign-wms-base-capa';
+    let ignActivo = false;
+    const asegurarCapaIGN = () => {
+      try {
+        if (!map.getSource(IGN_SRC)) {
+          map.addSource(IGN_SRC, {
+            type: 'raster',
+            tiles: ['/ign-wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=IGNBaseTodo&WIDTH=256&HEIGHT=256&SRS=EPSG:3857&BBOX={bbox-epsg-3857}'],
+            tileSize: 256,
+            attribution: 'Mapa base © <a href="https://www.scne.es/" target="_blank" rel="noopener">IGN / SCNE</a> CC BY 4.0',
+          });
+        }
+        if (!map.getLayer(IGN_CAPA)) {
+          // Debajo de los edificios 3D si la capa existe; si no, encima de todo el fondo
+          const antes = map.getLayer(CONFIG.edificiosLayerId) ? CONFIG.edificiosLayerId : undefined;
+          map.addLayer({ id: IGN_CAPA, type: 'raster', source: IGN_SRC,
+            paint: { 'raster-opacity': 0.9, 'raster-fade-duration': 300 },
+            layout: { visibility: 'none' } }, antes);
+        }
+      } catch (e) {
+        // Estilo aún cargando: reintentar cuando termine
+        map.once('idle', () => { if (ignActivo) asegurarCapaIGN(), map.setLayoutProperty(IGN_CAPA, 'visibility', 'visible'); });
+      }
+    };
+    const btnIGN = document.createElement('button');
+    btnIGN.type = 'button';
+    btnIGN.id = 'rsBtnMapaIGN';
+    btnIGN.textContent = 'Mapa IGN';
+    btnIGN.setAttribute('aria-pressed', 'false');
+    btnIGN.title = 'Cartografía del Instituto Geográfico Nacional (CC BY 4.0 scne.es)';
+    btnIGN.addEventListener('click', () => {
+      ignActivo = !ignActivo;
+      if (ignActivo) {
+        asegurarCapaIGN();
+        try { if (map.getLayer(IGN_CAPA)) map.setLayoutProperty(IGN_CAPA, 'visibility', 'visible'); } catch (e) {}
+      } else {
+        try { if (map.getLayer(IGN_CAPA)) map.setLayoutProperty(IGN_CAPA, 'visibility', 'none'); } catch (e) {}
+      }
+      btnIGN.setAttribute('aria-pressed', ignActivo ? 'true' : 'false');
+      btnIGN.style.background = ignActivo ? 'var(--accent-soft, rgba(255,107,26,0.16))' : '';
+      btnIGN.style.borderColor = ignActivo ? 'var(--accent, #FF6B1A)' : '';
+    });
+    wrap.appendChild(btnIGN);
+    // El wrap pasa a apilar los dos botones en vertical
+    wrap.style.display = 'flex';
+    wrap.style.flexDirection = 'column';
+    wrap.style.gap = '6px';
+    wrap.style.alignItems = 'flex-end';
     contenedorMapa.appendChild(wrap);
   }
 
@@ -2597,7 +2647,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
   /* ---------------- Geocodificación (Nominatim) ---------------- */
 
   async function consultarNominatim(consulta) {
-    const url = new URL(CONFIG.nominatimUrl);
+    const url = new URL(CONFIG.nominatimUrl, window.location.origin);
     url.searchParams.set('q', consulta);
     url.searchParams.set('format', 'json');
     url.searchParams.set('limit', '1');
@@ -2628,7 +2678,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   async function geocodificarInverso(lat, lon) {
     try {
-      const url = new URL(CONFIG.nominatimReverseUrl);
+      const url = new URL(CONFIG.nominatimReverseUrl, window.location.origin);
       url.searchParams.set('lat', lat);
       url.searchParams.set('lon', lon);
       url.searchParams.set('format', 'json');
@@ -3162,7 +3212,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         controladorActual = new AbortController();
 
         try {
-          const url = new URL(CONFIG.nominatimUrl);
+          const url = new URL(CONFIG.nominatimUrl, window.location.origin);
           url.searchParams.set('q', texto);
           url.searchParams.set('format', 'json');
           url.searchParams.set('limit', '6');

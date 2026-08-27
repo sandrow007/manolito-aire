@@ -28,32 +28,42 @@
   --breath-mid:#FFB800;   /* sol de albero */
   --breath-bad:#E63E5F;   /* flamenco */
 
-  --font-display:'Fraunces', serif;
-  --font-body:'Karla', sans-serif;
-  --font-mono:'IBM Plex Mono', monospace;
+  /* --- tipografía hermanada con islasdecalorsevilla.com: sans de sistema
+         para texto y display, mono para datos (aspecto profesional/tech) --- */
+  --font-display:'SF Pro Display','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font-body:'SF Pro Display','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font-mono:'IBM Plex Mono','Courier New',monospace;
 }
 
 /* --- modo oscuro --- */
+/* --- tema oscuro "Noche Cuántica": paleta hermanada con
+       islasdecalorsevilla.com (azul noche profundo, cian neón, violeta
+       jacarandá, dorado y turquesa para los estados del aire) --- */
 [data-theme="dark"]{
-  --sky-deep:#E8F4F0;
-  --sky-mid:#9FD8CE;
-  --mist:#14343E;
-  --paper:#081C23;
-  --ink:#E8F4F0;
-  --line: rgba(232,244,240,0.14);
-  --accent:#FF7A33;
-  --accent-soft: rgba(255,122,51,0.18);
-  --accent-text:#FF9A5C;
-  --breath-good:#2BD9A4;
-  --surface: rgba(16,38,48,0.88);
-  --border: rgba(232,244,240,0.16);
+  --sky-deep:#E8F0FF;
+  --sky-mid:#00F0FF;
+  --mist:#0A0C1F;
+  --paper:#03050F;
+  --ink:#E8F0FF;
+  --line: rgba(0,240,255,0.14);
+  --accent:#00F0FF;
+  --accent-soft: rgba(0,240,255,0.13);
+  --accent-2:#7B2FFF;
+  --accent-text:#7DF9FF;
+  --breath-good:#00FFC8;
+  --breath-mid:#FFD745;
+  --breath-bad:#FF00E5;
+  --surface: rgba(10,12,31,0.88);
+  --border: rgba(0,240,255,0.18);
 }
 
 /* --- variantes de acento (paletas alternativas, todas con carácter) --- */
+[data-palette="cosmos"]{   --accent:#00F0FF; --accent-soft: rgba(0,240,255,0.13); --accent-text:#00A3B0; }
 [data-palette="amanecer"]{ --accent:#FF6B1A; --accent-soft: rgba(255,107,26,0.16); --accent-text:#C24500; }
 [data-palette="salvia"]{   --accent:#00B98A; --accent-soft: rgba(0,185,138,0.16); --accent-text:#00785A; }
 [data-palette="lavanda"]{  --accent:#7B2FFF; --accent-soft: rgba(123,47,255,0.14); --accent-text:#6A1FE0; }
 [data-palette="coral"]{    --accent:#E63E5F; --accent-soft: rgba(230,62,95,0.14); --accent-text:#C11840; }
+[data-theme="dark"][data-palette="cosmos"]{   --accent-text:#7DF9FF; }
 [data-theme="dark"][data-palette="amanecer"]{ --accent-text:#FF9A5C; }
 [data-theme="dark"][data-palette="salvia"]{   --accent-text:#2BD9A4; }
 [data-theme="dark"][data-palette="lavanda"]{  --accent-text:#B28CFF; }
@@ -617,17 +627,18 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
   border-radius:10px; background:var(--paper); color:var(--ink);
   font-family:var(--font-body); font-size:0.9rem; outline:none;
 }
-.rs-form input[type="text"]:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,107,26,0.18); }
+.rs-form input[type="text"]:focus{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 .rs-form .im-lost-btn{ margin:0; }
-/* El botón protagonista del mapa luce el naranja cálido de la casa */
+/* El botón protagonista del mapa: degradado acento → segundo acento,
+   hermanado con el cian→violeta de islasdecalorsevilla.com */
 #rsBuscarBtn{
   border:none;
-  background: linear-gradient(120deg, var(--accent) 0%, #E04E00 100%);
-  color: var(--ink); font-weight:700;
-  box-shadow: 0 6px 18px rgba(255,107,26,0.38);
+  background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2, #E04E00) 100%);
+  color: var(--paper); font-weight:700;
+  box-shadow: 0 6px 18px var(--accent-soft);
   transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
 }
-#rsBuscarBtn:hover{ background: linear-gradient(120deg, var(--accent) 0%, #E04E00 100%); color:var(--ink); transform:translateY(-1px); filter:brightness(1.06); box-shadow:0 10px 24px rgba(255,107,26,0.45); }
+#rsBuscarBtn:hover{ background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2, #E04E00) 100%); color:var(--paper); transform:translateY(-1px); filter:brightness(1.08); box-shadow:0 10px 24px var(--accent-soft); }
 #rsBuscarBtn:active{ transform:translateY(1px); }
 .rs-layer-toggles{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px; font-size:0.8rem; color:var(--sky-deep); font-weight:600; }
 .rs-layer-toggles label{ display:flex; align-items:center; gap:6px; cursor:pointer; }
@@ -753,12 +764,12 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 .rs-mapa-oscuro-activo #rsMapControls button:hover,
 [data-theme="dark"] #rsMapStyleToggle button:hover,
 .rs-mapa-oscuro-activo #rsMapStyleToggle button:hover{
-  background:rgba(255,122,51,0.22); border-color:#FF7A33;
+  background:var(--accent-soft); border-color:var(--accent);
 }
 [data-theme="dark"] #rsMapControls button.rs-activo,
 .rs-mapa-oscuro-activo #rsMapControls button.rs-activo{
-  background:linear-gradient(120deg, #FF7A33 0%, #E04E00 100%);
-  color:#0D1F26; border-color:transparent; box-shadow:0 4px 14px rgba(255,122,51,0.4);
+  background:linear-gradient(120deg, var(--accent) 0%, var(--accent-2, #FF7A33) 100%);
+  color:#03050F; border-color:transparent; box-shadow:0 4px 14px var(--accent-soft);
 }
 [data-theme="dark"] #rsShadowBadgeCerrar,
 .rs-mapa-oscuro-activo #rsShadowBadgeCerrar{ color:#9FD8CE; }
@@ -926,3 +937,41 @@ body.modo-accesible #map .leaflet-tile-pane{ filter:none !important; }
 body.modo-accesible .rs-pasos{ background:#fff !important; color:#000 !important; border-color:#000 !important; }
 body.modo-accesible .rs-btn-escuchar{ border-color:#000 !important; color:#000 !important; }
 body.modo-accesible .rs-btn-escuchar[aria-pressed="true"]{ background:#000 !important; color:#fff !important; }
+
+/* ===== prefers-reduced-motion: ahorro de batería + accesibilidad =====
+   Muchos SO activan "reducir movimiento" junto al modo ahorro. Si está
+   activo, paramos TODAS las animaciones y transiciones decorativas. */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:0.001s !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.001s !important;
+    scroll-behavior:auto !important;
+  }
+}
+
+
+/* ---------- Driver.js (tour guiado) hermanado con el tema oscuro ---------- */
+[data-theme="dark"] .driver-popover{
+  background:#0A0C1F; color:#E8F0FF;
+  border:1px solid rgba(0,240,255,0.25);
+  box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 24px rgba(0,240,255,0.08);
+}
+[data-theme="dark"] .driver-popover-title{ color:#E8F0FF; font-family:var(--font-display); }
+[data-theme="dark"] .driver-popover-description{ color:rgba(232,240,255,0.82); }
+[data-theme="dark"] .driver-popover-progress-text{ color:rgba(0,240,255,0.7); }
+[data-theme="dark"] .driver-popover-close-btn{ color:rgba(232,240,255,0.6); }
+[data-theme="dark"] .driver-popover-close-btn:hover{ color:#00F0FF; }
+[data-theme="dark"] .driver-popover-next-btn{
+  background:linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 100%);
+  color:#03050F; border:none; text-shadow:none; font-weight:700;
+}
+[data-theme="dark"] .driver-popover-prev-btn,
+[data-theme="dark"] .driver-popover-close-btn-text{
+  background:transparent; color:rgba(232,240,255,0.75);
+  border:1px solid rgba(0,240,255,0.3); text-shadow:none;
+}
+[data-theme="dark"] .driver-popover-arrow-side-left{ border-left-color:#0A0C1F; }
+[data-theme="dark"] .driver-popover-arrow-side-right{ border-right-color:#0A0C1F; }
+[data-theme="dark"] .driver-popover-arrow-side-top{ border-top-color:#0A0C1F; }
+[data-theme="dark"] .driver-popover-arrow-side-bottom{ border-bottom-color:#0A0C1F; }

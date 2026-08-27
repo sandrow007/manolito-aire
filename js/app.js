@@ -797,7 +797,7 @@ const stations = [
   { name:'Melilla', lat:35.2923, lon:-2.9381 },
 ];
 const regionView = {
-  peninsula:    { center:[40.2, -3.7], zoom:6 },
+  peninsula:    { center:[40.0, -3.2], zoom:6 },
   canarias:     { center:[28.3, -15.6], zoom:8 },
   baleares:     { center:[39.3, 2.6], zoom:8 },
   ceutamelilla: { center:[35.6, -4.1], zoom:7 },
@@ -814,19 +814,27 @@ function initMap(){
   const statusLineEl0 = document.getElementById('statusLine');
   if (statusLineEl0 && dict0) statusLineEl0.textContent = dict0.statusLoading;
 
-  const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
-  const tileUrl = () => isDark()
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  /* Mapa base: cartografía oficial del IGN vía WMS, servida a través del
+     proxy del propio worker (/ign-wms) — sin API key, sin CORS y sin marcas
+     de agua. En modo oscuro no hace falta otra capa: el CSS ya invierte
+     las teselas ([data-theme="dark"] #map .leaflet-tile-pane). */
+  const capaBase = () => L.tileLayer.wms('/ign-wms', {
+    layers: 'IGNBaseTodo',
+    format: 'image/png',
+    transparent: true,
+    version: '1.1.1',
+    attribution: 'Mapa base © <a href="https://www.scne.es/" target="_blank" rel="noopener">IGN / SCNE</a> CC BY 4.0',
+    maxZoom: 18
+  });
 
-  let tileLayer = L.tileLayer(tileUrl(), { attribution: '© OpenStreetMap · © CARTO', maxZoom: 18 }).addTo(map);
+  let tileLayer = capaBase().addTo(map);
 
   const themeBtn = document.getElementById('themeToggle');
   if (themeBtn){
     themeBtn.addEventListener('click', () => {
       setTimeout(() => {
         map.removeLayer(tileLayer);
-        tileLayer = L.tileLayer(tileUrl(), { attribution: '© OpenStreetMap · © CARTO', maxZoom: 18 }).addTo(map);
+        tileLayer = capaBase().addTo(map);
       }, 0);
     });
   }

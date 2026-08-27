@@ -1,1 +1,23 @@
-placeholder-will-be-replaced
+{
+  "name": "manolito-aire",
+  "main": "worker.js",
+  "compatibility_date": "2026-08-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "assets": {
+    "directory": "./",
+    "binding": "ASSETS"
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "AIR_QUALITY_CACHE",
+      "id": "6212d41963034360bcda0f97ff459b9c"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGIN": "*"
+  }
+}

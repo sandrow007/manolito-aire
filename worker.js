@@ -426,6 +426,37 @@ export default {
       }
     }
 
+    // --- Proxy WMS del Catastro (capa opcional "Catastro 3D") -----------
+    // WMS INSPIRE oficial de la Sede Electrónica del Catastro: gratis, sin
+    // API key ni registro. No envía CORS, así que lo servimos same-origin
+    // con caché edge 1 h; si Catastro falla, tesela transparente 200 (F12
+    // limpio siempre).
+    if (url.pathname === '/catastro-wms') {
+      const teselaVaciaCatastro = () => {
+        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+        return new Response(transparente, {
+          status: 200,
+          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      };
+      try {
+        const destino = 'https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx' + url.search;
+        const r = await fetch(destino, {
+          headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+          cf: { cacheTtl: 3600, cacheEverything: true },
+        });
+        if (!r.ok) throw new Error(`Catastro WMS HTTP ${r.status}`);
+        const ct = r.headers.get('Content-Type') || '';
+        if (!ct.includes('image')) throw new Error('Catastro no devolvió imagen');
+        return new Response(r.body, {
+          status: 200,
+          headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=3600', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return teselaVaciaCatastro();
+      }
+    }
+
     return env.ASSETS.fetch(request);
   }
 };

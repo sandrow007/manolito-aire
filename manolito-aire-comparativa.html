@@ -467,8 +467,8 @@
                 </svg>
                 <h4>Ruta peatonal más fresca</h4>
             </div>
-            <p>Un algoritmo de <strong>Dijkstra térmico</strong> escrito en JavaScript puro busca el camino que minimiza la exposición al sol, no solo la distancia — a veces a costa de un rodeo que un GPS convencional nunca te propondría.</p>
-            <div class="formula-box">peso(arista) = longitud × (1 + penalización solar)</div>
+            <p>Un algoritmo de <strong>Dijkstra térmico</strong> escrito en JavaScript puro busca el camino que minimiza — o maximiza, si lo prefieres — la exposición al sol. En verano te lleva por la sombra; en invierno, con un clic, te lleva a buscar el sol. Es el mismo cálculo solar, aplicado en las dos direcciones.</p>
+            <div class="formula-box">peso(arista) = longitud × (1 ± penalización solar)</div>
         </div>
         <div class="card cloud-border">
             <div class="icon-title">
@@ -508,6 +508,21 @@
                 <h4>Histórico de irradiación solar</h4>
             </div>
             <p>Explora datos de radiación solar desde 1984 con la API NASA POWER: irradiancia global horizontal (GHI), directa normal (DNI) y de cielo despejado, mapeados sobre Sevilla.</p>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card" style="border-left-color:#fbbf24; background: linear-gradient(135deg, #1e293b 0%, #2a2410 100%); grid-column: span 2;">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <path d="M12 1v6M12 17v6M4.2 4.2l4.2 4.2M15.5 15.5l4.3 4.3M1 12h6M17 12h6M4.2 19.8l4.2-4.2M15.5 8.5l4.3-4.3"/>
+                </svg>
+                <h4>Verano y también invierno: sombra o sol, tú eliges</h4>
+            </div>
+            <p style="margin-bottom:0;">
+                La mayoría piensa en Manolit∞ como "el buscador de sombra", pero el motor de debajo no sabe de estaciones: sabe de dónde está el sol. En agosto te esquiva el sol para que no te achicharres. En pleno enero, cuando lo que apetece es calentarse, con un clic invierte el cálculo y te lleva justo por donde da el sol. Misma tecnología, dos necesidades opuestas cubiertas — porque el confort térmico también existe en invierno, y no solo se trata de huir del calor.
+            </p>
         </div>
     </div>
 
@@ -766,6 +781,12 @@
         <div class="card" style="border-left-color: #00e5ff;">
             <h4 style="margin-top:0; color:#00e5ff;">Fortalezas</h4>
             <ul>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Funciona en las dos estaciones</strong> — sombra en verano, sol en invierno, con el mismo motor.</span>
+                </li>
                 <li>
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>

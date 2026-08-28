@@ -43,3 +43,9 @@ Copyleft-next 0.3.1 — ver [LICENSE](./LICENSE).
 
 Los servidores no son gratis. Si quieres ayudar: 
 [Ko-fi](https://ko-fi.com/manolitoinfinito)
+<!-- © 2026 Sandro 
+     Obra registrada - Propiedad Intelectual
+     Junta de Andalucía - Consejería de Cultura y Deporte
+     Nº Expediente: RTA-3147-26
+     Nº Registro: 2026999010353785
+     Fecha: 28/08/2026 · AGPL-3.0 -->

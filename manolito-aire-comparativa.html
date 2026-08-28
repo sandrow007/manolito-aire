@@ -1,1 +1,1029 @@
-__COMPARATIVA__
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manolit∞ Aire · Análisis comparativo objetivo</title>
+    <meta name="description" content="Comparativa objetiva entre Manolit∞ Aire, herramienta ciudadana y gratuita para caminar a la sombra en Sevilla, y las herramientas profesionales de pago del sector solar y arquitectónico." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #080c18;
+            color: #cbd5e1;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1150px;
+            margin: 0 auto;
+            background: #0f172a;
+            border-radius: 32px;
+            padding: 40px 48px;
+            box-shadow: 0 0 80px rgba(0, 229, 255, 0.05), 0 30px 60px -20px rgba(0,0,0,0.9);
+            border: 1px solid rgba(0, 229, 255, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #00e5ff, #f59e0b, #00e5ff);
+            background-size: 200% 100%;
+            animation: shimmer 5s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 36px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            font-size: 2.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00e5ff, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+
+        .logo-infinity {
+            font-size: 2.6rem;
+            color: #00e5ff;
+            -webkit-text-fill-color: #00e5ff;
+            font-weight: 800;
+        }
+
+        .logo-sub {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            letter-spacing: 1px;
+            font-weight: 500;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .header-badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: #1e293b;
+            color: #94a3b8;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 4px 16px;
+            border-radius: 30px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border: 1px solid #334155;
+        }
+
+        .badge.cyan {
+            background: rgba(0, 229, 255, 0.12);
+            color: #00e5ff;
+            border-color: #00e5ff;
+        }
+
+        .badge.gold {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border-color: #f59e0b;
+        }
+
+        .badge.cloud {
+            background: rgba(148, 163, 184, 0.12);
+            color: #94a3b8;
+            border-color: #64748b;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .gradient-title {
+            background: linear-gradient(135deg, #00e5ff 0%, #38bdf8 40%, #fbbf24 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fbbf24;
+            margin: 2.4rem 0 1rem 0;
+            border-left: 6px solid #00e5ff;
+            padding-left: 18px;
+            text-shadow: 0 0 30px rgba(0, 229, 255, 0.08);
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #00e5ff;
+            margin: 1.6rem 0 0.6rem 0;
+        }
+
+        h4 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 4px;
+        }
+
+        p {
+            font-size: 1rem;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+
+        .lead {
+            font-size: 1.15rem;
+            color: #e2e8f0;
+            font-weight: 400;
+            max-width: 800px;
+        }
+
+        .icon-svg {
+            display: inline-block;
+            width: 1.4rem;
+            height: 1.4rem;
+            vertical-align: middle;
+            margin-right: 6px;
+            flex-shrink: 0;
+        }
+
+        .icon-svg-sm {
+            width: 1.1rem;
+            height: 1.1rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 20px 0;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+            margin: 20px 0;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 20px;
+            padding: 24px 28px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            border-left: 5px solid #00e5ff;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            height: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .card.gold-border {
+            border-left-color: #f59e0b;
+        }
+
+        .card.cloud-border {
+            border-left-color: #94a3b8;
+        }
+
+        .card.purple-border {
+            border-left-color: #8b5cf6;
+        }
+
+        .card .icon-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .card ul {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 6px;
+        }
+
+        .card ul li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+            color: #cbd5e1;
+        }
+
+        .card ul li .icon-svg {
+            margin-top: 2px;
+        }
+
+        .quote-block {
+            background: #2a1a10;
+            border-left: 6px solid #f97316;
+            padding: 20px 28px;
+            border-radius: 16px;
+            margin: 28px 0;
+            font-style: italic;
+            font-size: 1.1rem;
+            color: #fbbf24;
+        }
+
+        .quote-block strong {
+            color: #f97316;
+            font-style: normal;
+        }
+
+        .formula-box {
+            background: #0a1a30;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 1px solid #00e5ff33;
+            font-family: 'Courier New', monospace;
+            color: #00e5ff;
+            font-size: 1rem;
+            text-align: center;
+            margin: 12px 0;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            margin: 20px 0;
+            border-radius: 16px;
+            border: 1px solid #1e293b;
+            background: #0f172a;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            min-width: 600px;
+        }
+
+        th {
+            background: #1a2a44;
+            color: #00e5ff;
+            font-weight: 700;
+            padding: 12px 18px;
+            text-align: left;
+            border-bottom: 2px solid #00e5ff;
+        }
+
+        td {
+            padding: 10px 18px;
+            border-bottom: 1px solid #1e293b;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .check {
+            color: #00e5ff;
+            font-weight: 700;
+        }
+        .cross {
+            color: #ef4444;
+            font-weight: 700;
+        }
+        .warn {
+            color: #f59e0b;
+            font-weight: 700;
+        }
+
+        .text-muted {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .separator {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00e5ff, #f59e0b, transparent);
+            margin: 32px 0;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid #1e293b;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .footer a {
+            color: #00e5ff;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 900px) {
+            .grid-4 { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 24px 20px; }
+            h1 { font-size: 2.2rem; }
+            h2 { font-size: 1.5rem; }
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #00e5ff; border-radius: 10px; }
+    </style>
+<base target="_blank">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="logo-area">
+            <div>
+                <span class="logo-icon">Manolit</span><span class="logo-infinity">∞</span>
+                <div class="logo-sub">Aire · Monitoreo climático ciudadano</div>
+            </div>
+        </div>
+        <div class="header-badges">
+            <span class="badge cyan">JavaScript puro</span>
+            <span class="badge gold">Dijkstra térmico</span>
+            <span class="badge cloud">Nubosidad real</span>
+            <span class="badge">100% cliente</span>
+            <span class="badge">Gratuito</span>
+            <span class="badge gold">AGPL-3.0</span>
+        </div>
+    </header>
+
+    <!-- INTRO -->
+    <h1 class="gradient-title">Análisis comparativo objetivo</h1>
+    <p class="lead">
+        Manolit∞ Aire es gratuita, ciudadana y sin publicidad. Esto no es una ficha de marketing: aquí decimos claro qué hace bien, qué no hace, y por qué elegimos regalarlo en vez de venderlo.
+    </p>
+
+    <div class="separator"></div>
+
+    <!-- ORIGEN REAL -->
+    <h2>El origen: supervivencia en Sevilla</h2>
+    <div class="quote-block">
+        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.6rem;height:1.6rem;vertical-align:middle;margin-right:10px;">
+            <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+            <circle cx="12" cy="12" r="4"/>
+        </svg>
+        <span>
+            “Cualquiera que camine por Sevilla en verano sabe que cruzar una calle al sol puede ser, literalmente, peligroso.<br />
+            Aquí la sombra dejó de ser un detalle estético del urbanismo: es un servicio de primera necesidad.”
+        </span>
+    </div>
+    <p>
+        Manolit∞ no nace en un laboratorio. Nace de necesitar sombra para no desmayarte cruzando una calle en agosto.
+        El cambio climático dejó de ser un debate sobre el futuro: es la acera de hoy. Y si las proyecciones se cumplen,
+        dentro de unas décadas caminar a la sombra será tan básico como tener agua potable. Este proyecto apuesta a que
+        esa necesidad se cubra con código abierto, no con una suscripción mensual.
+    </p>
+
+    <div class="separator"></div>
+
+    <!-- QUÉ HACE MANOLIT∞ -->
+    <h2>Qué hace Manolit∞ Aire</h2>
+
+    <div class="grid-3">
+        <div class="card">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                </svg>
+                <h4>Mapa 3D con sombras dinámicas</h4>
+            </div>
+            <p>Calcula en tiempo real las sombras que proyectan edificios y árboles a partir de la posición exacta del sol y la geometría urbana de OpenStreetMap. Mueve el reloj y ves la sombra moverse contigo.</p>
+        </div>
+        <div class="card gold-border">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                <h4>Ruta peatonal más fresca</h4>
+            </div>
+            <p>Un algoritmo de <strong>Dijkstra térmico</strong> escrito en JavaScript puro busca el camino que minimiza — o maximiza, si lo prefieres — la exposición al sol. En verano te lleva por la sombra; en invierno, con un clic, te lleva a buscar el sol. Es el mismo cálculo solar, aplicado en las dos direcciones.</p>
+            <div class="formula-box">peso(arista) = longitud × (1 ± penalización solar)</div>
+        </div>
+        <div class="card cloud-border">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
+                </svg>
+                <h4>Nubosidad en tiempo real</h4>
+            </div>
+            <p>Consulta la cobertura nubosa actual de OpenWeatherMap y la dibuja sobre el mapa. Con cielo cubierto, las sombras se atenúan y la ruta térmica se recalcula en consecuencia.</p>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card purple-border">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a10 10 0 1 0 10 10 10 10 0 0 0-10-10z"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+                <h4>Calidad del aire y contaminación</h4>
+            </div>
+            <p>Muestra índices de calidad del aire y avisos ante olas de calor con datos del programa europeo Copernicus (CAMS), servidos a través de Open-Meteo.</p>
+        </div>
+        <div class="card">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                <h4>Histórico de irradiación solar</h4>
+            </div>
+            <p>Explora datos de radiación solar desde 1984 con la API NASA POWER: irradiancia global horizontal (GHI), directa normal (DNI) y de cielo despejado, mapeados sobre Sevilla.</p>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card" style="border-left-color:#fbbf24; background: linear-gradient(135deg, #1e293b 0%, #2a2410 100%); grid-column: span 2;">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <path d="M12 1v6M12 17v6M4.2 4.2l4.2 4.2M15.5 15.5l4.3 4.3M1 12h6M17 12h6M4.2 19.8l4.2-4.2M15.5 8.5l4.3-4.3"/>
+                </svg>
+                <h4>Verano y también invierno: sombra o sol, tú eliges</h4>
+            </div>
+            <p style="margin-bottom:0;">
+                La mayoría piensa en Manolit∞ como "el buscador de sombra", pero el motor de debajo no sabe de estaciones: sabe de dónde está el sol. En agosto te esquiva el sol para que no te achicharres. En pleno enero, cuando lo que apetece es calentarse, con un clic invierte el cálculo y te lleva justo por donde da el sol. Misma tecnología, dos necesidades opuestas cubiertas — porque el confort térmico también existe en invierno, y no solo se trata de huir del calor.
+            </p>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- ECOSISTEMA MANOLIT∞ -->
+    <h2>El universo Manolit∞: no es una sola herramienta</h2>
+    <p class="lead">
+        Manolit∞ Aire es la puerta de entrada. No es el único hermano. Los tres proyectos nacieron de la misma idea:
+        los datos climáticos no deberían quedarse encerrados en un informe técnico que nadie lee.
+    </p>
+
+    <div class="grid-3">
+        <div class="card">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                </svg>
+                <h4>Manolit∞ Aire</h4>
+            </div>
+            <p>El hermano que estás viendo ahora mismo: sombra, ruta peatonal y calidad del aire para moverte por Sevilla sin quemarte. Incluye chat con IA para resolver dudas al momento.</p>
+            <p class="text-muted" style="margin-bottom:0;">manolitoaire.com</p>
+        </div>
+        <div class="card patina-card" style="border-left-color:#22c55e;">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2 4 8v8l8 6 8-6V8z"/>
+                    <path d="M12 2v20M4 8l8 6 8-6"/>
+                </svg>
+                <h4>Manolit∞ Forestal</h4>
+            </div>
+            <p>El hermano puesto en el monte: monitorización forestal y riesgo de incendio, pensado para llegar a quien decide y a quien avisa antes de que sea tarde. También incluye chat con IA.</p>
+            <p class="text-muted" style="margin-bottom:0;">manolitoforestal.space</p>
+        </div>
+        <div class="card" style="border-left-color:#f97316;">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+                    <circle cx="12" cy="12" r="4"/>
+                </svg>
+                <h4>Islas de Calor Sevilla</h4>
+            </div>
+            <p>El hermano que pone el dedo en la llaga: mapea las islas de calor urbano de Sevilla, los barrios donde el calor pega más fuerte y durante más tiempo. Los tres proyectos llevan chat con IA, pero <strong style="color:#f97316;">este es el único con una IA de raíz andaluza</strong>, que responde en el habla de la tierra en vez de en un tono neutro.</p>
+            <p class="text-muted" style="margin-bottom:0;">islasdecalorsevilla.com</p>
+        </div>
+    </div>
+
+    <p style="margin-top: 8px;">
+        Ninguno de los tres pide registro, vende datos ni cobra. Comparten algo más importante que el código:
+        la convicción de que en el siglo XXI saber a qué calor te expones, por dónde arde el monte y por dónde puedes
+        respirar mejor debería ser un derecho básico, al nivel del agua o la sanidad — no un dato que un algoritmo
+        publicitario decide cuándo enseñarte. Cuanta más gente entienda sus propios datos climáticos, menos terreno
+        le queda al bulo fácil y más capacidad tiene la sociedad de exigir cambios reales. El calor, el aire y el fuego
+        no distinguen a quién afectan — la información para entenderlos y plantarles cara tampoco debería distinguir
+        quién puede pagarla.
+    </p>
+
+    <div class="separator"></div>
+
+    <!-- COMPARATIVA CON OTRAS HERRAMIENTAS DE PAGO -->
+    <h2>Comparativa con otras herramientas de pago</h2>
+    <p>
+        Manolit∞ Aire ocupa un nicho concreto: el del <strong>peatón urbano</strong> que busca caminar a la sombra en tiempo real,
+        sin coste y sin que sus datos de ubicación salgan de su navegador. A continuación se comparan sus características con las de otras herramientas disponibles en el mercado.
+    </p>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="min-width:160px;">Característica</th>
+                    <th>Manolit∞ Aire</th>
+                    <th>Otras herramientas de pago</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Coste</strong></td>
+                    <td><span class="check">Gratuito</span></td>
+                    <td>Modelo de suscripción o licencia</td>
+                </tr>
+                <tr>
+                    <td><strong>Arquitectura</strong></td>
+                    <td>100% cliente (JavaScript)</td>
+                    <td>Cliente + servidor / Desktop</td>
+                </tr>
+                <tr>
+                    <td><strong>Datos 3D</strong></td>
+                    <td>OpenStreetMap (colaborativo)</td>
+                    <td>Datos propietarios o satelitales</td>
+                </tr>
+                <tr>
+                    <td><strong>Nubosidad real</strong></td>
+                    <td><span class="check">Sí</span></td>
+                    <td><span class="cross">No</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Rutas peatonales</strong></td>
+                    <td><span class="check">Sí (Dijkstra)</span></td>
+                    <td><span class="cross">No</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Precisión de sombras</strong></td>
+                    <td>Media (geométrica)</td>
+                    <td>Alta / Muy alta (ray tracing o LiDAR)</td>
+                </tr>
+                <tr>
+                    <td><strong>Modelado / importación 3D</strong></td>
+                    <td><span class="cross">No</span></td>
+                    <td><span class="check">Sí</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Captura de foto del mapa</strong></td>
+                    <td><span class="check">Sí</span></td>
+                    <td><span class="warn">Según herramienta</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Métricas financieras</strong></td>
+                    <td><span class="cross">No</span></td>
+                    <td><span class="check">Sí (ROI, LCOE, etc.)</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Privacidad</strong></td>
+                    <td>Alta (cálculo local)</td>
+                    <td>Media (envío de datos a servidores)</td>
+                </tr>
+                <tr>
+                    <td><strong>Open Source</strong></td>
+                    <td><span class="check">Sí (dependencias abiertas)</span></td>
+                    <td><span class="cross">No</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Público objetivo</strong></td>
+                    <td><strong>Ciudadano / Peatón</strong></td>
+                    <td>Profesionales (solar, arquitectura, fotografía)</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="text-muted" style="margin-top:8px;">
+        * La comparativa se realiza a nivel genérico, sin mencionar marcas concretas, para ofrecer una visión objetiva y ajustada a la normativa de competencia leal.<br />
+        * "Modelado / importación 3D" se refiere a crear, editar o importar geometría (por ejemplo, un edificio nuevo o un modelo CAD). Manolit∞ ya visualiza los edificios 3D de OpenStreetMap con sus sombras y permite capturar una foto de esa vista para usarla donde quieras — lo que no ofrece es modificar la geometría en sí.
+    </p>
+
+    <div class="separator"></div>
+
+    <!-- ANÁLISIS POR DIMENSIONES -->
+    <h2>Análisis por dimensión</h2>
+
+    <div class="grid-2">
+        <div class="card">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 8v8M8 12h8"/>
+                </svg>
+                <h4>Para el ciudadano / peatón</h4>
+            </div>
+            <ul>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Manolit∞</strong> — encaja bien: gratuito, con rutas, con nubosidad real y sin ceder tu ubicación.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    <span><strong>Otras herramientas</strong> — no están pensadas para caminar. Sin rutas peatonales. Coste elevado.</span>
+                </li>
+            </ul>
+        </div>
+        <div class="card gold-border">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <h4>Para el profesional solar</h4>
+            </div>
+            <ul>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    <span><strong>Manolit∞</strong> — insuficiente: precisión media y sin métricas financieras.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Otras herramientas</strong> — pensadas justo para esto: alta precisión, métricas bancables, ROI.</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card cloud-border">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a10 10 0 1 0 10 10 10 10 0 0 0-10-10z"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+                <h4>Para el fotógrafo / arquitecto</h4>
+            </div>
+            <ul>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+                    </svg>
+                    <span><strong>Manolit∞</strong> — aceptable para orientarse: visualización 3D, pero sin edición ni exportación.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Otras herramientas</strong> — modelos 3D detallados, con edición y exportación real.</span>
+                </li>
+            </ul>
+        </div>
+        <div class="card purple-border">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <polyline points="3.29 7 12 12 20.71 7"/>
+                    <line x1="12" y1="22" x2="12" y2="12"/>
+                </svg>
+                <h4>Para el urbanista / investigador</h4>
+            </div>
+            <ul>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Manolit∞</strong> — interesante como fuente rápida: gratuito, datos abiertos, nubosidad y rutas.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+                    </svg>
+                    <span><strong>Otras herramientas</strong> — sólidas, pero de pago y sin foco en movilidad peatonal.</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- FORTALEZAS Y DEBILIDADES DE MANOLIT∞ -->
+    <h2>Fortalezas y debilidades de Manolit∞ frente a otras herramientas</h2>
+
+    <div class="grid-2">
+        <div class="card" style="border-left-color: #00e5ff;">
+            <h4 style="margin-top:0; color:#00e5ff;">Fortalezas</h4>
+            <ul>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Funciona en las dos estaciones</strong> — sombra en verano, sol en invierno, con el mismo motor.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Única con rutas peatonales optimizadas</strong> por sombra (Dijkstra térmico).</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Única con nubosidad en tiempo real</strong> integrada en el cálculo de sombra.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>100% cliente</strong> — nada de lo que haces sale de tu navegador.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Gratuita</strong>, sin ánimo de lucro, sin cuenta ni registro.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Captura de foto del mapa 3D</strong>, lista para guardar o compartir tal cual la ves.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Sus limitaciones están explicadas</strong> en el aviso legal, no escondidas.</span>
+                </li>
+            </ul>
+        </div>
+        <div class="card gold-border" style="border-left-color: #f59e0b;">
+            <h4 style="margin-top:0; color:#f59e0b;">Debilidades</h4>
+            <ul>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+                    </svg>
+                    <span><strong>Menor precisión en sombras</strong> (proyección geométrica frente a ray tracing / LiDAR).</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+                    </svg>
+                    <span><strong>Depende de OpenStreetMap</strong> — puede haber zonas incompletas o desactualizadas.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+                    </svg>
+                    <span><strong>Sin edición 3D</strong> ni importación de modelos.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+                    </svg>
+                    <span><strong>Sin métricas financieras</strong> (ROI, LCOE, ahorro estimado).</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- STACK TECNOLÓGICO Y TRANSPARENCIA -->
+    <h2>Stack tecnológico y transparencia</h2>
+    <div class="grid-2">
+        <div class="card">
+            <h4 style="margin-top:0;">Tecnologías usadas</h4>
+            <ul>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="16 18 22 12 16 6"/>
+                        <polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                    <span><strong>JavaScript (ES6+)</strong> — núcleo de la aplicación.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="2"/>
+                        <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+                    </svg>
+                    <span><strong>WebGL</strong> (OpenGlobus / Three.js) — visualización 3D.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <span><strong>Turf.js</strong> — operaciones geoespaciales en el navegador.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <span><strong>SunCalc</strong> — posición solar astronómica.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
+                    </svg>
+                    <span><strong>Cloudflare Workers</strong> — proxy seguro para la API de nubosidad.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 4v16h16"/>
+                        <polyline points="4 12 8 8 12 12 16 8 20 12"/>
+                    </svg>
+                    <span><strong>APIs externas</strong>: OpenStreetMap, Copernicus CAMS, NASA POWER, OpenWeatherMap.</span>
+                </li>
+            </ul>
+        </div>
+        <div class="card gold-border">
+            <h4 style="margin-top:0; color:#fbbf24;">Transparencia y privacidad</h4>
+            <ul>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Cálculo local</strong> — no se envían datos de rutas ni de ubicación a ningún servidor.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Proxy de API</strong> — la clave de OpenWeatherMap se queda en el servidor, nunca en tu navegador.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Licencias abiertas</strong> — todos los datos provienen de fuentes públicas.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Aviso legal detallado</strong> — todas las limitaciones están explicitadas.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Licencia AGPL-3.0</strong> — quien lo mejore está obligado a devolver esas mejoras a la comunidad; nadie puede privatizarlo.</span>
+                </li>
+                <li>
+                    <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span><strong>Espíritu de utilidad pública</strong> — código accesible y sin ánimo de lucro.</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- BLINDAJE LEGAL -->
+    <h2>Por qué es libre, no solo gratuito</h2>
+    <div class="quote-block" style="background:#0a1a30; border-left-color:#00e5ff; color:#e2e8f0; font-style:normal;">
+        <span>
+            La sombra que te salva la vida en agosto no debería depender de lo que decida cobrar una empresa,
+            ni de lo que un algoritmo opaco elija enseñarte. Por eso este código queda protegido para seguir siendo
+            libre — hoy, y dentro de cien años, cuando el clima que viene haga que esto importe todavía más.
+        </span>
+    </div>
+    <div class="grid-2">
+        <div class="card" style="border-left-color:#00e5ff;">
+            <h4 style="margin-top:0;">Copyleft estricto</h4>
+            <p style="margin-bottom:0;">Cualquiera puede usar y adaptar el código, incluidas grandes empresas — pero si lo modifican para un servicio propio, la licencia AGPL-3.0 les obliga a publicar también sus cambios. No se puede coger, cerrar y vender.</p>
+        </div>
+        <div class="card gold-border">
+            <h4 style="margin-top:0; color:#fbbf24;">Atribución obligatoria</h4>
+            <p style="margin-bottom:0;">Cualquier copia o versión derivada debe mantener visible la autoría original. El objetivo no es esconder el conocimiento, sino evitar que un tercero se lo apropie y lo vuelva a cerrar.</p>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- CONCLUSIÓN -->
+    <h2>Conclusión</h2>
+    <div style="background: #0a1a30; border-radius: 20px; padding: 24px 32px; border: 1px solid #00e5ff33; margin: 16px 0;">
+        <p style="font-size:1.05rem; margin-bottom: 8px;">
+            <strong>Manolit∞ Aire no compite directamente con otras herramientas de pago porque sus públicos objetivos son radicalmente diferentes.</strong>
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+            <div style="background: #1e293b; padding: 14px 20px; border-radius: 12px; border-left: 4px solid #00e5ff;">
+                <h4 style="margin:0; color:#00e5ff;">Manolit∞</h4>
+                <p style="margin:6px 0 0 0; font-size:0.95rem;">
+                    <strong>Ciudadano / peatón</strong> — gratuito, ligero, con rutas y nubosidad real, pero precisión limitada.
+                </p>
+            </div>
+            <div style="background: #1e293b; padding: 14px 20px; border-radius: 12px; border-left: 4px solid #94a3b8;">
+                <h4 style="margin:0; color:#94a3b8;">Otras herramientas</h4>
+                <p style="margin:6px 0 0 0; font-size:0.95rem;">
+                    <strong>Profesionales (solar, arquitectura, fotografía)</strong> — de pago, mayor precisión y funcionalidades avanzadas, sin enfoque peatonal.
+                </p>
+            </div>
+            <div style="background: #1e293b; padding: 14px 20px; border-radius: 12px; border-left: 4px solid #f59e0b; grid-column: span 2;">
+                <h4 style="margin:0; color:#f59e0b;">Posicionamiento único</h4>
+                <p style="margin:6px 0 0 0; font-size:0.95rem;">
+                    Manolit∞ cubre un hueco que nadie más cubre: caminar a la sombra, con nubes reales, sin pagar y sin ceder tu ubicación. No compite con las herramientas profesionales — las complementa. Y apuesta por algo más grande: que el software libre, y no la suscripción, sea la forma normal de afrontar el clima que se nos viene encima.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <span>Manolit∞ Aire · Proyecto ciudadano sin ánimo de lucro · © 2026 Sandro · Obra registrada — Propiedad Intelectual Junta de Andalucía, Consejería de Cultura y Deporte · Nº Expediente: RTA-3147-26 · Nº Registro: 2026999010353785 · 28/08/2026 · AGPL-3.0</span>
+        <span>
+            <a href="https://manolitoaire.com/aviso-legal" target="_blank">Aviso legal</a>
+            · <a href="https://manolitoaire.com/privacidad" target="_blank">Privacidad</a>
+            · <a href="https://manolitoaire.com" target="_blank">manolitoaire.com</a>
+        </span>
+        <span style="color:#334155;">v1.0 · 2026</span>
+    </footer>
+
+</div>
+
+</body>
+</html>

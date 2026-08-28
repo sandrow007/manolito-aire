@@ -13,7 +13,6 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
-<base target="_blank">
 </head>
 <body>
 
@@ -88,6 +87,27 @@
   <h2 data-i18n-legal="priv_19">5 bis. Datos de Nubosidad en Tiempo Real (OpenWeatherMap)</h2>
   <p data-i18n-legal="priv_20">
     Para pintar las sombras con realismo físico según el cielo actual y dibujar la capa de nubes visible sobre el mapa, la web consulta el porcentaje de cobertura nubosa y las teselas del mapa de nubes de <b>OpenWeatherMap</b>. Ambas peticiones viajan a través de un proxy propio en <b>Cloudflare Workers</b>: tu navegador solo envía a ese proxy las coordenadas del centro del mapa (o tu punto de referencia, si usaste "Mi ubicación") redondeadas a tres decimales — una precisión de unos 100&nbsp;m — y las coordenadas de tesela de la zona visible, sin ningún dato personal adjunto; la clave de API permanece en el servidor, nunca en tu dispositivo. Los resultados se guardan en caché unos 10 minutos y no se almacenan en ningún servidor propio. OpenWeatherMap procesa esas solicitudes según su propia política de privacidad; si prefieres no enviar coordenada alguna, ten en cuenta que el mapa siempre usa el centro de la vista y nunca tu GPS, salvo que actives la ubicación manualmente.
+  </p>
+
+  <h2>5 ter. Capa del Catastro de España (Parcelas y Alturas)</h2>
+  <p>
+    Al activar la capa «Catastro 3D», tu navegador solicita las imágenes de parcelas catastrales a
+    través del proxy propio de esta web en <b>Cloudflare Workers</b>, que a su vez consulta el servicio
+    público WMS de la <b>Sede Electrónica del Catastro</b> (ovc.catastro.meh.es). La única información
+    que viaja en esas peticiones son las <b>coordenadas de las teselas del mapa que estás viendo</b>
+    (la zona visible, no tu posición GPS ni ningún dato personal). El Catastro procesa esas solicitudes
+    como servicio público INSPIRE conforme a sus propias condiciones; las respuestas se guardan en
+    caché durante 1 hora para acelerar la carga y no se almacena historial alguno de tus consultas.
+  </p>
+
+  <h2>5 quáter. Tipografías web (Google Fonts)</h2>
+  <p>
+    Los textos de la web (incluida la página «Comparativa») usan tipografías de <b>Google Fonts</b>,
+    servicio prestado por Google Ireland Ltd. Al cargar cualquier página, tu navegador descarga las
+    fuentes desde los servidores de Google, que recibe únicamente la petición técnica habitual
+    (dirección IP y agente de usuario), sin cookies ni identificadores asociados por nuestra parte.
+    Google trata esos datos según su propia política de privacidad. Ninguna otra información tuya
+    se envía a Google.
   </p>
 
   <h2 data-i18n-legal="priv_17">6. Derechos de los Usuarios y RGPD</h2>

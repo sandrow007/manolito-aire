@@ -89,7 +89,11 @@ a{ color: var(--sky-mid); }
   padding: 16px 24px;
   border-bottom: 1px solid var(--line);
   background: var(--paper);
-  position: sticky; top:0; z-index: 30;
+  /* z-index alto + transform propio: el canvas WebGL del mapa no puede
+     pintarse NUNCA por encima de la barra al hacer scroll (en Chrome el
+     canvas acelerado por GPU a veces se "subía" sobre el sticky) */
+  position: sticky; top:0; z-index: 1000;
+  transform: translateZ(0);
 }
 .topbar-right{
   display:flex; align-items:center; gap:14px; flex-wrap:wrap;
@@ -209,7 +213,10 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
   -webkit-text-fill-color: transparent; color: transparent;
   animation: wordmarkFlow 8s ease-in-out infinite;
 }
-.map-wrap{ position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); }
+/* isolation:isolate crea un contexto de apilamiento propio: nada de lo
+   que el mapa pinte dentro (canvas WebGL, controles con z-index) puede
+   salirse por encima de la barra superior fija al hacer scroll. */
+.map-wrap{ position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); isolation:isolate; }
 
 /* El mapa de sombras 3D abre la página: marco de degradado cálido
    (naranja → azul → verde) para que tenga vida y no se mezcle con el fondo */
@@ -640,7 +647,16 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 }
 #rsBuscarBtn:hover{ background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2, #E04E00) 100%); color:var(--paper); transform:translateY(-1px); filter:brightness(1.08); box-shadow:0 10px 24px var(--accent-soft); }
 #rsBuscarBtn:active{ transform:translateY(1px); }
-.rs-layer-toggles{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px; font-size:0.8rem; color:var(--sky-deep); font-weight:600; }
+.rs-layer-toggles{ display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:10px; font-size:0.8rem; color:var(--sky-deep); font-weight:600; }
+.rs-layer-toggles-lista{ display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+.rs-layer-toggles.rs-plegado .rs-layer-toggles-lista{ display:none; }
+#rsBtnPlegarCapas{
+  font-family:inherit; font-size:0.72rem; letter-spacing:.05em; text-transform:uppercase;
+  font-weight:700; padding:5px 12px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--line); background:var(--paper); color:var(--sky-deep);
+  transition:background .15s, border-color .15s;
+}
+#rsBtnPlegarCapas:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent); }
 .rs-layer-toggles label{ display:flex; align-items:center; gap:6px; cursor:pointer; }
 .rs-layer-toggles input[type="checkbox"]{ accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
 .rs-sol-widget{

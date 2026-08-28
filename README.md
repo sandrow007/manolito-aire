@@ -49,4 +49,4 @@ Los servidores no son gratis. Si quieres ayudar:
   Junta de Andalucía - Consejería de Cultura y Deporte
    Nº Expediente: RTA-3147-26
    Nº Registro: 2026999010353785
-     Fecha: 28/08/2026 · AGPL-3.0 -->
+     Fecha: 28/08/2026 · AGPL-3.0 . Código libre para la humanidad.

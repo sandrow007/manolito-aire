@@ -558,10 +558,87 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 // Pantalla completa nativa (botón en la esquina del mapa). Al entrar/salir
 // el canvas cambia de tamaño y MapLibre hay que avisarlo con resize(), si
 // no el mapa se queda estirado o con bandas negras.
-map.addControl(new maplibregl.FullscreenControl());
+// Pantalla completa propia (botón en la esquina del mapa). El control
+// nativo de MapLibre usa la Fullscreen API del navegador, que en iPhone
+// NO existe para elementos normales (solo vídeos): el botón no hacía
+// nada. Aquí hay dos caminos:
+//   1) Si el navegador sí soporta fullscreen real (Android, portátil),
+//      se usa el nativo, que además oculta la barra del navegador.
+//   2) Si no (iPhone), se aplica una clase CSS que fija el mapa a toda
+//      la pantalla (100dvh) por encima de todo. Mismo resultado visual.
+// En ambos casos se avisa a MapLibre con resize() para que el canvas no
+// se quede estirado ni con bandas, y ESC / volver a pulsar sale.
+class ManolitoPantallaCompleta {
+  onAdd(m) {
+    this._map = m;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'maplibregl-ctrl-icon manolito-fs-btn';
+    btn.title = 'Pantalla completa';
+    btn.setAttribute('aria-label', 'Pantalla completa');
+    btn.setAttribute('aria-pressed', 'false');
+    btn.addEventListener('click', () => this._alternar(btn));
+    const grupo = document.createElement('div');
+    grupo.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    grupo.appendChild(btn);
+    this._grupo = grupo;
+    this._btn = btn;
+    return grupo;
+  }
+  onRemove() {
+    this._salirFallback();
+    if (this._grupo) this._grupo.remove();
+    this._map = undefined;
+  }
+  _nativoDisponible() {
+    const el = this._map.getContainer();
+    return !!(document.fullscreenEnabled && el.requestFullscreen);
+  }
+  _dentroFallback() {
+    return document.body.classList.contains('manolito-fs');
+  }
+  _entrarFallback() {
+    document.body.classList.add('manolito-fs');
+    this._btn.setAttribute('aria-pressed', 'true');
+    this._btn.classList.add('manolito-fs-activo');
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 60);
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 350);
+  }
+  _salirFallback() {
+    if (!this._dentroFallback()) return;
+    document.body.classList.remove('manolito-fs');
+    if (this._btn) {
+      this._btn.setAttribute('aria-pressed', 'false');
+      this._btn.classList.remove('manolito-fs-activo');
+    }
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 60);
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 350);
+  }
+  _alternar() {
+    if (this._dentroFallback()) { this._salirFallback(); return; }
+    if (document.fullscreenElement) {
+      try { document.exitFullscreen(); } catch (e) {}
+      return;
+    }
+    if (this._nativoDisponible()) {
+      const el = this._map.getContainer();
+      const promesa = el.requestFullscreen({ navigationUI: 'hide' });
+      if (promesa && promesa.catch) promesa.catch(() => this._entrarFallback());
+    } else {
+      this._entrarFallback();
+    }
+  }
+}
+const controlPantallaCompleta = new ManolitoPantallaCompleta();
+map.addControl(controlPantallaCompleta);
 document.addEventListener('fullscreenchange', () => {
   try { map.resize(); } catch (e) { /* mapa a medio crear */ }
 });
+// En el modo fallback (iPhone), ESC y el gesto de volver también salen.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') controlPantallaCompleta._salirFallback();
+});
+window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback());
 
   // El estilo base pide iconos (office, gate, swimming_pool...) que su sprite
   // no incluye: MapLibre llenaba la consola de avisos "Image could not be

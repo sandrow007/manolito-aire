@@ -991,3 +991,79 @@ body.modo-accesible .rs-btn-escuchar[aria-pressed="true"]{ background:#000 !impo
 [data-theme="dark"] .driver-popover-arrow-side-right{ border-right-color:#0A0C1F; }
 [data-theme="dark"] .driver-popover-arrow-side-top{ border-top-color:#0A0C1F; }
 [data-theme="dark"] .driver-popover-arrow-side-bottom{ border-bottom-color:#0A0C1F; }
+
+/* ================= Pantalla completa del mapa 3D (propio) =================
+   El botón nativo de MapLibre no funciona en iPhone (iOS solo permite
+   fullscreen en vídeos). Este modo propio fija el mapa a toda la pantalla
+   real del dispositivo (100dvh: descuenta la barra del navegador) y se
+   pone por encima de TODO (topbar, chat, planetario...). */
+body.manolito-fs{ overflow:hidden; }
+body.manolito-fs .map-section:has(#shadowRouteMap){
+  padding:0 !important;
+  content-visibility:visible !important;
+}
+body.manolito-fs .map-section:has(#shadowRouteMap) .map-wrap{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  height:100dvh;
+  z-index:99999;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  background:#000;
+  margin:0;
+}
+body.manolito-fs #shadowRouteMap{
+  width:100%;
+  height:100vh;
+  height:100dvh;
+}
+/* Dentro de la pantalla completa solo vive el mapa: el planetario, los
+   botones de capas y demás secciones quedan fuera (el planetario se
+   colaba por encima en el móvil). */
+body.manolito-fs .rs-planetario,
+body.manolito-fs .rs-layer-toggles,
+body.manolito-fs .rs-form,
+body.manolito-fs #rsStatus,
+body.manolito-fs .rs-pasos,
+body.manolito-fs #rsAqiPanel,
+body.manolito-fs .chat-fab{ display:none !important; }
+
+/* Icono del botón de pantalla completa (el sprite de MapLibre solo se
+   aplica a su control nativo; el nuestro dibuja el suyo). */
+.maplibregl-ctrl-group button.manolito-fs-btn{
+  width:29px; height:29px;
+  background-color:transparent;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:18px 18px;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+  cursor:pointer;
+}
+[data-theme="dark"] .maplibregl-ctrl-group button.manolito-fs-btn{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+}
+.maplibregl-ctrl-group button.manolito-fs-btn.manolito-fs-activo,
+.maplibregl-ctrl-group button.manolito-fs-btn[aria-pressed="true"]{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .maplibregl-ctrl-group button.manolito-fs-btn.manolito-fs-activo,
+[data-theme="dark"] .maplibregl-ctrl-group button.manolito-fs-btn[aria-pressed="true"]{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
+}
+
+/* ================= Ajustes móvil del mapa 3D =================
+   1) La sección del mapa de sombras NO usa content-visibility:auto:
+      en iPhone ese atajo de rendimiento calculaba mal las alturas al
+      hacer scroll y el planetario se pintaba encima del mapa. Como esta
+      sección está arriba del todo (casi siempre visible), quitarlo no
+      cuesta rendimiento.
+   2) El lienzo de MapLibre queda recortado a su caja: si el canvas se
+      redimensiona tarde, nunca puede desbordarse encima de otra cosa. */
+.map-section:has(#shadowRouteMap){
+  content-visibility:visible !important;
+  contain-intrinsic-size:none !important;
+}
+#shadowRouteMap{ overflow:hidden; }

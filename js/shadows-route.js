@@ -1126,44 +1126,37 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;
     const bearingSombra = (azimutGrados + 180) % 360;
 
+    // CÁLCULO SÍNCRONO Y DE GOLPE (como la versión rápida de antes):
+    // proyectar la sombra de un edificio es solo una envolvente convexa
+    // (calcularVolumenSombra), así que 320 edificios se calculan en
+    // milisegundos. Ni lotes con pausa ni abortos a mitad: si el cálculo
+    // se pudiera interrumpir (versión anterior), cualquier movimiento del
+    // mapa lo cancelaba a mitad y las sombras nunca llegaban a formarse
+    // completas — por eso se veían solo unas pocas y tardaban minutos.
     const poligonosSombra = [];
-    for (let i = 0; i < edificiosCacheados.length; i += CONFIG.loteSombraSize) {
-      if (miVersion !== versionCalculoSombras) return;
+    for (let i = 0; i < edificiosCacheados.length; i++) {
+      const edificio = edificiosCacheados[i];
+      const indiceDueno = i; // para no oscurecer un edificio con su propia sombra
+      try {
+        const altura = alturaDeEdificio(edificio.properties);
+        const longitudSombraM = altura / Math.tan(posSol.altitude);
+        if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
 
-      const lote = edificiosCacheados.slice(i, i + CONFIG.loteSombraSize);
-      for (let j = 0; j < lote.length; j++) {
-        const edificio = lote[j];
-        const indiceDueno = i + j; // para no oscurecer un edificio con su propia sombra
-        try {
-          const altura = alturaDeEdificio(edificio.properties);
-          const longitudSombraM = altura / Math.tan(posSol.altitude);
-          if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+        const geom = edificio.geometry;
+        if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
 
-          const geom = edificio.geometry;
-          if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
-
-          const distanciaKm = longitudSombraM / 1000;
-          const partes = turf.flatten(turf.feature(geom)).features;
-          for (const parte of partes) {
-            const volumen = calcularVolumenSombra(parte, distanciaKm, bearingSombra);
-            if (volumen) {
-              volumen.properties = Object.assign({}, volumen.properties, { d: indiceDueno });
-              poligonosSombra.push(volumen);
-            }
+        const distanciaKm = longitudSombraM / 1000;
+        const partes = turf.flatten(turf.feature(geom)).features;
+        for (const parte of partes) {
+          const volumen = calcularVolumenSombra(parte, distanciaKm, bearingSombra);
+          if (volumen) {
+            volumen.properties = Object.assign({}, volumen.properties, { d: indiceDueno });
+            poligonosSombra.push(volumen);
           }
-        } catch (e) {
-          continue;
         }
+      } catch (e) {
+        continue;
       }
-
-      if (miVersion !== versionCalculoSombras) return;
-      // Entre lotes SOLO se cede al navegador (para que la página no se
-      // congele), pero NO se toca el mapa: publicar sombras parciales cada
-      // 30 edificios provocaba ~11 repintados completos (setData +
-      // reevaluación de fachadas) y el usuario veía el mapa "desigual",
-      // con sombras a medias durante segundos. Ahora se calcula todo y se
-      // publica UNA vez al final, como antes: rápido y de golpe.
-      if (i + CONFIG.loteSombraSize < edificiosCacheados.length) await cederAlNavegador();
     }
 
     if (miVersion !== versionCalculoSombras) return;

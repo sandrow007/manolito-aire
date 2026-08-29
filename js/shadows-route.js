@@ -555,6 +555,90 @@
 // AHORA SÍ: El mapa está creado, lo pasamos a global para que los árboles lo enganchen
 window.manolitAireMap = map;
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
+// Pantalla completa nativa (botón en la esquina del mapa). Al entrar/salir
+// el canvas cambia de tamaño y MapLibre hay que avisarlo con resize(), si
+// no el mapa se queda estirado o con bandas negras.
+// Pantalla completa propia (botón en la esquina del mapa). El control
+// nativo de MapLibre usa la Fullscreen API del navegador, que en iPhone
+// NO existe para elementos normales (solo vídeos): el botón no hacía
+// nada. Aquí hay dos caminos:
+//   1) Si el navegador sí soporta fullscreen real (Android, portátil),
+//      se usa el nativo, que además oculta la barra del navegador.
+//   2) Si no (iPhone), se aplica una clase CSS que fija el mapa a toda
+//      la pantalla (100dvh) por encima de todo. Mismo resultado visual.
+// En ambos casos se avisa a MapLibre con resize() para que el canvas no
+// se quede estirado ni con bandas, y ESC / volver a pulsar sale.
+class ManolitoPantallaCompleta {
+  onAdd(m) {
+    this._map = m;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'maplibregl-ctrl-icon manolito-fs-btn';
+    btn.title = 'Pantalla completa';
+    btn.setAttribute('aria-label', 'Pantalla completa');
+    btn.setAttribute('aria-pressed', 'false');
+    btn.addEventListener('click', () => this._alternar(btn));
+    const grupo = document.createElement('div');
+    grupo.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    grupo.appendChild(btn);
+    this._grupo = grupo;
+    this._btn = btn;
+    return grupo;
+  }
+  onRemove() {
+    this._salirFallback();
+    if (this._grupo) this._grupo.remove();
+    this._map = undefined;
+  }
+  _nativoDisponible() {
+    const el = this._map.getContainer();
+    return !!(document.fullscreenEnabled && el.requestFullscreen);
+  }
+  _dentroFallback() {
+    return document.body.classList.contains('manolito-fs');
+  }
+  _entrarFallback() {
+    document.body.classList.add('manolito-fs');
+    this._btn.setAttribute('aria-pressed', 'true');
+    this._btn.classList.add('manolito-fs-activo');
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 60);
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 350);
+  }
+  _salirFallback() {
+    if (!this._dentroFallback()) return;
+    document.body.classList.remove('manolito-fs');
+    if (this._btn) {
+      this._btn.setAttribute('aria-pressed', 'false');
+      this._btn.classList.remove('manolito-fs-activo');
+    }
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 60);
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 350);
+  }
+  _alternar() {
+    if (this._dentroFallback()) { this._salirFallback(); return; }
+    if (document.fullscreenElement) {
+      try { document.exitFullscreen(); } catch (e) {}
+      return;
+    }
+    if (this._nativoDisponible()) {
+      const el = this._map.getContainer();
+      const promesa = el.requestFullscreen({ navigationUI: 'hide' });
+      if (promesa && promesa.catch) promesa.catch(() => this._entrarFallback());
+    } else {
+      this._entrarFallback();
+    }
+  }
+}
+const controlPantallaCompleta = new ManolitoPantallaCompleta();
+map.addControl(controlPantallaCompleta);
+document.addEventListener('fullscreenchange', () => {
+  try { map.resize(); } catch (e) { /* mapa a medio crear */ }
+});
+// En el modo fallback (iPhone), ESC y el gesto de volver también salen.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') controlPantallaCompleta._salirFallback();
+});
+window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback());
 
   // El estilo base pide iconos (office, gate, swimming_pool...) que su sprite
   // no incluye: MapLibre llenaba la consola de avisos "Image could not be
@@ -629,7 +713,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         id: 'capa-sombras',
         type: 'fill',
         source: 'sombras',
-        paint: { 'fill-color': '#0b1220', 'fill-opacity': 0.28 },
+        paint: { 'fill-color': '#0b1220', 'fill-opacity': 0.34 },
       },
       capaEdificiosDisponible ? CONFIG.edificiosLayerId : undefined
     );
@@ -657,7 +741,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       source: 'edificios-en-sombra',
       paint: {
         'fill-extrusion-color': '#0b1220',
-        'fill-extrusion-opacity': 0.42,
+        'fill-extrusion-opacity': 0.5,
         'fill-extrusion-height': ['get', 'alturaSombra'],
         'fill-extrusion-base': 0,
         'fill-extrusion-vertical-gradient': false,
@@ -814,8 +898,22 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     // superpuestas: el móvil se ahoga y el mapa pinta sombra donde hay sol.
     // Aquí se descomponen en edificios individuales, se deduplican los que
     // se repiten al cruzar bordes de tesela y se descartan restos diminutos.
+    // Margen del 20% alrededor de la vista: las sombras de edificios que
+    // están JUSTO fuera de pantalla entran en ella (sobre todo al atardecer,
+    // con sombras largas). Sin ese colchón aparecían huecos de sol falsos
+    // en los bordes del mapa.
+    const vista = map.getBounds();
+    const margenLon = Math.max(0.0015, (vista.getEast() - vista.getWest()) * 0.2);
+    const margenLat = Math.max(0.0015, (vista.getNorth() - vista.getSouth()) * 0.2);
+    const cajaVista = [
+      vista.getWest() - margenLon,
+      vista.getSouth() - margenLat,
+      vista.getEast() + margenLon,
+      vista.getNorth() + margenLat,
+    ];
     const vistos = new Set();
-    const limpios = [];
+    const candidatos = [];
+    const centroVista = map.getCenter();
     for (const f of crudos) {
       const geom = f && f.geometry;
       if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
@@ -829,12 +927,31 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
         const clave = anillo[0][0].toFixed(5) + ',' + anillo[0][1].toFixed(5) + ':' + anillo.length;
         if (vistos.has(clave)) continue;
         vistos.add(clave);
-        limpios.push({ type: 'Feature', properties: f.properties || {}, geometry: parte.geometry });
-        if (limpios.length >= CONFIG.maxEdificiosSombra) break;
+        let cajaParte;
+        try { cajaParte = turf.bbox(parte); } catch (e) { continue; }
+        if (cajaParte[0] > cajaVista[2] || cajaParte[2] < cajaVista[0]
+          || cajaParte[1] > cajaVista[3] || cajaParte[3] < cajaVista[1]) continue;
+        let distanciaCentro = 0;
+        try {
+          distanciaCentro = turf.distance(
+            turf.centroid(parte), turf.point([centroVista.lng, centroVista.lat]),
+            { units: 'kilometers' }
+          );
+        } catch (e) { /* distancia 0: va al principio igualmente */ }
+        candidatos.push({
+          edificio: { type: 'Feature', properties: f.properties || {}, geometry: parte.geometry },
+          distanciaCentro,
+        });
       }
-      if (limpios.length >= CONFIG.maxEdificiosSombra) break;
     }
-    edificiosCacheados = limpios;
+    // Se priorizan los edificios más cercanos al centro de la pantalla: si
+    // hay más de los que caben en el presupuesto, los que se quedan fuera
+    // son los del borde, nunca los que el usuario está mirando.
+    candidatos.sort((a, b) => a.distanciaCentro - b.distanciaCentro);
+    edificiosCacheados = (CONFIG.maxEdificiosSombra > 0
+      ? candidatos.slice(0, CONFIG.maxEdificiosSombra)
+      : candidatos
+    ).map((candidato) => candidato.edificio);
   }
 
   /* ---------------- Sombras reales: sol + altura de edificios ---------------- */
@@ -1040,17 +1157,12 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       }
 
       if (miVersion !== versionCalculoSombras) return;
-      // La fuente del mapa y la colección en memoria avanzan JUNTAS por
-      // lotes: si otro recálculo pisa a este a mitad, ambas dicen lo mismo
-      // (antes la fuente llevaba sombras parciales y la memoria decía 0,
-      // y el badge de "% de sombra" leía el dato fantasma).
-      const parcial = turf.featureCollection(poligonosSombra.slice());
-      map.getSource('sombras')?.setData(parcial);
-      ultimaColeccionSombras = parcial;
-      // Las fachadas en sombra se actualizan EN EL MISMO bloque síncrono que
-      // las sombras del suelo: si otro recálculo pisa a este entre lotes,
-      // las fachadas nunca quedan desfasadas (ni vacías) respecto al suelo.
-      actualizarEdificiosEnSombra(parcial);
+      // Entre lotes SOLO se cede al navegador (para que la página no se
+      // congele), pero NO se toca el mapa: publicar sombras parciales cada
+      // 30 edificios provocaba ~11 repintados completos (setData +
+      // reevaluación de fachadas) y el usuario veía el mapa "desigual",
+      // con sombras a medias durante segundos. Ahora se calcula todo y se
+      // publica UNA vez al final, como antes: rápido y de golpe.
       if (i + CONFIG.loteSombraSize < edificiosCacheados.length) await cederAlNavegador();
     }
 
@@ -1179,7 +1291,7 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     const colorSombra = mezclarHex('#0b1220', '#46586c', nubosidadActual * 0.8);
     try {
       if (map.getLayer('capa-sombras')) {
-        map.setPaintProperty('capa-sombras', 'fill-opacity', 0.28 * f);
+        map.setPaintProperty('capa-sombras', 'fill-opacity', 0.34 * f);
         map.setPaintProperty('capa-sombras', 'fill-color', colorSombra);
       }
       if (map.getLayer('capa-sombras-halo')) {
@@ -1920,6 +2032,18 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       #rsMapControls button.rs-activo{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); color:var(--sky-deep, #0E3B47); }
       @media (max-width:480px){ #rsMapControls button{ padding:5px 9px; font-size:8.5px; } }
 
+      /* Botonera plegable: plegada solo queda el botón ≡ flotando */
+      #rsBtnPlegarControles{
+        font-family:inherit; font-size:12px; font-weight:700; line-height:1;
+        padding:7px 11px; border-radius:999px;
+        border:1px solid var(--line, rgba(14,59,71,0.14));
+        background:rgba(251,250,247,0.95); color:var(--sky-deep, #0E3B47);
+        backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+        cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12);
+      }
+      #rsMapControls.rs-plegado{ right:auto; }
+      #rsMapControls.rs-plegado > button:not(#rsBtnPlegarControles){ display:none; }
+
       /* Joystick virtual para paseo 3D */
       #rsJoystick{
         position:absolute; right:24px; bottom:24px; width:96px; height:96px;
@@ -2344,7 +2468,22 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     // Irradiación Solar: sigue siendo un módulo aparte con carga perezosa.
     const btnIrradiacion = botonCapaFijo('rsBtnIrradiacion', t('irrLayerBtn', 'Irradiación Solar'), 'js/irradiacion-solar.js');
 
-    panelMapa.append(btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
+    // Botón ≡ para plegar/desplegar TODA la botonera: cuando el usuario
+    // quiere el mapa completamente limpio (capturas, enseñar la sombra a
+    // alguien, pantallas pequeñas) no hay nada tapando la vista.
+    const btnPlegarControles = document.createElement('button');
+    btnPlegarControles.type = 'button';
+    btnPlegarControles.id = 'rsBtnPlegarControles';
+    btnPlegarControles.textContent = '≡';
+    btnPlegarControles.setAttribute('aria-label', 'Mostrar u ocultar los botones del mapa');
+    btnPlegarControles.setAttribute('aria-expanded', 'true');
+    btnPlegarControles.addEventListener('click', () => {
+      const plegado = panelMapa.classList.toggle('rs-plegado');
+      btnPlegarControles.textContent = plegado ? '☰' : '≡';
+      btnPlegarControles.setAttribute('aria-expanded', plegado ? 'false' : 'true');
+    });
+
+    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
     contenedorMapa.appendChild(panelMapa);
 
     map.on('click', (e) => {
@@ -2656,6 +2795,82 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
       btnIGN.style.borderColor = ignActivo ? 'var(--accent, #FF6B1A)' : '';
     });
     wrap.appendChild(btnIGN);
+
+    /* --- Catastro de España: densidad de alturas (fucsia/verde) ---
+       100% gratis y sin API key: raster WMS oficial INSPIRE de la Sede
+       Electrónica del Catastro (edificios BU.Building) proxiedado por el
+       Worker (/catastro-wms, igual que /ign-wms) MÁS las extrusiones 3D
+       recoloreadas por altura (verde = bajo → fucsia = alto), el estilo de
+       densidad de edificación del Catastro. Las sombras NO se tocan: el
+       motor lee geometría y alturas, no colores, así que siguen calculando
+       igual sobre los mismos volúmenes. */
+    const CAT_SRC = 'catastro-wms-base';
+    const CAT_CAPA = 'catastro-wms-capa';
+    let catastroActivo = false;
+    const COLOR_EDIFICIOS_NORMAL = [
+      'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+      0, '#8fb3e8',
+      30, '#5f8fd6',
+      70, '#3f6bc0',
+      140, '#274a96'
+    ];
+    // Gradiente de densidad del Catastro: verde (bajos) → amarillo →
+    // naranja → fucsia (torres). Se lee de un vistazo dónde se concentra
+    // la altura de la ciudad.
+    const COLOR_EDIFICIOS_CATASTRO = [
+      'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+      0, '#2f9e44',
+      12, '#8ac926',
+      25, '#ffca3a',
+      45, '#f3722c',
+      80, '#d6006d',
+      140, '#9d0060'
+    ];
+    const asegurarCapaCatastro = () => {
+      try {
+        if (!map.getSource(CAT_SRC)) {
+          map.addSource(CAT_SRC, {
+            type: 'raster',
+            tiles: ['/catastro-wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=TRUE&LAYERS=PARCELA&STYLES=Default&WIDTH=256&HEIGHT=256&SRS=EPSG:3857&BBOX={bbox-epsg-3857}'],
+            tileSize: 256,
+            attribution: '© <a href="https://www.sedecatastro.gob.es/" target="_blank" rel="noopener">Dirección General del Catastro</a>',
+          });
+        }
+        if (!map.getLayer(CAT_CAPA)) {
+          const antes = map.getLayer(CONFIG.edificiosLayerId) ? CONFIG.edificiosLayerId : undefined;
+          map.addLayer({ id: CAT_CAPA, type: 'raster', source: CAT_SRC,
+            paint: { 'raster-opacity': 0.75, 'raster-fade-duration': 300 },
+            layout: { visibility: 'none' } }, antes);
+        }
+      } catch (e) {
+        map.once('idle', () => { if (catastroActivo) { asegurarCapaCatastro(); try { map.setLayoutProperty(CAT_CAPA, 'visibility', 'visible'); } catch (e2) {} } });
+      }
+    };
+    const btnCatastro = document.createElement('button');
+    btnCatastro.type = 'button';
+    btnCatastro.id = 'rsBtnCatastro';
+    btnCatastro.textContent = 'Catastro 3D';
+    btnCatastro.setAttribute('aria-pressed', 'false');
+    btnCatastro.title = 'Densidad de alturas oficial del Catastro de España (gratis, sin registro)';
+    btnCatastro.addEventListener('click', () => {
+      catastroActivo = !catastroActivo;
+      if (catastroActivo) {
+        asegurarCapaCatastro();
+        try { if (map.getLayer(CAT_CAPA)) map.setLayoutProperty(CAT_CAPA, 'visibility', 'visible'); } catch (e) {}
+        if (capaEdificiosDisponible && map.getLayer(CONFIG.edificiosLayerId)) {
+          try { map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', COLOR_EDIFICIOS_CATASTRO); } catch (e) {}
+        }
+      } else {
+        try { if (map.getLayer(CAT_CAPA)) map.setLayoutProperty(CAT_CAPA, 'visibility', 'none'); } catch (e) {}
+        if (capaEdificiosDisponible && map.getLayer(CONFIG.edificiosLayerId)) {
+          try { map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', COLOR_EDIFICIOS_NORMAL); } catch (e) {}
+        }
+      }
+      btnCatastro.setAttribute('aria-pressed', catastroActivo ? 'true' : 'false');
+      btnCatastro.style.background = catastroActivo ? 'var(--accent-soft, rgba(255,107,26,0.16))' : '';
+      btnCatastro.style.borderColor = catastroActivo ? 'var(--accent, #FF6B1A)' : '';
+    });
+    wrap.appendChild(btnCatastro);
     // El wrap pasa a apilar los dos botones en vertical
     wrap.style.display = 'flex';
     wrap.style.flexDirection = 'column';
@@ -2725,6 +2940,17 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     tSol?.addEventListener('change', () => { asegurarActivacionSolar(); actualizarIluminacionSolar(); });
     const tNubes = document.getElementById('rsToggleNubes');
     tNubes?.addEventListener('change', aplicarVisibilidadNubes);
+
+    // Fila de capas plegable (botón "▾ Capas" en index.html): limpia la
+    // vista sin perder el estado de los checkboxes.
+    const btnPlegarCapas = document.getElementById('rsBtnPlegarCapas');
+    btnPlegarCapas?.addEventListener('click', () => {
+      const cont = btnPlegarCapas.closest('.rs-layer-toggles');
+      if (!cont) return;
+      const plegado = cont.classList.toggle('rs-plegado');
+      btnPlegarCapas.textContent = plegado ? '▸ Capas' : '▾ Capas';
+      btnPlegarCapas.setAttribute('aria-expanded', plegado ? 'false' : 'true');
+    });
   }
 
   /* ---------------- Red: fetch con timeout + reintentos ---------------- */
@@ -3604,6 +3830,33 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
     const btn = document.getElementById('rsBtnEscucharPasos');
     if (btn) btn.hidden = !vozNavegadorDisponible();
     seccion.hidden = false;
+
+    // Las indicaciones son OPCIONALES: la sección aparece plegada y quien
+    // quiera leerla o escucharla la despliega con el botón. Solo se abre
+    // sola con el modo accesible activado (ahí es información esencial).
+    const cabecera = seccion.querySelector('.rs-pasos-cabecera');
+    let btnPlegar = document.getElementById('rsBtnPlegarPasos');
+    if (!btnPlegar && cabecera) {
+      btnPlegar = document.createElement('button');
+      btnPlegar.type = 'button';
+      btnPlegar.id = 'rsBtnPlegarPasos';
+      btnPlegar.className = 'rs-btn-escuchar';
+      cabecera.insertBefore(btnPlegar, cabecera.firstChild);
+      btnPlegar.addEventListener('click', () => {
+        fijarPasosPlegados(lista.style.display === 'none');
+      });
+    }
+    const fijarPasosPlegados = (abierto) => {
+      lista.style.display = abierto ? '' : 'none';
+      if (btn) btn.style.display = abierto ? '' : 'none';
+      if (btnPlegar) {
+        btnPlegar.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+        btnPlegar.textContent = abierto
+          ? ('▾ ' + t('stepsHide', 'Ocultar indicaciones'))
+          : ('▸ ' + t('stepsShow', 'Ver indicaciones'));
+      }
+    };
+    fijarPasosPlegados(document.body.classList.contains('modo-accesible'));
   }
 
   function ocultarPasosAccesibles() {

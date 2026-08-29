@@ -2972,6 +2972,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     url.searchParams.set('q', consulta);
     url.searchParams.set('format', 'json');
     url.searchParams.set('limit', '1');
+    // Nominatim es UN motor mundial (no hay "motor de España" aparte), pero
+    // hay que decirle el país: sin este filtro una calle típica podía salir
+    // en Latinoamérica o no encontrarse. Las sugerencias del desplegable ya
+    // llevaban countrycodes=es; faltaba aquí, en la búsqueda directa.
+    url.searchParams.set('countrycodes', 'es');
     return fetchConReintentos(url.toString(), { headers: { 'Accept-Language': 'es' } });
   }
 

@@ -50,7 +50,9 @@
     fetchRetries: 2,
     alturaPorDefectoM: 15,  // ~5 plantas: los edificios siempre superan a los árboles
     alturaPorPlantaM: 3.2,  // si solo sabemos las plantas (levels), estimamos así
-    maxEdificiosSombra: 320, 
+    maxEdificiosSombra: 0,  // 0 = SIN TOPE: TODOS los edificios 3D visibles proyectan
+                            // sombra, también con el zoom alejado (antes 320 cortaban
+                            // todo lo que no fuera el centro: solo se veía un trozo)
     loteSombraSize: 30, 
     duracionVueloInicialMs: 2000,
     priorizarSombra: true,
@@ -944,9 +946,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         });
       }
     }
-    // Se priorizan los edificios más cercanos al centro de la pantalla: si
-    // hay más de los que caben en el presupuesto, los que se quedan fuera
-    // son los del borde, nunca los que el usuario está mirando.
+    // Orden por cercanía al centro (informativo; ya no hay tope que recorte).
     candidatos.sort((a, b) => a.distanciaCentro - b.distanciaCentro);
     edificiosCacheados = (CONFIG.maxEdificiosSombra > 0
       ? candidatos.slice(0, CONFIG.maxEdificiosSombra)

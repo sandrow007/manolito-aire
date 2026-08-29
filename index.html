@@ -189,6 +189,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
+<base target="_blank">
 </head>
 <body>
 
@@ -684,7 +685,9 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <script src="js/theme.js" defer></script>
 <script src="js/i18n.js" defer></script>
-
+<!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
+     y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
+<script src="js/cookie-banner.js" defer></script>
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>

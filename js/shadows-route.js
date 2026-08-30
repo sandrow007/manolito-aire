@@ -4632,6 +4632,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
 
 
+  // Helper reutilizable para esperar a que los elementos del DOM aparezcan y
+  // poder inyectar controles adicionales (footer, botones del mapa, etc.) sin
+  // depender de una carga concreta en un bloque concreto del archivo.
+  function cuandoExista(selector, cb, intentos = 0) {
+    const el = document.querySelector(selector);
+    if (el) { cb(el); return; }
+    if (intentos < 40) setTimeout(() => cuandoExista(selector, cb, intentos + 1), 250);
+  }
+
   /* ============================================================
      LA FLECHA MANOLIT — puntero caminante que avanza contigo
      ------------------------------------------------------------
@@ -4670,6 +4679,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           this._reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
         } catch (e) { this._reduced = false; }
         this._distanceAccum = 0;
+        this._frasesAndaluz = [
+'¡Ojú, compare, con esta flama esto no tira ni empujando!',
+  '¡Qué sofocón, miarma, a estas horas no rinde ni el apuntador!',
+  '¡Mira qué aplastamiento, esto no hay cuerpo que lo aguante!',
+  '¡Anda ya, que con esta solana lo que pega es una cerveza y no estar aquí pringando!',
+  '¡Qué mal se mueve esto, chiquillo, está aplatanao perdío con la calor!',
+  '¡Vaya, esto va a pedales, no hay aire acondicionado que lo salve!'
+        ];
         this._lastLngLat = null;
         this._moving = false;
         this._ultimoMovMs = Date.now();
@@ -4715,6 +4732,45 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         this._idleTimer = setTimeout(() => { this._moving = false; }, 900);
         // Si estaba de capricho por el mapa, vuelve corriendo a tu punto y saluda.
         if (this._explorando) this._volverATuPunto();
+      }
+      _decirFraseAndaluza() {
+        try {
+          if (!('speechSynthesis' in window)) return;
+          const frase = new SpeechSynthesisUtterance(
+            this._frasesAndaluz[Math.floor(Math.random() * this._frasesAndaluz.length)]
+          );
+          frase.lang = 'es-ES';
+          frase.rate = 0.96;
+          frase.pitch = 1.08;
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(frase);
+        } catch (e) { /* si no hay voz disponible, no rompe la app */ }
+      }
+      _bindClickSpeech() {
+        if (!this._el || this._el.dataset.manolitClickBound) return;
+        this._el.dataset.manolitClickBound = '1';
+        this._el.style.cursor = 'pointer';
+        this._el.style.userSelect = 'none';
+        this._el.style.pointerEvents = 'auto';
+        this._el.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          this._decirFraseAndaluza();
+        });
+      }
+      _bindClickSpeechToMarker(marker) {
+        if (!marker || !marker.getElement) return;
+        const root = marker.getElement();
+        if (!root || root.dataset.manolitMarkerBound) return;
+        root.dataset.manolitMarkerBound = '1';
+        root.style.cursor = 'pointer';
+        root.style.pointerEvents = 'auto';
+        root.style.zIndex = '999';
+        root.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          this._decirFraseAndaluza();
+        });
       }
       _tick() {
         const paso = () => {
@@ -4886,7 +4942,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           position:relative;
           width:${w}px;height:${h}px;
           overflow:visible;
-          pointer-events:none;
+          pointer-events:auto;
+          cursor:pointer;
           filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
         `;
         wrap.innerHTML = `
@@ -4902,21 +4959,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
                 <line x1="60" y1="118" x2="75" y2="155" stroke="${colors.wine}" stroke-width="6" stroke-linecap="round"/>
                 <ellipse cx="78" cy="158" rx="7" ry="4" fill="${colors.wine}"/>
               </g>
-              <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
-                    fill="rgba(2,4,6,0.35)" stroke="${colors.wine}" stroke-width="5" stroke-linejoin="round"/>
               <g class="arm arm-r" style="transform-origin:94px 76px;">
                 <line x1="94" y1="76" x2="114" y2="104" stroke="${colors.wine}" stroke-width="5" stroke-linecap="round"/>
               </g>
+
+              <!-- La forma del logo Manolit: dos líneas internas + bucle infinito + corazón.
+                   Coincide con la versión del HTML pegado: no es un muñeco de pie, es la marca del proyecto. -->
+              <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
+                    fill="rgba(2,4,6,0.35)" stroke="${colors.wine}" stroke-width="5" stroke-linejoin="round"/>
               <circle cx="60" cy="63" r="26" fill="${colors.gold}"/>
-              <g class="mw-eyes">
-                <circle cx="51" cy="60" r="2.6" fill="#1a1a1a"/>
-                <circle cx="69" cy="60" r="2.6" fill="#1a1a1a"/>
-                <path d="M 52,70 Q 60,76 68,70" fill="none" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
-              </g>
-              <path class="mw-heart" d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z"
-                    fill="none" stroke="${colors.wine}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-              <!-- El brazo de saludar va AL FINAL a propósito: en SVG lo último dibujado queda por encima,
-                   así la mano pasa POR DELANTE del círculo de la cara y nunca se mete por debajo. -->
+              <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="${colors.teal}" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 43,75 Q 51.5,69.5 60,75 T 77,75" fill="none" stroke="${colors.teal}" stroke-width="2.4" stroke-linecap="round"/>
+              <path class="mw-heart" d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z" fill="none" stroke="${colors.wine}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
               <g class="mw-armwave" style="transform-origin:26px 76px;">
                 <line x1="26" y1="76" x2="6" y2="104" stroke="${colors.wine}" stroke-width="5" stroke-linecap="round"/>
                 <circle cx="5" cy="106" r="4.5" fill="${colors.gold}" stroke="${colors.wine}" stroke-width="2.5"/>
@@ -4934,6 +4988,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         this._legR = wrap.querySelector('.leg-r');
         this._armR = wrap.querySelector('.arm-r');
         this._armWave = wrap.querySelector('.mw-armwave');
+        this._bindClickSpeech();
       }
       static _haversine([lng1, lat1], [lng2, lat2]) {
         const R = 6371000;
@@ -4962,9 +5017,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           pitchAlignment: 'viewport',
           anchor: 'bottom',
         });
+        if (manolit.walker && typeof manolit.walker._bindClickSpeechToMarker === 'function') {
+          manolit.walker._bindClickSpeechToMarker(manolit.marker);
+        }
+      } else if (manolit.marker && manolit.walker && typeof manolit.walker._bindClickSpeechToMarker === 'function') {
+        manolit.walker._bindClickSpeechToMarker(manolit.marker);
       }
       manolit.marker.setLngLat(lngLat); // primero posición: un Marker sin LngLat rompe al añadirse
       if (!manolit.marker._map) manolit.marker.addTo(map);
+      const root = manolit.marker && manolit.marker.getElement ? manolit.marker.getElement() : null;
+      if (root) {
+        root.style.pointerEvents = 'auto';
+        root.style.cursor = 'pointer';
+      }
       return manolit.walker;
     }
     function quitarManolitDeMapa() {
@@ -4972,14 +5037,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (manolit.walker) { manolit.walker.destroy(); }
       manolit.walker = null;
       manolit.marker = null;
-    }
-
-    // Los botones se crean cuando el mapa termina de cargar; este helper
-    // espera con reintentos en vez de un único setTimeout a ciegas.
-    function cuandoExista(selector, cb, intentos = 0) {
-      const el = document.querySelector(selector);
-      if (el) { cb(el); return; }
-      if (intentos < 40) setTimeout(() => cuandoExista(selector, cb, intentos + 1), 250);
     }
 
     // Compat: la caminata ya no usa un watchPosition propio (seguimos el
@@ -5179,8 +5236,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
               <ellipse cx="78" cy="158" rx="7" ry="4" fill="#7A0016"/>
               <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
                     fill="rgba(2,4,6,0.35)" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
-              <line x1="26" y1="76" x2="6" y2="104" stroke="#7A0016" stroke-width="5" stroke-linecap="round"/>
-              <line x1="94" y1="76" x2="114" y2="104" stroke="#7A0016" stroke-width="5" stroke-linecap="round"/>
               <circle cx="60" cy="63" r="26" fill="#E6A100"/>
               <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
               <path d="M 43,75 Q 51.5,69.5 60,75 T 77,75" fill="none" stroke="#007A87" stroke-width="2.4" stroke-linecap="round"/>

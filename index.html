@@ -189,7 +189,6 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
-<base target="_blank">
 </head>
 <body>
 
@@ -433,6 +432,9 @@
   <label><input type="checkbox" id="rsToggleRuta" checked> <span data-i18n="layerRoute">Ruta</span></label>
   <label><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
   <label><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
+  <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
+       Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
+  <label><input type="checkbox" id="rsToggleMicroclima"> <span>Microclima · estimado</span></label>
   </div>
 </div>
 
@@ -720,6 +722,8 @@
         .then(() => cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'))
         .then(() => cargarScript('js/shadows-route.js'))
         .then(() => cargarScript('js/irradiacion-solar.js'))
+        .then(() => cargarScript('js/microclima.js'))
+        .then(() => cargarScript('js/rendimiento-movil.js'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
     }
 

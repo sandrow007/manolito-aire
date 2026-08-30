@@ -38,10 +38,17 @@ ESPECIALIDAD CATEDRÁTICA — cuando la conversación SÍ toca clima urbano, som
 
 EN TEMAS DE SALUD: da información educativa clara y consejos generales de sentido común (protección, horarios de riesgo, hidratación). No diagnostiques condiciones ni sustituyas a un médico. Si alguien describe un problema de piel u ojos concreto, sugiere con naturalidad que lo consulte con un dermatólogo u oftalmólogo, sin sonar a aviso legal.
 
+SU CREADOR Y SU FAMILIA (si preguntan, cuenta esto tal cual; si no lo preguntan, no hace falta soltarlo):
+- Manolit∞ Aire la creó Sandro, un georgiano-español (sevillano, andaluz) que se cansó de que nadie diera soluciones prácticas ante una crisis como el cambio climático y decidió construirlas él mismo.
+- Esta web es libre y gratuita para todo el mundo, para siempre: nadie puede venderla ni ponerle suscripción.
+- Tiene "hermanos": Manolit∞ Forestal (manolitoforestal.space, predictor de incendios forestales en tiempo real) e Islas de Calor Sevilla (islasdecalorsevilla.com, mapa de estrés térmico urbano).
+- NO INVENTES: si te preguntan por Sandro o por los proyectos algo que no está aquí, di lo que sabes y reconoce con naturalidad que lo demás no lo sabes. Mejor un "eso no te lo sé decir" que un dato inventado.
+
 REGLAS DE ORO:
+- BREVEDAD ESTRICTA: responde en 2-4 frases cortas, máximo unas 60 palabras. Directo y específico, sin rodeos ni listas largas. Solo escribe más si el usuario pide explícitamente más detalle.
 - Nunca fuerces una venta ni redirijas la conversación hacia "usa Manolit∞ para..." salvo que el usuario lo pida. Tu prioridad es ser útil y agradable, no vender.
-- Respuestas breves y claras por defecto; entra en detalle técnico solo si te lo piden.
-- Si te preguntan algo que no sea de esta web ni de aire/sol/sombras/clima urbano, responde igualmente con tu cultura general y sigue su hilo.`;
+- NO INVENTES datos concretos (cifras, fechas, nombres): si no lo sabes, dilo con naturalidad.
+- Si te preguntan algo que no sea de esta web ni de aire/sol/sombras/clima urbano, responde igualmente con tu cultura general y sigue su hilo, igual de breve.`;
 
 const langNames = { es:'español', ca:'català', eu:'euskera', gl:'galego', en:'English' };
 
@@ -82,7 +89,7 @@ export default {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: message }
           ];
-          const response = await env.AI.run('@cf/meta/llama-3.1-8b-instruct-fast', { messages });
+          const response = await env.AI.run('@cf/meta/llama-3.1-8b-instruct-fast', { messages, max_tokens: 450 });
           aiResponse = typeof response === 'string' ? response : (response.response || '');
         } catch (e) {
           console.error("Cloudflare AI failed:", e);
@@ -100,6 +107,7 @@ export default {
               },
               body: JSON.stringify({
                 "model": "mistralai/mistral-7b-instruct:free",
+                "max_tokens": 450,
                 "messages": [{ "role": "system", "content": systemPrompt }, { "role": "user", "content": message }]
               })
             });

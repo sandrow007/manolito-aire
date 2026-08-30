@@ -295,6 +295,42 @@
   si algo te falla, escríbeme a <strong>SANDRO.A007@GMAIL.COM</strong> y lo corrijo.
 </p>
 
+<h2>15. Capa «Microclima»: temperatura de superficie estimada</h2>
+<p>
+  La capa opcional «Microclima» muestra un mapa de calor con la <strong>temperatura estimada de la superficie</strong>
+  (asfalto, edificios, vegetación, agua) combinando la temperatura del aire de Open-Meteo, el tipo de superficie
+  de OpenStreetMap y las sombras calculadas por el propio sitio. <strong>Es una estimación basada en un modelo
+  científico de isla de calor urbana, no una medición por satélite.</strong> Los valores son orientativos y pueden
+  diferir de la temperatura real del suelo. Esta capa está desactivada por defecto y solo se calcula si la activas.
+</p>
+<p>
+  <strong>Función de isla de calor y reloj solar:</strong> la estimación se recalcula con las sombras del momento
+  que marques en el reloj solar, pero <strong>únicamente con datos reales de pasado o presente</strong>. Si mueves
+  el reloj solar hacia el futuro, la estimación de microclima <strong>no está disponible</strong> (aún no existen
+  datos meteorológicos de ese momento) y la capa se oculta automáticamente hasta volver a una hora pasada o actual.
+</p>
+
+<h2>16. Asistente virtual «Manolit» (IA) e información sobre salud solar</h2>
+<p>
+  El chat de «Manolit» es un asistente basado en inteligencia artificial. Sus respuestas son generadas
+  automáticamente y, aunque se diseñan para ser útiles y claras, <strong>pueden contener errores o imprecisiones</strong>.
+  La información que ofrece sobre salud solar (radiación UV, fototipos de piel, fotosensibilidad, protección)
+  tiene carácter <strong>puramente educativo y orientativo</strong>: no constituye consejo médico, diagnóstico ni
+  tratamiento. Ante cualquier problema concreto de piel u ojos, consulta con un dermatólogo u oftalmólogo.
+  Las conversaciones del chat se procesan solo para generar la respuesta y no se almacenan con fines publicitarios.
+</p>
+
+<h2>17. «Ruta de sol» (modo otoño/invierno)</h2>
+<p>
+  El modo opcional «Ruta de sol» invierte el motor de rutas de sombra: en lugar de priorizar los tramos con
+  sombra (modo verano), prioriza los tramos <strong>soleados</strong>, pensado para pasear con luz y calor solar
+  en los meses fríos. Al igual que el resto de rutas del sitio, se calcula con la red peatonal de OpenStreetMap
+  y el modelo de sombras de la propia web, por lo que <strong>sigue siendo una estimación orientativa</strong>:
+  las sombras reales pueden variar (obras, mobiliario urbano, vegetación estacional, cambios no cartografiados).
+  Actívalo o desactívalo cuando quieras desde el interruptor «Modo invierno: ruta por el sol», junto al botón
+  de buscar ruta; con el modo apagado, las rutas funcionan como siempre.
+</p>
+
 </div>
 
 <div class="footer">
@@ -302,7 +338,7 @@
 </div>
 
 <script src="js/i18n.js"></script>
-<script src="js/i18n-legal.js"></script>
+<script src="js/n-legal.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/cookie-banner.js"></script>
 </body>

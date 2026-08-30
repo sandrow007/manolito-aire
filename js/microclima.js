@@ -24,6 +24,13 @@
      los 1-5 polígonos candidatos. Además procesa POR TANDAS con
      pausas (cede el hilo al navegador) y ABORTA si el mapa se mueve
      antes de terminar. Resultado: fluido incluso en móvil.
+
+   CAMBIOS DE ESTA REVISIÓN (a petición):
+   - La leyenda se mueve a la esquina INFERIOR DERECHA (antes
+     izquierda), para no tapar la barra de horarios/ruta.
+   - La leyenda ahora tiene un botón "×" para CERRARLA sin apagar
+     la capa: el microclima sigue activo en el mapa, solo se oculta
+     la cajita. Queda un botón circular pequeño para reabrirla.
    ============================================================ */
 
 (function () {
@@ -247,20 +254,27 @@
     actualizarLeyenda(tMin, tMax);
   }
 
-  /* ---- leyenda PLEGABLE: solo el icono ⓘ despliega la nota ---- */
+  /* ---- leyenda: esquina inferior DERECHA, con botón de cerrar ---- */
 
   let notaVisible = false;
+  let leyendaCerrada = false;      // el usuario la cerró con la "×"
+  let ultimoRango = null;          // último {tMin, tMax} para redibujar al reabrir
 
-  function actualizarLeyenda(tMin, tMax) {
+  function pintarLeyendaAbierta(tMin, tMax) {
     const leyenda = document.getElementById('microclima-leyenda');
     if (!leyenda) return;
-    leyenda.style.display = 'block';
+    leyenda.style.pointerEvents = 'auto';
     leyenda.innerHTML =
-      '<div style="display:flex;align-items:center;gap:6px;font-weight:600;">' +
-        '<span>Microclima</span>' +
-        '<button id="microclima-info-btn" aria-expanded="false" title="Qué es esta capa" ' +
-        'style="pointer-events:auto;cursor:pointer;border:1px solid rgba(255,255,255,0.4);background:transparent;' +
-        'color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;line-height:1;padding:0;">i</button>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;font-weight:600;">' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<span>Microclima</span>' +
+          '<button id="microclima-info-btn" aria-expanded="false" title="Qué es esta capa" ' +
+          'style="pointer-events:auto;cursor:pointer;border:1px solid rgba(255,255,255,0.4);background:transparent;' +
+          'color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;line-height:1;padding:0;">i</button>' +
+        '</div>' +
+        '<button id="microclima-cerrar-btn" title="Ocultar (la capa sigue activa en el mapa)" ' +
+        'style="pointer-events:auto;cursor:pointer;border:none;background:transparent;color:#fff;' +
+        'opacity:0.75;font-size:15px;line-height:1;padding:0 2px;">×</button>' +
       '</div>' +
       '<div style="height:7px;border-radius:4px;margin-top:4px;background:linear-gradient(90deg,hsl(220,85%,55%),hsl(120,85%,55%),hsl(60,85%,55%),hsl(0,85%,55%));"></div>' +
       `<div style="display:flex;justify-content:space-between;font-size:10px;margin-top:2px;"><span>${tMin.toFixed(0)}°C</span><span>${tMax.toFixed(0)}°C</span></div>` +
@@ -268,14 +282,62 @@
         'Estimación por modelo (tipo de superficie + sombra + nubosidad), no medición por satélite.' +
       '</div>';
 
-    const btn = document.getElementById('microclima-info-btn');
-    if (btn) {
-      btn.addEventListener('click', () => {
+    const btnInfo = document.getElementById('microclima-info-btn');
+    if (btnInfo) {
+      btnInfo.addEventListener('click', (ev) => {
+        ev.stopPropagation();
         notaVisible = !notaVisible;
         const nota = document.getElementById('microclima-nota');
         if (nota) nota.style.display = notaVisible ? 'block' : 'none';
-        btn.setAttribute('aria-expanded', notaVisible ? 'true' : 'false');
+        btnInfo.setAttribute('aria-expanded', notaVisible ? 'true' : 'false');
       });
+    }
+    const btnCerrar = document.getElementById('microclima-cerrar-btn');
+    if (btnCerrar) {
+      btnCerrar.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        leyendaCerrada = true;
+        pintarLeyendaCerrada();
+      });
+    }
+  }
+
+  function pintarLeyendaCerrada() {
+    const leyenda = document.getElementById('microclima-leyenda');
+    if (!leyenda) return;
+    leyenda.style.width = 'auto';
+    leyenda.style.padding = '0';
+    leyenda.style.background = 'transparent';
+    leyenda.style.backdropFilter = 'none';
+    leyenda.style.pointerEvents = 'auto';
+    leyenda.innerHTML =
+      '<button id="microclima-reabrir-btn" title="Mostrar leyenda de microclima" ' +
+      'style="pointer-events:auto;cursor:pointer;border:1px solid rgba(255,255,255,0.4);' +
+      'background:rgba(10,15,25,0.82);color:#fff;border-radius:50%;width:28px;height:28px;' +
+      'font-size:14px;line-height:1;backdrop-filter:blur(4px);">🌡</button>';
+    const btn = document.getElementById('microclima-reabrir-btn');
+    if (btn) {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        leyendaCerrada = false;
+        leyenda.style.width = '150px';
+        leyenda.style.padding = '7px 9px';
+        leyenda.style.background = 'rgba(10,15,25,0.82)';
+        leyenda.style.backdropFilter = 'blur(4px)';
+        if (ultimoRango) pintarLeyendaAbierta(ultimoRango.tMin, ultimoRango.tMax);
+      });
+    }
+  }
+
+  function actualizarLeyenda(tMin, tMax) {
+    const leyenda = document.getElementById('microclima-leyenda');
+    if (!leyenda) return;
+    leyenda.style.display = 'block';
+    ultimoRango = { tMin, tMax };
+    if (leyendaCerrada) {
+      pintarLeyendaCerrada();
+    } else {
+      pintarLeyendaAbierta(tMin, tMax);
     }
   }
 
@@ -284,9 +346,10 @@
     const wrap = document.querySelector('.map-wrap') || document.body;
     const div = document.createElement('div');
     div.id = 'microclima-leyenda';
-    div.style.cssText = 'display:none;position:absolute;left:10px;bottom:10px;z-index:5;width:150px;' +
+    // Esquina inferior DERECHA (antes izquierda: tapaba la barra de horarios/ruta)
+    div.style.cssText = 'display:none;position:absolute;right:10px;bottom:10px;z-index:5;width:150px;' +
       'background:rgba(10,15,25,0.82);color:#fff;padding:7px 9px;border-radius:10px;' +
-      'font-family:inherit;font-size:11px;pointer-events:none;backdrop-filter:blur(4px);';
+      'font-family:inherit;font-size:11px;pointer-events:auto;backdrop-filter:blur(4px);';
     wrap.appendChild(div);
     if (!document.getElementById('microclima-canvas')) {
       const lienzo = document.createElement('canvas');
@@ -298,6 +361,7 @@
 
   function encender() {
     activo = true;
+    leyendaCerrada = false; // al activar, que se vea; el usuario ya sabe cómo cerrarla
     crearLeyenda();
     recalcular();
   }

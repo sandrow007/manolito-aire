@@ -4652,82 +4652,228 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     window.__manolitWalkerIntegrado = true;
 
     class ManolitWalker {
+      // Manolit va SIEMPRE derecho (como un muñeco de pie), nunca tumbado.
+      // Para mirar a izquierda/derecha se usa un espejo scaleX, no una
+      // rotación en el plano: así la figura no se "dobla" nunca.
       constructor(opts = {}) {
         this.size = opts.size ?? 48;
         this.strideMeters = opts.strideMeters ?? 1.4;
-        this.maxLegSwing = opts.maxLegSwing ?? 26;
-        this.maxArmSwing = opts.maxArmSwing ?? 16;
-        this.headingSmoothing = opts.headingSmoothing ?? 0.35;
+        this.maxLegSwing = opts.maxLegSwing ?? 24;
+        this.maxArmSwing = opts.maxArmSwing ?? 14;
         this.colors = {
           gold: opts.gold ?? '#E6A100',
           teal: opts.teal ?? '#007A87',
           wine: opts.wine ?? '#7A0016',
         };
+        this._reduced = false;
+        try {
+          this._reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        } catch (e) { this._reduced = false; }
         this._distanceAccum = 0;
         this._lastLngLat = null;
-        this._heading = 0;
-        this._targetHeading = 0;
+        this._moving = false;
+        this._ultimoMovMs = Date.now();
         this._idleTimer = null;
-        this._rafId = null;
+        this._onda = { x: 0, y: 0 };
+        this._ondaRaf = null;
+        this._mirando = 1; // 1 = derecha, -1 = izquierda (espejo)
+        this._sentado = false;
+        this._saludando = false;
+        this._explorando = false;
+        this._caprichoTimer = null;
+        ManolitWalker._inyectarEstilos();
         this._buildElement();
-        this._tickIdleReturn();
+        this._tick();
       }
       get element() { return this._el; }
-      update(lngLat) {
+      update(lngLat, dxPantalla) {
         if (this._lastLngLat) {
           const dist = ManolitWalker._haversine(this._lastLngLat, lngLat);
-          if (dist > 0.05) {
-            this._distanceAccum += dist;
-            this._targetHeading = ManolitWalker._bearing(this._lastLngLat, lngLat);
-            this._markMoving();
-          }
+          if (dist > 0.05) this._distanceAccum += dist;
+        }
+        if (typeof dxPantalla === 'number' && Math.abs(dxPantalla) > 0.5) {
+          this._mirando = dxPantalla > 0 ? 1 : -1;
         }
         this._lastLngLat = lngLat;
-        this._render();
+        this._markMoving();
       }
-      setIdle() { this._distanceAccum = 0; this._render(); }
+      setIdle() { this._distanceAccum = 0; }
       stopWalkingRoute() {
-        if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
+        if (this._ondaRaf) { cancelAnimationFrame(this._ondaRaf); this._ondaRaf = null; }
       }
       destroy() {
         this.stopWalkingRoute();
         if (this._idleTimer) clearTimeout(this._idleTimer);
+        if (this._caprichoTimer) clearTimeout(this._caprichoTimer);
+        this._explorando = false;
         this._el.remove();
       }
       _markMoving() {
         this._moving = true;
+        this._ultimoMovMs = Date.now();
         clearTimeout(this._idleTimer);
         this._idleTimer = setTimeout(() => { this._moving = false; }, 900);
+        // Si estaba de capricho por el mapa, vuelve corriendo a tu punto y saluda.
+        if (this._explorando) this._volverATuPunto();
       }
-      _tickIdleReturn() {
-        const step = () => {
-          const headingDelta = ManolitWalker._angleDelta(this._heading, this._targetHeading);
-          this._heading += headingDelta * this.headingSmoothing;
-          if (!this._moving) this._legPhase = (this._legPhase ?? 0) * 0.85;
-          this._applyTransforms();
-          this._idleLoop = setTimeout(step, 66);
+      _tick() {
+        const paso = () => {
+          const now = Date.now();
+          if (this._moving) this._ultimoMovMs = now;
+          else if (!this._reduced && !this._explorando && now - this._ultimoMovMs > 10000) {
+            // Llevas 10 s parado: Manolit se aburre y empieza su vida.
+            this._explorando = true;
+            this._capricho();
+          }
+          this._applyPose();
+          this._tickTimer = setTimeout(paso, 66);
         };
-        step();
+        paso();
       }
-      _render() {
+      _capricho() {
+        if (!this._explorando || this._moving) return;
+        const r = Math.random();
+        if (r < 0.55) {
+          // Paseíto por los alrededores de tu punto (sin salirse de cerca).
+          const tx = (Math.random() * 60 - 30);
+          const ty = (Math.random() * 32 - 16);
+          this._irCaminandoPx(tx, ty, () => {
+            if (Math.random() < 0.4) this._saluda();
+            if (this._explorando && !this._moving) {
+              this._caprichoTimer = setTimeout(() => this._capricho(), 1800 + Math.random() * 2200);
+            }
+          });
+        } else if (r < 0.8) {
+          // Se sienta un rato a descansar.
+          this._sentado = true;
+          this._caprichoTimer = setTimeout(() => {
+            this._sentado = false;
+            if (this._explorando && !this._moving) {
+              this._caprichoTimer = setTimeout(() => this._capricho(), 1800 + Math.random() * 2200);
+            }
+          }, 3200 + Math.random() * 2200);
+        } else {
+          this._saluda();
+          this._caprichoTimer = setTimeout(() => this._capricho(), 2600 + Math.random() * 2000);
+        }
+      }
+      _volverATuPunto() {
+        this._explorando = false;
+        if (this._caprichoTimer) { clearTimeout(this._caprichoTimer); this._caprichoTimer = null; }
+        this._sentado = false;
+        this._irCaminandoPx(0, 0, () => { this._saluda(); }, true);
+      }
+      // Caminata suavizada hasta un desplazamiento en píxeles respecto a tu punto.
+      _irCaminandoPx(tx, ty, alLlegar, rapido) {
+        this.stopWalkingRoute();
+        if (this._reduced) {
+          this._onda = { x: tx, y: ty };
+          if (alLlegar) alLlegar();
+          return;
+        }
+        const sx = this._onda.x, sy = this._onda.y;
+        const dx = tx - sx, dy = ty - sy;
+        const distancia = Math.hypot(dx, dy);
+        if (distancia < 1) { if (alLlegar) alLlegar(); return; }
+        this._mirando = dx >= 0 ? 1 : -1;
+        const velocidad = rapido ? 90 : 42; // px por segundo
+        const duracion = (distancia / velocidad) * 1000;
+        const t0 = performance.now();
+        const frame = (t) => {
+          if (!this._explorando && !rapido) return; // interrumpido: manda _volverATuPunto
+          let p = (t - t0) / duracion;
+          if (p >= 1) p = 1;
+          const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; // ease in-out
+          this._onda = { x: sx + dx * e, y: sy + dy * e };
+          // Las piernas también avanzan con este paseíto.
+          this._distanceAccum += (distancia * (e - (frame._e || 0))) * (this.strideMeters / 26);
+          frame._e = e;
+          if (p < 1) this._ondaRaf = requestAnimationFrame(frame);
+          else {
+            this._ondaRaf = null;
+            frame._e = 0;
+            if (alLlegar) alLlegar();
+          }
+        };
+        frame._e = 0;
+        this._ondaRaf = requestAnimationFrame(frame);
+      }
+      _saluda() {
+        if (this._reduced || this._saludando || !this._armWave) return;
+        this._saludando = true;
+        this._armWave.classList.add('waving');
+        const fin = () => {
+          this._armWave.classList.remove('waving');
+          this._saludando = false;
+          this._armWave.removeEventListener('animationend', fin);
+        };
+        this._armWave.addEventListener('animationend', fin);
+      }
+      _applyPose() {
         const phase = (this._distanceAccum / this.strideMeters) * Math.PI * 2;
-        this._legPhase = Math.sin(phase);
-        this._applyTransforms();
-      }
-      _applyTransforms() {
-        const legAngle = (this._legPhase ?? 0) * this.maxLegSwing;
-        const armAngle = -(this._legPhase ?? 0) * this.maxArmSwing;
-        this._legL.style.transform = `rotate(${legAngle}deg)`;
-        this._legR.style.transform = `rotate(${-legAngle}deg)`;
-        this._armL.style.transform = `rotate(${-armAngle}deg)`;
-        this._armR.style.transform = `rotate(${armAngle}deg)`;
-        const bob = Math.abs(this._legPhase ?? 0) * 2.2;
-        this._body.style.transform = `translateY(${-bob}px)`;
+        const legPhase = Math.sin(phase);
+        if (this._sentado) {
+          // Pose de sentado: piernas recogidas y cuerpo bajado.
+          this._legL.style.transform = 'rotate(70deg)';
+          this._legR.style.transform = 'rotate(-70deg)';
+          this._body.style.transform = 'translateY(5px)';
+          this._armR.style.transform = 'rotate(-12deg)';
+          if (!this._saludando) this._armWave.style.transform = 'rotate(12deg)';
+        } else {
+          const legAngle = legPhase * this.maxLegSwing;
+          const armAngle = legPhase * this.maxArmSwing;
+          this._legL.style.transform = `rotate(${legAngle}deg)`;
+          this._legR.style.transform = `rotate(${-legAngle}deg)`;
+          this._armR.style.transform = `rotate(${-armAngle}deg)`;
+          if (!this._saludando) this._armWave.style.transform = `rotate(${armAngle}deg)`;
+          const bob = Math.abs(legPhase) * 2.2;
+          this._body.style.transform = `translateY(${-bob}px)`;
+        }
         // OJO: el transform del elemento raíz lo ESCRIBE MapLibre para
-        // colocar el marcador en el mapa. Si lo pisamos aquí (como hacía
-        // la primera versión), el marcador salta a la esquina o parpadea.
-        // El rumbo se aplica a un contenedor interior que MapLibre no toca.
-        this._rotor.style.transform = `rotate(${this._heading}deg)`;
+        // colocar el marcador en el mapa. Jamás se toca desde aquí.
+        // Espejo para mirar a izquierda/derecha SIN tumbear la figura.
+        this._flipEl.style.transform = `scaleX(${this._mirando})`;
+        this._ondaEl.style.transform = `translate(${this._onda.x}px, ${this._onda.y}px)`;
+      }
+      static _inyectarEstilos() {
+        if (document.getElementById('manolit-walker-estilos')) return;
+        const st = document.createElement('style');
+        st.id = 'manolit-walker-estilos';
+        st.textContent = `
+          .manolit-walker .mw-body { animation: mwBreathe 3.4s ease-in-out infinite; }
+          .manolit-walker .mw-eyes { animation: mwBlink 4.6s linear infinite; transform-origin: 60px 63px; }
+          .manolit-walker .mw-heart { animation: mwPulse 1.6s ease-in-out infinite; transform-origin: 60px 58px; }
+          .manolit-walker .mw-armwave.waving { animation: mwWave 1.15s ease-in-out 1; }
+          @keyframes mwBreathe {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(1.2px); }
+          }
+          @keyframes mwBlink {
+            0%, 92%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.08); }
+          }
+          @keyframes mwPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+          }
+          @keyframes mwWave {
+            0% { transform: rotate(0deg); }
+            12% { transform: rotate(-150deg); }
+            24% { transform: rotate(-168deg); }
+            36% { transform: rotate(-150deg); }
+            48% { transform: rotate(-168deg); }
+            60% { transform: rotate(-152deg); }
+            82% { transform: rotate(-30deg); }
+            100% { transform: rotate(0deg); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .manolit-walker .mw-body,
+            .manolit-walker .mw-eyes,
+            .manolit-walker .mw-heart,
+            .manolit-walker .mw-armwave.waving { animation: none !important; }
+          }
+        `;
+        document.head.appendChild(st);
       }
       _buildElement() {
         const { colors } = this;
@@ -4737,15 +4883,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const wrap = document.createElement('div');
         wrap.className = 'manolit-walker';
         wrap.style.cssText = `
+          position:relative;
           width:${w}px;height:${h}px;
-          transform-origin:50% 50%;
+          overflow:visible;
           pointer-events:none;
           filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
         `;
         wrap.innerHTML = `
-          <div class="mw-rot" style="width:100%;height:100%;transform-origin:50% 50%;">
-          <svg viewBox="0 0 120 170" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
-            <g id="body" style="transform-origin:60px 90px;">
+          <div class="mw-onda" style="position:absolute;inset:0;overflow:visible;">
+          <div class="mw-flip" style="width:100%;height:100%;transform-origin:50% 50%;">
+          <svg viewBox="0 0 120 170" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+            <g class="mw-body" style="transform-origin:60px 90px;">
               <g class="leg leg-l" style="transform-origin:60px 118px;">
                 <line x1="60" y1="118" x2="45" y2="155" stroke="${colors.wine}" stroke-width="6" stroke-linecap="round"/>
                 <ellipse cx="42" cy="158" rx="7" ry="4" fill="${colors.wine}"/>
@@ -4756,28 +4904,36 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
               </g>
               <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
                     fill="rgba(2,4,6,0.35)" stroke="${colors.wine}" stroke-width="5" stroke-linejoin="round"/>
-              <g class="arm arm-l" style="transform-origin:26px 76px;">
-                <line x1="26" y1="76" x2="6" y2="104" stroke="${colors.wine}" stroke-width="5" stroke-linecap="round"/>
-              </g>
               <g class="arm arm-r" style="transform-origin:94px 76px;">
                 <line x1="94" y1="76" x2="114" y2="104" stroke="${colors.wine}" stroke-width="5" stroke-linecap="round"/>
               </g>
               <circle cx="60" cy="63" r="26" fill="${colors.gold}"/>
-              <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="${colors.teal}" stroke-width="3" stroke-linecap="round"/>
-              <path d="M 43,75 Q 51.5,69.5 60,75 T 77,75" fill="none" stroke="${colors.teal}" stroke-width="2.4" stroke-linecap="round"/>
-              <path d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z"
+              <g class="mw-eyes">
+                <circle cx="51" cy="60" r="2.6" fill="#1a1a1a"/>
+                <circle cx="69" cy="60" r="2.6" fill="#1a1a1a"/>
+                <path d="M 52,70 Q 60,76 68,70" fill="none" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round"/>
+              </g>
+              <path class="mw-heart" d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z"
                     fill="none" stroke="${colors.wine}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- El brazo de saludar va AL FINAL a propósito: en SVG lo último dibujado queda por encima,
+                   así la mano pasa POR DELANTE del círculo de la cara y nunca se mete por debajo. -->
+              <g class="mw-armwave" style="transform-origin:26px 76px;">
+                <line x1="26" y1="76" x2="6" y2="104" stroke="${colors.wine}" stroke-width="5" stroke-linecap="round"/>
+                <circle cx="5" cy="106" r="4.5" fill="${colors.gold}" stroke="${colors.wine}" stroke-width="2.5"/>
+              </g>
             </g>
           </svg>
           </div>
+          </div>
         `;
         this._el = wrap;
-        this._rotor = wrap.querySelector('.mw-rot');
-        this._body = wrap.querySelector('#body');
+        this._ondaEl = wrap.querySelector('.mw-onda');
+        this._flipEl = wrap.querySelector('.mw-flip');
+        this._body = wrap.querySelector('.mw-body');
         this._legL = wrap.querySelector('.leg-l');
         this._legR = wrap.querySelector('.leg-r');
-        this._armL = wrap.querySelector('.arm-l');
         this._armR = wrap.querySelector('.arm-r');
+        this._armWave = wrap.querySelector('.mw-armwave');
       }
       static _haversine([lng1, lat1], [lng2, lat2]) {
         const R = 6371000;
@@ -4787,14 +4943,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const a = Math.sin(dLat / 2) ** 2
           + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      }
-      static _bearing([lng1, lat1], [lng2, lat2]) {
-        const toRad = (d) => (d * Math.PI) / 180;
-        const toDeg = (r) => (r * 180) / Math.PI;
-        const y = Math.sin(toRad(lng2 - lng1)) * Math.cos(toRad(lat2));
-        const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2))
-          - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lng2 - lng1));
-        return (toDeg(Math.atan2(y, x)) + 360) % 360;
       }
       static _angleDelta(from, to) {
         return ((to - from + 540) % 360) - 180;
@@ -4810,7 +4958,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         manolit.walker = new ManolitWalker({ size: 46 });
         manolit.marker = new maplibregl.Marker({
           element: manolit.walker.element,
-          rotationAlignment: 'map',
+          rotationAlignment: 'viewport',
           pitchAlignment: 'viewport',
           anchor: 'bottom',
         });
@@ -4911,12 +5059,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
                 const r = m.getBoundingClientRect();
                 if (!r.width && !r.height) return;
                 const c = map.getCanvas().getBoundingClientRect();
+                const cx = r.left + r.width / 2 - c.left;
                 const ll = map.unproject([
-                  r.left + r.width / 2 - c.left,
+                  cx,
                   r.top + r.height / 2 - c.top,
                 ]);
+                const dx = (typeof manolit._ultimoXCaminata === 'number') ? cx - manolit._ultimoXCaminata : 0;
+                manolit._ultimoXCaminata = cx;
                 const arr = [ll.lng, ll.lat];
-                asegurarManolitEnMapa(arr).update(arr);
+                asegurarManolitEnMapa(arr).update(arr, dx);
               } catch (e) { /* un tic fallido no rompe nada */ }
             }, 150);
           } catch (e) { /* nunca romper el botón original */ }
@@ -4947,7 +5098,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
                   if (mc) {
                     const ll = mc.toLngLat();
                     const arr = [ll.lng, ll.lat];
-                    asegurarManolitEnMapa(arr).update(arr);
+                    let dx = 0;
+                    if (typeof manolit._ultimoLngPaseo === 'number') {
+                      dx = arr[0] - manolit._ultimoLngPaseo;
+                    }
+                    manolit._ultimoLngPaseo = arr[0];
+                    asegurarManolitEnMapa(arr).update(arr, dx * 1e5);
                   }
                 }
               } catch (e) { /* cámara a medio mover: siguiente tic */ }
@@ -5098,6 +5254,231 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
 
+
+  /* ==================== SINCRONIZAR / EXPORTAR DATOS ====================
+     Botón discreto en el PIE de la web (fuera del mapa), junto a
+     «Aviso legal · Privacidad · Cookies». Exporta/importa en un archivo
+     JSON los ajustes de la persona (tema, idioma, tamaño de letra,
+     caché de alturas del Catastro...) y sus puntos guardados en el mapa.
+     Todo ocurre en el dispositivo: sin servidores, sin cuentas, gratis. */
+  (function inyectarSyncDatos() {
+    function inyectarEstilosSync() {
+      if (document.getElementById('rs-sync-estilos')) return;
+      const st = document.createElement('style');
+      st.id = 'rs-sync-estilos';
+      st.textContent = `
+        #rsLinkSync{ cursor:pointer; }
+        #rsSyncOverlay{
+          position:fixed; inset:0; z-index:12000; display:none;
+          align-items:center; justify-content:center;
+          background:rgba(14,25,32,0.45);
+          backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+          padding:16px;
+        }
+        #rsSyncOverlay.rs-sync-abierto{ display:flex; }
+        #rsSyncPanel{
+          width:min(420px, 94vw);
+          background:var(--paper, #FBFAF7); color:var(--sky-deep, #0E3B47);
+          border:1px solid var(--line, rgba(14,59,71,0.14));
+          border-radius:16px; box-shadow:0 14px 40px rgba(10,20,26,0.28);
+          padding:20px 22px; font-family:inherit;
+        }
+        #rsSyncPanel h2{
+          margin:0 0 6px; font-size:1.05rem; font-weight:800; letter-spacing:.01em;
+        }
+        #rsSyncPanel p{ margin:6px 0; font-size:0.86rem; line-height:1.45; opacity:0.88; }
+        #rsSyncPanel .rs-sync-botones{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+        #rsSyncPanel button{
+          font-family:inherit; font-size:0.9rem; font-weight:700;
+          padding:10px 14px; border-radius:999px; cursor:pointer;
+          border:1px solid var(--line, rgba(14,59,71,0.18));
+          background:rgba(251,250,247,0.9); color:var(--sky-deep, #0E3B47);
+          transition:background .15s, border-color .15s;
+        }
+        #rsSyncPanel button:hover{
+          background:var(--accent-soft, rgba(255,107,26,0.16));
+          border-color:var(--accent, #FF6B1A);
+        }
+        #rsSyncPanel button.rs-sync-principal{
+          background:var(--accent, #FF6B1A); border-color:var(--accent, #FF6B1A);
+          color:var(--paper, #FBFAF7);
+        }
+        #rsSyncPanel .rs-sync-nota{
+          margin-top:12px; font-size:0.72rem; opacity:0.6; line-height:1.4;
+        }
+        #rsSyncEstado{ min-height:1.1em; font-weight:700; }
+      `;
+      document.head.appendChild(st);
+    }
+
+    function recogerPuntosManuales() {
+      try {
+        if (typeof map === 'undefined' || !map || !map.getSource) return [];
+        const src = map.getSource('puntos-manuales');
+        if (!src) return [];
+        const data = src._data || (src.serialize && src.serialize().data);
+        const feats = (data && data.features) || [];
+        return feats
+          .filter((f) => f && f.geometry && f.geometry.type === 'Point')
+          .map((f) => ({ geometry: f.geometry, properties: f.properties || {} }));
+      } catch (e) { return []; }
+    }
+
+    function recogerAjustes() {
+      const ajustes = {};
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.indexOf('manolito_') === 0 || k === 'lang')) {
+            ajustes[k] = localStorage.getItem(k);
+          }
+        }
+      } catch (e) { /* sin localStorage: se exporta solo lo demás */ }
+      return ajustes;
+    }
+
+    function exportarDatos() {
+      const paquete = {
+        app: 'manolito-aire',
+        formato: 1,
+        fecha: new Date().toISOString(),
+        ajustes: recogerAjustes(),
+        puntos: recogerPuntosManuales(),
+      };
+      const blob = new Blob([JSON.stringify(paquete, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const marca = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+      a.href = url;
+      a.download = 'manolito-datos-' + marca + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      return paquete;
+    }
+
+    function importarDatos(paquete) {
+      if (!paquete || paquete.app !== 'manolito-aire' || typeof paquete !== 'object') {
+        throw new Error('archivo-no-manolito');
+      }
+      let nAjustes = 0;
+      const ajustes = paquete.ajustes || {};
+      Object.keys(ajustes).forEach((k) => {
+        if ((k.indexOf('manolito_') === 0 || k === 'lang') && typeof ajustes[k] === 'string') {
+          try { localStorage.setItem(k, ajustes[k]); nAjustes++; } catch (e) { /* lleno o bloqueado */ }
+        }
+      });
+      let nPuntos = 0;
+      const nuevos = Array.isArray(paquete.puntos) ? paquete.puntos : [];
+      try {
+        if (nuevos.length && typeof map !== 'undefined' && map && map.getSource) {
+          const src = map.getSource('puntos-manuales');
+          if (src && src.setData) {
+            const actuales = recogerPuntosManuales();
+            const validos = nuevos.filter((f) =>
+              f && f.geometry && f.geometry.type === 'Point' &&
+              Array.isArray(f.geometry.coordinates) &&
+              f.geometry.coordinates.every((c) => typeof c === 'number' && isFinite(c)));
+            nPuntos = validos.length;
+            const fc = (typeof turf !== 'undefined' && turf.featureCollection)
+              ? turf.featureCollection(actuales.concat(validos))
+              : { type: 'FeatureCollection', features: actuales.concat(validos) };
+            src.setData(fc);
+          }
+        }
+      } catch (e) { /* puntos opcionales: los ajustes ya se han llevado */ }
+      return { ajustes: nAjustes, puntos: nPuntos };
+    }
+
+    function montarPanelSync() {
+      if (document.getElementById('rsSyncOverlay')) return;
+      inyectarEstilosSync();
+      const overlay = document.createElement('div');
+      overlay.id = 'rsSyncOverlay';
+      overlay.innerHTML = `
+        <div id="rsSyncPanel" role="dialog" aria-modal="true" aria-labelledby="rsSyncTitulo">
+          <h2 id="rsSyncTitulo">Sincronizar / Exportar datos</h2>
+          <p>Guarda en un archivo tus ajustes de Manolit∞ Aire (tema, idioma, tamaño de letra,
+             alturas del Catastro ya descargadas) y tus puntos del mapa. Así los llevas a otro
+             móvil u ordenador, o los recuperas si borras el navegador.</p>
+          <div class="rs-sync-botones">
+            <button type="button" class="rs-sync-principal" id="rsBtnSyncExportar">⤓ Exportar mis datos</button>
+            <button type="button" id="rsBtnSyncImportar">⤒ Importar / Sincronizar</button>
+            <button type="button" id="rsBtnSyncCerrar">Cerrar</button>
+          </div>
+          <p id="rsSyncEstado" aria-live="polite"></p>
+          <p class="rs-sync-nota">Todo pasa solo en tu dispositivo. Nada se sube a ningún servidor:
+             el archivo lo guardas tú y lo compartes tú si quieres.</p>
+          <input type="file" id="rsSyncFichero" accept="application/json,.json" style="display:none">
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      const estado = overlay.querySelector('#rsSyncEstado');
+      const cerrar = () => overlay.classList.remove('rs-sync-abierto');
+      overlay.addEventListener('click', (ev) => { if (ev.target === overlay) cerrar(); });
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape' && overlay.classList.contains('rs-sync-abierto')) cerrar();
+      });
+      overlay.querySelector('#rsBtnSyncCerrar').addEventListener('click', cerrar);
+      overlay.querySelector('#rsBtnSyncExportar').addEventListener('click', () => {
+        try {
+          const p = exportarDatos();
+          const nA = Object.keys(p.ajustes || {}).length;
+          const nP = (p.puntos || []).length;
+          estado.textContent = 'Exportado: ' + nA + ' ajustes y ' + nP + ' puntos. Revisa tu carpeta de descargas.';
+        } catch (e) {
+          estado.textContent = 'No se pudo exportar en este navegador.';
+        }
+      });
+      const input = overlay.querySelector('#rsSyncFichero');
+      overlay.querySelector('#rsBtnSyncImportar').addEventListener('click', () => input.click());
+      input.addEventListener('change', () => {
+        const f = input.files && input.files[0];
+        input.value = '';
+        if (!f) return;
+        const lector = new FileReader();
+        lector.onload = () => {
+          try {
+            const paquete = JSON.parse(String(lector.result));
+            const r = importarDatos(paquete);
+            estado.textContent = 'Sincronizado: ' + r.ajustes + ' ajustes y ' + r.puntos +
+              ' puntos. Recarga con Ctrl+Mayús+R para verlo todo aplicado.';
+          } catch (e) {
+            estado.textContent = 'Ese archivo no es una copia válida de Manolit∞ Aire.';
+          }
+        };
+        lector.onerror = () => { estado.textContent = 'No se pudo leer el archivo.'; };
+        lector.readAsText(f);
+      });
+    }
+
+    function abrirPanelSync() {
+      montarPanelSync();
+      const overlay = document.getElementById('rsSyncOverlay');
+      if (overlay) overlay.classList.add('rs-sync-abierto');
+    }
+
+    // El enlace va en el PIE, junto a Aviso legal · Privacidad · Cookies:
+    // discreto, con el estilo de la web y fuera del mapa.
+    cuandoExista('.footer a[href="aviso-legal.html"]', (enlaceLegal) => {
+      if (document.getElementById('rsLinkSync')) return;
+      const contenedor = enlaceLegal.parentElement;
+      if (!contenedor) return;
+      const separador = document.createTextNode(' · ');
+      const enlace = document.createElement('a');
+      enlace.id = 'rsLinkSync';
+      enlace.href = '#';
+      enlace.textContent = t('syncData', 'Sincronizar / Exportar datos');
+      enlace.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        try { abrirPanelSync(); } catch (e) { /* nunca romper el pie */ }
+      });
+      contenedor.appendChild(separador);
+      contenedor.appendChild(enlace);
+    });
+  })();
 })();
 
 /* ============================================================

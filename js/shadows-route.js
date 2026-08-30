@@ -4796,7 +4796,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     window.ManolitWalker = window.ManolitWalker || ManolitWalker;
 
     /* ----- Marcador en el mapa: uno solo, reutilizado por los 3 modos ----- */
-    const manolit = { walker: null, marker: null, watchId: null, paseoTimer: null };
+    const manolit = { walker: null, marker: null, watchId: null, paseoTimer: null, vigilanciaCaminata: null, versionUbicacion: 0 };
 
     function asegurarManolitEnMapa(lngLat) {
       if (!manolit.walker) {
@@ -4827,50 +4827,83 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (intentos < 40) setTimeout(() => cuandoExista(selector, cb, intentos + 1), 250);
     }
 
-    /* ----- MI UBICACIÓN: la flecha se planta donde estás ----- */
+    // Compat: la caminata ya no usa un watchPosition propio (seguimos el
+    // punto azul de la app), pero REINICIAR aún llama a esta función.
+    function detenerManolitGPS() { pararVigilanciaCaminata(); }
+
+    /* ----- MI UBICACIÓN: la flecha se planta EXACTAMENTE donde
+       la app marca tu punto (leemos la misma fuente 'puntos-manuales'
+       que pinta la app, así nunca hay dos posiciones distintas) ----- */
     cuandoExista('#rsBtnMyLocation', (btn) => {
       btn.addEventListener('click', () => {
-        if (!('geolocation' in navigator)) return;
-        try {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              try {
-                const ll = [pos.coords.longitude, pos.coords.latitude];
-                asegurarManolitEnMapa(ll).setIdle();
-              } catch (e) { /* sin mapa listo: no pasa nada */ }
-            },
-            () => { /* el manejador original ya muestra el aviso de error */ },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-          );
-        } catch (e) { /* geolocalización no disponible */ }
+        const version = ++manolit.versionUbicacion;
+        let intentos = 0;
+        const buscar = () => {
+          if (version !== manolit.versionUbicacion) return; // clic más reciente manda
+          try {
+            const src = map.getSource('puntos-manuales');
+            const datos = src && (src._data || (src.serialize && src.serialize().data));
+            const feat = datos && datos.features && datos.features.find(
+              (f) => f && f.geometry && f.geometry.type === 'Point'
+            );
+            if (feat) {
+              const ll = feat.geometry.coordinates;
+              asegurarManolitEnMapa(ll).setIdle();
+              return;
+            }
+          } catch (e) { /* fuente aún no lista: reintenta */ }
+          if (++intentos < 30) setTimeout(buscar, 400); // hasta ~12 s (permiso GPS lento)
+        };
+        setTimeout(buscar, 300);
       });
     });
 
-    /* ----- INICIAR CAMINATA: la flecha camina contigo (GPS en vivo) ----- */
-    function detenerManolitGPS() {
-      if (manolit.watchId != null) navigator.geolocation.clearWatch(manolit.watchId);
-      manolit.watchId = null;
+    /* ----- INICIAR CAMINATA: la flecha ES tu punto azul -----
+       Antes lanzábamos un segundo watchPosition propio: en PC sin GPS
+       la ubicación por IP salta de sitio y la flecha aparecía y
+       desaparecía. Ahora NO pedimos otra ubicación: seguimos el
+       marcador que la propia app ya mueve (el punto azul), leyendo
+       su posición en pantalla y convirtiéndola a coordenadas con
+       map.unproject. La flecha va siempre pegada a tu punto real,
+       y las piernas se animan con tu movimiento real. */
+    function buscarMarcadorPuntoAzul() {
+      try {
+        const marcadores = document.querySelectorAll('.maplibregl-marker');
+        for (const m of marcadores) {
+          const hijo = m.firstElementChild;
+          if (hijo && /border-radius:\s*50%/.test(hijo.getAttribute('style') || '')) return m;
+        }
+      } catch (e) { /* DOM a medias: siguiente pasada */ }
+      return null;
+    }
+    function pararVigilanciaCaminata() {
+      if (manolit.vigilanciaCaminata) { clearInterval(manolit.vigilanciaCaminata); manolit.vigilanciaCaminata = null; }
     }
     cuandoExista('#rsBtnWalk', (btn) => {
       btn.addEventListener('click', () => {
-        // 50 ms: dejamos que el manejador original cambie la clase primero
         setTimeout(() => {
           try {
-            if (btn.classList.contains('rs-activo')) {
-              detenerManolitGPS();
-              manolit.watchId = navigator.geolocation.watchPosition(
-                (pos) => {
-                  try {
-                    const ll = [pos.coords.longitude, pos.coords.latitude];
-                    asegurarManolitEnMapa(ll).update(ll);
-                  } catch (e) { /* posición rara: se ignora */ }
-                },
-                () => { /* el aviso de error ya lo da el manejador original */ },
-                { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 }
-              );
-            } else {
-              detenerManolitGPS();
-            }
+            if (!btn.classList.contains('rs-activo')) { pararVigilanciaCaminata(); return; }
+            pararVigilanciaCaminata();
+            manolit.vigilanciaCaminata = setInterval(() => {
+              try {
+                // Si la caminata se paró por otra vía (paseo, reiniciar),
+                // la clase ya no está: paramos solos y la flecha se queda
+                // quieta en la última posición conocida.
+                if (!btn.classList.contains('rs-activo')) { pararVigilanciaCaminata(); return; }
+                const m = buscarMarcadorPuntoAzul();
+                if (!m || !m.isConnected) return; // aún no llegó la 1ª posición GPS
+                const r = m.getBoundingClientRect();
+                if (!r.width && !r.height) return;
+                const c = map.getCanvas().getBoundingClientRect();
+                const ll = map.unproject([
+                  r.left + r.width / 2 - c.left,
+                  r.top + r.height / 2 - c.top,
+                ]);
+                const arr = [ll.lng, ll.lat];
+                asegurarManolitEnMapa(arr).update(arr);
+              } catch (e) { /* un tic fallido no rompe nada */ }
+            }, 150);
           } catch (e) { /* nunca romper el botón original */ }
         }, 50);
       });
@@ -4916,6 +4949,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       btn.addEventListener('click', () => {
         detenerManolitGPS();
         detenerManolitPaseo();
+        pararVigilanciaCaminata();
         quitarManolitDeMapa();
       });
     });
@@ -5002,6 +5036,50 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       } catch (e) { /* si algo falla, el FAB original sigue funcionando */ }
     }
     inyectarManolitChat();
+  }
+
+
+
+  /* ============================================================
+     LOGO DEL PANEL DE CHAT — la figura Manolit también cuando el
+     chat se despliega: sustituye al círculo multicolor de la
+     cabecera «Manolit∞ te lo explica». El panel y sus funciones
+     no se tocan; solo cambia el icono.
+       ============================================================ */
+  if (!window.__manolitChatLogoListo) {
+    window.__manolitChatLogoListo = true;
+    (function ponerLogoManolitEnPanel(intentos) {
+      let logo;
+      try { logo = document.querySelector('#chatOverlay .chat-logo'); } catch (e) { return; }
+      if (!logo) {
+        if ((intentos || 0) < 40) setTimeout(() => ponerLogoManolitEnPanel((intentos || 0) + 1), 250);
+        return;
+      }
+      if (logo.dataset.manolitListo) return;
+      logo.dataset.manolitListo = '1';
+      try {
+        logo.style.cssText += ';background:none!important;box-shadow:none!important;border:none!important;padding:0;width:auto;height:auto;';
+        logo.innerHTML = `
+          <svg viewBox="0 0 120 170" width="20" height="28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <g>
+              <line x1="60" y1="118" x2="45" y2="155" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <ellipse cx="42" cy="158" rx="7" ry="4" fill="#7A0016"/>
+              <line x1="60" y1="118" x2="75" y2="155" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <ellipse cx="78" cy="158" rx="7" ry="4" fill="#7A0016"/>
+              <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
+                    fill="rgba(2,4,6,0.35)" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
+              <line x1="26" y1="76" x2="6" y2="104" stroke="#7A0016" stroke-width="5" stroke-linecap="round"/>
+              <line x1="94" y1="76" x2="114" y2="104" stroke="#7A0016" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="60" cy="63" r="26" fill="#E6A100"/>
+              <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 43,75 Q 51.5,69.5 60,75 T 77,75" fill="none" stroke="#007A87" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z"
+                    fill="none" stroke="#7A0016" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>
+        `;
+      } catch (e) { /* si falla, el logo original sigue ahí */ }
+    })(0);
   }
 
 

@@ -23,7 +23,11 @@
 (function () {
   'use strict';
 
-  const CLOUDFLARE_WORKER_URL = "https://manolito-aire.sandro-a007.workers.dev/manolito";
+  // MISMO DOMINIO: el chat llama a manolitoaire.com/manolito (el Worker que
+  // ya sirve la propia web). Antes apuntaba a la URL workers.dev, que está
+  // desactivada en este proyecto: el chat se quedaba sin servidor y moría.
+  // Al ser same-origin además desaparece cualquier problema de CORS.
+  const CLOUDFLARE_WORKER_URL = "/manolito";
   const OPENROUTER_API_KEY = "";
   const OPENROUTER_MODEL = "google/gemma-3-27b-it";
 
@@ -63,55 +67,56 @@ Eres Manolit∞, asistente experto de la plataforma web "Manolit∞ Aire" (manol
 
 === BASE DE DATOS TÉCNICA: MANOLIT∞ AIRE (DOMINA AL 100%) ===
 
-CARACTERÍSTICAS PRINCIPALES DE LA WEB:
+CARACTERÍSTICAS PRINCIPALES DE LA WEB (ESTADO ACTUAL):
 
-1. MAPAS 3D INTERACTIVOS:
-- Visualización tridimensional de ciudades usando datos de OpenStreetMap
-- Edificios extruidos en 3D con texturas realistas
-- Renderizado en tiempo real con Three.js/WebGL
-- Navegable en cualquier ciudad del mundo con datos 3D disponibles
+1. CALIDAD DEL AIRE EN TIEMPO REAL:
+- Mapa nacional de España con estaciones en vivo (PM2.5, PM10, NO2, O3)
+- Datos de Open-Meteo / Copernicus CAMS, orbes de color según lo respirable
+- Histórico 48h + pronóstico 48h con gráfica por ciudad
+- "Manolit∞ Cuántico" = simulación probabilística por software (NO hardware cuántico real)
 
-2. CÁLCULO DE SOMBRAS 3D EN TIEMPO REAL:
-- Proyección precisa de sombras solares sobre edificios 3D
-- Usa hora astronómica real (posición solar exacta)
-- Funciona globalmente donde existan edificios 3D mapeados
-- Simula sombras proyectadas por árboles y estructuras
-- NO es un videojuego ni simulación cinematográfica
+2. MAPA DE SOMBRAS 3D:
+- Edificios 3D de OpenStreetMap renderizados con MapLibre GL JS + WebGL
+- TODOS los edificios visibles en pantalla proyectan su sombra real (sin límite)
+- Posición del sol calculada con astronomía real (SunCalc): slider de hora,
+  solsticios de verano/invierno, hora dorada, hora azul y modo oscuro del mapa
+- La nubosidad real (OpenWeatherMap) atenúa las sombras con luz difusa:
+  pierden contraste pero nunca desaparecen; hay capa de nubes en vivo opcional
 
-3. RUTAS PEATONALES BAJO SOMBRA:
-- Trazado de rutas a pie optimizando caminar por zonas sombreadas
-- Usa OSRM (Open Source Routing Machine) para navegación
-- Calcula dinámicamente qué calles tienen sombra según la hora del día
-- Ideal para ciudades calurosas o para evitar exposición solar
+3. ÁRBOLES Y PALMERAS 3D:
+- Árboles reales de OpenStreetMap (Overpass) con volumen y sombra propia
+- Las palmeras proyectan también la sombra del tronco
+- Las sombras de árboles se recortan para no entrar dentro de edificios
 
-4. PASEOS BAJO SOMBRA:
-- Generación de recorridos urbanos que maximizan cobertura de sombra
-- Útil para turismo peatonal en clima cálido
-- Considera densidad de edificios y vegetación
+4. RUTAS CON SOMBRA:
+- Origen/destino por texto, toque en el mapa o GPS; ruta sobre red peatonal real
+- El % de sombra cuenta edificios Y árboles; badge en vivo al mover la hora
+- Ruta "fresca" (Dijkstra térmico) que prefiere calles con sombra
+- INDICACIONES PASO A PASO en texto (calle, giros, metros, sol/sombra):
+  sección PLEGABLE que solo se abre sola en modo accesibilidad,
+  con botón "Escuchar indicaciones" (voz del dispositivo, sin servidores)
+- "Iniciar caminata": guía por voz que sigue tu GPS paso a paso
+- Buscador de calles centrado en España (OpenStreetMap/Nominatim)
 
-5. IRRADIACIÓN SOLAR (MAPA TÉRMICO):
-- Mapas de calor mostrando radiación solar por zona
-- Cruza datos históricos mensuales de la NASA (API POWER)
-- Combina con altura solar real astronómica
-- Útil para instalación de paneles solares y urbanismo
+5. IRRADIACIÓN SOLAR:
+- Histórico hora a hora con datos reales de la NASA (POWER)
+- Atenuación por umbra/penumbra de edificios y árboles
 
-6. CALIDAD DEL AIRE EN TIEMPO REAL:
-- Datos actualizados de Copernicus CAMS (Copernicus Atmosphere Monitoring Service)
-- Mide PM2.5, PM10, O3, NO2, SO2
-- Mapas de contaminación atmosférica en vivo
-- "Manolit∞ Cuántico" = simulador probabilístico (servidores clásicos, NO hardware cuántico real)
+6. EXTRAS ACTUALES:
+- Planetario en vivo con sol y luna (fase e iluminación lunar real)
+- Pantalla completa que funciona también en iPhone
+- Paseo virtual 3D con joystick (WASD/flechas, Esc para salir)
+- Captura de vista, modo oscuro, paletas de color
+- Idiomas: español, catalán, euskera, galego, inglés y georgiano
+- Modos de vista: ciudadano, científico, yayo (letra grande) y peque (niños)
+- Capas base opcionales: mapa IGN y Catastro
+- Gratis, sin registro, sin publicidad; la ubicación solo si la compartes
+- Forma parte de la familia Manolit∞ (Forestal, Islas de Calor Sevilla)
 
-7. ÁRBOLES 3D Y REGULACIÓN TÉRMICA:
-- Extracción de árboles desde OpenStreetMap via Overpass API
-- Función climática: reducción de temperatura urbica
-- Si faltan datos en una zona, simula árbol estándar de 6m
-- Considera especies y densidad foliar
-
-8. TECNOLOGÍAS IMPLEMENTADAS:
-- Frontend: HTML5, JavaScript ES6+, Three.js, Leaflet
-- APIs: OpenStreetMap, Overpass, NASA POWER, Copernicus CAMS, OSRM
-- Backend: Cloudflare Workers serverless
-- Renderizado: WebGL para gráficos 3D
+7. TECNOLOGÍAS REALES:
+- Frontend: HTML5, JavaScript ES6+, MapLibre GL JS 4.7.1, Leaflet, SunCalc, Turf.js
+- APIs: Open-Meteo (CAMS), OpenStreetMap/Overpass, Nominatim, OSRM, NASA POWER, OpenWeatherMap
+- Backend: Cloudflare Workers serverless (mismo dominio)
 
 === REGLAS DE INTELIGENCIA Y COMPORTAMIENTO ===
 
@@ -122,8 +127,7 @@ CARACTERÍSTICAS PRINCIPALES DE LA WEB:
 - Responde directamente a la duda deducida
 
 2. CONOCIMIENTO UNIVERSAL ILIMITADO:
-- Eres un experto universal además de técnico de la web
-- Responde con precisión sobre: historia, medicina, geografía, política, arte, programación, ciencia, filosofía, literatura, idiomas, matemáticas, física, química, biología, economía, deportes, cocina, música, cine, etc.
+- Eres un experto universal en cualquier tema: historia, medicina, geografía, política, arte, programación, ciencia, filosofía, literatura, idiomas, matemáticas, física, química, biología, economía, deportes, cocina, música, cine, etc.
 - No te limites al clima si cambian de tema
 - Mantén profundidad técnica en cualquier área
 
@@ -194,7 +198,7 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
     if (CLOUDFLARE_WORKER_URL) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
 
         const res = await fetch(CLOUDFLARE_WORKER_URL, {
           method: "POST",

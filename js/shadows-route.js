@@ -4631,6 +4631,380 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
 
+
+  /* ============================================================
+     LA FLECHA MANOLIT — puntero caminante que avanza contigo
+     ------------------------------------------------------------
+     La figura del logo (cabeza dorada, ojos teal, corazón vino)
+     con piernas y brazos articulados. Aparece en el mapa cuando:
+       · pulsas MI UBICACIÓN (se planta donde estás),
+       · pulsas INICIAR CAMINATA (camina contigo por GPS en vivo),
+       · pulsas PASEO VIRTUAL 3D (camina con tu avatar virtual).
+     El paso se anima por DISTANCIA recorrida, no por tiempo:
+     si te paras, las piernas se paran. 100% aditivo: escucha los
+     botones que ya existen y NO toca la lógica anterior. El punto
+     azul de precisión de siempre sigue ahí debajo, intacto.
+     Detalle técnico: pitchAlignment 'viewport' (no 'map') para que
+     la figura se vea de pie en pantalla aunque el mapa esté muy
+     inclinado; el rumbo sí sigue al mapa (rotationAlignment 'map').
+     ============================================================ */
+  if (!window.__manolitWalkerIntegrado) {
+    window.__manolitWalkerIntegrado = true;
+
+    class ManolitWalker {
+      constructor(opts = {}) {
+        this.size = opts.size ?? 48;
+        this.strideMeters = opts.strideMeters ?? 1.4;
+        this.maxLegSwing = opts.maxLegSwing ?? 26;
+        this.maxArmSwing = opts.maxArmSwing ?? 16;
+        this.headingSmoothing = opts.headingSmoothing ?? 0.35;
+        this.colors = {
+          gold: opts.gold ?? '#E6A100',
+          teal: opts.teal ?? '#007A87',
+          wine: opts.wine ?? '#7A0016',
+        };
+        this._distanceAccum = 0;
+        this._lastLngLat = null;
+        this._heading = 0;
+        this._targetHeading = 0;
+        this._idleTimer = null;
+        this._rafId = null;
+        this._buildElement();
+        this._tickIdleReturn();
+      }
+      get element() { return this._el; }
+      update(lngLat) {
+        if (this._lastLngLat) {
+          const dist = ManolitWalker._haversine(this._lastLngLat, lngLat);
+          if (dist > 0.05) {
+            this._distanceAccum += dist;
+            this._targetHeading = ManolitWalker._bearing(this._lastLngLat, lngLat);
+            this._markMoving();
+          }
+        }
+        this._lastLngLat = lngLat;
+        this._render();
+      }
+      setIdle() { this._distanceAccum = 0; this._render(); }
+      stopWalkingRoute() {
+        if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
+      }
+      destroy() {
+        this.stopWalkingRoute();
+        if (this._idleTimer) clearTimeout(this._idleTimer);
+        this._el.remove();
+      }
+      _markMoving() {
+        this._moving = true;
+        clearTimeout(this._idleTimer);
+        this._idleTimer = setTimeout(() => { this._moving = false; }, 900);
+      }
+      _tickIdleReturn() {
+        const step = () => {
+          const headingDelta = ManolitWalker._angleDelta(this._heading, this._targetHeading);
+          this._heading += headingDelta * this.headingSmoothing;
+          if (!this._moving) this._legPhase = (this._legPhase ?? 0) * 0.85;
+          this._applyTransforms();
+          this._idleLoop = setTimeout(step, 66);
+        };
+        step();
+      }
+      _render() {
+        const phase = (this._distanceAccum / this.strideMeters) * Math.PI * 2;
+        this._legPhase = Math.sin(phase);
+        this._applyTransforms();
+      }
+      _applyTransforms() {
+        const legAngle = (this._legPhase ?? 0) * this.maxLegSwing;
+        const armAngle = -(this._legPhase ?? 0) * this.maxArmSwing;
+        this._legL.style.transform = `rotate(${legAngle}deg)`;
+        this._legR.style.transform = `rotate(${-legAngle}deg)`;
+        this._armL.style.transform = `rotate(${-armAngle}deg)`;
+        this._armR.style.transform = `rotate(${armAngle}deg)`;
+        const bob = Math.abs(this._legPhase ?? 0) * 2.2;
+        this._body.style.transform = `translateY(${-bob}px)`;
+        this._el.style.transform = `rotate(${this._heading}deg)`;
+      }
+      _buildElement() {
+        const { colors } = this;
+        // El SVG es 120×170: el contenedor respeta esa proporción para
+        // que la figura no se aplaste.
+        const w = this.size, h = Math.round(this.size * 170 / 120);
+        const wrap = document.createElement('div');
+        wrap.className = 'manolit-walker';
+        wrap.style.cssText = `
+          width:${w}px;height:${h}px;
+          transform-origin:50% 50%;
+          pointer-events:none;
+          filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
+        `;
+        wrap.innerHTML = `
+          <svg viewBox="0 0 120 170" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+            <g id="body" style="transform-origin:60px 90px;">
+              <g class="leg leg-l" style="transform-origin:60px 118px;">
+                <line x1="60" y1="118" x2="45" y2="155" stroke="${colors.wine}" stroke-width="6" stroke-linecap="round"/>
+                <ellipse cx="42" cy="158" rx="7" ry="4" fill="${colors.wine}"/>
+              </g>
+              <g class="leg leg-r" style="transform-origin:60px 118px;">
+                <line x1="60" y1="118" x2="75" y2="155" stroke="${colors.wine}" stroke-width="6" stroke-linecap="round"/>
+                <ellipse cx="78" cy="158" rx="7" ry="4" fill="${colors.wine}"/>
+              </g>
+              <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
+                    fill="rgba(2,4,6,0.35)" stroke="${colors.wine}" stroke-width="5" stroke-linejoin="round"/>
+              <g class="arm arm-l" style="transform-origin:26px 76px;">
+                <line x1="26" y1="76" x2="6" y2="104" stroke="${colors.wine}" stroke-width="5" stroke-linecap="round"/>
+              </g>
+              <g class="arm arm-r" style="transform-origin:94px 76px;">
+                <line x1="94" y1="76" x2="114" y2="104" stroke="${colors.wine}" stroke-width="5" stroke-linecap="round"/>
+              </g>
+              <circle cx="60" cy="63" r="26" fill="${colors.gold}"/>
+              <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="${colors.teal}" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 43,75 Q 51.5,69.5 60,75 T 77,75" fill="none" stroke="${colors.teal}" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z"
+                    fill="none" stroke="${colors.wine}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>
+        `;
+        this._el = wrap;
+        this._body = wrap.querySelector('#body');
+        this._legL = wrap.querySelector('.leg-l');
+        this._legR = wrap.querySelector('.leg-r');
+        this._armL = wrap.querySelector('.arm-l');
+        this._armR = wrap.querySelector('.arm-r');
+      }
+      static _haversine([lng1, lat1], [lng2, lat2]) {
+        const R = 6371000;
+        const toRad = (d) => (d * Math.PI) / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+      static _bearing([lng1, lat1], [lng2, lat2]) {
+        const toRad = (d) => (d * Math.PI) / 180;
+        const toDeg = (r) => (r * 180) / Math.PI;
+        const y = Math.sin(toRad(lng2 - lng1)) * Math.cos(toRad(lat2));
+        const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2))
+          - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lng2 - lng1));
+        return (toDeg(Math.atan2(y, x)) + 360) % 360;
+      }
+      static _angleDelta(from, to) {
+        return ((to - from + 540) % 360) - 180;
+      }
+    }
+    window.ManolitWalker = window.ManolitWalker || ManolitWalker;
+
+    /* ----- Marcador en el mapa: uno solo, reutilizado por los 3 modos ----- */
+    const manolit = { walker: null, marker: null, watchId: null, paseoTimer: null };
+
+    function asegurarManolitEnMapa(lngLat) {
+      if (!manolit.walker) {
+        manolit.walker = new ManolitWalker({ size: 46 });
+        manolit.marker = new maplibregl.Marker({
+          element: manolit.walker.element,
+          rotationAlignment: 'map',
+          pitchAlignment: 'viewport',
+          anchor: 'bottom',
+        });
+      }
+      manolit.marker.setLngLat(lngLat); // primero posición: un Marker sin LngLat rompe al añadirse
+      if (!manolit.marker._map) manolit.marker.addTo(map);
+      return manolit.walker;
+    }
+    function quitarManolitDeMapa() {
+      try { if (manolit.marker) manolit.marker.remove(); } catch (e) { /* ya fuera */ }
+      if (manolit.walker) { manolit.walker.destroy(); }
+      manolit.walker = null;
+      manolit.marker = null;
+    }
+
+    // Los botones se crean cuando el mapa termina de cargar; este helper
+    // espera con reintentos en vez de un único setTimeout a ciegas.
+    function cuandoExista(selector, cb, intentos = 0) {
+      const el = document.querySelector(selector);
+      if (el) { cb(el); return; }
+      if (intentos < 40) setTimeout(() => cuandoExista(selector, cb, intentos + 1), 250);
+    }
+
+    /* ----- MI UBICACIÓN: la flecha se planta donde estás ----- */
+    cuandoExista('#rsBtnMyLocation', (btn) => {
+      btn.addEventListener('click', () => {
+        if (!('geolocation' in navigator)) return;
+        try {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              try {
+                const ll = [pos.coords.longitude, pos.coords.latitude];
+                asegurarManolitEnMapa(ll).setIdle();
+              } catch (e) { /* sin mapa listo: no pasa nada */ }
+            },
+            () => { /* el manejador original ya muestra el aviso de error */ },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+          );
+        } catch (e) { /* geolocalización no disponible */ }
+      });
+    });
+
+    /* ----- INICIAR CAMINATA: la flecha camina contigo (GPS en vivo) ----- */
+    function detenerManolitGPS() {
+      if (manolit.watchId != null) navigator.geolocation.clearWatch(manolit.watchId);
+      manolit.watchId = null;
+    }
+    cuandoExista('#rsBtnWalk', (btn) => {
+      btn.addEventListener('click', () => {
+        // 50 ms: dejamos que el manejador original cambie la clase primero
+        setTimeout(() => {
+          try {
+            if (btn.classList.contains('rs-activo')) {
+              detenerManolitGPS();
+              manolit.watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                  try {
+                    const ll = [pos.coords.longitude, pos.coords.latitude];
+                    asegurarManolitEnMapa(ll).update(ll);
+                  } catch (e) { /* posición rara: se ignora */ }
+                },
+                () => { /* el aviso de error ya lo da el manejador original */ },
+                { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 }
+              );
+            } else {
+              detenerManolitGPS();
+            }
+          } catch (e) { /* nunca romper el botón original */ }
+        }, 50);
+      });
+    });
+
+    /* ----- PASEO VIRTUAL 3D: la flecha sigue a tu avatar -----
+       En cámara libre el "centro" del mapa no es el jugador; la
+       posición real está en la cámara (getFreeCameraOptions). */
+    function detenerManolitPaseo() {
+      if (manolit.paseoTimer) { clearTimeout(manolit.paseoTimer); manolit.paseoTimer = null; }
+    }
+    cuandoExista('#rsBtnPaseo', (btn) => {
+      btn.addEventListener('click', () => {
+        setTimeout(() => {
+          try {
+            if (!btn.classList.contains('rs-activo')) { detenerManolitPaseo(); return; }
+            detenerManolitPaseo();
+            const paso = () => {
+              manolit.paseoTimer = null;
+              // Si se salió del paseo sin botón (tecla Escape), la clase
+              // ya no está: paramos solos y sin ruido.
+              if (!btn.classList.contains('rs-activo')) return;
+              try {
+                if (typeof map.getFreeCameraOptions === 'function') {
+                  const mc = map.getFreeCameraOptions().position;
+                  if (mc) {
+                    const ll = mc.toLngLat();
+                    const arr = [ll.lng, ll.lat];
+                    asegurarManolitEnMapa(arr).update(arr);
+                  }
+                }
+              } catch (e) { /* cámara a medio mover: siguiente tic */ }
+              manolit.paseoTimer = setTimeout(paso, 120);
+            };
+            paso();
+          } catch (e) { /* nunca romper el botón original */ }
+        }, 50);
+      });
+    });
+
+    /* ----- REINICIAR: la flecha también se retira ----- */
+    cuandoExista('#rsBtnReset', (btn) => {
+      btn.addEventListener('click', () => {
+        detenerManolitGPS();
+        detenerManolitPaseo();
+        quitarManolitDeMapa();
+      });
+    });
+
+    /* ============================================================
+       BOTÓN DE CHAT MANOLIT — el FAB de siempre con nuestra figura
+       y una burbuja «¡Pregúntame!» encima. El clic sigue abriendo
+       el chat de siempre (su onclick no se toca). La burbuja se
+       despide en cuanto la tocas una vez.
+       ============================================================ */
+    function inyectarManolitChat(intentos = 0) {
+      let fab;
+      try { fab = document.querySelector('.chat-fab'); } catch (e) { return; }
+      if (!fab) {
+        if (intentos < 40) setTimeout(() => inyectarManolitChat(intentos + 1), 250);
+        return;
+      }
+      if (fab.dataset.manolitListo) return;
+      fab.dataset.manolitListo = '1';
+      try {
+        const estilo = document.createElement('style');
+        estilo.id = 'manolit-chat-estilos';
+        estilo.textContent = `
+          .chat-fab{display:flex;align-items:center;justify-content:center;overflow:visible;}
+          .chat-fab .manolit-walker-chat{pointer-events:none;animation:manolitSaludo 3.2s ease-in-out infinite;}
+          .manolit-chat-bubble{
+            position:absolute; bottom:calc(100% + 10px); right:0;
+            background:rgba(2,4,6,0.92); color:#fff;
+            border:1px solid rgba(230,161,0,0.55);
+            padding:7px 12px; border-radius:14px 14px 4px 14px;
+            font-size:13px; font-weight:600; white-space:nowrap;
+            pointer-events:none;
+            box-shadow:0 4px 14px rgba(0,0,0,0.35);
+            animation:manolitSaludo 3.2s ease-in-out infinite;
+          }
+          @keyframes manolitSaludo{
+            0%,100%{transform:translateY(0);}
+            50%{transform:translateY(-4px);}
+          }
+          @media (prefers-reduced-motion: reduce){
+            .chat-fab .manolit-walker-chat,
+            .manolit-chat-bubble{animation:none;}
+          }
+        `;
+        document.head.appendChild(estilo);
+
+        // Figura estática (la misma del caminante, en pose neutra)
+        const figura = document.createElement('span');
+        figura.className = 'manolit-walker-chat';
+        figura.innerHTML = `
+          <svg viewBox="0 0 120 170" width="30" height="43" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <g>
+              <line x1="60" y1="118" x2="45" y2="155" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <ellipse cx="42" cy="158" rx="7" ry="4" fill="#7A0016"/>
+              <line x1="60" y1="118" x2="75" y2="155" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <ellipse cx="78" cy="158" rx="7" ry="4" fill="#7A0016"/>
+              <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
+                    fill="rgba(2,4,6,0.35)" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
+              <line x1="26" y1="76" x2="6" y2="104" stroke="#7A0016" stroke-width="5" stroke-linecap="round"/>
+              <line x1="94" y1="76" x2="114" y2="104" stroke="#7A0016" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="60" cy="63" r="26" fill="#E6A100"/>
+              <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 43,75 Q 51.5,69.5 60,75 T 77,75" fill="none" stroke="#007A87" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z"
+                    fill="none" stroke="#7A0016" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>
+        `;
+        fab.innerHTML = '';
+        fab.appendChild(figura);
+
+        // Burbuja «¡Pregúntame!» (con traducción si el i18n la tiene;
+        // si la clave no existe, no tocamos nada raro: texto fijo en español)
+        let textoBurbuja = '¡Pregúntame!';
+        try {
+          const candidato = window.i18n && window.i18n.t ? window.i18n.t('askMe') : null;
+          if (candidato && candidato !== 'askMe') textoBurbuja = candidato;
+        } catch (e) { /* i18n aún no listo: español */ }
+        const burbuja = document.createElement('span');
+        burbuja.className = 'manolit-chat-bubble';
+        burbuja.textContent = textoBurbuja;
+        fab.appendChild(burbuja);
+        fab.addEventListener('click', () => { burbuja.style.display = 'none'; }, { once: true });
+      } catch (e) { /* si algo falla, el FAB original sigue funcionando */ }
+    }
+    inyectarManolitChat();
+  }
+
+
 })();
 
 /* ============================================================

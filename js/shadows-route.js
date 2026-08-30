@@ -4723,7 +4723,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         this._armR.style.transform = `rotate(${armAngle}deg)`;
         const bob = Math.abs(this._legPhase ?? 0) * 2.2;
         this._body.style.transform = `translateY(${-bob}px)`;
-        this._el.style.transform = `rotate(${this._heading}deg)`;
+        // OJO: el transform del elemento raíz lo ESCRIBE MapLibre para
+        // colocar el marcador en el mapa. Si lo pisamos aquí (como hacía
+        // la primera versión), el marcador salta a la esquina o parpadea.
+        // El rumbo se aplica a un contenedor interior que MapLibre no toca.
+        this._rotor.style.transform = `rotate(${this._heading}deg)`;
       }
       _buildElement() {
         const { colors } = this;
@@ -4739,6 +4743,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
         `;
         wrap.innerHTML = `
+          <div class="mw-rot" style="width:100%;height:100%;transform-origin:50% 50%;">
           <svg viewBox="0 0 120 170" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
             <g id="body" style="transform-origin:60px 90px;">
               <g class="leg leg-l" style="transform-origin:60px 118px;">
@@ -4764,8 +4769,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
                     fill="none" stroke="${colors.wine}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
             </g>
           </svg>
+          </div>
         `;
         this._el = wrap;
+        this._rotor = wrap.querySelector('.mw-rot');
         this._body = wrap.querySelector('#body');
         this._legL = wrap.querySelector('.leg-l');
         this._legR = wrap.querySelector('.leg-r');
@@ -4893,6 +4900,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
                 if (!btn.classList.contains('rs-activo')) { pararVigilanciaCaminata(); return; }
                 const m = buscarMarcadorPuntoAzul();
                 if (!m || !m.isConnected) return; // aún no llegó la 1ª posición GPS
+                // Sustitución de verdad: el punto azul se oculta y en su
+                // sitio queda la flecha Manolit (mismo marcador, misma
+                // posición exacta que mueve la app).
+                const puntoAzul = m.firstElementChild;
+                if (puntoAzul && !m.dataset.manolitOculto) {
+                  m.dataset.manolitOculto = '1';
+                  puntoAzul.style.visibility = 'hidden';
+                }
                 const r = m.getBoundingClientRect();
                 if (!r.width && !r.height) return;
                 const c = map.getCanvas().getBoundingClientRect();

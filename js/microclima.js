@@ -31,8 +31,6 @@
    - La leyenda ahora tiene un botón "×" para CERRARLA sin apagar
      la capa: el microclima sigue activo en el mapa, solo se oculta
      la cajita. Queda un botón circular pequeño para reabrirla.
-<<<<<<< HEAD
-=======
 
    CAMBIOS v3 (a petición):
    - La leyenda nace OCULTA: solo se ve el botón 🌡. Se abre solo
@@ -41,7 +39,6 @@
      o PRESENTE (datos reales). Si el reloj marca futuro, la capa
      se oculta sola y el botón cambia a ⏳: la estimación futura
      aún no está disponible.
->>>>>>> b1d1cb9df495f81015692af3fd5c9a5aa3eecca0
    ============================================================ */
 
 (function () {
@@ -187,10 +184,7 @@
 
   async function recalcular() {
     if (!activo || !mapa) return;
-<<<<<<< HEAD
-=======
     if (esFuturo) return; // reloj solar en el futuro: no hay datos reales — no calcular
->>>>>>> b1d1cb9df495f81015692af3fd5c9a5aa3eecca0
     const miVersion = ++versionCalculo;
 
     const tBase = await obtenerTempBase();
@@ -272,14 +266,10 @@
   /* ---- leyenda: esquina inferior DERECHA, con botón de cerrar ---- */
 
   let notaVisible = false;
-<<<<<<< HEAD
-  let leyendaCerrada = false;      // el usuario la cerró con la "×"
-=======
   // v3: la leyenda nace OCULTA — solo se ve si el usuario pulsa
   // el botón 🌡 (él decide cuándo verla; su elección se recuerda).
   let leyendaCerrada = true;
   try { leyendaCerrada = localStorage.getItem('manolito_microclima_leyenda') !== '1'; } catch (e) { /* sin almacenamiento */ }
->>>>>>> b1d1cb9df495f81015692af3fd5c9a5aa3eecca0
   let ultimoRango = null;          // último {tMin, tMax} para redibujar al reabrir
 
   function pintarLeyendaAbierta(tMin, tMax) {
@@ -301,16 +291,11 @@
       '<div style="height:7px;border-radius:4px;margin-top:4px;background:linear-gradient(90deg,hsl(220,85%,55%),hsl(120,85%,55%),hsl(60,85%,55%),hsl(0,85%,55%));"></div>' +
       `<div style="display:flex;justify-content:space-between;font-size:10px;margin-top:2px;"><span>${tMin.toFixed(0)}°C</span><span>${tMax.toFixed(0)}°C</span></div>` +
       '<div id="microclima-nota" style="display:' + (notaVisible ? 'block' : 'none') + ';font-size:9px;opacity:0.75;margin-top:3px;line-height:1.25;">' +
-<<<<<<< HEAD
-        'Estimación por modelo (tipo de superficie + sombra + nubosidad), no medición por satélite.' +
-      '</div>';
-=======
         'Estimación por modelo (tipo de superficie + sombra + nubosidad), no medición por satélite. Solo con el reloj solar en pasado o presente.' +
       '</div>' +
       (esFuturo
         ? '<div style="color:#ffd27a;font-size:9px;margin-top:3px;line-height:1.25;">⏳ Reloj solar en el futuro: estimación no disponible. La capa se ha ocultado hasta volver al pasado o al presente.</div>'
         : '');
->>>>>>> b1d1cb9df495f81015692af3fd5c9a5aa3eecca0
 
     const btnInfo = document.getElementById('microclima-info-btn');
     if (btnInfo) {
@@ -327,10 +312,7 @@
       btnCerrar.addEventListener('click', (ev) => {
         ev.stopPropagation();
         leyendaCerrada = true;
-<<<<<<< HEAD
-=======
         try { localStorage.setItem('manolito_microclima_leyenda', '0'); } catch (e) {}
->>>>>>> b1d1cb9df495f81015692af3fd5c9a5aa3eecca0
         pintarLeyendaCerrada();
       });
     }
@@ -354,10 +336,7 @@
       btn.addEventListener('click', (ev) => {
         ev.stopPropagation();
         leyendaCerrada = false;
-<<<<<<< HEAD
-=======
         try { localStorage.setItem('manolito_microclima_leyenda', '1'); } catch (e) {}
->>>>>>> b1d1cb9df495f81015692af3fd5c9a5aa3eecca0
         leyenda.style.width = '150px';
         leyenda.style.padding = '7px 9px';
         leyenda.style.background = 'rgba(10,15,25,0.82)';
@@ -397,12 +376,6 @@
     }
   }
 
-<<<<<<< HEAD
-  function encender() {
-    activo = true;
-    leyendaCerrada = false; // al activar, que se vea; el usuario ya sabe cómo cerrarla
-    crearLeyenda();
-=======
   /* ---- sincronización con el reloj solar: SOLO pasado y presente ----
      La capa se calcula con la meteorología ACTUAL y las sombras del
      momento que marca el reloj solar. Si el usuario mueve el reloj
@@ -455,7 +428,6 @@
     aplicarVisibilidadPorReloj();
     clearInterval(temporizadorReloj);
     temporizadorReloj = setInterval(sincronizarConRelojSolar, 2000);
->>>>>>> b1d1cb9df495f81015692af3fd5c9a5aa3eecca0
     recalcular();
   }
 
@@ -463,11 +435,8 @@
     activo = false;
     versionCalculo++; // aborta cualquier cálculo en curso
     clearTimeout(temporizador);
-<<<<<<< HEAD
-=======
     clearInterval(temporizadorReloj);
     esFuturo = false;
->>>>>>> b1d1cb9df495f81015692af3fd5c9a5aa3eecca0
     try { if (mapa.getLayer('microclima-capa')) mapa.removeLayer('microclima-capa'); } catch (e) {}
     try { if (mapa.getSource('microclima')) mapa.removeSource('microclima'); } catch (e) {}
     const leyenda = document.getElementById('microclima-leyenda');

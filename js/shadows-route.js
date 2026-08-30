@@ -4376,6 +4376,261 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
   };
 
+
+  /* ============================================================
+     ALTURAS OFICIALES DEL CATASTRO — sombras con la altura real
+     ------------------------------------------------------------
+     El ~90% de los edificios de OSM no trae altura ni plantas
+     (comprobado en Carretera de Carmona: 232 de 249 sin dato),
+     así que caían a la altura por defecto y su sombra salía
+     demasiado corta: calles que a media tarde están tapadas por
+     los bloques aparecían al sol. El Catastro publica GRATIS y
+     SIN CLAVE las plantas reales de cada edificio (WFS INSPIRE
+     bu:BuildingPart → numberOfFloorsAboveGround) con CORS
+     abierto, así que el navegador lo consulta directo, sin
+     proxy y sin tocar el Worker.
+
+     Cómo encaja: cuando una parte de edificio del Catastro
+     contiene el centroide de un edificio del mapa, se escribe
+     su altura oficial (plantas × alturaPorPlantaM) en
+     properties.height, que es lo PRIMERO que mira
+     alturaDeEdificio: todo el motor (sombras de suelo y
+     fachadas oscurecidas) pasa a usar el dato real del Estado
+     sin tocar una sola línea anterior. Si el Catastro no cubre
+     la zona o la red falla, no cambia nada: sigue la cadena de
+     siempre (altura OSM → plantas OSM → altura por defecto).
+     ============================================================ */
+  if (!window.__manolitoCatastroAlturas) {
+    window.__manolitoCatastroAlturas = true;
+
+    const CATASTRO = {
+      celdaGrados: 0.006,       // ~600 m: la zona que se pide de una vez
+      maxCeldasPorPasada: 3,    // no saturar: como mucho 3 celdas nuevas por parada
+      zoomMinimo: 14,           // de lejos la sombra apenas se aprecia: no gastar datos
+      ttlLocalMs: 30 * 24 * 60 * 60 * 1000, // el Catastro cambia muy despacio
+      ttlErrorMs: 10 * 60 * 1000,           // si una celda falla, se reintenta a los 10 min
+      plantaM: CONFIG.alturaPorPlantaM,     // 3.2 m por planta, como el resto del motor
+      celdaRejilla: 0.001,      // rejilla fina (~110 m) para casar edificio ↔ parte
+    };
+    const celdasCatastro = new Map();  // clave -> { t, estado: 'ok'|'vacia'|'error'|'cargando' }
+    const partesCatastro = [];         // { ring: [[lon,lat],...], alturaM }
+    const rejillaCatastro = new Map(); // "cx:cy" (0.001°) -> array de índices de partesCatastro
+
+    function claveCeldaCatastro(lat, lon) {
+      return Math.floor(lat / CATASTRO.celdaGrados) + 'x' + Math.floor(lon / CATASTRO.celdaGrados);
+    }
+    function claveRejillaCatastro(lat, lon) {
+      return Math.floor(lat / CATASTRO.celdaRejilla) + ':' + Math.floor(lon / CATASTRO.celdaRejilla);
+    }
+
+    function registrarParteCatastro(ring, alturaM) {
+      if (!ring || ring.length < 4 || !(alturaM > 0)) return;
+      const indice = partesCatastro.length;
+      partesCatastro.push({ ring, alturaM });
+      let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+      for (const p of ring) {
+        if (p[0] < minLon) minLon = p[0]; if (p[0] > maxLon) maxLon = p[0];
+        if (p[1] < minLat) minLat = p[1]; if (p[1] > maxLat) maxLat = p[1];
+      }
+      for (let cy = Math.floor(minLat / CATASTRO.celdaRejilla); cy <= Math.floor(maxLat / CATASTRO.celdaRejilla); cy++) {
+        for (let cx = Math.floor(minLon / CATASTRO.celdaRejilla); cx <= Math.floor(maxLon / CATASTRO.celdaRejilla); cx++) {
+          const clave = cy + ':' + cx;
+          let lista = rejillaCatastro.get(clave);
+          if (!lista) { lista = []; rejillaCatastro.set(clave, lista); }
+          lista.push(indice);
+        }
+      }
+    }
+
+    // Ray casting clásico: ¿está el punto dentro del anillo?
+    function puntoEnAnilloCatastro(lon, lat, ring) {
+      let dentro = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+        if (((yi > lat) !== (yj > lat)) && (lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)) dentro = !dentro;
+      }
+      return dentro;
+    }
+
+    // Altura oficial (m) en un punto: la parte del Catastro con más
+    // plantas que contiene el punto. 0 = sin dato oficial aquí.
+    function alturaOficialEn(lon, lat) {
+      const lista = rejillaCatastro.get(claveRejillaCatastro(lat, lon));
+      if (!lista) return 0;
+      let mejor = 0;
+      for (const indice of lista) {
+        const parte = partesCatastro[indice];
+        if (parte.alturaM > mejor && puntoEnAnilloCatastro(lon, lat, parte.ring)) mejor = parte.alturaM;
+      }
+      return mejor;
+    }
+
+    // Escribe la altura oficial en properties.height de cada edificio
+    // cacheado cuyo centro cae dentro de una parte del Catastro. Como
+    // alturaDeEdificio mira props.height antes que nada, el motor
+    // entero (sombra de suelo + fachadas) usa el dato real al instante.
+    function aplicarAlturasCatastroACache(recalcular) {
+      if (!partesCatastro.length || !edificiosCacheados.length) return 0;
+      let cambiados = 0;
+      for (const edificio of edificiosCacheados) {
+        try {
+          const props = edificio.properties || (edificio.properties = {});
+          if (props._alturaCatastroOK) continue;
+          const anillo = edificio.geometry && edificio.geometry.coordinates && edificio.geometry.coordinates[0];
+          if (!anillo || anillo.length < 4) continue;
+          let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+          for (const p of anillo) {
+            if (p[0] < minLon) minLon = p[0]; if (p[0] > maxLon) maxLon = p[0];
+            if (p[1] < minLat) minLat = p[1]; if (p[1] > maxLat) maxLat = p[1];
+          }
+          const alturaM = alturaOficialEn((minLon + maxLon) / 2, (minLat + maxLat) / 2);
+          if (alturaM > 0) {
+            props.height = alturaM;      // el Catastro manda: es el dato oficial del Estado
+            props._alturaCatastroOK = 1; // no volver a procesar este edificio
+            cambiados++;
+          }
+        } catch (e) { continue; }
+      }
+      if (cambiados > 0 && recalcular && document.getElementById('rsToggleSombras')?.checked) {
+        recalcularSombrasVisibles();
+      }
+      return cambiados;
+    }
+
+    // El GML del Catastro es muy regular: cada <bu-ext2d:BuildingPart>
+    // trae sus anillos exteriores (posList "lat lon lat lon ...") y sus
+    // plantas. Se extrae con expresiones regulares acotadas, sin parser
+    // XML pesado; si un trozo no encaja, simplemente se salta.
+    function parsearGmlCatastro(texto) {
+      let registradas = 0;
+      if (!texto || texto.indexOf('BuildingPart') === -1) return 0;
+      const trozos = texto.split('<bu-ext2d:BuildingPart');
+      for (let i = 1; i < trozos.length; i++) {
+        try {
+          const trozo = trozos[i];
+          const mPlantas = trozo.match(/numberOfFloorsAboveGround[^>]*>\s*(\d+)/);
+          if (!mPlantas) continue;
+          const plantas = parseInt(mPlantas[1], 10);
+          if (!(plantas > 0)) continue;
+          const alturaM = plantas * CATASTRO.plantaM;
+          const reAnillos = /<gml:exterior>[\s\S]*?<gml:posList[^>]*>([^<]+)<\/gml:posList>/g;
+          let mAnillo;
+          while ((mAnillo = reAnillos.exec(trozo)) !== null) {
+            const numeros = mAnillo[1].trim().split(/\s+/).map(Number);
+            const ring = [];
+            for (let k = 0; k + 1 < numeros.length; k += 2) {
+              if (isFinite(numeros[k]) && isFinite(numeros[k + 1])) ring.push([numeros[k + 1], numeros[k]]); // [lon, lat]
+            }
+            if (ring.length >= 4) { registrarParteCatastro(ring, alturaM); registradas++; }
+          }
+        } catch (e) { continue; }
+      }
+      return registradas;
+    }
+
+    function guardarCeldaCatastro(clave, alturasYRings) {
+      try {
+        localStorage.setItem('manolito_catastro_v1_' + clave,
+          JSON.stringify({ t: Date.now(), p: alturasYRings }));
+      } catch (e) { /* cuota llena: se vuelve a pedir otra vez, sin drama */ }
+    }
+
+    function cargarCeldaCatastroLocal(clave) {
+      try {
+        const crudo = localStorage.getItem('manolito_catastro_v1_' + clave);
+        if (!crudo) return false;
+        const datos = JSON.parse(crudo);
+        if (!datos || !datos.t || Date.now() - datos.t > CATASTRO.ttlLocalMs) return false;
+        let n = 0;
+        for (const par of datos.p || []) {
+          if (par && par[1] && par[1].length >= 4) { registrarParteCatastro(par[1], par[0]); n++; }
+        }
+        celdasCatastro.set(clave, { t: Date.now(), estado: n ? 'ok' : 'vacia' });
+        return true;
+      } catch (e) { return false; }
+    }
+
+    async function descargarCeldaCatastro(clave, s, w, n, e) {
+      const previa = celdasCatastro.get(clave);
+      if (previa && (previa.estado === 'ok' || previa.estado === 'vacia' || previa.estado === 'cargando')) return false;
+      if (previa && previa.estado === 'error' && Date.now() - previa.t < CATASTRO.ttlErrorMs) return false;
+      if (cargarCeldaCatastroLocal(clave)) return true;
+      celdasCatastro.set(clave, { t: Date.now(), estado: 'cargando' });
+      try {
+        const url = 'https://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=getfeature'
+          + '&typenames=bu:BuildingPart&srsname=EPSG:4326'
+          + '&BBOX=' + s.toFixed(6) + ',' + w.toFixed(6) + ',' + n.toFixed(6) + ',' + e.toFixed(6);
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const texto = await resp.text();
+        const antes = partesCatastro.length;
+        parsearGmlCatastro(texto);
+        const nuevas = partesCatastro.length - antes;
+        // Guardado local compacto (solo altura + anillos), para no repetir
+        // la descarga al volver a la misma zona otro día.
+        const compacto = [];
+        for (let i = antes; i < partesCatastro.length; i++) {
+          compacto.push([partesCatastro[i].alturaM, partesCatastro[i].ring]);
+        }
+        guardarCeldaCatastro(clave, compacto);
+        celdasCatastro.set(clave, { t: Date.now(), estado: nuevas ? 'ok' : 'vacia' });
+        return nuevas > 0;
+      } catch (e) {
+        celdasCatastro.set(clave, { t: Date.now(), estado: 'error' });
+        return false;
+      }
+    }
+
+    let catastroTemporizador = null;
+    function programarCatastro() {
+      clearTimeout(catastroTemporizador);
+      catastroTemporizador = setTimeout(async () => {
+        try {
+          if (!map || !map.getBounds || map.getZoom() < CATASTRO.zoomMinimo) return;
+          const vista = map.getBounds();
+          const filas = [];
+          for (let cy = Math.floor(vista.getSouth() / CATASTRO.celdaGrados); cy <= Math.floor(vista.getNorth() / CATASTRO.celdaGrados); cy++) {
+            for (let cx = Math.floor(vista.getWest() / CATASTRO.celdaGrados); cx <= Math.floor(vista.getEast() / CATASTRO.celdaGrados); cx++) {
+              filas.push([cy, cx]);
+            }
+          }
+          if (filas.length > 9) return; // vista enorme: no gastar datos
+          let pedidas = 0, llegaronDatos = false;
+          for (const [cy, cx] of filas) {
+            if (pedidas >= CATASTRO.maxCeldasPorPasada) break;
+            const clave = cy + 'x' + cx;
+            const previa = celdasCatastro.get(clave);
+            if (previa && previa.estado !== 'error') continue;
+            pedidas++;
+            const s = cy * CATASTRO.celdaGrados, n = s + CATASTRO.celdaGrados;
+            const w = cx * CATASTRO.celdaGrados, e = w + CATASTRO.celdaGrados;
+            if (await descargarCeldaCatastro(clave, s, w, n, e)) llegaronDatos = true;
+          }
+          // Siempre que haya partes disponibles (nuevas o ya en memoria)
+          // se repasa la caché: los edificios recién entrados en pantalla
+          // también reciben su altura oficial.
+          if (partesCatastro.length) aplicarAlturasCatastroACache(true);
+          void llegaronDatos;
+        } catch (e) { /* nunca ensuciar la consola: a la próxima parada se reintenta */ }
+      }, 700);
+    }
+
+    // Puente aditivo: cada vez que el motor refresca su caché de
+    // edificios, se les aplican las alturas oficiales ya descargadas
+    // (instantáneo, sin red). Si aún no hay partes de la zona, no pasa
+    // nada y quedan con la altura de siempre hasta que lleguen.
+    const actualizarCacheEdificiosBase = actualizarCacheEdificios;
+    actualizarCacheEdificios = function () {
+      actualizarCacheEdificiosBase();
+      try { aplicarAlturasCatastroACache(false); } catch (e) { /* sin Catastro: como antes */ }
+    };
+
+    map.on('moveend', programarCatastro);
+    map.once('idle', programarCatastro);
+    programarCatastro();
+  }
+
+
 })();
 
 /* ============================================================

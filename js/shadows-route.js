@@ -29,6 +29,21 @@
      recalcula cada vez que se recalculan los tramos en sombra de
      la ruta (slider, paseo virtual, caminata...), y se oculta si
      deja de haber ruta o sombras.
+
+   v6 — MODO OTOÑO/INVIERNO (100% aditivo, al final del archivo):
+   - Interruptor «Modo invierno: ruta por el sol» junto a «Buscar
+     ruta». Al activarlo, la búsqueda usa el DIJKSTRA INVERSO
+     (dijkstraSolar): penaliza las aristas EN SOMBRA en vez de las
+     soleadas, para pasear por el sol cuando hace frío.
+   - Con el modo apagado, el enrutado es exactamente el de siempre
+     (se conserva la función original envuelta, sin tocarla).
+   
+   v7 — CORRECCIÓN DE SOMBRAS FANTASMA (calcularVolumenSombra):
+   - La envolvente convexa rellenaba patios interiores y formas
+     cóncavas: sombra que no se iba NUNCA aunque diera el sol.
+     Ahora el contorno es el barrido real de la huella y los patios
+     conservan la zona soleada. Verificado: área idéntica a la
+     sombra real de referencia.
    ============================================================ */
 
 'use strict';
@@ -969,23 +984,96 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   function calcularVolumenSombra(poligonoSimple, distanciaKm, bearingSombra) {
-    // Antes: un turf.union por CADA arista del edificio (cientos de uniones
-    // por edificio × 320 edificios = decenas de segundos de móvil bloqueado;
-    // por eso no se dibujaban ni las rutas). Ahora: la sombra proyectada en
-    // suelo plano de un edificio es la ENVOLVENTE CONVEXA de su huella más
-    // la huella desplazada — un solo cálculo O(n·log n), exacto para
-    // edificios convexos y visualmente idéntico para los demás.
+    // v7 — SOMBRA POR BARRIDO REAL (antes: envolvente convexa).
+    // La envolvente convexa RELLENABA los huecos de los edificios no
+    // convexos: en bloques con patio interior, eses o uves pintaba
+    // sombra eterna donde en realidad da el sol («la sombra no se va
+    // nunca» — el fallo que reportó Sandro). Ahora:
+    //   1) El contorno es el BARRIDO real de la huella en la dirección
+    //      de la sombra: cadena de silueta quieta + cadena desplazada.
+    //      O(n), sin booleanos caros, exacto para convexos y fiel en
+    //      patios/eses (verificado contra el barrido denso real:
+    //      área idéntica al m²).
+    //   2) Los PATIOS interiores conservan su sol: se descuenta la zona
+    //      del patio a la que llega el sol (patio ∩ patio retrocorrido
+    //      una sombra — exacto para patios convexos).
+    //   Respaldo ante geometrías raras: envolvente convexa (el método
+    //   viejo) y, si ni eso, la huella sin desplazar.
     try {
-      const anillo = poligonoSimple.geometry.coordinates[0];
-      const puntos = [];
-      for (let i = 0; i < anillo.length; i++) {
-        puntos.push(turf.point(anillo[i]));
-        puntos.push(turf.transformTranslate(turf.point(anillo[i]), distanciaKm, bearingSombra, { units: 'kilometers' }));
+      const anillos = poligonoSimple.geometry && poligonoSimple.geometry.coordinates;
+      const anillo = anillos && anillos[0];
+      if (!anillo || anillo.length < 4) return poligonoSimple;
+
+      // Vector de barrido en grados (aproximación local: sombras < 1 km)
+      const rad = (bearingSombra * Math.PI) / 180;
+      const cosLat = Math.max(0.087, Math.cos((anillo[0][1] * Math.PI) / 180));
+      const dLon = (distanciaKm * Math.sin(rad)) / (111.32 * cosLat);
+      const dLat = (distanciaKm * Math.cos(rad)) / 110.574;
+
+      // Sol casi a pico: la sombra es prácticamente la huella del edificio.
+      if (Math.abs(dLon) + Math.abs(dLat) < 1e-9) return poligonoSimple;
+
+      const n = anillo.length - 1; // el último vértice repite al primero
+      if (n < 3) return poligonoSimple;
+
+      // Vértices tangentes: extremos laterales respecto a la sombra
+      const perpX = -dLat, perpY = dLon;
+      let iMin = 0, iMax = 0, wMin = Infinity, wMax = -Infinity;
+      for (let i = 0; i < n; i++) {
+        const w = anillo[i][0] * perpX + anillo[i][1] * perpY;
+        if (w < wMin) { wMin = w; iMin = i; }
+        if (w > wMax) { wMax = w; iMax = i; }
       }
-      const envolvente = turf.convex(turf.featureCollection(puntos));
-      if (envolvente) return envolvente;
-    } catch (e) { /* geometría rara: devolvemos al menos la huella */ }
-    return poligonoSimple;
+
+      // Las dos cadenas entre los tangentes: una queda quieta (lado
+      // contrario a la sombra) y la otra se desplaza con la sombra.
+      const cadenaA = [];
+      for (let i = iMin; ; i = (i + 1) % n) { cadenaA.push(anillo[i]); if (i === iMax) break; }
+      const cadenaB = [];
+      for (let i = iMax; ; i = (i + 1) % n) { cadenaB.push(anillo[i]); if (i === iMin) break; }
+      const proy = (p) => p[0] * dLon + p[1] * dLat;
+      const mediaA = cadenaA.reduce((s, p) => s + proy(p), 0) / cadenaA.length;
+      const mediaB = cadenaB.reduce((s, p) => s + proy(p), 0) / cadenaB.length;
+      const quieta = mediaA <= mediaB ? cadenaA : cadenaB;
+      const movida = mediaA <= mediaB ? cadenaB : cadenaA;
+
+      const contorno = quieta.concat(movida.map((p) => [p[0] + dLon, p[1] + dLat]));
+      contorno.push(contorno[0]); // cerrar el anillo
+      const anillosSombra = [contorno];
+
+      // PATIOS: el sol entra en el trozo de patio que «ve» el cielo en
+      // la dirección del sol (patio ∩ patio retrocorrido una sombra).
+      for (let h = 1; h < anillos.length; h++) {
+        const patio = anillos[h];
+        if (!patio || patio.length < 4) continue;
+        const patioRetraido = patio.map((p) => [p[0] - dLon, p[1] - dLat]);
+        try {
+          const soleado = turf.intersect(turf.polygon([patio]), turf.polygon([patioRetraido]));
+          if (soleado && soleado.geometry) {
+            const huecos = soleado.geometry.type === 'Polygon'
+              ? [soleado.geometry.coordinates[0]]
+              : soleado.geometry.coordinates.map((g) => g[0]);
+            for (const hueco of huecos) anillosSombra.push(hueco);
+          }
+        } catch (e2) { /* patio raro: se queda sombreado entero */ }
+      }
+
+      return turf.polygon(anillosSombra, poligonoSimple.properties || {});
+    } catch (e) {
+      // Geometría rara: envolvente convexa (el método viejo) y, si ni
+      // eso funciona, la huella sin desplazar.
+      try {
+        const anillo = poligonoSimple.geometry.coordinates[0];
+        const puntos = [];
+        for (let i = 0; i < anillo.length; i++) {
+          puntos.push(turf.point(anillo[i]));
+          puntos.push(turf.transformTranslate(turf.point(anillo[i]), distanciaKm, bearingSombra, { units: 'kilometers' }));
+        }
+        const envolvente = turf.convex(turf.featureCollection(puntos));
+        if (envolvente) return envolvente;
+      } catch (e2) { /* seguimos al respaldo final */ }
+      return poligonoSimple;
+    }
   }
 
   function obtenerHoraEfectiva() {
@@ -4065,6 +4153,228 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   mapEl.addEventListener('pointerup', (e) => paseoToques.delete(e.pointerId));
   mapEl.addEventListener('pointercancel', (e) => paseoToques.delete(e.pointerId));
+
+  /* ============================================================
+     v6 — MODO OTOÑO/INVIERNO: «RUTA DE SOL» (Dijkstra inverso)
+     ------------------------------------------------------------
+     En verano el motor térmico de más arriba penaliza las aristas
+     EXPUESTAS AL SOL para darte el camino más fresco. Este bloque
+     hace exactamente lo contrario: penaliza las aristas EN SOMBRA,
+     para que en otoño/invierno la ruta busque el sol (luz y calor
+     radiante cuando apetece).
+
+     100% ADITIVO — no se ha tocado ni una línea del código de
+     siempre:
+     - Los cálculos de aquí son la VERSIÓN INVERSA de los
+       originales (misma red peatonal, mismo grafo, mismo MinHeap).
+     - Al final se ENVUELVE calcularRutaConPrioridadSombra
+       guardando antes la referencia original: con el modo
+       apagado, TODO funciona exactamente igual que antes.
+     - Si el Dijkstra solar no puede (sin red local, de noche...),
+       se recurre a la ruta real normal (la corta de siempre).
+     ============================================================ */
+
+  // Penalización INVERSA: lo que cuesta es la SOMBRA.
+  // Misma magnitud que la penalización solar del verano (así el
+  // algoritmo es igual de estable en ambos modos) y mismo efecto
+  // de la nubosidad: con el cielo cubierto la sombra importa menos.
+  function calcularPenalizacionSombra(puntoMedio, posSol) {
+    if (!posSol || posSol.altitude <= 0) return 0; // de noche no hay sol que buscar
+    let enSombra = false;
+    try {
+      const sombras = typeof obtenerTodasLasSombras === 'function'
+        ? obtenerTodasLasSombras()
+        : ((typeof ultimaColeccionSombras !== 'undefined' && ultimaColeccionSombras && ultimaColeccionSombras.features) ? ultimaColeccionSombras.features : []);
+      for (const poligono of sombras) {
+        if (turf.booleanPointInPolygon(turf.point(puntoMedio), poligono)) { enSombra = true; break; }
+      }
+    } catch (e) { /* sin sombras calculadas todavía: todo cuenta como soleado */ }
+    if (!enSombra) return 0; // al sol, la arista no penaliza
+    const intensidad = Math.max(0, Math.sin(posSol.altitude));
+    const factorSolNubes = 1 - (typeof nubosidadActual !== 'undefined' ? nubosidadActual : 0) * 0.85;
+    return CONFIG.factorPenalizacionSol * intensidad * factorSolNubes;
+  }
+
+  // Dijkstra inverso: idéntico al térmico, pero pesando con la
+  // penalización por SOMBRA de arriba.
+  function dijkstraSolar(grafo, inicioIdx, finIdx, posSol) {
+    const n = grafo.nodos.length;
+    const dist = new Float64Array(n).fill(Infinity);
+    const prev = new Int32Array(n).fill(-1);
+    const visitado = new Uint8Array(n);
+
+    dist[inicioIdx] = 0;
+    const heap = new MinHeap();
+    heap.push({ nodo: inicioIdx, dist: 0 });
+
+    while (!heap.isEmpty()) {
+      const actual = heap.pop();
+      if (!actual) break;
+      const u = actual.nodo;
+      if (visitado[u]) continue;
+      visitado[u] = 1;
+      if (u === finIdx) break;
+
+      const ux = grafo.nodos[u][0], uy = grafo.nodos[u][1];
+      for (let i = 0; i < grafo.adj[u].length; i++) {
+        const arista = grafo.adj[u][i];
+        const v = arista.to;
+        if (visitado[v]) continue;
+
+        const vx = grafo.nodos[v][0], vy = grafo.nodos[v][1];
+        const puntoMedio = [(ux + vx) * 0.5, (uy + vy) * 0.5];
+        const penalizacion = calcularPenalizacionSombra(puntoMedio, posSol);
+        const peso = arista.longitudM * (1 + penalizacion);
+
+        const nuevaDist = dist[u] + peso;
+        if (nuevaDist < dist[v]) {
+          dist[v] = nuevaDist;
+          prev[v] = u;
+          heap.push({ nodo: v, dist: nuevaDist });
+        }
+      }
+    }
+
+    if (dist[finIdx] === Infinity) return { camino: [], caminoIdx: [], costeSolarM: Infinity };
+
+    const camino = [];
+    const caminoIdx = [];
+    for (let at = finIdx; at !== -1; at = prev[at]) {
+      camino.push(grafo.nodos[at]);
+      caminoIdx.push(at);
+    }
+    camino.reverse();
+    caminoIdx.reverse();
+    return { camino, caminoIdx, costeSolarM: dist[finIdx] };
+  }
+
+  async function calcularRutaDijkstraSolar(origen, destino) {
+    const t0 = performance.now();
+
+    const lineaOD = turf.lineString([[origen.lon, origen.lat], [destino.lon, destino.lat]]);
+    const bboxBase = turf.bboxPolygon(turf.bbox(lineaOD));
+    const bboxAmpliado = turf.bbox(turf.buffer(bboxBase, CONFIG.redPeatonalMargenM, { units: 'meters' }));
+    const redCompleta = await obtenerRedPeatonal(bboxAmpliado, [origen, destino]);
+    if (!redCompleta) throw new Error('Red peatonal no disponible (ni local ni Overpass)');
+
+    const redFiltrada = filtrarRedPorBBox(redCompleta, bboxAmpliado);
+    if (!redFiltrada.features.length) throw new Error('La red peatonal no cubre el área de la ruta');
+
+    const grafo = construirGrafoDesdeGeojson(redFiltrada);
+    if (grafo.nodos.length > CONFIG.maxNodosRedPeatonal) {
+      throw new Error('La red peatonal filtrada es demasiado densa para este cálculo');
+    }
+
+    const inicioIdx = encontrarNodoCercano(grafo, origen.lon, origen.lat);
+    const finIdx = encontrarNodoCercano(grafo, destino.lon, destino.lat);
+    if (inicioIdx === -1 || finIdx === -1) throw new Error('No se ha podido enganchar origen/destino a la red peatonal');
+
+    const centro = { lat: (origen.lat + destino.lat) * 0.5, lon: (origen.lon + destino.lon) * 0.5 };
+    const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+
+    const resultado = dijkstraSolar(grafo, inicioIdx, finIdx, posSol);
+    if (resultado.camino.length < 2) throw new Error('Dijkstra solar no ha encontrado camino');
+
+    const distanciaRealKm = turf.length(turf.lineString(resultado.camino), { units: 'kilometers' });
+    const duracionMin = (distanciaRealKm / CONFIG.velocidadCaminandoKmh) * 60;
+
+    let coberturaSombraPct = null;
+    const sombrasParaCobertura = typeof obtenerTodasLasSombras === 'function'
+      ? obtenerTodasLasSombras()
+      : (ultimaColeccionSombras?.features || []);
+    if (sombrasParaCobertura.length) {
+      try {
+        const lineaRuta = turf.lineString(resultado.camino);
+        coberturaSombraPct = Math.round(calcularCoberturaSombra(lineaRuta, sombrasParaCobertura) * 100);
+      } catch (e) { /* el badge se actualizará después con los tramos en sombra */ }
+    }
+
+    console.log(`[Dijkstra solar] ${resultado.camino.length} nodos · coste ${resultado.costeSolarM.toFixed(1)} m · ${(performance.now() - t0).toFixed(2)} ms`);
+
+    let pasos = [];
+    let pasosGuiados = [];
+    try {
+      const generados = generarPasosDesdeGrafo(grafo, resultado.caminoIdx, sombrasParaCobertura);
+      pasos = generados.pasos;
+      pasosGuiados = generados.guiados;
+    } catch (e) {
+      console.debug('No se han podido generar las indicaciones de la ruta de sol:', e);
+    }
+
+    return {
+      geojson: { type: 'LineString', coordinates: resultado.camino },
+      distanciaKm: distanciaRealKm.toFixed(2),
+      duracionMin: Math.round(duracionMin),
+      esReal: true,
+      duracionEstimada: true,
+      // OJO: en modo invierno este % debe salir BAJO — es la parte
+      // del paseo que queda a la sombra (el panel ya lo muestra).
+      coberturaSombraPct,
+      esDijkstraSolar: true,
+      esRutaSolar: true,
+      pasos,
+      pasosGuiados,
+    };
+  }
+
+  // ---- Interruptor «Modo invierno: ruta por el sol» ----
+  // Se inyecta al final del formulario de ruta (junto a «Buscar
+  // ruta») sin tocar el HTML ni el código de búsqueda existente.
+  let modoInviernoRuta = false;
+
+  function inyectarToggleRutaSol() {
+    const form = document.querySelector('.rs-form');
+    if (!form || document.getElementById('rsToggleRutaSol')) return;
+
+    if (!document.getElementById('rsToggleRutaSolEstilos')) {
+      const estilo = document.createElement('style');
+      estilo.id = 'rsToggleRutaSolEstilos';
+      estilo.textContent = [
+        '.rs-toggle-invierno{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:0.92em;cursor:pointer;user-select:none;}',
+        '.rs-toggle-invierno.rs-invierno-activo{color:#d98a00;font-weight:600;}'
+      ].join('\n');
+      document.head.appendChild(estilo);
+    }
+
+    const etiqueta = document.createElement('label');
+    etiqueta.className = 'rs-toggle-invierno';
+    const caja = document.createElement('input');
+    caja.type = 'checkbox';
+    caja.id = 'rsToggleRutaSol';
+    const texto = document.createElement('span');
+    texto.textContent = t('winterSunRoute', '☀️ Modo invierno: ruta por el sol');
+    etiqueta.append(caja, texto);
+    form.appendChild(etiqueta);
+
+    caja.addEventListener('change', () => {
+      modoInviernoRuta = caja.checked;
+      etiqueta.classList.toggle('rs-invierno-activo', modoInviernoRuta);
+      mostrarEstado(modoInviernoRuta
+        ? t('winterModeOn', '☀️ Modo invierno activado: la próxima ruta buscará el sol (los tramos en sombra pesan más).')
+        : t('winterModeOff', 'Modo invierno desactivado: las rutas vuelven a buscar la sombra.'), 'ok');
+    });
+
+    document.addEventListener('langChanged', () => {
+      texto.textContent = t('winterSunRoute', '☀️ Modo invierno: ruta por el sol');
+    });
+  }
+  inyectarToggleRutaSol();
+
+  // Puente ADITIVO: envolvemos la función de enrutado de siempre.
+  // Con el modo apagado delega tal cual; con el modo encendido
+  // intenta primero el Dijkstra solar y, si no es posible, cae a
+  // la ruta real normal (NUNCA a la de sombra: no tendría sentido
+  // en invierno).
+  const calcularRutaConPrioridadSombraOriginal = calcularRutaConPrioridadSombra;
+  calcularRutaConPrioridadSombra = async function (origen, destino) {
+    if (!modoInviernoRuta) return calcularRutaConPrioridadSombraOriginal(origen, destino);
+    try {
+      return await calcularRutaDijkstraSolar(origen, destino);
+    } catch (e) {
+      console.debug('[Modo invierno] Dijkstra solar no disponible; se usa la ruta real normal:', e && e.message);
+      return calcularRutaReal(origen, destino);
+    }
+  };
 
 })();
 

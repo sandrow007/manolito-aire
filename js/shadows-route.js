@@ -4685,7 +4685,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   '¡Mira qué aplastamiento, esto no hay cuerpo que lo aguante!',
   '¡Anda ya, que con esta solana lo que pega es una cerveza y no estar aquí pringando!',
   '¡Qué mal se mueve esto, chiquillo, está aplatanao perdío con la calor!',
-  '¡Vaya, esto va a pedales, no hay aire acondicionado que lo salve!'
+  '¡Vaya, esto va a pedales, no hay aire acondicionado que lo salve!',
+  '¡Ay, miarma, aquí cada paso parece un castigo del verano!',
+  '¡Qué calorón, esto se mueve más lento que un caracol en mayo!',
+  '¡Mira qué ambiente, pa estar aquí hace falta to lo que sea menos viento!',
+  '¡Ojo, que este paseo va a ser máh duro que una mañana sin siestah!',
+  '¡Bendito sea, si esto sigue así vamos a sudar la camiseta entera!',
+  '¡Qué calor, shiquillo, aquí no se respira ni de milagro!',
+  '¡Esto está más tieso que la verja del barrio, pero con buena intención!',
+  '¡Vaya, esto huele a verano encendido y a paso cojo por la acera!',
+  '¡Me parece que hoy la sombra no va a llegar ni a la esquina del bloque!'
         ];
         this._lastLngLat = null;
         this._moving = false;
@@ -4741,7 +4750,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           );
           frase.lang = 'es-ES';
           frase.rate = 0.96;
-          frase.pitch = 1.08;
+          frase.pitch = 1.02;
+          frase.volume = 0.9;
+
+          const voces = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+          const vozNeutra = voces.find((v) => {
+            const nombre = (v.name || '').toLowerCase();
+            const lang = (v.lang || '').toLowerCase();
+            return lang.startsWith('es') && !/(mujer|hombre|female|male|woman|man)/i.test(nombre);
+          }) || voces.find((v) => (v.lang || '').toLowerCase().startsWith('es')) || null;
+
+          if (vozNeutra) frase.voice = vozNeutra;
+
           window.speechSynthesis.cancel();
           window.speechSynthesis.speak(frase);
         } catch (e) { /* si no hay voz disponible, no rompe la app */ }
@@ -5015,7 +5035,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           element: manolit.walker.element,
           rotationAlignment: 'viewport',
           pitchAlignment: 'viewport',
-          anchor: 'bottom',
+          anchor: 'center',
+          offset: [0, -12],
         });
         if (manolit.walker && typeof manolit.walker._bindClickSpeechToMarker === 'function') {
           manolit.walker._bindClickSpeechToMarker(manolit.marker);

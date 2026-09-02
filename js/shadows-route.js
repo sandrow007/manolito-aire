@@ -5203,7 +5203,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
                 // Si la caminata se paró por otra vía (paseo, reiniciar),
                 // la clase ya no está: paramos solos y la flecha se queda
                 // quieta en la última posición conocida.
-                if (!btn.classList.contains('rs-activo')) { pararVigilanciaCaminata(); return; }
+                if (!btn.classList.contains('rs-activo')) {
+                  pararVigilanciaCaminata();
+                  // La caminata se paró por otra vía: la voz también se calla.
+                  try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e0) { }
+                  return;
+                }
                 const m = buscarMarcadorPuntoAzul();
                 if (!m || !m.isConnected) return; // aún no llegó la 1ª posición GPS
                 // Sustitución de verdad: el punto azul se oculta y en su
@@ -5685,13 +5690,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         btn.addEventListener('click', () => {
           try { localStorage.setItem(CLAVE_VOZ, vozQuerida() ? '0' : '1'); } catch (e) { }
           pintar();
-          // Si la caminata ya está en marcha y acabas de encender la voz,
-          // la guía arranca en ese momento (sin reiniciar nada).
           try {
-            if (vozQuerida() && btnWalk.classList.contains('rs-activo') && typeof iniciarGuiaCaminata === 'function') {
-              iniciarGuiaCaminata();
+            if (vozQuerida()) {
+              // La acabas de encender con la caminata en marcha: arranca ya.
+              if (btnWalk.classList.contains('rs-activo') && typeof iniciarGuiaCaminata === 'function') {
+                iniciarGuiaCaminata();
+              }
+            } else {
+              // La acabas de APAGAR: silencio INMEDIATO. Se para la guía,
+              // se corta cualquier frase a medias y se vacía la cola de voz.
+              try { if (typeof detenerGuiaCaminata === 'function') detenerGuiaCaminata(); } catch (e1) { }
+              try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e2) { }
+              try { indicePasoGuiado = 0; guiaCaminataActiva = false; } catch (e3) { }
             }
-          } catch (e) { /* sin ruta calculada: la voz empezará en la próxima caminata */ }
+          } catch (e) { /* el botón jamás rompe la caminata */ }
         });
         pintar();
         btnWalk.insertAdjacentElement('afterend', btn);
@@ -5707,6 +5719,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       hablarPasoGuia = function (texto) {
         const resumen = document.getElementById('rsLiveSummary');
         if (resumen) resumen.textContent = texto;
+        // Doble cerrojo: con el interruptor de voz apagado no se habla NUNCA,
+        // aunque cualquier otra parte de la app llame a esta función.
+        try { if (localStorage.getItem('manolito_guia_voz') !== '1') return; } catch (e0) { return; }
         if (typeof vozNavegadorDisponible !== 'function' || !vozNavegadorDisponible()) return;
         try {
           const frase = new SpeechSynthesisUtterance(texto);

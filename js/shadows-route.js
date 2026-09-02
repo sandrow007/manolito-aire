@@ -4680,21 +4680,51 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         } catch (e) { this._reduced = false; }
         this._distanceAccum = 0;
         this._frasesAndaluz = [
-'¡Ojú, compare, con esta flama esto no tira ni empujando!',
-  '¡Qué sofocón, miarma, a estas horas no rinde ni el apuntador!',
-  '¡Mira qué aplastamiento, esto no hay cuerpo que lo aguante!',
-  '¡Anda ya, que con esta solana lo que pega es una cerveza y no estar aquí pringando!',
-  '¡Qué mal se mueve esto, chiquillo, está aplatanao perdío con la calor!',
-  '¡Vaya, esto va a pedales, no hay aire acondicionado que lo salve!',
-  '¡Ay, miarma, aquí cada paso parece un castigo del verano!',
-  '¡Qué calorón, esto se mueve más lento que un caracol en mayo!',
-  '¡Mira qué ambiente, pa estar aquí hace falta to lo que sea menos viento!',
-  '¡Ojo, que este paseo va a ser máh duro que una mañana sin siestah!',
-  '¡Bendito sea, si esto sigue así vamos a sudar la camiseta entera!',
-  '¡Qué calor, shiquillo, aquí no se respira ni de milagro!',
-  '¡Esto está más tieso que la verja del barrio, pero con buena intención!',
-  '¡Vaya, esto huele a verano encendido y a paso cojo por la acera!',
-  '¡Me parece que hoy la sombra no va a llegar ni a la esquina del bloque!'
+          // Saludos y ánimos
+          '¡Ea, miarma! ¿Nó vamoh a pasear o qué?',
+          '¡Venga, alma de cántaro, que la sombrita noh espera!',
+          '¡Hola, qué arte! Yo te llevo por lo fresquito, tú tranquilo.',
+          '¡Ea, ya está Manolit aquí, que esto se arregla andando!',
+          '¡Vamoh poco a poco, que el que corre en Sevilla se derrite!',
+          '¡Qué ilusión verte, compare! ¿Buscamo la sombra o qué?',
+          // Calor y solana
+          '¡Ojú, qué calor, miarma! Esto es un horno con vistas.',
+          '¡Madre mía, qué solana! Hasta los lagartos andan buscando toldo.',
+          '¡Qué bochorno, compare! Esto no es Sevilla, es la freidora del cielo.',
+          '¡Ojú, qué calor más malo! Voy a derretirme como un helao de cucurucho.',
+          '¡Qué flama, miarma! Ni los chicharrones aguantan esta tarde.',
+          '¡Anda que no pega el Lorenzo ni ná! Menos mal que me tienes a mí.',
+          '¡Socorro, que esto achicharra! Vamoh por la sombra o no vamoh.',
+          '¡Qué calorón, shiquillo! Esto no lo aguanta ni el botijo.',
+          '¡Ojú! Con esta temperatura el asfalto hace tortilla sin huevo.',
+          // Sombra y ruta
+          '¡Mira qué sombrita más rica ahí al lao! Eso sí que es vida.',
+          '¡Por aquí, por aquí! Que en esta calle hay más sombra que en la Giralda.',
+          '¡Fíjate qué fresquito bajo los naranjos! Esto es una maravilla.',
+          '¡Agárrate a la pared de la sombra, que eso es oro puro!',
+          '¡Tira pa cá, miarma, que esta plaza tiene toldo y glorietas!',
+          '¡Qué bien se está aquí a la sombrita! Ni en el pilón de mi casa.',
+          '¡Crucemos de sombra en sombra como los gatos, que son mu listos!',
+          '¡Esta callejuela es una gozada! Fresquito y sin sol de cara.',
+          // Árboles y aire
+          '¡Ay, qué bien huele este naranjo! Respira hondo, miarma.',
+          '¡Mira qué arbolío! Con árboles así se respira otra cosa.',
+          '¡Este airecito sí que entra bien! Nada que ver con la avenida.',
+          '¡Benditos sean los árboles, compare, que ellos sí que se dan prisa fresquecito!',
+          '¡Respira, respira! Que por aquí el aire está fino filipino.',
+          // Ánimo andaluz general
+          '¡No te preocupeh, que Manolit te guía como si ná!',
+          '¡Tú camina con calma, que la prisa no es buena ni pa el gazpacho!',
+          '¡Ea, ya queda menos! Menos que un minuto de sombra al mediodía.',
+          '¡Qué arte tienes caminando, miarma! Pareces de Triana.',
+          '¡Vamoh que noh vamoh! Y con este paseo, ni a la Macarena.',
+          '¡Alegría, que la vida son dos días y en Sevilla hace sol en casi todos!',
+          '¡Tú a tu ritmo, que aquí el único que corre es el Guadalquivir!',
+          '¡Y si te cansa, noh paramo un momentito y ya está! Esto no es la Vuelta.',
+          // Despedidas y llegada
+          '¡Ya hemoh llegao, miarma! Qué paseo más bonito noh hemoh dao.',
+          '¡Hasta luego, Mari... digo, hasta la próxima caminata, compare!',
+          '¡Esto ya está hecho! Un aplauso pa nosotros, que lo vale.'
         ];
         this._lastLngLat = null;
         this._moving = false;
@@ -4749,22 +4779,61 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             this._frasesAndaluz[Math.floor(Math.random() * this._frasesAndaluz.length)]
           );
           frase.lang = 'es-ES';
-          frase.rate = 0.96;
-          frase.pitch = 1.02;
-          frase.volume = 0.9;
 
+          // VOZ SIN GÉNERO: ningún navegador ofrece hoy una voz española
+          // declarada "neutral" (comprobado en la lista Readium Speech, la
+          // referencia de voces de la Web Speech API: todas las es-* son
+          // femeninas o masculinas). Lo que SÍ podemos hacer es buscar la voz
+          // española de más calidad disponible y compensar su tono hacia el
+          // centro: las femeninas bajan un poco y las masculinas suben un
+          // poco, hasta un registro intermedio que no suena ni a mujer ni a
+          // hombre. El acento andaluz lo ponen las palabras escritas (seseo,
+          // aspiraciones, "miarma", "vamoh"...): no existe ninguna voz TTS
+          // andaluza gratuita en 2026.
           const voces = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-          const vozNeutra = voces.find((v) => {
-            const nombre = (v.name || '').toLowerCase();
-            const lang = (v.lang || '').toLowerCase();
-            return lang.startsWith('es') && !/(mujer|hombre|female|male|woman|man)/i.test(nombre);
-          }) || voces.find((v) => (v.lang || '').toLowerCase().startsWith('es')) || null;
+          const elegida = ManolitWalker._vozMasNeutra(voces);
+          if (elegida && elegida.voz) frase.voice = elegida.voz;
 
-          if (vozNeutra) frase.voice = vozNeutra;
+          // Tono base según el género de la voz encontrada, llevado al centro,
+          // con un pelín de variedad en cada frase para que no suene a disco.
+          const base = elegida && elegida.genero === 'f' ? 0.88
+            : elegida && elegida.genero === 'm' ? 1.18
+            : 1.04;
+          frase.pitch = Math.min(2, Math.max(0.5, base + (Math.random() * 0.12 - 0.06)));
+          frase.rate = 0.92 + Math.random() * 0.16;
+          frase.volume = 0.9;
 
           window.speechSynthesis.cancel();
           window.speechSynthesis.speak(frase);
         } catch (e) { /* si no hay voz disponible, no rompe la app */ }
+      }
+      // Elige la voz española de mejor calidad disponible y detecta su
+      // género por el nombre para poder neutralizar el tono después.
+      static _vozMasNeutra(voces) {
+        try {
+          const espanolas = (voces || []).filter((v) => (v.lang || '').toLowerCase().replace('_', '-').startsWith('es'));
+          if (!espanolas.length) return null;
+          const FEMENINAS = /elvira|helena|laura|marisol|mónica|monica|paloma|salome|dalia|elena|isabella|femenina|female|mujer|woman|sabina|carlota/i;
+          const MASCULINAS = /alvaro|álvaro|jorge|pablo|tomas|gonzalo|alonso|enrique|andres|andrés|masculina|\bmale\b|hombre|\bman\b|emilio/i;
+          // De mayor a menor calidad según la lista Readium Speech:
+          // neurales de Edge/Windows, luego Google, luego las del sistema.
+          const puntuar = (v) => {
+            const n = (v.name || '').toLowerCase();
+            let p = 0;
+            if (/online \(natural\)|neural|natural/.test(n)) p += 30;
+            if (/google/.test(n)) p += 20;
+            if ((v.lang || '').toLowerCase().startsWith('es-es')) p += 10; // castellano: lo más cercano al texto andaluz
+            if (v.localService) p += 2;
+            return p;
+          };
+          const ordenadas = espanolas.slice().sort((a, b) => puntuar(b) - puntuar(a));
+          const voz = ordenadas[0];
+          const nombre = voz.name || '';
+          let genero = 'n';
+          if (MASCULINAS.test(nombre)) genero = 'm';
+          else if (FEMENINAS.test(nombre)) genero = 'f';
+          return { voz, genero };
+        } catch (e) { return null; }
       }
       _bindClickSpeech() {
         if (!this._el || this._el.dataset.manolitClickBound) return;
@@ -5102,6 +5171,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function buscarMarcadorPuntoAzul() {
       try {
         const marcadores = document.querySelectorAll('.maplibregl-marker');
+        // PRIMERO el punto de la caminata ("el punto blanco"): el que crea
+        // "Iniciar caminata" tiene un halo de 6px (box-shadow 0 0 0 6px) que
+        // no tiene ningún otro marcador. Manolit se engancha a ESE, sí o sí,
+        // y avanza con él cada vez que el GPS lo mueve.
+        for (const m of marcadores) {
+          const hijo = m.firstElementChild;
+          const estilo = (hijo && hijo.getAttribute('style')) || '';
+          if (/border-radius:\s*50%/.test(estilo) && /0 0 0 6px/.test(estilo)) return m;
+        }
+        // Si no hay caminata en marcha, cualquier punto redondo sirve
+        // (compatibilidad con el comportamiento anterior).
         for (const m of marcadores) {
           const hijo = m.firstElementChild;
           if (hijo && /border-radius:\s*50%/.test(hijo.getAttribute('style') || '')) return m;
@@ -5555,6 +5635,93 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       contenedor.appendChild(enlace);
     });
   })();
+
+  /* ==================== GUÍA POR VOZ DE LA CAMINATA — SOLO SI SE PIDE ====================
+     Antes la voz arrancaba SOLA al pulsar "Iniciar caminata". Ahora hay un
+     botoncito "🔊 Guía por voz" junto a los botones de caminata: apagado por
+     defecto; quien quiera la voz la enciende, quien no, camina en silencio.
+     La elección se recuerda (y viaja en Sincronizar/Exportar, es manolito_*). */
+  (function guiaVozOpcional() {
+    try {
+      const CLAVE_VOZ = 'manolito_guia_voz';
+      const vozQuerida = () => {
+        try { return localStorage.getItem(CLAVE_VOZ) === '1'; } catch (e) { return false; }
+      };
+
+      // El arranque de la guía pasa a ser manual: sin el botón encendido,
+      // iniciarGuiaCaminata queda en silencio aunque la app la llame.
+      if (typeof iniciarGuiaCaminata === 'function') {
+        const iniciarGuiaOriginal = iniciarGuiaCaminata;
+        iniciarGuiaCaminata = function () {
+          if (vozQuerida()) { iniciarGuiaOriginal(); return; }
+          try { indicePasoGuiado = 0; guiaCaminataActiva = false; } catch (e) { /* aún no existe */ }
+        };
+      }
+      // Al detener la caminata, la voz también se calla.
+      if (typeof detenerCaminata === 'function' && typeof detenerGuiaCaminata === 'function') {
+        const detenerCaminataOriginal = detenerCaminata;
+        detenerCaminata = function () {
+          detenerCaminataOriginal.apply(this, arguments);
+          try { detenerGuiaCaminata(); } catch (e) { /* sin voz activa */ }
+        };
+      }
+
+      // Botoncito discreto junto a "Iniciar caminata", con el estilo de la web.
+      cuandoExista('#rsBtnWalk', (btnWalk) => {
+        if (document.getElementById('rsBtnGuiaVoz')) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'rsBtnGuiaVoz';
+        btn.setAttribute('aria-pressed', 'false');
+        const pintar = () => {
+          const on = vozQuerida();
+          btn.classList.toggle('rs-activo', on);
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+          btn.textContent = (on ? '🔊 ' : '🔇 ') + t('voiceGuide', 'Guía por voz');
+          btn.title = on
+            ? 'Guía por voz ACTIVADA: Manolit te dice cada paso en voz alta al caminar'
+            : 'Guía por voz desactivada: actívala si quieres que Manolit te diga los pasos en voz alta';
+        };
+        btn.addEventListener('click', () => {
+          try { localStorage.setItem(CLAVE_VOZ, vozQuerida() ? '0' : '1'); } catch (e) { }
+          pintar();
+          // Si la caminata ya está en marcha y acabas de encender la voz,
+          // la guía arranca en ese momento (sin reiniciar nada).
+          try {
+            if (vozQuerida() && btnWalk.classList.contains('rs-activo') && typeof iniciarGuiaCaminata === 'function') {
+              iniciarGuiaCaminata();
+            }
+          } catch (e) { /* sin ruta calculada: la voz empezará en la próxima caminata */ }
+        });
+        pintar();
+        btnWalk.insertAdjacentElement('afterend', btn);
+      });
+    } catch (e) { /* este bloque jamás rompe la caminata */ }
+  })();
+
+  /* ---- La guía por voz de la caminata usa la MISMA voz neutral de Manolit ----
+     (mismo criterio sin género que las frases al tocarlo) */
+  try {
+    if (typeof hablarPasoGuia === 'function' && typeof ManolitWalker !== 'undefined') {
+      const hablarPasoGuiaOriginal = hablarPasoGuia;
+      hablarPasoGuia = function (texto) {
+        const resumen = document.getElementById('rsLiveSummary');
+        if (resumen) resumen.textContent = texto;
+        if (typeof vozNavegadorDisponible !== 'function' || !vozNavegadorDisponible()) return;
+        try {
+          const frase = new SpeechSynthesisUtterance(texto);
+          frase.lang = (document.documentElement.lang || 'es').slice(0, 5);
+          const voces = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+          const elegida = ManolitWalker._vozMasNeutra(voces);
+          if (elegida && elegida.voz) frase.voice = elegida.voz;
+          frase.pitch = elegida && elegida.genero === 'f' ? 0.88
+            : elegida && elegida.genero === 'm' ? 1.18 : 1.04;
+          frase.rate = 1;
+          window.speechSynthesis.speak(frase);
+        } catch (e) { /* voz no disponible: queda el anuncio escrito */ }
+      };
+    }
+  } catch (e) { /* si algo falla, la guía original sigue funcionando */ }
 })();
 
 /* ============================================================

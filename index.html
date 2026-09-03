@@ -189,6 +189,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
+<base target="_blank">
 </head>
 <body>
 
@@ -480,6 +481,17 @@
     <g id="rsSolOrbe"><circle r="8" fill="url(#rsGradSol)"/></g>
   </svg>
   <div class="rs-planetario-info" id="rsPlanetarioInfo">--</div>
+  <!-- Botón de acceso a la herramienta de Renderizado LiDAR (nube de puntos 3D).
+       Es un enlace externo de la familia Manolit∞, con estilo de botón para que
+       no se vea la URL y quede integrado con el diseño de la página. -->
+  <a class="rs-btn-lidar" href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+      <polyline points="3.29 7 12 12 20.71 7"/>
+      <line x1="12" y1="22" x2="12" y2="12"/>
+    </svg>
+    <span>Renderizado LiDAR</span>
+  </a>
 </div>
 
 <section id="rsAqiPanel" style="margin-top:16px;" aria-labelledby="rsAqiTitle">

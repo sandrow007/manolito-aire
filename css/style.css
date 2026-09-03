@@ -1159,3 +1159,39 @@ body.manolito-fs .chat-fab{ display:none !important; }
    reloj del muñeco (66 ms) desde JS; una animación CSS infinita obligaba
    al compositor a repintar 60 veces por segundo todo el rato. --- */
 .mw-sway{ animation: none !important; will-change: auto; }
+
+/* --- BOTÓN RENDERIZADO LIDAR (sep-2026): acceso a la herramienta externa
+   de nubes de puntos LiDAR, bajo el panel de posición solar. Estilo de
+   botón-píldora coherente con la web: sin URL visible, centrado, con
+   icono de cubo dibujado (nada de emojis) y hover suave. --- */
+.rs-btn-lidar{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  margin:12px auto 2px; padding:10px 20px; border-radius:999px;
+  font-family:var(--font-mono); font-size:0.8rem; font-weight:600; letter-spacing:0.03em;
+  color:#ffffff; text-decoration:none;
+  background:linear-gradient(135deg, var(--sky-deep) 0%, var(--sky-mid) 100%);
+  border:1px solid color-mix(in srgb, var(--sky-mid) 55%, #ffffff 20%);
+  box-shadow:0 4px 14px rgba(14,59,71,0.28);
+  transition:transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.rs-btn-lidar svg{ width:16px; height:16px; flex:0 0 auto; }
+.rs-btn-lidar:hover, .rs-btn-lidar:focus-visible{
+  transform:translateY(-2px);
+  box-shadow:0 8px 20px rgba(14,59,71,0.36);
+  filter:brightness(1.08);
+}
+.rs-btn-lidar:active{ transform:translateY(0); }
+.rs-btn-lidar:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+[data-theme="dark"] .rs-btn-lidar{
+  color:#06222b;
+  background:linear-gradient(135deg, var(--sky-mid) 0%, var(--sky-deep) 100%);
+  border-color:color-mix(in srgb, var(--sky-mid) 60%, transparent);
+  box-shadow:0 4px 16px rgba(0,240,255,0.18);
+}
+[data-theme="dark"] .rs-btn-lidar:hover, [data-theme="dark"] .rs-btn-lidar:focus-visible{
+  box-shadow:0 8px 22px rgba(0,240,255,0.28);
+}
+@media (prefers-reduced-motion: reduce){
+  .rs-btn-lidar{ transition:none; }
+  .rs-btn-lidar:hover, .rs-btn-lidar:focus-visible{ transform:none; }
+}

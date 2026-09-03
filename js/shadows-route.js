@@ -6738,4 +6738,105 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     } catch (e) { /* aditivo: jamás rompe */ }
   })();
 
+
+  /* ==================== MANOLIT DEL CHAT CON BRAZOS Y SALUDO ====================
+     El muñeco del botón «¡Pregúntame!» es un SVG aparte del caminante del
+     mapa y se había quedado SIN BRAZOS. Aquí se los ponemos (con sus manos
+     doradas), el izquierdo SALUDA de verdad cada pocos segundos y todo él
+     tiene un vaivén suave. Barato a propósito: figura de 30 px, ciclos
+     largos, y quieto si el sistema pide reducir movimiento.
+     Aditivo y autosuficiente (este IIFE no ve los helpers de otros). */
+  (function mejoraManolitChat() {
+    try {
+      if (window.__manolitChatConBrazos) return;
+      window.__manolitChatConBrazos = true;
+      const NS = 'http://www.w3.org/2000/svg';
+
+      // 1) Estilos propios: saludo del brazo + vaivén del cuerpecito.
+      //    El saludo dura ~2 s dentro de un ciclo de 7 s: saluda y descansa.
+      if (!document.getElementById('manolit-chat-brazos-estilos')) {
+        const st = document.createElement('style');
+        st.id = 'manolit-chat-brazos-estilos';
+        st.textContent = [
+          '.chat-fab .mcb-brazo-saludo{ transform-origin:26px 76px; animation:mcbOla 7s ease-in-out infinite; }',
+          '@keyframes mcbOla{',
+          '  0%,58%,100%{ transform:rotate(0deg); }',
+          '  64%{ transform:rotate(-150deg); }',
+          '  70%{ transform:rotate(-128deg); }',
+          '  76%{ transform:rotate(-150deg); }',
+          '  82%{ transform:rotate(-128deg); }',
+          '  88%{ transform:rotate(0deg); }',
+          '}',
+          /* El vaivén va en el SVG (elemento distinto del span, que ya tiene
+             su bob de arriba-abajo): así los dos movimientos se componen. */
+          '.chat-fab .manolit-walker-chat svg{ transform-origin:50% 90%; animation:mcbVaiven 5.5s ease-in-out infinite; }',
+          '@keyframes mcbVaiven{ 0%,100%{ transform:rotate(-2deg); } 50%{ transform:rotate(2deg); } }',
+          '@media (prefers-reduced-motion: reduce){',
+          '  .chat-fab .mcb-brazo-saludo, .chat-fab .manolit-walker-chat svg{ animation:none !important; }',
+          '}'
+        ].join('\n');
+        document.head.appendChild(st);
+      }
+
+      // 2) Brazos para el muñeco del FAB (no los traía).
+      const ponerBrazosFab = function () {
+        const svg = document.querySelector('.chat-fab .manolit-walker-chat svg');
+        if (!svg) return false;
+        const g = svg.querySelector('g');
+        if (!g) return true;
+        if (g.dataset.mcbBrazos === '1') return true;
+        g.dataset.mcbBrazos = '1';
+        // Brazo derecho: quieto, con mano (va detrás del cuerpo).
+        const der = document.createElementNS(NS, 'g');
+        der.innerHTML = '<line x1="94" y1="76" x2="114" y2="104" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/><circle cx="115" cy="106" r="4.5" fill="#E6A100" stroke="#7A0016" stroke-width="2"/>';
+        const cuerpo = g.querySelector('path');
+        if (cuerpo) g.insertBefore(der, cuerpo); else g.appendChild(der);
+        // Brazo izquierdo: el que saluda (va delante, como en el caminante).
+        const izq = document.createElementNS(NS, 'g');
+        izq.setAttribute('class', 'mcb-brazo-saludo');
+        izq.innerHTML = '<line x1="26" y1="76" x2="6" y2="104" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/><circle cx="5" cy="106" r="4.5" fill="#E6A100" stroke="#7A0016" stroke-width="2"/>';
+        g.appendChild(izq);
+        return true;
+      };
+
+      // 3) El logo de la cabecera del chat tenía brazos finos y sin manos:
+      //    mismos brazos de 6 px y manitas doradas, a juego.
+      const arreglarLogoPanel = function () {
+        const logo = document.querySelector('#chatOverlay .chat-logo svg');
+        if (!logo) return false;
+        const g = logo.querySelector('g');
+        if (!g) return true;
+        if (g.dataset.mcbLogo === '1') return true;
+        g.dataset.mcbLogo = '1';
+        const lineas = g.querySelectorAll('line');
+        for (let i = 0; i < lineas.length; i++) {
+          const l = lineas[i];
+          if (l.getAttribute('y1') === '76') l.setAttribute('stroke-width', '6');
+        }
+        if (!g.querySelector('.mcb-mano-izq')) {
+          const mi = document.createElementNS(NS, 'circle');
+          mi.setAttribute('class', 'mcb-mano-izq');
+          mi.setAttribute('cx', '5'); mi.setAttribute('cy', '106'); mi.setAttribute('r', '4.5');
+          mi.setAttribute('fill', '#E6A100'); mi.setAttribute('stroke', '#7A0016'); mi.setAttribute('stroke-width', '2');
+          g.appendChild(mi);
+          const md = document.createElementNS(NS, 'circle');
+          md.setAttribute('cx', '115'); md.setAttribute('cy', '106'); md.setAttribute('r', '4.5');
+          md.setAttribute('fill', '#E6A100'); md.setAttribute('stroke', '#7A0016'); md.setAttribute('stroke-width', '2');
+          g.appendChild(md);
+        }
+        return true;
+      };
+
+      // Reintentos suaves y baratos (sin observadores de DOM).
+      let intentosChat = 0;
+      (function reintentarChat() {
+        try {
+          const fabListo = ponerBrazosFab();
+          const logoListo = arreglarLogoPanel();
+          if ((!fabListo || !logoListo) && ++intentosChat < 90) setTimeout(reintentarChat, 400);
+        } catch (e) { /* aditivo: jamás rompe el chat */ }
+      })();
+    } catch (e) { /* aditivo: jamás rompe el chat */ }
+  })();
+
 })();

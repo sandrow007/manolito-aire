@@ -5173,17 +5173,22 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const marcadores = document.querySelectorAll('.maplibregl-marker');
         // PRIMERO el punto de la caminata ("el punto blanco"): el que crea
         // "Iniciar caminata" tiene un halo de 6px (box-shadow 0 0 0 6px) que
-        // no tiene ningún otro marcador. Manolit se engancha a ESE, sí o sí,
-        // y avanza con él cada vez que el GPS lo mueve.
+        // no tiene ningún otro marcador. OJO: MapLibre usa el div que le das
+        // COMO raíz del marcador, así que el estilo redondo puede estar en la
+        // propia raíz o en su primer hijo; se miran los dos.
         for (const m of marcadores) {
+          const estiloRaiz = m.getAttribute('style') || '';
           const hijo = m.firstElementChild;
-          const estilo = (hijo && hijo.getAttribute('style')) || '';
-          if (/border-radius:\s*50%/.test(estilo) && /0 0 0 6px/.test(estilo)) return m;
+          const estiloHijo = (hijo && hijo.getAttribute('style')) || '';
+          if ((/border-radius:\s*50%/.test(estiloRaiz) && /0 0 0 6px/.test(estiloRaiz))
+            || (/border-radius:\s*50%/.test(estiloHijo) && /0 0 0 6px/.test(estiloHijo))) return m;
         }
         // Si no hay caminata en marcha, cualquier punto redondo sirve
         // (compatibilidad con el comportamiento anterior).
         for (const m of marcadores) {
           const hijo = m.firstElementChild;
+          const estiloRaiz = m.getAttribute('style') || '';
+          if (/border-radius:\s*50%/.test(estiloRaiz)) return m;
           if (hijo && /border-radius:\s*50%/.test(hijo.getAttribute('style') || '')) return m;
         }
       } catch (e) { /* DOM a medias: siguiente pasada */ }
@@ -5214,9 +5219,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
                 // Sustitución de verdad: el punto azul se oculta y en su
                 // sitio queda la flecha Manolit (mismo marcador, misma
                 // posición exacta que mueve la app).
-                const puntoAzul = m.firstElementChild;
-                if (puntoAzul && !m.dataset.manolitOculto) {
+                const puntoAzul = m.firstElementChild || m;
+                if (!m.dataset.manolitOculto) {
                   m.dataset.manolitOculto = '1';
+                  // visibility (no display): el marcador sigue existiendo y
+                  // MapLibre lo sigue moviendo, que es de donde leemos la
+                  // posición para plantar a Manolit encima.
                   puntoAzul.style.visibility = 'hidden';
                 }
                 const r = m.getBoundingClientRect();

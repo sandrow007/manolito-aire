@@ -1067,3 +1067,95 @@ body.manolito-fs .chat-fab{ display:none !important; }
   contain-intrinsic-size:none !important;
 }
 #shadowRouteMap{ overflow:hidden; }
+
+
+/* ============================================================
+   MEJORAS VISUALES sep-2026 — bloque ADITIVO
+   (no se ha borrado ni tocado ninguna regla anterior;
+    al ir las últimas, estas ganan cuando pisan alguna)
+   ============================================================ */
+
+/* --- Formulario de ruta: tarjeta elegante con iconos dibujados --- */
+.rs-form{
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(14,59,71,0.10);
+}
+.rs-form .rs-field input[type="text"]{
+  min-height: 44px;
+  padding-left: 38px;
+  background-repeat: no-repeat;
+  background-position: 10px center;
+  background-size: 18px 18px;
+}
+#rsOrigen{ background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E7C86' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E"); }
+#rsDestino{ background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E04E00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E"); }
+
+/* Botón Buscar ruta: protagonista, con lupa dibujada en CSS.
+   El icono es un ::before (no texto): el cambio de idioma no lo borra. */
+#rsBuscarBtn{
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 10px 22px; border-radius: 12px;
+  font-size: 0.95rem; letter-spacing: 0.02em;
+}
+#rsBuscarBtn::before{
+  content: ""; width: 16px; height: 16px; flex: 0 0 auto;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+/* --- Modo invierno: pastilla con sol dibujado (adiós al emoji) --- */
+.rs-toggle-invierno{
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 14px;
+  width: fit-content;
+  box-shadow: 0 2px 8px rgba(14,59,71,0.08);
+}
+.rs-toggle-invierno.rs-invierno-activo{
+  border-color: #d98a00;
+  background: rgba(217,138,0,0.08);
+}
+.rs-icono-sol{ display: inline-flex; align-items: center; color: #d98a00; }
+.rs-icono-sol svg{ width: 18px; height: 18px; }
+
+/* --- Capas de mapa plegables (Mapa claro / IGN / Catastro 3D) --- */
+#rsBtnCapasMapa{ display: inline-flex; align-items: center; gap: 6px; }
+#rsBtnCapasMapa .rs-ico{ width: 15px; height: 15px; flex: 0 0 auto; }
+#rsBtnCapasMapa .rs-chevr{ width: 14px; height: 14px; flex: 0 0 auto; transition: transform 0.25s ease; }
+#rsMapStyleToggle:not(.rs-colapsado) #rsBtnCapasMapa .rs-chevr{ transform: rotate(180deg); }
+#rsMapStyleToggle.rs-colapsado .rs-capa-hija{ display: none !important; }
+
+/* --- Manolit: balanceo suave constante (respeta reduced-motion) --- */
+@keyframes mwSway{ 0%,100%{ transform: rotate(-1.7deg); } 50%{ transform: rotate(1.7deg); } }
+.mw-sway{ animation: mwSway 4.6s ease-in-out infinite; transform-origin: 50% 88%; will-change: transform; }
+@media (prefers-reduced-motion: reduce){ .mw-sway{ animation: none !important; } }
+
+/* --- Topbar en móvil (≤700px): orden lógico por filas ---
+   1ª fila: marca + tema · 2ª: idiomas · 3ª: paleta · 4ª: accesible · 5ª: familia */
+@media (max-width: 700px){
+  .topbar{ gap: 8px 10px; padding: 10px 12px; }
+  .topbar .wordmark{ order: 1; }
+  .topbar .wordmark > span:not(.wordmark-name){ font-size: 0.58rem; padding: 2px 6px; }
+  .topbar #themeToggle{ order: 2; margin-left: auto; }
+  .topbar .topbar-right{ display: contents; }
+  .topbar #langToggle{ order: 3; flex: 1 1 100%; }
+  .topbar #langToggle button{ flex: 1; padding: 8px 4px; }
+  .topbar #paletteToggle{ order: 4; margin: 0 auto; }
+  .topbar .acc-mode-btn{ order: 5; flex: 1 1 100%; margin: 0; }
+  .topbar .family-link{
+    order: 6; font-size: 0.72rem; padding: 4px 10px; margin: 0;
+    border: 1px solid var(--line); border-radius: 999px;
+  }
+  /* El formulario de ruta en columna, cómodo para el pulgar */
+  .rs-form .rs-field{ flex: 1 1 100%; min-width: 0; }
+  .rs-form #rsBuscarBtn{ width: 100%; }
+}
+
+
+/* --- RENDIMIENTO sep-2026: el balanceo de Manolit lo escribe el propio
+   reloj del muñeco (66 ms) desde JS; una animación CSS infinita obligaba
+   al compositor a repintar 60 veces por segundo todo el rato. --- */
+.mw-sway{ animation: none !important; will-change: auto; }

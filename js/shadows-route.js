@@ -4342,20 +4342,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     caja.type = 'checkbox';
     caja.id = 'rsToggleRutaSol';
     const texto = document.createElement('span');
-    texto.textContent = t('winterSunRoute', '☀️ Modo invierno: ruta por el sol');
-    etiqueta.append(caja, texto);
+    texto.textContent = t('winterSunRoute', 'Modo invierno: ruta por el sol');
+    const iconoSol = document.createElement('span');
+    iconoSol.className = 'rs-icono-sol';
+    iconoSol.setAttribute('aria-hidden', 'true');
+    iconoSol.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
+    etiqueta.append(caja, iconoSol, texto);
     form.appendChild(etiqueta);
 
     caja.addEventListener('change', () => {
       modoInviernoRuta = caja.checked;
       etiqueta.classList.toggle('rs-invierno-activo', modoInviernoRuta);
       mostrarEstado(modoInviernoRuta
-        ? t('winterModeOn', '☀️ Modo invierno activado: la próxima ruta buscará el sol (los tramos en sombra pesan más).')
+        ? t('winterModeOn', 'Modo invierno activado: la próxima ruta buscará el sol (los tramos en sombra pesan más).')
         : t('winterModeOff', 'Modo invierno desactivado: las rutas vuelven a buscar la sombra.'), 'ok');
     });
 
     document.addEventListener('langChanged', () => {
-      texto.textContent = t('winterSunRoute', '☀️ Modo invierno: ruta por el sol');
+      texto.textContent = t('winterSunRoute', 'Modo invierno: ruta por el sol');
     });
   }
   inyectarToggleRutaSol();
@@ -6581,4 +6585,157 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     await cargarArbolesDeLaVista();
     recalcularSombrasArboles();
   }
+
+  /* ==================== MEJORAS VISUALES sep-2026 (ADITIVO) ====================
+     Nada de lo existente se toca: solo se añaden detalles por encima.
+     1) Botones de estilo de mapa (claro / IGN / Catastro 3D) plegables.
+     2) Manolit con brazos más visibles, mano derecha, saludo periódico
+        y un balanceo suave constante (respetando reduced-motion). */
+
+  // --- 1) Capas de mapa plegables ---
+  // El grupo #rsMapStyleToggle nace cuando el mapa termina de cargar, y eso
+  // en un móvil con mala red puede tardar: por eso hay reintentos suaves.
+  // (Este archivo tiene varios IIFE independientes: este bloque es
+  // autosuficiente y no usa helpers de otros módulos.)
+  (function mejoraCapasPlegables() {
+    try {
+      const tt = (typeof t === 'function') ? t : function (k, f) { return f; };
+      const mejorar = function (grupo) {
+        try {
+          if (!grupo || grupo.dataset.rsPlegable === '1') return;
+          grupo.dataset.rsPlegable = '1';
+          const hijos = Array.prototype.slice.call(grupo.querySelectorAll('button'));
+          if (!hijos.length) { delete grupo.dataset.rsPlegable; return; }
+          hijos.forEach(function (b) { b.classList.add('rs-capa-hija'); });
+
+          const master = document.createElement('button');
+          master.type = 'button';
+          master.id = 'rsBtnCapasMapa';
+          master.setAttribute('aria-expanded', 'true');
+          master.innerHTML =
+            '<svg class="rs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 2 10 5-10 5L2 7l10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>' +
+            '<span></span>' +
+            '<svg class="rs-chevr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>';
+          const pintar = function () {
+            const s = master.querySelector('span');
+            if (s) s.textContent = tt('mapLayers', 'Capas de mapa');
+          };
+          pintar();
+          document.addEventListener('langChanged', pintar);
+          grupo.insertBefore(master, grupo.firstChild);
+
+          const fijar = function (colapsado) {
+            grupo.classList.toggle('rs-colapsado', colapsado);
+            master.setAttribute('aria-expanded', colapsado ? 'false' : 'true');
+          };
+          master.addEventListener('click', function () {
+            fijar(!grupo.classList.contains('rs-colapsado'));
+          });
+          // En pantallas pequeñas arranca plegado para no tapar el mapa.
+          fijar(window.innerWidth <= 700);
+        } catch (e) { /* las capas siguen como estaban */ }
+      };
+      // Reintentos propios, suaves y baratos (90 × 400 ms = 36 s de margen
+      // de sobra para que el mapa termine de cargar y cree los botones).
+      // RENDIMIENTO: sin MutationObserver sobre todo el documento — con el
+      // mapa metiendo y quitando tiles a tope, observar cada cambio del DOM
+      // salía caro en el móvil. Un getElementById cada 400 ms no cuesta nada.
+      var intentosCapas = 0;
+      (function reintentarCapas() {
+        try {
+          const g = document.getElementById('rsMapStyleToggle');
+          if (g) { mejorar(g); return; }
+          if (++intentosCapas < 90) setTimeout(reintentarCapas, 400);
+        } catch (e) { /* aditivo: jamás rompe */ }
+      })();
+    } catch (e) { /* aditivo: jamás rompe */ }
+  })();
+
+  // --- 2) Manolit: brazos visibles + mano derecha + saludo + balanceo ---
+  (function mejoraManolitVisual() {
+    try {
+      if (!window.ManolitWalker || window.ManolitWalker.__rsMejoraVisual) return;
+      window.ManolitWalker.__rsMejoraVisual = true;
+      const proto = window.ManolitWalker.prototype;
+
+      const buildOriginal = proto._buildElement;
+      proto._buildElement = function () {
+        buildOriginal.call(this);
+        try {
+          const raiz = this._el;
+          const svg = raiz && raiz.querySelector('svg');
+          if (!svg) return;
+          // Brazos más gruesos: con trazo 5 apenas se veían en el móvil.
+          const lineas = svg.querySelectorAll('.arm-r line, .mw-armwave line');
+          for (let i = 0; i < lineas.length; i++) lineas[i].setAttribute('stroke-width', '6');
+          // Mano en el brazo derecho (el del saludo ya la trae de serie).
+          const brazoDer = svg.querySelector('.arm-r');
+          if (brazoDer && !brazoDer.querySelector('.mw-mano-r')) {
+            const otraMano = svg.querySelector('.mw-armwave circle');
+            const mano = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            mano.setAttribute('class', 'mw-mano-r');
+            mano.setAttribute('cx', '115');
+            mano.setAttribute('cy', '106');
+            mano.setAttribute('r', '4.5');
+            mano.setAttribute('fill', otraMano ? (otraMano.getAttribute('fill') || '#FFD24A') : '#FFD24A');
+            mano.setAttribute('stroke', otraMano ? (otraMano.getAttribute('stroke') || '#7A0016') : '#7A0016');
+            mano.setAttribute('stroke-width', '2.5');
+            brazoDer.appendChild(mano);
+          }
+          // Balanceo constante: envolvemos la onda en un div que SÍ podemos
+          // animar por CSS (la onda no: el paseo escribe sus transforms).
+          const onda = svg.closest('.mw-onda');
+          if (onda && onda.parentNode && !(onda.parentNode.classList && onda.parentNode.classList.contains('mw-sway'))) {
+            const sway = document.createElement('div');
+            sway.className = 'mw-sway';
+            sway.style.cssText = 'position:absolute;inset:0;overflow:visible;';
+            onda.parentNode.insertBefore(sway, onda);
+            sway.appendChild(onda);
+            this._swayEl = sway;
+          } else if (onda && onda.parentNode && onda.parentNode.classList && onda.parentNode.classList.contains('mw-sway')) {
+            this._swayEl = onda.parentNode;
+          }
+        } catch (e) { /* Manolit original intacto */ }
+      };
+
+      // RENDIMIENTO: el balanceo ya NO es una animación CSS infinita a 60 fps.
+      // Se escribe desde _applyPose, que Manolit ya ejecuta cada 66 ms con su
+      // propio reloj: cero bucles nuevos, cero coste extra de compositor.
+      const poseOriginal = proto._applyPose;
+      proto._applyPose = function () {
+        poseOriginal.call(this);
+        try {
+          const sway = this._swayEl;
+          if (!sway) return;
+          if (this._reduced || document.hidden) return;
+          sway.style.transform = 'rotate(' + (Math.sin(Date.now() / 1600) * 1.6).toFixed(2) + 'deg)';
+        } catch (e) { }
+      };
+
+      const speechOriginal = proto._bindClickSpeech;
+      proto._bindClickSpeech = function () {
+        speechOriginal.call(this);
+        try {
+          const yo = this;
+          // Saludo nada más aparecer.
+          setTimeout(function () { try { yo._saluda(); } catch (e) { } }, 700);
+          // Y un saludito de vez en cuando mientras está quieto.
+          yo._olaTimer = setInterval(function () {
+            try {
+              if (!document.contains(yo._el)) { clearInterval(yo._olaTimer); return; }
+              if (yo._moving || yo._saludando || yo._explorando || yo._sentado || yo._reduced) return;
+              yo._saluda();
+            } catch (e) { }
+          }, 14000);
+        } catch (e) { }
+      };
+
+      const destroyOriginal = proto.destroy;
+      proto.destroy = function () {
+        try { if (this._olaTimer) clearInterval(this._olaTimer); } catch (e) { }
+        destroyOriginal.call(this);
+      };
+    } catch (e) { /* aditivo: jamás rompe */ }
+  })();
+
 })();

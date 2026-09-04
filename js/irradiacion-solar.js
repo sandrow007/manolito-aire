@@ -105,7 +105,7 @@
     });
   }
 
-  esperarMapa().then(iniciar).catch((e) => console.warn('[irradiacion-solar]', e.message));
+  esperarMapa().then(iniciar).catch((e) => console.debug('[irradiacion-solar]', e.message));
 
   async function iniciar(map) {
     const contenedorMapa = map.getContainer();
@@ -325,7 +325,7 @@
         partes.push(`· sol ${(posSol.altitude * 180 / Math.PI).toFixed(1)}°${deNoche ? ' (noche)' : ''}`);
         mostrarEstadoPanel(partes.join(' '));
       } catch (e) {
-        console.warn('[irradiacion-solar]', e.message);
+        console.debug('[irradiacion-solar]', e.message);
         mostrarEstadoPanel(e.message.includes('Sin dato')
           ? t('irrNoData', 'La NASA no tiene dato para esa fecha.')
           : t('irrError', 'No se ha podido consultar la NASA ahora mismo. Reintenta en unos segundos.'), true);

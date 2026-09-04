@@ -487,7 +487,7 @@
       } catch (e) { /* el badge se actualizará después con los tramos en sombra */ }
     }
 
-    console.log(`[Dijkstra térmico] ${resultado.camino.length} nodos · coste ${resultado.costeTermicoM.toFixed(1)} m · ${(performance.now() - t0).toFixed(2)} ms`);
+    if (window.MANOLIT_DEBUG) console.log(`[Dijkstra térmico] ${resultado.camino.length} nodos · coste ${resultado.costeTermicoM.toFixed(1)} m · ${(performance.now() - t0).toFixed(2)} ms`);
 
     let pasos = [];
     let pasosGuiados = [];
@@ -639,8 +639,23 @@ class ManolitoPantallaCompleta {
     }
     if (this._nativoDisponible()) {
       const el = this._map.getContainer();
-      const promesa = el.requestFullscreen({ navigationUI: 'hide' });
-      if (promesa && promesa.catch) promesa.catch(() => this._entrarFallback());
+      // iPhone a veces ACEPTA la llamada y luego no hace nada: ni entra
+      // en pantalla completa ni rechaza la promesa. Por eso hay dos
+      // guardianes: el catch de la promesa y una comprobación a los
+      // 500 ms; si no hay fullscreen real, entra el plan B CSS.
+      let fallado = false;
+      const alFallar = () => {
+        if (fallado) return;
+        fallado = true;
+        this._entrarFallback();
+      };
+      try {
+        const promesa = el.requestFullscreen({ navigationUI: 'hide' });
+        if (promesa && promesa.catch) promesa.catch(alFallar);
+        setTimeout(() => { if (!document.fullscreenElement) alFallar(); }, 500);
+      } catch (e) {
+        alFallar();
+      }
     } else {
       this._entrarFallback();
     }
@@ -759,7 +774,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       paint: {
         'fill-extrusion-color': '#0b1220',
         'fill-extrusion-opacity': 0.5,
-        'fill-extrusion-height': ['get', 'alturaSombra'],
+        'fill-extrusion-height': ['coalesce', ['get', 'alturaSombra'], 0],
         'fill-extrusion-base': 0,
         'fill-extrusion-vertical-gradient': false,
       },
@@ -4289,7 +4304,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       } catch (e) { /* el badge se actualizará después con los tramos en sombra */ }
     }
 
-    console.log(`[Dijkstra solar] ${resultado.camino.length} nodos · coste ${resultado.costeSolarM.toFixed(1)} m · ${(performance.now() - t0).toFixed(2)} ms`);
+    if (window.MANOLIT_DEBUG) console.log(`[Dijkstra solar] ${resultado.camino.length} nodos · coste ${resultado.costeSolarM.toFixed(1)} m · ${(performance.now() - t0).toFixed(2)} ms`);
 
     let pasos = [];
     let pasosGuiados = [];
@@ -6057,7 +6072,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
                 'case',
                 ['has', 'color'], ['get', 'color'],
                 [
-                  'interpolate', ['linear'], ['get', 'altura'],
+                  'interpolate', ['linear'], ['coalesce', ['get', 'altura'], 5],
                   3, '#7fb069',
                   8, '#4f8a3d',
                   15, '#2f5d2a',
@@ -6065,8 +6080,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
               ],
               '#7fb069'
             ],
-            'fill-extrusion-base': ['get', 'baseM'],
-            'fill-extrusion-height': ['get', 'alturaTotalM'],
+            'fill-extrusion-base': ['coalesce', ['get', 'baseM'], 0],
+            'fill-extrusion-height': ['coalesce', ['get', 'alturaTotalM'], 0],
             'fill-extrusion-opacity': 0.92,
           },
         });

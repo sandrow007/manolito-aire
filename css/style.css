@@ -1283,3 +1283,54 @@ body.manolito-fs .chat-fab{ display:none !important; }
 #rsBuscarBtn:hover{ color:#2A1A05 !important; }
 [data-palette="lavanda"] #rsBuscarBtn,
 [data-palette="lavanda"] #rsBuscarBtn:hover{ color:#FFFFFF !important; }
+
+/* ---------- GRÁFICA DEL AIRE INTERACTIVA (sep-2026) ----------
+   Cursor que sigue al dedo/ratón/teclado y globo con el valor. */
+.chart-cursor-line{ stroke:var(--sky-mid, #4FBFB5); stroke-width:1; stroke-dasharray:3 3; opacity:.8; }
+.chart-cursor-dot{ stroke:#fff; stroke-width:1.5; }
+#airChart svg:focus-visible{ outline:2px solid var(--accent, #FFB85C); outline-offset:2px; border-radius:6px; }
+.chart-tip{
+  position:absolute;
+  top:-8px;
+  left:50%;
+  transform:translate(-50%, -100%);
+  background:var(--panel, #ffffff);
+  color:var(--ink, #2A1A05);
+  border:1px solid var(--line, rgba(14,59,71,0.18));
+  border-radius:10px;
+  padding:5px 10px;
+  font-size:12px;
+  font-family:var(--font-body, inherit);
+  white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,0.12);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .15s ease;
+  z-index:5;
+}
+.chart-tip.visible{ opacity:1; }
+#airChart{ padding-top:26px; }
+
+/* ---------- SINCRONIZAR / EXPORTAR DATOS (pie) ---------- */
+.footer-sync{ margin-top:10px; }
+.footer-sync-toggle{
+  background:none; border:none; padding:4px 2px;
+  color:inherit; opacity:.8; font:inherit; font-size:.85rem;
+  text-decoration:underline; text-underline-offset:3px;
+  cursor:pointer; min-height:44px;
+}
+.footer-sync-toggle:hover, .footer-sync-toggle:focus-visible{ opacity:1; }
+.sync-panel{
+  max-width:520px; margin:10px auto 0; padding:14px 16px;
+  border:1px solid var(--line, rgba(14,59,71,0.18)); border-radius:14px;
+  background:var(--panel, #ffffff); text-align:center;
+}
+.sync-hint{ margin:0 0 10px; font-size:.85rem; opacity:.85; }
+.sync-panel-btns{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.sync-panel-btns button{
+  border:1px solid var(--line, rgba(14,59,71,0.18)); border-radius:12px;
+  background:var(--accent-soft, rgba(255,184,92,0.16));
+  color:inherit; font:inherit; font-size:.85rem;
+  padding:10px 16px; min-height:48px; cursor:pointer;
+}
+.sync-panel-btns button:hover{ border-color:var(--accent, #FFB85C); }

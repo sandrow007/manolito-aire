@@ -655,6 +655,23 @@
     <a href="cookies.html" data-i18n="cookies">Cookies</a>
   </div>
 
+  <!-- Sincronizar / Exportar datos: tus ajustes (tema, paleta, idioma,
+       modo accesible, ciudad...) viajan en un archivo JSON entre tus
+       dispositivos. Sin cuentas, sin servidores: el archivo lo genera
+       y lo lee tu propio navegador. -->
+  <div class="footer-sync">
+    <button type="button" id="btnSyncExport" class="footer-sync-toggle" data-i18n="syncLink"
+            aria-expanded="false" aria-controls="syncPanel">Sincronizar / Exportar datos</button>
+    <div id="syncPanel" class="sync-panel" hidden>
+      <p class="sync-hint" data-i18n="syncHint">Guarda tus ajustes en un archivo y recupéralos en otro dispositivo. Sin cuentas ni servidores.</p>
+      <div class="sync-panel-btns">
+        <button type="button" id="btnSyncExportar" data-i18n="syncExportBtn">Exportar mis datos</button>
+        <button type="button" id="btnSyncImportar" data-i18n="syncImportBtn">Importar datos</button>
+      </div>
+      <input type="file" id="syncFileInput" accept="application/json,.json" hidden>
+    </div>
+  </div>
+
   <div class="footer-donacion">
     <p class="donacion-mensaje">
       Manolit∞ siempre sera gratis.<br>
@@ -1029,6 +1046,80 @@
 
     document.addEventListener('click', () => { list.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); });
   })();
+</script>
+<script>
+/* ============================================================
+   SINCRONIZAR / EXPORTAR DATOS (sep-2026)
+   Exporta los ajustes locales (claves "manolito*" de
+   localStorage, sin cachés) a un JSON descargable y los
+   recupera en otro dispositivo. Sin cuentas ni servidores:
+   el archivo lo genera y lo lee el propio navegador.
+   ============================================================ */
+(function(){
+  'use strict';
+  var PREFIJO = 'manolito';
+  var esCache = function(k){ return k.indexOf('manolito_cache') === 0; };
+  var toggle = document.getElementById('btnSyncExport');
+  var panel = document.getElementById('syncPanel');
+  if (!toggle || !panel) return;
+  toggle.addEventListener('click', function(){
+    var abierto = panel.hidden;
+    panel.hidden = !abierto;
+    toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+  });
+  var btnExp = document.getElementById('btnSyncExportar');
+  var btnImp = document.getElementById('btnSyncImportar');
+  var input = document.getElementById('syncFileInput');
+
+  if (btnExp) btnExp.addEventListener('click', function(){
+    var ajustes = {};
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(PREFIJO) === 0 && !esCache(k)) ajustes[k] = localStorage.getItem(k);
+      }
+    } catch (e) { /* sin almacenamiento: se exporta el paquete vacío */ }
+    var paquete = { app: 'manolito-aire', version: 1, fecha: new Date().toISOString(), ajustes: ajustes };
+    var blob = new Blob([JSON.stringify(paquete, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'manolito-aire-datos.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+  if (btnImp && input) {
+    btnImp.addEventListener('click', function(){ input.click(); });
+    input.addEventListener('change', function(){
+      var f = input.files && input.files[0];
+      input.value = '';
+      if (!f) return;
+      var lector = new FileReader();
+      lector.onload = function(){
+        try {
+          var paquete = JSON.parse(String(lector.result));
+          if (!paquete || paquete.app !== 'manolito-aire' || !paquete.ajustes || typeof paquete.ajustes !== 'object') {
+            throw new Error('formato no válido');
+          }
+          Object.keys(paquete.ajustes).forEach(function(k){
+            if (k.indexOf(PREFIJO) === 0 && !esCache(k)) {
+              try { localStorage.setItem(k, String(paquete.ajustes[k])); } catch (e) { /* clave concreta sin espacio: se salta */ }
+            }
+          });
+          location.reload();
+        } catch (e) {
+          var msg = (window.getMessages && window.getMessages().syncImportError)
+            || 'Ese archivo no es una copia de Manolit∞ Aire. No se ha importado nada.';
+          window.alert(msg);
+        }
+      };
+      lector.readAsText(f);
+    });
+  }
+})();
 </script>
 </body>
 </html>

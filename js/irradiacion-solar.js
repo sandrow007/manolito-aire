@@ -453,9 +453,9 @@
       function pintarLeyendaAtenuacion() {
         leyendaAtenuacion.innerHTML =
           `${t('irrExposureFactor', 'Factor de exposición')}:<br>` +
-          `${t('irrUmbra', 'Umbra (edificio)')} (×${ATENUACION.UMBRA.factor})<br>` +
-          `${t('irrPenumbra', 'Penumbra (árbol)')} (×${ATENUACION.PENUMBRA.factor})<br>` +
-          `${t('irrSol', 'Sol directo')} (×${ATENUACION.SOL.factor})`;
+          `<span class="irr-linea"><i class="irr-punto" style="background:${ATENUACION.UMBRA.color}"></i>${t('irrUmbra', 'Umbra (edificio)')} (×${ATENUACION.UMBRA.factor})</span><br>` +
+          `<span class="irr-linea"><i class="irr-punto" style="background:${ATENUACION.PENUMBRA.color}"></i>${t('irrPenumbra', 'Penumbra (árbol)')} (×${ATENUACION.PENUMBRA.factor})</span><br>` +
+          `<span class="irr-linea"><i class="irr-punto" style="background:${ATENUACION.SOL.color}"></i>${t('irrSol', 'Sol directo')} (×${ATENUACION.SOL.factor})</span>`;
       }
       pintarLeyendaAtenuacion();
 

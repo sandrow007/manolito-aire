@@ -9,7 +9,7 @@
 const translations = {
   es: {
     // General
-    tagline: "MAPA NACIONAL · DATOS EN VIVO",
+    tagline: "El aire y la sombra de tu calle, en vivo",
     modesLabel: "¿Cómo quieres que te lo cuente?",
     mode_ciudadano_title: "Ciudadano",
     mode_ciudadano_sub: "Claro y directo",
@@ -47,7 +47,7 @@ const translations = {
         quick_q6: "¿Qué es la irradiación solar?",
         quick_a6: "Activa la capa «Irradiación Solar» y toca cualquier punto del mapa: verás cuánto sol recibe ese lugar según el histórico de la NASA, por año, mes, día y hora.",
         quick_q7: "¿Qué es el paseo virtual 3D?",
-        quick_a7: "Es un paseo en primera persona por el mapa 3D: camina por las calles sin moverte del sofá y descubre por dónde da el sol y dónde hay sombra.",
+        quick_a7: "Es un paseo en primera persona por el mapa 3D: camina por las calles sin moverte del sofá y verás por dónde pega el sol y por dónde va la sombra.",
     region_peninsula: "Península", region_canarias: "Canarias", region_baleares: "Baleares", region_ceutamelilla: "Ceuta / Melilla",
     statusLoading: "Cargando datos en vivo…",
     legalNotice: "Aviso legal",
@@ -74,7 +74,7 @@ const translations = {
     locationDenied: "No se ha podido obtener tu ubicación (¿has denegado el permiso?).",
     locationAsking: "Pidiendo permiso de ubicación…",
     errorGeolocation: "Este navegador no permite compartir tu ubicación.",
-    errorSearch: "Error al buscar la ruta. Inténtalo de nuevo.",
+    errorSearch: "No he podido trazar la ruta. Prueba otra vez en un ratito.",
     routeReal: "Ruta",
     routeFallback: "No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.",
     routeEstimated: "tiempo estimado a paso normal",
@@ -110,7 +110,7 @@ const translations = {
     shadeTip: "Consejo: es un tramo largo al sol — ve despacio, camina por el lado con edificios y lleva agua.",
     dirN: "norte", dirNE: "noreste", dirE: "este", dirSE: "sureste",
     dirS: "sur", dirSW: "suroeste", dirW: "oeste", dirNW: "noroeste",
-    walkGuidanceStart: "Guía de caminata activada. Te iré diciendo cada paso en voz alta.",
+    walkGuidanceStart: "¡Vamos allá! Te voy cantando cada paso, tú camina tranquilo.",
     minWalk: "min a pie",
     sunPosition: "Posición solar",
     sunBelow: "El sol está bajo el horizonte a esa hora — no hay sombras que proyectar.",
@@ -155,7 +155,7 @@ const translations = {
     chosenShorter: "sombra similar, elegida la más corta",
     shadowStats: "Sombra en tu ruta",
     noShadowData: "Calculando…",
-    shadowGreat: "¡Excelente! La mitad de tu ruta está protegida del sol",
+    shadowGreat: "¡Mira tú qué bien! Media ruta va por la sombrita",
     shadowGood: "Buena sombra en partes de la ruta",
     shadowSome: "Algo de sombra disponible",
     shadowNone: "Poca o ninguna sombra en esta ruta",
@@ -165,7 +165,7 @@ const translations = {
     // v4: claves que shadows-route.js pedía y no existían
     virtualWalkStart: "Paseo virtual 3D",
     virtualWalkStop: "Salir del paseo",
-    virtualWalkHint: "Recorre la ruta en primera persona, como si caminaras",
+    virtualWalkHint: "Baja a la calle sin moverte del sofá: recorre la ruta como si la pisaras",
     virtualWalkUnsupported: "Tu navegador no soporta el paseo virtual 3D.",
     shadeCoverage: "Cobertura de sombra",
     airDataUnavailable: "Datos de aire no disponibles ahora mismo.",
@@ -181,9 +181,9 @@ const translations = {
     irrError: "No se ha podido consultar la NASA ahora mismo. Reintenta en unos segundos.",
     irrDayOfMonth: "Día del mes: ",
     irrHourOfDay: "Hora del día: ",
-    irrUmbra: "🏢 Umbra — sombra de edificio (protección total)",
-    irrPenumbra: "🌳 Penumbra — sombra de árbol (luz filtrada ~50 %)",
-    irrSol: "☀️ Sol directo — sin protección",
+    irrUmbra: "Umbra — sombra de edificio (protección total)",
+    irrPenumbra: "Penumbra — sombra de árbol (luz filtrada ~50 %)",
+    irrSol: "Sol directo — sin protección",
     irrExposureFactor: "Factor de exposición",
     irrEffectiveExposure: "Exposición efectiva aquí",
     irrAnnual: "Irradiación anual",
@@ -193,7 +193,7 @@ const translations = {
     irrRealDays: "días reales"
   },
   ca: {
-    tagline: "MAPA NACIONAL · DADES EN VIU",
+    tagline: "L'aire i l'ombra del teu carrer, en viu",
     modesLabel: "Com vols que t'ho expliqui?",
     mode_ciudadano_title: "Ciutadà",
     mode_ciudadano_sub: "Clar i directe",
@@ -231,7 +231,7 @@ const translations = {
         quick_q6: "Què és la irradiació solar?",
         quick_a6: "Activa la capa «Irradiació solar» i toca qualsevol punt del mapa: veuràs quant sol rep aquell lloc segons l'històric de la NASA, per any, mes, dia i hora.",
         quick_q7: "Què és el passeig virtual 3D?",
-        quick_a7: "És un passeig en primera persona pel mapa 3D: camina pels carrers sense moure't del sofà i descobreix per on toca el sol i on hi ha ombra.",
+        quick_a7: "És un passeig en primera persona pel mapa 3D: camina pels carrers sense moure't del sofà i veuràs per on pega el sol i per on va l'ombra.",
     region_peninsula: "Península", region_canarias: "Canàries", region_baleares: "Balears", region_ceutamelilla: "Ceuta / Melilla",
     statusLoading: "Carregant dades en directe…",
     legalNotice: "Avís legal",
@@ -257,7 +257,7 @@ const translations = {
     locationDenied: "No s'ha pogut obtenir la teva ubicació (has denegat el permís?).",
     locationAsking: "Demanant permís d'ubicació…",
     errorGeolocation: "Aquest navegador no permet compartir la teva ubicació.",
-    errorSearch: "Error en buscar la ruta. Torna-ho a intentar.",
+    errorSearch: "No he pogut traçar la ruta. Prova-ho de nou d'aquí una estoneta.",
     routeReal: "Ruta",
     routeFallback: "No s'ha pogut calcular la ruta pels carrers (servidor de rutes ocupat) — mostrant línia directa.",
     routeEstimated: "temps estimat a pas normal",
@@ -293,7 +293,7 @@ const translations = {
     shadeTip: "Consell: és un tram llarg al sol — ves a poc a poc, camina pel costat amb edificis i porta aigua.",
     dirN: "nord", dirNE: "nord-est", dirE: "est", dirSE: "sud-est",
     dirS: "sud", dirSW: "sud-oest", dirW: "oest", dirNW: "nord-oest",
-    walkGuidanceStart: "Guia de caminada activada. T'aniré dient cada pas en veu alta.",
+    walkGuidanceStart: "Som-hi! T'aniri cantant cada pas, tu camina tranquil.",
     minWalk: "min a peu",
     sunPosition: "Posició solar",
     sunBelow: "El sol està sota l'horitzó a aquesta hora — no hi ha ombres que projectar.",
@@ -338,7 +338,7 @@ const translations = {
     chosenShorter: "ombra similar, triada la més curta",
     shadowStats: "Ombra a la teva ruta",
     noShadowData: "Calculant…",
-    shadowGreat: "¡Excel·lent! La meitat de la teva ruta està protegida del sol",
+    shadowGreat: "I tant que sí! Mitja ruta va per l'ombreta",
     shadowGood: "Bona ombra en parts de la ruta",
     shadowSome: "Una mica d'ombra disponible",
     shadowNone: "Poca o cap ombra en aquesta ruta",
@@ -347,7 +347,7 @@ const translations = {
     alternativesAvailable: "Hi ha rutes alternatives comparades",
     virtualWalkStart: "Passeig virtual 3D",
     virtualWalkStop: "Surt del passeig",
-    virtualWalkHint: "Recorre la ruta en primera persona, com si hi caminéssis",
+    virtualWalkHint: "Baixa al carrer sense moure't del sofà: recorre la ruta com si la trepitgessis",
     virtualWalkUnsupported: "El teu navegador no suporta el passeig virtual 3D.",
     shadeCoverage: "Cobertura d'ombra",
     airDataUnavailable: "Dades de l'aire no disponibles ara mateix.",
@@ -363,9 +363,9 @@ const translations = {
     irrError: "No s'ha pogut consultar la NASA ara mateix. Torna-ho a provar en uns segons.",
     irrDayOfMonth: "Dia del mes: ",
     irrHourOfDay: "Hora del dia: ",
-    irrUmbra: "🏢 Umbra — ombra d'edifici (protecció total)",
-    irrPenumbra: "🌳 Penumbra — ombra d'arbre (llum filtrada ~50 %)",
-    irrSol: "☀️ Sol directe — sense protecció",
+    irrUmbra: "Umbra — ombra d'edifici (protecció total)",
+    irrPenumbra: "Penumbra — ombra d'arbre (llum filtrada ~50 %)",
+    irrSol: "Sol directe — sense protecció",
     irrExposureFactor: "Factor d'exposició",
     irrEffectiveExposure: "Exposició efectiva ací",
     irrAnnual: "Irradiació anual",
@@ -375,7 +375,7 @@ const translations = {
     irrRealDays: "dies reals"
   },
   eu: {
-    tagline: "ESTATU MAPA · ZUZENEKO DATUAK",
+    tagline: "Zure kaleko airea eta itzala, zuzenean",
     modesLabel: "Nola nahi duzu azaltzea?",
     mode_ciudadano_title: "Herritarra",
     mode_ciudadano_sub: "Argi eta zuzen",
@@ -413,7 +413,7 @@ const translations = {
         quick_q6: "Zer da eguzki-irradiazioa?",
         quick_a6: "Aktibatu «Eguzki-irradiazioa» geruza eta ukitu mapako edozein puntu: NASAren historikoaren arabera zenbat eguzki jasotzen duen leku horrek ikusiko duzu, urtez, hilabetez, egunez eta orduz.",
         quick_q7: "Zer da 3D paseo birtuala?",
-        quick_a7: "Lehen pertsonan egindako paseoa da 3D mapan zehar: ibili kaleetan sofa-tik mugitu gabe, eta ezagutu non ematen duen eguzkiak eta non dagoen itzala.",
+        quick_a7: "Lehen pertsonan egindako paseoa da 3D mapan zehar: ibili kaleetan sofa-tik mugitu gabe, eta ikusiko duzu non jotzen duen eguzkiak eta non doan itzala.",
     region_peninsula: "Penintsula", region_canarias: "Kanariar Uharteak", region_baleares: "Balear Uharteak", region_ceutamelilla: "Ceuta / Melilla",
     statusLoading: "Zuzeneko datuak kargatzen…",
     legalNotice: "Lege oharra",
@@ -439,7 +439,7 @@ const translations = {
     locationDenied: "Ezin izan da zure kokapena lortu (baimena ukatu duzu?).",
     locationAsking: "Kokapen baimena eskatzen…",
     errorGeolocation: "Nabigatzaile honek ez du zure kokapena partekatzea onartzen.",
-    errorSearch: "Errorea ibilbidea bilatzean. Saiatu berriro.",
+    errorSearch: "Ez dut ibilbidea marraztu ahal izan. Saiatu berriro tarte txiki bat barru.",
     routeReal: "Ibilbidea",
     routeFallback: "Ezin izan da kaleetako ibilbidea kalkulatu (zerbitzaria okupatuta) — lerro zuzena erakusten.",
     routeEstimated: "denbora estimatua pausu normalean",
@@ -475,7 +475,7 @@ const translations = {
     shadeTip: "Aholkua: eguzkipeko zati luzea da — joan poliki, ibili eraikin dauden aldetik eta eraman ura.",
     dirN: "iparraldea", dirNE: "ipar-ekialdea", dirE: "ekialdea", dirSE: "hego-ekialdea",
     dirS: "hegoaldea", dirSW: "hego-mendebaldea", dirW: "mendebaldea", dirNW: "ipar-mendebaldea",
-    walkGuidanceStart: "Ibilaldi-gida aktibatuta. Pauso bakoitza ahoz esango dizut.",
+    walkGuidanceStart: "Goazen! Pauso bakoitza abesten joango dizut, zu lasai ibili.",
     minWalk: "min oinez",
     sunPosition: "Eguzkiaren posizioa",
     sunBelow: "Eguzkia horizontearen azpian dago ordu horretan — ez dago itzalik proiektatzeko.",
@@ -520,7 +520,7 @@ const translations = {
     chosenShorter: "itzal antzekoa, motzena aukeratua",
     shadowStats: "Itzala zure ibilbidean",
     noShadowData: "Kalkulatzen…",
-    shadowGreat: "Bikain! Zure ibilbidearen erdia eguzkitik babestuta dago",
+    shadowGreat: "Aizu, ondo! Ibilbidearen erdia itzaltxotik doa",
     shadowGood: "Itzal ona ibilbidearen zatietan",
     shadowSome: "Itzal apur bat eskuragarri",
     shadowNone: "Itzal gutxi edo bat ere ez ibilbide honetan",
@@ -529,7 +529,7 @@ const translations = {
     alternativesAvailable: "Ibilbide alternatiboak daude konparatuta",
     virtualWalkStart: "Paseo birtuala 3D",
     virtualWalkStop: "Irten paseotik",
-    virtualWalkHint: "Ibilbidea lehen pertsonan zeharkatu, oinez joango bazina bezala",
+    virtualWalkHint: "Jaitsi kalera sofa mugitu gabe: ibilbidea zapaltzen ari zina bezala egin ezazu",
     virtualWalkUnsupported: "Zure nabigatzaileak ez du 3D paseo birtuala onartzen.",
     shadeCoverage: "Itzal-estaldura",
     airDataUnavailable: "Airearen datuak ez daude eskuragarri oraintxe.",
@@ -545,9 +545,9 @@ const translations = {
     irrError: "Ezin izan da NASA kontsultatu oraintxe. Saiatu berriz segundo batzuetan.",
     irrDayOfMonth: "Hilabetearen eguna: ",
     irrHourOfDay: "Eguneko ordua: ",
-    irrUmbra: "🏢 Umbra — eraikinaren itzala (babes osoa)",
-    irrPenumbra: "🌳 Penumbra — zuhaitzaren itzala (iragazitako argia ~%50)",
-    irrSol: "☀️ Eguzki zuzena — babesik gabe",
+    irrUmbra: "Umbra — eraikinaren itzala (babes osoa)",
+    irrPenumbra: "Penumbra — zuhaitzaren itzala (iragazitako argia ~%50)",
+    irrSol: "Eguzki zuzena — babesik gabe",
     irrExposureFactor: "Esposizio-faktorea",
     irrEffectiveExposure: "Benetako esposizioa hemen",
     irrAnnual: "Urteko irradiazioa",
@@ -557,7 +557,7 @@ const translations = {
     irrRealDays: "egun erreala"
   },
   gl: {
-    tagline: "MAPA NACIONAL · DATOS EN VIVO",
+    tagline: "O aire e a sombra da túa rúa, en vivo",
     modesLabel: "Como queres que cho conte?",
     mode_ciudadano_title: "Cidadán",
     mode_ciudadano_sub: "Claro e directo",
@@ -595,7 +595,7 @@ const translations = {
         quick_q6: "Que é a irradiación solar?",
         quick_a6: "Activa a capa «Irradiación solar» e toca calquera punto do mapa: verás canto sol recibe ese lugar segundo o histórico da NASA, por ano, mes, día e hora.",
         quick_q7: "Que é o paseo virtual 3D?",
-        quick_a7: "É un paseo en primeira persoa polo mapa 3D: camiña polas rúas sen moverte do sofá e descobre por onde dá o sol e onde hai sombra.",
+        quick_a7: "É un paseo en primeira persoa polo mapa 3D: camiña polas rúas sen te moveres do sofá e verás por onde pega o sol e por onde vai a sombra.",
     region_peninsula: "Península", region_canarias: "Canarias", region_baleares: "Baleares", region_ceutamelilla: "Ceuta / Melilla",
     statusLoading: "Cargando datos en vivo…",
     legalNotice: "Aviso legal",
@@ -622,7 +622,7 @@ const translations = {
     locationDenied: "Non se puido obter a túa ubicación (denegaches o permiso?).",
     locationAsking: "Pedindo permiso de ubicación…",
     errorGeolocation: "Este navegador non permite compartir a túa ubicación.",
-    errorSearch: "Erro ao buscar a ruta. Inténtao de novo.",
+    errorSearch: "Non puiden trazar a ruta. Proba outra vez nun anaco.",
     routeReal: "Ruta",
     routeFallback: "Non se puido calcular a ruta polas rúas (servidor de rutas ocupado) — mostrando liña directa.",
     routeEstimated: "tempo estimado a paso normal",
@@ -658,7 +658,7 @@ const translations = {
     shadeTip: "Consello: é un tramo longo ao sol — vai amodo, camiña polo lado con edificios e leva auga.",
     dirN: "norte", dirNE: "nordeste", dirE: "leste", dirSE: "sueste",
     dirS: "sur", dirSW: "suroeste", dirW: "oeste", dirNW: "noroeste",
-    walkGuidanceStart: "Guía de camiñada activada. Írout dicindo cada paso en voz alta.",
+    walkGuidanceStart: "Imos alá! Vouche cantando cada paso, ti camiña tranquilo.",
     minWalk: "min a pé",
     sunPosition: "Posición solar",
     sunBelow: "O sol está baixo o horizonte a esa hora — non hai sombras que proxectar.",
@@ -703,7 +703,7 @@ const translations = {
     chosenShorter: "sombra similar, elixida a máis curta",
     shadowStats: "Sombra na túa ruta",
     noShadowData: "Calculando…",
-    shadowGreat: "¡Excelente! A metade da túa ruta está protexida do sol",
+    shadowGreat: "Mira ti que ben! Media ruta vai pola sombriña",
     shadowGood: "Boa sombra en partes da ruta",
     shadowSome: "Algo de sombra dispoñible",
     shadowNone: "Pouca ou ningunha sombra nesta ruta",
@@ -712,7 +712,7 @@ const translations = {
     alternativesAvailable: "Hai rutas alternativas comparadas",
     virtualWalkStart: "Paseo virtual 3D",
     virtualWalkStop: "Saír do paseo",
-    virtualWalkHint: "Percorre a ruta en primeira persoa, coma se camiñaras",
+    virtualWalkHint: "Baixa á rúa sen te moveres do sofá: percorre a ruta coma se a pisaras",
     virtualWalkUnsupported: "O teu navegador non soporta o paseo virtual 3D.",
     shadeCoverage: "Cobertura de sombra",
     airDataUnavailable: "Datos do aire non dispoñibles agora mesmo.",
@@ -728,9 +728,9 @@ const translations = {
     irrError: "Non se puido consultar a NASA agora mesmo. Téntao de novo nuns segundos.",
     irrDayOfMonth: "Día do mes: ",
     irrHourOfDay: "Hora do día: ",
-    irrUmbra: "🏢 Umbra — sombra de edificio (protección total)",
-    irrPenumbra: "🌳 Penumbra — sombra de árbore (luz filtrada ~50 %)",
-    irrSol: "☀️ Sol directo — sen protección",
+    irrUmbra: "Umbra — sombra de edificio (protección total)",
+    irrPenumbra: "Penumbra — sombra de árbore (luz filtrada ~50 %)",
+    irrSol: "Sol directo — sen protección",
     irrExposureFactor: "Factor de exposición",
     irrEffectiveExposure: "Exposición efectiva aquí",
     irrAnnual: "Irradiación anual",
@@ -740,7 +740,7 @@ const translations = {
     irrRealDays: "días reais"
   },
   en: {
-    tagline: "NATIONAL MAP · LIVE DATA",
+    tagline: "Your street's air and shade, live",
     modesLabel: "How do you want it explained?",
     mode_ciudadano_title: "Everyday",
     mode_ciudadano_sub: "Clear and direct",
@@ -778,7 +778,7 @@ const translations = {
         quick_q6: "What is solar irradiation?",
         quick_a6: "Turn on the 'Solar Irradiation' layer and tap any point on the map: you'll see how much sun that spot gets from NASA's historical data, by year, month, day and hour.",
         quick_q7: "What is the 3D virtual walk?",
-        quick_a7: "It's a first-person stroll through the 3D map: walk the streets without leaving your sofa and discover where the sun hits and where the shade is.",
+        quick_a7: "It's a first-person stroll through the 3D map: walk the streets without leaving your sofa and see where the sun hits and where the shade falls.",
     region_peninsula: "Mainland", region_canarias: "Canary Islands", region_baleares: "Balearic Islands", region_ceutamelilla: "Ceuta / Melilla",
     statusLoading: "Loading live data…",
     legalNotice: "Legal notice",
@@ -804,7 +804,7 @@ const translations = {
     locationDenied: "Could not get your location (did you deny permission?).",
     locationAsking: "Requesting location permission…",
     errorGeolocation: "This browser does not allow sharing your location.",
-    errorSearch: "Error searching route. Try again.",
+    errorSearch: "I couldn't draw the route. Try again in a little while.",
     routeReal: "Route",
     routeFallback: "Could not calculate walking route (routing server busy) — showing straight line.",
     routeEstimated: "estimated time at normal pace",
@@ -840,7 +840,7 @@ const translations = {
     shadeTip: "Tip: this is a long stretch in the sun — take it easy, walk on the side with buildings and carry water.",
     dirN: "north", dirNE: "north-east", dirE: "east", dirSE: "south-east",
     dirS: "south", dirSW: "south-west", dirW: "west", dirNW: "north-west",
-    walkGuidanceStart: "Walking guidance on. I will speak each step out loud as you go.",
+    walkGuidanceStart: "Off we go! I'll call out each step as you walk — just take it easy.",
     minWalk: "min walking",
     sunPosition: "Sun position",
     sunBelow: "The sun is below the horizon at that time — no shadows to project.",
@@ -885,7 +885,7 @@ const translations = {
     chosenShorter: "similar shadow, chosen the shorter one",
     shadowStats: "Shadow on your route",
     noShadowData: "Calculating…",
-    shadowGreat: "Excellent! Half your route is protected from the sun",
+    shadowGreat: "Look at that! Half your walk stays in the shade",
     shadowGood: "Good shadow on parts of the route",
     shadowSome: "Some shadow available",
     shadowNone: "Little or no shadow on this route",
@@ -894,7 +894,7 @@ const translations = {
     alternativesAvailable: "Alternative routes compared",
     virtualWalkStart: "3D virtual walk",
     virtualWalkStop: "Exit walk",
-    virtualWalkHint: "Travel the route in first person, as if you were walking",
+    virtualWalkHint: "Get down to street level without leaving your sofa: walk the route as if you were really there",
     virtualWalkUnsupported: "Your browser does not support the 3D virtual walk.",
     shadeCoverage: "Shade coverage",
     airDataUnavailable: "Air data unavailable right now.",
@@ -910,9 +910,9 @@ const translations = {
     irrError: "Could not query NASA right now. Try again in a few seconds.",
     irrDayOfMonth: "Day of month: ",
     irrHourOfDay: "Hour of day: ",
-    irrUmbra: "🏢 Umbra — building shadow (full protection)",
-    irrPenumbra: "🌳 Penumbra — tree shadow (filtered light ~50 %)",
-    irrSol: "☀️ Direct sun — unprotected",
+    irrUmbra: "Umbra — building shadow (full protection)",
+    irrPenumbra: "Penumbra — tree shadow (filtered light ~50 %)",
+    irrSol: "Direct sun — unprotected",
     irrExposureFactor: "Exposure factor",
     irrEffectiveExposure: "Effective exposure here",
     irrAnnual: "Yearly irradiation",
@@ -922,7 +922,7 @@ const translations = {
     irrRealDays: "real days"
   },
   ka: {
-    tagline: "ეროვნული რუკა · ცოცხალი მონაცემები",
+    tagline: "შენი ქუჩის ჰაერი და ჩრდილი, პირდაპირ",
     modesLabel: "როგორ გინდა, რომ გითხრა?",
     mode_ciudadano_title: "მოქალაქე",
     mode_ciudadano_sub: "მარტივად და ნათლად",
@@ -964,7 +964,7 @@ const translations = {
         quick_q6: "რა არის მზის ინსოლაცია?",
         quick_a6: "ჩართე «მზის ინსოლაციის» ფენა და შეეხე რუკის ნებისმიერ წერტილს: ნახავ, რამდენ მზეს იღებს ეს ადგილი NASA-ს ისტორიული მონაცემებით — წლით, თვით, დღით და საათით.",
         quick_q7: "რა არის 3D ვირტუალური გასეირნება?",
-        quick_a7: "ეს პირველი პირის ხედით გასეირნებაა 3D რუკაზე: ისეირნე ქუჩებში დივნიდან ადგომის გარეშე და აღმოაჩინე, სად ანათებს მზე და სად არის ჩრდილი.",
+        quick_a7: "ეს პირველი პირის ხედით გასეირნებაა 3D რუკაზე: ისეირნე ქუჩებში დივნიდან ადგომის გარეშე და ნახავ, სად ცემს მზე და სად დებს ჩრდილი.",
     region_peninsula: "ნახევარკუნძული",
     region_canarias: "კანარი",
     region_baleares: "ბალეარი",
@@ -993,7 +993,7 @@ const translations = {
     locationDenied: "მდებარეობის მიღება ვერ მოხერხდა (ხომ არ უარს თქვი ნებართვაზე?).",
     locationAsking: "მდებარეობის ნებართვა ითხოვება…",
     errorGeolocation: "ეს ბრაუზერი არ იზიარებს შენს მდებარეობას.",
-    errorSearch: "მარშრუტის ძებნის შეცდომა. სცადე თავიდან.",
+    errorSearch: "მარშრუტი ვერ დავხაზე. სცადე ცოტა ხანში ხელახლა.",
     routeReal: "მარშრუტი",
     routeFallback: "ქუჩების მარშრუტი ვერ გამოითვალა (სერვერი დაკავებულია) — ჩანს პირდაპირი ხაზი.",
     routeEstimated: "სავარაუდო დრო ჩვეულებრივი სვლით",
@@ -1029,7 +1029,7 @@ const translations = {
     shadeTip: "რჩევა: ეს გრძელი მზიანი მონაკვეთია — ნუ იჩქარებ, იარე შენობების მხარეს და წაიღე წყალი.",
     dirN: "ჩრდილოეთი", dirNE: "ჩრდილო-აღმოსავლეთი", dirE: "აღმოსავლეთი", dirSE: "სამხრეთ-აღმოსავლეთი",
     dirS: "სამხრეთი", dirSW: "სამხრეთ-დასავლეთი", dirW: "დასავლეთი", dirNW: "ჩრდილო-დასავლეთი",
-    walkGuidanceStart: "სასიარულო მეგზური ჩართულია. თითოეულ ნაბიჯს ხმამაღლა გეტყვი.",
+    walkGuidanceStart: "წავედით! თითოეულ ნაბიჯს გეტყვი გზად — შენ მშვიდად იარე.",
     minWalk: "წთ ფეხით",
     sunPosition: "მზის პოზიცია",
     sunBelow: "მზე ჰორიზონტქვეშაა იმ დროს — ჩრდილი არ არის.",
@@ -1072,7 +1072,7 @@ const translations = {
     chosenShorter: "ჩრდილი მსგავსია, არჩეულია უფრო მოკლე",
     shadowStats: "ჩრდილი შენს მარშრუტზე",
     noShadowData: "ითვლება…",
-    shadowGreat: "შესანიშნავია! შენი მარშრუტის ნახევარი მზისგან დაცულია",
+    shadowGreat: "აბა, გენახლება! მარშრუტის ნახევარი ჩრდილში გადის",
     shadowGood: "მარშრუტის ნაწილებში კარგი ჩრდილია",
     shadowSome: "ცოტა ჩრდილია ხელმისაწვდომი",
     shadowNone: "ამ მარშრუტზე ჩრდილი თითქმის არ არის",
@@ -1081,7 +1081,7 @@ const translations = {
     alternativesAvailable: "ალტერნატიული მარშრუტები შედარებულია",
     virtualWalkStart: "ვირტუალური სეირნობა 3D",
     virtualWalkStop: "სეირნობიდან გასვლა",
-    virtualWalkHint: "გაიარე მარშრუტი პირველი პირის თვალით, თითქოს დადიხარ",
+    virtualWalkHint: "ჩადი ქუჩაში დივნიდან ადგომის გარეშე: გაიარე მარშრუტი ისე, თითქოს ნამდვილად დადიხარ",
     virtualWalkUnsupported: "შენი ბრაუზერი არ უჭერ მხარს 3D ვირტუალურ სეირნობას.",
     shadeCoverage: "ჩრდილის დაფარვა",
     airDataUnavailable: "ჰაერის მონაცემები ახლა მიუწვდომელია.",
@@ -1097,9 +1097,9 @@ const translations = {
     irrError: "NASA-სთან კავშირი ახლა ვერ ხერხდება. სცადე რამდენიმე წამში.",
     irrDayOfMonth: "თვის დღე: ",
     irrHourOfDay: "დღის საათი: ",
-    irrUmbra: "🏢 უმბრა — შენობის ჩრდილი (სრული დაცვა)",
-    irrPenumbra: "🌳 პენუმბრა — ხის ჩრდილი (გაფილტრული სინათლე ~50 %)",
-    irrSol: "☀️ პირდაპირი მზე — დაცვის გარეშე",
+    irrUmbra: "უმბრა — შენობის ჩრდილი (სრული დაცვა)",
+    irrPenumbra: "პენუმბრა — ხის ჩრდილი (გაფილტრული სინათლე ~50 %)",
+    irrSol: "პირდაპირი მზე — დაცვის გარეშე",
     irrExposureFactor: "ექსპოზიციის ფაქტორი",
     irrEffectiveExposure: "ეფექტური ექსპოზიცია აქ",
     irrAnnual: "წლიური რადიაცია",
@@ -1175,14 +1175,27 @@ function aplicarModoAccesible(activo, boton) {
   document.body.classList.toggle('modo-accesible', activo);
   const btn = boton || document.getElementById('btn-accesibilidad');
   if (btn) btn.setAttribute('aria-pressed', activo ? 'true' : 'false');
-  try { localStorage.setItem(MODO_ACC_KEY, activo ? '1' : '0'); } catch (e) {}
+  try {
+    localStorage.setItem(MODO_ACC_KEY, activo ? '1' : '0');
+  } catch (e) 
+  {
+    // Sin almacenamiento disponible (navegación privada, cuota llena o
+    // cookies bloqueadas): el modo accesible sigue funcionando durante
+    // esta sesión; simplemente no se recuerda al volver. No es un error
+    // del usuario y no debe ensuciar la consola.
+  }
 }
 
 function initModoAccesible() {
   // Restaurar la preferencia guardada SIEMPRE, aunque esta página
   // concreta no tenga topbar donde poner el botón (p. ej. legales).
   let guardado = null;
-  try { guardado = localStorage.getItem(MODO_ACC_KEY); } catch (e) {}
+  try {
+    guardado = localStorage.getItem(MODO_ACC_KEY);
+  } catch (e) {
+    // Mismo caso: sin almacenamiento arrancamos siempre en modo normal.
+    guardado = null;
+  }
   if (guardado === '1') aplicarModoAccesible(true);
 
   const topbarRight = document.querySelector('.topbar-right');

@@ -1195,3 +1195,91 @@ body.manolito-fs .chat-fab{ display:none !important; }
   .rs-btn-lidar{ transition:none; }
   .rs-btn-lidar:hover, .rs-btn-lidar:focus-visible{ transform:none; }
 }
+
+/* ============================================================
+   HUMANIZACIÓN sep-2026 — la web sale de la calle, no de una
+   plantilla: CTA mandarina plana (el naranjo no tiene gradiente),
+   jerarquía de radios, noche de verano de verdad (farola, no
+   neón), paletas con nombre de momento sevillano y leyenda de
+   irradiación con puntos dibujados en vez de emojis.
+   Todo se añade al final y pisa lo anterior con cariño.
+   ============================================================ */
+
+/* --- 1. CTA principal con jerarquía: botón de verdad, no píldora --- */
+#rsBuscarBtn{
+  background:var(--accent) !important;
+  border-radius:14px !important;
+  font-size:1rem !important;
+  letter-spacing:0.01em !important;
+  text-transform:none !important;
+}
+#rsBuscarBtn:hover{
+  background:var(--accent) !important;
+  filter:brightness(1.07) !important;
+  transform:translateY(-1px) !important;
+}
+
+/* --- 2. Botón LiDAR plano (mea culpa: llevaba gradiente) --- */
+.rs-btn-lidar{ background:var(--sky-deep) !important; }
+[data-theme="dark"] .rs-btn-lidar{ background:var(--sky-mid) !important; }
+
+/* --- 3. «Posición del sol» legible: nada de eyebrow de 8.5px --- */
+#rsTimeControls .rs-eyebrow{
+  text-transform:none !important;
+  font-size:11px !important;
+  letter-spacing:0.02em !important;
+  font-weight:600 !important;
+}
+
+/* --- 4. Controles del mapa: la versalita se queda (convención
+   cartográfica real) pero a tamaño que lean los abuelos --- */
+#rsMapControls button{
+  font-size:11px !important;
+  letter-spacing:0.03em !important;
+  padding:7px 12px !important;
+}
+@media (max-width:480px){
+  #rsMapControls button{ font-size:10.5px !important; padding:6px 10px !important; }
+}
+
+/* --- 5. Noche de verano de verdad: turquesa apagado en vez de
+   cian neón (los datos se leen igual, sin efecto gamer) --- */
+[data-theme="dark"]{ --sky-mid:#4FBFB5; }
+
+/* --- 6. Paletas con nombre de momento sevillano. Los valores
+   data-palette NO cambian (los usa theme.js); solo color/etiqueta.
+   cosmos pasa a ser «Noche de verano»: ámbar de farola de sodio --- */
+[data-palette="cosmos"]{ --accent:#FFB85C; --accent-soft:rgba(255,184,92,0.16); --accent-text:#9A5B00; }
+[data-theme="dark"][data-palette="cosmos"]{ --accent-text:#FFCF8F; }
+
+/* --- 7. Selector de paleta: puntos de color llanos en vez de
+   glifos lunares ◌◐◑◒◓ (que no decían nada de sol ni de sombra) --- */
+#paletteToggle button{
+  font-size:0 !important;
+  width:24px; height:24px;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+#paletteToggle button::before{
+  content:''; width:13px; height:13px; border-radius:50%; display:block;
+  box-shadow:inset 0 0 0 1.5px rgba(0,0,0,0.18);
+}
+#paletteToggle button[data-palette="cosmos"]::before{   background:#FFB85C; }
+#paletteToggle button[data-palette="amanecer"]::before{ background:#FF6B1A; }
+#paletteToggle button[data-palette="salvia"]::before{   background:#00B98A; }
+#paletteToggle button[data-palette="lavanda"]::before{  background:#7B2FFF; }
+#paletteToggle button[data-palette="coral"]::before{    background:#E63E5F; }
+
+/* --- 8. Leyenda de irradiación: puntos del MISMO color que las
+   zonas del mapa (los define irradiacion-solar.js en línea) --- */
+.irr-linea{ display:inline-flex; align-items:center; gap:6px; }
+.irr-punto{
+  display:inline-block; width:10px; height:10px; border-radius:50%;
+  flex:0 0 auto; box-shadow:inset 0 0 0 1px rgba(0,0,0,0.15);
+}
+
+/* --- 9. Contraste del CTA según paleta (AA): texto oscuro sobre
+   ámbar/mandarina/menta/coral, blanco solo sobre jacarandá --- */
+#rsBuscarBtn{ color:#2A1A05 !important; }
+#rsBuscarBtn:hover{ color:#2A1A05 !important; }
+[data-palette="lavanda"] #rsBuscarBtn,
+[data-palette="lavanda"] #rsBuscarBtn:hover{ color:#FFFFFF !important; }

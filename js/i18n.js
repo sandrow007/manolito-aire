@@ -158,7 +158,7 @@ const translations = {
 		layerRoute: "Ruta",
 		walkModeStart: "Iniciar caminata",
 		walkModeStop: "Detener caminata",
-		walkModeTracking: "Siguiendo tu posicin…",
+		walkModeTracking: "Siguiendo tu posición…",
 		darkMapOn: "Mapa oscuro",
 		darkMapOff: "Mapa claro",
 		routeMapTitle: "Ruta y sombras 3D",

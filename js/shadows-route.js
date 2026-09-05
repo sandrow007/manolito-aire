@@ -5777,6 +5777,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 /* ============================================================
    ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
 
+   v8 — Especies realistas con estaciones (ADITIVO, sep-2026):
+   - Naranjo (Citrus × sinensis / aurantium): copa redondeada y densa
+     inspirada en una malla real low-poly (6,2 m de referencia), tronco
+     marrón oscuro, naranjas visibles de otoño a invierno y flor de
+     azahar (blanca) en primavera. Perenne: nunca se queda sin hoja.
+   - Albizia julibrissin (acacia de Constantinopla): copa en sombrilla
+     de 8-10 m, flor rosa en verano, hoja dorada que CAE en otoño
+     (animación suave de caída) y ramas desnudas en invierno.
+   - Las estaciones salen de la fecha real (obtenerHoraEfectiva) y la
+     caída se acelera con la nubosidad real (manolitAireNubosidad).
+   - El resto de especies y las sombras quedan EXACTAMENTE como estaban.
+
    v7 — Robustez Overpass + formas por especie:
    - Cooldown exponencial ante errores 429/502/504/CORS para no saturar Overpass.
    - Timeout y área de consulta reducidos.
@@ -5857,6 +5869,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       radioCopaMedioM: 4.0,
       forma: 'ancha_irregular',
       color: '#6b8c42',
+    },
+    // Naranjo realista (va ANTES que 'citrico' para que los cítricos con
+    // nombre de naranjo —naranjo, orange, sinensis, aurantium— usen este
+    // modelo; limoneros, mandarinos y pomelos siguen con 'citrico').
+    naranjo: {
+      keywords: ['naranjo', 'naranja', 'orange', 'aurantium', 'sinensis', 'bitter orange', 'seville orange', 'sweet orange'],
+      alturaMediaM: 6.2, // altura de referencia de la malla real low-poly
+      radioCopaMedioM: 2.9,
+      forma: 'naranjo',
+      color: '#4f7a3d', // verde oscuro del follaje de la malla real
+    },
+    // Albizia julibrissin — acacia de Constantinopla: sombrilla de 8-10 m.
+    albizia: {
+      keywords: ['albizia', 'julibrissin', 'acacia de constantinopla', 'acacia de persia', 'silk tree', 'árbol de la seda', 'arbol de la seda'],
+      alturaMediaM: 9,
+      radioCopaMedioM: 4.5,
+      forma: 'sombrilla',
+      color: '#5c9e3f', // verde de las hojas bipinnadas del modelo
     },
     citrico: {
       keywords: ['citrus', 'naranjo', 'limonero', 'orange', 'lemon', 'mandarino', 'pomelo'],
@@ -5948,6 +5978,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           ancha_redondeada: 0.75,
           ancha_irregular: 0.65,
           redondeada: 0.55,
+          naranjo: 0.62,   // copa globosa y densa (malla real)
+          sombrilla: 0.95, // la albizia abre la copa casi como su altura
         }[clasificacion.forma] || 0.5;
         diametroCopa = altura * proporcion;
       }
@@ -5969,6 +6001,61 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (v == null || v === '') continue;
       const n = parseFloat(String(v).replace(',', '.'));
       if (!Number.isNaN(n) && n > 0) return n;
+    }
+    return null;
+  }
+
+  /* --------- Estaciones reales + fenología por especie (v8, ADITIVO) ---------
+     Solo afecta al naranjo y a la albizia: para el resto de árboles
+     fenologiaArbol devuelve null y todo sigue exactamente como antes. */
+
+  // Estación del hemisferio norte a partir de la fecha EFECTIVA de la app
+  // (la misma que mueve las sombras: respeta el simulador horario).
+  function obtenerEstacion(fecha) {
+    const mes = fecha.getMonth(); // 0 = enero
+    if (mes >= 2 && mes <= 4) return 'primavera';
+    if (mes >= 5 && mes <= 7) return 'verano';
+    if (mes >= 8 && mes <= 10) return 'otono';
+    return 'invierno';
+  }
+
+  // Nubosidad real (0 despejado .. 1 cubierto) que ya calcula la app vía
+  // /clima; con temporal los pétalos y las hojas caen antes.
+  function obtenerNubosidadArboles() {
+    try {
+      if (typeof window.manolitAireNubosidad === 'function') {
+        const n = window.manolitAireNubosidad();
+        if (typeof n === 'number' && !isNaN(n)) return Math.min(1, Math.max(0, n));
+      }
+    } catch (e) { /* cielo despejado */ }
+    return 0;
+  }
+
+  // Qué se ve en cada especie según la estación:
+  // - densidadHoja: 1 copa llena .. 0 desnudo (escala copa y sombra).
+  // - colorHoja:    sustituye al verde base (null = color de siempre).
+  // - conFruto:     naranjas visibles colgando de la copa.
+  // - conFlor:      azahar (blanco) en el naranjo, pompones rosas en la albizia.
+  // - cayendo:      hojas/pétalos cayendo (animación suave en otoño).
+  function fenologiaArbol(tipo, estacion) {
+    // Naranjo: PERENNE. Azahar en primavera (marzo-mayo, el patio sevillano
+    // huele a azahar); naranjas de otoño a finales de invierno.
+    if (tipo === 'naranjo') {
+      return {
+        densidadHoja: 1,
+        colorHoja: null,
+        conFruto: estacion === 'otono' || estacion === 'invierno',
+        conFlor: estacion === 'primavera',
+        cayendo: false,
+      };
+    }
+    // Albizia (acacia de Constantinopla): CADUCA. Brotación en primavera,
+    // flor rosa en verano, hoja dorada que cae en otoño, desnuda en invierno.
+    if (tipo === 'albizia') {
+      if (estacion === 'primavera') return { densidadHoja: 0.75, colorHoja: '#7fc54f', conFruto: false, conFlor: false, cayendo: false };
+      if (estacion === 'verano') return { densidadHoja: 1, colorHoja: null, conFruto: false, conFlor: true, cayendo: false };
+      if (estacion === 'otono') return { densidadHoja: 0.45, colorHoja: '#c9862f', conFruto: false, conFlor: false, cayendo: true };
+      return { densidadHoja: 0, colorHoja: '#8a6d4b', conFruto: false, conFlor: false, cayendo: false };
     }
     return null;
   }
@@ -6067,7 +6154,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           paint: {
             'fill-extrusion-color': [
               'case',
-              ['==', ['get', 'tipo'], 'tronco'], '#8b5a2b',
+              // Tronco: el naranjo lleva el marrón oscuro de su malla real;
+              // el resto, el marrón de siempre.
+              ['==', ['get', 'tipo'], 'tronco'], ['coalesce', ['get', 'colorTronco'], '#8b5a2b'],
+              // Frutos y flores (naranjas, azahar, pompones de albizia) y
+              // hojas cayendo: cada punto lleva su propio color.
+              ['==', ['get', 'tipo'], 'fruto'], ['coalesce', ['get', 'color'], '#E8792A'],
+              ['==', ['get', 'tipo'], 'flor'], ['coalesce', ['get', 'color'], '#FFF6E0'],
+              ['==', ['get', 'tipo'], 'hoja_cayendo'], ['coalesce', ['get', 'color'], '#c9862f'],
               ['==', ['get', 'tipo'], 'copa'], [
                 'case',
                 ['has', 'color'], ['get', 'color'],
@@ -6284,10 +6378,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         return lon >= b.getWest() && lon <= b.getEast() && lat >= b.getSouth() && lat <= b.getNorth();
       }).slice(0, CONFIG.maxArbolesEnPantalla);
 
+      // Estación real (fecha efectiva de la app) y tope de árboles
+      // decorados con fruto/flor por pasada, para no pasarnos de features.
+      const estacion = obtenerEstacion(obtenerHoraEfectiva());
+      const nubosidad = obtenerNubosidadArboles();
+      let decoradosEstePase = 0;
+      const MAX_ARBOLES_DECORADOS = 150;
+
       const features = [];
       for (const a of enVista) {
         const forma = a.forma || 'redondeada';
         const [lon, lat] = a.punto.geometry.coordinates;
+        // Fenología (solo naranjo y albizia; null = como siempre).
+        const feno = fenologiaArbol(a.tipo, estacion);
+        const factorHoja = feno ? (0.30 + 0.70 * feno.densidadHoja) : 1;
+        const colorCopa = feno && feno.colorHoja ? feno.colorHoja : a.color;
 
         // Proporciones del tronco y las copas según la forma real del árbol
         let factorTronco = 0.35, factorCopaBaja = 0.40, factorCopaAlta = 0.25;
@@ -6296,6 +6401,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         else if (forma === 'oval_alargada') { factorTronco = 0.50; factorCopaBaja = 0.30; factorCopaAlta = 0.20; }
         else if (forma === 'ancha_redondeada') { factorTronco = 0.30; factorCopaBaja = 0.45; factorCopaAlta = 0.25; }
         else if (forma === 'ancha_irregular') { factorTronco = 0.32; factorCopaBaja = 0.43; factorCopaAlta = 0.25; }
+        else if (forma === 'naranjo') { factorTronco = 0.28; factorCopaBaja = 0.46; factorCopaAlta = 0.26; }
+        else if (forma === 'sombrilla') { factorTronco = 0.42; factorCopaBaja = 0.40; factorCopaAlta = 0.18; }
 
         const alturaTroncoM = Math.max(1, a.altura * factorTronco);
         const alturaCopaInferiorM = a.altura * factorCopaBaja;
@@ -6304,20 +6411,83 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
         const tronco = turf.circle(a.punto, radioTroncoM / 1000, { units: 'kilometers', steps: 8 });
         tronco.properties = { altura: a.altura, baseM: 0, alturaTotalM: alturaTroncoM, nombre: a.nombre, tipo: 'tronco', forma, color: a.color };
+        // El naranjo lleva el marrón oscuro de su malla real (0x5b4230).
+        if (a.tipo === 'naranjo') tronco.properties.colorTronco = '#5b4230';
         features.push(tronco);
 
-        // Copa inferior: forma realista según especie
-        const radioInferior = forma === 'palmera' ? a.radioCopaM * 0.90 : a.radioCopaM;
+        // Copa inferior: forma realista según especie. En las especies con
+        // fenología (naranjo/albizia) la copa se encoge con la pérdida de
+        // hoja: en invierno la albizia queda en ramas desnudas.
+        const radioInferior = (forma === 'palmera' ? a.radioCopaM * 0.90 : a.radioCopaM) * factorHoja;
         const copaInferior = crearFormaCopa(a.punto, radioInferior / 1000, forma, lon, lat);
-        copaInferior.properties = { altura: a.altura, baseM: alturaTroncoM, alturaTotalM: alturaTroncoM + alturaCopaInferiorM, nombre: a.nombre, tipo: 'copa', forma, color: a.color };
+        copaInferior.properties = { altura: a.altura, baseM: alturaTroncoM, alturaTotalM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
         features.push(copaInferior);
 
         // Copa superior: más pequeña y cerrada (salvo palmera)
-        const radioSuperior = forma === 'palmera' ? a.radioCopaM * 0.80 : a.radioCopaM * 0.65;
-        const formaSuperior = forma === 'palmera' ? 'palmera' : forma === 'conica' ? 'conica' : 'redondeada';
+        const radioSuperior = (forma === 'palmera' ? a.radioCopaM * 0.80 : a.radioCopaM * 0.65) * factorHoja;
+        const formaSuperior = forma === 'palmera' ? 'palmera' : forma === 'conica' ? 'conica' : forma === 'sombrilla' ? 'sombrilla' : forma === 'naranjo' ? 'naranjo' : 'redondeada';
         const copaSuperior = crearFormaCopa(a.punto, radioSuperior / 1000, formaSuperior, lon, lat + 0.0001);
-        copaSuperior.properties = { altura: a.altura, baseM: alturaTroncoM + alturaCopaInferiorM, alturaTotalM: a.altura, nombre: a.nombre, tipo: 'copa', forma, color: a.color };
+        copaSuperior.properties = { altura: a.altura, baseM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), alturaTotalM: alturaTroncoM + (a.altura - alturaTroncoM) * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
         features.push(copaSuperior);
+
+        // ------- Frutos, flores y hojas cayendo (v8, solo naranjo/albizia) -------
+        if (feno && decoradosEstePase < MAX_ARBOLES_DECORADOS && feno.densidadHoja > 0) {
+          decoradosEstePase++;
+          const baseCopaM = alturaTroncoM;
+          const techoCopaM = alturaTroncoM + alturaCopaInferiorM + alturaCopaSuperiorM;
+
+          // NARANJAS: cuelgan dentro de la copa (otoño-invierno). Radios y
+          // colores de la malla real (0xE8792A / 0xCF6A1E, r 0,15-0,20 m).
+          if (feno.conFruto) {
+            for (let k = 0; k < 7; k++) {
+              const ang = pseudoRandom(lon, lat, 300 + k) * 360;
+              const dist = a.radioCopaM * (0.30 + 0.55 * pseudoRandom(lon, lat, 320 + k));
+              const baseFruto = baseCopaM + (techoCopaM - baseCopaM) * (0.25 + 0.45 * pseudoRandom(lon, lat, 340 + k));
+              const rFruto = 0.30 + 0.08 * pseudoRandom(lon, lat, 360 + k); // más grandes que la realidad: a zoom de calle deben verse
+              features.push(crearPuntoDecorativo(a.punto, ang, dist, rFruto, {
+                altura: a.altura, baseM: baseFruto, alturaTotalM: baseFruto + rFruto * 2,
+                nombre: a.nombre, tipo: 'fruto', forma,
+                color: k % 2 === 0 ? '#E8792A' : '#CF6A1E',
+              }));
+            }
+          }
+
+          // FLORES: azahar blanco en el naranjo (primavera); pompones
+          // rosas (0xE87A93) coronando la sombrilla de la albizia (verano).
+          if (feno.conFlor) {
+            const esAlbizia = a.tipo === 'albizia';
+            const nFlores = esAlbizia ? 8 : 9;
+            for (let k = 0; k < nFlores; k++) {
+              const ang = pseudoRandom(lon, lat, 400 + k) * 360;
+              const dist = a.radioCopaM * (esAlbizia ? (0.35 + 0.55 * pseudoRandom(lon, lat, 420 + k)) : (0.25 + 0.60 * pseudoRandom(lon, lat, 420 + k)));
+              const baseFlor = baseCopaM + (techoCopaM - baseCopaM) * (esAlbizia ? (0.70 + 0.28 * pseudoRandom(lon, lat, 440 + k)) : (0.55 + 0.40 * pseudoRandom(lon, lat, 440 + k)));
+              const rFlor = esAlbizia ? 0.32 : 0.24; // escala mapa, no escala flor real
+              features.push(crearPuntoDecorativo(a.punto, ang, dist, rFlor, {
+                altura: a.altura, baseM: baseFlor, alturaTotalM: baseFlor + rFlor * 1.6,
+                nombre: a.nombre, tipo: 'flor', forma,
+                color: esAlbizia ? '#E87A93' : '#FFF6E0',
+              }));
+            }
+          }
+
+          // CAÍDA (albizia en otoño): hojas doradas descendiendo en bucle
+          // suave. Con nubosidad alta (temporal) caen más deprisa. La fase
+          // es determinista por árbol: no saltan entre repintados normales.
+          if (feno.cayendo) {
+            const velocidadCaida = 1 + nubosidad * 0.8;
+            for (let k = 0; k < 5; k++) {
+              const fase = pseudoRandom(lon, lat, 900 + k);
+              const progreso = ((Date.now() / 4200) * velocidadCaida + fase) % 1;
+              const ang = pseudoRandom(lon, lat, 920 + k) * 360;
+              const dist = a.radioCopaM * (0.25 + 0.60 * pseudoRandom(lon, lat, 940 + k));
+              const baseHoja = Math.max(0.05, baseCopaM + (techoCopaM - baseCopaM) * (1 - progreso) - 0.1);
+              features.push(crearPuntoDecorativo(a.punto, ang, dist, 0.17, {
+                altura: a.altura, baseM: baseHoja, alturaTotalM: baseHoja + 0.16,
+                nombre: a.nombre, tipo: 'hoja_cayendo', forma, color: '#c9862f',
+              }));
+            }
+          }
+        }
       }
       map.getSource('arboles-globales-copas').setData(turf.featureCollection(features));
       return enVista;
@@ -6330,6 +6500,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       return n - Math.floor(n);
     }
 
+    // Puntito decorativo (naranja, flor, hoja cayendo): un círculo
+    // diminuto desplazado del centro del árbol, con su propia altura.
+    function crearPuntoDecorativo(centro, anguloDeg, distanciaM, radioM, props) {
+      const p = distanciaM > 0.01
+        ? turf.transformTranslate(centro, distanciaM / 1000, anguloDeg, { units: 'kilometers' })
+        : centro;
+      const dot = turf.circle(p, Math.max(0.05, radioM) / 1000, { units: 'kilometers', steps: 6 });
+      dot.properties = props;
+      return dot;
+    }
+
     function crearFormaCopa(centro, radioKm, forma, lon, lat) {
       const pasos = {
         palmera: 28,
@@ -6338,6 +6519,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         ancha_redondeada: 22,
         ancha_irregular: 26,
         redondeada: 18,
+        naranjo: 20,
+        sombrilla: 24,
       }[forma] || 18;
 
       const coords = [];
@@ -6363,6 +6546,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             // Palmera: corona pequeña con palmas que sobresalen
             const esPalma = i % 4 === 0;
             factorRadio = esPalma ? 1.55 : 0.72;
+            break;
+          case 'naranjo':
+            // Naranjo: copa globosa, densa y casi simétrica (como la malla
+            // real): ondulación muy suave, sin picos.
+            factorRadio = 0.96 + 0.07 * Math.cos(2 * anguloRad);
+            break;
+          case 'sombrilla':
+            // Albizia: parasol amplio con lóbulos suaves (sus ramas abren
+            // en abanico desde lo alto del tronco).
+            factorRadio = 1.04 + 0.10 * Math.cos(3 * anguloRad);
             break;
         }
 
@@ -6461,7 +6654,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const forma = arbol.forma || 'redondeada';
       const perpendicular = (bearingSombra + 90) % 360;
       const radioTroncoKm = Math.max(arbol.radioCopaM * (forma === 'palmera' ? 0.08 : 0.12), 0.25) / 1000;
-      const radioCopaKm = arbol.radioCopaM / 1000;
+      // Especies con fenología: la sombra se encoge con la pérdida de hoja
+      // (una albizia desnuda en invierno apenas da sombra, como en la calle).
+      const fenoSombra = fenologiaArbol(arbol.tipo, obtenerEstacion(obtenerHoraEfectiva()));
+      const factorHojaSombra = fenoSombra ? (0.25 + 0.75 * fenoSombra.densidadHoja) : 1;
+      const radioCopaKm = (arbol.radioCopaM * factorHojaSombra) / 1000;
       const [lon, lat] = arbol.punto.geometry.coordinates;
 
       const lejano = turf.transformTranslate(arbol.punto, distanciaKm, bearingSombra, { units: 'kilometers' });
@@ -6494,7 +6691,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
 
       // Ancho de la cuna según la forma (copas anchas proyectan más volumen lateral)
-      const factorAncho = { ancha_redondeada: 0.90, ancha_irregular: 0.85, redondeada: 0.75, conica: 0.55, oval_alargada: 0.60 }[forma] || 0.75;
+      const factorAncho = { ancha_redondeada: 0.90, ancha_irregular: 0.85, redondeada: 0.75, conica: 0.55, oval_alargada: 0.60, naranjo: 0.80, sombrilla: 0.95 }[forma] || 0.75;
       const pLejosA = turf.transformTranslate(lejano, radioCopaKm * factorAncho, perpendicular, { units: 'kilometers' }).geometry.coordinates;
       const pLejosB = turf.transformTranslate(lejano, radioCopaKm * factorAncho, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
 
@@ -6586,6 +6783,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }, CONFIG.sincroSombraMs);
     }
 
+    // Animación suave de la caída de hoja (albizia en otoño). Muy ligera:
+    // solo repinta las copas si hay alguna albizia cargada, la pestaña
+    // está visible y el usuario NO pidió reducir movimiento. Si algo falla,
+    // se queda quieta: es decorativa, jamás rompe el mapa.
+    let temporizadorCaida = null;
+    function programarAnimacionCaida() {
+      clearInterval(temporizadorCaida);
+      temporizadorCaida = setInterval(() => {
+        try {
+          if (document.hidden || !capaVisible) return;
+          if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+          if (obtenerEstacion(obtenerHoraEfectiva()) !== 'otono') return;
+          if (!arbolesGrandes.some((a) => a.tipo === 'albizia')) return;
+          dibujarArbolesVisibles();
+        } catch (e) { /* decorativo: nunca rompe */ }
+      }, 2400);
+    }
+
     let esperaMoveend = null;
     map.on('moveend', () => {
       clearTimeout(esperaMoveend);
@@ -6599,6 +6814,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     await cargarArbolesDeLaVista();
     recalcularSombrasArboles();
+    programarAnimacionCaida();
   }
 
   /* ==================== MEJORAS VISUALES sep-2026 (ADITIVO) ====================

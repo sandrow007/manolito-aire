@@ -6415,20 +6415,35 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (a.tipo === 'naranjo') tronco.properties.colorTronco = '#5b4230';
         features.push(tronco);
 
-        // Copa inferior: forma realista según especie. En las especies con
-        // fenología (naranjo/albizia) la copa se encoge con la pérdida de
-        // hoja: en invierno la albizia queda en ramas desnudas.
-        const radioInferior = (forma === 'palmera' ? a.radioCopaM * 0.90 : a.radioCopaM) * factorHoja;
-        const copaInferior = crearFormaCopa(a.punto, radioInferior / 1000, forma, lon, lat);
-        copaInferior.properties = { altura: a.altura, baseM: alturaTroncoM, alturaTotalM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
-        features.push(copaInferior);
+        // COPAS. Naranjo y albizia (con hoja y de cerca) usan un RACIMO DE
+        // BULTOS irregulares solapados — aspecto de follaje real como la
+        // malla, nada de "dos cilindros apilados". El resto de especies
+        // sigue con los dos pisos de siempre, y la albizia desnuda de
+        // invierno también (copa mínima parda = ramas).
+        const usaCopaRealista =
+          (forma === 'naranjo' || forma === 'sombrilla') &&
+          !(feno && feno.densidadHoja === 0) &&
+          map.getZoom() >= 17;
 
-        // Copa superior: más pequeña y cerrada (salvo palmera)
-        const radioSuperior = (forma === 'palmera' ? a.radioCopaM * 0.80 : a.radioCopaM * 0.65) * factorHoja;
-        const formaSuperior = forma === 'palmera' ? 'palmera' : forma === 'conica' ? 'conica' : forma === 'sombrilla' ? 'sombrilla' : forma === 'naranjo' ? 'naranjo' : 'redondeada';
-        const copaSuperior = crearFormaCopa(a.punto, radioSuperior / 1000, formaSuperior, lon, lat + 0.0001);
-        copaSuperior.properties = { altura: a.altura, baseM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), alturaTotalM: alturaTroncoM + (a.altura - alturaTroncoM) * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
-        features.push(copaSuperior);
+        if (usaCopaRealista) {
+          const bultos = crearCopaRealista(a, forma, alturaTroncoM, factorHoja, feno, lon, lat);
+          for (const b of bultos) features.push(b);
+        } else {
+          // Copa inferior: forma realista según especie. En las especies con
+          // fenología (naranjo/albizia) la copa se encoge con la pérdida de
+          // hoja: en invierno la albizia queda en ramas desnudas.
+          const radioInferior = (forma === 'palmera' ? a.radioCopaM * 0.90 : a.radioCopaM) * factorHoja;
+          const copaInferior = crearFormaCopa(a.punto, radioInferior / 1000, forma, lon, lat);
+          copaInferior.properties = { altura: a.altura, baseM: alturaTroncoM, alturaTotalM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
+          features.push(copaInferior);
+
+          // Copa superior: más pequeña y cerrada (salvo palmera)
+          const radioSuperior = (forma === 'palmera' ? a.radioCopaM * 0.80 : a.radioCopaM * 0.65) * factorHoja;
+          const formaSuperior = forma === 'palmera' ? 'palmera' : forma === 'conica' ? 'conica' : forma === 'sombrilla' ? 'sombrilla' : forma === 'naranjo' ? 'naranjo' : 'redondeada';
+          const copaSuperior = crearFormaCopa(a.punto, radioSuperior / 1000, formaSuperior, lon, lat + 0.0001);
+          copaSuperior.properties = { altura: a.altura, baseM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), alturaTotalM: alturaTroncoM + (a.altura - alturaTroncoM) * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
+          features.push(copaSuperior);
+        }
 
         // ------- Frutos, flores y hojas cayendo (v8, solo naranjo/albizia) -------
         if (feno && decoradosEstePase < MAX_ARBOLES_DECORADOS && feno.densidadHoja > 0) {
@@ -6436,13 +6451,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           const baseCopaM = alturaTroncoM;
           const techoCopaM = alturaTroncoM + alturaCopaInferiorM + alturaCopaSuperiorM;
 
-          // NARANJAS: cuelgan dentro de la copa (otoño-invierno). Radios y
-          // colores de la malla real (0xE8792A / 0xCF6A1E, r 0,15-0,20 m).
+          // NARANJAS: repartidas por la piel de la copa (otoño-invierno),
+          // como en la malla real. Colores 0xE8792A / 0xCF6A1E del modelo.
           if (feno.conFruto) {
-            for (let k = 0; k < 7; k++) {
+            for (let k = 0; k < 12; k++) {
               const ang = pseudoRandom(lon, lat, 300 + k) * 360;
-              const dist = a.radioCopaM * (0.30 + 0.55 * pseudoRandom(lon, lat, 320 + k));
-              const baseFruto = baseCopaM + (techoCopaM - baseCopaM) * (0.25 + 0.45 * pseudoRandom(lon, lat, 340 + k));
+              const dist = a.radioCopaM * (0.45 + 0.50 * pseudoRandom(lon, lat, 320 + k));
+              const baseFruto = baseCopaM + (techoCopaM - baseCopaM) * (0.20 + 0.60 * pseudoRandom(lon, lat, 340 + k));
               const rFruto = 0.30 + 0.08 * pseudoRandom(lon, lat, 360 + k); // más grandes que la realidad: a zoom de calle deben verse
               features.push(crearPuntoDecorativo(a.punto, ang, dist, rFruto, {
                 altura: a.altura, baseM: baseFruto, alturaTotalM: baseFruto + rFruto * 2,
@@ -6509,6 +6524,84 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const dot = turf.circle(p, Math.max(0.05, radioM) / 1000, { units: 'kilometers', steps: 6 });
       dot.properties = props;
       return dot;
+    }
+
+    /* --------- Copa realista en racimo de bultos (v8.1, ADITIVO) ---------
+       La malla real del naranjo no es un cilindro: es una MASA de follaje
+       hecha de matas irregulares solapadas con 4 tonos de verde. Aquí cada
+       copa se construye así: un anillo de bultos deformes + dos bultos
+       centrales que cierran la bola (naranjo) o el disco (albizia).
+       Cada bulto usa semillas distintas: ningún árbol sale igual a otro. */
+
+    // Tonos exactos del follaje de la malla real del naranjo.
+    const PALETA_NARANJO = ['#4f7a3d', '#5e8c47', '#3f6733', '#6a9950'];
+    // Albizia por estación: brote primaveral, verde verano, oro otoñal.
+    const PALETA_ALBIZIA_PRIMAVERA = ['#7fc54f', '#8fd35f', '#6fb43f', '#9ce06f'];
+    const PALETA_ALBIZIA_VERANO = ['#5c9e3f', '#6fae4a', '#4c8a35', '#7fc54f'];
+    const PALETA_ALBIZIA_OTONO = ['#c9862f', '#d79a3f', '#b57728', '#cf9240'];
+
+    function paletaPara(forma, feno) {
+      if (forma === 'naranjo') return PALETA_NARANJO;
+      if (feno && feno.colorHoja === '#c9862f') return PALETA_ALBIZIA_OTONO;
+      if (feno && feno.colorHoja === '#7fc54f') return PALETA_ALBIZIA_PRIMAVERA;
+      return PALETA_ALBIZIA_VERANO;
+    }
+
+    function crearCopaRealista(a, forma, alturaTroncoM, factorHoja, feno, lon, lat) {
+      const bultos = [];
+      const esNaranjo = forma === 'naranjo';
+      const paleta = paletaPara(forma, feno);
+      const alturaCopaTotal = Math.max(1, a.altura - alturaTroncoM);
+      // Banda de follaje: el naranjo es una bola que nace bajo y tapa el
+      // tronco; la albizia abre su disco ancho y plano en lo alto.
+      const baseFollaje = esNaranjo
+        ? alturaTroncoM + alturaCopaTotal * 0.05
+        : alturaTroncoM + alturaCopaTotal * 0.30;
+      const techoFollaje = a.altura;
+
+      const empujarBulto = (centro, radioM, baseM, techoM, semilla) => {
+        const bulto = crearFormaCopa(centro, Math.max(0.0002, radioM / 1000), 'ancha_irregular', lon + semilla * 0.0007, lat - semilla * 0.0005);
+        bulto.properties = {
+          altura: a.altura,
+          baseM: Math.max(alturaTroncoM, baseM),
+          alturaTotalM: Math.min(a.altura, Math.max(baseM + 0.4, techoM)),
+          nombre: a.nombre, tipo: 'copa', forma,
+          color: paleta[semilla % paleta.length],
+        };
+        bultos.push(bulto);
+      };
+
+      // Anillo de bultos exteriores (la piel irregular de la copa)
+      const nAnillo = esNaranjo ? 7 : 8;
+      for (let k = 0; k < nAnillo; k++) {
+        const ang = (k * 360) / nAnillo + pseudoRandom(lon, lat, 700 + k) * 45;
+        const dist = a.radioCopaM * (esNaranjo
+          ? (0.28 + 0.34 * pseudoRandom(lon, lat, 710 + k))
+          : (0.48 + 0.42 * pseudoRandom(lon, lat, 710 + k))) * factorHoja;
+        const rBulto = a.radioCopaM * (esNaranjo
+          ? (0.36 + 0.16 * pseudoRandom(lon, lat, 720 + k))
+          : (0.30 + 0.14 * pseudoRandom(lon, lat, 720 + k))) * factorHoja;
+        const baseB = baseFollaje + (techoFollaje - baseFollaje) * (esNaranjo
+          ? (0.05 + 0.55 * pseudoRandom(lon, lat, 730 + k))
+          : (0.30 + 0.45 * pseudoRandom(lon, lat, 730 + k)));
+        const grosor = alturaCopaTotal * (esNaranjo
+          ? (0.34 + 0.20 * pseudoRandom(lon, lat, 740 + k))
+          : (0.24 + 0.14 * pseudoRandom(lon, lat, 740 + k)));
+        const centro = dist > 0.01
+          ? turf.transformTranslate(a.punto, dist / 1000, ang, { units: 'kilometers' })
+          : a.punto;
+        empujarBulto(centro, rBulto, baseB, baseB + grosor, k);
+      }
+
+      // Dos bultos centrales que cierran la parte alta
+      for (let k = 0; k < 2; k++) {
+        const rBulto = a.radioCopaM * (esNaranjo ? (0.44 - k * 0.12) : (0.38 - k * 0.10)) * factorHoja;
+        const grosor = alturaCopaTotal * (esNaranjo ? (0.46 - k * 0.14) : (0.36 - k * 0.12));
+        const baseB = techoFollaje - grosor;
+        empujarBulto(a.punto, rBulto, baseB, baseB + grosor, nAnillo + k);
+      }
+
+      return bultos;
     }
 
     function crearFormaCopa(centro, radioKm, forma, lon, lat) {

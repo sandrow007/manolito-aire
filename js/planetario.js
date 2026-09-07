@@ -53,7 +53,11 @@
       var widget = $('rsPlanetario');
       if (!widget || !('IntersectionObserver' in window)) return;
       new IntersectionObserver(function (entradas) {
-        entradas.forEach(function (e) { widgetVisible = e.isIntersecting; });
+        entradas.forEach(function (e) {
+          widgetVisible = e.isIntersecting;
+          // Al volver a verse, el bucle se despierta solo (si estaba parado).
+          if (widgetVisible) reanudarBucleEspacio();
+        });
       }, { rootMargin: '80px' }).observe(widget);
     } catch (e) { /* sin observador: animar siempre, como hasta ahora */ }
   }
@@ -385,24 +389,46 @@
     capaEventos.setAttribute('id', 'rsEspacioEventos');
     svgRaiz.appendChild(capaEventos);
 
-    requestAnimationFrame(animarEspacio);
+    // El arranque pasa por el guardián: si el widget no está visible todavía,
+    // el bucle ni siquiera arranca (lo despertará el IntersectionObserver).
+    reanudarBucleEspacio();
     programarProximoFenomeno();
   }
 
+  var bucleEspacioActivo = false;
+
+  // Despertar del bucle: solo arranca si estaba parado y hay algo que ver.
+  function reanudarBucleEspacio() {
+    if (bucleEspacioActivo || document.hidden || !widgetVisible) return;
+    bucleEspacioActivo = true;
+    requestAnimationFrame(animarEspacio);
+  }
+  try {
+    document.addEventListener('visibilitychange', reanudarBucleEspacio);
+  } catch (e) { /* sin evento: el bucle nunca para, como antes */ }
+
   function animarEspacio() {
     if (document.hidden || !widgetVisible) {
-      // Pestaña oculta o widget fuera de pantalla: no gastar batería;
-      // el bucle sigue vivo pero sin trabajo (coste ~cero).
-      requestAnimationFrame(animarEspacio);
+      // Pestaña oculta o widget fuera de pantalla: PARADA TOTAL (sep-2026).
+      // Antes el bucle seguía vivo "sin trabajo", pero seguir llamando a
+      // requestAnimationFrame 60 veces por segundo ya mantiene despierto al
+      // navegador y calienta el móvil. Ahora se detiene del todo y lo
+      // reanudan el IntersectionObserver o el visibilitychange.
+      bucleEspacioActivo = false;
       return;
     }
     tSatelites++;
-    satelitesEls.forEach(function (sat) {
-      var ang = (sat.cfg.faseInicial + tSatelites * sat.cfg.velocidadGrad / 60) * Math.PI / 180;
-      sat.el.setAttribute('cx', (CX + sat.cfg.radio * Math.cos(ang)).toFixed(1));
-      sat.el.setAttribute('cy', (CY + sat.cfg.radio * Math.sin(ang)).toFixed(1));
-    });
-    animarEstrellas();
+    // Tope 30 fps (sep-2026): el titileo de las estrellas y las órbitas se
+    // ven igual de suaves a medio frame rate, y la CPU/GPU trabajan la mitad.
+    // tSatelites mantiene la escala de tiempos original (velocidad/60 s).
+    if (tSatelites % 2 === 0) {
+      satelitesEls.forEach(function (sat) {
+        var ang = (sat.cfg.faseInicial + tSatelites * sat.cfg.velocidadGrad / 60) * Math.PI / 180;
+        sat.el.setAttribute('cx', (CX + sat.cfg.radio * Math.cos(ang)).toFixed(1));
+        sat.el.setAttribute('cy', (CY + sat.cfg.radio * Math.sin(ang)).toFixed(1));
+      });
+      animarEstrellas();
+    }
     requestAnimationFrame(animarEspacio);
   }
 

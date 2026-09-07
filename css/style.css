@@ -1309,6 +1309,21 @@ body.manolito-fs .chat-fab{ display:none !important; }
   z-index:5;
 }
 .chart-tip.visible{ opacity:1; }
+
+/* Fix (sep-2026, ADITIVO): el globo de la gráfica usaba background:var(--panel),
+   pero --panel NO existe en ningún tema, así que caía al fondo BLANCO fijo.
+   En tema oscuro el texto (--ink) también es casi blanco (#E8F0FF) → globo
+   blanco con letra invisible, como si "no hiciera nada" al pasar el ratón.
+   Se corrige con la superficie del tema (oscura en modo noche, clara en modo
+   día) y borde acorde. La regla original queda intacta; éstas la pisan en
+   cascada, igual que hace el resto de la hoja con otros componentes. */
+.chart-tip{ background:var(--surface, rgba(255,255,255,0.96)); }
+[data-theme="dark"] .chart-tip{
+  background:rgba(10,12,31,0.97);
+  color:var(--ink, #E8F0FF);
+  border-color:rgba(0,240,255,0.35);
+  box-shadow:0 4px 16px rgba(0,0,0,0.55);
+}
 #airChart{ padding-top:26px; }
 
 /* ---------- SINCRONIZAR / EXPORTAR DATOS (pie) ---------- */

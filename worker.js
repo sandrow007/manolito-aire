@@ -164,15 +164,20 @@ export default {
 
     // --- Proxy anti-CORS + caché KV para los árboles (Overpass / OpenStreetMap) ---
     // Los espejos públicos de Overpass se caen a menudo (502/504/silencio
-    // total), así que la defensa va en tres capas:
-    //   1) KV: si esta misma zona se pidió hace <6 h, se sirve al instante
-    //      sin tocar Overpass (rápido y además protege los espejos).
+    // total), así que la defensa va en capas:
+    //   1) KV semanal: si esta misma zona se pidió hace <7 días, se sirve al
+    //      instante sin tocar Overpass (rápido y protege los espejos).
+    //      Cumplida la semana, se sirve la copia guardada AL INSTANTE y se
+    //      renueva desde Overpass EN SEGUNDO PLANO para la próxima visita:
+    //      lo nuevo de OpenStreetMap aparece solo, como mucho, en 7 días.
     //   2) Carrera de espejos: se lanzan todos EN PARALELO con 15 s de
     //      timeout cada uno y gana el primero que responda bien. El Worker
     //      nunca se cuelga (15 s máx.) ni espera a espejos muertos.
     //   3) Si todos los espejos fallan, se sirve la copia del KV aunque sea
     //      vieja (los árboles no se mueven: un dato de hace 2 días es
     //      infinitamente mejor que ningún dato).
+    //   Extra: la cabecera X-Arboles-Fresca: 1 (modo ?arboles=frescos de la
+    //   web) se salta la caché y renueva la zona al momento para todos.
     if (url.pathname === '/arboles') {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
@@ -189,15 +194,21 @@ export default {
         } catch (e) { /* sin clave: seguimos sin caché */ }
 
         const kv = env.AIR_QUALITY_CACHE || null;
-        const FRESCA_MS = 6 * 3600 * 1000; // 6 h = "fresca", se sirve directa
+        const FRESCA_MS = 7 * 24 * 3600 * 1000; // 7 días = "fresca" (renovación semanal automática)
+        const forzarFresca = request.headers.get('X-Arboles-Fresca') === '1';
+        // La copia guardada se lee una sola vez y se reutiliza más abajo.
+        let copiaKv = null;
 
-        if (kv && claveKv) {
+        if (kv && claveKv && !forzarFresca) {
           try {
             const { value, metadata } = await kv.getWithMetadata(claveKv);
-            if (value && metadata && metadata.ts && Date.now() - metadata.ts < FRESCA_MS) {
-              return new Response(value, {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
-              });
+            if (value && metadata && metadata.ts) {
+              copiaKv = value;
+              if (Date.now() - metadata.ts < FRESCA_MS) {
+                return new Response(value, {
+                  headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
+                });
+              }
             }
           } catch (e) { /* KV inaccesible: seguimos a los espejos */ }
         }
@@ -250,6 +261,22 @@ export default {
             clearTimeout(temporizador);
           }
         };
+        // Semana cumplida y hay copia guardada: se sirve AL INSTANTE (nadie
+        // espera a Overpass) y se renueva en segundo plano para la próxima
+        // visita. Si la renovación falla, no pasa nada: se reintenta solo.
+        if (copiaKv && !forzarFresca) {
+          if (kv && claveKv && ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(
+              Promise.any(espejos.map(intentarEspejo))
+                .then((nueva) => kv.put(claveKv, nueva, { expirationTtl: 2592000, metadata: { ts: Date.now() } }))
+                .catch(() => { /* espejos caídos: se reintenta en la próxima visita */ })
+            );
+          }
+          return new Response(copiaKv, {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'vieja-refrescando', ...CORS_HEADERS }
+          });
+        }
+
         // Promise.any: el primer espejo bueno gana al instante; solo se
         // espera a todos (máx. 15 s) si TODOS fallan.
         let respuesta = null;
@@ -258,11 +285,12 @@ export default {
         } catch (e) { /* AggregateError: todos fallaron */ }
 
         if (respuesta) {
-          // Guardamos en KV en segundo plano (7 días de vida) sin retrasar
-          // la respuesta al navegador.
+          // Guardamos en KV en segundo plano sin retrasar la respuesta al
+          // navegador. Vida de 30 días: la copia debe sobrevivir a la semana
+          // de frescura para poder servirse al instante mientras se renueva.
           if (kv && claveKv && ctx && typeof ctx.waitUntil === 'function') {
             ctx.waitUntil(
-              kv.put(claveKv, respuesta, { expirationTtl: 604800, metadata: { ts: Date.now() } }).catch(() => {})
+              kv.put(claveKv, respuesta, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {})
             );
           }
           return new Response(respuesta, {

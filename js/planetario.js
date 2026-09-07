@@ -39,6 +39,25 @@
   var capaEventos  = null;
   var tSatelites   = 0;
 
+  /* Rendimiento (sep-2026, ADITIVO): el planetario solo gasta CPU cuando
+     el widget está visible en pantalla. Si el usuario está mirando otra
+     parte de la web (o el panel queda fuera del viewport), el bucle de
+     animación, el reloj de 1 s y las estrellas fugaces se duermen.
+     Con IntersectionObserver no hace falta scroll listener: el navegador
+     avisa solo cuando cambia la visibilidad. Sin soporte, widgetVisible
+     se queda en true y todo funciona exactamente como antes. */
+  var widgetVisible = true;
+
+  function vigilarVisibilidadWidget() {
+    try {
+      var widget = $('rsPlanetario');
+      if (!widget || !('IntersectionObserver' in window)) return;
+      new IntersectionObserver(function (entradas) {
+        entradas.forEach(function (e) { widgetVisible = e.isIntersecting; });
+      }, { rootMargin: '80px' }).observe(widget);
+    } catch (e) { /* sin observador: animar siempre, como hasta ahora */ }
+  }
+
   /* Estrellas cuánticas: se generan por código (no van pintadas en el HTML)
      y titilan como luz real — cada una con su brillo base, su halo, su
      frecuencia de parpadeo y su fase. Posiciones fijas para que la cúpula
@@ -277,7 +296,7 @@
       filtro.setAttribute('y', '-120%');
       filtro.setAttribute('width', '340%');
       filtro.setAttribute('height', '340%');
-      var blur = document.createElementNS(ns, 'feGaussianBlur');
+      var blur = document.createElementNS('feGaussianBlur');
       blur.setAttribute('stdDeviation', '0.9');
       filtro.appendChild(blur);
       defs.appendChild(filtro);
@@ -371,8 +390,9 @@
   }
 
   function animarEspacio() {
-    if (document.hidden) {
-      // Pestaña oculta: no gastar batería; al volver, rAF se reanuda solo.
+    if (document.hidden || !widgetVisible) {
+      // Pestaña oculta o widget fuera de pantalla: no gastar batería;
+      // el bucle sigue vivo pero sin trabajo (coste ~cero).
       requestAnimationFrame(animarEspacio);
       return;
     }
@@ -394,7 +414,7 @@
   function programarProximoFenomeno() {
     var espera = 12000 + Math.random() * 18000;
     setTimeout(function () {
-      if (document.hidden) { programarProximoFenomeno(); return; }
+      if (document.hidden || !widgetVisible) { programarProximoFenomeno(); return; }
       if (Math.random() < 0.2) lanzarCometa(); else lanzarEstrellaFugaz();
       programarProximoFenomeno();
     }, espera);
@@ -455,7 +475,7 @@
   };
 
   function tick() {
-    if (document.hidden) return; // pestaña oculta: no repintar (ahorro batería)
+    if (document.hidden || !widgetVisible) return; // pestaña oculta o widget fuera de pantalla: no repintar (ahorro batería)
     // La hora del planetario es siempre la hora efectiva de la app: la del
     // slider si el usuario simula, o el reloj real en reposo.
     var f = horaEfectivaApp();
@@ -475,6 +495,7 @@
     pintar();
     crearCapaEspacio();
     setInterval(tick, 1000);
+    vigilarVisibilidadWidget();
     window.addEventListener('langChanged', pintar);
   }
 

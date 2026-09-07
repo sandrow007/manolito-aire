@@ -23,7 +23,7 @@
    ============================================================ */
 'use strict';
 
-const VERSION = '2026-08-30-a';
+const VERSION = '2026-09-08-a';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

@@ -296,7 +296,7 @@
       filtro.setAttribute('y', '-120%');
       filtro.setAttribute('width', '340%');
       filtro.setAttribute('height', '340%');
-      var blur = document.createElementNS('feGaussianBlur');
+      var blur = document.createElementNS(ns, 'feGaussianBlur');
       blur.setAttribute('stdDeviation', '0.9');
       filtro.appendChild(blur);
       defs.appendChild(filtro);

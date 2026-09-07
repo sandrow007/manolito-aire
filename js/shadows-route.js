@@ -897,7 +897,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }, 220);
   map.on('moveend', alTerminarMovimiento);
 
-  map.on('move', () => actualizarSolVisualEnMapa());
+  // Rendimiento (sep-2026, ADITIVO): el marcador del sol se mueve como mucho
+  // 1 vez por frame (requestAnimationFrame). Antes se recalculaba en CADA
+  // evento 'move' — decenas por segundo al arrastrar el mapa — y eso
+  // calentaba el móvil sin cambiar nada visible.
+  let solRafPendiente = false;
+  map.on('move', () => {
+    if (solRafPendiente) return;
+    solRafPendiente = true;
+    requestAnimationFrame(() => { solRafPendiente = false; actualizarSolVisualEnMapa(); });
+  });
 
   let solarActivado = false;
   function asegurarActivacionSolar() {
@@ -1793,6 +1802,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     contenedorMapa.appendChild(sol);
   }
 
+  // Rendimiento (sep-2026, ADITIVO): getBoundingClientRect fuerza un layout
+  // (reflow) en cada llamada. Se cachea y solo se recalcula cuando el mapa
+  // cambia de tamaño ('resize'), que es cuando el rect puede variar.
+  let rectContenedorCache = null;
+  map.on('resize', () => { rectContenedorCache = null; });
+
   function actualizarSolVisualEnMapa() {
     const el = document.getElementById('rsSolVisual');
     const tSol = document.getElementById('rsToggleSol');
@@ -1802,7 +1817,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const { azimutDeg, alturaDeg } = calcularAnguloSol();
     if (alturaDeg <= 0) { el.style.display = 'none'; return; }
 
-    const rect = contenedorMapa.getBoundingClientRect();
+    if (!rectContenedorCache) rectContenedorCache = contenedorMapa.getBoundingClientRect();
+    const rect = rectContenedorCache;
     if (!rect.width || !rect.height) return;
 
     const anguloRelativo = ((azimutDeg - map.getBearing()) * Math.PI) / 180;
@@ -6889,6 +6905,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
           if (obtenerEstacion(obtenerHoraEfectiva()) !== 'otono') return;
           if (!arbolesGrandes.some((a) => a.tipo === 'albizia')) return;
+          // Rendimiento (sep-2026, ADITIVO): la caída de hojas solo se ve
+          // con zoom cercano y albizias en pantalla. Si no, no se repinta
+          // nada (antes reconstruía TODOS los árboles cada 2,4 s aunque
+          // la animación fuera invisible en la vista actual).
+          if (map.getZoom() < 15.5) return;
+          const bCaida = map.getBounds();
+          const hayAlbiziaEnVista = arbolesGrandes.some((a) => {
+            if (a.tipo !== 'albizia') return false;
+            const [lonA, latA] = a.punto.geometry.coordinates;
+            return lonA >= bCaida.getWest() && lonA <= bCaida.getEast()
+                && latA >= bCaida.getSouth() && latA <= bCaida.getNorth();
+          });
+          if (!hayAlbiziaEnVista) return;
           dibujarArbolesVisibles();
         } catch (e) { /* decorativo: nunca rompe */ }
       }, 2400);

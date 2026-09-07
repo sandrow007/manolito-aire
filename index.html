@@ -190,6 +190,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -746,9 +747,14 @@
         });
       }
 
-      cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js')
-        .then(() => cargarScript('https://unpkg.com/@turf/turf@6/turf.min.js'))
-        .then(() => cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'))
+      // Rendimiento (sep-2026): MapLibre, Turf y SunCalc son librerías independientes
+      // — se cargan EN PARALELO y el mapa de sombras arranca mucho antes
+      // (antes iban en cadena: cada una esperaba a que terminara la anterior).
+      Promise.all([
+        cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
+        cargarScript('https://unpkg.com/@turf/turf@6/turf.min.js'),
+        cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
+      ])
         .then(() => cargarScript('js/shadows-route.js'))
         .then(() => cargarScript('js/irradiacion-solar.js'))
         .then(() => cargarScript('js/microclima.js'))

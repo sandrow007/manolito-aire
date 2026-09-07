@@ -3547,7 +3547,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     url.searchParams.set('timezone', 'auto');
 
     const datos = await fetchConReintentos(url.toString());
-    if (!datos || !datos.current) throw new Error('La API de calidad del aire no ha devuelto datos.');
+    // Respaldo directo (sep-2026, ADITIVO): si el proxy no consigue datos
+    // (devuelve objeto vacío), se pregunta directo a Open-Meteo (admite CORS).
+    if (!datos || !datos.current) {
+      const directo = new URL('https://air-quality-api.open-meteo.com/v1/air-quality');
+      directo.searchParams.set('latitude', lat);
+      directo.searchParams.set('longitude', lon);
+      directo.searchParams.set('current', ['us_aqi', 'pm2_5', 'pm10', 'ozone', 'nitrogen_dioxide'].join(','));
+      directo.searchParams.set('timezone', 'auto');
+      const datosDirectos = await fetchConReintentos(directo.toString());
+      if (!datosDirectos || !datosDirectos.current) throw new Error('La API de calidad del aire no ha devuelto datos.');
+      cacheLocalGuardar(claveCache, datosDirectos.current);
+      return datosDirectos.current;
+    }
     cacheLocalGuardar(claveCache, datos.current);
     return datos.current;
   }
@@ -6279,18 +6291,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       );
     }
 
-    // Frescura bajo demanda (sep-2026, ADITIVO): abrir la web con
-    // ?arboles=frescos en la URL fuerza la descarga directa desde
-    // OpenStreetMap, saltándose la caché semanal del servidor y la de
-    // celdas ya consultadas en esta sesión. Sirve para ver al momento un
-    // árbol recién añadido o editado en OSM (Overpass tarda 1-2 min en
-    // enterarse del cambio). Las visitas normales siguen usando la caché
-    // semanal. Además, cada petición así deja la zona renovada en la
-    // caché del servidor para TODOS los visitantes.
-    const forzarArbolesFrescos = (() => {
-      try { return new URLSearchParams(location.search).get('arboles') === 'frescos'; } catch (e) { return false; }
-    })();
-
     async function consultarOverpass(bbox) {
       const ahora = Date.now();
       if (ahora < overpassBackoffHasta) {
@@ -6310,11 +6310,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           const id = setTimeout(() => controller.abort(), presupuestoMs);
           const r = await fetch(url, {
             method: 'POST',
-            // En modo frescos se pide al proxy propio que se salte su caché
-            // (los espejos públicos ignoran la cabecera sin más).
-            headers: forzarArbolesFrescos && url.startsWith('/')
-              ? { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'X-Arboles-Fresca': '1' }
-              : { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
             body: 'data=' + encodeURIComponent(query),
             signal: controller.signal,
           });
@@ -6370,9 +6366,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const bounds = map.getBounds();
       if (anchoVistaKm(bounds) > CONFIG.maxLadoConsultaKm) return;
 
-      // En modo frescos las celdas ya consultadas se vuelven a pedir:
-      // el usuario quiere ver sus ediciones de OSM recién hechas.
-      const celdas = celdasDeVista(bounds).filter((c) => forzarArbolesFrescos || !celdasConsultadas.has(c));
+      const celdas = celdasDeVista(bounds).filter((c) => !celdasConsultadas.has(c));
       if (!celdas.length) { dibujarArbolesVisibles(); return; }
 
       // Si Overpass está en cooldown, no intentamos más consultas; usamos lo que haya
@@ -6386,14 +6380,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       consultaEnCurso = true;
       try {
         const bbox = [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()];
-        // Modo frescos: antes de meter los árboles nuevos de la zona se
-        // quitan los viejos de esa misma zona, para que no salgan dobles.
-        if (forzarArbolesFrescos) {
-          arbolesGrandes = arbolesGrandes.filter((a) => {
-            const [lonViejo, latViejo] = a.punto.geometry.coordinates;
-            return !(latViejo >= bbox[0] && latViejo <= bbox[2] && lonViejo >= bbox[1] && lonViejo <= bbox[3]);
-          });
-        }
         const datos = await consultarOverpass(bbox);
         const elementos = datos.elements || [];
         for (const el of elementos) {

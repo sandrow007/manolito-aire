@@ -33,8 +33,14 @@ async function fetchAirSeries(lat, lon) {
 
 	// A través del proxy del Worker (caché 5 min en Cloudflare): sin CORS,
 	// sin límites por IP del navegador y sin errores visibles en F12.
-	const url = `/api/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5&past_days=2&forecast_days=5`;
-	const r = await fetch(url);
+	const consulta = `latitude=${lat}&longitude=${lon}&hourly=pm2_5&past_days=2&forecast_days=5`;
+	const url = `/api/air-quality?${consulta}`;
+	let r = await fetch(url);
+	// Respaldo directo (sep-2026, ADITIVO): si el proxy no consigue datos
+	// (X-Proxy-Aviso: sin-datos), se pregunta directo a Open-Meteo (admite CORS).
+	if (r.headers.get('X-Proxy-Aviso') === 'sin-datos') {
+		r = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?${consulta}`);
+	}
 	if (!r.ok) throw new Error(`Open-Meteo respondió ${r.status}`);
 	const data = await r.json();
 	const times = data.hourly?.time || [];

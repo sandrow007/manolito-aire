@@ -246,7 +246,15 @@ function aqiFromPM25(pm){
 async function fetchCurrentCity(){
   const d = cityData[currentCity];
   try{
-    const r = await fetch(`/api/air-quality?latitude=${d.lat}&longitude=${d.lon}&current=pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto`);
+    const consultaAire = `latitude=${d.lat}&longitude=${d.lon}&current=pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto`;
+    let r = await fetch(`/api/air-quality?${consultaAire}`);
+    // Respaldo directo (sep-2026, ADITIVO): si el proxy no consigue datos
+    // (lo avisa con la cabecera X-Proxy-Aviso: sin-datos), el navegador
+    // pregunta directamente a Open-Meteo — su API admite CORS — y el dato
+    // llega en tiempo real aunque el proxy esté limitado.
+    if (r.headers.get('X-Proxy-Aviso') === 'sin-datos') {
+      r = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?${consultaAire}`);
+    }
     const data = await r.json();
     const c = data.current || {};
     currentPM25 = c.pm2_5 ?? currentPM25;
@@ -874,8 +882,19 @@ function initMap(){
   Promise.all(tandas.map(({ inicio, grupo }) => {
     const lats = grupo.map(s => s.lat).join(',');
     const lons = grupo.map(s => s.lon).join(',');
-    return fetch(`/api/air-quality?latitude=${lats}&longitude=${lons}&current=pm2_5,pm10,nitrogen_dioxide,ozone`)
-      .then(r => r.json())
+    const consultaTanda = `latitude=${lats}&longitude=${lons}&current=pm2_5,pm10,nitrogen_dioxide,ozone`;
+    // Respaldo directo (sep-2026, ADITIVO): si el proxy no consigue datos
+    // (cabecera X-Proxy-Aviso: sin-datos), el navegador pregunta directo a
+    // Open-Meteo (admite CORS) y los puntos se colorean en tiempo real.
+    return fetch(`/api/air-quality?${consultaTanda}`)
+      .then(r => {
+        if (r.headers.get('X-Proxy-Aviso') === 'sin-datos') throw new Error('proxy-sin-datos');
+        return r.json();
+      })
+      .catch(err => {
+        if (!err || err.message !== 'proxy-sin-datos') throw err;
+        return fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?${consultaTanda}`).then(r => r.json());
+      })
       .then(data => {
         // Open-Meteo devuelve un array en el mismo orden que las coordenadas;
         // con una sola coordenada devuelve objeto, y el worker en fallo da '{}'.

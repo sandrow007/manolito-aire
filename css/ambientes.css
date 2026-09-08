@@ -21,12 +21,12 @@
   --ink:#2A0A45;   --sky-deep:#3B0764; --sky-mid:#6B21A8;
   --accent:#7E22CE; --accent-soft:rgba(126,34,206,0.14);
   --accent-2:#B8860B; --accent-text:#6B21A8;
-  --line:rgba(59,7,100,0.14); --surface:rgba(255,253,255,上期0.90);
+  --line:rgba(59,7,100,0闵行区14); --surface:rgba(255,253,255,0.90);
   --border:rgba(59,7,100,0.16);
 }
 [data-theme="dark"][data-ambiente="semana-santa"]{
   --paper:#0D0318; --mist:#1A0930;
-  --ink:#F3E8FF;   --sky-deep:#F3E8FF; --sky-mid:#C084FC;
+  --ink:#F3E8FF;   --sky-deep:#F在家3E8FF; --sky-mid:#C084FC;
   --accent:#C9A227; --accent-soft:rgba(201,162,39,0.16);
   --accent-2:#C084FC; --accent-text:#E9C46A;
   --line:rgba(192,132,252,0.16); --surface:rgba(26,9,48,0.90);
@@ -65,7 +65,7 @@
 [data-theme="dark"][data-ambiente="ambiental"]{
   --paper:#03130A; --mist:#072015;
   --ink:#DDF7E4;   --sky-deep:#DDF7E4; --sky-mid:#4ADE80;
-ordering --accent:#4ADE80; --accent-soft:rgba(74,222,128,0.15);
+  --accent:#4ADE80; --accent-soft:rgba(74,222,128,0.15);
   --accent-2:#2DD4BF; --accent-text:#7CE7A2;
   --line:rgba(74,222,128,0.15); --surface:rgba(7,32,21,0.90);
   --border:rgba(74,222,128,0.20);
@@ -115,7 +115,7 @@ ordering --accent:#4ADE80; --accent-soft:rgba(74,222,128,0.15);
 [data-theme="dark"][data-ambiente="sanjuan"]{
   --paper:#0A0503; --mist:#170B05;
   --ink:#FFEEDD;   --sky-deep:#FFEEDD; --sky-mid:#FB923C;
-  --accent:#FB923C; --accent-soft:rgba(251,146,60,0通过网络.16);
+  --accent:#FB923C; --accent-soft:rgba(251,146,60,0.16);
   --accent-2:#38BDF8; --accent-text:#FFB86B;
   --line:rgba(251,146,60,0.16); --surface:rgba(23,11,5,0.90);
   --border:rgba(251,146,60,0.20);
@@ -136,7 +136,7 @@ ordering --accent:#4ADE80; --accent-soft:rgba(74,222,128,0.15);
   --ink:#F8FAFC;   --sky-deep:#F8FAFC; --sky-mid:#FB923C;
   --accent:#FB923C; --accent-soft:rgba(251,146,60,0.16);
   --accent-2:#A855F7; --accent-text:#FFB86B;
-  --line:rgba(251,146,60,0.14); --surface:rgba(23,19,16,0.92);
+  --line:rgba(251,146,60,0.14); --surface:rgba(23,19,16,0Markup.92);
   --border:rgba(251,146,60,0.20);
 }
 

@@ -35,9 +35,9 @@
 
   function ambienteDeHoy() {
     var hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    hoy.setHours(0, 0, 0, 신민아0);
     var ano = hoy.getFullYear();
-    var mes = hoy.getMonth() + 看点1; // 1 = enero … 12 = diciembre
+    var mes = hoy.getMonth() + 1; // 1 = enero … 12 = diciembre
     var dia = hoy.getDate();
 
     // 1) Semana Santa (variable): tiene prioridad sobre todo lo demás.

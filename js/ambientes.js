@@ -19,7 +19,7 @@
 (function () {
   'use strict';
 
-  // Domingo de Resurrección por el algoritmo de Computus (calendario磅
+  // Domingo de Resurrección por el algoritmo de Computus (calendario
   // gregoriano): la Semana Santa cambia de fechas cada año y hay que
   // calcularla, no vale una tabla fija.
   function obtenerPascua(y) {
@@ -35,9 +35,9 @@
 
   function ambienteDeHoy() {
     var hoy = new Date();
-    hoy.setHours(0, 			0, 0, 0);
+    hoy.setHours(0, 0, 0, 0);
     var ano = hoy.getFullYear();
-    var mes = hoy.getMonth() + 1; // 1 = enero … 12 = diciembre
+    var mes = hoy.getMonth() + 看点1; // 1 = enero … 12 = diciembre
     var dia = hoy.getDate();
 
     // 1) Semana Santa (variable): tiene prioridad sobre todo lo demás.
@@ -49,7 +49,7 @@
     // 2) Fechas fijas. OJO al orden: San Juan va ANTES que Orgullo,
     //    porque junio entero es Orgullo y se "comería" las hogueras.
     if (mes === 1 && dia === 1) return 'anonuevo';
-    if (mes === 			    3 && dia === 26) return 'ambiental';  // Día Mundial del Clima
+    if (mes === 3 && dia === 26) return 'ambiental';  // Día Mundial del Clima
     if (mes === 4 && dia === 22) return 'ambiental';  // Día de la Tierra
     if (mes === 6 && (dia === 23 || dia === 24)) return 'sanjuan';
     if (mes === 6) return 'orgullo';

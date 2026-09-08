@@ -6053,9 +6053,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // (la misma que mueve las sombras: respeta el simulador horario).
   function obtenerEstacion(fecha) {
     const mes = fecha.getMonth(); // 0 = enero
-    if (mes >= 2 && mes <= 4) return 'primavera';
-    if (mes >= 5 && mes <= 7) return 'verano';
-    if (mes >= 8 && mes <= 10) return 'otono';
+    const dia = fecha.getDate();
+    // Estaciones ASTRONÓMICAS de España (hemisferio norte): el verano dura
+    // hasta el 22-23 de septiembre, NO acaba el 31 de agosto. Antes todo
+    // septiembre se trataba como otoño y la albizia salía marrón y
+    // perdiendo hoja en pleno verano (bug corregido sep-2026).
+    if ((mes === 2 && dia >= 20) || mes === 3 || mes === 4 || (mes === 5 && dia < 21)) return 'primavera';
+    if ((mes === 5 && dia >= 21) || mes === 6 || mes === 7 || (mes === 8 && dia < 23)) return 'verano';
+    if ((mes === 8 && dia >= 23) || mes === 9 || mes === 10 || (mes === 11 && dia < 21)) return 'otono';
     return 'invierno';
   }
 
@@ -6592,7 +6597,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           }
 
           // FLORES: azahar blanco en el naranjo (primavera); pompones
-          // rosas (0xE87A93) coronando la sombrilla de la albizia (verano).
+          // ROSA DELICADO (#F2A9C4, como las borlas sedosas reales de la
+          // albizia) coronando la sombrilla en verano.
           if (feno.conFlor) {
             const esAlbizia = a.tipo === 'albizia';
             const nFlores = esAlbizia ? 8 : 9;
@@ -6604,7 +6610,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
               features.push(crearPuntoDecorativo(a.punto, ang, dist, rFlor, {
                 altura: a.altura, baseM: baseFlor, alturaTotalM: baseFlor + rFlor * 1.6,
                 nombre: a.nombre, tipo: 'flor', forma,
-                color: esAlbizia ? '#E87A93' : '#FFF6E0',
+                color: esAlbizia ? '#F2A9C4' : '#FFF6E0',
               }));
             }
           }

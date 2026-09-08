@@ -6313,7 +6313,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         throw new Error('Overpass en cooldown por errores recientes');
       }
 
-      const query = `[out:json][timeout:${CONFIG.overpassTimeoutS}];(node["natural"="tree"](${bbox.join(',')}););out body;`;
+      // Además de los árboles puntuales (node natural=tree) pedimos las
+      // HILERAS de árboles (way natural=tree_row): en OSM se dibujan como
+      // una sola línea y aquí las convertimos en árboles cada ~9 m.
+      // "out geom" hace que las vías traigan su geometría en línea (los
+      // nodos siguen trayendo lat/lon igual que con "out body").
+      const query = `[out:json][timeout:${CONFIG.overpassTimeoutS}];(node["natural"="tree"](${bbox.join(',')});way["natural"="tree_row"](${bbox.join(',')}););out geom;`;
       let ultimoError = null;
       for (let i = 0; i < CONFIG.overpassUrls.length; i++) {
         const url = CONFIG.overpassUrls[i];
@@ -6361,6 +6366,40 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       overpassBackoffHasta = Date.now() + backoffMs;
       console.debug(`[arboles-globales] Overpass falló ${overpassErroresSeguidos} veces seguidas. Cooldown ${(backoffMs / 1000).toFixed(0)} s.`);
       throw ultimoError || new Error('Overpass no disponible');
+    }
+
+    // Convierte una HILERA de árboles (way natural=tree_row) en puntos
+    // individuales a lo largo de la línea, uno cada ~9 m (separación típica
+    // de arbolado urbano en alineación). Cada punto generado se procesa
+    // luego como un árbol normal con los tags de la hilera (especie, etc.).
+    function expandirHilera(el) {
+      if (el.type !== 'way' || !el.tags || el.tags.natural !== 'tree_row') return [];
+      const geom = Array.isArray(el.geometry) ? el.geometry : [];
+      if (geom.length < 2) return [];
+      const coords = geom
+        .filter((p) => p && p.lat != null && p.lon != null)
+        .map((p) => [p.lon, p.lat]);
+      if (coords.length < 2) return [];
+      let linea;
+      try {
+        linea = turf.lineString(coords);
+      } catch (e) {
+        return [];
+      }
+      const longitudKm = turf.length(linea, { units: 'kilometers' });
+      if (!isFinite(longitudKm) || longitudKm <= 0) return [];
+      const SEPARACION_KM = 0.009; // 9 m entre árbol y árbol
+      const puntos = [];
+      // Primer árbol en el arranque de la línea y luego uno cada 9 m;
+      // el último tramo (<4,5 m) no genera árbol extra para no amontonar.
+      const nArboles = Math.max(1, Math.round(longitudKm / SEPARACION_KM) + 1);
+      for (let i = 0; i < nArboles; i++) {
+        const d = Math.min(i * SEPARACION_KM, longitudKm);
+        const p = turf.along(linea, d, { units: 'kilometers' });
+        const [lon, lat] = p.geometry.coordinates;
+        puntos.push({ type: 'node', lat, lon, tags: el.tags });
+      }
+      return puntos;
     }
 
     function procesarElementoOSM(el) {
@@ -6415,9 +6454,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           });
         }
         for (const el of elementos) {
-          const arbol = procesarElementoOSM(el);
-          if (arbol) arbolesGrandes.push(arbol);
-          if (arbolesGrandes.length % 200 === 0) await cederAlNavegador();
+          // Las hileras (way natural=tree_row) se expanden primero en
+          // puntos cada ~9 m; los nodos sueltos pasan tal cual.
+          const candidatos = el.type === 'way' ? expandirHilera(el) : [el];
+          for (const cand of candidatos) {
+            const arbol = procesarElementoOSM(cand);
+            if (arbol) arbolesGrandes.push(arbol);
+            if (arbolesGrandes.length % 200 === 0) await cederAlNavegador();
+          }
         }
       } catch (e) {
         console.debug('[arboles-globales] Overpass no disponible ahora mismo:', e.message);

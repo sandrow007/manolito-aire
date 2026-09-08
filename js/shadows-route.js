@@ -5972,6 +5972,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       tags.taxon || '',
       tags.name || '',
       tags['leaf_type'] || '',
+      // Etiquetas Wikipedia de OSM (p. ej. species:wikipedia="en:Citrus ×
+      // sinensis" o genus:wikipedia="es:Citrus"): contienen el nombre de la
+      // especie/género y así el árbol se reconoce aunque falte "species".
+      (tags['species:wikipedia'] || '').replace(/^[a-z-]+:/i, ''),
+      (tags['genus:wikipedia'] || '').replace(/^[a-z-]+:/i, ''),
+      (tags.wikipedia || '').replace(/^[a-z-]+:/i, ''),
+      (tags['wikipedia:species'] || '').replace(/^[a-z-]+:/i, ''),
+      (tags['wikipedia:genus'] || '').replace(/^[a-z-]+:/i, ''),
     ].join(' ').toLowerCase();
 
     for (const [tipo, info] of Object.entries(TIPOS_ARBOL)) {
@@ -6402,13 +6410,22 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       return puntos;
     }
 
+    // Saca un nombre legible de las etiquetas Wikipedia de OSM
+    // ("es:Naranjo" -> "Naranjo", "en:Citrus × sinensis" -> "Citrus × sinensis")
+    // para los árboles que no traen species/genus pero sí wikipedia.
+    function nombreDeWikipedia(tags) {
+      const cruda = tags['species:wikipedia'] || tags.wikipedia || tags['genus:wikipedia'] || '';
+      const limpia = cruda.replace(/^[a-z-]+:/i, '').replace(/_/g, ' ').trim();
+      return limpia || null;
+    }
+
     function procesarElementoOSM(el) {
       if (el.type !== 'node' || el.lat == null || el.lon == null) return null;
       const tags = el.tags || {};
       const clasificacion = clasificarArbol(tags);
       const { altura, radioCopaM } = estimarDimensionesArbol(tags, clasificacion);
       if (altura <= CONFIG.alturaMinimaM) return null;
-      const nombre = tags.species || tags['species:es'] || tags.genus || clasificacion.tipo || 'Árbol';
+      const nombre = tags.species || tags['species:es'] || tags.genus || nombreDeWikipedia(tags) || clasificacion.tipo || 'Árbol';
       return {
         punto: turf.point([el.lon, el.lat]),
         altura,

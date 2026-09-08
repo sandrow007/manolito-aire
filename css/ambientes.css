@@ -21,12 +21,20 @@
   --ink:#2A0A45;   --sky-deep:#3B0764; --sky-mid:#6B21A8;
   --accent:#7E22CE; --accent-soft:rgba(126,34,206,0.14);
   --accent-2:#B8860B; --accent-text:#6B21A8;
+<<<<<<< HEAD
   --line:rgba(59,7,100,0.14); --surface:rgba(255,253,255,0.90);
+=======
+  --line:rgba(59,7,100,0闵行区14); --surface:rgba(255,253,255,0.90);
+>>>>>>> 3aa5437b4881989309cd3de3a84c728c1cae87a8
   --border:rgba(59,7,100,0.16);
 }
 [data-theme="dark"][data-ambiente="semana-santa"]{
   --paper:#0D0318; --mist:#1A0930;
+<<<<<<< HEAD
   --ink:#F3E8FF;   --sky-deep:#F3E8FF; --sky-mid:#C084FC;
+=======
+  --ink:#F3E8FF;   --sky-deep:#F在家3E8FF; --sky-mid:#C084FC;
+>>>>>>> 3aa5437b4881989309cd3de3a84c728c1cae87a8
   --accent:#C9A227; --accent-soft:rgba(201,162,39,0.16);
   --accent-2:#C084FC; --accent-text:#E9C46A;
   --line:rgba(192,132,252,0.16); --surface:rgba(26,9,48,0.90);
@@ -136,7 +144,11 @@
   --ink:#F8FAFC;   --sky-deep:#F8FAFC; --sky-mid:#FB923C;
   --accent:#FB923C; --accent-soft:rgba(251,146,60,0.16);
   --accent-2:#A855F7; --accent-text:#FFB86B;
+<<<<<<< HEAD
   --line:rgba(251,146,60,0.14); --surface:rgba(23,19,16,0.92);
+=======
+  --line:rgba(251,146,60,0.14); --surface:rgba(23,19,16,0Markup.92);
+>>>>>>> 3aa5437b4881989309cd3de3a84c728c1cae87a8
   --border:rgba(251,146,60,0.20);
 }
 
@@ -157,4 +169,8 @@
   --accent-2:#E9C46A; --accent-text:#FF8A8A;
   --line:rgba(74,222,128,0.14); --surface:rgba(15,26,20,0.90);
   --border:rgba(74,222,128,0.18);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 3aa5437b4881989309cd3de3a84c728c1cae87a8

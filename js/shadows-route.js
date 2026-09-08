@@ -565,7 +565,11 @@
     zoom: Math.max(CONFIG.zoomInicial - 2.3, 1),
     pitch: 0,
     bearing: 0,
-    pixelRatio: esGamaBaja ? 1 : (window.devicePixelRatio || 1),
+    // Rendimiento (sep-2026): tope de resolución del canvas. Un móvil con
+    // devicePixelRatio 3 pinta NUEVE veces más píxeles que uno con DPR 1: es
+    // la mayor fuente de calor al mover el mapa. Con tope 2 la imagen sigue
+    // nítida en pantallas densas y el coste gráfico baja a menos de la mitad.
+    pixelRatio: esGamaBaja ? 1 : Math.min(window.devicePixelRatio || 1, 2),
     attributionControl: true
 });
 
@@ -6268,6 +6272,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const celdasConsultadas = new Set();
     let consultaEnCurso = false;
 
+    // Modo "árboles frescos" (sep-2026): si la URL trae ?arboles=frescos, la
+    // PRIMERA consulta de esta carga de página ignora la caché de celdas de
+    // la sesión y avisa al proxy (cabecera X-Arboles-Fresca) para que pida
+    // los datos recién publicados en OpenStreetMap. Sirve para ver al momento
+    // un árbol que acabas de plantar en OSM (OSM tarda 1-2 min en replicarse
+    // a los espejos Overpass: si no sale a la primera, espera un par de
+    // minutos y recarga otra vez con el mismo parámetro).
+    let frescosPendiente = false;
+    try {
+      frescosPendiente = new URLSearchParams(window.location.search).get('arboles') === 'frescos';
+    } catch (e) { /* sin URLSearchParams: modo normal */ }
+
     function celdasDeVista(bounds) {
       const paso = CONFIG.cacheCeldasGrados;
       const celdas = [];
@@ -6308,9 +6324,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           // espejos públicos directos los cortamos antes (18 s).
           const presupuestoMs = url.startsWith('/') ? 25000 : CONFIG.overpassTimeoutS * 1000 + 3000;
           const id = setTimeout(() => controller.abort(), presupuestoMs);
+          const cabecerasOverpass = { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' };
+          // Modo frescos: el proxy /arboles salta su caché y pregunta en
+          // vivo a OpenStreetMap; además deja renovada la caché compartida.
+          if (frescosPendiente && url.startsWith('/')) cabecerasOverpass['X-Arboles-Fresca'] = '1';
           const r = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            headers: cabecerasOverpass,
             body: 'data=' + encodeURIComponent(query),
             signal: controller.signal,
           });
@@ -6366,7 +6386,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const bounds = map.getBounds();
       if (anchoVistaKm(bounds) > CONFIG.maxLadoConsultaKm) return;
 
-      const celdas = celdasDeVista(bounds).filter((c) => !celdasConsultadas.has(c));
+      // En modo frescos (una sola vez por carga) también se reconsultan las
+      // celdas ya vistas en esta sesión: queremos el dato nuevo de OSM.
+      const forzarAhora = frescosPendiente;
+      const celdas = celdasDeVista(bounds).filter((c) => forzarAhora || !celdasConsultadas.has(c));
       if (!celdas.length) { dibujarArbolesVisibles(); return; }
 
       // Si Overpass está en cooldown, no intentamos más consultas; usamos lo que haya
@@ -6382,6 +6405,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const bbox = [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()];
         const datos = await consultarOverpass(bbox);
         const elementos = datos.elements || [];
+        if (forzarAhora) {
+          // Quitamos los árboles viejos de esta zona antes de añadir los
+          // recién llegados de OSM: misma zona consultada dos veces no debe
+          // duplicar árboles en el mapa.
+          arbolesGrandes = arbolesGrandes.filter((a) => {
+            const [lonA, latA] = a.punto.geometry.coordinates;
+            return !(latA >= bbox[0] && lonA >= bbox[1] && latA <= bbox[2] && lonA <= bbox[3]);
+          });
+        }
         for (const el of elementos) {
           const arbol = procesarElementoOSM(el);
           if (arbol) arbolesGrandes.push(arbol);
@@ -6392,6 +6424,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         celdas.forEach((c) => celdasConsultadas.delete(c));
       } finally {
         consultaEnCurso = false;
+        // El modo frescos se gasta en la primera consulta: el resto de la
+        // sesión funciona con la caché normal (y el proxy ya quedó renovado).
+        frescosPendiente = false;
       }
 
       dibujarArbolesVisibles();

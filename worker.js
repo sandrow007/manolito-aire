@@ -1,4 +1,4 @@
-﻿﻿const CORS_HEADERS = {
+﻿﻿﻿const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
@@ -165,8 +165,10 @@ export default {
     // --- Proxy anti-CORS + caché KV para los árboles (Overpass / OpenStreetMap) ---
     // Los espejos públicos de Overpass se caen a menudo (502/504/silencio
     // total), así que la defensa va en tres capas:
-    //   1) KV: si esta misma zona se pidió hace <6 h, se sirve al instante
-    //      sin tocar Overpass (rápido y además protege los espejos).
+    //   1) KV: si esta misma zona se pidió hace <7 días, se sirve al
+    //      instante sin tocar Overpass; si la copia es más vieja, se sirve
+    //      igualmente y se renueva EN SEGUNDO PLANO (stale-while-revalidate):
+    //      los árboles de OSM se actualizan solos cada semana, sin esperas.
     //   2) Carrera de espejos: se lanzan todos EN PARALELO con 15 s de
     //      timeout cada uno y gana el primero que responda bien. El Worker
     //      nunca se cuelga (15 s máx.) ni espera a espejos muertos.
@@ -189,12 +191,23 @@ export default {
         } catch (e) { /* sin clave: seguimos sin caché */ }
 
         const kv = env.AIR_QUALITY_CACHE || null;
-        const FRESCA_MS = 6 * 3600 * 1000; // 6 h = "fresca", se sirve directa
+        // Actualización semanal (sep-2026): una copia se considera "fresca"
+        // durante 7 días. Los árboles de OSM apenas cambian, así la web carga
+        // al instante casi siempre y no se machacan los espejos Overpass.
+        const FRESCA_MS = 7 * 24 * 3600 * 1000; // 7 días
+        // Modo "frescos": la página puede pedir los datos recién bajados de
+        // OSM (p. ej. ?arboles=frescos tras plantar un árbol en el mapa). El
+        // bypass es por zona y además deja la caché compartida ya renovada
+        // para todo el mundo.
+        const forzarFresca = request.headers.get('X-Arboles-Fresca') === '1';
 
+        // La copia del KV se lee UNA vez y se reutiliza en todas las ramas.
+        let copiaKv = null;
         if (kv && claveKv) {
           try {
             const { value, metadata } = await kv.getWithMetadata(claveKv);
-            if (value && metadata && metadata.ts && Date.now() - metadata.ts < FRESCA_MS) {
+            copiaKv = value || null;
+            if (!forzarFresca && value && metadata && metadata.ts && Date.now() - metadata.ts < FRESCA_MS) {
               return new Response(value, {
                 headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
               });
@@ -250,6 +263,24 @@ export default {
             clearTimeout(temporizador);
           }
         };
+        // Stale-while-revalidate (sep-2026): si hay copia vieja (más de 7
+        // días) y NO se pidió refresco forzado, se sirve AL INSTANTE y se
+        // lanza la renovación contra Overpass en segundo plano. El usuario
+        // nunca espera; la próxima visita (la de cualquiera) ya verá los
+        // árboles nuevos. Así OSM se actualiza solo, semanalmente.
+        if (copiaKv && !forzarFresca) {
+          if (ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(
+              Promise.any(espejos.map(intentarEspejo))
+                .then((nueva) => kv.put(claveKv, nueva, { expirationTtl: 2592000, metadata: { ts: Date.now() } }))
+                .catch(() => { /* si la renovación falla, la copia vieja sigue sirviendo */ })
+            );
+          }
+          return new Response(copiaKv, {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'vieja-refrescando', ...CORS_HEADERS }
+          });
+        }
+
         // Promise.any: el primer espejo bueno gana al instante; solo se
         // espera a todos (máx. 15 s) si TODOS fallan.
         let respuesta = null;
@@ -258,11 +289,12 @@ export default {
         } catch (e) { /* AggregateError: todos fallaron */ }
 
         if (respuesta) {
-          // Guardamos en KV en segundo plano (7 días de vida) sin retrasar
-          // la respuesta al navegador.
+          // Guardamos en KV en segundo plano (30 días de vida: la copia de
+          // emergencia aguanta aunque Overpass pase semanas caprichoso) sin
+          // retrasar la respuesta al navegador.
           if (kv && claveKv && ctx && typeof ctx.waitUntil === 'function') {
             ctx.waitUntil(
-              kv.put(claveKv, respuesta, { expirationTtl: 604800, metadata: { ts: Date.now() } }).catch(() => {})
+              kv.put(claveKv, respuesta, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {})
             );
           }
           return new Response(respuesta, {
@@ -271,15 +303,10 @@ export default {
         }
 
         // Todos los espejos caídos: servimos la copia del KV aunque esté vieja.
-        if (kv && claveKv) {
-          try {
-            const vieja = await kv.get(claveKv);
-            if (vieja) {
-              return new Response(vieja, {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Arboles-Cache': 'vieja', ...CORS_HEADERS }
-              });
-            }
-          } catch (e) { /* sin copia: error abajo */ }
+        if (copiaKv) {
+          return new Response(copiaKv, {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Arboles-Cache': 'vieja', ...CORS_HEADERS }
+          });
         }
 
         throw new Error('Overpass no disponible en ningún espejo');

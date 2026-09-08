@@ -5955,6 +5955,65 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       forma: 'oval_alargada',
       color: '#4f9a45',
     },
+    // --- Más especies típicas de calle (sep-2026): para que un árbol con
+    // solo name/description ("tipuana", "jacarandá", "laurel"...) salga con
+    // su porte real en vez de genérico. Todas usan formas ya existentes.
+    tipuana: {
+      keywords: ['tipuana', 'tipu '],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.2,
+      forma: 'ancha_redondeada',
+      color: '#5e9b4c',
+    },
+    jacaranda: {
+      keywords: ['jacaranda', 'jacarandá'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#5f9e4f',
+    },
+    morera: {
+      keywords: ['morus', 'morera', 'moral', 'mulberry'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 3.5,
+      forma: 'ancha_irregular',
+      color: '#4e8f3f',
+    },
+    ficus: {
+      keywords: ['ficus', 'higuera', 'fig tree', 'figuier'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_redondeada',
+      color: '#4d8a3e',
+    },
+    laurel: {
+      keywords: ['laurus', 'laurel'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 2.5,
+      forma: 'oval_alargada',
+      color: '#3f7d38',
+    },
+    granado: {
+      keywords: ['punica', 'granado', 'pomegranate'],
+      alturaMediaM: 4,
+      radioCopaMedioM: 2.0,
+      forma: 'redondeada',
+      color: '#5a8f40',
+    },
+    paraiso: {
+      keywords: ['melia', 'paraíso', 'paraiso', 'chinaberry', 'azedarach'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 3.5,
+      forma: 'ancha_irregular',
+      color: '#5b9348',
+    },
+    ginkgo: {
+      keywords: ['ginkgo', 'gingko'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 3.0,
+      forma: 'oval_alargada',
+      color: '#7cb342',
+    },
     generico: {
       alturaMediaM: CONFIG.alturaEstimadaSinDatoM,
       radioCopaMedioM: CONFIG.radioCopaPorDefectoM,
@@ -5972,6 +6031,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       tags.taxon || '',
       tags.name || '',
       tags['leaf_type'] || '',
+      // Más sitios donde la gente apunta el árbol sin usar species/genus
+      // (sep-2026): descripciones, nombres locales y variantes regionales.
+      tags.description || '',
+      tags['description:es'] || '',
+      tags['name:es'] || '',
+      tags.alt_name || '',
+      tags.loc_name || '',
+      tags['taxon:es'] || '',
+      tags['species:ca'] || '',
+      tags['species:gl'] || '',
+      tags['species:eu'] || '',
       // Etiquetas Wikipedia de OSM (p. ej. species:wikipedia="en:Citrus ×
       // sinensis" o genus:wikipedia="es:Citrus"): contienen el nombre de la
       // especie/género y así el árbol se reconoce aunque falte "species".
@@ -6089,7 +6159,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       return {
         densidadHoja: 1,
         colorHoja: null,
-        conFruto: estacion === 'otono' || estacion === 'invierno',
+        // Naranjas VISIBLES todo el año (petición de Sandro, sep-2026): en
+        // Sevilla el naranjo amargo guarda fruto colgando casi siempre.
+        conFruto: estacion !== 'primavera',
+        // En verano además cuelgan las naranjas VERDES pequeñas de la
+        // cosecha nueva, mezcladas con las maduras que aún quedan.
+        frutoVerde: estacion === 'verano',
         conFlor: estacion === 'primavera',
         cayendo: false,
       };
@@ -6592,6 +6667,23 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
                 altura: a.altura, baseM: baseFruto, alturaTotalM: baseFruto + rFruto * 2,
                 nombre: a.nombre, tipo: 'fruto', forma,
                 color: k % 2 === 0 ? '#E8792A' : '#CF6A1E',
+              }));
+            }
+          }
+
+          // NARANJAS VERDES (verano): la naranja ya está colgando pero
+          // aún sin madurar — pequeñas y verdes, como en la calle real en
+          // septiembre. Así el naranjo se reconoce como naranjo todo el año.
+          if (feno.frutoVerde) {
+            for (let k = 0; k < 7; k++) {
+              const ang = pseudoRandom(lon, lat, 300 + k) * 360;
+              const dist = a.radioCopaM * (0.45 + 0.50 * pseudoRandom(lon, lat, 320 + k));
+              const baseFruto = baseCopaM + (techoCopaM - baseCopaM) * (0.20 + 0.60 * pseudoRandom(lon, lat, 340 + k));
+              const rFruto = 0.20 + 0.06 * pseudoRandom(lon, lat, 360 + k); // más pequeñas que las maduras
+              features.push(crearPuntoDecorativo(a.punto, ang, dist, rFruto, {
+                altura: a.altura, baseM: baseFruto, alturaTotalM: baseFruto + rFruto * 2,
+                nombre: a.nombre, tipo: 'fruto', forma,
+                color: k % 2 === 0 ? '#8AAF3F' : '#739632',
               }));
             }
           }

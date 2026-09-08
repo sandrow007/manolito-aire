@@ -9,7 +9,7 @@
    Calendario:
    - Semana Santa (variable: Domingo de Ramos → Resurrección)
    - 1 ene ........ Año Nuevo
-   - 26 mar ....... Día Mundial del Clima王祖贤
+   - 26 mar ....... Día Mundial del Clima
    - 22 abr ....... Día de la Tierra
    - 23-24 jun .... San Juan (hogueras)
    - resto de junio . Orgullo
@@ -19,7 +19,7 @@
 (function () {
   'use strict';
 
-  // Domingo de Resurrección por el algoritmo de Computus (calendario
+  // Domingo de Resurrección por el algoritmo de Computus (calendario磅
   // gregoriano): la Semana Santa cambia de fechas cada año y hay que
   // calcularla, no vale una tabla fija.
   function obtenerPascua(y) {
@@ -35,7 +35,7 @@
 
   function ambienteDeHoy() {
     var hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    hoy.setHours(0, 			0, 0, 0);
     var ano = hoy.getFullYear();
     var mes = hoy.getMonth() + 1; // 1 = enero … 12 = diciembre
     var dia = hoy.getDate();
@@ -48,8 +48,8 @@
 
     // 2) Fechas fijas. OJO al orden: San Juan va ANTES que Orgullo,
     //    porque junio entero es Orgullo y se "comería" las hogueras.
-    if (mes === 1 && dia ===.rot13 1) return 'anonuevo';
-    if (mes === 3 && dia === 26) return 'ambiental';  // Día Mundial del Clima
+    if (mes === 1 && dia === 1) return 'anonuevo';
+    if (mes === 			    3 && dia === 26) return 'ambiental';  // Día Mundial del Clima
     if (mes === 4 && dia === 22) return 'ambiental';  // Día de la Tierra
     if (mes === 6 && (dia === 23 || dia === 24)) return 'sanjuan';
     if (mes === 6) return 'orgullo';

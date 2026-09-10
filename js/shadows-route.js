@@ -2331,16 +2331,33 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#0E3B47'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#0E3B47')}33;`;
       marcadorCaminando = new maplibregl.Marker({ element: el });
 
+      // Ahorro de batería andando (sep-2026): el GPS dispara ~1 lectura
+      // cada 2 s y antes CADA lectura animaba la cámara y recalculaba las
+      // sombras de TODOS los árboles — eso calentaba el móvil en minutos.
+      // Ahora: la cámara solo te sigue si te has movido >12 m, y las
+      // sombras/ruta se recalculan como mucho 1 vez cada 8 s (a pie, el
+      // sol no cambia de verdad en menos tiempo).
+      let ultimaCamaraCaminata = null;
+      let ultimaSincroCaminataMs = 0;
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
           marcadorCaminando.setLngLat([lon, lat]); // primero la posición: un Marker sin LngLat rompe al añadirse
           if (!marcadorCaminando._map) marcadorCaminando.addTo(map);
-          map.easeTo({ center: [lon, lat], duration: 600 });
+          const ahoraCaminata = Date.now();
+          const movidoSuficiente = !ultimaCamaraCaminata
+            || turf.distance(turf.point([ultimaCamaraCaminata[0], ultimaCamaraCaminata[1]]), turf.point([lon, lat]), { units: 'meters' }) > 12;
+          if (movidoSuficiente) {
+            ultimaCamaraCaminata = [lon, lat];
+            map.easeTo({ center: [lon, lat], duration: 600 });
+          }
           puntoReferenciaSol = { lat, lon };
           avanzarGuiaCaminata(lat, lon); // anuncia el siguiente paso si ya toca
-          if (rutaActual) actualizarTramosSombraRuta();
-          sincronizarArboles();
+          if (ahoraCaminata - ultimaSincroCaminataMs > 8000) {
+            ultimaSincroCaminataMs = ahoraCaminata;
+            if (rutaActual) actualizarTramosSombraRuta();
+            sincronizarArboles();
+          }
         },
         () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
         { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 }
@@ -3848,6 +3865,31 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   let guiaCaminataActiva = false;
   let indicePasoGuiado = 0;
 
+  // AirPods/Bluetooth (sep-2026): la Web Speech API de iOS/Android "agarra"
+  // la sesión de audio del sistema al hablar y puede dejarla pillada
+  // (los AirPods se quedan ocupados hasta desconectarlos). Solución: tras
+  // CADA frase hablada soltamos la cola de voz, y al ocultar/cerrar la
+  // página cancelamos cualquier habla pendiente. La web nunca retiene el
+  // audio cuando no está hablando.
+  function liberarSesionDeAudio() {
+    try {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window
+          && !window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
+      }
+    } catch (e) { /* nada que liberar */ }
+  }
+  try {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) { }
+      }
+    });
+    window.addEventListener('pagehide', () => {
+      try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) { }
+    });
+  } catch (e) { /* navegador sin eventos: no pasa nada */ }
+
   function hablarPasoGuia(texto) {
     // Siempre se refleja en la región viva (los lectores de pantalla la
     // anuncian solos) y además suena en voz alta con la voz del dispositivo.
@@ -3858,6 +3900,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const frase = new SpeechSynthesisUtterance(texto);
       frase.lang = (document.documentElement.lang || 'es').slice(0, 5);
       frase.rate = 1;
+      // Al terminar la frase, liberamos la sesión de audio del sistema
+      // (AirPods/Bluetooth vuelven a la música o a lo que sonara antes).
+      frase.onend = liberarSesionDeAudio;
+      frase.onerror = liberarSesionDeAudio;
       window.speechSynthesis.speak(frase);
     } catch (e) { /* voz no disponible: queda el anuncio escrito */ }
   }
@@ -4855,6 +4901,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           frase.volume = 0.9;
 
           window.speechSynthesis.cancel();
+          // Al acabar el saludo, soltamos la sesión de audio del sistema
+          // para no dejar pillados los AirPods/Bluetooth (sep-2026).
+          frase.onend = liberarSesionDeAudio;
+          frase.onerror = liberarSesionDeAudio;
           window.speechSynthesis.speak(frase);
         } catch (e) { /* si no hay voz disponible, no rompe la app */ }
       }
@@ -4914,6 +4964,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       _tick() {
         const paso = () => {
+          // Ahorro de batería (sep-2026): con la pestaña oculta el muñeco
+          // se duerme — nada de mover poses 15 veces por segundo sin nadie
+          // mirando. Al volver, el bucle sigue donde estaba.
+          if (document.hidden) { this._tickTimer = setTimeout(paso, 500); return; }
           const now = Date.now();
           if (this._moving) this._ultimoMovMs = now;
           else if (!this._reduced && !this._explorando && now - this._ultimoMovMs > 10000) {
@@ -5791,6 +5845,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           frase.pitch = elegida && elegida.genero === 'f' ? 0.88
             : elegida && elegida.genero === 'm' ? 1.18 : 1.04;
           frase.rate = 1;
+          // Al terminar, liberamos la sesión de audio (AirPods/Bluetooth).
+          frase.onend = liberarSesionDeAudio;
+          frase.onerror = liberarSesionDeAudio;
           window.speechSynthesis.speak(frase);
         } catch (e) { /* voz no disponible: queda el anuncio escrito */ }
       };
@@ -7281,6 +7338,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           // Y un saludito de vez en cuando mientras está quieto.
           yo._olaTimer = setInterval(function () {
             try {
+              if (document.hidden) return; // pestaña oculta: no saludar (ahorro batería)
               if (!document.contains(yo._el)) { clearInterval(yo._olaTimer); return; }
               if (yo._moving || yo._saludando || yo._explorando || yo._sentado || yo._reduced) return;
               yo._saluda();

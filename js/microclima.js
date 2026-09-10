@@ -412,6 +412,11 @@
   }
 
   function sincronizarConRelojSolar() {
+    // Ahorro de batería (sep-2026, ADITIVO): con la pestaña oculta no hay
+    // nada que sincronizar — el intervalo de 2 s seguía despertando el hilo
+    // principal sin nadie mirando. Al volver a la pestaña, el siguiente tic
+    // (máx. 2 s) retoma la sincronización exactamente donde iba.
+    if (document.hidden) return;
     const futuro = horaEsFutura();
     if (futuro === esFuturo) return;
     esFuturo = futuro;

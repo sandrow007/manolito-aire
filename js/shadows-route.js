@@ -2339,8 +2339,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // sol no cambia de verdad en menos tiempo).
       let ultimaCamaraCaminata = null;
       let ultimaSincroCaminataMs = 0;
+      let ultimaLecturaGpsMs = 0;
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
+          // Debounce GPS (sep-2026, ADITIVO): máximo 1 lectura procesada
+          // por segundo. Algunos móviles disparan watchPosition en ráfagas
+          // de varias lecturas seguidas; las extra no aportaban nada (la
+          // cámara y las sombras ya van con su propio throttle) y cada una
+          // despertaba el hilo principal.
+          const ahoraGpsMs = Date.now();
+          if (ahoraGpsMs - ultimaLecturaGpsMs < 1000) return;
+          ultimaLecturaGpsMs = ahoraGpsMs;
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
           marcadorCaminando.setLngLat([lon, lat]); // primero la posición: un Marker sin LngLat rompe al añadirse
           if (!marcadorCaminando._map) marcadorCaminando.addTo(map);
@@ -2501,6 +2510,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     function loopPaseo(now) {
       if (!paseoActivo) return;
+      // Rendimiento (sep-2026, ADITIVO): tope de 30 fps en el paseo virtual.
+      // Antes el bucle corría a 60 fps (cada frame del navegador) y cada frame
+      // movía la cámara libre => MapLibre re-renderizaba TODO el mapa 60 veces
+      // por segundo. Era la mayor fuente de calor del móvil. A 30 fps el paseo
+      // se ve igual de fluido (el movimiento usa dt real, no frames) y la GPU
+      // trabaja la mitad. Los frames "salteados" solo reprograman el rAF.
+      if (now - paseoUltimoFrame < 33) {
+        paseoRafId = requestAnimationFrame(loopPaseo);
+        return;
+      }
       const dt = Math.min(0.05, (now - paseoUltimoFrame) / 1000);
       paseoUltimoFrame = now;
 
@@ -4975,8 +4994,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             this._explorando = true;
             this._capricho();
           }
-          this._applyPose();
-          this._tickTimer = setTimeout(paso, 66);
+          // Rendimiento (sep-2026, ADITIVO): si Manolit está quieto (no
+          // camina, no explora, no saluda, no está sentándose/levantándose),
+          // la pose NO cambia — re-aplicarla 15 veces por segundo solo
+          // servía para forzar recálculos de estilo en el navegador (calor).
+          // Quieto: saltamos _applyPose y el tic baja a 4 Hz (la detección
+          // de "10 s aburrido" sigue funcionando igual, con margen de sobra).
+          // En cuanto hay actividad, el tic vuelve a 66 ms y se ve IDÉNTICO.
+          const enActividad = this._moving || this._explorando || this._saludando
+            || this._sentado || this._ondaRaf || this._reduced;
+          if (enActividad || !this._poseAplicadaAlgunaVez) {
+            this._applyPose();
+            this._poseAplicadaAlgunaVez = true;
+          }
+          this._tickTimer = setTimeout(paso, enActividad ? 66 : 250);
         };
         paso();
       }
@@ -5310,6 +5341,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             pararVigilanciaCaminata();
             manolit.vigilanciaCaminata = setInterval(() => {
               try {
+                // Pestaña oculta (sep-2026, ADITIVO): no sondear el DOM 7
+                // veces por segundo sin nadie mirando; al volver, el
+                // intervalo sigue y la flecha retoma su sitio sola.
+                if (document.hidden) return;
                 // Si la caminata se paró por otra vía (paseo, reiniciar),
                 // la clase ya no está: paramos solos y la flecha se queda
                 // quieta en la última posición conocida.
@@ -5365,6 +5400,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             detenerManolitPaseo();
             const paso = () => {
               manolit.paseoTimer = null;
+              // Pestaña oculta (sep-2026, ADITIVO): la flecha del paseo no
+              // necesita reposicionarse 8 veces por segundo sin nadie
+              // mirando; reintentamos más despacio y sin trabajo.
+              if (document.hidden) { manolit.paseoTimer = setTimeout(paso, 500); return; }
               // Si se salió del paseo sin botón (tecla Escape), la clase
               // ya no está: paramos solos y sin ruido.
               if (!btn.classList.contains('rs-activo')) return;

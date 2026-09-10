@@ -5736,7 +5736,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     // El enlace va en el PIE, junto a Aviso legal · Privacidad · Cookies:
     // discreto, con el estilo de la web y fuera del mapa.
+    // (sep-2026) El pie ya trae de serie el botón #btnSyncExport: se USA
+    // ESE y no se crea un segundo enlace — antes salía "Sincronizar /
+    // Exportar datos" DOS veces en el pie (botón + enlace). Solo si la
+    // página no tuviera el botón se crearía el enlace como respaldo.
     cuandoExista('.footer a[href="aviso-legal.html"]', (enlaceLegal) => {
+      const botonExistente = document.getElementById('btnSyncExport');
+      if (botonExistente && !botonExistente.dataset.rsSyncBound) {
+        botonExistente.dataset.rsSyncBound = '1';
+        botonExistente.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          try { abrirPanelSync(); } catch (e) { /* nunca romper el pie */ }
+        });
+        return; // ya hay entrada visible: no crear el enlace duplicado
+      }
+      if (botonExistente) return; // ya enlazado en otra pasada
       if (document.getElementById('rsLinkSync')) return;
       const contenedor = enlaceLegal.parentElement;
       if (!contenedor) return;

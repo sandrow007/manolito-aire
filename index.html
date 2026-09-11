@@ -199,7 +199,6 @@
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
-<base target="_blank">
 </head>
 <body>
 
@@ -439,8 +438,12 @@
   <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas">▾ Capas</button>
   <div class="rs-layer-toggles-lista" id="rsListaCapas">
   <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
-  <label><input type="checkbox" id="rsToggleSombras" checked> <span data-i18n="layerShadows">Sombras</span></label>
-  <label><input type="checkbox" id="rsToggleRuta" checked> <span data-i18n="layerRoute">Ruta</span></label>
+  <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
+       es lo que más calienta el móvil; ahora solo arranca si el usuario
+       lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
+       pero la CPU está en reposo hasta que tú decidas. -->
+  <label><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
+  <label><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
   <label><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
   <label><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
   <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.

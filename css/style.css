@@ -1309,6 +1309,15 @@ body.manolito-fs .chat-fab{ display:none !important; }
   z-index:5;
 }
 .chart-tip.visible{ opacity:1; }
+/* Modo oscuro (sep-2026): --panel no existe como variable y el tooltip
+   quedaba fondo blanco con texto casi blanco (--ink es claro en dark) —
+   ilegible. Ahora en oscuro tiene fondo oscuro y texto claro, siempre. */
+[data-theme="dark"] .chart-tip{
+  background:#12232E;
+  color:#E8F0FF;
+  border-color:rgba(125,249,255,0.35);
+  box-shadow:0 4px 14px rgba(0,0,0,0.5);
+}
 #airChart{ padding-top:26px; }
 
 /* ---------- SINCRONIZAR / EXPORTAR DATOS (pie) ---------- */

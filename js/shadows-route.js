@@ -868,16 +868,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // Capa raster con las nubes reales (tiles OWM vía proxy del Worker)
     instalarCapaNubes();
 
-    // SOMBRAS DE EDIFICIOS DESDE EL PRIMER MOMENTO: antes el motor solar
-    // solo despertaba al buscar una ruta o tocar un toggle, así que quien
-    // abría el mapa veía sombras de árboles pero NINGUNA de edificios.
-    // Ahora se activa en cuanto el estilo y las teselas están listos.
+    // MOTOR SOLAR BAJO DEMANDA (sep-2026): antes se auto-activaba nada más
+    // cargar el mapa y el móvil empezaba a calcular sombras (Turf.js sobre
+    // todos los edificios) aunque el usuario solo quisiera VER el mapa —
+    // de ahí el calentamiento a los 2 minutos sin tocar nada. Ahora el
+    // motor duerme hasta que alguien encienda la casilla «Sombras», pida
+    // una ruta, entre al paseo o toque el slider de hora. El mapa se ve
+    // exactamente igual (edificios 3D, nubes, árboles), simplemente sin
+    // sombras proyectadas hasta que las pidas.
     map.once('idle', () => {
-      asegurarActivacionSolar();
-      // Si ya hay sombras calculadas (p. ej. el usuario movió el slider
-      // antes de que el mapa quedara idle), no lanzar otro recálculo que
-      // lo abortaría a mitad de lote.
+      // Solo despierta si el usuario ya había pedido sombras explícitamente.
       if (document.getElementById('rsToggleSombras')?.checked && !ultimaColeccionSombras.features.length) {
+        asegurarActivacionSolar();
         recalcularSombrasVisibles();
       }
     });
@@ -1307,6 +1309,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   setInterval(() => {
     if (document.hidden) return; // pestaña oculta: cero gasto de CPU/batería
     if (!solarActivado || modoManual || paseoActivo) return;
+    // Rendimiento (sep-2026): con las sombras apagadas en el panel no hay
+    // nada que mantener — ni siquiera despertamos el cálculo (ahorro real
+    // de CPU/batería, el intervalo queda como un mero chequeo de booleanos).
+    if (!document.getElementById('rsToggleSombras')?.checked) return;
     if (map.loaded()) recalcularSombrasVisibles();
     actualizarIluminacionSolar();
     sincronizarArboles();
@@ -1689,6 +1695,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const fuente = map.getSource('ruta-sombra');
     if (!fuente) return;
     const haySombras = (ultimaColeccionSombras?.features?.length || 0) + obtenerSombrasDeArboles().length;
+    // Ruta congelada (sep-2026, corrección de lógica, PRIMERO de todo): si
+    // el usuario APAGA la casilla «Sombras» para pasearse por el mapa
+    // limpio, la ruta YA calculada NO se desmarca: sus tramos de sombra
+    // (cian) y de sol quedan congelados exactamente como se calcularon, y
+    // el badge de % también. Solo se borran si el usuario borra la ruta
+    // (botón reiniciar, que limpia las fuentes directamente) o calcula
+    // otra nueva. Antes, apagar las sombras vaciaba las colecciones y los
+    // tramos desaparecían del mapa.
+    if (!document.getElementById('rsToggleSombras')?.checked) return;
     if (!rutaActual || !haySombras) {
       fuente.setData(turf.featureCollection([]));
       // El badge de % de sombra ya no se queda con el valor viejo cuando
@@ -3076,10 +3091,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         map.setLayoutProperty('capa-edificios-en-sombra', 'visibility', vis);
       }
     });
-    tSombras?.addEventListener('change', () => {
+    tSombras?.addEventListener('change', async () => {
       asegurarActivacionSolar();
-      recalcularSombrasVisibles();
+      // Carrera corregida (sep-2026): el barrido de sombras de edificios
+      // es async y antes NO se esperaba — los árboles avisaban a la ruta
+      // antes de que las sombras de edificios existieran, y los tramos
+      // de la ruta salían vacíos o a medias. Ahora se espera al barrido
+      // y DESPUÉS se actualizan los tramos explícitamente (además esto
+      // cubre el caso de tener la capa de árboles oculta, donde el aviso
+      // de los árboles nunca llega y la ruta se quedaba sin tramos).
+      await recalcularSombrasVisibles();
       sincronizarArboles();
+      try { await actualizarTramosSombraRuta(); } catch (e) { /* la ruta aún no existe */ }
     });
     tRuta?.addEventListener('change', () => {
       const vis = tRuta.checked ? 'visible' : 'none';
@@ -3898,6 +3921,53 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
     } catch (e) { /* nada que liberar */ }
   }
+
+  /* --------- PERMISO DE VOZ (sep-2026, ADITIVO) ---------
+     La voz de Manolit ya NO suena por defecto: como el GPS, hay que
+     concederla. Mientras no haya permiso, ninguna frase se reproduce
+     (los avisos escritos siguen apareciendo igual). El permiso se pide
+     UNA vez con una tarjetita discreta la primera vez que una función
+     querría hablar, y la elección se recuerda en localStorage. */
+  const CLAVE_PERMISO_VOZ = 'manolito_voz_permiso'; // 'concedido' | 'denegado' | (sin valor = sin preguntar)
+  function vozPermitida() {
+    try { return localStorage.getItem(CLAVE_PERMISO_VOZ) === 'concedido'; }
+    catch (e) { return false; }
+  }
+  function pedirPermisoVozSiHaceFalta() {
+    try {
+      const previo = localStorage.getItem(CLAVE_PERMISO_VOZ);
+      if (previo === 'concedido') return true;
+      if (previo === 'denegado' || document.getElementById('rsPermisoVoz')) return false;
+      const tarjeta = document.createElement('div');
+      tarjeta.id = 'rsPermisoVoz';
+      tarjeta.setAttribute('role', 'dialog');
+      tarjeta.setAttribute('aria-label', 'Permiso de voz');
+      tarjeta.style.cssText = 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:9999;'
+        + 'background:var(--panel,#fff);color:var(--ink,#2A1A05);border:1px solid var(--line,rgba(14,59,71,.25));'
+        + 'border-radius:14px;padding:12px 16px;max-width:min(92vw,340px);box-shadow:0 8px 30px rgba(0,0,0,.25);'
+        + 'font:500 0.9rem/1.4 inherit;display:flex;flex-direction:column;gap:10px;';
+      const txt = document.createElement('div');
+      txt.textContent = t('voicePermission', '¿Quieres que Manolit hable en voz alta? Puedes cambiarlo cuando quieras.');
+      const fila = document.createElement('div');
+      fila.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+      const btnNo = document.createElement('button');
+      btnNo.type = 'button';
+      btnNo.textContent = t('voiceNo', 'Ahora no');
+      btnNo.style.cssText = 'padding:7px 12px;border-radius:9px;border:1px solid var(--line,rgba(14,59,71,.25));background:none;color:inherit;cursor:pointer;';
+      const btnSi = document.createElement('button');
+      btnSi.type = 'button';
+      btnSi.textContent = t('voiceYes', 'Permitir voz');
+      btnSi.style.cssText = 'padding:7px 12px;border-radius:9px;border:none;background:var(--accent,#FFB85C);color:#1a1a1a;font-weight:600;cursor:pointer;';
+      btnNo.addEventListener('click', () => { try { localStorage.setItem(CLAVE_PERMISO_VOZ, 'denegado'); } catch (e) { } tarjeta.remove(); });
+      btnSi.addEventListener('click', () => { try { localStorage.setItem(CLAVE_PERMISO_VOZ, 'concedido'); } catch (e) { } tarjeta.remove(); });
+      fila.appendChild(btnNo); fila.appendChild(btnSi);
+      tarjeta.appendChild(txt); tarjeta.appendChild(fila);
+      document.body.appendChild(tarjeta);
+      // Si no se toca en 20 s, se retira sola (sin conceder nada).
+      setTimeout(() => { if (tarjeta.isConnected) tarjeta.remove(); }, 20000);
+    } catch (e) { /* sin permiso: la app sigue muda pero funcional */ }
+    return false;
+  }
   try {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
@@ -3915,6 +3985,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const resumen = document.getElementById('rsLiveSummary');
     if (resumen) resumen.textContent = texto;
     if (!vozNavegadorDisponible()) return;
+    // Permiso de voz (sep-2026): como el GPS, hay que concederlo antes.
+    if (!vozPermitida()) { pedirPermisoVozSiHaceFalta(); return; }
     try {
       const frase = new SpeechSynthesisUtterance(texto);
       frase.lang = (document.documentElement.lang || 'es').slice(0, 5);
@@ -3982,6 +4054,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   function alternarLecturaPasos() {
     if (!vozNavegadorDisponible() || !pasosActuales.length) return;
+    // Permiso de voz (sep): el botón "Escuchar indicaciones" también lo pide.
+    if (!vozPermitida()) { pedirPermisoVozSiHaceFalta(); return; }
     if (lecturaEnCurso) { detenerLecturaPasos(); return; }
     const btn = document.getElementById('rsBtnEscucharPasos');
     lecturaEnCurso = true;
@@ -4080,7 +4154,28 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     try {
       const ruta = await calcularRutaConPrioridadSombra(origen, destino);
 
+      // Control manual total (sep-2026, corrección por orden directa de
+      // Sandro): NINGUNA casilla se auto-marca nunca. Al abrir la app solo
+      // vienen marcadas «Edificios 3D» y «Nubes»; el resto se elige a mano.
+      // Buscar una ruta ya ES una orden explícita, así que la ruta se
+      // muestra igualmente — pero sin tocar las casillas: las capas se
+      // hacen visibles directamente en el mapa (las capas nacen visibles;
+      // esto solo importa si el usuario las había ocultado a mano antes).
+      ['capa-ruta', 'capa-ruta-outline', 'capa-ruta-glow', 'capa-ruta-sombra', 'capa-ruta-sombra-outline']
+        .forEach((idCapa) => {
+          try { if (map.getLayer(idCapa)) map.setLayoutProperty(idCapa, 'visibility', 'visible'); } catch (e) { /* capa aún no creada */ }
+        });
       map.getSource('ruta').setData(turf.feature(ruta.geojson));
+      // Tramos fantasma: si «Sombras» está apagada, la ruta nueva sale
+      // limpia (sin marcas cian/naranja) y hay que borrar los tramos
+      // CONGELADOS de la ruta anterior — si no, las marcas viejas se
+      // quedaban pintadas encima de la ruta nueva. Con «Sombras»
+      // encendida, los tramos nuevos se calculan unas líneas más abajo
+      // (actualizarTramosSombraRuta) y machacan a los viejos.
+      if (!document.getElementById('rsToggleSombras')?.checked) {
+        map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
+        mostrarBadgeSombra(null);
+      }
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
       map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       pintarMarcadores(origen, destino);
@@ -4891,6 +4986,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       _decirFraseAndaluza() {
         try {
           if (!('speechSynthesis' in window)) return;
+          // Permiso de voz (sep-2026): la mascota solo habla si lo concediste.
+          if (typeof vozPermitida === 'function' && !vozPermitida()) {
+            if (typeof pedirPermisoVozSiHaceFalta === 'function') pedirPermisoVozSiHaceFalta();
+            return;
+          }
           const frase = new SpeechSynthesisUtterance(
             this._frasesAndaluz[Math.floor(Math.random() * this._frasesAndaluz.length)]
           );
@@ -7146,10 +7246,34 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }, 150);
     }
 
-    async function recalcularSombrasArboles() {
+    // Firma de la última pasada, para la guardia anti-doble-recálculo.
+    let ultimaPasadaSombraArboles = { ms: 0, horaMs: 0, panelOn: null };
+
+    async function recalcularSombrasArboles(forzar) {
       if (!map.getSource('arboles-globales-sombra') || !capaVisible) return;
 
-      if (!sombrasActivadasEnPanel()) {
+      // Rendimiento (sep-2026, ADITIVO): al mover el mapa con las sombras
+      // encendidas, DOS handlers moveend llamaban aquí (el principal a los
+      // ~220 ms y el del módulo de árboles a los ~500 ms): dos barridos
+      // completos de árboles + recorte contra edificios por cada
+      // movimiento = CPU doble y calor. Si nada relevante ha cambiado
+      // (misma hora efectiva, mismo estado del panel) y la última pasada
+      // fue hace menos de 1,5 s, la segunda llamada se salta. La carga de
+      // árboles nuevos entra con forzar=true y NUNCA se salta; un cambio
+      // de hora (slider) o del interruptor de sombras tampoco se salta
+      // nunca, porque cambia la firma.
+      const panelOnAhora = sombrasActivadasEnPanel();
+      const horaMsAhora = (() => { try { return obtenerHoraEfectiva().getTime(); } catch (e) { return 0; } })();
+      const ahoraMs = Date.now();
+      if (!forzar
+          && ultimaPasadaSombraArboles.panelOn === panelOnAhora
+          && ultimaPasadaSombraArboles.horaMs === horaMsAhora
+          && ahoraMs - ultimaPasadaSombraArboles.ms < 1500) {
+        return;
+      }
+      ultimaPasadaSombraArboles = { ms: ahoraMs, horaMs: horaMsAhora, panelOn: panelOnAhora };
+
+      if (!panelOnAhora) {
         map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
         avisarARutaDeNuevasSombras();
         return;
@@ -7201,7 +7325,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     let temporizadorSombra = null;
     function programarSincroSombra(inmediato) {
       clearInterval(temporizadorSombra);
-      if (inmediato) recalcularSombrasArboles();
+      // forzar=true: hay árboles NUEVOS cargados — la guardia
+      // anti-doble-recálculo no debe saltarse esta pasada jamás.
+      if (inmediato) recalcularSombrasArboles(true);
       temporizadorSombra = setInterval(() => {
         if (document.hidden) return; // pestaña oculta: no recalcular nada
         recalcularSombrasArboles();

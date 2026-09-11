@@ -50,10 +50,16 @@
 
 (function () {
   const CONFIG = {
-    centroInicial: [-5.9845, 37.3891], // [lon, lat] Sevilla
-    zoomInicial: 15.5,
-    pitchInicial: 55,
-    bearingInicial: -15,
+    // Vista de arranque (sep-2026, por orden directa de Sandro): la
+    // PENÍNSULA entera, plana y en claro — no Sevilla a pie de calle.
+    // Además es el arranque más frío posible: a este zoom la capa de
+    // edificios 3D ni se renderiza (minzoom del estilo ~13), así que la
+    // GPU solo pinta unas pocas teselas raster en vez de miles de
+    // extrusiones inclinadas. El usuario acerca a su ciudad cuando quiera.
+    centroInicial: [-4.2, 39.8], // [lon, lat] centro de la península
+    zoomInicial: 4.7,            // península completa en pantalla de móvil
+    pitchInicial: 0,             // plano: sin extrusiones inclinadas
+    bearingInicial: 0,
     nominatimUrl: '/geo',
     nominatimReverseUrl: '/geo-reverso',
     osrmUrl: '/ruta',
@@ -1299,6 +1305,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     } else {
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
     }
+
+    // Si hay una ruta calculada, sus tramos se actualizan con las sombras
+    // recién horneadas. Imprescindible desde el arranque en península
+    // (sep-2026): si las teselas de edificios de la zona de la ruta aún
+    // estaban cargando, el cálculo de arriba llega por el reintento de
+    // 'idle' y antes NADIE avisaba a la ruta — se quedaba sin tramos aun
+    // con «Sombras» encendida.
+    if (rutaActual) {
+      try { await actualizarTramosSombraRuta(); } catch (e) { /* extra: nunca rompe el barrido */ }
+    }
   }
 
   function mostrarAvisoSol(texto) {
@@ -1326,7 +1342,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         sombras NO desaparecen, pierden contraste:
             opacidad_efectiva = opacidad_base × (1 − nubosidad × 0.6)
         (nubosidad ∈ [0,1], de clouds.all de OpenWeatherMap vía /clima).
-     2) SOMBRA MACRO DE NUBE: un velo suave (mix-blend multiply) envuelve
+     2) SOMBRA MACRO DE NUBE: un velo suave (gradientes translúcidos) envuelve
         la escena y unifica la iluminación de edificios y árboles.
      3) MOTOR DE ZOOM: la densidad atmosférica crece al alejarse
         (0.3 cerca → 0.8 lejos) y la luz difusa en el suelo es la
@@ -1424,7 +1440,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // 2) Sombra macro de la masa de nubes sobre el suelo.
     const velo = document.getElementById('rsNubesSombra');
     if (velo) {
-      velo.style.opacity = String(Math.min(0.85, nubosidadActual * densidadAtmosfericaZoom() * 0.9));
+      const opVelo = Math.min(0.85, nubosidadActual * densidadAtmosfericaZoom() * 0.9);
+      velo.style.opacity = String(opVelo);
+      // AHORRO REAL (sep-2026): el velo lleva una animación CSS infinita
+      // (deriva de 90 s). Antes corría LAS 24 H aunque el velo estuviera
+      // invisible (opacity 0): el compositor del iPhone mezclaba la
+      // pantalla entera cada frame con el cielo despejado incluido — el
+      // móvil se calentaba sin tocar nada. Con display:none la animación
+      // y la mezcla se DETIENEN por completo; solo vive cuando hay nube
+      // suficiente para verse.
+      velo.style.display = opVelo > 0.03 ? 'block' : 'none';
     }
   }
 
@@ -1438,12 +1463,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       #rsNubesSombra{
         position:absolute; inset:-15%; z-index:2; pointer-events:none;
         opacity:0; transition:opacity 1.2s ease;
-        mix-blend-mode:multiply;
+        /* Nace oculto: aplicarOpticaNubes() lo muestra solo si hay nube
+           suficiente. Mientras tanto, display:none = animación y mezcla
+           completamente detenidas (cero GPU). */
+        display:none;
+        /* Sin mix-blend-mode (sep-2026): en iPhone la mezcla multiply
+           sobre el canvas WebGL obligaba a Safari a re-mezclar la
+           pantalla ENTERA en cada frame — el mayor consumo continuo de
+           la app. Las manchas ya son gradientes oscuros translúcidos;
+           se sube su alfa ~15% y el efecto visual es el mismo sin que
+           el compositor trabaje. */
         background:
-          radial-gradient(38% 30% at 22% 30%, rgba(30,42,60,0.55) 0%, rgba(30,42,60,0) 70%),
-          radial-gradient(46% 36% at 68% 22%, rgba(30,42,60,0.45) 0%, rgba(30,42,60,0) 72%),
-          radial-gradient(42% 34% at 45% 70%, rgba(30,42,60,0.50) 0%, rgba(30,42,60,0) 70%),
-          radial-gradient(30% 26% at 84% 62%, rgba(30,42,60,0.40) 0%, rgba(30,42,60,0) 70%);
+          radial-gradient(38% 30% at 22% 30%, rgba(30,42,60,0.62) 0%, rgba(30,42,60,0) 70%),
+          radial-gradient(46% 36% at 68% 22%, rgba(30,42,60,0.52) 0%, rgba(30,42,60,0) 72%),
+          radial-gradient(42% 34% at 45% 70%, rgba(30,42,60,0.57) 0%, rgba(30,42,60,0) 70%),
+          radial-gradient(30% 26% at 84% 62%, rgba(30,42,60,0.47) 0%, rgba(30,42,60,0) 70%);
         animation:rsDerivaNubes 90s linear infinite alternate;
       }
       @keyframes rsDerivaNubes{
@@ -1559,8 +1593,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   //   las nubes "naceen oscuras" y el filtro las devuelve claras: visibles.
   //   Es solo pintura: el algoritmo de sombras ni se entera.
   function mapaEfectivamenteOscuro() {
-    const webOscura = document.documentElement.getAttribute('data-theme') === 'dark';
-    return webOscura ? !mapaOscuro : mapaOscuro;
+    // El mapa solo está oscuro si el usuario lo pidió con su botón;
+    // el tema oscuro de la web ya no lo oscurece automáticamente.
+    return mapaOscuro;
   }
 
   function aplicarEstiloNubes() {
@@ -2874,17 +2909,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12); transition:background .15s,border-color .15s;
       }
       #rsMapStyleToggle button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
+      /* Mapa oscuro SOLO a petición (botón "Mapa oscuro"). El filtro
+         invert() sobre el canvas WebGL es un pase de GPU a pantalla
+         completa en CADA repintado del mapa — y antes se aplicaba SOLO
+         al arrancar, porque la web nace en tema oscuro: el mapa salía
+         oscuro (Sandro lo pidió claro: "el inicio mapa claro, la
+         península, en blanco") y el iPhone pagaba el filtro desde el
+         primer frame. Ahora el mapa nace claro siempre y el filtro solo
+         existe cuando el usuario pulsa el botón (sep-2026). */
       .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
         filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
-      }
-      /* Cuando TODA la web está en modo oscuro, el mapa se oscurece solo:
-         si no, queda como un foco blanco en medio de la página */
-      [data-theme="dark"] #shadowRouteMap .maplibregl-canvas{
-        filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
-      }
-      /* Web oscura + botón pulsado a mano = el usuario pide el mapa claro */
-      [data-theme="dark"] .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
-        filter: none;
       }
     `;
     document.head.appendChild(estilo);
@@ -2895,11 +2929,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btn.type = 'button';
     btn.id = 'rsBtnMapaOscuro';
     btn.textContent = t('darkMapOn', 'Mapa oscuro');
-    // La etiqueta del botón refleja el estado EFECTIVO del mapa: con la web
-    // en modo oscuro el mapa ya nace oscuro y el botón pasa a "Mapa claro".
+    // La etiqueta del botón refleja el estado del mapa. El mapa NACE
+    // claro siempre (sep-2026, orden de Sandro): el tema oscuro de la web
+    // ya no lo invierte automáticamente; solo lo oscurece este botón.
     const sincronizarEtiquetaMapa = () => {
-      const webOscura = document.documentElement.getAttribute('data-theme') === 'dark';
-      const efectivoOscuro = webOscura ? !mapaOscuro : mapaOscuro;
+      const efectivoOscuro = mapaOscuro;
       btn.textContent = efectivoOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
       btn.setAttribute('aria-pressed', efectivoOscuro ? 'true' : 'false');
     };

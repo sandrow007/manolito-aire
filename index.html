@@ -7,7 +7,7 @@
 <meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad.">
 <meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas">
 <meta name="theme-color" content="#1b2029">
-<link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="6e42f60a30914a1bb233906ba26" src="//local.adguard.org?ts=1789214143032&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260912%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260912T123715Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D5da24f0e9eb4e8e113fb1c60726884a4795ba39f00639e57e9e246d7300bd9e5%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="6e42f60a30914a1bb233906ba26" src="//local.adguard.org?ts=1789214143032&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manolit∞ Aire — Calidad del aire y sombra solar en tiempo real">
 <meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro.">
@@ -31,7 +31,18 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://tiles.openfreemap.org">
 <!-- Solo esta CSS bloquea el render: es la que afecta al primer pintado -->
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- display=optional (antes swap, 2026-09-12): si la fuente no llega casi
+     al instante, se usa la de sistema Y NO SE INTERCAMBIA después — el
+     intercambio tardío re-envolvía la barra superior y empujaba la página
+     (shift de 0,22 medido). Con la precarga de abajo, la fuente llega a
+     tiempo en la práctica y el shift desaparece en ambos casos. -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=optional" rel="stylesheet">
+<!-- Precarga de las 2 fuentes que pintan el primer pantallazo (2026-09-12,
+     CLS): sin esto, al llegar la fuente web la barra superior cambiaba de
+     métricas, se re-envolvía y empujaba toda la página (shift de 0,22-0,53
+     medido en Web Analytics). Karla es variable: un archivo cubre 400-700. -->
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/karla/v33/qkB9XvYC6trAT55ZBi1ueQVIjQTD-JrIH2G7nytkHRyQ8p4wUje6bmMorHA.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/fraunces/v38/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxC9TeP2Xz5c.woff2">
 
 <!-- Leaflet, MapLibre y Driver.css: no son necesarias para el primer pintado.
      Se cargan sin bloquear con preload+onload y caen a <noscript> si JS está desactivado. -->
@@ -196,6 +207,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
+<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
@@ -365,8 +377,17 @@
 </script>
 
 <div class="topbar">
-  <a href="index.html" class="wordmark"><span class="wordmark-name">Manolit∞ Aire</span><span data-i18n="tagline">MAPA NACIONAL · DATOS EN VIVO</span></a>
+  <!-- El texto estático DEBE coincidir con el de i18n (clave tagline):
+     antes traía "MAPA NACIONAL · DATOS EN VIVO" y al segundo se cambiaba
+     por el doble de largo → la barra se re-envolvía y empujaba la página
+     (CLS 0,22-0,53 medido). Ahora nace ya con el texto final. -->
+<a href="index.html" class="wordmark"><span class="wordmark-name">Manolit∞ Aire</span><span data-i18n="tagline">El aire y la sombra de tu calle, en vivo</span></a>
   <div class="topbar-right">
+    <!-- Modo accesible: nace con el HTML (2026-09-12, CLS). Antes lo
+         inyectaba i18n.js al segundo de cargar y la barra se re-envolvía,
+         empujando toda la página (shift de 0,19 medido). i18n.js lo adopta:
+         traduce el texto y refleja el estado guardado. -->
+    <button type="button" id="btn-accesibilidad" class="acc-mode-btn" aria-pressed="false">♿ Modo accesible</button>
     <a class="family-link" href="about.html" data-i18n="aboutLink">¿Por qué existe esto?</a>
     <a class="family-link" href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a>
     <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
@@ -389,6 +410,14 @@
       <button data-lang="en">EN</button>
       <button data-lang="ka">KA</button>
     </div>
+    <!-- Botón mini "Act. mapa": nace AQUÍ, con el primer pintado (si lo
+         inyecta el JS tarde, la barra crece y empuja toda la página = CLS).
+         shadows-route.js lo adopta y le da la lógica; el texto corto y
+         nowrap evitan que la traducción re-envuelva la barra. -->
+    <button type="button" id="rsBtnActualizarOSM" class="notranslate" translate="no"
+            title="Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona"
+            aria-label="Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona"
+            data-i18n="osmRefreshBtn" data-i18n-aria-label="osmRefreshTitle">↻ Act. mapa</button>
   </div>
 </div>
 
@@ -785,7 +814,7 @@
 <script src="js/i18n.js" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
-<script src="js/cookie-banner.js" defer></script>
+
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>

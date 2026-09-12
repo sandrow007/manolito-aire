@@ -26,7 +26,7 @@
 // 2026-09-12-a: botonera fina + botón mini "Act. mapa" con purga de cachés.
 // Subir VERSION hace que, al activarse, este SW borre las cachés viejas
 // (teselas incluidas) y los clientes reciban el JS/CSS nuevo.
-const VERSION = '2026-09-12-a';
+const VERSION = '2026-09-12-b';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

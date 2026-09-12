@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -2262,6 +2262,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnCaminar.id = 'rsBtnWalk';
     btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
 
+    // Guía por voz: nace CON el panel (2026-09-12, CLS). Antes la inyectaba
+    // el módulo de voz segundos después junto a "Iniciar caminata" y toda
+    // la botonera se movía. El módulo de voz la adopta y le da la lógica.
+    const btnGuiaVoz = document.createElement('button');
+    btnGuiaVoz.type = 'button';
+    btnGuiaVoz.id = 'rsBtnGuiaVoz';
+    let vozInicialOn = false;
+    try { vozInicialOn = localStorage.getItem('manolito_guia_voz') === '1'; } catch (e) { }
+    btnGuiaVoz.setAttribute('aria-pressed', vozInicialOn ? 'true' : 'false');
+    if (vozInicialOn) btnGuiaVoz.classList.add('rs-activo');
+    btnGuiaVoz.textContent = (vozInicialOn ? '🔊 ' : '🔇 ') + t('voiceGuide', 'Guía por voz');
+
     const btnPaseo = document.createElement('button');
     btnPaseo.type = 'button';
     btnPaseo.id = 'rsBtnPaseo';
@@ -2710,12 +2722,22 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
        cachés "manolito-*" (teselas incluidas) desde la propia página y
        (3) fuerza a MapLibre a recargar las fuentes de teselas visibles.
        Uso puntual, sin intervalos ni bucles nuevos: no calienta el móvil. */
-    const btnActualizarOSM = document.createElement('button');
-    btnActualizarOSM.type = 'button';
-    btnActualizarOSM.id = 'rsBtnActualizarOSM';
-    btnActualizarOSM.textContent = t('osmRefreshBtn', '↻ Act. mapa');
+    // CLS (2026-09-12): el botón NACE en el HTML (index.html, barra
+    // superior) para que la página ya salga pintada con él — inyectarlo
+    // tarde hacía crecer la barra y empujaba toda la página (CLS 0,53).
+    // Aquí solo lo ADOPTAMOS; si una página no lo trae, se crea como antes.
+    let btnActualizarOSM = document.getElementById('rsBtnActualizarOSM');
+    const btnActYaExistia = !!btnActualizarOSM;
+    if (!btnActualizarOSM) {
+      btnActualizarOSM = document.createElement('button');
+      btnActualizarOSM.type = 'button';
+      btnActualizarOSM.id = 'rsBtnActualizarOSM';
+      btnActualizarOSM.textContent = t('osmRefreshBtn', '↻ Act. mapa');
+      btnActualizarOSM.setAttribute('data-i18n', 'osmRefreshBtn');
+      btnActualizarOSM.setAttribute('data-i18n-aria-label', 'osmRefreshTitle');
+    }
     btnActualizarOSM.title = t('osmRefreshTitle', 'Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona');
-    btnActualizarOSM.setAttribute('aria-label', btnActualizarOSM.title);
+    if (!btnActualizarOSM.getAttribute('aria-label')) btnActualizarOSM.setAttribute('aria-label', btnActualizarOSM.title);
     btnActualizarOSM.addEventListener('click', async () => {
       if (btnActualizarOSM.disabled) return;
       btnActualizarOSM.disabled = true;
@@ -2723,10 +2745,22 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       btnActualizarOSM.textContent = t('osmRefreshing', 'Cargando…');
       btnActualizarOSM.classList.add('rs-cargando');
       try {
-        // (1) Árboles frescos (bypass + renovación de la caché del Worker)
-        const trabajoArboles = (typeof window.manolitAireActualizarOSM === 'function')
-          ? window.manolitAireActualizarOSM()
-          : Promise.resolve();
+        // (1) Árboles frescos (bypass + renovación de la caché del Worker).
+        // Si el módulo de árboles aún no ha terminado de iniciarse (clic
+        // muy temprano), lo esperamos: antes se resolvía al instante y el
+        // "✓ Actualizado" mentía — no se había consultado nada (QA, ronda CLS).
+        let trabajoArboles = null;
+        if (typeof window.manolitAireActualizarOSM === 'function') {
+          trabajoArboles = window.manolitAireActualizarOSM();
+        } else {
+          const esperaModuloDesde = Date.now();
+          while (typeof window.manolitAireActualizarOSM !== 'function' && Date.now() - esperaModuloDesde < 8000) {
+            await new Promise((r) => setTimeout(r, 150));
+          }
+          trabajoArboles = (typeof window.manolitAireActualizarOSM === 'function')
+            ? window.manolitAireActualizarOSM()
+            : Promise.resolve();
+        }
         // (2) Purga de cachés propias: sin esto las teselas viejas ganan
         try {
           if ('caches' in window) {
@@ -2766,11 +2800,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         }, 2600);
       }
     });
-    // "Fuera del mapa, arriba": vive en la barra superior, a la derecha.
-    // (Si alguna página no tuviera topbar, cae a flotante fijo: el CSS lo contempla.)
-    const destinoBtnAct = document.querySelector('.topbar-right') || document.querySelector('.topbar');
-    if (destinoBtnAct) destinoBtnAct.appendChild(btnActualizarOSM);
-    else document.body.appendChild(btnActualizarOSM);
+    // Si el botón venía en el HTML ya está en la barra superior; si lo
+    // hemos creado nosotros, lo llevamos allí (o a flotante fijo sin topbar).
+    if (!btnActYaExistia) {
+      const destinoBtnAct = document.querySelector('.topbar-right') || document.querySelector('.topbar');
+      if (destinoBtnAct) destinoBtnAct.appendChild(btnActualizarOSM);
+      else document.body.appendChild(btnActualizarOSM);
+    }
 
     // Botón ≡ para plegar/desplegar TODA la botonera: cuando el usuario
     // quiere el mapa completamente limpio (capturas, enseñar la sombra a
@@ -2789,7 +2825,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     // El botón de actualizar OSM ya NO va en el panel: vive fijo arriba a
     // la derecha, muy pequeño, para que la botonera quepa en una línea.
-    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
+    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnGuiaVoz, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
     contenedorMapa.appendChild(panelMapa);
 
     map.on('click', (e) => {
@@ -6117,11 +6153,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
       // Botoncito discreto junto a "Iniciar caminata", con el estilo de la web.
       cuandoExista('#rsBtnWalk', (btnWalk) => {
-        if (document.getElementById('rsBtnGuiaVoz')) return;
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.id = 'rsBtnGuiaVoz';
-        btn.setAttribute('aria-pressed', 'false');
+        // CLS (2026-09-12): el botón ya NACE con el panel de controles;
+        // aquí lo adoptamos. Si faltara (página sin panel), se crea igual
+        // que antes. Así la botonera no se mueve segundos después.
+        let btn = document.getElementById('rsBtnGuiaVoz');
+        const btnVozYaExistia = !!btn;
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.type = 'button';
+          btn.id = 'rsBtnGuiaVoz';
+          btn.setAttribute('aria-pressed', 'false');
+        }
         const pintar = () => {
           const on = vozQuerida();
           btn.classList.toggle('rs-activo', on);
@@ -6157,7 +6199,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           } catch (e) { /* el botón jamás rompe la caminata */ }
         });
         pintar();
-        btnWalk.insertAdjacentElement('afterend', btn);
+        if (!btnVozYaExistia) btnWalk.insertAdjacentElement('afterend', btn);
       });
     } catch (e) { /* este bloque jamás rompe la caminata */ }
   })();
@@ -6959,7 +7001,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           for (const cand of candidatos) {
             const arbol = procesarElementoOSM(cand);
             if (arbol) arbolesGrandes.push(arbol);
-            if (arbolesGrandes.length % 200 === 0) await cederAlNavegador();
+            // INP (2026-09-12): tramos de 80 en vez de 200. Con miles de
+            // árboles, 200 seguidos secuestraban el hilo ~200-300 ms y un
+            // toque en el mapa esperaba eso (INP 592 ms medido en el
+            // panel de Cloudflare). Con 80 el navegador atiende el dedo
+            // entre tramo y tramo; el total tarda lo mismo.
+            if (arbolesGrandes.length % 80 === 0) await cederAlNavegador();
           }
         }
         // Sello del refresco de 12 h (sep-2026): datos OSM recién bajados.

@@ -1374,6 +1374,7 @@ body.manolito-fs .chat-fab{ display:none !important; }
    muy pequeño y discreto (pedido de Sandro 2026-09-12). */
 #rsBtnActualizarOSM{
   margin:0 0 0 auto; /* a la derecha de su fila en la barra superior */
+  flex:none; white-space:nowrap; /* ni crece ni se parte: la barra no se re-envuelve al traducir */
   font-family:inherit; font-size:8.5px; letter-spacing:0.03em; text-transform:uppercase;
   font-weight:600; padding:3px 8px; border-radius:999px; line-height:1.5;
   border:1px solid var(--line, rgba(14,59,71,0.16));

@@ -1340,18 +1340,26 @@ function initModoAccesible() {
 	if (guardado === '1') aplicarModoAccesible(true);
 
 	const topbarRight = document.querySelector('.topbar-right');
-	if (!topbarRight || document.getElementById('btn-accesibilidad')) return;
+	if (!topbarRight) return;
 
-	const btn = document.createElement('button');
-	btn.type = 'button';
-	btn.id = 'btn-accesibilidad';
-	btn.className = 'acc-mode-btn';
+	// CLS (2026-09-12): el botón ya NACE en el HTML de la barra superior;
+	// aquí lo adoptamos (texto + estado). Antes se inyectaba al segundo de
+	// cargar y la barra se re-envolvía, empujando toda la página (shift de
+	// 0,19-0,53 medido en Web Analytics). Si una página no lo trae, se crea.
+	let btn = document.getElementById('btn-accesibilidad');
+	const btnYaExistia = !!btn;
+	if (!btn) {
+		btn = document.createElement('button');
+		btn.type = 'button';
+		btn.id = 'btn-accesibilidad';
+		btn.className = 'acc-mode-btn';
+	}
 	btn.setAttribute('aria-pressed', document.body.classList.contains('modo-accesible') ? 'true' : 'false');
 	btn.textContent = (dict && dict.accModeBtn) || '♿ Modo accesible';
 
 	// Va el primero dentro de topbar-right: es lo primero actionable
 	// del header tras el logotipo, fácil de encontrar con Tab.
-	topbarRight.insertBefore(btn, topbarRight.firstChild);
+	if (!btnYaExistia) topbarRight.insertBefore(btn, topbarRight.firstChild);
 
 	btn.addEventListener('click', () => {
 		aplicarModoAccesible(!document.body.classList.contains('modo-accesible'), btn);

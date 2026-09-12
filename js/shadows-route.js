@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -2185,25 +2185,29 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const estilo = document.createElement('style');
     estilo.id = 'rsMapaEstilos';
     estilo.textContent = `
+      /* Botonera fina y elegante (2026-09-12): una línea, máx dos.
+         right:auto + max-width para que el contenedor no cruce toda la
+         pantalla (además deja de interceptar toques del mapa arriba). */
       #rsMapControls{
-        position:absolute; left:12px; top:12px; right:12px; z-index:5; display:flex; gap:5px; flex-wrap:wrap;
+        position:absolute; left:10px; top:10px; right:auto; z-index:5; display:flex; gap:4px; flex-wrap:wrap;
+        max-width:calc(100vw - 20px);
       }
       #rsMapControls button{
-        font-family:inherit; font-size:9.5px; letter-spacing:.04em; text-transform:uppercase;
-        font-weight:700; padding:6px 11px; border-radius:999px;
+        font-family:inherit; font-size:9px; letter-spacing:.02em; text-transform:uppercase;
+        font-weight:600; padding:3px 8px; border-radius:999px; line-height:1.5;
         border:1px solid var(--line, rgba(14,59,71,0.14));
-        background:rgba(251,250,247,0.92); color:var(--sky-deep, #0E3B47);
-        backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
-        cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12); transition:background .15s,border-color .15s,color .15s;
+        background:rgba(251,250,247,0.78); color:var(--sky-deep, #0E3B47);
+        backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
+        cursor:pointer; box-shadow:0 1px 4px rgba(22,35,46,0.10); transition:background .15s,border-color .15s,color .15s;
       }
       #rsMapControls button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
       #rsMapControls button.rs-activo{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); color:var(--sky-deep, #0E3B47); }
-      @media (max-width:480px){ #rsMapControls button{ padding:5px 9px; font-size:8.5px; } }
+      @media (max-width:480px){ #rsMapControls{ gap:3px; top:8px; left:8px; } #rsMapControls button{ padding:2px 7px; font-size:8px; } }
 
       /* Botonera plegable: plegada solo queda el botón ≡ flotando */
       #rsBtnPlegarControles{
-        font-family:inherit; font-size:12px; font-weight:700; line-height:1;
-        padding:7px 11px; border-radius:999px;
+        font-family:inherit; font-size:10px; font-weight:600; line-height:1.5;
+        padding:3px 8px; border-radius:999px;
         border:1px solid var(--line, rgba(14,59,71,0.14));
         background:rgba(251,250,247,0.95); color:var(--sky-deep, #0E3B47);
         backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
@@ -2696,28 +2700,77 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // descarga FRESCA de OpenStreetMap para la vista actual — lo que
     // acabáis de dibujar en OSM aparece al momento, sin esperar al
     // refresco automático de 12 h. El aviso de estado confirma el resultado.
+    /* Botón mini "Act. mapa" (2026-09-12, pedido de Sandro): FUERA del
+       panel de botones, arriba a la derecha, muy pequeño. Y que actualice
+       DE VERDAD — antes solo renovaba los árboles, pero las TESELAS del
+       mapa base las sirve el Service Worker con cache-first y los cambios
+       dibujados en OpenStreetMap nunca llegaban a verse. Ahora hace las
+       tres cosas: (1) árboles frescos de Overpass (cabecera X-Arboles-
+       Fresca, que además renueva la caché KV del Worker), (2) purga las
+       cachés "manolito-*" (teselas incluidas) desde la propia página y
+       (3) fuerza a MapLibre a recargar las fuentes de teselas visibles.
+       Uso puntual, sin intervalos ni bucles nuevos: no calienta el móvil. */
     const btnActualizarOSM = document.createElement('button');
     btnActualizarOSM.type = 'button';
     btnActualizarOSM.id = 'rsBtnActualizarOSM';
-    btnActualizarOSM.textContent = t('osmRefreshBtn', '↻ Actualizar mapa');
+    btnActualizarOSM.textContent = t('osmRefreshBtn', '↻ Act. mapa');
     btnActualizarOSM.title = t('osmRefreshTitle', 'Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona');
+    btnActualizarOSM.setAttribute('aria-label', btnActualizarOSM.title);
     btnActualizarOSM.addEventListener('click', async () => {
       if (btnActualizarOSM.disabled) return;
       btnActualizarOSM.disabled = true;
       const textoPrevio = btnActualizarOSM.textContent;
-      btnActualizarOSM.textContent = t('osmRefreshing', 'Actualizando…');
+      btnActualizarOSM.textContent = t('osmRefreshing', 'Cargando…');
+      btnActualizarOSM.classList.add('rs-cargando');
       try {
-        if (typeof window.manolitAireActualizarOSM === 'function') {
-          await window.manolitAireActualizarOSM();
-          mostrarEstado(t('osmRefreshed', 'Datos de OpenStreetMap actualizados en esta zona.'), 'ok');
-        }
+        // (1) Árboles frescos (bypass + renovación de la caché del Worker)
+        const trabajoArboles = (typeof window.manolitAireActualizarOSM === 'function')
+          ? window.manolitAireActualizarOSM()
+          : Promise.resolve();
+        // (2) Purga de cachés propias: sin esto las teselas viejas ganan
+        try {
+          if ('caches' in window) {
+            const nombresCaches = await caches.keys();
+            for (const nombreCache of nombresCaches) {
+              if (nombreCache.indexOf('manolito-') === 0) {
+                try { await caches.delete(nombreCache); } catch (e) { }
+              }
+            }
+          }
+        } catch (e) { /* sin Cache API: las teselas nuevas llegan al mover el mapa */ }
+        // (3) Recarga de las fuentes de teselas ya cargadas en el estilo
+        try {
+          const estiloVivo = map.getStyle();
+          if (estiloVivo && estiloVivo.sources) {
+            for (const idFuente of Object.keys(estiloVivo.sources)) {
+              const fuente = map.getSource(idFuente);
+              if (!fuente) continue;
+              try {
+                if (fuente.tiles && typeof fuente.setTiles === 'function') fuente.setTiles(fuente.tiles);
+                else if (fuente.url && typeof fuente.setUrl === 'function') fuente.setUrl(fuente.url);
+              } catch (e) { }
+            }
+          }
+        } catch (e) { }
+        await trabajoArboles;
+        btnActualizarOSM.textContent = t('osmRefreshed', '✓ Actualizado');
+        mostrarEstado(t('osmRefreshed', 'Mapa y datos de OpenStreetMap actualizados en esta zona.'), 'ok');
       } catch (e) {
+        btnActualizarOSM.textContent = '✕ Error';
         mostrarEstado(t('osmRefreshError', 'No se ha podido actualizar ahora mismo. Inténtalo en un minuto.'), 'error');
       } finally {
-        btnActualizarOSM.disabled = false;
-        btnActualizarOSM.textContent = textoPrevio;
+        setTimeout(() => {
+          btnActualizarOSM.textContent = textoPrevio;
+          btnActualizarOSM.classList.remove('rs-cargando');
+          btnActualizarOSM.disabled = false;
+        }, 2600);
       }
     });
+    // "Fuera del mapa, arriba": vive en la barra superior, a la derecha.
+    // (Si alguna página no tuviera topbar, cae a flotante fijo: el CSS lo contempla.)
+    const destinoBtnAct = document.querySelector('.topbar-right') || document.querySelector('.topbar');
+    if (destinoBtnAct) destinoBtnAct.appendChild(btnActualizarOSM);
+    else document.body.appendChild(btnActualizarOSM);
 
     // Botón ≡ para plegar/desplegar TODA la botonera: cuando el usuario
     // quiere el mapa completamente limpio (capturas, enseñar la sombra a
@@ -2734,7 +2787,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       btnPlegarControles.setAttribute('aria-expanded', plegado ? 'false' : 'true');
     });
 
-    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion, btnActualizarOSM);
+    // El botón de actualizar OSM ya NO va en el panel: vive fijo arriba a
+    // la derecha, muy pequeño, para que la botonera quepa en una línea.
+    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
     contenedorMapa.appendChild(panelMapa);
 
     map.on('click', (e) => {
@@ -7530,6 +7585,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       try { localStorage.setItem(CLAVE_REFRESCO_OSM, String(Date.now())); } catch (e) { }
       celdasConsultadas.clear();
       frescosPendiente = true; // bypass del caché del Worker + la renueva
+      // Si ya hay una consulta Overpass en vuelo (la lanzó el propio mapa
+      // al moverse), la esperamos antes de lanzar la nuestra: sin esto el
+      // refresco manual no consultaba NADA nuevo y el "✓ Actualizado"
+      // mentía. Tope de 10 s por si Overpass se duerme.
+      const esperaDesde = Date.now();
+      while (consultaEnCurso && Date.now() - esperaDesde < 10000) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
       await cargarArbolesDeLaVista();
     }
     window.manolitAireActualizarOSM = actualizarDatosOSM;

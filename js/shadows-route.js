@@ -93,7 +93,9 @@
     paseoVelocidadMs: 2.0,
     paseoVelocidadGiro: 1.6,
     paseoLookAheadM: 25,
-    paseoMaxPitch: 72, // Más suave y "virtual", sin pegarse al suelo
+    paseoMaxPitch: 85, // 85° = el máximo físico del motor MapLibre: mirada al cielo
+    paseoPitchMin: 10,  // casi picado sobre la calle
+    paseoPitchInicial: 55, // al entrar: vista cómoda de paseo
     paseoSincroMs: 600, // Menos frecuente, más ligero
     paseoSuavizado: 0.12, // Inercia en el movimiento
   };
@@ -2347,7 +2349,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           btnModoClick.classList.add('rs-activo');
         },
         () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        // Batería (sep-2026): para MARCAR el origen basta la localización
+        // por red/wifi (±20-40 m en ciudad). enableHighAccuracy:true
+        // encendía el chip GPS a máxima potencia — la mayor fuente de
+        // calor de un móvil — solo para poner un punto en el mapa.
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
       );
     });
 
@@ -2419,7 +2425,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           }
         },
         () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
-        { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 }
+        // Batería (sep-2026, orden de Sandro: el móvil NO se calienta):
+        // enableHighAccuracy:true mantenía el chip GPS del iPhone a máxima
+        // potencia durante TODA la caminata — es hardware de radio, la
+        // fuente de calor nº 1 de cualquier móvil. Con localización por
+        // red/wifi la precisión peatonal en ciudad (±20-40 m) sobra para
+        // seguir la ruta y anunciar pasos, y el chip GPS apenas trabaja.
+        // El filtro de >12 m para mover la cámara absorbe el tembleque.
+        { enableHighAccuracy: false, maximumAge: 3000, timeout: 15000 }
       );
     });
 
@@ -2448,6 +2461,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       paseoJugador.x = 0;
       paseoJugador.y = 0;
       paseoJugador.bearing = map.getBearing() || 0;
+      // Mirada vertical LIBRE (sep-2026, orden de Sandro): el pitch ya no
+      // está clavado — arrastra el dedo arriba/abajo para mirar al cielo
+      // o a tus pies. 85° es el máximo físico de MapLibre; sin ese tope
+      // la proyección se rompe. Los edificios ya no se cortan a media
+      // fachada al acercarte.
+      paseoJugador.pitch = CONFIG.paseoPitchInicial;
       paseoVelocidadSuavizada = 0;
       paseoGiroSuavizado = 0;
 
@@ -2540,7 +2559,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       const camera = map.getFreeCameraOptions();
       camera.position = maplibregl.MercatorCoordinate.fromLngLat(eye, CONFIG.paseoAlturaOjoM);
-      camera.setPitchBearing(CONFIG.paseoMaxPitch, paseoJugador.bearing);
+      // Pitch VIVO del jugador (arrastre vertical), ya no un valor clavado:
+      // puedes mirar al cielo libremente sin que el edificio se corte.
+      const pitchVivo = typeof paseoJugador.pitch === 'number' ? paseoJugador.pitch : CONFIG.paseoPitchInicial;
+      camera.setPitchBearing(pitchVivo, paseoJugador.bearing);
       map.setFreeCameraOptions(camera);
     }
 
@@ -2670,6 +2692,33 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // Irradiación Solar: sigue siendo un módulo aparte con carga perezosa.
     const btnIrradiacion = botonCapaFijo('rsBtnIrradiacion', t('irrLayerBtn', 'Irradiación Solar'), 'js/irradiacion-solar.js');
 
+    // Botoncito "↻ Actualizar mapa" (sep-2026, orden de Sandro): fuerza la
+    // descarga FRESCA de OpenStreetMap para la vista actual — lo que
+    // acabáis de dibujar en OSM aparece al momento, sin esperar al
+    // refresco automático de 12 h. El aviso de estado confirma el resultado.
+    const btnActualizarOSM = document.createElement('button');
+    btnActualizarOSM.type = 'button';
+    btnActualizarOSM.id = 'rsBtnActualizarOSM';
+    btnActualizarOSM.textContent = t('osmRefreshBtn', '↻ Actualizar mapa');
+    btnActualizarOSM.title = t('osmRefreshTitle', 'Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona');
+    btnActualizarOSM.addEventListener('click', async () => {
+      if (btnActualizarOSM.disabled) return;
+      btnActualizarOSM.disabled = true;
+      const textoPrevio = btnActualizarOSM.textContent;
+      btnActualizarOSM.textContent = t('osmRefreshing', 'Actualizando…');
+      try {
+        if (typeof window.manolitAireActualizarOSM === 'function') {
+          await window.manolitAireActualizarOSM();
+          mostrarEstado(t('osmRefreshed', 'Datos de OpenStreetMap actualizados en esta zona.'), 'ok');
+        }
+      } catch (e) {
+        mostrarEstado(t('osmRefreshError', 'No se ha podido actualizar ahora mismo. Inténtalo en un minuto.'), 'error');
+      } finally {
+        btnActualizarOSM.disabled = false;
+        btnActualizarOSM.textContent = textoPrevio;
+      }
+    });
+
     // Botón ≡ para plegar/desplegar TODA la botonera: cuando el usuario
     // quiere el mapa completamente limpio (capturas, enseñar la sombra a
     // alguien, pantallas pequeñas) no hay nada tapando la vista.
@@ -2685,7 +2734,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       btnPlegarControles.setAttribute('aria-expanded', plegado ? 'false' : 'true');
     });
 
-    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
+    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion, btnActualizarOSM);
     contenedorMapa.appendChild(panelMapa);
 
     map.on('click', (e) => {
@@ -3967,11 +4016,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     try { return localStorage.getItem(CLAVE_PERMISO_VOZ) === 'concedido'; }
     catch (e) { return false; }
   }
-  function pedirPermisoVozSiHaceFalta() {
+  function pedirPermisoVozSiHaceFalta(porBotonExpreso) {
     try {
       const previo = localStorage.getItem(CLAVE_PERMISO_VOZ);
       if (previo === 'concedido') return true;
-      if (previo === 'denegado' || document.getElementById('rsPermisoVoz')) return false;
+      // 'denegado' solo silencia los avisos AUTOMÁTICOS. Si el usuario
+      // pulsa ÉL un botón de voz (orden explícita), se vuelve a preguntar
+      // siempre — antes un "Ahora no" dejaba la voz muerta para siempre
+      // y la tarjeta no volvía a salir jamás (sep-2026).
+      if ((previo === 'denegado' && !porBotonExpreso) || document.getElementById('rsPermisoVoz')) return false;
       const tarjeta = document.createElement('div');
       tarjeta.id = 'rsPermisoVoz';
       tarjeta.setAttribute('role', 'dialog');
@@ -3979,7 +4032,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       tarjeta.style.cssText = 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:9999;'
         + 'background:var(--panel,#fff);color:var(--ink,#2A1A05);border:1px solid var(--line,rgba(14,59,71,.25));'
         + 'border-radius:14px;padding:12px 16px;max-width:min(92vw,340px);box-shadow:0 8px 30px rgba(0,0,0,.25);'
-        + 'font:500 0.9rem/1.4 inherit;display:flex;flex-direction:column;gap:10px;';
+        + 'font:500 0.9rem/1.4 system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;gap:10px;';
       const txt = document.createElement('div');
       txt.textContent = t('voicePermission', '¿Quieres que Manolit hable en voz alta? Puedes cambiarlo cuando quieras.');
       const fila = document.createElement('div');
@@ -3993,7 +4046,22 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       btnSi.textContent = t('voiceYes', 'Permitir voz');
       btnSi.style.cssText = 'padding:7px 12px;border-radius:9px;border:none;background:var(--accent,#FFB85C);color:#1a1a1a;font-weight:600;cursor:pointer;';
       btnNo.addEventListener('click', () => { try { localStorage.setItem(CLAVE_PERMISO_VOZ, 'denegado'); } catch (e) { } tarjeta.remove(); });
-      btnSi.addEventListener('click', () => { try { localStorage.setItem(CLAVE_PERMISO_VOZ, 'concedido'); } catch (e) { } tarjeta.remove(); });
+      btnSi.addEventListener('click', () => {
+        try { localStorage.setItem(CLAVE_PERMISO_VOZ, 'concedido'); } catch (e) { }
+        tarjeta.remove();
+        // iOS (sep-2026): la PRIMERA síntesis de voz debe ocurrir DENTRO
+        // de un toque del usuario o Safari la bloquea en silencio. Esta
+        // confirmación corta se habla aquí, en el propio gesto de
+        // "Permitir voz": desbloquea el audio del sistema y de paso le
+        // confirma a Sandro que la voz funciona.
+        try {
+          if ('speechSynthesis' in window) {
+            const saludo = new SpeechSynthesisUtterance(t('voiceGranted', 'Voz activada. Manolit te acompaña.'));
+            saludo.lang = (document.documentElement.lang || 'es').slice(0, 5);
+            window.speechSynthesis.speak(saludo);
+          }
+        } catch (e) { /* si no puede hablar ahora, hablará en la guía */ }
+      });
       fila.appendChild(btnNo); fila.appendChild(btnSi);
       tarjeta.appendChild(txt); tarjeta.appendChild(fila);
       document.body.appendChild(tarjeta);
@@ -4002,6 +4070,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     } catch (e) { /* sin permiso: la app sigue muda pero funcional */ }
     return false;
   }
+  // iOS (sep-2026): la lista de voces del sistema carga de forma
+  // asíncrona; si la primera frase se habla antes de que llegue, Safari
+  // se queda mudo sin avisar. Se precalienta al arrancar (gratis) y la
+  // primera frase ya suena a la primera.
+  try {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      if (window.speechSynthesis.addEventListener) {
+        window.speechSynthesis.addEventListener('voiceschanged', () => {
+          try { window.speechSynthesis.getVoices(); } catch (e) { }
+        });
+      }
+    }
+  } catch (e) { /* sin voces del sistema: la app sigue en texto */ }
+
   try {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
@@ -4384,9 +4467,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (!prev) return;
 
     const dx = e.clientX - prev.x;
+    const dy = e.clientY - prev.y;
     const sensibilidad = 0.3; 
 
     paseoJugador.bearing -= dx * sensibilidad;
+    // Mirada vertical libre: arrastrar hacia arriba levanta la vista
+    // (hasta 85°, casi el horizonte/cielo); hacia abajo la baja (10°).
+    if (typeof paseoJugador.pitch !== 'number') paseoJugador.pitch = CONFIG.paseoPitchInicial;
+    paseoJugador.pitch = Math.min(CONFIG.paseoMaxPitch,
+      Math.max(CONFIG.paseoPitchMin, paseoJugador.pitch - dy * 0.25));
 
     prev.x = e.clientX;
     prev.y = e.clientY;
@@ -5992,6 +6081,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           pintar();
           try {
             if (vozQuerida()) {
+              // Encender la guía por voz es una ORDEN EXPLÍCITA: si falta
+              // el permiso, se pide aquí mismo (aunque antes dijeras "Ahora
+              // no": un botón pulsado a mano siempre vuelve a preguntar).
+              if (typeof vozPermitida === 'function' && !vozPermitida()
+                  && typeof pedirPermisoVozSiHaceFalta === 'function') {
+                pedirPermisoVozSiHaceFalta(true);
+              }
               // La acabas de encender con la caminata en marcha: arranca ya.
               if (btnWalk.classList.contains('rs-activo') && typeof iniciarGuiaCaminata === 'function') {
                 iniciarGuiaCaminata();
@@ -6023,6 +6119,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         // aunque cualquier otra parte de la app llame a esta función.
         try { if (localStorage.getItem('manolito_guia_voz') !== '1') return; } catch (e0) { return; }
         if (typeof vozNavegadorDisponible !== 'function' || !vozNavegadorDisponible()) return;
+        // Permiso de voz (sep-2026): esta versión "voz neutral" se saltaba
+        // el permiso — por eso la tarjeta NO salía en el móvil y la voz no
+        // sonaba nunca. Recupera el mismo cerrojo que el resto de la app.
+        if (typeof vozPermitida === 'function' && !vozPermitida()) {
+          if (typeof pedirPermisoVozSiHaceFalta === 'function') pedirPermisoVozSiHaceFalta();
+          return;
+        }
         try {
           const frase = new SpeechSynthesisUtterance(texto);
           frase.lang = (document.documentElement.lang || 'es').slice(0, 5);
@@ -6804,6 +6907,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             if (arbolesGrandes.length % 200 === 0) await cederAlNavegador();
           }
         }
+        // Sello del refresco de 12 h (sep-2026): datos OSM recién bajados.
+        try { localStorage.setItem('manolito_osm_refresco_ms', String(Date.now())); } catch (e2) { }
       } catch (e) {
         console.debug('[arboles-globales] Overpass no disponible ahora mismo:', e.message);
         celdas.forEach((c) => celdasConsultadas.delete(c));
@@ -7407,6 +7512,39 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         recalcularSombrasArboles();
       }, CONFIG.esperaMoveendMs);
     });
+
+    /* ---- Actualización de datos OSM cada 12 h (sep-2026, orden de Sandro) ----
+       Lo que la gente dibuja en OpenStreetMap debe verse en HORAS, no en
+       una semana. Tres capas que trabajan juntas:
+       1) WORKER: la caché compartida caduca a las 12 h (ver worker.js).
+       2) AUTOMÁTICO: si la última descarga tiene más de 12 h, la primera
+       consulta de esta sesión ya va en "modo frescos" (ignora cachés y
+       renueva el dato para todo el mundo). El chequeo cuesta una resta
+       cada 30 min y no pide nada si la pestaña está oculta.
+       3) MANUAL: el botón "↻ Actualizar mapa" (junto a Árboles) fuerza
+       la descarga fresca de la vista actual al momento. */
+    const CLAVE_REFRESCO_OSM = 'manolito_osm_refresco_ms';
+    const REFRESCO_OSM_MS = 12 * 3600 * 1000; // 12 horas
+
+    async function actualizarDatosOSM() {
+      try { localStorage.setItem(CLAVE_REFRESCO_OSM, String(Date.now())); } catch (e) { }
+      celdasConsultadas.clear();
+      frescosPendiente = true; // bypass del caché del Worker + la renueva
+      await cargarArbolesDeLaVista();
+    }
+    window.manolitAireActualizarOSM = actualizarDatosOSM;
+
+    try {
+      const ultimaRefresco = Number(localStorage.getItem(CLAVE_REFRESCO_OSM) || 0);
+      if (Date.now() - ultimaRefresco > REFRESCO_OSM_MS) frescosPendiente = true;
+    } catch (e) { /* sin localStorage: modo normal */ }
+    setInterval(() => {
+      if (document.hidden) return; // pestaña oculta: cero gasto
+      try {
+        const ultimaRefresco = Number(localStorage.getItem(CLAVE_REFRESCO_OSM) || 0);
+        if (Date.now() - ultimaRefresco > REFRESCO_OSM_MS) actualizarDatosOSM();
+      } catch (e) { /* el refresco jamás rompe el mapa */ }
+    }, 30 * 60 * 1000);
 
     window.manolitAireRecalcularArboles = recalcularSombrasArboles;
 

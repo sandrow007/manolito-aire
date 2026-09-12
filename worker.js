@@ -1,4 +1,4 @@
-﻿﻿﻿const CORS_HEADERS = {
+﻿﻿const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
@@ -191,10 +191,13 @@ export default {
         } catch (e) { /* sin clave: seguimos sin caché */ }
 
         const kv = env.AIR_QUALITY_CACHE || null;
-        // Actualización semanal (sep-2026): una copia se considera "fresca"
-        // durante 7 días. Los árboles de OSM apenas cambian, así la web carga
-        // al instante casi siempre y no se machacan los espejos Overpass.
-        const FRESCA_MS = 7 * 24 * 3600 * 1000; // 7 días
+        // Actualización cada 12 h (sep-2026, orden de Sandro): antes una
+        // copia se consideraba "fresca" durante 7 días, y lo que la gente
+        // dibujaba en OpenStreetMap tardaba una semana en aparecer en la
+        // web. Ahora la caché compartida caduca a las 12 horas; y el
+        // botón "↻ Actualizar" de la web (cabecera X-Arboles-Fresca) la
+        // renueva al momento para todo el mundo.
+        const FRESCA_MS = 12 * 3600 * 1000; // 12 horas
         // Modo "frescos": la página puede pedir los datos recién bajados de
         // OSM (p. ej. ?arboles=frescos tras plantar un árbol en el mapa). El
         // bypass es por zona y además deja la caché compartida ya renovada

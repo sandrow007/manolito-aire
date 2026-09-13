@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -6360,9 +6360,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     albizia: {
       keywords: ['albizia', 'julibrissin', 'acacia de constantinopla', 'acacia de persia', 'silk tree', 'árbol de la seda', 'arbol de la seda'],
       alturaMediaM: 9,
-      radioCopaMedioM: 4.5,
+      radioCopaMedioM: 5.0, // copa más ancha: la sombrilla real abre casi tanto como alta es
       forma: 'sombrilla',
-      color: '#5c9e3f', // verde de las hojas bipinnadas del modelo
+      color: '#5c9e3f',
     },
     citrico: {
       keywords: ['citrus', 'naranjo', 'limonero', 'orange', 'lemon', 'mandarino', 'pomelo'],
@@ -6565,6 +6565,33 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   // Estación del hemisferio norte a partir de la fecha EFECTIVA de la app
   // (la misma que mueve las sombras: respeta el simulador horario).
+  // Progreso 0..1 dentro de la estación actual (0 = recién empezada,
+  // 1 = a punto de cambiar). Usado para que la caída de hoja de la
+  // albizia sea gradual, no un salto brusco al cruzar de estación.
+  // OJO: enero-marzo pertenece al invierno que empezó el 21 de diciembre
+  // DEL AÑO ANTERIOR — sin esa primera entrada la función devolvía 0
+  // (mentira: un 15 de enero ya lleva ~27% del invierno recorrido).
+  function progresoEstacion(fecha) {
+    const anio = fecha.getFullYear();
+    const inicios = [
+      new Date(anio - 1, 11, 21), // invierno del año pasado (cubre ene-mar)
+      new Date(anio, 2, 20),      // primavera
+      new Date(anio, 5, 21),      // verano
+      new Date(anio, 8, 23),      // otoño
+      new Date(anio, 11, 21),     // invierno
+    ];
+    const ms = fecha.getTime();
+    for (let i = inicios.length - 1; i >= 0; i--) {
+      if (ms >= inicios[i].getTime()) {
+        const fin = i === inicios.length - 1
+          ? new Date(anio + 1, 2, 20).getTime()
+          : inicios[i + 1].getTime();
+        return Math.max(0, Math.min(1, (ms - inicios[i].getTime()) / (fin - inicios[i].getTime())));
+      }
+    }
+    return 0; // inalcanzable: el invierno del año pasado siempre es <= hoy
+  }
+
   function obtenerEstacion(fecha) {
     const mes = fecha.getMonth(); // 0 = enero
     const dia = fecha.getDate();
@@ -6596,7 +6623,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // - conFruto:     naranjas visibles colgando de la copa.
   // - conFlor:      azahar (blanco) en el naranjo, pompones rosas en la albizia.
   // - cayendo:      hojas/pétalos cayendo (animación suave en otoño).
-  function fenologiaArbol(tipo, estacion) {
+  function fenologiaArbol(tipo, estacion, progreso) {
     // Naranjo: PERENNE. Azahar en primavera (marzo-mayo, el patio sevillano
     // huele a azahar); naranjas de otoño a finales de invierno.
     if (tipo === 'naranjo') {
@@ -6618,8 +6645,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (tipo === 'albizia') {
       if (estacion === 'primavera') return { densidadHoja: 0.75, colorHoja: '#7fc54f', conFruto: false, conFlor: false, cayendo: false };
       if (estacion === 'verano') return { densidadHoja: 1, colorHoja: null, conFruto: false, conFlor: true, cayendo: false };
-      if (estacion === 'otono') return { densidadHoja: 0.45, colorHoja: '#c9862f', conFruto: false, conFlor: false, cayendo: true };
-      return { densidadHoja: 0, colorHoja: '#8a6d4b', conFruto: false, conFlor: false, cayendo: false };
+      if (estacion === 'otono') {
+        // Caída GRADUAL a lo largo del otoño: empieza casi llena (0.85)
+        // y termina casi pelada (0.10), en vez de saltar de golpe.
+        const p = typeof progreso === 'number' ? progreso : 0.5;
+        const densidad = 0.85 - 0.75 * p;
+        return { densidadHoja: densidad, colorHoja: '#c9862f', conFruto: false, conFlor: false, cayendo: true };
+      }
+      // Invierno: NO queda a 0 — se deja un residuo (0.12) que representa
+      // la masa de ramas desnudas, para que el árbol siga siendo visible
+      // y no un palo casi invisible.
+      return { densidadHoja: 0.12, colorHoja: '#8a6d4b', conFruto: false, conFlor: false, cayendo: false };
     }
     return null;
   }
@@ -7045,7 +7081,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const forma = a.forma || 'redondeada';
         const [lon, lat] = a.punto.geometry.coordinates;
         // Fenología (solo naranjo y albizia; null = como siempre).
-        const feno = fenologiaArbol(a.tipo, estacion);
+        const feno = fenologiaArbol(a.tipo, estacion, progresoEstacion(obtenerHoraEfectiva()));
         const factorHoja = feno ? (0.30 + 0.70 * feno.densidadHoja) : 1;
         const colorCopa = feno && feno.colorHoja ? feno.colorHoja : a.color;
 
@@ -7056,8 +7092,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         else if (forma === 'oval_alargada') { factorTronco = 0.50; factorCopaBaja = 0.30; factorCopaAlta = 0.20; }
         else if (forma === 'ancha_redondeada') { factorTronco = 0.30; factorCopaBaja = 0.45; factorCopaAlta = 0.25; }
         else if (forma === 'ancha_irregular') { factorTronco = 0.32; factorCopaBaja = 0.43; factorCopaAlta = 0.25; }
-        else if (forma === 'naranjo') { factorTronco = 0.28; factorCopaBaja = 0.46; factorCopaAlta = 0.26; }
-        else if (forma === 'sombrilla') { factorTronco = 0.42; factorCopaBaja = 0.40; factorCopaAlta = 0.18; }
+        else if (forma === 'naranjo') { factorTronco = 0.49; factorCopaBaja = 0.36; factorCopaAlta = 0.15; }
+        else if (forma === 'sombrilla') { factorTronco = 0.38; factorCopaBaja = 0.44; factorCopaAlta = 0.18; }
 
         const alturaTroncoM = Math.max(1, a.altura * factorTronco);
         const alturaCopaInferiorM = a.altura * factorCopaBaja;
@@ -7078,7 +7114,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const usaCopaRealista =
           (forma === 'naranjo' || forma === 'sombrilla') &&
           !(feno && feno.densidadHoja === 0) &&
-          map.getZoom() >= 17;
+          (forma === 'naranjo' ? map.getZoom() >= 14 : map.getZoom() >= 17);
 
         if (usaCopaRealista) {
           const bultos = crearCopaRealista(a, forma, alturaTroncoM, factorHoja, feno, lon, lat);
@@ -7314,14 +7350,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             factorRadio = esPalma ? 1.55 : 0.72;
             break;
           case 'naranjo':
-            // Naranjo: copa globosa, densa y casi simétrica (como la malla
-            // real): ondulación muy suave, sin picos.
-            factorRadio = 0.96 + 0.07 * Math.cos(2 * anguloRad);
+            // Naranjo: copa globosa asimétrica, medida sobre la malla real
+            // (bbox x≈1.49 vs z≈1.31) — más ancha que profunda, con 3 lóbulos
+            // suaves en vez de un círculo perfecto.
+            factorRadio = (0.92 + 0.10 * Math.cos(anguloRad))
+                        * (1.0 + 0.06 * Math.cos(3 * anguloRad));
             break;
           case 'sombrilla':
-            // Albizia: parasol amplio con lóbulos suaves (sus ramas abren
-            // en abanico desde lo alto del tronco).
-            factorRadio = 1.04 + 0.10 * Math.cos(3 * anguloRad);
+            // Albizia: parasol amplio y achatado, con 3 lóbulos marcados
+            // (las ramas del multi-tronco abren en abanico, no un círculo).
+            factorRadio = (0.95 + 0.14 * Math.cos(anguloRad))
+                        * (1.0 + 0.14 * Math.cos(3 * anguloRad));
             break;
         }
 
@@ -7422,7 +7461,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const radioTroncoKm = Math.max(arbol.radioCopaM * (forma === 'palmera' ? 0.08 : 0.12), 0.25) / 1000;
       // Especies con fenología: la sombra se encoge con la pérdida de hoja
       // (una albizia desnuda en invierno apenas da sombra, como en la calle).
-      const fenoSombra = fenologiaArbol(arbol.tipo, obtenerEstacion(obtenerHoraEfectiva()));
+      const fechaSombra = obtenerHoraEfectiva();
+      const fenoSombra = fenologiaArbol(arbol.tipo, obtenerEstacion(fechaSombra), progresoEstacion(fechaSombra));
       const factorHojaSombra = fenoSombra ? (0.25 + 0.75 * fenoSombra.densidadHoja) : 1;
       const radioCopaKm = (arbol.radioCopaM * factorHojaSombra) / 1000;
       const [lon, lat] = arbol.punto.geometry.coordinates;

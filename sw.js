@@ -39,15 +39,15 @@ const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
 
 /* Hosts de contenido casi inmutable: librerías y fuentes */
 const HOSTS_ESTATICOS = [
-  'cdn.jsdelivr.net',
-  'unpkg.com',
-  'fonts.googleapis.com',
-  'fonts.gstatic.com',
+	'cdn.jsdelivr.net',
+	'unpkg.com',
+	'fonts.googleapis.com',
+	'fonts.gstatic.com',
 ];
 
 /* Hosts con STALE-WHILE-REVALIDATE: rápidos Y auto-actualizados */
 const HOSTS_REVALIDABLES = [
-  'tiles.openfreemap.org',
+	'tiles.openfreemap.org',
 ];
 
 /* Rutas propias con datos dinámicos (proxies del worker) */
@@ -55,147 +55,175 @@ const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/arboles', '/manol
 
 /* Hosts de datos dinámicos externos */
 const HOSTS_DINAMICOS = [
-  'api.open-meteo.com',
-  'overpass-api.de',
-  'lz4.overpass-api.de',
-  'overpass.kumi.systems',
-  'overpass.nchc.org.tw',
+	'api.open-meteo.com',
+	'overpass-api.de',
+	'lz4.overpass-api.de',
+	'overpass.kumi.systems',
+	'overpass.nchc.org.tw',
 ];
 
 /* ---------------- install / activate ---------------- */
-self.addEventListener('install', function (ev) {
-  // Activar cuanto antes; no precacheamos nada para no fallar
-  // nunca la instalación por un recurso concreto.
-  self.skipWaiting();
+self.addEventListener('install', function(ev) {
+	// Activar cuanto antes; no precacheamos nada para no fallar
+	// nunca la instalación por un recurso concreto.
+	self.skipWaiting();
 });
 
-self.addEventListener('activate', function (ev) {
-  ev.waitUntil(
-    caches.keys()
-      .then(function (claves) {
-        return Promise.all(
-          claves
-            .filter(function (c) { return c.indexOf('manolito-') === 0 && c.indexOf(VERSION) === -1; })
-            .map(function (c) { return caches.delete(c); })
-        );
-      })
-      .then(function () { return self.clients.claim(); })
-  );
+self.addEventListener('activate', function(ev) {
+	ev.waitUntil(
+		caches.keys()
+		.then(function(claves) {
+			return Promise.all(
+				claves
+				.filter(function(c) {
+					return c.indexOf('manolito-') === 0 && c.indexOf(VERSION) === -1;
+				})
+				.map(function(c) {
+					return caches.delete(c);
+				})
+			);
+		})
+		.then(function() {
+			return self.clients.claim();
+		})
+	);
 });
 
 /* ---------------- utilidades ---------------- */
 function esEstatico(url) {
-  if (HOSTS_ESTATICOS.indexOf(url.hostname) !== -1) return true;
-  if (url.origin === self.location.origin) {
-    return /\.(js|css|png|jpe?g|svg|ico|webp|woff2?|ttf|webmanifest|geojson)(\?.*)?$/i.test(url.pathname);
-  }
-  return false;
+	if (HOSTS_ESTATICOS.indexOf(url.hostname) !== -1) return true;
+	if (url.origin === self.location.origin) {
+		return /\.(js|css|png|jpe?g|svg|ico|webp|woff2?|ttf|webmanifest|geojson)(\?.*)?$/i.test(url.pathname);
+	}
+	return false;
 }
 
 function esDinamico(url) {
-  if (HOSTS_DINAMICOS.indexOf(url.hostname) !== -1) return true;
-  if (url.origin === self.location.origin) {
-    return RUTAS_DINAMICAS.some(function (r) { return url.pathname.indexOf(r) === 0; });
-  }
-  return false;
+	if (HOSTS_DINAMICOS.indexOf(url.hostname) !== -1) return true;
+	if (url.origin === self.location.origin) {
+		return RUTAS_DINAMICAS.some(function(r) {
+			return url.pathname.indexOf(r) === 0;
+		});
+	}
+	return false;
 }
 
 function recortarCache(nombreCache, maximo) {
-  // Borra las entradas más antiguas si nos pasamos del tope.
-  return caches.open(nombreCache).then(function (cache) {
-    return cache.keys().then(function (claves) {
-      if (claves.length <= maximo) return;
-      const sobrantes = claves.length - maximo;
-      return Promise.all(claves.slice(0, sobrantes).map(function (k) { return cache.delete(k); }));
-    });
-  }).catch(function () { /* recortar es opcional */ });
+	// Borra las entradas más antiguas si nos pasamos del tope.
+	return caches.open(nombreCache).then(function(cache) {
+		return cache.keys().then(function(claves) {
+			if (claves.length <= maximo) return;
+			const sobrantes = claves.length - maximo;
+			return Promise.all(claves.slice(0, sobrantes).map(function(k) {
+				return cache.delete(k);
+			}));
+		});
+	}).catch(function() {
+		/* recortar es opcional */ });
 }
 
 function cacheFirst(peticion) {
-  return caches.match(peticion).then(function (guardada) {
-    if (guardada) return guardada;
-    return fetch(peticion).then(function (respuesta) {
-      // Solo guardamos respuestas válidas (u opacas de CDNs de tiles)
-      if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
-        const copia = respuesta.clone();
-        caches.open(CACHE_ESTATICA).then(function (cache) { cache.put(peticion, copia); })
-          .then(function () { recortarCache(CACHE_ESTATICA, MAX_ENTRADAS_ESTATICAS); })
-          .catch(function () { /* caché llena o no disponible */ });
-      }
-      return respuesta;
-    });
-  });
+	return caches.match(peticion).then(function(guardada) {
+		if (guardada) return guardada;
+		return fetch(peticion).then(function(respuesta) {
+			// Solo guardamos respuestas válidas (u opacas de CDNs de tiles)
+			if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
+				const copia = respuesta.clone();
+				caches.open(CACHE_ESTATICA).then(function(cache) {
+						cache.put(peticion, copia);
+					})
+					.then(function() {
+						recortarCache(CACHE_ESTATICA, MAX_ENTRADAS_ESTATICAS);
+					})
+					.catch(function() {
+						/* caché llena o no disponible */ });
+			}
+			return respuesta;
+		});
+	});
 }
 
 // Sirve la copia cacheada al instante (si existe) y SIEMPRE pide a red en
 // segundo plano para refrescarla: velocidad de cache-first sin congelar
 // el contenido. Así el planeta nuevo de OpenFreeMap entra solo.
 function staleWhileRevalidate(peticion) {
-  return caches.open(CACHE_ESTATICA).then(function (cache) {
-    return cache.match(peticion).then(function (guardada) {
-      const promesaRed = fetch(peticion).then(function (respuesta) {
-        if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
-          cache.put(peticion, respuesta.clone())
-            .then(function () { recortarCache(CACHE_ESTATICA, MAX_ENTRADAS_ESTATICAS); })
-            .catch(function () { /* caché llena o no disponible */ });
-        }
-        return respuesta;
-      }).catch(function () { return guardada || Response.error(); });
-      return guardada || promesaRed;
-    });
-  });
+	return caches.open(CACHE_ESTATICA).then(function(cache) {
+		return cache.match(peticion).then(function(guardada) {
+			const promesaRed = fetch(peticion).then(function(respuesta) {
+				if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
+					cache.put(peticion, respuesta.clone())
+						.then(function() {
+							recortarCache(CACHE_ESTATICA, MAX_ENTRADAS_ESTATICAS);
+						})
+						.catch(function() {
+							/* caché llena o no disponible */ });
+				}
+				return respuesta;
+			}).catch(function() {
+				return guardada || Response.error();
+			});
+			return guardada || promesaRed;
+		});
+	});
 }
 
 function networkFirst(peticion) {
-  return fetch(peticion).then(function (respuesta) {
-    if (respuesta && respuesta.ok) {
-      const copia = respuesta.clone();
-      caches.open(CACHE_DINAMICA).then(function (cache) { cache.put(peticion, copia); })
-        .catch(function () { /* sin caché */ });
-    }
-    return respuesta;
-  }).catch(function () {
-    return caches.match(peticion).then(function (guardada) {
-      // Si no hay red ni caché, devolvemos error de red estándar.
-      return guardada || Response.error();
-    });
-  });
+	return fetch(peticion).then(function(respuesta) {
+		if (respuesta && respuesta.ok) {
+			const copia = respuesta.clone();
+			caches.open(CACHE_DINAMICA).then(function(cache) {
+					cache.put(peticion, copia);
+				})
+				.catch(function() {
+					/* sin caché */ });
+		}
+		return respuesta;
+	}).catch(function() {
+		return caches.match(peticion).then(function(guardada) {
+			// Si no hay red ni caché, devolvemos error de red estándar.
+			return guardada || Response.error();
+		});
+	});
 }
 
 /* ---------------- fetch ---------------- */
-self.addEventListener('fetch', function (ev) {
-  const peticion = ev.request;
+self.addEventListener('fetch', function(ev) {
+	const peticion = ev.request;
 
-  // Solo GET: el chat (/manolito) y cualquier POST van directos a red.
-  if (peticion.method !== 'GET') return;
+	// Solo GET: el chat (/manolito) y cualquier POST van directos a red.
+	if (peticion.method !== 'GET') return;
 
-  let url;
-  try { url = new URL(peticion.url); } catch (e) { return; }
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+	let url;
+	try {
+		url = new URL(peticion.url);
+	} catch (e) {
+		return;
+	}
+	if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
 
-  // Navegaciones (entrar a la web): frescura primero.
-  if (peticion.mode === 'navigate') {
-    ev.respondWith(networkFirst(peticion));
-    return;
-  }
+	// Navegaciones (entrar a la web): frescura primero.
+	if (peticion.mode === 'navigate') {
+		ev.respondWith(networkFirst(peticion));
+		return;
+	}
 
-  if (esDinamico(url)) {
-    ev.respondWith(networkFirst(peticion));
-    return;
-  }
+	if (esDinamico(url)) {
+		ev.respondWith(networkFirst(peticion));
+		return;
+	}
 
-  // Teselas del mapa: al instante desde caché + revalidación en segundo
-  // plano (que los edificios nuevos de OSM lleguen sin tocar nada).
-  if (HOSTS_REVALIDABLES.indexOf(url.hostname) !== -1) {
-    ev.respondWith(staleWhileRevalidate(peticion));
-    return;
-  }
+	// Teselas del mapa: al instante desde caché + revalidación en segundo
+	// plano (que los edificios nuevos de OSM lleguen sin tocar nada).
+	if (HOSTS_REVALIDABLES.indexOf(url.hostname) !== -1) {
+		ev.respondWith(staleWhileRevalidate(peticion));
+		return;
+	}
 
-  if (esEstatico(url)) {
-    ev.respondWith(cacheFirst(peticion));
-    return;
-  }
+	if (esEstatico(url)) {
+		ev.respondWith(cacheFirst(peticion));
+		return;
+	}
 
-  // Resto (mayoría same-origin): network-first suave con respaldo.
-  ev.respondWith(networkFirst(peticion));
+	// Resto (mayoría same-origin): network-first suave con respaldo.
+	ev.respondWith(networkFirst(peticion));
 });

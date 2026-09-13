@@ -1401,3 +1401,188 @@ body > #rsBtnActualizarOSM{ position:fixed; top:10px; right:48px; z-index:30; }
 @media (prefers-reduced-motion:reduce){
   #rsBtnActualizarOSM.rs-cargando{ animation:none; }
 }
+
+
+/* ============================================================
+   MAPA EFICIENTE Y ELEGANTE (sep-2026 — brief de Sandro)
+   ------------------------------------------------------------
+   BLOQUE 100% ADITIVO: no se ha borrado ni una línea del CSS
+   original; estas reglas vienen al final y ganan por cascada
+   (y por !important donde el original también lo usaba).
+
+   Auditoría previa (medida sobre este mismo archivo):
+   - 8 backdrop-filter: blur() recomponían la GPU en CADA frame
+     al flotar sobre el mapa WebGL → paneles ahora OPACOS.
+   - 14 gradientes, varios animados (wordmarkFlow, anillo
+     arcoíris del chat) → colores SÓLIDOS de la paleta propia.
+     El brief prohíbe explícitamente la estética "IA generativa".
+   - Sombras con blur de 40-50px (buffers offscreen enormes en
+     GPU móvil) → sombras cortas de 2-16px, estilo Figma.
+   - floatX animaba margin-left = reflow del documento 60
+     veces/seg en loop infinito → un solo keyframes con
+     translate (solo compone, nunca recalcula layout).
+   - transition: all + will-change: box-shadow → propiedades
+     concretas; will-change solo transform (manda el brief).
+   - Fraunces/Karla solo se usaban en 4 selectores → system
+     stack (los <link> de Google Fonts se quitan en index.html:
+     menos red, menos memoria, cero FOUT).
+
+   Lo que NO se toca: body.modo-accesible (el alto contraste
+   manda sobre este bloque), la paleta de acentos, ni ninguna
+   animación que ya fuera solo transform/opacity.
+   ============================================================ */
+
+/* --- 1. Superficies SÓLIDAS: la variable madre se vuelve opaca
+        y todos los paneles que la usan se solidifican de golpe --- */
+:root{ --surface:#FFFFFF; }
+[data-theme="dark"]{ --surface:#0B0D20; }
+
+/* --- 2. Muerte a los 8 backdrop-filter (la GPU descansa) --- */
+.chat-panel,
+.sci-panel,
+.peque-message,
+.city-dropdown-btn,
+.city-dropdown-list,
+.donacion-boton,
+#rsMapControls button,
+#rsBtnActualizarOSM{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
+/* Fondos sólidos para los que llevaban rgba semitransparente
+   propio (no usaban var(--surface)): */
+#rsMapControls button{ background:#FBFAF7 !important; }
+#rsBtnActualizarOSM{ background:#FBFAF7; }
+[data-theme="dark"] #rsMapControls button,
+.rs-mapa-oscuro-activo #rsMapControls button{ background:#0B1E26 !important; }
+[data-theme="dark"] #rsBtnActualizarOSM,
+.rs-mapa-oscuro-activo #rsBtnActualizarOSM{ background:#0B1E26; }
+
+/* --- 3. Gradientes → sólidos (la identidad se mantiene) --- */
+
+/* Titular del mapa y wordmark: texto sólido, sin flujo animado
+   ni drop-shadow (repintaban el texto en cada frame). */
+.map-title,
+.wordmark .wordmark-name{
+  background:none;
+  -webkit-background-clip:initial; background-clip:initial;
+  -webkit-text-fill-color:var(--sky-deep); color:var(--sky-deep);
+  filter:none;
+  animation:none;
+}
+
+/* El orbe de calidad del aire conserva su color de ESTADO
+   (eso es información, no decoración): sólido con un borde
+   interior sutil en vez del degradado radial. La animación
+   breathe se queda: es solo transform, cuesta cero. */
+.orb{
+  background:var(--state-color, var(--breath-good));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.22), 0 2px 8px rgba(13,31,38,0.18);
+}
+
+/* Marco del mapa: borde sólido de la línea de la casa en vez
+   del truco de doble gradiente padding-box/border-box. */
+.map-section:has(#shadowRouteMap) .map-wrap{
+  background:var(--paper);
+  border-color:var(--line);
+  box-shadow:0 2px 8px rgba(13,31,38,0.10);
+}
+
+/* Botón buscar: mandarina AA (la paleta ya trae --accent-text,
+   la versión oscura del acento pensada para contraste) y hover
+   sin filter:brightness (el filter repinta; no hace falta). */
+#rsBuscarBtn{
+  background:var(--accent-text);
+  color:#FFFFFF;
+  box-shadow:0 2px 8px var(--accent-soft);
+}
+#rsBuscarBtn:hover{
+  background:var(--accent);
+  color:var(--paper);
+  filter:none;
+  box-shadow:0 2px 8px var(--accent-soft);
+}
+
+/* Badge de sombra en mapa oscuro: panel sólido. */
+.rs-mapa-oscuro-activo #rsShadowBadge{ background:#0A1E26; }
+
+/* Botón activo de los controles del mapa (modo oscuro). */
+.rs-mapa-oscuro-activo #rsMapControls button.rs-activo{
+  background:var(--accent) !important;
+  color:#06222B !important;
+}
+
+/* Botón "siguiente" del tour guiado en tema oscuro. */
+[data-theme="dark"] .driver-popover-next-btn{
+  background:var(--accent);
+  color:#03050F;
+}
+
+/* Botón LiDAR: sólido petróleo (claro) / cian (oscuro). */
+.rs-btn-lidar{
+  background:var(--sky-deep);
+  color:#FFFFFF;
+  box-shadow:0 2px 8px rgba(14,59,71,0.22);
+}
+.rs-btn-lidar:hover, .rs-btn-lidar:focus-visible{
+  filter:none;
+  box-shadow:0 4px 12px rgba(14,59,71,0.30);
+}
+[data-theme="dark"] .rs-btn-lidar{
+  background:var(--sky-mid);
+  color:#06222B;
+  box-shadow:0 2px 8px rgba(0,240,255,0.16);
+}
+[data-theme="dark"] .rs-btn-lidar:hover, [data-theme="dark"] .rs-btn-lidar:focus-visible{
+  box-shadow:0 4px 12px rgba(0,240,255,0.24);
+}
+
+/* --- 4. El anillo arcoíris del chat muere (el brief prohíbe
+        la estética "IA generativa"): anillo sólido del acento
+        de la casa, núcleo sólido, letras sólidas, cero giros --- */
+.chat-fab-ring{
+  background:var(--accent);
+  animation:none;
+}
+.chat-fab-core{
+  background:var(--paper);
+  background-image:none;
+  -webkit-text-fill-color:var(--accent-text); color:var(--accent-text);
+  animation:none;
+}
+.chat-logo{ background:var(--accent); }
+.chat-logo i{
+  background:var(--paper);
+  background-image:none;
+  -webkit-text-fill-color:var(--accent-text); color:var(--accent-text);
+}
+
+/* --- 5. Sombras gigantes → sombras cortas (la jerarquía se
+        mantiene con 2-16px; 44-50px eran puro gasto de GPU) --- */
+.chat-panel{ box-shadow:0 4px 16px rgba(0,0,0,0.18); }
+[data-theme="dark"] .driver-popover{ box-shadow:0 4px 12px rgba(0,0,0,0.50); }
+
+/* --- 6. floatX animaba margin-left (reflow 60 veces/seg en
+        loop infinito). Un solo keyframes con translate: el
+        compositor lo mueve sin tocar el layout. Mismo vaivén --- */
+.peque-cloud{ animation:flotarSuave 5s ease-in-out infinite; will-change:transform; }
+@keyframes flotarSuave{
+  0%,100%{ transform:translate(0,0); }
+  50%{ transform:translate(-4px,-10px); }
+}
+
+/* --- 7. transition: all → propiedades concretas; will-change
+        solo transform (el brief veta will-change en box-shadow) --- */
+body.mode-peque .im-lost-btn{
+  transition:transform 0.2s cubic-bezier(0.4,0,0.2,1), background-color 0.2s;
+  will-change:transform;
+}
+
+/* --- 8. System fonts en los 4 selectores que aún pedían
+        Fraunces/Karla (los <link> de Google Fonts salen de
+        index.html: 2 conexiones TLS y ~100KB menos por visita) --- */
+.yayo-zoom-btn{ font-family:var(--font-display); }
+.city-dropdown-btn,
+.city-dropdown-list li,
+.footer-donacion{ font-family:var(--font-body); }

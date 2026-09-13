@@ -25,24 +25,20 @@
 }
 </script>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://unpkg.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://tiles.openfreemap.org">
 <!-- Solo esta CSS bloquea el render: es la que afecta al primer pintado -->
-<!-- display=optional (antes swap, 2026-09-12): si la fuente no llega casi
-     al instante, se usa la de sistema Y NO SE INTERCAMBIA después — el
-     intercambio tardío re-envolvía la barra superior y empujaba la página
-     (shift de 0,22 medido). Con la precarga de abajo, la fuente llega a
-     tiempo en la práctica y el shift desaparece en ambos casos. -->
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=optional" rel="stylesheet">
-<!-- Precarga de las 2 fuentes que pintan el primer pantallazo (2026-09-12,
-     CLS): sin esto, al llegar la fuente web la barra superior cambiaba de
-     métricas, se re-envolvía y empujaba toda la página (shift de 0,22-0,53
-     medido en Web Analytics). Karla es variable: un archivo cubre 400-700. -->
-<link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/karla/v33/qkB9XvYC6trAT55ZBi1ueQVIjQTD-JrIH2G7nytkHRyQ8p4wUje6bmMorHA.woff2">
-<link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/fraunces/v38/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxC9TeP2Xz5c.woff2">
+<!-- Fuentes web FUERA (2026-09-13, brief "Mapa Eficiente y Elegante" de
+     Sandro: system fonts en vez de webfonts). Antes se cargaban Fraunces,
+     Karla e IBM Plex Mono de Google Fonts — 2 conexiones TLS y ~100 KB de
+     woff2 por visita — y solo 4 selectores del CSS las usaban; el resto de
+     la web ya iba con la pila de sistema ('SF Pro Display','Segoe UI',
+     system-ui). Esos 4 selectores ya apuntan a var(--font-*) en style.css.
+     Beneficios: cero FOUT/CLS de fuentes (el shift de 0,22-0,53 que antes
+     se domaba con display=optional y precargas desaparece de raíz), menos
+     memoria, primer pintado más rápido y un dominio externo menos que
+     puede fallar en F12. -->
 
 <!-- Leaflet, MapLibre y Driver.css: no son necesarias para el primer pintado.
      Se cargan sin bloquear con preload+onload y caen a <noscript> si JS está desactivado. -->

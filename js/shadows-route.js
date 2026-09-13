@@ -7346,7 +7346,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       return bultos;
     }
 
-    function crearFormaCopa(centro, radioKm, forma, lon, lat) {
+    function crearFormaCopa(centro, radioKm, forma, lon, lat, paraSombra) {
       const pasos = {
         palmera: 28,
         conica: 14,
@@ -7383,17 +7383,29 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             factorRadio = esPalma ? 1.55 : 0.72;
             break;
           case 'naranjo':
-            // Naranjo: copa globosa asimétrica, medida sobre la malla real
-            // (bbox x≈1.49 vs z≈1.31) — más ancha que profunda, con 3 lóbulos
-            // suaves en vez de un círculo perfecto.
-            factorRadio = (0.92 + 0.10 * Math.cos(anguloRad))
-                        * (1.0 + 0.06 * Math.cos(3 * anguloRad));
+            if (paraSombra) {
+              // Para la SOMBRA proyectada: silueta simple y casi convexa.
+              // Los 3 lóbulos solo van en la copa visible — con lóbulos
+              // aquí la unión con el trapecio de proyección se auto-cruza
+              // y genera geometría corrupta.
+              factorRadio = 0.96 + 0.07 * Math.cos(2 * anguloRad);
+            } else {
+              // Naranjo: copa globosa asimétrica, medida sobre la malla real
+              // (bbox x≈1.49 vs z≈1.31) — más ancha que profunda, con 3 lóbulos
+              // suaves en vez de un círculo perfecto.
+              factorRadio = (0.92 + 0.10 * Math.cos(anguloRad))
+                          * (1.0 + 0.06 * Math.cos(3 * anguloRad));
+            }
             break;
           case 'sombrilla':
-            // Albizia: parasol amplio y achatado, con 3 lóbulos marcados
-            // (las ramas del multi-tronco abren en abanico, no un círculo).
-            factorRadio = (0.95 + 0.14 * Math.cos(anguloRad))
-                        * (1.0 + 0.14 * Math.cos(3 * anguloRad));
+            if (paraSombra) {
+              factorRadio = 1.04 + 0.10 * Math.cos(3 * anguloRad);
+            } else {
+              // Albizia: parasol amplio y achatado, con 3 lóbulos marcados
+              // (las ramas del multi-tronco abren en abanico, no un círculo).
+              factorRadio = (0.95 + 0.14 * Math.cos(anguloRad))
+                          * (1.0 + 0.14 * Math.cos(3 * anguloRad));
+            }
             break;
         }
 
@@ -7504,7 +7516,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
       // Copa proyectada: mantiene la silueta realista del tipo de árbol
       const radioProyectado = forma === 'palmera' ? radioCopaKm * 0.85 : radioCopaKm;
-      const copaProyectada = crearFormaCopa(lejano, radioProyectado, forma, lon, lat);
+      const copaProyectada = crearFormaCopa(lejano, radioProyectado, forma, lon, lat, true);
 
       // Para palmeras la sombra es la corona proyectada + una banda fina y
       // alargada: el tronco de la palmera es estrecho pero ALTO, y proyecta

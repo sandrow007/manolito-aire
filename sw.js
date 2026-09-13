@@ -26,18 +26,28 @@
 // 2026-09-12-a: botonera fina + botón mini "Act. mapa" con purga de cachés.
 // Subir VERSION hace que, al activarse, este SW borre las cachés viejas
 // (teselas incluidas) y los clientes reciban el JS/CSS nuevo.
-const VERSION = '2026-09-13-a';
+// 2026-09-13-c: las teselas de OpenFreeMap pasan de CACHE-FIRST a
+// STALE-WHILE-REVALIDATE. Motivo: con cache-first el estilo JSON cacheado
+// apuntaba SIEMPRE al planeta viejo (planet/AAAAMMDD.../) y los edificios
+// nuevos de OSM nunca aparecían aunque OpenFreeMap ya los llevaba. Ahora la
+// tesela se sirve al instante desde caché (misma velocidad) pero se
+// revalida en segundo plano: el mapa se auto-actualiza solo.
+const VERSION = '2026-09-13-c';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
 
-/* Hosts de contenido casi inmutable: mapa, librerías y fuentes */
+/* Hosts de contenido casi inmutable: librerías y fuentes */
 const HOSTS_ESTATICOS = [
-  'tiles.openfreemap.org',
   'cdn.jsdelivr.net',
   'unpkg.com',
   'fonts.googleapis.com',
   'fonts.gstatic.com',
+];
+
+/* Hosts con STALE-WHILE-REVALIDATE: rápidos Y auto-actualizados */
+const HOSTS_REVALIDABLES = [
+  'tiles.openfreemap.org',
 ];
 
 /* Rutas propias con datos dinámicos (proxies del worker) */
@@ -117,6 +127,25 @@ function cacheFirst(peticion) {
   });
 }
 
+// Sirve la copia cacheada al instante (si existe) y SIEMPRE pide a red en
+// segundo plano para refrescarla: velocidad de cache-first sin congelar
+// el contenido. Así el planeta nuevo de OpenFreeMap entra solo.
+function staleWhileRevalidate(peticion) {
+  return caches.open(CACHE_ESTATICA).then(function (cache) {
+    return cache.match(peticion).then(function (guardada) {
+      const promesaRed = fetch(peticion).then(function (respuesta) {
+        if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
+          cache.put(peticion, respuesta.clone())
+            .then(function () { recortarCache(CACHE_ESTATICA, MAX_ENTRADAS_ESTATICAS); })
+            .catch(function () { /* caché llena o no disponible */ });
+        }
+        return respuesta;
+      }).catch(function () { return guardada || Response.error(); });
+      return guardada || promesaRed;
+    });
+  });
+}
+
 function networkFirst(peticion) {
   return fetch(peticion).then(function (respuesta) {
     if (respuesta && respuesta.ok) {
@@ -152,6 +181,13 @@ self.addEventListener('fetch', function (ev) {
 
   if (esDinamico(url)) {
     ev.respondWith(networkFirst(peticion));
+    return;
+  }
+
+  // Teselas del mapa: al instante desde caché + revalidación en segundo
+  // plano (que los edificios nuevos de OSM lleguen sin tocar nada).
+  if (HOSTS_REVALIDABLES.indexOf(url.hostname) !== -1) {
+    ev.respondWith(staleWhileRevalidate(peticion));
     return;
   }
 

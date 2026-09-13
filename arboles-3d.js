@@ -8,11 +8,16 @@
    - ALBIZIA: port valor a valor de su HTML (Three.js): tronco corto que se
      bifurca bajo, copa ancha de hojas finas (0.26 x 0.09), pompones rosas
      0xE87A93 que caen en otoño/invierno, tabla de estaciones idéntica.
-   - NARANJO: el low-poly de su foto: tronco único oscuro #5b4230 (~49% de
-     la altura, proporción ya aprobada por él), bola densa de hojas con la
-     silueta medida de la malla real (x≈1.49 vs z≈1.31, 3 lóbulos suaves —
-     sus valores), naranjas 0xE8792A/0xCF6A1E colgando de la piel de la
-     copa, azahar blanco en primavera, naranjas verdes en verano.
+   - NARANJO (sep-2026, MALLA REAL): la fotogrametría low-poly byte-exacta
+     de su "naranjo real mesh v2.html" (19.972 vértices / 19.967 triángulos,
+     servida desde js/naranjo-malla.js, carga perezosa en paralelo con
+     three.min.js): tronco+copa en UNA geometría con SU coloreado por
+     vértice (frontera al 49%, paletas suyas, sombreado 0.9-1.1), escalada
+     a 6.2 m y asentada como en su v2, y 34 naranjas 0xE8792A/0xCF6A1E
+     colgando de la piel real con SU algoritmo (rechazo a 0.5 m, offset
+     normal r*0.9). Si la malla no carga, respaldo: el elipsoide con la
+     silueta medida de la malla (x≈1.49 vs z≈1.31, 3 lóbulos suaves).
+     Azahar blanco en primavera y naranjas verdes de temporada, como antes.
    - Nada de lo existente se toca: cuando el 3D está activo se OCULTAN solo
      las extrusiones planas de albizia y naranjo (filtro en runtime); al
      desactivarse, el filtro se retira y todo vuelve como antes.
@@ -40,7 +45,7 @@
   // Tabla de estaciones de la ALBIZIA: los MISMOS valores del HTML de Sandro.
   var ESTACIONES_ALBIZIA = {
     primavera: { hoja: 0x7fc54f, escala: 0.9,  densidad: 0.9, cayendo: false },
-    verano:    { hoja: 0x5a9e3a, escala: 1.0,  densidad: 1.0, cayendo: false },
+    verano:    { hoja: 0x5c9e3f, escala: 1.0,  densidad: 1.0, cayendo: false }, // 0x5c9e3f: verde EXACTO de su HTML (sep-2026)
     otono:     { hoja: 0xc9862f, escala: 0.75, densidad: 0.45, cayendo: true  },
     invierno:  { hoja: 0x5e8c47, escala: 0.0,  densidad: 0.0, cayendo: true  },
   };
@@ -408,6 +413,43 @@
     return fusionarConColores(geos, colores);
   }
 
+  // Frutos sobre la MALLA REAL (sep-2026): SU algoritmo del v2 — 34
+  // naranjas maduras (verdes: 12, temporada), rechazo a distancia mínima
+  // 0.5 m, radio 0.15-0.20 (verdes más chicas), offset r*0.9 a lo largo de
+  // la normal de la piel, colores 0xE8792A/0xCF6A1E al azar (sus dos).
+  function construirFrutosMalla(cand, rand, verdes) {
+    var geos = [], colores = [];
+    if (!cand || !cand.n) return fusionarConColores(geos, colores);
+    var objetivo = verdes ? 12 : 34; // su targetOranges del v2
+    var puestos = [];
+    var intentos = 0;
+    while (puestos.length < objetivo && intentos < 4000) {
+      intentos++;
+      var vi = Math.floor(rand() * cand.n);
+      var x = cand.pos[vi * 3], y = cand.pos[vi * 3 + 1], z = cand.pos[vi * 3 + 2];
+      var cerca = false;
+      for (var p = 0; p < puestos.length; p++) {
+        var dx = puestos[p][0] - x, dy = puestos[p][1] - y, dz = puestos[p][2] - z;
+        if (dx * dx + dy * dy + dz * dz < 0.25) { cerca = true; break; } // 0.5 m
+      }
+      if (cerca) continue;
+      puestos.push([x, y, z]);
+      var r = verdes ? 0.10 + rand() * 0.03 : 0.15 + rand() * 0.05; // su rango v2
+      var g = new THREE.IcosahedronGeometry(r, 0);
+      g.applyMatrix4(new THREE.Matrix4().makeTranslation(
+        x + cand.nrm[vi * 3] * r * 0.9,
+        y + cand.nrm[vi * 3 + 1] * r * 0.9,
+        z + cand.nrm[vi * 3 + 2] * r * 0.9
+      ));
+      geos.push(g);
+      var hex = verdes
+        ? (rand() < 0.5 ? 0x8AAF3F : 0x739632)
+        : (rand() < 0.5 ? 0xE8792A : 0xCF6A1E); // sus orangeColors
+      colores.push(new THREE.Color(hex));
+    }
+    return fusionarConColores(geos, colores);
+  }
+
   // Azahar: racimos blancos 0xFFF6E0 coronando la bola en primavera (misma
   // idea que los pompones de la albizia, pero blancos y más cortos).
   function construirAzahar(rand) {
@@ -456,9 +498,25 @@
       color: 0xffffff, flatShading: true, roughness: 0.55, metalness: 0.02,
       vertexColors: true,
     });
+    // roughness 1.0 / metalness 0.0 (sep-2026): valores LITERALES del
+    // "naranjo real mesh v2.html" de Sandro — con rugosidad < 1 las hojas
+    // en contraluz especular salían casi negras.
+    // emissive verde medio de SU paleta (0x567f42 ≈ media de 0x4f7a3d,
+    // 0x5e8c47, 0x3f6733, 0x6a9950): igual que en la albizia, evita la
+    // hoja negra en contraluz cuando el mapa se mira desde arriba.
     var hojaNaranjoMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff, flatShading: true, roughness: 0.8, metalness: 0.02,
+      color: 0xffffff, flatShading: true, roughness: 1.0, metalness: 0.0,
       vertexColors: true,
+      emissive: 0x567f42, emissiveIntensity: 0.55,
+    });
+    // Material de la MALLA REAL (sep-2026): misma receta del v2 (vertexColors,
+    // flatShading, roughness 1.0, metalness 0.0). El emisivo baja a 0.35:
+    // al ser una malla cerrada con normales hacia fuera no sufre la hoja
+    // negra en contraluz como los planos, y así el tronco conserva su marrón.
+    var mallaNaranjoMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff, flatShading: true, roughness: 1.0, metalness: 0.0,
+      vertexColors: true,
+      emissive: 0x567f42, emissiveIntensity: 0.50,
     });
 
     var v, rand;
@@ -476,8 +534,20 @@
       // con doble cara las hojas que miran fuera del sol salen negras y la
       // copa parece un mosaico; con cara simple se descartan y el hueco lo
       // rellenan las hojas de detrás, que sí están iluminadas.
+      // transparent:true + opacity:0.85 (sep-2026, FIX PÁGINA NEGRA):
+      // es LITERAL de su HTML — flat(0x5c9e3f, 0.8, true, 0.85) — y es lo
+      // que hace que las hojas en contraluz se fundan con el follaje de
+      // detrás en vez de salir NEGRAS. Sin esto la copa parecía quemada.
       var hojaAlbiziaMat = new THREE.MeshStandardMaterial({
-        color: 0x5a9e3a, flatShading: true, roughness: 0.8, metalness: 0.02,
+        color: 0x5c9e3f, flatShading: true, roughness: 0.8, metalness: 0.02,
+        transparent: true, opacity: 0.85,
+        // emissive = el propio verde de la hoja (sep-2026, FIX PÁGINA NEGRA):
+        // su HTML se mira a RAS DE SUELO (órbita) y allí las hojas lucen;
+        // el mapa se mira DESDE ARRIBA y las hojas en contraluz salían
+        // NEGRAS. Con el emisivo al 45% la hoja nunca baja de "verde oscuro"
+        // ni en la cara opuesta al sol — la copa se lee verde desde cualquier
+        // pitch, y las caras iluminadas siguen respondiendo al sol real.
+        emissive: 0x5c9e3f, emissiveIntensity: 0.55,
       });
 
       var aTroncos = new THREE.InstancedMesh(geoMadera, barkMat, MAX_ARBOL);
@@ -499,15 +569,37 @@
     }
 
     // ----- NARANJO x4 -----
+    // Con la MALLA REAL cargada (js/naranjo-malla.js, byte-exacta de su v2)
+    // el naranjo es UNA sola geometría tronco+copa con vertexColors y las
+    // naranjas cuelgan de la piel real; sin ella, respaldo elipsoide (el
+    // mapa jamás se queda sin naranjos por un fallo de descarga).
+    var mallaReal = (typeof window.manolitMallaNaranjo !== 'undefined' &&
+                     typeof window.manolitMallaNaranjo.construir === 'function')
+      ? window.manolitMallaNaranjo : null;
     for (v = 0; v < N_VARIANTES; v++) {
       rand = mulberry32(9021 + v * 7919);
-      var geoMaderaN = construirMaderaNaranjo(rand);
-      var geoHojasN = construirHojasNaranjo(rand);
-      var geoMaduros = construirFrutosNaranjo(rand, false);
-      var geoVerdes = construirFrutosNaranjo(rand, true);
+      var geoMaderaN, geoHojasN, geoMaduros, geoVerdes;
+      var matMaderaN = barkMat, usaMalla = false;
+      if (mallaReal) {
+        try {
+          var malla = mallaReal.construir(THREE, rand);
+          geoMaderaN = malla.geo; // tronco+copa reales, ya coloreados
+          geoHojasN = new THREE.BufferGeometry(); // vacía: la copa VA en la malla
+          geoMaduros = construirFrutosMalla(malla.cand, rand, false);
+          geoVerdes = construirFrutosMalla(malla.cand, rand, true);
+          matMaderaN = mallaNaranjoMat;
+          usaMalla = true;
+        } catch (eMalla) { usaMalla = false; /* cae al respaldo de abajo */ }
+      }
+      if (!usaMalla) {
+        geoMaderaN = construirMaderaNaranjo(rand);
+        geoHojasN = construirHojasNaranjo(rand);
+        geoMaduros = construirFrutosNaranjo(rand, false);
+        geoVerdes = construirFrutosNaranjo(rand, true);
+      }
       var geoAzahar = construirAzahar(rand);
 
-      var nTroncos = new THREE.InstancedMesh(geoMaderaN, barkMat, MAX_ARBOL);
+      var nTroncos = new THREE.InstancedMesh(geoMaderaN, matMaderaN, MAX_ARBOL);
       var nHojas = new THREE.InstancedMesh(geoHojasN, hojaNaranjoMat, MAX_ARBOL);
       var nFrutos = new THREE.InstancedMesh(geoMaduros, frutoMat, MAX_ARBOL);
       var nFlores = new THREE.InstancedMesh(geoAzahar, azaharMat, MAX_ARBOL);
@@ -516,6 +608,7 @@
       nHojas.frustumCulled = false;
       nFrutos.frustumCulled = false;
       nFlores.frustumCulled = false;
+      if (usaMalla) nHojas.visible = false; // con malla real no hay capa de hojas aparte
       scene.add(nTroncos); scene.add(nHojas); scene.add(nFrutos); scene.add(nFlores);
 
       variantesNaranjo.push({
@@ -523,6 +616,7 @@
         meshTroncos: nTroncos, meshHojas: nHojas,
         meshFrutos: nFrutos, meshFlores: nFlores,
         geoMaduros: geoMaduros, geoVerdes: geoVerdes,
+        usaMallaReal: usaMalla,
       });
     }
   }
@@ -539,6 +633,7 @@
     for (v = 0; v < variantesAlbizia.length; v++) {
       var va = variantesAlbizia[v];
       va.hojaMat.color.setHex(estA.hoja);
+      va.hojaMat.emissive.setHex(estA.hoja); // el emisivo sigue a la estación (fix contraluz)
       if (va.geoHojasActual) { va.geoHojasActual.dispose(); va.geoHojasActual = null; }
       var geo = geometriaHojasAlbizia(va.descHojas, estA);
       if (geo) {
@@ -588,6 +683,20 @@
     }).slice(0, MAX_ARBOL);
   }
 
+  // ==========================================================================
+  // ORIGEN LOCAL de coordenadas (sep-2026, FIX BASURA GEOMÉTRICA a zoom alto):
+  // las matrices de instancia llevaban coordenadas mercator ABSOLUTAS
+  // (~0.48) con escala de metros (~3e-8): en float32 la GPU no puede sumar
+  // 2e-7 a 0.48 (épsilon ≈ 3e-8) y los vértices se cuantizaban — a z19+ la
+  // malla real (40k triángulos) salía como "placa base" negra/verde y la
+  // albizia como moteado oscuro. Ahora todo se instancia RELATIVO al centro
+  // del mapa (REF) y el render multiplica la proyección por T(+REF): la GPU
+  // solo ve números pequeños y la precisión sobra. REF se recalcula aquí
+  // (cada reinstanciado), nunca por frame: entre reinstanciados el error
+  // relativo es despreciable.
+  // ==========================================================================
+  var REF = { x: 0, y: 0, z: 0 };
+
   function refrescarInstancias(forzar) {
     if (!listo || !activo) return;
     if (!variantesAlbizia.length || !variantesNaranjo.length || !TMP_M4) return; // onAdd diferido: aún no hay nada que instanciar
@@ -601,6 +710,11 @@
     }
     if (!forzar && firma === firmaInstancias) return;
     firmaInstancias = firma;
+
+    // Origen local: el centro actual del mapa (doble precisión en JS).
+    var cRef = map.getCenter();
+    var mcRef = maplibregl.MercatorCoordinate.fromLngLat({ lng: cRef.lng, lat: cRef.lat }, 0);
+    REF.x = mcRef.x; REF.y = mcRef.y; REF.z = mcRef.z;
 
     var porVarianteA = [], porVarianteN = [];
     var v, i;
@@ -625,22 +739,24 @@
         var sArbol = Math.max(0.55, Math.min(1.8, (ar.altura || va.alturaModelo) / va.alturaModelo));
         var s = mScale * sArbol;
         escV.set(s, s, s);
-        m4.compose(TMP_V3.set(mc.x, mc.y, mc.z), QUAT_UP, escV);
+        // Posición RELATIVA a REF (origen local): la GPU suma números
+        // pequeños y la malla no se cuantiza a zoom alto.
+        m4.compose(TMP_V3.set(mc.x - REF.x, mc.y - REF.y, mc.z - REF.z), QUAT_UP, escV);
         for (var m = 0; m < meshes.length; m++) meshes[m].setMatrixAt(i, m4);
 
         if (conRacimos) {
           for (var r = 0; r < va.centros.length && nRacimo < MAX_ARBOL * MAX_RACIMOS_ARBOL; r++) {
             var ce = va.centros[r];
-            // local (x,y,z) → mercator (x, -z, y) · s + base
-            var wx = mc.x + ce.x * s;
-            var wy = mc.y - ce.z * s;
-            var wz = mc.z + ce.y * s;
+            // local (x,y,z) → mercator relativo (x, -z, y) · s + base
+            var wx = (mc.x - REF.x) + ce.x * s;
+            var wy = (mc.y - REF.y) - ce.z * s;
+            var wz = (mc.z - REF.z) + ce.y * s;
             m4.compose(TMP_V3.set(wx, wy, wz), QUAT_UP, escV);
             va.meshRacimos.setMatrixAt(nRacimo, m4);
             racimosVivos.push({
               mesh: va.meshRacimos, idx: nRacimo,
               x: wx, y: wy, z: wz, s: s,
-              suelo: mc.z + 0.1 * s, // altura local 0.1 m, como el HTML
+              suelo: (mc.z - REF.z) + 0.1 * s, // altura local 0.1 m, como el HTML
               caido: 0, visible: true, fase: wx * 913.7,
             });
             nRacimo++;
@@ -737,12 +853,16 @@
         camera = new THREE.Camera();
         camera.matrixAutoUpdate = false;
 
-        // La MISMA luz del HTML: hemisférica cálida + sol direccional.
-        scene.add(new THREE.HemisphereLight(0xfff4de, 0x4a5a3a, 0.6));
+        // La luz del HTML, AJUSTADA A VISTA AÉREA (sep-2026): su HTML se mira
+        // a ras de suelo (órbita) con la cara iluminada de frente; el mapa se
+        // mira desde arriba y a menudo la cara visible queda A CONTRALUZ del
+        // sol real → copas oscuras. Hemisfera 0.6→0.95 y relleno 0.2→0.3:
+        // el ambiente levanta las caras en sombra sin quemar las iluminadas.
+        scene.add(new THREE.HemisphereLight(0xfff4de, 0x4a5a3a, 0.95));
         sol = new THREE.DirectionalLight(0xffffff, 1.0);
         sol.position.set(10, 18, 7);
         scene.add(sol);
-        var relleno = new THREE.DirectionalLight(0xbcd4ff, 0.2);
+        var relleno = new THREE.DirectionalLight(0xbcd4ff, 0.3);
         relleno.position.set(-8, 0, 0);
         scene.add(relleno);
 
@@ -774,7 +894,11 @@
             }
           }
         } catch (e) { /* sol fijo del HTML */ }
-        camera.projectionMatrix = TMP_PROY.fromArray(matrix);
+        // Proyección × T(+REF): las instancias viven en coordenadas
+        // RELATIVAS al centro del mapa; aquí se devuelven al mundo mercator
+        // en doble precisión (JS) antes de subir la matriz a la GPU.
+        camera.projectionMatrix = TMP_PROY.fromArray(matrix)
+          .multiply(TMP_M4.makeTranslation(REF.x, REF.y, REF.z));
         renderer.resetState();
         renderer.render(scene, camera);
       },
@@ -843,14 +967,37 @@
     var debe = condicionesCumplidas();
     if (debe && !listo && !cargandoThree) {
       cargandoThree = true;
-      var s = document.createElement('script');
-      s.src = 'js/three.min.js';
-      s.onload = function () {
+      // Carga en PARALELO three.min.js y la malla real del naranjo
+      // (js/naranjo-malla.js, byte-exacta de su v2). El motor arranca
+      // cuando three está Y (la malla está o pasaron 4 s): si la malla
+      // falla o tarda, se usa el naranjo elipsoide de respaldo y nadie
+      // se queda esperando los árboles por 691 KB en datos móviles.
+      var pendientes = 2, threeFallo = false, mallaHecha = false;
+      var relojMalla = null;
+      function listoParcial() {
+        if (--pendientes > 0) return;
+        cargandoThree = false;
+        if (threeFallo) return; // sin three.js se queda la vista plana de siempre
         listo = true;
         activar();
-      };
-      s.onerror = function () { cargandoThree = false; }; // sin three.js se queda la vista plana de siempre
+      }
+      function mallaLista() {
+        if (mallaHecha) return;
+        mallaHecha = true;
+        if (relojMalla) { clearTimeout(relojMalla); relojMalla = null; }
+        listoParcial();
+      }
+      var s = document.createElement('script');
+      s.src = 'js/three.min.js';
+      s.onload = listoParcial;
+      s.onerror = function () { threeFallo = true; listoParcial(); };
       document.head.appendChild(s);
+      var s2 = document.createElement('script');
+      s2.src = 'js/naranjo-malla.js';
+      s2.onload = mallaLista;
+      s2.onerror = mallaLista; // sin malla: respaldo elipsoide, jamás rompe
+      document.head.appendChild(s2);
+      relojMalla = setTimeout(mallaLista, 4000);
       return;
     }
     if (!listo) return;
@@ -884,9 +1031,12 @@
         return { troncos: v.meshTroncos.count, hojas: v.meshHojas.count, racimos: v.meshRacimos.count };
       }),
       naranjos: variantesNaranjo.map(function (v) {
-        return { troncos: v.meshTroncos.count, hojas: v.meshHojas.count, frutos: v.meshFrutos.count };
+        return { mallaReal: !!v.usaMallaReal, troncos: v.meshTroncos.count, hojas: v.meshHojas.count, frutos: v.meshFrutos.count };
       }),
       zoom: map ? map.getZoom() : -1,
+      // Referencias vivas (solo lectura/manipulación de depuración): el banco
+      // de pruebas las usa para encender/apagar mallas y aislar problemas.
+      refs: { variantesAlbizia: variantesAlbizia, variantesNaranjo: variantesNaranjo },
     };
   };
 

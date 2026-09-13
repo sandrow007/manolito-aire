@@ -1324,7 +1324,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (el) el.textContent = texto;
   }
 
-  setInterval(() => {
+  // Id guardado (sep-2026, checklist de optimización: ningún setInterval
+  // suelto — todos quedan localizables y limpiables en window.manolitIntervalos).
+  window.manolitIntervalos = window.manolitIntervalos || [];
+  window.manolitIntervalos.push(setInterval(() => {
     if (document.hidden) return; // pestaña oculta: cero gasto de CPU/batería
     if (!solarActivado || modoManual || paseoActivo) return;
     // Rendimiento (sep-2026): con las sombras apagadas en el panel no hay
@@ -1334,7 +1337,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (map.loaded()) recalcularSombrasVisibles();
     actualizarIluminacionSolar();
     sincronizarArboles();
-  }, 60 * 1000);
+  }, 60 * 1000));
 
   /* ============================================================
      ÓPTICA ATMOSFÉRICA EN TIEMPO REAL — nubes de OpenWeatherMap
@@ -1640,12 +1643,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   // OWM renueva sus tiles cada ~10 min: cambiamos el sello para que el mapa
   // pida la versión nueva (las teselas viejas las sirve la caché edge).
-  setInterval(() => {
+  window.manolitIntervalos = window.manolitIntervalos || [];
+  window.manolitIntervalos.push(setInterval(() => {
     if (document.hidden) return; // pestaña oculta: no pedir tiles nuevas
     if (!map.getSource('nubes-owm')) return;
     selloTilesNubes = Date.now();
     try { map.getSource('nubes-owm').setTiles(urlTilesNubes()); } catch (e) { /* fuente a medio cargar */ }
-  }, NUBES.refrescoMs);
+  }, NUBES.refrescoMs));
 
   // Si el estilo se recargara por cualquier motivo, la capa se reinstala sola.
   map.on('styledata', () => {
@@ -1728,6 +1732,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return false;
   }
 
+  // Contador de generación del filtrado de tramos (sep-2026, aditivo):
+  // permite abortar cálculos viejos cuando el slider de hora se mueve
+  // rápido y se solapan varias llamadas — solo la última escribe en el mapa.
+  let generacionTramosSombra = 0;
+
   async function actualizarTramosSombraRuta() {
     const fuente = map.getSource('ruta-sombra');
     if (!fuente) return;
@@ -1752,7 +1761,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const tramos = turf.lineChunk(rutaActual, 0.01, { units: 'kilometers' });
       const sombrasEdificios = (ultimaColeccionSombras && ultimaColeccionSombras.features) || [];
       const sombrasArboles = obtenerSombrasDeArboles();
-      const tramosEnSombra = tramos.features.filter((tramo) => {
+      // Rendimiento (sep-2026, brief "Mapa Eficiente y Elegante" de Sandro):
+      // una ruta de 2 km son ~200 tramos × booleanPointInPolygon contra
+      // TODAS las sombras de edificios + intersección con cada árbol, y
+      // esto se dispara en CADA movimiento del slider de hora — en el hilo
+      // principal atrancaba el arrastre. Ahora el filtrado cede al
+      // navegador cada 25 tramos con requestIdleCallback (o setTimeout(0)
+      // si no existe): el resultado es EXACTAMENTE el mismo (la lógica de
+      // filtrado no ha cambiado ni una línea), solo se reparte en tiempos
+      // muertos en vez de atragantarse de una vez.
+      // Guardia de generación: si el slider se mueve muy rápido, llamadas
+      // solapadas podrían terminar desordenadas; solo la ÚLTIMA escribe.
+      generacionTramosSombra++;
+      const miGeneracionTramos = generacionTramosSombra;
+      const esTramoEnSombra = (tramo) => {
         const coords = tramo.geometry.coordinates;
         const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
         // Edificios: sombra grande, basta el punto medio (rápido).
@@ -1763,7 +1785,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         }
         // Árboles: sombra fina, hace falta intersección real con el tramo.
         return tramoTocaSombraDeArbol(tramo, sombrasArboles);
-      });
+      };
+      const tramosEnSombra = [];
+      for (let i = 0; i < tramos.features.length; i++) {
+        if (esTramoEnSombra(tramos.features[i])) tramosEnSombra.push(tramos.features[i]);
+        if (i % 25 === 24 && i < tramos.features.length - 1) {
+          await new Promise((resolver) => {
+            if ('requestIdleCallback' in window) requestIdleCallback(() => resolver(), { timeout: 250 });
+            else setTimeout(resolver, 0);
+          });
+          if (miGeneracionTramos !== generacionTramosSombra) return; // hay un cálculo más nuevo: este se aborta en silencio
+        }
+      }
       fuente.setData(turf.featureCollection(tramosEnSombra));
       // Antes el badge de "% del trayecto en sombra" solo se calculaba una
       // vez, al buscar la ruta, y se quedaba congelado aunque cambiaras la
@@ -7688,13 +7721,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const ultimaRefresco = Number(localStorage.getItem(CLAVE_REFRESCO_OSM) || 0);
       if (Date.now() - ultimaRefresco > REFRESCO_OSM_MS) frescosPendiente = true;
     } catch (e) { /* sin localStorage: modo normal */ }
-    setInterval(() => {
+    window.manolitIntervalos = window.manolitIntervalos || [];
+    window.manolitIntervalos.push(setInterval(() => {
       if (document.hidden) return; // pestaña oculta: cero gasto
       try {
         const ultimaRefresco = Number(localStorage.getItem(CLAVE_REFRESCO_OSM) || 0);
         if (Date.now() - ultimaRefresco > REFRESCO_OSM_MS) actualizarDatosOSM();
       } catch (e) { /* el refresco jamás rompe el mapa */ }
-    }, 30 * 60 * 1000);
+    }, 30 * 60 * 1000));
 
     window.manolitAireRecalcularArboles = recalcularSombrasArboles;
 

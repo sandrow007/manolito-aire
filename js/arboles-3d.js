@@ -575,7 +575,10 @@
           a.tipo = 'albizia'; return a;
         });
       }
-    } catch (e) { return []; }
+} catch (e) {
+    console.warn('[arboles-3d] Error filtrando albizias:', e);
+    return [];
+}
     var b = map.getBounds();
     var c = map.getCenter();
     return todas.filter(function (a) {

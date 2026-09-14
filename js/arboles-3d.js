@@ -51,11 +51,15 @@
   };
 
   // Estado estacional del NARANJO (perenne), coherente con fenologiaArbol
-  // de shadows-route.js: azahar en primavera, naranjas verdes en verano,
-  // naranjas maduras colgando otoño e invierno.
+  // de shadows-route.js: azahar en primavera y naranjas MADURAS (en su
+  // tono naranja) colgando el resto del año. sep-2026, orden directa de
+  // Sandro: "las naranjas deben estar NARANJAS, no verdosas" — el verano
+  // también da fruto maduro, igual que la capa plana (conFruto todo el
+  // año salvo primavera). La geometría de fruto verde se conserva intacta
+  // por si algún día se reactiva esa cosecha.
   var ESTACIONES_NARANJO = {
     primavera: { frutos: 'ninguno', flores: true  },
-    verano:    { frutos: 'verdes',  flores: false },
+    verano:    { frutos: 'maduros', flores: false },
     otono:     { frutos: 'maduros', flores: false },
     invierno:  { frutos: 'maduros', flores: false },
   };
@@ -497,6 +501,11 @@
     var frutoMat = new THREE.MeshStandardMaterial({
       color: 0xffffff, flatShading: true, roughness: 0.55, metalness: 0.02,
       vertexColors: true,
+      // emissive naranja suave (sep-2026, orden de Sandro): el mapa se mira
+      // DESDE ARRIBA y la naranja en la cara opuesta al sol se perdía en la
+      // copa. Con un emisivo del mismo tono (0xE8792A) al 30% la fruta se
+      // lee NARANJA desde cualquier pitch sin quemar el color.
+      emissive: 0xE8792A, emissiveIntensity: 0.30,
     });
     // roughness 1.0 / metalness 0.0 (sep-2026): valores LITERALES del
     // "naranjo real mesh v2.html" de Sandro — con rugosidad < 1 las hojas
@@ -507,16 +516,20 @@
     var hojaNaranjoMat = new THREE.MeshStandardMaterial({
       color: 0xffffff, flatShading: true, roughness: 1.0, metalness: 0.0,
       vertexColors: true,
-      emissive: 0x567f42, emissiveIntensity: 0.55,
+      // 0.45 (sep-2026, orden de Sandro: "de cerca brilla demasiado"): el
+      // emisivo anti-contraluz se mantiene, pero más bajo para que la copa
+      // no se lave al acercar el zoom. De lejos sigue leyéndose verde.
+      emissive: 0x567f42, emissiveIntensity: 0.45,
     });
     // Material de la MALLA REAL (sep-2026): misma receta del v2 (vertexColors,
     // flatShading, roughness 1.0, metalness 0.0). El emisivo baja a 0.35:
     // al ser una malla cerrada con normales hacia fuera no sufre la hoja
     // negra en contraluz como los planos, y así el tronco conserva su marrón.
+    // (0.50 → 0.35, orden de Sandro: al acercar el zoom brillaba de más.)
     var mallaNaranjoMat = new THREE.MeshStandardMaterial({
       color: 0xffffff, flatShading: true, roughness: 1.0, metalness: 0.0,
       vertexColors: true,
-      emissive: 0x567f42, emissiveIntensity: 0.50,
+      emissive: 0x567f42, emissiveIntensity: 0.35,
     });
 
     var v, rand;

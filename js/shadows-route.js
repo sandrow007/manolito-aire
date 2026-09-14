@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -7109,10 +7109,35 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       let decoradosEstePase = 0;
       const MAX_ARBOLES_DECORADOS = 150;
 
+      // ------- DESCAMUFLAJE 3D (ADITIVO sep-2026, orden de Sandro) -------
+      // En OSM a veces el MISMO árbol está dos veces: una con especie
+      // (Citrus × … → modelo 3D real) y otra sin etiquetar a 2-3 m. Esa
+      // segunda copia dibujaba su copa plana ATRAVESADA en la copa 3D: el
+      // "cubo verde" que camuflaba al naranjo y z-fighting al hacer zoom.
+      // Quien tiene modelo 3D real manda: cualquier otro árbol a menos de
+      // (su radio de copa + 0,6 m, mínimo 3,2 m) no se pinta en plano.
+      // No se borra dato alguno: solo se deja de duplicar lo que el motor
+      // 3D ya dibuja mejor.
+      const protegidos3D = arbolesGrandes.filter((a) => a.tipo === 'albizia' || a.tipo === 'naranjo');
+      const cercaDeProtegido3D = (lon, lat) => {
+        const cosLat = Math.cos(lat * Math.PI / 180);
+        for (const p of protegidos3D) {
+          const [plon, plat] = p.punto.geometry.coordinates;
+          const dx = (plon - lon) * cosLat * 111320;
+          const dy = (plat - lat) * 110540;
+          const limite = Math.max(3.2, (p.radioCopaM || 3) + 0.6);
+          if (dx * dx + dy * dy < limite * limite) return true;
+        }
+        return false;
+      };
+
       const features = [];
       for (const a of enVista) {
         const forma = a.forma || 'redondeada';
         const [lon, lat] = a.punto.geometry.coordinates;
+        // Si este árbol "normal" está pegado a un naranjo/albizia con
+        // modelo 3D real, no se pinta en plano: es el camuflaje del cubo.
+        if (a.tipo !== 'albizia' && a.tipo !== 'naranjo' && cercaDeProtegido3D(lon, lat)) continue;
         // Fenología (solo naranjo y albizia; null = como siempre).
         const feno = fenologiaArbol(a.tipo, estacion, progresoEstacion(obtenerHoraEfectiva()));
         const factorHoja = feno ? (0.30 + 0.70 * feno.densidadHoja) : 1;

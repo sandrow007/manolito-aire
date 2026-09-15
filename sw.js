@@ -40,7 +40,14 @@
 // 2026-09-14-b: SEO de sostenibilidad en index.html (huella hídrica por
 // visita ~1-4 ml, sin publicidad programática; metas, OG, JSON-LD y línea
 // visible en el footer). Solo cambia index.html.
-const VERSION = '2026-09-14-b';
+// 2026-09-14-c: IRRADIACIÓN SOLAR GLOBAL REAL (irradiacion-solar.js v4 +
+// i18n.js). Antes TODAS las consultas a NASA POWER usaban lat/lon fijos de
+// Sevilla: el mismo dato en cualquier parte del mundo. Ahora el punto de
+// consulta sigue al centro del mapa y a cada clic, agrupado por la celda
+// real de la malla NASA (0.5°), cacheado por celda (memoria + 7 días):
+// Sevilla da Sevilla, Tokio da Tokio. Marcador naranja del punto, coords
+// en popup y panel, media anual del punto, y timeout de 12 s en red.
+const VERSION = '2026-09-14-c';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

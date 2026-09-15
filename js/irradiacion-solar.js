@@ -23,6 +23,21 @@
         el índice de nubosidad instantáneo (GHI/cielo despejado)
         y la exposición efectiva con la atenuación aplicada.
 
+   Novedades v4 (sep-2026, orden de Sandro):
+     D. LOCALIZACIÓN DINÁMICA REAL: el punto de consulta ya no está
+        fijo en Sevilla — sigue al centro del mapa y a cada clic.
+        NASA POWER se consulta con las coordenadas de LA CELDA de su
+        propia malla global (0.5°×0.5°) que contiene al punto: cada
+        celda se pide una sola vez y se cachea; moverse dentro de la
+        misma celda no repite peticiones (ahorro de datos, batería
+        y agua). Así Sevilla da el dato de Sevilla, Tokio el de
+        Tokio y Nairobi el de Nairobi.
+     E. El clic fija el punto: el popup y el panel muestran el dato
+        real de ESE punto (hora, día y media anual) y un marcador
+        naranja lo señala en el mapa.
+     F. Timeout de 12 s en las llamadas de red: nada se queda
+        colgado aunque la conexión falle.
+
    Física: la ley del coseno de Lambert solo se aplica a la
    componente DIRECTA al transponer a plano inclinado:
      G_plano = DNI·cos(θ) + DHI·(1+cosβ)/2
@@ -92,6 +107,26 @@
     return `rgb(${RAMPA[RAMPA.length - 1].color.join(',')})`;
   }
 
+  // ------- FETCH CON TIMEOUT + REINTENTO (ADITIVO sep-2026, punto F) -------
+  // Sin límite de espera, una red lenta podía dejar la consulta
+  // colgada para siempre. A los 25 s se aborta, se espera 1,5 s y se
+  // prueba UNA vez más; si tampoco, el panel avisa. Así un bache de
+  // cobertura en el móvil no deja la capa mud (ni colgada).
+  async function fetchConTimeout(url, ms = 25000) {
+    let ultimoError = null;
+    for (let intento = 0; intento < 2; intento++) {
+      const controlador = new AbortController();
+      const temporizador = setTimeout(() => controlador.abort(), ms);
+      try {
+        return await fetch(url, { signal: controlador.signal });
+      } catch (e) {
+        ultimoError = e;
+        if (intento === 0) await new Promise((r) => setTimeout(r, 1500));
+      } finally { clearTimeout(temporizador); }
+    }
+    throw ultimoError;
+  }
+
   function esperarMapa() {
     return new Promise((resolve, reject) => {
       const t0 = Date.now();
@@ -109,6 +144,46 @@
 
   async function iniciar(map) {
     const contenedorMapa = map.getContainer();
+
+    // ------- LOCALIZACIÓN DINÁMICA DE LA CONSULTA (ADITIVO sep-2026, punto D) -------
+    // NASA POWER es una malla global de 0.5°×0.5°: cada punto se agrupa en
+    // su celda y la celda se consulta UNA vez (caché en memoria + 7 días en
+    // localStorage). El punto exacto del clic se muestra tal cual al usuario.
+    const CELDA_NASA = 0.5;
+    function celdaDe(lat, lon) {
+      return {
+        la: Math.round(lat / CELDA_NASA) * CELDA_NASA,
+        lo: Math.round(lon / CELDA_NASA) * CELDA_NASA,
+      };
+    }
+    function mismaCelda(a, b) {
+      const ca = celdaDe(a.lat, a.lon), cb = celdaDe(b.lat, b.lon);
+      return ca.la === cb.la && ca.lo === cb.lo;
+    }
+    // Punto sobre el que trabaja el panel: el último clic si lo hay; si no, el centro del mapa.
+    let puntoConsulta = null;
+    function puntoActivo() {
+      if (puntoConsulta) return puntoConsulta;
+      const c = map.getCenter();
+      return { lat: c.lat, lon: c.lng };
+    }
+    // Marcador discreto que señala en el mapa el punto consultado (punto E).
+    let marcadorConsulta = null;
+    function pintarMarcadorConsulta(lat, lon) {
+      try {
+        if (!marcadorConsulta) {
+          const el = document.createElement('div');
+          // pointer-events:none — el punto no puede tragarse el clic del usuario
+          el.style.cssText = 'width:14px;height:14px;border-radius:50%;background:#FF6B1A;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,0.35);pointer-events:none;';
+          marcadorConsulta = new maplibregl.Marker({ element: el }).setLngLat([lon, lat]).addTo(map);
+        } else {
+          marcadorConsulta.setLngLat([lon, lat]);
+        }
+      } catch (e) { /* sin marcador la función sigue igual */ }
+    }
+    function quitarMarcadorConsulta() {
+      try { if (marcadorConsulta) { marcadorConsulta.remove(); marcadorConsulta = null; } } catch (e) { }
+    }
 
     // ================= CAPAS A RECOLOREAR =================
     function capaEdificios() {
@@ -145,8 +220,12 @@
     }
 
     // ================= NASA POWER: CACHÉS =================
-    const cacheDiaria = new Map();   // anio -> { 'YYYYMMDD': {ghi, dni, cielo} }  (kWh/m²/día)
-    const cacheHoraria = new Map();  // 'YYYYMMDD' -> { hora(0-23): {ghi, dni, cielo} } (Wh/m² esa hora)
+    // v4: las claves incluyen la CELDA (0.5°) — ver "localización dinámica".
+    const cacheDiaria = new Map();   // 'd_anio_la_lo' -> { 'YYYYMMDD': {ghi, dni, cielo} }  (kWh/m²/día)
+    const cacheHoraria = new Map();  // 'h_YYYYMMDD_la_lo' -> { hora(0-23): {ghi, dni, cielo} } (Wh/m² esa hora)
+    // Peticiones EN VUELO: si panel y resumen piden la misma celda a la vez,
+    // comparten UNA promesa — ni una petición duplicada (ahorro de datos).
+    const enVuelo = new Map();       // claveCelda -> Promise
 
     function claveFecha(anio, mes, dia) {
       return `${anio}${String(mes).padStart(2, '0')}${String(dia).padStart(2, '0')}`;
@@ -169,19 +248,33 @@
       try { localStorage.setItem(`manolito_cache_nasa_${clave}`, JSON.stringify({ t: Date.now(), v: valor })); } catch (e) { }
     }
 
-    async function obtenerAnioDiario(anio) {
-      if (cacheDiaria.has(anio)) return cacheDiaria.get(anio);
-      const persistente = nasaCacheObtener(`d_${anio}`);
-      if (persistente) { cacheDiaria.set(anio, persistente); return persistente; }
+    // Antes (v3): TODAS las peticiones usaban CONFIG.lat/lon fijos (Sevilla).
+    // Ahora (v4): cada consulta lleva las coordenadas de LA CELDA NASA que
+    // contiene al punto activo — Sevilla da Sevilla, Tokio da Tokio.
+    async function obtenerAnioDiario(anio, lat, lon) {
+      const celda = celdaDe(lat ?? CONFIG.lat, lon ?? CONFIG.lon);
+      const claveCelda = `d_${anio}_${celda.la}_${celda.lo}`;
+      if (cacheDiaria.has(claveCelda)) return cacheDiaria.get(claveCelda);
+      const persistente = nasaCacheObtener(claveCelda);
+      if (persistente) { cacheDiaria.set(claveCelda, persistente); return persistente; }
+      // Si ya hay una petición idéntica en vuelo, se comparte (cero duplicados)
+      if (enVuelo.has(claveCelda)) return enVuelo.get(claveCelda);
+      const promesa = descargarAnioDiario(celda, claveCelda, anio);
+      enVuelo.set(claveCelda, promesa);
+      try { return await promesa; } finally { enVuelo.delete(claveCelda); }
+    }
+
+    // Descarga real de la serie diaria de UNA celda (un año completo).
+    async function descargarAnioDiario(celda, claveCelda, anio) {
       const url = new URL(CONFIG.nasaDiario);
       url.searchParams.set('parameters', CONFIG.parametrosNasa.join(','));
       url.searchParams.set('community', 'RE');
-      url.searchParams.set('longitude', CONFIG.lon);
-      url.searchParams.set('latitude', CONFIG.lat);
+      url.searchParams.set('longitude', celda.lo);
+      url.searchParams.set('latitude', celda.la);
       url.searchParams.set('start', `${anio}0101`);
       url.searchParams.set('end', `${anio}1231`);
       url.searchParams.set('format', 'JSON');
-      const r = await fetch(url.toString());
+      const r = await fetchConTimeout(url.toString());
       if (!r.ok) throw new Error(`NASA POWER HTTP ${r.status}`);
       const datos = await r.json();
       const series = datos?.properties?.parameter;
@@ -197,26 +290,37 @@
           cieloDespejado: esValorValido(cielo) ? cielo : null,
         };
       }
-      cacheDiaria.set(anio, porDia);
-      nasaCacheGuardar(`d_${anio}`, porDia);
+      cacheDiaria.set(claveCelda, porDia);
+      nasaCacheGuardar(claveCelda, porDia);
       return porDia;
     }
 
-    async function obtenerDiaHorario(anio, mes, dia) {
+    async function obtenerDiaHorario(anio, mes, dia, lat, lon) {
+      const celda = celdaDe(lat ?? CONFIG.lat, lon ?? CONFIG.lon);
       const clave = claveFecha(anio, mes, dia);
-      if (cacheHoraria.has(clave)) return cacheHoraria.get(clave);
-      const persistente = nasaCacheObtener(`h_${clave}`);
-      if (persistente) { cacheHoraria.set(clave, persistente); return persistente; }
+      const claveCelda = `h_${clave}_${celda.la}_${celda.lo}`;
+      if (cacheHoraria.has(claveCelda)) return cacheHoraria.get(claveCelda);
+      const persistente = nasaCacheObtener(claveCelda);
+      if (persistente) { cacheHoraria.set(claveCelda, persistente); return persistente; }
+      // Si ya hay una petición idéntica en vuelo, se comparte (cero duplicados)
+      if (enVuelo.has(claveCelda)) return enVuelo.get(claveCelda);
+      const promesa = descargarDiaHorario(celda, claveCelda, clave);
+      enVuelo.set(claveCelda, promesa);
+      try { return await promesa; } finally { enVuelo.delete(claveCelda); }
+    }
+
+    // Descarga real del perfil horario de UN día en UNA celda.
+    async function descargarDiaHorario(celda, claveCelda, clave) {
       const url = new URL(CONFIG.nasaHorario);
       url.searchParams.set('parameters', CONFIG.parametrosNasa.join(','));
       url.searchParams.set('community', 'RE');
-      url.searchParams.set('longitude', CONFIG.lon);
-      url.searchParams.set('latitude', CONFIG.lat);
+      url.searchParams.set('longitude', celda.lo);
+      url.searchParams.set('latitude', celda.la);
       url.searchParams.set('start', clave);
       url.searchParams.set('end', clave);
       url.searchParams.set('format', 'JSON');
       url.searchParams.set('time-standard', 'UTC');
-      const r = await fetch(url.toString());
+      const r = await fetchConTimeout(url.toString());
       if (!r.ok) throw new Error(`NASA POWER HTTP ${r.status}`);
       const datos = await r.json();
       const series = datos?.properties?.parameter;
@@ -234,15 +338,16 @@
           cieloDespejado: esValorValido(cielo) ? cielo : null,
         };
       }
-      cacheHoraria.set(clave, porHora);
-      nasaCacheGuardar(`h_${clave}`, porHora);
+      cacheHoraria.set(claveCelda, porHora);
+      nasaCacheGuardar(claveCelda, porHora);
       return porHora;
     }
 
     // ================= FÍSICA SOLAR =================
-    function radiacionExtraterrestreDiaria(anio, mes, dia) {
+    // v4: la latitud entra por parámetro (antes usaba siempre Sevilla).
+    function radiacionExtraterrestreDiaria(anio, mes, dia, latGrados) {
       const diaJuliano = Math.floor((Date.UTC(anio, mes - 1, dia) - Date.UTC(anio, 0, 1)) / 86400000) + 1;
-      const phi = (CONFIG.lat * Math.PI) / 180;
+      const phi = (((latGrados ?? CONFIG.lat)) * Math.PI) / 180;
       const delta = ((23.45 * Math.PI) / 180) * Math.sin(((2 * Math.PI) * (284 + diaJuliano)) / 365);
       const omegaS = Math.acos(Math.max(-1, Math.min(1, -Math.tan(phi) * Math.tan(delta))));
       const e0 = 1 + 0.033 * Math.cos((2 * Math.PI * diaJuliano) / 365);
@@ -293,20 +398,23 @@
       try {
         if (typeof SunCalc === 'undefined') throw new Error('SunCalc no está cargado');
 
-        // Dato diario (kWh/m²/día) — serie real del año completo
-        const porDia = await obtenerAnioDiario(anio);
+        // v4: el punto de consulta es dinámico (último clic o centro del mapa)
+        const punto = puntoActivo();
+
+        // Dato diario (kWh/m²/día) — serie real del año completo EN ESE PUNTO
+        const porDia = await obtenerAnioDiario(anio, punto.lat, punto.lon);
         const datoDia = porDia[claveFecha(anio, mes, dia)];
         if (!datoDia) throw new Error('Sin dato diario para esa fecha');
 
-        // Dato horario (Wh/m²) — perfil real del día elegido
+        // Dato horario (Wh/m²) — perfil real del día elegido EN ESE PUNTO
         let datoHora = null;
-        try { datoHora = (await obtenerDiaHorario(anio, mes, dia))[hora] ?? null; }
+        try { datoHora = (await obtenerDiaHorario(anio, mes, dia, punto.lat, punto.lon))[hora] ?? null; }
         catch (e) { /* el endpoint horario puede fallar en años antiguos */ }
 
-        // Posición solar real en esa fecha/hora (UTC ≈ hora civil −1/−2 en Sevilla;
-        // la serie horaria de POWER es UTC, así que comparamos en UTC)
+        // Posición solar real en esa fecha/hora y EN ESE PUNTO
+        // (la serie horaria de POWER es UTC, así que comparamos en UTC)
         const fecha = new Date(Date.UTC(anio, mes - 1, dia, hora, 0, 0));
-        const posSol = SunCalc.getPosition(fecha, CONFIG.lat, CONFIG.lon);
+        const posSol = SunCalc.getPosition(fecha, punto.lat, punto.lon);
         const deNoche = posSol.altitude <= 0;
 
         // Color: índice de nubosidad instantáneo (GHI / cielo despejado),
@@ -314,7 +422,7 @@
         let tColor;
         if (deNoche) tColor = 0;
         else if (datoHora?.cieloDespejado > 0) tColor = datoHora.ghi / datoHora.cieloDespejado;
-        else tColor = datoDia.ghi / radiacionExtraterrestreDiaria(anio, mes, dia); // Kt diario
+        else tColor = datoDia.ghi / radiacionExtraterrestreDiaria(anio, mes, dia, punto.lat); // Kt diario
         aplicarColorATodasLasCapas(interpolarColor(deNoche ? 0 : (tColor - 0.2) / 0.85));
 
         const partes = [
@@ -323,6 +431,7 @@
         ];
         if (datoHora) partes.unshift(`Hora ${String(hora).padStart(2, '0')}:00 UTC: ${datoHora.ghi.toFixed(0)} Wh/m²`);
         partes.push(`· sol ${(posSol.altitude * 180 / Math.PI).toFixed(1)}°${deNoche ? ' (noche)' : ''}`);
+        partes.push(`· ${t('irrQueryPoint', 'Punto')}: ${punto.lat.toFixed(3)}, ${punto.lon.toFixed(3)}`);
         mostrarEstadoPanel(partes.join(' '));
       } catch (e) {
         console.debug('[irradiacion-solar]', e.message);
@@ -518,7 +627,8 @@
     async function cargarResumenAnual(anio) {
       resumenEl.textContent = t('irrAnnualLoading', 'Cargando resumen del año…');
       try {
-        const porDia = await obtenerAnioDiario(anio);
+        const punto = puntoActivo();
+        const porDia = await obtenerAnioDiario(anio, punto.lat, punto.lon);
         const valores = Object.values(porDia).map((d) => d.ghi);
         if (!valores.length) throw new Error('sin datos');
         const media = valores.reduce((a, b) => a + b, 0) / valores.length;
@@ -527,7 +637,8 @@
         resumenEl.innerHTML =
           `${t('irrAnnual', 'Irradiación anual')}: <b>${Math.round(media * 365)} kWh/m²</b> (${valores.length} ${t('irrRealDays', 'días reales')})<br>` +
           `${t('irrBestDay', 'Mejor día')}: <b>${mejor.toFixed(2)}</b> · ${t('irrWorstDay', 'peor')}: <b>${peor.toFixed(2)} kWh/m²</b><br>` +
-          `${t('irrPeakHours', 'Horas de sol pico')}: <b>${media.toFixed(1)} h</b>`;
+          `${t('irrPeakHours', 'Horas de sol pico')}: <b>${media.toFixed(1)} h</b><br>` +
+          `${t('irrQueryPoint', 'Punto de consulta')}: <b>${punto.lat.toFixed(3)}, ${punto.lon.toFixed(3)}</b>`;
       } catch (e) {
         resumenEl.textContent = t('irrError', 'No se ha podido calcular el resumen del año.');
       }
@@ -568,6 +679,12 @@
         btn.classList.toggle('rs-activo', capaActiva);
         panelEl.classList.toggle('rs-visible', capaActiva);
         if (capaActiva) {
+          // v4: el punto de consulta arranca en el centro del mapa visible
+          if (!puntoConsulta) {
+            const c = map.getCenter();
+            puntoConsulta = { lat: c.lat, lon: c.lng };
+          }
+          pintarMarcadorConsulta(puntoConsulta.lat, puntoConsulta.lon);
           const { anio, mes, dia, hora } = fechaHoraValidos();
           cargarResumenAnual(anio);
           aplicarIrradiancia(anio, mes, dia, hora);
@@ -576,6 +693,8 @@
           restaurarColoresOriginales();
           mostrarEstadoPanel('');
           desactivarInspeccionPorClic();
+          puntoConsulta = null;
+          quitarMarcadorConsulta();
         }
       });
       // Si el botón fijo cargó este módulo bajo demanda, el primer clic del
@@ -600,13 +719,18 @@
       const atenuacion = clasificarPunto(e.lngLat);
       const { anio, mes, dia, hora } = fechaHoraValidos();
 
+      // v4: el clic FIJA el punto de consulta — popup, panel y marcador
+      // muestran el dato real de ESE punto del mundo, no de Sevilla.
+      puntoConsulta = { lat: e.lngLat.lat, lon: e.lngLat.lng };
+      pintarMarcadorConsulta(puntoConsulta.lat, puntoConsulta.lon);
+
       let bloqueHistorico = `<i>${t('irrLoading', 'consultando…')}</i>`;
       try {
-        const porDia = await obtenerAnioDiario(anio);
+        const porDia = await obtenerAnioDiario(anio, puntoConsulta.lat, puntoConsulta.lon);
         const datoDia = porDia[claveFecha(anio, mes, dia)];
         let ghiHora = null, cieloHora = null;
         try {
-          const datoHora = (await obtenerDiaHorario(anio, mes, dia))[hora];
+          const datoHora = (await obtenerDiaHorario(anio, mes, dia, puntoConsulta.lat, puntoConsulta.lon))[hora];
           if (datoHora) { ghiHora = datoHora.ghi; cieloHora = datoHora.cieloDespejado; }
         } catch (err) { /* sin serie horaria */ }
 
@@ -615,15 +739,28 @@
           const base = ghiHora != null ? ghiHora : datoDia.ghi * 1000 / 12; // Wh/m² aprox. si no hay hora
           const exposicion = base * (atenuacion.factor / ATENUACION.SOL.factor);
           const nubosidad = cieloHora > 0 ? ` · ${(100 * ghiHora / cieloHora).toFixed(0)} % del cielo despejado` : '';
+          // Media anual del punto (la celda ya está en caché: coste cero)
+          const valoresAnio = Object.values(porDia).map((d) => d.ghi);
+          const mediaAnual = valoresAnio.length
+            ? valoresAnio.reduce((a, b) => a + b, 0) / valoresAnio.length : null;
           bloqueHistorico =
+            `${t('irrQueryPoint', 'Punto de consulta')}: <b>${puntoConsulta.lat.toFixed(4)}, ${puntoConsulta.lon.toFixed(4)}</b><br>` +
             `<b>${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${anio}, ${String(hora).padStart(2, '0')}:00 UTC</b><br>` +
             (ghiHora != null ? `Hora: <b>${ghiHora.toFixed(0)} Wh/m²</b>${nubosidad}<br>` : '') +
             `Día completo: <b>${datoDia.ghi.toFixed(2)} kWh/m²</b><br>` +
+            (mediaAnual != null ? `${t('irrAnnual', 'Irradiación anual')}: <b>${mediaAnual.toFixed(2)} kWh/m²/día</b><br>` : '') +
             `${t('irrEffectiveExposure', 'Exposición efectiva aquí')}: <b>${exposicion.toFixed(0)} Wh/m²</b>`;
         }
       } catch (err) {
         bloqueHistorico = t('irrNoData', 'Sin dato NASA para esa fecha.');
       }
+
+      // El panel se pone al día con el mismo punto (la celda ya está
+      // cacheada, así que esto no cuesta ni una petición extra).
+      try {
+        aplicarIrradiancia(anio, mes, dia, hora);
+        cargarResumenAnual(anio);
+      } catch (err) { /* el panel avisa por su propio canal */ }
 
       const html = `
         <div style="font-family:inherit;font-size:12.5px;line-height:1.55;max-width:240px;">
@@ -649,5 +786,29 @@
       map.getCanvas().style.cursor = '';
       if (popupInspeccion) { popupInspeccion.remove(); popupInspeccion = null; }
     }
+
+    // ------- EL DATO SIGUE AL MAPA (ADITIVO sep-2026, punto D) -------
+    // Al terminar de mover el mapa con la capa activa, el punto de
+    // consulta pasa a ser el centro — SOLO si cambia la celda NASA
+    // (0.5°), para no repetir peticiones ni repintar en vano. Así el
+    // color de los edificios y el panel reflejan SIEMPRE el lugar que
+    // se está mirando: España da el dato de España, China el de China.
+    let temporizadorMovimiento = null;
+    map.on('moveend', () => {
+      if (!capaActiva) return;
+      clearTimeout(temporizadorMovimiento);
+      temporizadorMovimiento = setTimeout(() => {
+        try {
+          const c = map.getCenter();
+          const nuevo = { lat: c.lat, lon: c.lng };
+          if (mismaCelda(puntoActivo(), nuevo)) return;
+          puntoConsulta = nuevo;
+          pintarMarcadorConsulta(nuevo.lat, nuevo.lon);
+          const { anio, mes, dia, hora } = fechaHoraValidos();
+          aplicarIrradiancia(anio, mes, dia, hora);
+          cargarResumenAnual(anio);
+        } catch (err) { console.debug('[irradiacion-solar]', err.message); }
+      }, 700);
+    });
   }
 })();

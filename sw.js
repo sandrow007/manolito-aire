@@ -47,7 +47,16 @@
 // real de la malla NASA (0.5°), cacheado por celda (memoria + 7 días):
 // Sevilla da Sevilla, Tokio da Tokio. Marcador naranja del punto, coords
 // en popup y panel, media anual del punto, y timeout de 12 s en red.
-const VERSION = '2026-09-14-c';
+// 2026-09-14-d: sección "El agua que no se ve" en manolito-aire-comparativa.html
+// (cuentas reales: ~3 ml/visita vs ~375 L/s de la publicidad programática
+// mundial, gráfica interactiva por periodos + contador en vivo, sin librerías)
+// y banda destacada del mismo dato en index.html antes del footer.
+// 2026-09-16-a: datos de agua ACTUALIZADOS con telemetría real de Cloudflare
+// (16 ago – 15 sep 2026: 176.444 peticiones, 1,80 GB, 4.819 visitas →
+// 0,38 MB y ~2 ml por visita medidos). Cambian index.html (banda, footer,
+// SEO: description/keywords/OG/JSON-LD) y manolito-aire-comparativa.html
+// (tarjetas con telemetría + franja de estadísticas reales).
+const VERSION = '2026-09-16-a';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

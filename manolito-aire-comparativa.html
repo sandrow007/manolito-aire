@@ -421,7 +421,49 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #00e5ff; border-radius: 10px; }
+
+        /* --- Gráfica interactiva del agua (sep-2026) --- */
+        #aguaSim {
+            background: #0a1a30; border: 1px solid #ef444433; border-radius: 20px;
+            padding: 24px 28px; margin: 20px 0; text-align: center;
+        }
+        .agua-sim-titulo { color: #e2e8f0; font-size: 1.05rem; margin: 0 0 14px; }
+        .agua-periodos { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 18px; }
+        .agua-periodos button {
+            background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 999px;
+            padding: 8px 16px; font-size: 0.92rem; cursor: pointer; font-family: inherit;
+            transition: background .2s, color .2s, border-color .2s;
+        }
+        .agua-periodos button:hover { border-color: #ef4444; color: #e2e8f0; }
+        .agua-periodos button.activo { background: #ef4444; border-color: #ef4444; color: #fff; }
+        #aguaNum {
+            font-size: clamp(2rem, 6vw, 3.4rem); font-weight: 800; color: #fca5a5;
+            line-height: 1.1; margin: 4px 0 6px; font-variant-numeric: tabular-nums;
+        }
+        #aguaEquiv { color: #cbd5e1; font-size: 0.98rem; min-height: 1.6em; margin-bottom: 18px; }
+        .agua-barras { display: flex; flex-direction: column; gap: 10px; margin: 0 auto 18px; max-width: 720px; }
+        .agua-fila { display: flex; align-items: center; gap: 10px; }
+        .agua-barra { height: 26px; border-radius: 7px; flex-shrink: 0; }
+        .agua-barra.anuncios { background: linear-gradient(90deg, #7f1d1d, #ef4444, #f97316); width: 100%; }
+        .agua-barra.manolit { background: #00e5ff; width: 5px; box-shadow: 0 0 8px #00e5ff88; }
+        .agua-etq { color: #94a3b8; font-size: 0.82rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #aguaVivo {
+            margin-top: 6px; padding-top: 14px; border-top: 1px dashed #334155;
+            color: #fbbf24; font-size: 1rem; font-variant-numeric: tabular-nums;
+        }
+        .agua-telemetria {
+            display: flex; flex-wrap: wrap; gap: 10px 22px; justify-content: center;
+            background: #0a1a30; border: 1px solid #00e5ff22; border-radius: 16px;
+            padding: 16px 20px; margin: 18px 0 6px; color: #94a3b8; font-size: 0.92rem;
+        }
+        .agua-telemetria b { color: #00e5ff; font-variant-numeric: tabular-nums; }
+        .agua-telemetria-nota { width: 100%; text-align: center; font-size: 0.78rem; color: #475569; }
+        @media (max-width: 640px) {
+            .agua-etq { white-space: normal; }
+            #aguaSim { padding: 18px 14px; }
+        }
     </style>
+<base target="_blank">
 <base target="_blank">
 </head>
 <body>
@@ -1033,6 +1075,93 @@
  
     <div class="separator"></div>
  
+    <div class="separator"></div>
+
+    <!-- EL AGUA QUE NO SE VE -->
+    <h2 id="agua">El agua que no se ve</h2>
+    <p class="lead">
+        Nadie habla de esto, así que lo hablamos aquí: internet gasta agua. Poca, si la web está bien hecha.
+        Una barbaridad, si la web vive de subastar anuncios. Abajo están las cuentas de las dos cosas,
+        con los supuestos a la vista, para que cualquiera las discuta.
+    </p>
+
+    <div class="grid-2">
+        <div class="card" style="border-left-color:#00e5ff;">
+            <h4 style="margin-top:0; color:#00e5ff;">Una visita a Manolit∞ Aire, medida de verdad</h4>
+            <p>Esto ya no es una estimación: la telemetría real de Cloudflare de los últimos 30 días cuenta
+                <strong>176.444 peticiones, 1,80 GB movidos y 4.819 visitas</strong>. Cuentas claras:
+                <strong>0,38 MB por visita de media</strong> — la caché funciona tan bien que la visita real
+                es seis veces más ligera que la primera carga.</p>
+            <p style="margin-bottom:0;">Pasado por energía y por agua: <strong>≈ 2 mililitros por visita</strong>, y casi todo
+                es la batería de tu móvil. El servidor, en todo el mes, gastó entre un sorbo y dos vasos de agua.</p>
+        </div>
+        <div class="card" style="border-left-color:#ef4444;">
+            <h4 style="margin-top:0; color:#ef4444;">La máquina de anuncios</h4>
+            <p><strong>Por visita:</strong> una página equivalente pero cargada de anuncios y rastreadores mueve
+                ~5,8 MB (estudio AdGuard 2024-25 sobre 119 webs reales) y no puede cachear apenas: cada impresión
+                publicitaria vuelve a pedir datos. Misma cuenta, mismo método: <strong>~6 mililitros por visita
+                (rango 4-9)</strong> — el triple que esta web, y es una estimación prudente a propósito.</p>
+            <p style="margin-bottom:0;"><strong>A escala mundial:</strong> con unas 300.000 millones de impresiones de anuncios al día
+                y sus subastas en tiempo real, salen <strong>unos 375 litros de agua por segundo</strong>.
+                Cada segundo. Duerma quien duerma.</p>
+        </div>
+    </div>
+
+    <div class="agua-telemetria">
+        <span><b>176.444</b> peticiones servidas</span>
+        <span><b>1,80 GB</b> movidos en 30 días</span>
+        <span><b>4.819</b> visitas reales</span>
+        <span><b>16,7&nbsp;%</b> servido desde caché</span>
+        <span><b>1.360</b> amenazas bloqueadas</span>
+        <span class="agua-telemetria-nota">Telemetría Cloudflare · 16 ago – 15 sep 2026</span>
+    </div>
+
+    <!-- Gráfica interactiva: elige el periodo -->
+    <div id="aguaSim">
+        <p class="agua-sim-titulo">Elige un periodo y mira lo que se bebe la publicidad programática del mundo:</p>
+        <div class="agua-periodos" role="group" aria-label="Elige un periodo de tiempo">
+            <button type="button" data-seg="1" class="activo">1 segundo</button>
+            <button type="button" data-seg="60">1 minuto</button>
+            <button type="button" data-seg="3600">1 hora</button>
+            <button type="button" data-seg="86400">1 día</button>
+            <button type="button" data-seg="31536000">1 año</button>
+        </div>
+        <div id="aguaNum" aria-live="polite">375 litros</div>
+        <div id="aguaEquiv">≈ 250 botellas de litro y medio · el agua de 187.500 visitas a esta web</div>
+        <div class="agua-barras" aria-hidden="true">
+            <div class="agua-fila">
+                <div class="agua-barra anuncios" id="aguaBarraAnuncios"></div>
+                <span class="agua-etq">Publicidad programática mundial</span>
+            </div>
+            <div class="agua-fila">
+                <div class="agua-barra manolit"></div>
+                <span class="agua-etq">Manolit∞ Aire, una visita: 2 ml medidos. A esta escala no cabe — y esa es la idea.</span>
+            </div>
+        </div>
+        <div id="aguaVivo">Desde que abriste esta página, los anuncios del mundo llevan gastados 0 litros de agua.</div>
+    </div>
+
+    <div class="quote-block" style="background:#0a1a30; border-left-color:#ef4444; color:#e2e8f0; font-style:normal;">
+        <span>
+            Hay que elegir qué tecnología queremos tener delante.<br /><br />
+            Yo lo tengo claro. Quiero la que resuelve: una guía que te lleva por la sombra cuando hace 48 grados,
+            una inteligencia artificial a la que le preguntas algo y te contesta. Herramientas que trabajan para ti.<br /><br />
+            El anuncio programático trabaja contra ti. No lo pediste, no te da nada a cambio, y te lo cobra en datos,
+            en batería y — ahora lo sabes — en agua. Muy bonito el banner. Pero si me preguntan con qué me quedo,
+            me quedo con la máquina que me soluciona la vida, no con la que me interrumpe para venderme lo que no necesito.
+            El anuncio no es necesario. Que te guíen por la sombra, sí.<br /><br />
+            Esta web entera cabe en el agua de un sorbo. Y funciona mejor así.
+        </span>
+    </div>
+
+    <p style="font-size:0.9rem; color:#94a3b8;">
+        Nota honesta: son órdenes de magnitud calculados con supuestos publicados, no contabilidad de farmacia.
+        Pero prueba a dividir todos los supuestos entre diez: la conclusión no se mueve ni un milímetro.
+        El agua se va en enseñarte cosas que no pediste, no en guiarte por la sombra.
+    </p>
+ 
+    <div class="separator"></div>
+ 
     <!-- CONCLUSIÓN -->
     <h2>El resumen, corto</h2>
     <div style="background: #0a1a30; border-radius: 20px; padding: 24px 32px; border: 1px solid #00e5ff33; margin: 16px 0;">
@@ -1075,6 +1204,90 @@
     </footer>
  
 </div>
- 
+
+<script>
+// --- Gráfica interactiva del agua (sep-2026) ---
+// Cuentas: 300.000 millones de impresiones/día x ~1 MB de subastas y
+// rastreadores por impresión, 0,06 kWh/GB y 1,8 L/kWh -> ~375 L/s.
+// Sin librerías, sin peticiones: todo se calcula aquí, en tu navegador.
+(function () {
+  var LITROS_SEG = 375;          // publicidad programática mundial
+  var LITROS_VISITA = 0.002;     // una visita a Manolit∞ Aire (~2 ml, medido por telemetría)
+  var sim = document.getElementById('aguaSim');
+  if (!sim) return;
+  var numEl = document.getElementById('aguaNum');
+  var equivEl = document.getElementById('aguaEquiv');
+  var vivoEl = document.getElementById('aguaVivo');
+  var botones = sim.querySelectorAll('.agua-periodos button');
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function fmtLitros(l) {
+    if (l >= 1e6) return (l / 1e6).toLocaleString('es-ES', { maximumFractionDigits: l >= 1e9 ? 0 : 1 }) + ' millones de litros';
+    return Math.round(l).toLocaleString('es-ES') + ' litros';
+  }
+  function fmtVisitas(v) {
+    if (v >= 1e9) return (v / 1e9).toLocaleString('es-ES', { maximumFractionDigits: 1 }) + ' mil millones de visitas';
+    if (v >= 1e6) return (v / 1e6).toLocaleString('es-ES', { maximumFractionDigits: 1 }) + ' millones de visitas';
+    return Math.round(v).toLocaleString('es-ES') + ' visitas';
+  }
+
+  function textoEquiv(seg, litros) {
+    var visitas = fmtVisitas(litros / LITROS_VISITA);
+    if (seg >= 31536000) {
+      return '≈ 4.700 piscinas olímpicas · con eso, esta web daría un millón de visitas al día durante más de dieciséis mil años';
+    }
+    var piscinas = litros / 2500000;
+    if (piscinas >= 1) {
+      return '≈ ' + (piscinas < 10 ? (Math.round(piscinas * 10) / 10).toLocaleString('es-ES') : Math.round(piscinas).toLocaleString('es-ES')) +
+        ' piscinas olímpicas · el agua de ' + visitas + ' a esta web';
+    }
+    var botellas = Math.round(litros / 1.5);
+    return '≈ ' + botellas.toLocaleString('es-ES') + ' botellas de litro y medio · el agua de ' + visitas + ' a esta web';
+  }
+
+  var mostrado = LITROS_SEG;
+  var animId = null;
+  function pintar(objetivo, seg) {
+    if (animId) cancelAnimationFrame(animId);
+    if (reduceMotion) {
+      mostrado = objetivo;
+      numEl.textContent = fmtLitros(objetivo);
+      equivEl.textContent = textoEquiv(seg, objetivo);
+      return;
+    }
+    var desde = mostrado, t0 = null;
+    function paso(ts) {
+      if (t0 === null) t0 = ts;
+      var f = Math.min(1, (ts - t0) / 600);
+      var suave = 1 - Math.pow(1 - f, 3);
+      var v = desde + (objetivo - desde) * suave;
+      numEl.textContent = fmtLitros(v);
+      equivEl.textContent = textoEquiv(seg, objetivo);
+      if (f < 1) { animId = requestAnimationFrame(paso); } else { mostrado = objetivo; animId = null; }
+    }
+    animId = requestAnimationFrame(paso);
+  }
+
+  botones.forEach(function (b) {
+    b.addEventListener('click', function () {
+      botones.forEach(function (x) { x.classList.remove('activo'); });
+      b.classList.add('activo');
+      var seg = Number(b.getAttribute('data-seg')) || 1;
+      pintar(LITROS_SEG * seg, seg);
+    });
+  });
+
+  // Contador en vivo: se pausa si la pestaña queda oculta y se limpia al salir
+  var inicio = Date.now();
+  var vivoId = setInterval(function () {
+    if (document.hidden) return;
+    var litros = (Date.now() - inicio) / 1000 * LITROS_SEG;
+    vivoEl.textContent = 'Desde que abriste esta página, los anuncios del mundo llevan gastados ' +
+      fmtLitros(litros) + ' de agua.';
+  }, 250);
+  window.addEventListener('pagehide', function () { clearInterval(vivoId); if (animId) cancelAnimationFrame(animId); });
+})();
+</script>
+
 </body>
 </html>

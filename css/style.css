@@ -1587,11 +1587,18 @@ body.mode-peque .im-lost-btn{
 .city-dropdown-list li,
 .footer-donacion{ font-family:var(--font-body); }
 
-/* ---------- cierre del pie: sello de eficiencia y redes ---------- */
-.footer-cierre{ margin-top:22px; padding-top:16px; border-top:1px dashed var(--line, #ccc); }
-.footer-sello{ max-width:236px; margin:0 auto; opacity:.85; }
+/* ---------- cierre del pie: sello y redes a los lados del Ko-fi ---------- */
+.footer-final{ margin-top:22px; padding-top:16px; border-top:1px dashed var(--line, #ccc); display:flex; align-items:center; justify-content:space-between; gap:22px; flex-wrap:wrap; }
+.footer-final .footer-donacion{ margin-top:0; padding-top:0; border-top:none; flex:1 1 auto; }
+.footer-sello{ max-width:200px; margin:0; opacity:.85; flex:none; }
 .footer-sello svg{ display:block; width:100%; height:auto; border-radius:10px; }
-.footer-redes{ margin-top:14px; display:flex; justify-content:center; gap:18px; flex-wrap:wrap; }
+.footer-redes{ margin-top:0; display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex:none; }
 .footer-red{ display:inline-flex; align-items:center; gap:6px; color:var(--sky-mid); text-decoration:none; font-size:0.72rem; opacity:.7; }
 .footer-red:hover, .footer-red:focus-visible{ opacity:1; }
 .footer-red svg{ width:15px; height:15px; fill:currentColor; flex:none; }
+.footer-red-sola{ padding-left:21px; }
+@media (max-width: 700px){
+  .footer-final{ flex-direction:column; justify-content:center; }
+  .footer-redes{ align-items:center; }
+  .footer-red-sola{ padding-left:0; }
+}

@@ -462,7 +462,50 @@
             .agua-etq { white-space: normal; }
             #aguaSim { padding: 18px 14px; }
         }
+    
+        /* --- Guía "tu móvil" + sesión discreta (sep-2026) --- */
+        .pasos { margin: 0.4rem 0 0 1.2rem; padding: 0; }
+        .pasos li { margin-bottom: 0.5rem; font-size: 0.95rem; color: #cbd5e1; }
+        .pasos li strong { color: #f1f5f9; font-weight: 600; }
+
+        #movilCalc {
+            background: #0a1a30; border: 1px solid rgba(0, 229, 255, 0.14);
+            border-radius: 16px; padding: 20px 24px; margin: 16px 0;
+        }
+        .movil-calc-fila { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .movil-calc-fila label { font-size: 0.9rem; color: #94a3b8; }
+        #movilGB {
+            width: 110px; background: #0f172a; border: 1px solid #334155; border-radius: 10px;
+            color: #f1f5f9; font: inherit; font-size: 1.05rem; padding: 8px 12px; text-align: right;
+        }
+        #movilGB:focus { outline: none; border-color: #00e5ff; }
+        .movil-calc-unidad { color: #94a3b8; font-size: 0.95rem; }
+        .movil-calc-por { color: #64748b; font-size: 0.85rem; }
+        .movil-calc-res { margin-top: 14px; display: flex; flex-direction: column; gap: 2px; }
+        #movilLitros { font-size: 1.5rem; font-weight: 800; color: #00e5ff; font-variant-numeric: tabular-nums; }
+        #movilEquiv { font-size: 0.85rem; color: #94a3b8; }
+
+        .tu-sesion { margin: 14px 0 4px; }
+        #tuSesionBtn {
+            background: none; border: none; padding: 4px 2px; color: #64748b;
+            font: inherit; font-size: 0.85rem; text-decoration: underline;
+            text-underline-offset: 3px; cursor: pointer;
+        }
+        #tuSesionBtn:hover, #tuSesionBtn:focus-visible { color: #94a3b8; }
+        .tu-sesion-panel {
+            max-width: 560px; margin-top: 8px; padding: 14px 18px;
+            border: 1px solid #1e293b; border-radius: 14px; background: #0a1a30;
+        }
+        .tu-sesion-panel p { margin-bottom: 0.5rem; font-size: 0.9rem; }
+        .tu-sesion-panel strong { color: #fbbf24; font-variant-numeric: tabular-nums; font-weight: 600; }
+        .tu-sesion-nota { color: #64748b; font-size: 0.8rem; margin-bottom: 0; }
+
+        @media (max-width: 640px) {
+            #movilCalc { padding: 16px 14px; }
+            #movilLitros { font-size: 1.25rem; }
+        }
     </style>
+<base target="_blank">
 <base target="_blank">
 </head>
 <body>
@@ -470,7 +513,7 @@
 <div class="container">
  
     <div class="backbar">
-        <a href="https://manolitoaire.com" rel="noopener">← volver a Manolit∞ Aire</a>
+        <a href="https://manolitoaire.com" target="_self" rel="noopener">← volver a Manolit∞ Aire</a>
     </div>
  
     <!-- HEADER -->
@@ -1137,7 +1180,20 @@
                 <span class="agua-etq">Manolit∞ Aire, una visita: 2 ml medidos. A esta escala no cabe, y esa es la idea.</span>
             </div>
         </div>
-        <div id="aguaVivo">Desde que abriste esta página, los anuncios del mundo llevan gastados 0 litros de agua.</div>
+        <div id="aguaVivo">Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados 0 litros de agua.</div>
+    </div>
+
+    <!-- Tu sesión: discreto, desplegable, mismo conteo que el mapa -->
+    <div class="tu-sesion">
+        <button type="button" id="tuSesionBtn" aria-expanded="false" aria-controls="tuSesionPanel">Tu tiempo y tu agua aquí</button>
+        <div id="tuSesionPanel" class="tu-sesion-panel" hidden>
+            <p>Llevas en Manolit∞ <strong id="tuSesionTiempo">0 s</strong>. En ese tiempo, Manolit∞ gastó por ti
+                <strong id="tuSesionAgua">~2 ml</strong> de agua, medida por telemetría.</p>
+            <p style="margin-bottom:0.4rem;">En ese mismo tiempo, la publicidad programática del mundo gastó
+                <strong id="tuSesionAnuncios">0 litros</strong>.</p>
+            <p class="tu-sesion-nota">El conteo es el mismo que ves en el mapa: sigue al pasar de una página a otra
+                dentro de esta pestaña y vuelve a cero si la cierras. Nada sale de tu navegador.</p>
+        </div>
     </div>
 
     <div class="quote-block" style="background:#0a1a30; border-left-color:#ef4444; color:#e2e8f0; font-style:normal;">
@@ -1159,8 +1215,76 @@
         El agua se va en enseñarte cosas que no pediste, no en guiarte por la sombra.
     </p>
  
+        <div class="separator"></div>
+
+    <!-- TU MÓVIL TAMBIÉN BEBE: guía para medirlo tú mismo (sep-2026) -->
+    <h2 id="tu-movil">Cuánta agua gasta tu móvil</h2>
+    <p class="lead">
+        Cada scroll gasta agua, aunque no la veas caer. La refrigeración de los centros de datos
+        que procesan y sirven esos datos bebe, según una estimación de investigadores del Imperial College London,
+        <strong>hasta unos 200 litros por cada GB descargado</strong>.
+    </p>
+    <p>
+        Los propios autores avisan de que la horquilla es amplia, de 1 a 200 litros por GB según la red
+        y el centro de datos, así que úsala como lo que es: una estimación de orden de magnitud,
+        no una medición directa. Tampoco contradice la cuenta de más arriba (0,06 kWh/GB × 1,8 L/kWh ≈ 0,11 litros
+        por GB), porque aquella mide solo la energía directa de servir el dato y esta intenta abarcar toda la cadena.
+        Fuente: The Water Footprint of Data Centers, Imperial College London (2015), recogida por BBC Mundo
+        y otros medios.
+    </p>
+
+    <h3>Paso 1: mira cuántos datos has gastado</h3>
+    <p>
+        Antes de calcular nada hace falta un número real: los MB o GB que tu móvil ha consumido
+        en apps como Instagram o TikTok. Elige tu sistema.
+    </p>
+    <div class="grid-2">
+        <div class="card" style="border-left-color:#00e5ff;">
+            <h4 style="margin-top:0; color:#00e5ff;">Android</h4>
+            <ol class="pasos">
+                <li>Abre <strong>Ajustes</strong>.</li>
+                <li>Entra en <strong>Red e Internet</strong> (en algunos modelos aparece como <strong>Conexiones</strong>).</li>
+                <li>Toca <strong>Uso de datos</strong>.</li>
+                <li>Elige el periodo: hoy, esta semana o este mes, según lo que quieras medir.</li>
+                <li>Baja hasta la lista de apps, busca <strong>Instagram</strong> o <strong>TikTok</strong> y anota los MB o GB del periodo.</li>
+            </ol>
+        </div>
+        <div class="card" style="border-left-color:#f59e0b;">
+            <h4 style="margin-top:0; color:#fbbf24;">iPhone</h4>
+            <ol class="pasos">
+                <li>Abre <strong>Ajustes</strong> y entra en <strong>Datos móviles</strong>.</li>
+                <li>Baja hasta la lista de apps: cada una muestra lo que ha gastado desde la última vez que se reinició el contador.</li>
+                <li>Busca <strong>Instagram</strong> o <strong>TikTok</strong> y anota el valor en MB o GB.</li>
+                <li>Si quieres medir un día exacto, baja del todo y toca <strong>Restablecer estadísticas</strong> al empezar; míralo de nuevo al terminar.</li>
+            </ol>
+        </div>
+    </div>
+
+    <h3>Paso 2: convierte esos datos en litros</h3>
+    <p>
+        Coge el número que has anotado y pásalo aquí. La cuenta no tiene trampa: GB gastados × 200 litros.
+        Todo se calcula en tu navegador, como siempre en esta casa.
+    </p>
+    <div id="movilCalc">
+        <div class="movil-calc-fila">
+            <label for="movilGB">Datos gastados</label>
+            <input type="number" id="movilGB" min="0" step="0.01" placeholder="0,5" inputmode="decimal" />
+            <span class="movil-calc-unidad">GB</span>
+            <span class="movil-calc-por">× 200 L/GB</span>
+        </div>
+        <div class="movil-calc-res">
+            <span id="movilLitros">0 litros de agua</span>
+            <span id="movilEquiv">el agua de 0 visitas a esta web</span>
+        </div>
+    </div>
+    <p style="font-size:0.9rem; color:#94a3b8;">
+        La equivalencia de abajo divide tus litros entre 0,002, lo que gasta una visita a Manolit∞ medida
+        por telemetría. Si en clase o en casa sumáis los GB de varias personas y multiplicáis,
+        tenéis una cifra propia, con fuente citada, para poner sobre la mesa.
+    </p>
+
     <div class="separator"></div>
- 
+
     <!-- CONCLUSIÓN -->
     <h2>El resumen, corto</h2>
     <div style="background: #0a1a30; border-radius: 20px; padding: 24px 32px; border: 1px solid #00e5ff33; margin: 16px 0;">
@@ -1276,15 +1400,93 @@
     });
   });
 
-  // Contador en vivo: se pausa si la pestaña queda oculta y se limpia al salir
-  var inicio = Date.now();
+  // Contador en vivo: se pausa si la pestaña queda oculta y se limpia al salir.
+  // Arranque compartido con el mapa (sessionStorage, clave manolito_agua_inicio):
+  // el conteo sigue al cambiar de página dentro de la pestaña y vuelve a cero
+  // solo al cerrarla. También se suma la visita (manolito_agua_visitas).
+  var inicio;
+  try {
+    inicio = Number(sessionStorage.getItem('manolito_agua_inicio')) || 0;
+    if (!inicio) { inicio = Date.now(); sessionStorage.setItem('manolito_agua_inicio', String(inicio)); }
+    sessionStorage.setItem('manolito_agua_visitas', String((Number(sessionStorage.getItem('manolito_agua_visitas')) || 0) + 1));
+  } catch (e) { inicio = Date.now(); }
   var vivoId = setInterval(function () {
     if (document.hidden) return;
     var litros = (Date.now() - inicio) / 1000 * LITROS_SEG;
-    vivoEl.textContent = 'Desde que abriste esta página, los anuncios del mundo llevan gastados ' +
+    vivoEl.textContent = 'Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados ' +
       fmtLitros(litros) + ' de agua.';
   }, 250);
   window.addEventListener('pagehide', function () { clearInterval(vivoId); if (animId) cancelAnimationFrame(animId); });
+})();
+</script>
+
+
+<script>
+// --- Tu móvil también bebe + tu sesión (sep-2026) ---
+// Mismo arranque compartido que el mapa (sessionStorage): el conteo continúa
+// entre páginas de esta pestaña y vuelve a cero solo al cerrarla.
+// Sin peticiones, sin librerías: todo se calcula aquí.
+(function () {
+  function inicioSesion() {
+    try {
+      var t = Number(sessionStorage.getItem('manolito_agua_inicio')) || 0;
+      if (!t) { t = Date.now(); sessionStorage.setItem('manolito_agua_inicio', String(t)); }
+      return t;
+    } catch (e) { return Date.now(); }
+  }
+  function visitasSesion() {
+    try { return Number(sessionStorage.getItem('manolito_agua_visitas')) || 1; } catch (e) { return 1; }
+  }
+  function fmtTiempo(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    if (s < 60) return s + ' s';
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + ' min ' + (s % 60) + ' s';
+    return Math.floor(m / 60) + ' h ' + (m % 60) + ' min';
+  }
+
+  // Calculadora: GB gastados x 200 L/GB (estimación Imperial College London)
+  var gb = document.getElementById('movilGB');
+  var out = document.getElementById('movilLitros');
+  var eq = document.getElementById('movilEquiv');
+  if (gb && out && eq) {
+    gb.addEventListener('input', function () {
+      var g = parseFloat(String(gb.value).replace(',', '.'));
+      var l = (isNaN(g) || g < 0) ? 0 : g * 200;
+      var red = l < 10 ? Math.round(l * 10) / 10 : Math.round(l);
+      out.textContent = red.toLocaleString('es-ES') + ' litros de agua';
+      eq.textContent = 'el agua de ' + Math.round(l / 0.002).toLocaleString('es-ES') + ' visitas a esta web';
+    });
+  }
+
+  // Panel de sesión: solo corre mientras está abierto, para no gastar batería
+  var btn = document.getElementById('tuSesionBtn');
+  var panel = document.getElementById('tuSesionPanel');
+  if (!btn || !panel) return;
+  var tEl = document.getElementById('tuSesionTiempo');
+  var aEl = document.getElementById('tuSesionAgua');
+  var nEl = document.getElementById('tuSesionAnuncios');
+  var id = null;
+  function pintar() {
+    var ms = Date.now() - inicioSesion();
+    if (tEl) tEl.textContent = fmtTiempo(ms);
+    if (aEl) {
+      var v = visitasSesion();
+      aEl.textContent = '~' + (v * 2).toLocaleString('es-ES') + ' ml (' +
+        v + (v === 1 ? ' página vista' : ' páginas vistas') + ' × ~2 ml)';
+    }
+    if (nEl) nEl.textContent = Math.round(ms / 1000 * 375).toLocaleString('es-ES') + ' litros';
+  }
+  btn.addEventListener('click', function () {
+    var abierto = panel.hidden;
+    panel.hidden = !abierto;
+    btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+    if (abierto) {
+      pintar();
+      id = setInterval(function () { if (!document.hidden) pintar(); }, 1000);
+    } else if (id) { clearInterval(id); id = null; }
+  });
+  window.addEventListener('pagehide', function () { if (id) clearInterval(id); });
 })();
 </script>
 

@@ -223,6 +223,7 @@
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -403,7 +404,7 @@
     <a class="family-link" href="about.html" data-i18n="aboutLink">¿Por qué existe esto?</a>
     <a class="family-link" href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a>
     <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
-    <a class="family-link" href="manolito-aire-comparativa.html">Comparativa</a>
+    <a class="family-link" href="manolito-aire-comparativa.html" target="_self">Comparativa</a>
     <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener">Que es Manolit∞ ©</a>
 
     <div class="chip-toggle" id="paletteToggle" title="Elige la luz de tu paseo" role="group" aria-label="Elige la luz de tu paseo">
@@ -796,7 +797,7 @@
        style="font-variant-numeric:tabular-nums; font-weight:700; color:var(--sky-deep,#0E3B47); background:rgba(255,255,255,0.65); border-radius:12px; padding:10px 14px; margin-bottom:10px;">
     Desde que abriste esta página, los anuncios del mundo llevan gastados 0 litros de agua. Tu visita aquí: ~2 ml, medidos.
   </div>
-  <a href="manolito-aire-comparativa.html#agua" style="font-weight:700; color:var(--accent,#FF6B1A);">
+  <a href="manolito-aire-comparativa.html#agua" target="_self" style="font-weight:700; color:var(--accent,#FF6B1A);">
     Ver las cuentas completas, con los supuestos a la vista →
   </a>
 </div>
@@ -806,14 +807,23 @@
 // impresiones/día x ~1 MB de subastas por impresión, 0,06 kWh/GB y
 // 1,8 L/kWh -> ~375 L/s. Local, sin peticiones, pausado si la pestaña
 // queda oculta y limpio al salir.
+// Sincronizado con la comparativa: el arranque vive en sessionStorage
+// (clave manolito_agua_inicio), así el conteo sigue al cambiar de página
+// dentro de la misma pestaña y vuelve a cero solo al cerrarla. También
+// se cuenta la visita (manolito_agua_visitas) para el cálculo de tu agua.
 (function () {
   var el = document.getElementById('ecoAguaVivo');
   if (!el) return;
-  var inicio = Date.now();
+  var inicio;
+  try {
+    inicio = Number(sessionStorage.getItem('manolito_agua_inicio')) || 0;
+    if (!inicio) { inicio = Date.now(); sessionStorage.setItem('manolito_agua_inicio', String(inicio)); }
+    sessionStorage.setItem('manolito_agua_visitas', String((Number(sessionStorage.getItem('manolito_agua_visitas')) || 0) + 1));
+  } catch (e) { inicio = Date.now(); }
   var id = setInterval(function () {
     if (document.hidden) return;
     var litros = Math.round((Date.now() - inicio) / 1000 * 375);
-    el.textContent = 'Desde que abriste esta página, los anuncios del mundo llevan gastados ' +
+    el.textContent = 'Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados ' +
       litros.toLocaleString('es-ES') + ' litros de agua. Tu visita aquí: ~2 ml, medidos.';
   }, 250);
   window.addEventListener('pagehide', function () { clearInterval(id); });
@@ -828,7 +838,11 @@
 (function () {
   var num = document.getElementById('aguaVivoNum');
   if (!num) return;
-  var inicio = Date.now();
+  var inicio;
+  try {
+    inicio = Number(sessionStorage.getItem('manolito_agua_inicio')) || 0;
+    if (!inicio) { inicio = Date.now(); sessionStorage.setItem('manolito_agua_inicio', String(inicio)); }
+  } catch (e) { inicio = Date.now(); }
   var escalon = 0;
   var id = setInterval(function () {
     if (document.hidden) return;

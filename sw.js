@@ -62,7 +62,13 @@
 // la fórmula en pequeño y el número subiendo de color por escalones. Coste:
 // una escritura de texto por segundo, sin animaciones; batería ~0.
 // Cambian index.html, js/i18n.js (6 idiomas) y textos de varios js.
-const VERSION = '2026-09-16-b';
+// 2026-09-16-c: (1) TODOS los contadores de agua comparten el mismo arranque
+// (sessionStorage, clave manolito_agua_inicio): el conteo sigue al pasar del
+// mapa a la comparativa dentro de la misma pestaña y vuelve a cero al cerrarla.
+// (2) La comparativa se abre en la misma pestaña (target _self en los enlaces).
+// (3) Nueva sección en la comparativa: "Cuánta agua gasta tu móvil" (guía
+// Android/iPhone + calculadora GB x 200 L) e indicador discreto de sesión.
+const VERSION = '2026-09-16-c';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

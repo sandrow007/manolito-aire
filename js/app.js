@@ -1,5 +1,5 @@
 /* ============================================================
-   MANOLIT∞ AIRE — app.js
+   MANOLIT∞ AIRE · app.js
    Orbe que respira + selector de modos + mapa nacional en vivo.
    ============================================================ */
 
@@ -137,7 +137,7 @@ const messages = {
       bad: ()=>[`ჰაერის ხარისხი: ცუდი.`, `PM2.5-ის კონცენტრაცია ჯანდაცვის 24სთ ზღვარს აღემატება. სასუნთქი რისკი დაუცველი ჯგუფებისთვის.`],
     },
     yayo: {
-      good:(c)=>[`მშვიდად, დღეს ცოტა ხნით გარეთ გასვლა შეიძლება პრობლემის გარეშე.`, `ისარგებლე სასეირნოდ — ${c}-ში ჰაერი დღეს ძალიან კარგია.`],
+      good:(c)=>[`მშვიდად, დღეს ცოტა ხნით გარეთ გასვლა შეიძლება პრობლემის გარეშე.`, `ისარგებლე სასეირნოდ, ${c}-ში ჰაერი დღეს ძალიან კარგია.`],
       mid: (c)=>[`დღეს უმჯობესია ძალიან ნუ იძლევი, ჰო?`, `მოკლე, მშვიდი სეირნობა კარგია, მაგრამ იჩქარებისა და ძალისხმევის გარეშე ${c}-ში.`],
       bad: (c)=>[`დღეს უმჯობესია ცოტა ხნით სახლში დარჩე.`, `${c}-ში ჰაერი ცოტა მძიმეა, უმჯობესია დიდხანს ნუ იქნები გარეთ.`],
     },
@@ -149,7 +149,7 @@ const messages = {
   }
 };
 // Traducciones ES/EN/CA/EU/GL completas. Las de CA/EU/GL las hice yo sin ser
-// hablante nativo de esas lenguas — antes de darlo por definitivo, que las
+// hablante nativo de esas lenguas. Antes de darlo por definitivo, que las
 // revise alguien que las hable de verdad, sobre todo el euskera y el gallego.
 function getHeroMessages(lang){
   return messages[lang] || messages.es;
@@ -250,7 +250,7 @@ async function fetchCurrentCity(){
     let r = await fetch(`/api/air-quality?${consultaAire}`);
     // Respaldo directo (sep-2026, ADITIVO): si el proxy no consigue datos
     // (lo avisa con la cabecera X-Proxy-Aviso: sin-datos), el navegador
-    // pregunta directamente a Open-Meteo — su API admite CORS — y el dato
+    // pregunta directamente a Open-Meteo, cuya API admite CORS, y el dato
     // llega en tiempo real aunque el proxy esté limitado.
     if (r.headers.get('X-Proxy-Aviso') === 'sin-datos') {
       r = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?${consultaAire}`);
@@ -823,7 +823,7 @@ function initMap(){
   if (statusLineEl0 && dict0) statusLineEl0.textContent = dict0.statusLoading;
 
   /* Mapa base: cartografía oficial del IGN vía WMS, servida a través del
-     proxy del propio worker (/ign-wms) — sin API key, sin CORS y sin marcas
+     proxy del propio worker (/ign-wms): sin API key, sin CORS y sin marcas
      de agua. En modo oscuro no hace falta otra capa: el CSS ya invierte
      las teselas ([data-theme="dark"] #map .leaflet-tile-pane). */
   const capaBase = () => L.tileLayer.wms('/ign-wms', {
@@ -863,7 +863,7 @@ function initMap(){
     marker.setStyle({ fillColor: stateColor[state] });
     marker.setPopupContent(
       `<div class="popup-human">${st.name}</div>` +
-      `<div class="popup-tech">PM2.5 ${c.pm2_5 ?? '—'} µg/m³ · PM10 ${c.pm10 ?? '—'} µg/m³ · NO2 ${c.nitrogen_dioxide ?? '—'} µg/m³ · O3 ${c.ozone ?? '—'} µg/m³</div>` +
+      `<div class="popup-tech">PM2.5 ${c.pm2_5 ?? '·'} µg/m³ · PM10 ${c.pm10 ?? '·'} µg/m³ · NO2 ${c.nitrogen_dioxide ?? '·'} µg/m³ · O3 ${c.ozone ?? '·'} µg/m³</div>` +
       `<span class="popup-tag">Estación real · dato en vivo</span>`
     );
   };

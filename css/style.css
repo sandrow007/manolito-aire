@@ -1602,3 +1602,8 @@ body.mode-peque .im-lost-btn{
   .footer-redes{ align-items:center; }
   .footer-red-sola{ padding-left:0; }
 }
+
+/* ---------- la barra superior ya no persigue el scroll ---------- */
+/* Antes era sticky y tapaba el mapa al bajar. Ahora se queda en su sitio,
+   arriba del todo, y al hacer scroll desaparece con el resto del contenido. */
+.topbar{ position: static; transform: none; }

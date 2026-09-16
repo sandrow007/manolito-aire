@@ -75,7 +75,12 @@
 // 2026-09-16-e: la barra superior deja de ser fija (sticky): al bajar por la
 // pagina se queda arriba y ya no tapa el mapa ni corta el contenido.
 // Cambia style.css.
-const VERSION = '2026-09-16-e';
+// 2026-09-16-f: se actualiza la pagina "Por que existe esto" (about.html) con
+// el nuevo texto de Sandro (huella hidrica digital, publicidad programatica,
+// cero anuncios por coherencia y llamada a una futura ley), limpio de guiones
+// largos, punto y coma y dos puntos en los textos visibles.
+// Cambia about.html.
+const VERSION = '2026-09-16-f';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

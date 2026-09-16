@@ -80,7 +80,13 @@
 // cero anuncios por coherencia y llamada a una futura ley), limpio de guiones
 // largos, punto y coma y dos puntos en los textos visibles.
 // Cambia about.html.
-const VERSION = '2026-09-16-f';
+// 2026-09-16-g: toda la navegacion interna se abre en la misma pestana
+// (script que anula el target _blank de la etiqueta base en index, about,
+// comparativa y las paginas legales). Los enlaces externos siguen abriendo
+// pestana nueva con rel noopener.
+// Cambian index.html, about.html, manolito-aire-comparativa.html,
+// aviso-legal.html, privacidad.html y cookies.html.
+const VERSION = '2026-09-16-g';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

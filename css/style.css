@@ -1586,3 +1586,12 @@ body.mode-peque .im-lost-btn{
 .city-dropdown-btn,
 .city-dropdown-list li,
 .footer-donacion{ font-family:var(--font-body); }
+
+/* ---------- cierre del pie: sello de eficiencia y redes ---------- */
+.footer-cierre{ margin-top:22px; padding-top:16px; border-top:1px dashed var(--line, #ccc); }
+.footer-sello{ max-width:236px; margin:0 auto; opacity:.85; }
+.footer-sello svg{ display:block; width:100%; height:auto; border-radius:10px; }
+.footer-redes{ margin-top:14px; display:flex; justify-content:center; gap:18px; flex-wrap:wrap; }
+.footer-red{ display:inline-flex; align-items:center; gap:6px; color:var(--sky-mid); text-decoration:none; font-size:0.72rem; opacity:.7; }
+.footer-red:hover, .footer-red:focus-visible{ opacity:1; }
+.footer-red svg{ width:15px; height:15px; fill:currentColor; flex:none; }

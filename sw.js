@@ -68,7 +68,11 @@
 // (2) La comparativa se abre en la misma pestaña (target _self en los enlaces).
 // (3) Nueva sección en la comparativa: "Cuánta agua gasta tu móvil" (guía
 // Android/iPhone + calculadora GB x 200 L) e indicador discreto de sesión.
-const VERSION = '2026-09-16-c';
+// 2026-09-16-d: cierre del pie en index.html: sello de eficiencia A+
+// (Website Carbon Rating, sin metadatos externos) y fila discreta de redes
+// sociales (TikTok e Instagram, iconos SVG en línea, sin peso extra).
+// Cambian index.html y style.css.
+const VERSION = '2026-09-16-d';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

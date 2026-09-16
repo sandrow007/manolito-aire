@@ -72,7 +72,10 @@
 // (Website Carbon Rating, sin metadatos externos) y fila discreta de redes
 // sociales (TikTok e Instagram, iconos SVG en línea, sin peso extra).
 // Cambian index.html y style.css.
-const VERSION = '2026-09-16-d';
+// 2026-09-16-e: la barra superior deja de ser fija (sticky): al bajar por la
+// pagina se queda arriba y ya no tapa el mapa ni corta el contenido.
+// Cambia style.css.
+const VERSION = '2026-09-16-e';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

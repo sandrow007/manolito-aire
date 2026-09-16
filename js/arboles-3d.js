@@ -1,5 +1,5 @@
 /* ============================================================================
-   arboles-3d.js — Albizia y naranjo REALES en 3D dentro del mapa
+   arboles-3d.js. Albizia y naranjo REALES en 3D dentro del mapa
    (ADITIVO, sep-2026; sustituye al borrador albizia-3d.js, que nunca se
    desplegó: un solo motor para ambas especies)
    ----------------------------------------------------------------------------
@@ -53,7 +53,7 @@
   // Estado estacional del NARANJO (perenne), coherente con fenologiaArbol
   // de shadows-route.js: azahar en primavera y naranjas MADURAS (en su
   // tono naranja) colgando el resto del año. sep-2026, orden directa de
-  // Sandro: "las naranjas deben estar NARANJAS, no verdosas" — el verano
+  // Sandro: "las naranjas deben estar NARANJAS, no verdosas", el verano
   // también da fruto maduro, igual que la capa plana (conFruto todo el
   // año salvo primavera). La geometría de fruto verde se conserva intacta
   // por si algún día se reactiva esa cosecha.
@@ -188,7 +188,7 @@
   }
 
   // ==========================================================================
-  // ALBIZIA — PORT EXACTO del HTML de Sandro: cylinderBetween + branch()
+  // ALBIZIA, PORT EXACTO del HTML de Sandro: cylinderBetween + branch()
   // ==========================================================================
   function construirEsqueletoAlbizia(rand) {
     var segs = [];   // {a, b, r0, r1}
@@ -297,7 +297,7 @@
   }
 
   // UN racimo canónico por variante: 8-10 hebras cilindro(0.007, 0.007, 0.22, 3)
-  // orientadas en esfera, offset 0.055, escala y 0.8-1.2 — como el HTML.
+  // orientadas en esfera, offset 0.055, escala y 0.8-1.2, como el HTML.
   function geometriaRacimo(rand) {
     var geos = [];
     var nStrands = 8 + Math.floor(rand() * 3);
@@ -322,10 +322,10 @@
   }
 
   // ==========================================================================
-  // NARANJO — el low-poly de la foto de Sandro
+  // NARANJO, el low-poly de la foto de Sandro
   // Tronco único oscuro (~49% de la altura, su proporción aprobada), bola
   // densa de hojas con la silueta medida de la malla real (x≈1.49, z≈1.31,
-  // 3 lóbulos suaves — sus valores), naranjas en la piel de la copa.
+  // 3 lóbulos suaves, sus valores), naranjas en la piel de la copa.
   // Modelo de referencia: 6.2 m totales (su alturaMediaM), copa radio 2.9 m.
   // ==========================================================================
   var NARANJO_ALTURA = 6.2;
@@ -417,7 +417,7 @@
     return fusionarConColores(geos, colores);
   }
 
-  // Frutos sobre la MALLA REAL (sep-2026): SU algoritmo del v2 — 34
+  // Frutos sobre la MALLA REAL (sep-2026): SU algoritmo del v2, 34
   // naranjas maduras (verdes: 12, temporada), rechazo a distancia mínima
   // 0.5 m, radio 0.15-0.20 (verdes más chicas), offset r*0.9 a lo largo de
   // la normal de la piel, colores 0xE8792A/0xCF6A1E al azar (sus dos).
@@ -508,7 +508,7 @@
       emissive: 0xE8792A, emissiveIntensity: 0.30,
     });
     // roughness 1.0 / metalness 0.0 (sep-2026): valores LITERALES del
-    // "naranjo real mesh v2.html" de Sandro — con rugosidad < 1 las hojas
+    // "naranjo real mesh v2.html" de Sandro, con rugosidad < 1 las hojas
     // en contraluz especular salían casi negras.
     // emissive verde medio de SU paleta (0x567f42 ≈ media de 0x4f7a3d,
     // 0x5e8c47, 0x3f6733, 0x6a9950): igual que en la albizia, evita la
@@ -548,7 +548,7 @@
       // copa parece un mosaico; con cara simple se descartan y el hueco lo
       // rellenan las hojas de detrás, que sí están iluminadas.
       // transparent:true + opacity:0.85 (sep-2026, FIX PÁGINA NEGRA):
-      // es LITERAL de su HTML — flat(0x5c9e3f, 0.8, true, 0.85) — y es lo
+      // es LITERAL de su HTML, flat(0x5c9e3f, 0.8, true, 0.85), y es lo
       // que hace que las hojas en contraluz se fundan con el follaje de
       // detrás en vez de salir NEGRAS. Sin esto la copa parecía quemada.
       var hojaAlbiziaMat = new THREE.MeshStandardMaterial({
@@ -558,7 +558,7 @@
         // su HTML se mira a RAS DE SUELO (órbita) y allí las hojas lucen;
         // el mapa se mira DESDE ARRIBA y las hojas en contraluz salían
         // NEGRAS. Con el emisivo al 45% la hoja nunca baja de "verde oscuro"
-        // ni en la cara opuesta al sol — la copa se lee verde desde cualquier
+        // ni en la cara opuesta al sol, la copa se lee verde desde cualquier
         // pitch, y las caras iluminadas siguen respondiendo al sol real.
         emissive: 0x5c9e3f, emissiveIntensity: 0.55,
       });
@@ -701,7 +701,7 @@
   // ORIGEN LOCAL de coordenadas (sep-2026, FIX BASURA GEOMÉTRICA a zoom alto):
   // las matrices de instancia llevaban coordenadas mercator ABSOLUTAS
   // (~0.48) con escala de metros (~3e-8): en float32 la GPU no puede sumar
-  // 2e-7 a 0.48 (épsilon ≈ 3e-8) y los vértices se cuantizaban — a z19+ la
+  // 2e-7 a 0.48 (épsilon ≈ 3e-8) y los vértices se cuantizaban, a z19+ la
   // malla real (40k triángulos) salía como "placa base" negra/verde y la
   // albizia como moteado oscuro. Ahora todo se instancia RELATIVO al centro
   // del mapa (REF) y el render multiplica la proyección por T(+REF): la GPU
@@ -926,7 +926,7 @@
     try {
       if (!map) return false;
       if (map.getZoom() < ZOOM_MIN) return false;
-      // OJO: no se usa map.loaded() — parpadea a false durante los
+      // OJO: no se usa map.loaded(), parpadea a false durante los
       // movimientos y apagaría el 3D a mitad de gesto. La señal de
       // "motor listo" es que la capa plana de árboles ya existe.
       var capaArboles = map.getLayer('capa-arboles-globales-3d');

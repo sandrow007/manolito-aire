@@ -1,5 +1,5 @@
 /* ============================================================
-   MANOLIT AIRE — js/ambientes.js (sep-2026, NUEVO)
+   MANOLIT AIRE, js/ambientes.js (sep-2026, NUEVO)
    Ambientes climatológicos automáticos: según la fecha de hoy,
    pone data-ambiente="..." en <html> y css/ambientes.css cambia
    la piel entera de la web. 100% local (sin red ni librerías),

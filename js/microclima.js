@@ -1,5 +1,5 @@
 /* ============================================================
-   MICROCLIMA GLOBAL — capa opcional de temperatura de superficie
+   MICROCLIMA GLOBAL, capa opcional de temperatura de superficie
    v2 RENDIMIENTO: nunca congela la página.
    ------------------------------------------------------------
    Qué pinta: un mapa de calor (azul = fresco, rojo = caliente)
@@ -184,7 +184,7 @@
 
   async function recalcular() {
     if (!activo || !mapa) return;
-    if (esFuturo) return; // reloj solar en el futuro: no hay datos reales — no calcular
+    if (esFuturo) return; // reloj solar en el futuro: no hay datos reales, no calcular
     const miVersion = ++versionCalculo;
 
     const tBase = await obtenerTempBase();
@@ -266,7 +266,7 @@
   /* ---- leyenda: esquina inferior DERECHA, con botón de cerrar ---- */
 
   let notaVisible = false;
-  // v3: la leyenda nace OCULTA — solo se ve si el usuario pulsa
+  // v3: la leyenda nace OCULTA, solo se ve si el usuario pulsa
   // el botón 🌡 (él decide cuándo verla; su elección se recuerda).
   let leyendaCerrada = true;
   try { leyendaCerrada = localStorage.getItem('manolito_microclima_leyenda') !== '1'; } catch (e) { /* sin almacenamiento */ }
@@ -413,7 +413,7 @@
 
   function sincronizarConRelojSolar() {
     // Ahorro de batería (sep-2026, ADITIVO): con la pestaña oculta no hay
-    // nada que sincronizar — el intervalo de 2 s seguía despertando el hilo
+    // nada que sincronizar, el intervalo de 2 s seguía despertando el hilo
     // principal sin nadie mirando. Al volver a la pestaña, el siguiente tic
     // (máx. 2 s) retoma la sincronización exactamente donde iba.
     if (document.hidden) return;
@@ -426,7 +426,7 @@
 
   function encender() {
     activo = true;
-    // v3: NO se fuerza la leyenda abierta — queda como la dejara
+    // v3: NO se fuerza la leyenda abierta, queda como la dejara
     // el usuario la última vez (por defecto, oculta: solo el 🌡).
     crearLeyenda();
     esFuturo = horaEsFutura();

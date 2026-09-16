@@ -2,7 +2,7 @@
    - La hora es SIEMPRE la hora efectiva de la app (slider o reloj real).
    - Sin emojis. Sin colores ajenos al diseño existente.
    - Fase lunar realista: terminador orientado por ángulo real sol→luna (SunCalc.angle).
-     Sin clipPath (incompatible con CSS transform en Safari/Chrome) — el path
+     Sin clipPath (incompatible con CSS transform en Safari/Chrome), el path
      de sombra es autocontenido y siempre queda dentro del disco lunar.
      La luna muestra su % de iluminación real, actualizado cada segundo con
      la hora efectiva de la app, y se dibuja tal y como se ve desde tu zona.
@@ -63,7 +63,7 @@
   }
 
   /* Estrellas cuánticas: se generan por código (no van pintadas en el HTML)
-     y titilan como luz real — cada una con su brillo base, su halo, su
+     y titilan como luz real, cada una con su brillo base, su halo, su
      frecuencia de parpadeo y su fase. Posiciones fijas para que la cúpula
      sea reconocible noche tras noche. */
   var ESTRELLAS = [
@@ -130,7 +130,7 @@
   }
 
   // ---------------------------------------------------------------------------
-  // FASE LUNAR — path autocontenido, sin clipPath
+  // FASE LUNAR, path autocontenido, sin clipPath
   //
   // Dibuja la zona oscura de la luna como un path SVG que nunca sale del disco.
   // Dos arcos comparten los polos norte/sur del círculo:
@@ -173,7 +173,7 @@
 
   function actualizarFaseLunar(lunaOrbe, fraccion, creciente, anguloRad) {
     // Si la luna está casi llena (>98%) o nueva (<2%), la sombra es mínima
-    // o total — igual se dibuja pero no se nota o es el disco entero.
+    // o total, igual se dibuja pero no se nota o es el disco entero.
     var lunaCircle = lunaOrbe.querySelector('circle');
     if (!lunaCircle) return;
 

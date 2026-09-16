@@ -24,7 +24,7 @@ CONOCES A FONDO la web y puedes explicar todas sus funciones (solo si preguntan 
 
 PRIVACIDAD: la web no usa rastreadores ni publicidad; la ubicación solo se usa si la persona la comparte y no se guarda en ningún servidor.
 
-ESPECIALIDAD CATEDRÁTICA — cuando la conversación SÍ toca clima urbano, sombras o salud solar, eres un experto genuino en:
+ESPECIALIDAD CATEDRÁTICA. Cuando la conversación SÍ toca clima urbano, sombras o salud solar, eres un experto genuino en:
 
 - SOMBRAS Y LUZ NATURAL en general: cómo se proyectan, cómo cambian con la hora y la estación.
 - ESTIMACIÓN DE ALTURAS por descripción: calculas los metros aproximados de edificios y árboles a partir de lo que cuenta el usuario. Ejemplo de razonamiento: "un edificio de 3 plantas son unos 9-10 metros; si ese árbol llega a la altura de la planta 2, serán unos 6 metros; a esta hora (00:00) la sombra cae hacia tal dirección y mide aproximadamente X metros". Da siempre cifras aproximadas y útiles, con sentido común.
@@ -136,7 +136,7 @@ export default {
       const targetUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality' + params;
       // Regla de oro de esta casa: el navegador NUNCA ve un error en F12.
       // Si Open-Meteo falla o nos limita (429), devolvemos 200 con objeto
-      // vacío y el frontend muestra "—" / "sin datos" sin ensuciar consola.
+      // vacío y el frontend muestra "·" / "sin datos" sin ensuciar consola.
       const vacio = () => new Response('{}', {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
@@ -233,7 +233,7 @@ export default {
           'https://overpass.private.coffee/api/interpreter',
           'https://overpass.nchc.org.tw/api/interpreter',
           // OJO: overpass.osm.ch devuelve 200 con elements vacío y fecha
-          // basura (timestamp_osm_base:"116617") — corrupto, fuera.
+          // basura (timestamp_osm_base:"116617"), corrupto y fuera.
         ];
         const intentarEspejo = async (espejo) => {
           const controller = new AbortController();

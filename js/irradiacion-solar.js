@@ -1,5 +1,5 @@
 /* ============================================================
-   CAPA DE IRRADIACIÓN SOLAR REAL — NASA POWER API  (v3)
+   CAPA DE IRRADIACIÓN SOLAR REAL · NASA POWER API  (v3)
    ------------------------------------------------------------
    Novedades v3:
      A. HISTÓRICO REAL NAVEGABLE: año → mes → día → hora.
@@ -25,7 +25,7 @@
 
    Novedades v4 (sep-2026, orden de Sandro):
      D. LOCALIZACIÓN DINÁMICA REAL: el punto de consulta ya no está
-        fijo en Sevilla — sigue al centro del mapa y a cada clic.
+        fijo en Sevilla, sigue al centro del mapa y a cada clic.
         NASA POWER se consulta con las coordenadas de LA CELDA de su
         propia malla global (0.5°×0.5°) que contiene al punto: cada
         celda se pide una sola vez y se cachea; moverse dentro de la
@@ -173,7 +173,7 @@
       try {
         if (!marcadorConsulta) {
           const el = document.createElement('div');
-          // pointer-events:none — el punto no puede tragarse el clic del usuario
+          // pointer-events:none, el punto no puede tragarse el clic del usuario
           el.style.cssText = 'width:14px;height:14px;border-radius:50%;background:#FF6B1A;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,0.35);pointer-events:none;';
           marcadorConsulta = new maplibregl.Marker({ element: el }).setLngLat([lon, lat]).addTo(map);
         } else {
@@ -220,11 +220,11 @@
     }
 
     // ================= NASA POWER: CACHÉS =================
-    // v4: las claves incluyen la CELDA (0.5°) — ver "localización dinámica".
+    // v4: las claves incluyen la CELDA (0.5°), ver "localización dinámica".
     const cacheDiaria = new Map();   // 'd_anio_la_lo' -> { 'YYYYMMDD': {ghi, dni, cielo} }  (kWh/m²/día)
     const cacheHoraria = new Map();  // 'h_YYYYMMDD_la_lo' -> { hora(0-23): {ghi, dni, cielo} } (Wh/m² esa hora)
     // Peticiones EN VUELO: si panel y resumen piden la misma celda a la vez,
-    // comparten UNA promesa — ni una petición duplicada (ahorro de datos).
+    // comparten UNA promesa, ni una petición duplicada (ahorro de datos).
     const enVuelo = new Map();       // claveCelda -> Promise
 
     function claveFecha(anio, mes, dia) {
@@ -250,7 +250,7 @@
 
     // Antes (v3): TODAS las peticiones usaban CONFIG.lat/lon fijos (Sevilla).
     // Ahora (v4): cada consulta lleva las coordenadas de LA CELDA NASA que
-    // contiene al punto activo — Sevilla da Sevilla, Tokio da Tokio.
+    // contiene al punto activo, Sevilla da Sevilla, Tokio da Tokio.
     async function obtenerAnioDiario(anio, lat, lon) {
       const celda = celdaDe(lat ?? CONFIG.lat, lon ?? CONFIG.lon);
       const claveCelda = `d_${anio}_${celda.la}_${celda.lo}`;
@@ -401,12 +401,12 @@
         // v4: el punto de consulta es dinámico (último clic o centro del mapa)
         const punto = puntoActivo();
 
-        // Dato diario (kWh/m²/día) — serie real del año completo EN ESE PUNTO
+        // Dato diario (kWh/m²/día), serie real del año completo EN ESE PUNTO
         const porDia = await obtenerAnioDiario(anio, punto.lat, punto.lon);
         const datoDia = porDia[claveFecha(anio, mes, dia)];
         if (!datoDia) throw new Error('Sin dato diario para esa fecha');
 
-        // Dato horario (Wh/m²) — perfil real del día elegido EN ESE PUNTO
+        // Dato horario (Wh/m²), perfil real del día elegido EN ESE PUNTO
         let datoHora = null;
         try { datoHora = (await obtenerDiaHorario(anio, mes, dia, punto.lat, punto.lon))[hora] ?? null; }
         catch (e) { /* el endpoint horario puede fallar en años antiguos */ }
@@ -719,7 +719,7 @@
       const atenuacion = clasificarPunto(e.lngLat);
       const { anio, mes, dia, hora } = fechaHoraValidos();
 
-      // v4: el clic FIJA el punto de consulta — popup, panel y marcador
+      // v4: el clic FIJA el punto de consulta, popup, panel y marcador
       // muestran el dato real de ESE punto del mundo, no de Sevilla.
       puntoConsulta = { lat: e.lngLat.lat, lon: e.lngLat.lng };
       pintarMarcadorConsulta(puntoConsulta.lat, puntoConsulta.lon);
@@ -789,7 +789,7 @@
 
     // ------- EL DATO SIGUE AL MAPA (ADITIVO sep-2026, punto D) -------
     // Al terminar de mover el mapa con la capa activa, el punto de
-    // consulta pasa a ser el centro — SOLO si cambia la celda NASA
+    // consulta pasa a ser el centro, SOLO si cambia la celda NASA
     // (0.5°), para no repetir peticiones ni repintar en vano. Así el
     // color de los edificios y el panel reflejan SIEMPRE el lugar que
     // se está mirando: España da el dato de España, China el de China.

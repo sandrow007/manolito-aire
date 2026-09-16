@@ -1,5 +1,5 @@
 /* ============================================================
-   naranjo-malla.js — LA MALLA REAL del naranjo de Sandro
+   naranjo-malla.js, LA MALLA REAL del naranjo de Sandro
    Licencia: AGPL-3.0, igual que el resto del proyecto.
    ------------------------------------------------------------
    Datos extraidos BYTE-EXACTOS de su "naranjo real mesh v2.html"
@@ -14,7 +14,7 @@
    elipsoide de respaldo y el mapa jamas se rompe.
 
    Uso: window.manolitMallaNaranjo.construir(THREE, rand) devuelve
-     { geo, cand } — geo: BufferGeometry lista para InstancedMesh
+     { geo, cand }, geo: BufferGeometry lista para InstancedMesh
      (vertexColors, altura modelo 6.2 m); cand: candidatos sobre la
      piel de la copa (pos+normal) para colgar las naranjas como en
      su v2 (34 frutos, distancia min 0.5 m, offset normal r*0.9).
@@ -5451,7 +5451,7 @@
   }
 
   window.manolitMallaNaranjo = {
-    // rand: generador sembrado del motor (mulberry32) — colores
+    // rand: generador sembrado del motor (mulberry32), colores
     // deterministas por variante, mismo algoritmo que su v2.
     construir: function (THREE, rand) {
       var positions = new Float32Array(b64aBuffer(POS_B64));
@@ -5465,7 +5465,7 @@
       // Sus dos lineas de escala/asentado, horneadas en la geometria:
       // desiredHeight 6.2, base del tronco en y=0.
       // OJO (fix sep-2026): en r128 applyMatrix4 RECALCULA el boundingBox
-      // EN EL MISMO objeto Box3 — hay que copiar min/max como NUMEROS antes
+      // EN EL MISMO objeto Box3, hay que copiar min/max como NUMEROS antes
       // de escalar o el translate usa el min ya escalado y el arbol flota.
       geo.computeBoundingBox();
       var minY = geo.boundingBox.min.y, maxY = geo.boundingBox.max.y;

@@ -1,16 +1,16 @@
 ﻿/* ============================================================
-   MANOLIT AIRE — Ruta real + Sombras 3D reales + AQI (origen)
+   MANOLIT AIRE, Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
    + Dijkstra térmico client-side (red peatonal local)
 
-   v5 — FASE 1: motor Dijkstra térmico (Univ. Sevilla, "Mapas y rutas de sombra"):
+   v5, FASE 1: motor Dijkstra térmico (Univ. Sevilla, "Mapas y rutas de sombra"):
    - Grafo peatonal cargado desde GeoJSON estático local y filtrado por BBox +500 m.
    - Peso térmico por arista: w(e) = Longitud(m) × (1 + penalización solar).
    - Cola de prioridad binaria manual en Vanilla JS; objetivo < 15 ms.
    - Fallback automático a OSRM si no hay red local disponible.
 
-   v4 (revisión anterior) — sincronización con la capa de árboles:
+   v4 (revisión anterior), sincronización con la capa de árboles:
    - Se expone window.manolitAireHoraEfectiva() para que CUALQUIER
      otro script (como arboles-globales.js) use la MISMA hora que
      el slider de tiempo, en vez de tirar de su propio new Date().
@@ -30,7 +30,7 @@
      la ruta (slider, paseo virtual, caminata...), y se oculta si
      deja de haber ruta o sombras.
 
-   v6 — MODO OTOÑO/INVIERNO (100% aditivo, al final del archivo):
+   v6, MODO OTOÑO/INVIERNO (100% aditivo, al final del archivo):
    - Interruptor «Modo invierno: ruta por el sol» junto a «Buscar
      ruta». Al activarlo, la búsqueda usa el DIJKSTRA INVERSO
      (dijkstraSolar): penaliza las aristas EN SOMBRA en vez de las
@@ -38,7 +38,7 @@
    - Con el modo apagado, el enrutado es exactamente el de siempre
      (se conserva la función original envuelta, sin tocarla).
    
-   v7 — CORRECCIÓN DE SOMBRAS FANTASMA (calcularVolumenSombra):
+   v7, CORRECCIÓN DE SOMBRAS FANTASMA (calcularVolumenSombra):
    - La envolvente convexa rellenaba patios interiores y formas
      cóncavas: sombra que no se iba NUNCA aunque diera el sol.
      Ahora el contorno es el barrido real de la huella y los patios
@@ -51,7 +51,7 @@
 (function () {
   const CONFIG = {
     // Vista de arranque (sep-2026, por orden directa de Sandro): la
-    // PENÍNSULA entera, plana y en claro — no Sevilla a pie de calle.
+    // PENÍNSULA entera, plana y en claro, no Sevilla a pie de calle.
     // Además es el arranque más frío posible: a este zoom la capa de
     // edificios 3D ni se renderiza (minzoom del estilo ~13), así que la
     // GPU solo pinta unas pocas teselas raster en vez de miles de
@@ -132,7 +132,7 @@
   }
 
   /* ============================================================
-     MOTOR DIJKSTRA TÉRMICO CLIENT-SIDE — FASE 1
+     MOTOR DIJKSTRA TÉRMICO CLIENT-SIDE, FASE 1
      Basado en el rigor de la Universidad de Sevilla
      ("Mapas y rutas de sombra"). Grafo peatonal local filtrado
      por BBox +500 m; peso térmico w(e) = L(m) × (1 + penalización
@@ -878,7 +878,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     // MOTOR SOLAR BAJO DEMANDA (sep-2026): antes se auto-activaba nada más
     // cargar el mapa y el móvil empezaba a calcular sombras (Turf.js sobre
-    // todos los edificios) aunque el usuario solo quisiera VER el mapa —
+    // todos los edificios) aunque el usuario solo quisiera VER el mapa:
     // de ahí el calentamiento a los 2 minutos sin tocar nada. Ahora el
     // motor duerme hasta que alguien encienda la casilla «Sombras», pida
     // una ruta, entre al paseo o toque el slider de hora. El mapa se ve
@@ -913,7 +913,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   // Rendimiento (sep-2026, ADITIVO): el marcador del sol se mueve como mucho
   // 1 vez por frame (requestAnimationFrame). Antes se recalculaba en CADA
-  // evento 'move' — decenas por segundo al arrastrar el mapa — y eso
+  // evento 'move', decenas por segundo al arrastrar el mapa, y eso
   // calentaba el móvil sin cambiar nada visible.
   let solRafPendiente = false;
   map.on('move', () => {
@@ -934,7 +934,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // modernos fuera del centro): antes caían a 9 m y su sombra salía tres
   // veces más corta que la real. Ahora se prueba altura exacta, altura de
   // renderizado, número de plantas × 3.2 m y, por último, 13 m (unas 4
-  // plantas, lo típico urbano) — la sombra se acerca mucho más a la calle.
+  // plantas, lo típico urbano), la sombra se acerca mucho más a la calle.
   function alturaDeEdificio(props) {
     if (!props) return CONFIG.alturaPorDefectoM;
     const directa = Number(props.height ?? props.render_height);
@@ -1022,11 +1022,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   function calcularVolumenSombra(poligonoSimple, distanciaKm, bearingSombra) {
-    // v7 — SOMBRA POR BARRIDO REAL (antes: envolvente convexa).
+    // v7, SOMBRA POR BARRIDO REAL (antes: envolvente convexa).
     // La envolvente convexa RELLENABA los huecos de los edificios no
     // convexos: en bloques con patio interior, eses o uves pintaba
     // sombra eterna donde en realidad da el sol («la sombra no se va
-    // nunca» — el fallo que reportó Sandro). Ahora:
+    // nunca», el fallo que reportó Sandro). Ahora:
     //   1) El contorno es el BARRIDO real de la huella en la dirección
     //      de la sombra: cadena de silueta quieta + cadena desplazada.
     //      O(n), sin booleanos caros, exacto para convexos y fiel en
@@ -1034,7 +1034,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     //      área idéntica al m²).
     //   2) Los PATIOS interiores conservan su sol: se descuenta la zona
     //      del patio a la que llega el sol (patio ∩ patio retrocorrido
-    //      una sombra — exacto para patios convexos).
+    //      una sombra, exacto para patios convexos).
     //   Respaldo ante geometrías raras: envolvente convexa (el método
     //   viejo) y, si ni eso, la huella sin desplazar.
     try {
@@ -1206,7 +1206,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
       limpiarCapaEdificiosEnSombra();
       ultimaColeccionSombras = turf.featureCollection([]);
-      mostrarAvisoSol(t('sunBelow', 'El sol está bajo el horizonte a esa hora — no hay sombras que proyectar.'));
+      mostrarAvisoSol(t('sunBelow', 'El sol está bajo el horizonte a esa hora, no hay sombras que proyectar.'));
       return;
     }
     mostrarAvisoSol('');
@@ -1258,7 +1258,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // milisegundos. Ni lotes con pausa ni abortos a mitad: si el cálculo
     // se pudiera interrumpir (versión anterior), cualquier movimiento del
     // mapa lo cancelaba a mitad y las sombras nunca llegaban a formarse
-    // completas — por eso se veían solo unas pocas y tardaban minutos.
+    // completas, por eso se veían solo unas pocas y tardaban minutos.
     const poligonosSombra = [];
     for (let i = 0; i < edificiosCacheados.length; i++) {
       const edificio = edificiosCacheados[i];
@@ -1291,12 +1291,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     ultimaColeccionSombras = coleccionSombras;
 
     // Y ahora el paso que faltaba: la sombra también se REFLEJA EN LOS
-    // EDIFICIOS — las fachadas tapadas por la sombra de otro edificio se
+    // EDIFICIOS, las fachadas tapadas por la sombra de otro edificio se
     // oscurecen en 3D, no solo el suelo.
     actualizarEdificiosEnSombra(coleccionSombras);
 
     // El halo atmosférico es el efecto más caro (buffer de toda la escena):
-    // en gama baja se omite — las sombras planas ya comunican lo mismo.
+    // en gama baja se omite, las sombras planas ya comunican lo mismo.
     if (!esGamaBaja && poligonosSombra.length <= 160) {
       try {
         const halo = turf.buffer(coleccionSombras, 3.5, { units: 'meters', steps: 4 });
@@ -1312,7 +1312,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // recién horneadas. Imprescindible desde el arranque en península
     // (sep-2026): si las teselas de edificios de la zona de la ruta aún
     // estaban cargando, el cálculo de arriba llega por el reintento de
-    // 'idle' y antes NADIE avisaba a la ruta — se quedaba sin tramos aun
+    // 'idle' y antes NADIE avisaba a la ruta, se quedaba sin tramos aun
     // con «Sombras» encendida.
     if (rutaActual) {
       try { await actualizarTramosSombraRuta(); } catch (e) { /* extra: nunca rompe el barrido */ }
@@ -1325,13 +1325,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   // Id guardado (sep-2026, checklist de optimización: ningún setInterval
-  // suelto — todos quedan localizables y limpiables en window.manolitIntervalos).
+  // suelto, todos quedan localizables y limpiables en window.manolitIntervalos).
   window.manolitIntervalos = window.manolitIntervalos || [];
   window.manolitIntervalos.push(setInterval(() => {
     if (document.hidden) return; // pestaña oculta: cero gasto de CPU/batería
     if (!solarActivado || modoManual || paseoActivo) return;
     // Rendimiento (sep-2026): con las sombras apagadas en el panel no hay
-    // nada que mantener — ni siquiera despertamos el cálculo (ahorro real
+    // nada que mantener, ni siquiera despertamos el cálculo (ahorro real
     // de CPU/batería, el intervalo queda como un mero chequeo de booleanos).
     if (!document.getElementById('rsToggleSombras')?.checked) return;
     if (map.loaded()) recalcularSombrasVisibles();
@@ -1340,7 +1340,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }, 60 * 1000));
 
   /* ============================================================
-     ÓPTICA ATMOSFÉRICA EN TIEMPO REAL — nubes de OpenWeatherMap
+     ÓPTICA ATMOSFÉRICA EN TIEMPO REAL, nubes de OpenWeatherMap
      ------------------------------------------------------------
      Física aplicada:
      1) LUZ DIFUSA: bajo la nube la radiación directa se dispersa y las
@@ -1450,7 +1450,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // AHORRO REAL (sep-2026): el velo lleva una animación CSS infinita
       // (deriva de 90 s). Antes corría LAS 24 H aunque el velo estuviera
       // invisible (opacity 0): el compositor del iPhone mezclaba la
-      // pantalla entera cada frame con el cielo despejado incluido — el
+      // pantalla entera cada frame con el cielo despejado incluido, el
       // móvil se calentaba sin tocar nada. Con display:none la animación
       // y la mezcla se DETIENEN por completo; solo vive cuando hay nube
       // suficiente para verse.
@@ -1474,7 +1474,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         display:none;
         /* Sin mix-blend-mode (sep-2026): en iPhone la mezcla multiply
            sobre el canvas WebGL obligaba a Safari a re-mezclar la
-           pantalla ENTERA en cada frame — el mayor consumo continuo de
+           pantalla ENTERA en cada frame, el mayor consumo continuo de
            la app. Las manchas ya son gradientes oscuros translúcidos;
            se sube su alfa ~15% y el efecto visual es el mismo sin que
            el compositor trabaje. */
@@ -1526,7 +1526,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (!o || !d || o.lat == null || d.lat == null) return;
     recalculandoRutaPorNubes = true;
     try {
-      mostrarEstado(t('routeRecalcWeather', 'Ha cambiado la nubosidad — recalculando la ruta más fresca…'));
+      mostrarEstado(t('routeRecalcWeather', 'Ha cambiado la nubosidad, recalculando la ruta más fresca…'));
       await ejecutarBusquedaConPuntos(o, d);
     } catch (e) { /* si falla, se queda la ruta que había */ }
     finally { recalculandoRutaPorNubes = false; }
@@ -1734,7 +1734,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   // Contador de generación del filtrado de tramos (sep-2026, aditivo):
   // permite abortar cálculos viejos cuando el slider de hora se mueve
-  // rápido y se solapan varias llamadas — solo la última escribe en el mapa.
+  // rápido y se solapan varias llamadas, solo la última escribe en el mapa.
   let generacionTramosSombra = 0;
 
   async function actualizarTramosSombraRuta() {
@@ -1764,7 +1764,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // Rendimiento (sep-2026, brief "Mapa Eficiente y Elegante" de Sandro):
       // una ruta de 2 km son ~200 tramos × booleanPointInPolygon contra
       // TODAS las sombras de edificios + intersección con cada árbol, y
-      // esto se dispara en CADA movimiento del slider de hora — en el hilo
+      // esto se dispara en CADA movimiento del slider de hora, en el hilo
       // principal atrancaba el arrastre. Ahora el filtrado cede al
       // navegador cada 25 tramos con requestIdleCallback (o setTimeout(0)
       // si no existe): el resultado es EXACTAMENTE el mismo (la lógica de
@@ -2076,10 +2076,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (!etiquetaTiempo) return;
     const fecha = obtenerFechaDelSlider();
     const prefijo =
-      contexto === 'verano' ? t('summerSolstice', 'Solsticio de verano') + ' — ' :
-      contexto === 'invierno' ? t('winterSolstice', 'Solsticio de invierno') + ' — ' :
-      modoManual ? t('simulating', 'Simulando') + ' — ' :
-      t('now', 'Ahora') + ' — ';
+      contexto === 'verano' ? t('summerSolstice', 'Solsticio de verano') + ': ' :
+      contexto === 'invierno' ? t('winterSolstice', 'Solsticio de invierno') + ': ' :
+      modoManual ? t('simulating', 'Simulando') + ': ' :
+      t('now', 'Ahora') + ': ';
     etiquetaTiempo.textContent = prefijo + formatoHora(fecha);
     // El slider anuncia la hora en formato legible, no los minutos crudos.
     if (sliderTiempo) sliderTiempo.setAttribute('aria-valuetext', formatoHora(fecha));
@@ -2386,9 +2386,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           }
 
           const notaPrecision = precisionM > 0
-            ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m — ${t('locationNote', 'sin GPS real puede ser orientativa')})`
+            ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m. ${t('locationNote', 'Sin GPS real puede ser orientativa')})`
             : '';
-          mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision} — ${t('chooseDestination', 'toca un punto del mapa para poner el destino.')}`, 'ok');
+          mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision}. ${t('chooseDestination', 'Toca un punto del mapa para poner el destino.')}`, 'ok');
           map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
 
           origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicación') };
@@ -2400,8 +2400,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
         // Batería (sep-2026): para MARCAR el origen basta la localización
         // por red/wifi (±20-40 m en ciudad). enableHighAccuracy:true
-        // encendía el chip GPS a máxima potencia — la mayor fuente de
-        // calor de un móvil — solo para poner un punto en el mapa.
+        // encendía el chip GPS a máxima potencia, la mayor fuente de
+        // calor de un móvil, solo para poner un punto en el mapa.
         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
       );
     });
@@ -2438,7 +2438,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
       // Ahorro de batería andando (sep-2026): el GPS dispara ~1 lectura
       // cada 2 s y antes CADA lectura animaba la cámara y recalculaba las
-      // sombras de TODOS los árboles — eso calentaba el móvil en minutos.
+      // sombras de TODOS los árboles, eso calentaba el móvil en minutos.
       // Ahora: la cámara solo te sigue si te has movido >12 m, y las
       // sombras/ruta se recalculan como mucho 1 vez cada 8 s (a pie, el
       // sol no cambia de verdad en menos tiempo).
@@ -2476,7 +2476,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
         // Batería (sep-2026, orden de Sandro: el móvil NO se calienta):
         // enableHighAccuracy:true mantenía el chip GPS del iPhone a máxima
-        // potencia durante TODA la caminata — es hardware de radio, la
+        // potencia durante TODA la caminata, es hardware de radio, la
         // fuente de calor nº 1 de cualquier móvil. Con localización por
         // red/wifi la precisión peatonal en ciudad (±20-40 m) sobra para
         // seguir la ruta y anunciar pasos, y el chip GPS apenas trabaja.
@@ -2511,7 +2511,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       paseoJugador.y = 0;
       paseoJugador.bearing = map.getBearing() || 0;
       // Mirada vertical LIBRE (sep-2026, orden de Sandro): el pitch ya no
-      // está clavado — arrastra el dedo arriba/abajo para mirar al cielo
+      // está clavado, arrastra el dedo arriba/abajo para mirar al cielo
       // o a tus pies. 85° es el máximo físico de MapLibre; sin ese tope
       // la proyección se rompe. Los edificios ya no se cortan a media
       // fachada al acercarte.
@@ -2742,12 +2742,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btnIrradiacion = botonCapaFijo('rsBtnIrradiacion', t('irrLayerBtn', 'Irradiación Solar'), 'js/irradiacion-solar.js');
 
     // Botoncito "↻ Actualizar mapa" (sep-2026, orden de Sandro): fuerza la
-    // descarga FRESCA de OpenStreetMap para la vista actual — lo que
+    // descarga FRESCA de OpenStreetMap para la vista actual, lo que
     // acabáis de dibujar en OSM aparece al momento, sin esperar al
     // refresco automático de 12 h. El aviso de estado confirma el resultado.
     /* Botón mini "Act. mapa" (2026-09-12, pedido de Sandro): FUERA del
        panel de botones, arriba a la derecha, muy pequeño. Y que actualice
-       DE VERDAD — antes solo renovaba los árboles, pero las TESELAS del
+       DE VERDAD, antes solo renovaba los árboles, pero las TESELAS del
        mapa base las sirve el Service Worker con cache-first y los cambios
        dibujados en OpenStreetMap nunca llegaban a verse. Ahora hace las
        tres cosas: (1) árboles frescos de Overpass (cabecera X-Arboles-
@@ -2756,7 +2756,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
        (3) fuerza a MapLibre a recargar las fuentes de teselas visibles.
        Uso puntual, sin intervalos ni bucles nuevos: no calienta el móvil. */
     // CLS (2026-09-12): el botón NACE en el HTML (index.html, barra
-    // superior) para que la página ya salga pintada con él — inyectarlo
+    // superior) para que la página ya salga pintada con él, inyectarlo
     // tarde hacía crecer la barra y empujaba toda la página (CLS 0,53).
     // Aquí solo lo ADOPTAMOS; si una página no lo trae, se crea como antes.
     let btnActualizarOSM = document.getElementById('rsBtnActualizarOSM');
@@ -2781,7 +2781,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         // (1) Árboles frescos (bypass + renovación de la caché del Worker).
         // Si el módulo de árboles aún no ha terminado de iniciarse (clic
         // muy temprano), lo esperamos: antes se resolvía al instante y el
-        // "✓ Actualizado" mentía — no se había consultado nada (QA, ronda CLS).
+        // "✓ Actualizado" mentía, no se había consultado nada (QA, ronda CLS).
         let trabajoArboles = null;
         if (typeof window.manolitAireActualizarOSM === 'function') {
           trabajoArboles = window.manolitAireActualizarOSM();
@@ -2886,7 +2886,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         puntoOrigenPendiente = { lat, lon: lng };
         map.getSource('puntos-manuales')?.setData(turf.featureCollection([turf.point([lng, lat])]));
         inputOrigen.value = t('pointMap', 'Punto marcado en el mapa');
-        mostrarEstado(t('clickDestiny', 'Origen marcado — haz clic en el destino.'));
+        mostrarEstado(t('clickDestiny', 'Origen marcado, haz clic en el destino.'));
         geocodificarInverso(lat, lng).then((nombre) => { inputOrigen.value = nombre; });
         return;
       }
@@ -3084,7 +3084,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       #rsMapStyleToggle button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
       /* Mapa oscuro SOLO a petición (botón "Mapa oscuro"). El filtro
          invert() sobre el canvas WebGL es un pase de GPU a pantalla
-         completa en CADA repintado del mapa — y antes se aplicaba SOLO
+         completa en CADA repintado del mapa, y antes se aplicaba SOLO
          al arrancar, porque la web nace en tema oscuro: el mapa salía
          oscuro (Sandro lo pidió claro: "el inicio mapa claro, la
          península, en blanco") y el iPhone pagaba el filtro desde el
@@ -3301,7 +3301,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     tSombras?.addEventListener('change', async () => {
       asegurarActivacionSolar();
       // Carrera corregida (sep-2026): el barrido de sombras de edificios
-      // es async y antes NO se esperaba — los árboles avisaban a la ruta
+      // es async y antes NO se esperaba, los árboles avisaban a la ruta
       // antes de que las sombras de edificios existieran, y los tramos
       // de la ruta salían vacíos o a medias. Ahora se espera al barrido
       // y DESPUÉS se actualizan los tramos explícitamente (además esto
@@ -3480,7 +3480,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   /* ---------------- Guía paso a paso accesible (calle a calle, sombra a sombra) ----------------
      Para personas ciegas o con baja visión: la ruta calculada se convierte en
      una lista de indicaciones en texto plano ("Gira a la izquierda en Calle
-     Feria y sigue 120 m — tramo en sombra"), que un lector de pantalla lee
+     Feria y sigue 120 m, tramo en sombra"), que un lector de pantalla lee
      directamente o el botón "Escuchar indicaciones" lee en voz alta con la
      voz del propio navegador (speechSynthesis, 100% local). */
 
@@ -3531,7 +3531,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     else frase = t('shadeMixed', 'tramo con sol y sombra');
     // Consejo de calor solo donde de verdad duele: tramo largo y casi sin sombra.
     const consejo = (fraccion <= 0.25 && metros >= 120)
-      ? t('shadeTip', 'Consejo: es un tramo largo al sol — ve despacio, camina por el lado con edificios y lleva agua.')
+      ? t('shadeTip', 'Consejo: es un tramo largo al sol, ve despacio, camina por el lado con edificios y lleva agua.')
       : '';
     return { frase, consejo };
   }
@@ -3579,7 +3579,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const bearingIni = turf.bearing(g.coords[0], g.coords[1]);
       const bearingFin = turf.bearing(g.coords[g.coords.length - 2], g.coords[g.coords.length - 1]);
       const { frase, consejo } = textoSombra(fraccionSombraTramo(g.coords, sombras), metros);
-      const colaSombra = frase ? ' — ' + frase : '';
+      const colaSombra = frase ? '. ' + frase : '';
 
       let texto;
       if (i === 0) {
@@ -3628,7 +3628,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const metros = redondearMetros(s.distance || 0);
       const coords = s.geometry?.coordinates || [];
       const { frase, consejo } = textoSombra(fraccionSombraTramo(coords, sombras), metros);
-      const colaSombra = frase ? ' — ' + frase : '';
+      const colaSombra = frase ? '. ' + frase : '';
       const maniobra = s.maneuver || {};
       const tipo = maniobra.type || '';
       const mod = maniobra.modifier || '';
@@ -4019,7 +4019,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           const resto = r.display_name.split(',')[0];
           return `<li data-idx="${i}" id="${contenedorSugerenciasId}-opt-${i}" role="option" aria-selected="false">
             <span class="rs-sug-linea1">${resto}</span>
-            <span class="rs-sug-linea2">${ciudad ? ciudad + ' — ' : ''}${r.address?.state || ''}</span>
+            <span class="rs-sug-linea2">${ciudad ? ciudad + ' · ' : ''}${r.address?.state || ''}</span>
           </li>`;
         })
         .join('');
@@ -4146,7 +4146,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (previo === 'concedido') return true;
       // 'denegado' solo silencia los avisos AUTOMÁTICOS. Si el usuario
       // pulsa ÉL un botón de voz (orden explícita), se vuelve a preguntar
-      // siempre — antes un "Ahora no" dejaba la voz muerta para siempre
+      // siempre, antes un "Ahora no" dejaba la voz muerta para siempre
       // y la tarjeta no volvía a salir jamás (sep-2026).
       if ((previo === 'denegado' && !porBotonExpreso) || document.getElementById('rsPermisoVoz')) return false;
       const tarjeta = document.createElement('div');
@@ -4399,7 +4399,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // Sandro): NINGUNA casilla se auto-marca nunca. Al abrir la app solo
       // vienen marcadas «Edificios 3D» y «Nubes»; el resto se elige a mano.
       // Buscar una ruta ya ES una orden explícita, así que la ruta se
-      // muestra igualmente — pero sin tocar las casillas: las capas se
+      // muestra igualmente, pero sin tocar las casillas: las capas se
       // hacen visibles directamente en el mapa (las capas nacen visibles;
       // esto solo importa si el usuario las había ocultado a mano antes).
       ['capa-ruta', 'capa-ruta-outline', 'capa-ruta-glow', 'capa-ruta-sombra', 'capa-ruta-sombra-outline']
@@ -4409,7 +4409,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       map.getSource('ruta').setData(turf.feature(ruta.geojson));
       // Tramos fantasma: si «Sombras» está apagada, la ruta nueva sale
       // limpia (sin marcas cian/naranja) y hay que borrar los tramos
-      // CONGELADOS de la ruta anterior — si no, las marcas viejas se
+      // CONGELADOS de la ruta anterior, si no, las marcas viejas se
       // quedaban pintadas encima de la ruta nueva. Con «Sombras»
       // encendida, los tramos nuevos se calculan unas líneas más abajo
       // (actualizarTramosSombraRuta) y machacan a los viejos.
@@ -4445,7 +4445,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         mostrarBadgeSombra(ruta.coberturaSombraPct);
         renderizarPasosAccesibles(ruta.pasos || [], ruta.pasosGuiados || []);
       } else {
-        mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado) — mostrando línea directa.'), 'error');
+        mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado), mostrando línea directa.'), 'error');
         mostrarBadgeSombra(null);
         ocultarPasosAccesibles();
       }
@@ -4609,7 +4609,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   mapEl.addEventListener('pointercancel', (e) => paseoToques.delete(e.pointerId));
 
   /* ============================================================
-     v6 — MODO OTOÑO/INVIERNO: «RUTA DE SOL» (Dijkstra inverso)
+     v6, MODO OTOÑO/INVIERNO: «RUTA DE SOL» (Dijkstra inverso)
      ------------------------------------------------------------
      En verano el motor térmico de más arriba penaliza las aristas
      EXPUESTAS AL SOL para darte el camino más fresco. Este bloque
@@ -4617,7 +4617,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
      para que en otoño/invierno la ruta busque el sol (luz y calor
      radiante cuando apetece).
 
-     100% ADITIVO — no se ha tocado ni una línea del código de
+     100% ADITIVO, no se ha tocado ni una línea del código de
      siempre:
      - Los cálculos de aquí son la VERSIÓN INVERSA de los
        originales (misma red peatonal, mismo grafo, mismo MinHeap).
@@ -4761,7 +4761,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       duracionMin: Math.round(duracionMin),
       esReal: true,
       duracionEstimada: true,
-      // OJO: en modo invierno este % debe salir BAJO — es la parte
+      // OJO: en modo invierno este % debe salir BAJO, es la parte
       // del paseo que queda a la sombra (el panel ya lo muestra).
       coberturaSombraPct,
       esDijkstraSolar: true,
@@ -4836,7 +4836,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
 
   /* ============================================================
-     ALTURAS OFICIALES DEL CATASTRO — sombras con la altura real
+     ALTURAS OFICIALES DEL CATASTRO, sombras con la altura real
      ------------------------------------------------------------
      El ~90% de los edificios de OSM no trae altura ni plantas
      (comprobado en Carretera de Carmona: 232 de 249 sin dato),
@@ -5100,7 +5100,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   /* ============================================================
-     LA FLECHA MANOLIT — puntero caminante que avanza contigo
+     LA FLECHA MANOLIT, puntero caminante que avanza contigo
      ------------------------------------------------------------
      La figura del logo (cabeza dorada, ojos teal, corazón vino)
      con piernas y brazos articulados. Aparece en el mapa cuando:
@@ -5331,7 +5331,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       _tick() {
         const paso = () => {
           // Ahorro de batería (sep-2026): con la pestaña oculta el muñeco
-          // se duerme — nada de mover poses 15 veces por segundo sin nadie
+          // se duerme, nada de mover poses 15 veces por segundo sin nadie
           // mirando. Al volver, el bucle sigue donde estaba.
           if (document.hidden) { this._tickTimer = setTimeout(paso, 500); return; }
           const now = Date.now();
@@ -5343,7 +5343,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           }
           // Rendimiento (sep-2026, ADITIVO): si Manolit está quieto (no
           // camina, no explora, no saluda, no está sentándose/levantándose),
-          // la pose NO cambia — re-aplicarla 15 veces por segundo solo
+          // la pose NO cambia, re-aplicarla 15 veces por segundo solo
           // servía para forzar recálculos de estilo en el navegador (calor).
           // Quieto: saltamos _applyPose y el tic baja a 4 Hz (la detección
           // de "10 s aburrido" sigue funcionando igual, con margen de sobra).
@@ -5788,7 +5788,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     });
 
     /* ============================================================
-       BOTÓN DE CHAT MANOLIT — el FAB de siempre con nuestra figura
+       BOTÓN DE CHAT MANOLIT, el FAB de siempre con nuestra figura
        y una burbuja «¡Pregúntame!» encima. El clic sigue abriendo
        el chat de siempre (su onclick no se toca). La burbuja se
        despide en cuanto la tocas una vez.
@@ -5872,7 +5872,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
 
   /* ============================================================
-     LOGO DEL PANEL DE CHAT — la figura Manolit también cuando el
+     LOGO DEL PANEL DE CHAT, la figura Manolit también cuando el
      chat se despliega: sustituye al círculo multicolor de la
      cabecera «Manolit∞ te lo explica». El panel y sus funciones
      no se tocan; solo cambia el icono.
@@ -6123,7 +6123,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // El enlace va en el PIE, junto a Aviso legal · Privacidad · Cookies:
     // discreto, con el estilo de la web y fuera del mapa.
     // (sep-2026) El pie ya trae de serie el botón #btnSyncExport: se USA
-    // ESE y no se crea un segundo enlace — antes salía "Sincronizar /
+    // ESE y no se crea un segundo enlace, antes salía "Sincronizar /
     // Exportar datos" DOS veces en el pie (botón + enlace). Solo si la
     // página no tuviera el botón se crearía el enlace como respaldo.
     cuandoExista('.footer a[href="aviso-legal.html"]', (enlaceLegal) => {
@@ -6154,7 +6154,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     });
   })();
 
-  /* ==================== GUÍA POR VOZ DE LA CAMINATA — SOLO SI SE PIDE ====================
+  /* ==================== GUÍA POR VOZ DE LA CAMINATA, SOLO SI SE PIDE ====================
      Antes la voz arrancaba SOLA al pulsar "Iniciar caminata". Ahora hay un
      botoncito "🔊 Guía por voz" junto a los botones de caminata: apagado por
      defecto; quien quiera la voz la enciende, quien no, camina en silencio.
@@ -6250,7 +6250,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         try { if (localStorage.getItem('manolito_guia_voz') !== '1') return; } catch (e0) { return; }
         if (typeof vozNavegadorDisponible !== 'function' || !vozNavegadorDisponible()) return;
         // Permiso de voz (sep-2026): esta versión "voz neutral" se saltaba
-        // el permiso — por eso la tarjeta NO salía en el móvil y la voz no
+        // el permiso, por eso la tarjeta NO salía en el móvil y la voz no
         // sonaba nunca. Recupera el mismo cerrojo que el resto de la app.
         if (typeof vozPermitida === 'function' && !vozPermitida()) {
           if (typeof pedirPermisoVozSiHaceFalta === 'function') pedirPermisoVozSiHaceFalta();
@@ -6284,9 +6284,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
    window.manolitAireMap, que este mismo archivo define arriba.
    ============================================================ */
 /* ============================================================
-   ÁRBOLES GLOBALES + SOMBRA — capa independiente, vía Overpass/OSM
+   ÁRBOLES GLOBALES + SOMBRA, capa independiente, vía Overpass/OSM
 
-   v8 — Especies realistas con estaciones (ADITIVO, sep-2026):
+   v8, Especies realistas con estaciones (ADITIVO, sep-2026):
    - Naranjo (Citrus × sinensis / aurantium): copa redondeada y densa
      inspirada en una malla real low-poly (6,2 m de referencia), tronco
      marrón oscuro, naranjas visibles de otoño a invierno y flor de
@@ -6298,12 +6298,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
      caída se acelera con la nubosidad real (manolitAireNubosidad).
    - El resto de especies y las sombras quedan EXACTAMENTE como estaban.
 
-   v7 — Robustez Overpass + formas por especie:
+   v7, Robustez Overpass + formas por especie:
    - Cooldown exponencial ante errores 429/502/504/CORS para no saturar Overpass.
    - Timeout y área de consulta reducidos.
    - Clasificación por species/genus y sombras realistas por tipo de árbol.
 
-   v5 — FIX CRÍTICO de unidades + Sombras Orgánicas Asimétricas
+   v5, FIX CRÍTICO de unidades + Sombras Orgánicas Asimétricas
    ============================================================ */
 
 'use strict';
@@ -6330,7 +6330,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       'https://overpass.private.coffee/api/interpreter',
       'https://overpass.nchc.org.tw/api/interpreter',
       // OJO: overpass.osm.ch está devolviendo respuestas 200 VACÍAS y
-      // corruptas (timestamp_osm_base:"116617") — fuera de la lista.
+      // corruptas (timestamp_osm_base:"116617"), fuera de la lista.
     ],
     overpassTimeoutS: 15,
 
@@ -6380,7 +6380,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       color: '#6b8c42',
     },
     // Naranjo realista (va ANTES que 'citrico' para que los cítricos con
-    // nombre de naranjo —naranjo, orange, sinensis, aurantium— usen este
+    // nombre de naranjo:naranjo, orange, sinensis, aurantium: usen este
     // modelo; limoneros, mandarinos y pomelos siguen con 'citrico').
     naranjo: {
       keywords: ['naranjo', 'naranja', 'orange', 'aurantium', 'sinensis', 'bitter orange', 'seville orange', 'sweet orange'],
@@ -6389,7 +6389,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       forma: 'naranjo',
       color: '#4f7a3d', // verde oscuro del follaje de la malla real
     },
-    // Albizia julibrissin — acacia de Constantinopla: sombrilla de 8-10 m.
+    // Albizia julibrissin, acacia de Constantinopla: sombrilla de 8-10 m.
     albizia: {
       keywords: ['albizia', 'julibrissin', 'acacia de constantinopla', 'acacia de persia', 'silk tree', 'árbol de la seda', 'arbol de la seda'],
       alturaMediaM: 9,
@@ -6602,7 +6602,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // 1 = a punto de cambiar). Usado para que la caída de hoja de la
   // albizia sea gradual, no un salto brusco al cruzar de estación.
   // OJO: enero-marzo pertenece al invierno que empezó el 21 de diciembre
-  // DEL AÑO ANTERIOR — sin esa primera entrada la función devolvía 0
+  // DEL AÑO ANTERIOR, sin esa primera entrada la función devolvía 0
   // (mentira: un 15 de enero ya lleva ~27% del invierno recorrido).
   function progresoEstacion(fecha) {
     const anio = fecha.getFullYear();
@@ -6685,7 +6685,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const densidad = 0.85 - 0.75 * p;
         return { densidadHoja: densidad, colorHoja: '#c9862f', conFruto: false, conFlor: false, cayendo: true };
       }
-      // Invierno: NO queda a 0 — se deja un residuo (0.12) que representa
+      // Invierno: NO queda a 0, se deja un residuo (0.12) que representa
       // la masa de ramas desnudas, para que el árbol siga siendo visible
       // y no un palo casi invisible.
       return { densidadHoja: 0.12, colorHoja: '#8a6d4b', conFruto: false, conFlor: false, cayendo: false };
@@ -6706,7 +6706,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       (function intento() {
         if (window.manolitAireMap) return resolve(window.manolitAireMap);
         if (Date.now() - t0 > CONFIG.esperaMapaMs) {
-          return reject(new Error('No se ha encontrado window.manolitAireMap — añade "window.manolitAireMap = map;" justo después de crear el mapa en manolit-aire.js'));
+          return reject(new Error('No se ha encontrado window.manolitAireMap. Añade "window.manolitAireMap = map;" justo después de crear el mapa en manolit-aire.js'));
         }
         setTimeout(intento, 200);
       })();
@@ -7165,7 +7165,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         features.push(tronco);
 
         // COPAS. Naranjo y albizia (con hoja y de cerca) usan un RACIMO DE
-        // BULTOS irregulares solapados — aspecto de follaje real como la
+        // BULTOS irregulares solapados, aspecto de follaje real como la
         // malla, nada de "dos cilindros apilados". El resto de especies
         // sigue con los dos pisos de siempre, y la albizia desnuda de
         // invierno también (copa mínima parda = ramas).
@@ -7217,7 +7217,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           }
 
           // NARANJAS VERDES (verano): la naranja ya está colgando pero
-          // aún sin madurar — pequeñas y verdes, como en la calle real en
+          // aún sin madurar, pequeñas y verdes, como en la calle real en
           // septiembre. Así el naranjo se reconoce como naranjo todo el año.
           if (feno.frutoVerde) {
             for (let k = 0; k < 7; k++) {
@@ -7410,13 +7410,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           case 'naranjo':
             if (paraSombra) {
               // Para la SOMBRA proyectada: silueta simple y casi convexa.
-              // Los 3 lóbulos solo van en la copa visible — con lóbulos
+              // Los 3 lóbulos solo van en la copa visible, con lóbulos
               // aquí la unión con el trapecio de proyección se auto-cruza
               // y genera geometría corrupta.
               factorRadio = 0.96 + 0.07 * Math.cos(2 * anguloRad);
             } else {
               // Naranjo: copa globosa asimétrica, medida sobre la malla real
-              // (bbox x≈1.49 vs z≈1.31) — más ancha que profunda, con 3 lóbulos
+              // (bbox x≈1.49 vs z≈1.31), más ancha que profunda, con 3 lóbulos
               // suaves en vez de un círculo perfecto.
               factorRadio = (0.92 + 0.10 * Math.cos(anguloRad))
                           * (1.0 + 0.06 * Math.cos(3 * anguloRad));
@@ -7676,7 +7676,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     let temporizadorSombra = null;
     function programarSincroSombra(inmediato) {
       clearInterval(temporizadorSombra);
-      // forzar=true: hay árboles NUEVOS cargados — la guardia
+      // forzar=true: hay árboles NUEVOS cargados, la guardia
       // anti-doble-recálculo no debe saltarse esta pasada jamás.
       if (inmediato) recalcularSombrasArboles(true);
       temporizadorSombra = setInterval(() => {
@@ -7769,7 +7769,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     window.manolitAireRecalcularArboles = recalcularSombrasArboles;
 
-    // --- Hooks para la albizia 3D real (js/albizia-3d.js) — ADITIVO sep-2026 ---
+    // --- Hooks para la albizia 3D real (js/albizia-3d.js), ADITIVO sep-2026 ---
     // La capa 3D necesita: qué albizias hay cargadas (posición y medidas
     // reales OSM), la estación de la fecha efectiva y el progreso dentro de
     // ella. Nada de lo existente se toca; solo se EXPONE lectura.
@@ -7853,7 +7853,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       };
       // Reintentos propios, suaves y baratos (90 × 400 ms = 36 s de margen
       // de sobra para que el mapa termine de cargar y cree los botones).
-      // RENDIMIENTO: sin MutationObserver sobre todo el documento — con el
+      // RENDIMIENTO: sin MutationObserver sobre todo el documento, con el
       // mapa metiendo y quitando tiles a tope, observar cada cambio del DOM
       // salía caro en el móvil. Un getElementById cada 400 ms no cuesta nada.
       var intentosCapas = 0;

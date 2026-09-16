@@ -1,11 +1,11 @@
 /* ============================================================
-   MANOLITO AIRE — hoja de estilos compartida
+   MANOLITO AIRE, hoja de estilos compartida
    Tokens de color separados por tema para poder cambiar
    claro/oscuro y el acento sin tocar el resto del CSS.
    ============================================================ */
 
 :root{
-  /* --- tema claro (por defecto) — paleta propia "Aire de Sevilla":
+  /* --- tema claro (por defecto), paleta propia "Aire de Sevilla":
          petróleo de azulejo, mandarina eléctrica, jacarandá y menta viva.
          Nada de melocotones genéricos: esta paleta es solo de Manolit∞ --- */
   --sky-deep:#0E3B47;
@@ -18,7 +18,7 @@
   --border: rgba(14,59,71,0.14);
 
   /* --- acento (tema de color, cambiable) --- */
-  --accent: #FF6B1A;      /* mandarina de Sevilla — por defecto */
+  --accent: #FF6B1A;      /* mandarina de Sevilla, por defecto */
   --accent-soft: rgba(255,107,26,0.16);
   --accent-2: #7B2FFF;    /* jacarandá */
   --accent-text: #C24500; /* versión oscura del acento para texto (contraste AA) */
@@ -338,7 +338,7 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
   -webkit-background-clip:text; background-clip:text;
   -webkit-text-fill-color:transparent; color:transparent;
 }
-/* El chat NO es modal: sin fondo oscuro ni bloqueo — se puede navegar
+/* El chat NO es modal: sin fondo oscuro ni bloqueo, se puede navegar
    por la web con el chat abierto. Se cierra con la X o con Escape. */
 .chat-overlay{
   position:fixed; inset:0; background:transparent;
@@ -688,7 +688,7 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 .rs-planetario-info{ font-family:var(--font-mono); font-size:0.62rem; color:var(--sky-mid); margin-top:4px; letter-spacing:0.02em; }
 
 /* ============================================================
-   RUTA Y SOMBRAS 3D — sugerencias del autocompletado + mapa oscuro
+   RUTA Y SOMBRAS 3D, sugerencias del autocompletado + mapa oscuro
    ============================================================ */
 
 /* Lista de sugerencias del buscador de direcciones (usada por
@@ -710,7 +710,7 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 .rs-sug-linea1{ font-weight:600; }
 .rs-sug-linea2{ font-size:0.7rem; color:var(--sky-mid); }
 
-/* Fondo del contenedor del mapa cuando el modo oscuro está activo —
+/* Fondo del contenedor del mapa cuando el modo oscuro está activo:
    el filtro CSS que oscurece de verdad el lienzo lo añade
    shadows-route.js sobre #shadowRouteMap .maplibregl-canvas; esto es
    solo el color de fondo mientras cargan los tiles. */
@@ -722,7 +722,7 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
   filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
 }
 /* ============================================================
-   MODO NOCHE — widgets flotantes del mapa
+   MODO NOCHE, widgets flotantes del mapa
    Cuando la web está en modo oscuro (o el usuario pulsa
    "Mapa oscuro" a mano), TODOS los paneles sobre el mapa pasan
    a cristal oscuro con acento mandarina: nada de focos blancos.
@@ -832,7 +832,7 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 .maplibregl-ctrl-attrib-button{ min-width:26px !important; min-height:26px !important; }
 
 /* ============================================================
-   ACCESIBILIDAD — lectores de pantalla y modo accesible
+   ACCESIBILIDAD, lectores de pantalla y modo accesible
    ============================================================ */
 
 /* Texto solo para lectores de pantalla (invisible, pero en el DOM) */
@@ -1070,7 +1070,7 @@ body.manolito-fs .chat-fab{ display:none !important; }
 
 
 /* ============================================================
-   MEJORAS VISUALES sep-2026 — bloque ADITIVO
+   MEJORAS VISUALES sep-2026, bloque ADITIVO
    (no se ha borrado ni tocado ninguna regla anterior;
     al ir las últimas, estas ganan cuando pisan alguna)
    ============================================================ */
@@ -1197,7 +1197,7 @@ body.manolito-fs .chat-fab{ display:none !important; }
 }
 
 /* ============================================================
-   HUMANIZACIÓN sep-2026 — la web sale de la calle, no de una
+   HUMANIZACIÓN sep-2026, la web sale de la calle, no de una
    plantilla: CTA mandarina plana (el naranjo no tiene gradiente),
    jerarquía de radios, noche de verano de verdad (farola, no
    neón), paletas con nombre de momento sevillano y leyenda de
@@ -1310,7 +1310,7 @@ body.manolito-fs .chat-fab{ display:none !important; }
 }
 .chart-tip.visible{ opacity:1; }
 /* Modo oscuro (sep-2026): --panel no existe como variable y el tooltip
-   quedaba fondo blanco con texto casi blanco (--ink es claro en dark) —
+   quedaba fondo blanco con texto casi blanco (--ink es claro en dark):
    ilegible. Ahora en oscuro tiene fondo oscuro y texto claro, siempre. */
 [data-theme="dark"] .chart-tip{
   background:#12232E;
@@ -1404,7 +1404,7 @@ body > #rsBtnActualizarOSM{ position:fixed; top:10px; right:48px; z-index:30; }
 
 
 /* ============================================================
-   MAPA EFICIENTE Y ELEGANTE (sep-2026 — brief de Sandro)
+   MAPA EFICIENTE Y ELEGANTE (sep-2026, brief de Sandro)
    ------------------------------------------------------------
    BLOQUE 100% ADITIVO: no se ha borrado ni una línea del CSS
    original; estas reglas vienen al final y ganan por cascada

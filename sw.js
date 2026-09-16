@@ -1,5 +1,5 @@
 /* ============================================================
-   MANOLIT AIRE — sw.js (Service Worker)
+   MANOLIT AIRE · sw.js (Service Worker)
    Licencia: AGPL-3.0, igual que el resto del proyecto.
    ------------------------------------------------------------
    Objetivo: que la web cargue rápido y aguante cortes de red en
@@ -32,7 +32,7 @@
 // nuevos de OSM nunca aparecían aunque OpenFreeMap ya los llevaba. Ahora la
 // tesela se sirve al instante desde caché (misma velocidad) pero se
 // revalida en segundo plano: el mapa se auto-actualiza solo.
-// 2026-09-14-a: (1) descamuflaje — el árbol plano duplicado pegado a un
+// 2026-09-14-a: (1) descamuflaje: el árbol plano duplicado pegado a un
 // naranjo/albizia 3D ya no se pinta (adiós al "cubo verde" y al flash
 // negro al hacer zoom); (2) el naranjo 3D da naranjas MADURAS también en
 // verano (orden de Sandro); (3) emisivo del naranjo ajustado para que no
@@ -56,7 +56,13 @@
 // 0,38 MB y ~2 ml por visita medidos). Cambian index.html (banda, footer,
 // SEO: description/keywords/OG/JSON-LD) y manolito-aire-comparativa.html
 // (tarjetas con telemetría + franja de estadísticas reales).
-const VERSION = '2026-09-16-a';
+// 2026-09-16-b: (1) se eliminan TODOS los guiones largos de los textos de la
+// web (marca típica de texto de IA; ahora suena a persona); (2) contador vivo
+// en la cabecera del mapa: "Anuncios gastando agua a nivel mundial: N L" con
+// la fórmula en pequeño y el número subiendo de color por escalones. Coste:
+// una escritura de texto por segundo, sin animaciones; batería ~0.
+// Cambian index.html, js/i18n.js (6 idiomas) y textos de varios js.
+const VERSION = '2026-09-16-b';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

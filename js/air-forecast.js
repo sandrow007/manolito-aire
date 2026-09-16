@@ -6,14 +6,14 @@
 // Revisado a mano: sin errores reales.
 
 /* ============================================================
-   MANOLITO AIRE — air-forecast.js
+   MANOLITO AIRE · air-forecast.js
    1) Gráfico SVG con datos REALES de histórico (48h) y pronóstico
       (48h) de Open-Meteo/CAMS.
    2) "Manolito Cuántico": una simulación matemática de formalismo
       cuántico (registro de 3 qubits, amplitudes complejas, medición
       por regla de Born) que traduce el pronóstico real en una
       distribución de probabilidad. Es matemática de verdad, pero
-      es una SIMULACIÓN CLÁSICA — no corre en hardware cuántico, y
+      es una SIMULACIÓN CLÁSICA: no corre en hardware cuántico, y
       no es un pronóstico meteorológico oficial. Eso se declara
       también en el aviso legal.
    ============================================================ */
@@ -149,7 +149,7 @@ function drawAirChart(times, values, nowIndex) {
 		cursorDot.style.fill = colorDelAire(clean[i]);
 		cursor.style.display = '';
 		const esPrevision = i > nowIndex;
-		tip.textContent = `${fmtHora(times[i])} — ${fmtNum(clean[i])} µg/m³, ${textoDelAire(clean[i])}${esPrevision ? ' (previsión)' : ''}`;
+		tip.textContent = `${fmtHora(times[i])} · ${fmtNum(clean[i])} µg/m³, ${textoDelAire(clean[i])}${esPrevision ? ' (previsión)' : ''}`;
 		tip.classList.add('visible');
 		// El tooltip sigue al dedo sin salirse por los bordes de la gráfica.
 		const pct = (px / w) * 100;
@@ -297,7 +297,7 @@ function renderQuantumBars(result) {
 		stats.className = 'quantum-stats';
 		el.after(stats);
 	}
-	stats.textContent = `PM2.5 próximas 24 h — media ${fmt(result.stats.mean)} µg/m³ · pico ${fmt(result.stats.max)} · mínimo ${fmt(result.stats.min)}`;
+	stats.textContent = `PM2.5 próximas 24 h: media ${fmt(result.stats.mean)} µg/m³ · pico ${fmt(result.stats.max)} · mínimo ${fmt(result.stats.min)}`;
 
 	// Detalle al tocar/pasar por cada barra (región viva para lectores de pantalla).
 	let detail = card.querySelector('.quantum-detail');
@@ -309,7 +309,7 @@ function renderQuantumBars(result) {
 		stats.after(detail);
 	}
 	const textos = rows.map(r =>
-		`${r.label}: ${fmt(r.pct)} % — ${r.desc} en las próximas 24 h. ` +
+		`${r.label}: ${fmt(r.pct)} %. ${r.desc} en las próximas 24 h. ` +
 		`PM2.5 medio previsto ${fmt(result.stats.mean)} µg/m³ (entre ${fmt(result.stats.min)} y ${fmt(result.stats.max)}).`
 	);
 	const mostrar = (i) => {

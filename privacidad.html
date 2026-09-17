@@ -13,6 +13,14 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
+<style>
+.tabla-datos { width: 100%; border-collapse: collapse; margin: 1.2rem 0 2rem; font-size: .92rem; }
+.tabla-datos th, .tabla-datos td { text-align: left; padding: .6rem .7rem; border-bottom: 1px solid rgba(127,127,127,.25); vertical-align: top; }
+.tabla-datos th { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; opacity: .7; }
+.tabla-datos td:first-child { font-weight: 600; white-space: nowrap; }
+.caja-clara { border: 1px solid rgba(127,127,127,.3); border-radius: 10px; padding: 1rem 1.2rem; margin: .5rem 0 2rem; background: rgba(127,127,127,.06); }
+@media (max-width: 640px){ .tabla-datos td:first-child { white-space: normal; } }
+</style>
 <base target="_blank">
 </head>
 <body>
@@ -36,9 +44,22 @@
 <div class="content">
   <h1 data-i18n-legal="priv_1">Política de Privacidad y Seguridad de Datos</h1>
   <p class="lead" data-i18n-legal="priv_2">
-    Resumen fundamental: tu privacidad es lo primero. No hay registro de usuarios, no hay cuentas ni se crean perfiles. 
+    Resumen fundamental. Tu privacidad es lo primero. No hay registro de usuarios, no hay cuentas ni se crean perfiles. 
     Todos tus datos de configuración se guardan de forma local en tu propio navegador, nunca en un servidor externo.
   </p>
+
+  <h2>Adónde van tus datos, de un vistazo</h2>
+  <div class="caja-clara">
+  <table class="tabla-datos">
+    <tr><th>Servicio</th><th>Qué sale de tu navegador</th><th>Qué NO sale nunca</th></tr>
+    <tr><td>Tu configuración</td><td>Nada. Idioma, tema y modo de lectura se guardan solo en tu navegador con localStorage.</td><td>Todo. Ni nosotros ni nadie la recibe.</td></tr>
+    <tr><td>Chat de Manolit∞</td><td>Solo el texto que escribes, a Cloudflare Workers AI y, si falla, a OpenRouter.</td><td>Tu nombre, tu ubicación, tu historial de conversaciones.</td></tr>
+    <tr><td>Calidad del aire</td><td>Las coordenadas de la zona que consultas, a Open-Meteo y Copernicus.</td><td>Tu identidad. No hay cuentas ni perfiles.</td></tr>
+    <tr><td>Búsquedas y rutas</td><td>La calle que buscas a OpenStreetMap Nominatim y las coordenadas del trayecto a OSRM.</td><td>Tus rutas guardadas. No guardamos ninguna.</td></tr>
+    <tr><td>Nubes y Catastro</td><td>Solo las coordenadas de la zona visible del mapa, redondeadas, a través de nuestro propio proxy en Cloudflare.</td><td>Tu GPS exacto. La clave de API nunca llega a tu dispositivo.</td></tr>
+    <tr><td>Sombras 3D y sol</td><td>Nada. Todos los cálculos se hacen en tu propio móvil u ordenador.</td><td>Tus coordenadas jamás se envían a un servidor para calcular sombras.</td></tr>
+  </table>
+  </div>
 
   <h2 data-i18n-legal="priv_3">1. Qué NO recogemos (Cero Datos Personales)</h2>
   <p data-i18n-legal="priv_4">
@@ -50,17 +71,17 @@
   <p data-i18n-legal="priv_6">
     Tus preferencias personalizadas como el idioma elegido, el modo claro/oscuro de la interfaz, la paleta de color del mapa 3D y el modo de lectura adaptado 
     (ya sea ciudadano, científico, abuela/abuelo o peque) se almacenan exclusivamente mediante la tecnología <code>localStorage</code>, 
-    una memoria local dentro de tu propio navegador web. Nosotros no recibimos, vemos ni almacenamos esta información: se queda en tu dispositivo móvil u ordenador, 
+    una memoria local dentro de tu propio navegador web. Nosotros no recibimos, vemos ni almacenamos esta información, se queda en tu dispositivo móvil u ordenador, 
     y se eliminará por completo si decides borrar los datos de navegación de tu historial.
   </p>
 
   <h2 data-i18n-legal="priv_7">3. El Asistente de Manolit∞ (Privacidad en Consultas con IA)</h2>
   <p data-i18n-legal="priv_8">
-    Cuando redactas una pregunta en nuestro chat, ese texto <b>se envía a un servicio externo de inteligencia artificial</b> con la única finalidad de procesar y generar la respuesta climática. Para garantizar el servicio, utilizamos dos proveedores de confianza en este orden de prioridad:
+    Cuando redactas una pregunta en nuestro chat, ese texto <b>se envía a un servicio externo de inteligencia artificial</b> con la única finalidad de procesar y generar la respuesta climática. Para garantizar el servicio, utilizamos dos proveedores de confianza en este orden de prioridad.
   </p>
   <p data-i18n-legal="priv_9">
-    1) <b>Cloudflare Workers AI</b> — un entorno seguro operado directamente por Cloudflare bajo nuestra propia cuenta técnica, que procesa el texto en sus servidores globales para devolverte la respuesta de forma inmediata.<br>
-    2) <b>OpenRouter</b> — un servicio de IA alternativo y gratuito de terceros, utilizado exclusivamente como pasarela de respaldo si el servidor principal no está disponible.
+    1) <b>Cloudflare Workers AI</b> · un entorno seguro operado directamente por Cloudflare bajo nuestra propia cuenta técnica, que procesa el texto en sus servidores globales para devolverte la respuesta de forma inmediata.<br>
+    2) <b>OpenRouter</b> · un servicio de IA alternativo y gratuito de terceros, utilizado exclusivamente como pasarela de respaldo si el servidor principal no está disponible.
   </p>
   <p data-i18n-legal="priv_10">
     En ambos casos, el texto de tu consulta sale temporalmente de esta web hacia los servidores de dichos proveedores. Por tu propia seguridad, te recomendamos encarecidamente <strong>no incluir datos personales sensibles</strong> en el chat (como tu nombre completo, dirección exacta del domicilio, contraseñas o datos médicos concretos). Nosotros no usamos ese texto para identificarte, no lo asociamos a ningún perfil de usuario y no almacenamos el historial de tus conversaciones en ninguna base de datos externa más allá de la sesión actual del chat.
@@ -82,26 +103,26 @@
     <b>OpenFreeMap</b>.
   </p>
   <p data-i18n-legal="priv_16">
-    Estos componentes son servicios públicos, abiertos e independientes de Manolit∞ Aire. No te identifican de forma personal ni comercial: solo reciben las coordenadas indispensables para trazar las líneas del camino y renderizar las fachadas 3D en tu pantalla. Nosotros no guardamos tus búsquedas ni tus rutas en ningún servidor propio. Evita introducir datos que te identifiquen directamente en los campos de búsqueda.
+    Estos componentes son servicios públicos, abiertos e independientes de Manolit∞ Aire. No te identifican de forma personal ni comercial. Solo reciben las coordenadas indispensables para trazar las líneas del camino y renderizar las fachadas 3D en tu pantalla. Nosotros no guardamos tus búsquedas ni tus rutas en ningún servidor propio. Evita introducir datos que te identifiquen directamente en los campos de búsqueda.
   </p>
 
-  <h2 data-i18n-legal="priv_19">5 bis. Datos de Nubosidad en Tiempo Real (OpenWeatherMap)</h2>
+  <h2 data-i18n-legal="priv_19">6. Datos de Nubosidad en Tiempo Real (OpenWeatherMap)</h2>
   <p data-i18n-legal="priv_20">
-    Para pintar las sombras con realismo físico según el cielo actual y dibujar la capa de nubes visible sobre el mapa, la web consulta el porcentaje de cobertura nubosa y las teselas del mapa de nubes de <b>OpenWeatherMap</b>. Ambas peticiones viajan a través de un proxy propio en <b>Cloudflare Workers</b>: tu navegador solo envía a ese proxy las coordenadas del centro del mapa (o tu punto de referencia, si usaste "Mi ubicación") redondeadas a tres decimales — una precisión de unos 100&nbsp;m — y las coordenadas de tesela de la zona visible, sin ningún dato personal adjunto; la clave de API permanece en el servidor, nunca en tu dispositivo. Los resultados se guardan en caché unos 10 minutos y no se almacenan en ningún servidor propio. OpenWeatherMap procesa esas solicitudes según su propia política de privacidad; si prefieres no enviar coordenada alguna, ten en cuenta que el mapa siempre usa el centro de la vista y nunca tu GPS, salvo que actives la ubicación manualmente.
+    Para pintar las sombras con realismo físico según el cielo actual y dibujar la capa de nubes visible sobre el mapa, la web consulta el porcentaje de cobertura nubosa y las teselas del mapa de nubes de <b>OpenWeatherMap</b>. Ambas peticiones viajan a través de un proxy propio en <b>Cloudflare Workers</b>. Tu navegador solo envía a ese proxy las coordenadas del centro del mapa (o tu punto de referencia, si usaste "Mi ubicación") redondeadas a tres decimales, una precisión de unos 100&nbsp;m, y las coordenadas de tesela de la zona visible, sin ningún dato personal adjunto. La clave de API permanece en el servidor, nunca en tu dispositivo. Los resultados se guardan en caché unos 10 minutos y no se almacenan en ningún servidor propio. OpenWeatherMap procesa esas solicitudes según su propia política de privacidad. Si prefieres no enviar coordenada alguna, ten en cuenta que el mapa siempre usa el centro de la vista y nunca tu GPS, salvo que actives la ubicación manualmente.
   </p>
 
-  <h2>5 ter. Capa del Catastro de España (Parcelas y Alturas)</h2>
+  <h2>7. Capa del Catastro de España (Parcelas y Alturas)</h2>
   <p>
     Al activar la capa «Catastro 3D», tu navegador solicita las imágenes de parcelas catastrales a
     través del proxy propio de esta web en <b>Cloudflare Workers</b>, que a su vez consulta el servicio
     público WMS de la <b>Sede Electrónica del Catastro</b> (ovc.catastro.meh.es). La única información
     que viaja en esas peticiones son las <b>coordenadas de las teselas del mapa que estás viendo</b>
     (la zona visible, no tu posición GPS ni ningún dato personal). El Catastro procesa esas solicitudes
-    como servicio público INSPIRE conforme a sus propias condiciones; las respuestas se guardan en
+    como servicio público INSPIRE conforme a sus propias condiciones. Las respuestas se guardan en
     caché durante 1 hora para acelerar la carga y no se almacena historial alguno de tus consultas.
   </p>
 
-  <h2>5 quáter. Tipografías web (Google Fonts)</h2>
+  <h2>8. Tipografías web (Google Fonts)</h2>
   <p>
     Los textos de la web (incluida la página «Comparativa») usan tipografías de <b>Google Fonts</b>,
     servicio prestado por Google Ireland Ltd. Al cargar cualquier página, tu navegador descarga las
@@ -111,9 +132,18 @@
     se envía a Google.
   </p>
 
-  <h2 data-i18n-legal="priv_17">6. Derechos de los Usuarios y RGPD</h2>
+  <h2>9. Cómo protegerte aún más</h2>
+  <p>
+    Aunque la web ya está diseñada para recoger lo mínimo, hay cosas que puedes hacer tú para ir un paso más allá.
+    Si no quieres compartir tu GPS, escribe tu ciudad a mano y el simulador funciona igual de bien. En el chat,
+    no escribas datos personales como tu nombre completo, tu dirección o datos de salud, porque ese texto viaja
+    a los servicios de IA para poder responderte. Y si algún día quieres que Manolit∞ se olvide por completo de ti,
+    basta con borrar los datos de navegación de tu navegador, no queda nada guardado en ningún otro sitio.
+  </p>
+
+  <h2 data-i18n-legal="priv_17">10. Derechos de los Usuarios y RGPD</h2>
   <p data-i18n-legal="priv_18">
-    Debido a que la arquitectura técnica de Manolit∞ Aire está diseñada para no almacenar ningún dato de carácter personal en bases de datos propias, no existe ningún perfil o registro asociado a tu persona que podamos extraer, modificar, transferir o borrar de nuestros sistemas. Para cualquier consulta técnica, legal o relacionada con el proyecto de software, puedes ponerte en contacto directamente con el desarrollador del sitio web a través del correo electrónico: <strong>SANDRO.A007@GMAIL.COM</strong>.
+    Debido a que la arquitectura técnica de Manolit∞ Aire está diseñada para no almacenar ningún dato de carácter personal en bases de datos propias, no existe ningún perfil o registro asociado a tu persona que podamos extraer, modificar, transferir o borrar de nuestros sistemas. Para cualquier consulta técnica, legal o relacionada con el proyecto de software, puedes ponerte en contacto directamente con el desarrollador del sitio web a través del correo electrónico <strong>SANDRO.A007@GMAIL.COM</strong>.
   </p>
 </div>
 

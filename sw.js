@@ -90,7 +90,7 @@
 // index.html, antes del pie. Hecha con details/summary, sin JavaScript,
 // con el tono de Sandro y sin marcas tipicas de texto de IA.
 // Cambian index.html y style.css.
-const VERSION = '2026-09-16-h';
+const VERSION = '2026-09-17-a' // -a 17-sep: privacidad pulida, tabla adonde van tus datos, consejos;
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

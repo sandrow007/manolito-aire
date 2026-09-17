@@ -86,7 +86,11 @@
 // pestana nueva con rel noopener.
 // Cambian index.html, about.html, manolito-aire-comparativa.html,
 // aviso-legal.html, privacidad.html y cookies.html.
-const VERSION = '2026-09-16-g';
+// 2026-09-16-h: nueva seccion de preguntas frecuentes (FAQ) al final de
+// index.html, antes del pie. Hecha con details/summary, sin JavaScript,
+// con el tono de Sandro y sin marcas tipicas de texto de IA.
+// Cambian index.html y style.css.
+const VERSION = '2026-09-16-h';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

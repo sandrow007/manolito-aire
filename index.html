@@ -58,16 +58,14 @@
 
 <!-- Leaflet, MapLibre y Driver.css: no son necesarias para el primer pintado.
      Se cargan sin bloquear con preload+onload y caen a <noscript> si JS está desactivado. -->
-<link rel="preload" as="style" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" onload="this.onload=null;this.rel='stylesheet'">
-<link rel="preload" as="style" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" onload="this.onload=null;this.rel='stylesheet'">
-<link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css">
+<!-- EcoIndex (sep-2026): Leaflet y driver.js YA NO cargan de entrada.
+     El mapa 2D del aire esta al final de la pagina y el tutorial solo
+     sale una vez: app.js y tutorial.js cargan estas librerias bajo
+     demanda, justo cuando hacen falta. Ahorro: 4 peticiones y unos
+     60 KB en el primer pintado. -->
 </noscript>
 
-<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js" defer></script>
+<!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
 <link rel="stylesheet" href="css/style.css">
 <!-- Ambientes automáticos por fecha (sep-2026): Semana Santa, Día del
      Clima, Orgullo, Halloween... Los días normales no cambian nada. -->
@@ -254,7 +252,7 @@
     </div>
     <div class="brand"><span>Manolit∞</span> Aire</div>
     <div class="sub-brand">+ Sombras 3D</div>
-    <div class="tagline">Respira ∞ Camina ∞ Refúgiate ∞</div>
+    <div class="tagline">Respira ∞ Camina ∞ Refugíate ∞</div>
     <div class="sombra-msg">∞ ∞ ∞ ∞ ∞ ∞ ∞</div>
     <div class="clima-tag" id="climaTag"></div>
   </div>
@@ -1023,7 +1021,7 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
 <script src="js/theme.js" defer></script>
 <script src="js/i18n.js" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
@@ -1064,7 +1062,7 @@
       Promise.all([
         cargarScript('js/a11y-guia.js'),
         cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
-        cargarScript('https://unpkg.com/@turf/turf@6/turf.min.js'),
+        cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
         .then(() => cargarScript('js/shadows-route.js'))

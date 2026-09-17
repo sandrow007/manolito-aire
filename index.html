@@ -254,7 +254,7 @@
     </div>
     <div class="brand"><span>Manolit∞</span> Aire</div>
     <div class="sub-brand">+ Sombras 3D</div>
-    <div class="tagline">Respira ∞ Camina ∞ Refúgiate ∞</div>
+    <div class="tagline">Respira ∞ Camina ∞ Refugíate ∞</div>
     <div class="sombra-msg">∞ ∞ ∞ ∞ ∞ ∞ ∞</div>
     <div class="clima-tag" id="climaTag"></div>
   </div>
@@ -1059,7 +1059,10 @@
       // Rendimiento (sep-2026): MapLibre, Turf y SunCalc son librerías independientes
       // se cargan EN PARALELO y el mapa de sombras arranca mucho antes
       // (antes iban en cadena: cada una esperaba a que terminara la anterior).
+      // La guía A11Y (voz e indicaciones para personas ciegas) es un módulo
+      // propio y diminuto: carga en paralelo y shadows-route le delega.
       Promise.all([
+        cargarScript('js/a11y-guia.js'),
         cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
         cargarScript('https://unpkg.com/@turf/turf@6/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),

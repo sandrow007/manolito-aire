@@ -1607,3 +1607,21 @@ body.mode-peque .im-lost-btn{
 /* Antes era sticky y tapaba el mapa al bajar. Ahora se queda en su sitio,
    arriba del todo, y al hacer scroll desaparece con el resto del contenido. */
 .topbar{ position: static; transform: none; }
+
+/* ---------- preguntas frecuentes (FAQ) ---------- */
+.faq{ max-width:760px; margin:56px auto 0; padding:0 24px; }
+.faq h2{ font-family:var(--font-display); font-weight:600; font-size:1.5rem; text-align:center; }
+.faq-intro{ text-align:center; color:var(--sky-mid); font-size:0.9rem; margin-top:6px; }
+.faq-item{ border-bottom:1px solid var(--line); }
+.faq-item summary{
+  cursor:pointer; list-style:none; padding:15px 34px 15px 4px; position:relative;
+  font-weight:600; font-size:0.98rem;
+}
+.faq-item summary::-webkit-details-marker{ display:none; }
+.faq-item summary::after{
+  content:"+"; position:absolute; right:8px; top:13px;
+  font-family:var(--font-mono); font-size:1.05rem; color:var(--sky-mid);
+}
+.faq-item[open] summary::after{ content:"–"; }
+.faq-item summary:hover{ color:var(--accent); }
+.faq-item p{ padding:0 4px 16px; color:var(--sky-mid); font-size:0.92rem; max-width:62ch; }

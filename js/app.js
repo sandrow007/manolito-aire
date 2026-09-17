@@ -951,10 +951,39 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeroControls();
   initFontBoostControls();
   fetchCurrentCity();
-  // El mapa Leaflet pesa (tiles + 486 KB de datos) y era el elemento LCP
-  // (~9,9 s en móvil). Se inicializa cuando el navegador está libre para
-  // que el mayor pintado con contenido sea el texto del hero.
-  const iniciarMapa = () => initMap();
-  if ('requestIdleCallback' in window) requestIdleCallback(iniciarMapa, { timeout: 2500 });
+  // EcoIndex (sep-2026): el mapa 2D del aire esta al final de la pagina,
+  // asi que Leaflet (150 KB), sus teselas IGN y las tandas de estaciones
+  // ya NO cargan de entrada. Se trae todo bajo demanda cuando la seccion
+  // se acerca al viewport. Si nunca bajas, nunca se gasta ese trafico.
+  let leafletPromesa = null;
+  function cargarLeaflet() {
+    if (typeof L !== 'undefined') return Promise.resolve();
+    if (leafletPromesa) return leafletPromesa;
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    leafletPromesa = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      s.onload = () => resolve();
+      s.onerror = reject;
+      document.body.appendChild(s);
+    });
+    return leafletPromesa;
+  }
+  const iniciarMapa = () => {
+    cargarLeaflet().then(() => initMap()).catch(() => { /* sin red: el mapa 2D se queda quieto */ });
+  };
+  const seccionMapa2D = document.getElementById('map');
+  if (seccionMapa2D && 'IntersectionObserver' in window) {
+    const vigilante = new IntersectionObserver((entradas) => {
+      if (entradas.some(e => e.isIntersecting)) {
+        vigilante.disconnect();
+        iniciarMapa();
+      }
+    }, { rootMargin: '600px' }); // margen: empieza a cargar antes de que lo veas
+    vigilante.observe(seccionMapa2D);
+  } else if ('requestIdleCallback' in window) requestIdleCallback(iniciarMapa, { timeout: 2500 });
   else window.addEventListener('load', () => setTimeout(iniciarMapa, 100));
 });

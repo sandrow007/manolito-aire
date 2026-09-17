@@ -13,6 +13,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -342,5 +343,31 @@
 <script src="js/i18n-legal.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/cookie-banner.js"></script>
+
+<script>
+/* Navegacion en la misma pestana: los enlaces internos dejan de abrir
+   pestanas nuevas (la etiqueta base del head queda anulada por script).
+   Los enlaces externos (Ko-fi, redes, fuentes) siguen abriendo pestana
+   nueva con rel noopener. */
+(function () {
+  var b = document.querySelector('base');
+  if (b) b.setAttribute('target', '_self');
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    var h = a.getAttribute('href') || '';
+    if (/^https?:\/\//i.test(h)) {
+      try {
+        if (new URL(h, location.href).host !== location.host) {
+          a.target = '_blank';
+          a.rel = 'noopener';
+          return;
+        }
+      } catch (err) {}
+    }
+    a.target = '_self';
+  }, true);
+})();
+</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MANOLIT AIRE, Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -2411,6 +2411,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     let marcadorCaminando = null;
 
     function detenerCaminata() {
+      if (window.ManolitA11y) window.ManolitA11y.detenerGuia();
       if (watchId != null) navigator.geolocation.clearWatch(watchId);
       watchId = null;
       if (marcadorCaminando) { marcadorCaminando.remove(); marcadorCaminando = null; }
@@ -2430,7 +2431,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
       // Si hay una ruta calculada con indicaciones, arranca la guía por voz:
       // anuncia el primer paso ya y los siguientes al acercarte a cada punto.
-      iniciarGuiaCaminata();
+      if (window.ManolitA11y) window.ManolitA11y.iniciarGuiaCaminata();
 
       const el = document.createElement('div');
       el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#0E3B47'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#0E3B47')}33;`;
@@ -2466,7 +2467,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             map.easeTo({ center: [lon, lat], duration: 600 });
           }
           puntoReferenciaSol = { lat, lon };
-          avanzarGuiaCaminata(lat, lon); // anuncia el siguiente paso si ya toca
+          if (window.ManolitA11y) window.ManolitA11y.avanzar(lat, lon); // anuncia el siguiente paso si ya toca
           if (ahoraCaminata - ultimaSincroCaminataMs > 8000) {
             ultimaSincroCaminataMs = ahoraCaminata;
             if (rutaActual) actualizarTramosSombraRuta();
@@ -4100,293 +4101,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
   }
 
-  /* ---------------- Indicaciones paso a paso accesibles ---------------- */
-
-  let pasosActuales = [];
-  let pasosGuiadosActuales = []; // [{ texto, punto:[lon,lat], esLlegada? }]
-  let lecturaEnCurso = false;
-
-  /* ---- Guía por voz durante la caminata real (GPS) ----
-     Al pulsar "Iniciar caminata" con una ruta calculada, la app va
-     anunciando cada indicación en voz alta justo al acercarse al punto
-     donde toca (giro, calle, sombra…), y avisa al llegar al destino.
-     Pensado para quien camina sin poder mirar la pantalla. */
-  let guiaCaminataActiva = false;
-  let indicePasoGuiado = 0;
-
-  // AirPods/Bluetooth (sep-2026): la Web Speech API de iOS/Android "agarra"
-  // la sesión de audio del sistema al hablar y puede dejarla pillada
-  // (los AirPods se quedan ocupados hasta desconectarlos). Solución: tras
-  // CADA frase hablada soltamos la cola de voz, y al ocultar/cerrar la
-  // página cancelamos cualquier habla pendiente. La web nunca retiene el
-  // audio cuando no está hablando.
-  function liberarSesionDeAudio() {
-    try {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window
-          && !window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-        window.speechSynthesis.cancel();
-      }
-    } catch (e) { /* nada que liberar */ }
-  }
-
-  /* --------- PERMISO DE VOZ (sep-2026, ADITIVO) ---------
-     La voz de Manolit ya NO suena por defecto: como el GPS, hay que
-     concederla. Mientras no haya permiso, ninguna frase se reproduce
-     (los avisos escritos siguen apareciendo igual). El permiso se pide
-     UNA vez con una tarjetita discreta la primera vez que una función
-     querría hablar, y la elección se recuerda en localStorage. */
-  const CLAVE_PERMISO_VOZ = 'manolito_voz_permiso'; // 'concedido' | 'denegado' | (sin valor = sin preguntar)
-  function vozPermitida() {
-    try { return localStorage.getItem(CLAVE_PERMISO_VOZ) === 'concedido'; }
-    catch (e) { return false; }
-  }
-  function pedirPermisoVozSiHaceFalta(porBotonExpreso) {
-    try {
-      const previo = localStorage.getItem(CLAVE_PERMISO_VOZ);
-      if (previo === 'concedido') return true;
-      // 'denegado' solo silencia los avisos AUTOMÁTICOS. Si el usuario
-      // pulsa ÉL un botón de voz (orden explícita), se vuelve a preguntar
-      // siempre, antes un "Ahora no" dejaba la voz muerta para siempre
-      // y la tarjeta no volvía a salir jamás (sep-2026).
-      if ((previo === 'denegado' && !porBotonExpreso) || document.getElementById('rsPermisoVoz')) return false;
-      const tarjeta = document.createElement('div');
-      tarjeta.id = 'rsPermisoVoz';
-      tarjeta.setAttribute('role', 'dialog');
-      tarjeta.setAttribute('aria-label', 'Permiso de voz');
-      tarjeta.style.cssText = 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:9999;'
-        + 'background:var(--panel,#fff);color:var(--ink,#2A1A05);border:1px solid var(--line,rgba(14,59,71,.25));'
-        + 'border-radius:14px;padding:12px 16px;max-width:min(92vw,340px);box-shadow:0 8px 30px rgba(0,0,0,.25);'
-        + 'font:500 0.9rem/1.4 system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;gap:10px;';
-      const txt = document.createElement('div');
-      txt.textContent = t('voicePermission', '¿Quieres que Manolit hable en voz alta? Puedes cambiarlo cuando quieras.');
-      const fila = document.createElement('div');
-      fila.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
-      const btnNo = document.createElement('button');
-      btnNo.type = 'button';
-      btnNo.textContent = t('voiceNo', 'Ahora no');
-      btnNo.style.cssText = 'padding:7px 12px;border-radius:9px;border:1px solid var(--line,rgba(14,59,71,.25));background:none;color:inherit;cursor:pointer;';
-      const btnSi = document.createElement('button');
-      btnSi.type = 'button';
-      btnSi.textContent = t('voiceYes', 'Permitir voz');
-      btnSi.style.cssText = 'padding:7px 12px;border-radius:9px;border:none;background:var(--accent,#FFB85C);color:#1a1a1a;font-weight:600;cursor:pointer;';
-      btnNo.addEventListener('click', () => { try { localStorage.setItem(CLAVE_PERMISO_VOZ, 'denegado'); } catch (e) { } tarjeta.remove(); });
-      btnSi.addEventListener('click', () => {
-        try { localStorage.setItem(CLAVE_PERMISO_VOZ, 'concedido'); } catch (e) { }
-        tarjeta.remove();
-        // iOS (sep-2026): la PRIMERA síntesis de voz debe ocurrir DENTRO
-        // de un toque del usuario o Safari la bloquea en silencio. Esta
-        // confirmación corta se habla aquí, en el propio gesto de
-        // "Permitir voz": desbloquea el audio del sistema y de paso le
-        // confirma a Sandro que la voz funciona.
-        try {
-          if ('speechSynthesis' in window) {
-            const saludo = new SpeechSynthesisUtterance(t('voiceGranted', 'Voz activada. Manolit te acompaña.'));
-            saludo.lang = (document.documentElement.lang || 'es').slice(0, 5);
-            window.speechSynthesis.speak(saludo);
-          }
-        } catch (e) { /* si no puede hablar ahora, hablará en la guía */ }
-      });
-      fila.appendChild(btnNo); fila.appendChild(btnSi);
-      tarjeta.appendChild(txt); tarjeta.appendChild(fila);
-      document.body.appendChild(tarjeta);
-      // Si no se toca en 20 s, se retira sola (sin conceder nada).
-      setTimeout(() => { if (tarjeta.isConnected) tarjeta.remove(); }, 20000);
-    } catch (e) { /* sin permiso: la app sigue muda pero funcional */ }
-    return false;
-  }
-  // iOS (sep-2026): la lista de voces del sistema carga de forma
-  // asíncrona; si la primera frase se habla antes de que llegue, Safari
-  // se queda mudo sin avisar. Se precalienta al arrancar (gratis) y la
-  // primera frase ya suena a la primera.
-  try {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.getVoices();
-      if (window.speechSynthesis.addEventListener) {
-        window.speechSynthesis.addEventListener('voiceschanged', () => {
-          try { window.speechSynthesis.getVoices(); } catch (e) { }
-        });
-      }
-    }
-  } catch (e) { /* sin voces del sistema: la app sigue en texto */ }
-
-  try {
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) { }
-      }
-    });
-    window.addEventListener('pagehide', () => {
-      try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) { }
-    });
-  } catch (e) { /* navegador sin eventos: no pasa nada */ }
-
-  function hablarPasoGuia(texto) {
-    // Siempre se refleja en la región viva (los lectores de pantalla la
-    // anuncian solos) y además suena en voz alta con la voz del dispositivo.
-    const resumen = document.getElementById('rsLiveSummary');
-    if (resumen) resumen.textContent = texto;
-    if (!vozNavegadorDisponible()) return;
-    // Permiso de voz (sep-2026): como el GPS, hay que concederlo antes.
-    if (!vozPermitida()) { pedirPermisoVozSiHaceFalta(); return; }
-    try {
-      const frase = new SpeechSynthesisUtterance(texto);
-      frase.lang = (document.documentElement.lang || 'es').slice(0, 5);
-      frase.rate = 1;
-      // Al terminar la frase, liberamos la sesión de audio del sistema
-      // (AirPods/Bluetooth vuelven a la música o a lo que sonara antes).
-      frase.onend = liberarSesionDeAudio;
-      frase.onerror = liberarSesionDeAudio;
-      window.speechSynthesis.speak(frase);
-    } catch (e) { /* voz no disponible: queda el anuncio escrito */ }
-  }
-
-  function iniciarGuiaCaminata() {
-    indicePasoGuiado = 0;
-    guiaCaminataActiva = pasosGuiadosActuales.length > 0;
-    if (!guiaCaminataActiva) return;
-    hablarPasoGuia(t('walkGuidanceStart', 'Guía de caminata activada. Te iré diciendo cada paso en voz alta.') + ' ' + pasosGuiadosActuales[0].texto);
-    indicePasoGuiado = 1;
-  }
-
-  function avanzarGuiaCaminata(lat, lon) {
-    if (!guiaCaminataActiva || indicePasoGuiado >= pasosGuiadosActuales.length) return;
-    try {
-      const aqui = turf.point([lon, lat]);
-      // Se busca el paso MÁS AVANZADO cuyo punto ya está al alcance: si el GPS
-      // da un salto (o el usuario se adelanta), no se queda la guía atrás.
-      let alcanzado = -1;
-      for (let i = indicePasoGuiado; i < pasosGuiadosActuales.length; i++) {
-        const paso = pasosGuiadosActuales[i];
-        if (!paso || !paso.punto) continue;
-        const umbral = paso.esLlegada ? 20 : 30;
-        if (turf.distance(aqui, turf.point(paso.punto), { units: 'meters' }) <= umbral) alcanzado = i;
-      }
-      if (alcanzado < 0) return;
-      const paso = pasosGuiadosActuales[alcanzado];
-      hablarPasoGuia(paso.texto);
-      indicePasoGuiado = alcanzado + 1;
-      if (paso.esLlegada) guiaCaminataActiva = false;
-    } catch (e) { /* geometría rara: se reintenta en la próxima lectura GPS */ }
-  }
-
-  function detenerGuiaCaminata() {
-    guiaCaminataActiva = false;
-    indicePasoGuiado = 0;
-    if (vozNavegadorDisponible()) {
-      try { window.speechSynthesis.cancel(); } catch (e) { }
-    }
-  }
-
-  function vozNavegadorDisponible() {
-    return typeof window !== 'undefined' && 'speechSynthesis' in window;
-  }
-
-  function detenerLecturaPasos() {
-    if (vozNavegadorDisponible()) {
-      try { window.speechSynthesis.cancel(); } catch (e) { }
-    }
-    lecturaEnCurso = false;
-    const btn = document.getElementById('rsBtnEscucharPasos');
-    if (btn) {
-      btn.textContent = t('stepsListen', 'Escuchar indicaciones');
-      btn.setAttribute('aria-pressed', 'false');
-    }
-  }
-
-  function alternarLecturaPasos() {
-    if (!vozNavegadorDisponible() || !pasosActuales.length) return;
-    // Permiso de voz (sep): el botón "Escuchar indicaciones" también lo pide.
-    if (!vozPermitida()) { pedirPermisoVozSiHaceFalta(); return; }
-    if (lecturaEnCurso) { detenerLecturaPasos(); return; }
-    const btn = document.getElementById('rsBtnEscucharPasos');
-    lecturaEnCurso = true;
-    if (btn) {
-      btn.textContent = t('stepsStop', 'Detener lectura');
-      btn.setAttribute('aria-pressed', 'true');
-    }
-    const idioma = (document.documentElement.lang || 'es').slice(0, 5);
-    const textos = [];
-    if (resumenRutaAccesible) textos.push(resumenRutaAccesible);
-    textos.push(...pasosActuales);
-    let restantes = textos.length;
-    for (const texto of textos) {
-      const frase = new SpeechSynthesisUtterance(texto);
-      frase.lang = idioma;
-      frase.rate = 0.95;
-      frase.onend = () => {
-        restantes -= 1;
-        if (restantes <= 0) detenerLecturaPasos();
-      };
-      frase.onerror = frase.onend;
-      window.speechSynthesis.speak(frase);
-    }
-  }
-
-  function renderizarPasosAccesibles(pasos, guiados) {
-    pasosActuales = Array.isArray(pasos) ? pasos : [];
-    pasosGuiadosActuales = Array.isArray(guiados) ? guiados : [];
-    detenerGuiaCaminata();
-    detenerLecturaPasos();
-    const seccion = document.getElementById('rsPasosSection');
-    const lista = document.getElementById('rsListaPasos');
-    if (!seccion || !lista) return;
-    lista.innerHTML = '';
-    if (!pasosActuales.length) {
-      seccion.hidden = true;
-      return;
-    }
-    for (const texto of pasosActuales) {
-      const li = document.createElement('li');
-      li.textContent = texto;
-      lista.appendChild(li);
-    }
-    const btn = document.getElementById('rsBtnEscucharPasos');
-    if (btn) btn.hidden = !vozNavegadorDisponible();
-    seccion.hidden = false;
-
-    // Las indicaciones son OPCIONALES: la sección aparece plegada y quien
-    // quiera leerla o escucharla la despliega con el botón. Solo se abre
-    // sola con el modo accesible activado (ahí es información esencial).
-    const cabecera = seccion.querySelector('.rs-pasos-cabecera');
-    let btnPlegar = document.getElementById('rsBtnPlegarPasos');
-    if (!btnPlegar && cabecera) {
-      btnPlegar = document.createElement('button');
-      btnPlegar.type = 'button';
-      btnPlegar.id = 'rsBtnPlegarPasos';
-      btnPlegar.className = 'rs-btn-escuchar';
-      cabecera.insertBefore(btnPlegar, cabecera.firstChild);
-      btnPlegar.addEventListener('click', () => {
-        fijarPasosPlegados(lista.style.display === 'none');
-      });
-    }
-    const fijarPasosPlegados = (abierto) => {
-      lista.style.display = abierto ? '' : 'none';
-      if (btn) btn.style.display = abierto ? '' : 'none';
-      if (btnPlegar) {
-        btnPlegar.setAttribute('aria-expanded', abierto ? 'true' : 'false');
-        btnPlegar.textContent = abierto
-          ? ('▾ ' + t('stepsHide', 'Ocultar indicaciones'))
-          : ('▸ ' + t('stepsShow', 'Ver indicaciones'));
-      }
-    };
-    fijarPasosPlegados(document.body.classList.contains('modo-accesible'));
-  }
-
-  function ocultarPasosAccesibles() {
-    pasosActuales = [];
-    pasosGuiadosActuales = [];
-    detenerGuiaCaminata();
-    detenerLecturaPasos();
-    const seccion = document.getElementById('rsPasosSection');
-    if (seccion) seccion.hidden = true;
-  }
-
-  document.addEventListener('langChanged', () => {
-    const btn = document.getElementById('rsBtnEscucharPasos');
-    if (btn) btn.textContent = lecturaEnCurso ? t('stepsStop', 'Detener lectura') : t('stepsListen', 'Escuchar indicaciones');
-    const titulo = document.getElementById('rsPasosTitulo');
-    if (titulo) titulo.textContent = t('stepsTitle', 'Indicaciones paso a paso');
-  });
+  /* ---------------- Indicaciones paso a paso accesibles ----------------
+     (sep-2026) Todo el motor A11Y (guía por voz, lectura de indicaciones,
+     permiso de voz, lista accesible) vive ahora en js/a11y-guia.js, un
+     módulo propio. Aquí solo se le delega con window.ManolitA11y. */
 
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
@@ -4443,11 +4161,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);
-        renderizarPasosAccesibles(ruta.pasos || [], ruta.pasosGuiados || []);
+        if (window.ManolitA11y) {
+          window.ManolitA11y.setResumen(resumenRuta);
+          window.ManolitA11y.renderizarPasos(ruta.pasos || [], ruta.pasosGuiados || []);
+        }
       } else {
         mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado), mostrando línea directa.'), 'error');
         mostrarBadgeSombra(null);
-        ocultarPasosAccesibles();
+        if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
       }
 
       try {
@@ -4459,7 +4180,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
     } catch (err) {
       console.debug(err);
-      ocultarPasosAccesibles();
+      if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
       mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
     } finally {
       ponerCargando(false);
@@ -4474,7 +4195,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   btnBuscar.addEventListener('click', manejarBusqueda);
   const btnEscucharPasos = document.getElementById('rsBtnEscucharPasos');
-  if (btnEscucharPasos) btnEscucharPasos.addEventListener('click', alternarLecturaPasos);
+  // El botón "Escuchar indicaciones" lo enlaza el módulo A11Y (js/a11y-guia.js).
   [inputOrigen, inputDestino].forEach((input) => {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); manejarBusqueda(); }
@@ -5234,8 +4955,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         try {
           if (!('speechSynthesis' in window)) return;
           // Permiso de voz (sep-2026): la mascota solo habla si lo concediste.
-          if (typeof vozPermitida === 'function' && !vozPermitida()) {
-            if (typeof pedirPermisoVozSiHaceFalta === 'function') pedirPermisoVozSiHaceFalta();
+          if (window.ManolitA11y && !window.ManolitA11y.vozPermitida()) {
+            window.ManolitA11y.pedirPermisoVoz();
             return;
           }
           const frase = new SpeechSynthesisUtterance(
@@ -5269,8 +4990,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           window.speechSynthesis.cancel();
           // Al acabar el saludo, soltamos la sesión de audio del sistema
           // para no dejar pillados los AirPods/Bluetooth (sep-2026).
-          frase.onend = liberarSesionDeAudio;
-          frase.onerror = liberarSesionDeAudio;
+          frase.onend = () => window.ManolitA11y && window.ManolitA11y.liberarSesionDeAudio();
+          frase.onerror = frase.onend;
           window.speechSynthesis.speak(frase);
         } catch (e) { /* si no hay voz disponible, no rompe la app */ }
       }
@@ -6154,125 +5875,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     });
   })();
 
-  /* ==================== GUÍA POR VOZ DE LA CAMINATA, SOLO SI SE PIDE ====================
-     Antes la voz arrancaba SOLA al pulsar "Iniciar caminata". Ahora hay un
-     botoncito "🔊 Guía por voz" junto a los botones de caminata: apagado por
-     defecto; quien quiera la voz la enciende, quien no, camina en silencio.
-     La elección se recuerda (y viaja en Sincronizar/Exportar, es manolito_*). */
-  (function guiaVozOpcional() {
-    try {
-      const CLAVE_VOZ = 'manolito_guia_voz';
-      const vozQuerida = () => {
-        try { return localStorage.getItem(CLAVE_VOZ) === '1'; } catch (e) { return false; }
-      };
-
-      // El arranque de la guía pasa a ser manual: sin el botón encendido,
-      // iniciarGuiaCaminata queda en silencio aunque la app la llame.
-      if (typeof iniciarGuiaCaminata === 'function') {
-        const iniciarGuiaOriginal = iniciarGuiaCaminata;
-        iniciarGuiaCaminata = function () {
-          if (vozQuerida()) { iniciarGuiaOriginal(); return; }
-          try { indicePasoGuiado = 0; guiaCaminataActiva = false; } catch (e) { /* aún no existe */ }
-        };
-      }
-      // Al detener la caminata, la voz también se calla.
-      if (typeof detenerCaminata === 'function' && typeof detenerGuiaCaminata === 'function') {
-        const detenerCaminataOriginal = detenerCaminata;
-        detenerCaminata = function () {
-          detenerCaminataOriginal.apply(this, arguments);
-          try { detenerGuiaCaminata(); } catch (e) { /* sin voz activa */ }
-        };
-      }
-
-      // Botoncito discreto junto a "Iniciar caminata", con el estilo de la web.
-      cuandoExista('#rsBtnWalk', (btnWalk) => {
-        // CLS (2026-09-12): el botón ya NACE con el panel de controles;
-        // aquí lo adoptamos. Si faltara (página sin panel), se crea igual
-        // que antes. Así la botonera no se mueve segundos después.
-        let btn = document.getElementById('rsBtnGuiaVoz');
-        const btnVozYaExistia = !!btn;
-        if (!btn) {
-          btn = document.createElement('button');
-          btn.type = 'button';
-          btn.id = 'rsBtnGuiaVoz';
-          btn.setAttribute('aria-pressed', 'false');
-        }
-        const pintar = () => {
-          const on = vozQuerida();
-          btn.classList.toggle('rs-activo', on);
-          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-          btn.textContent = (on ? '🔊 ' : '🔇 ') + t('voiceGuide', 'Guía por voz');
-          btn.title = on
-            ? 'Guía por voz ACTIVADA: Manolit te dice cada paso en voz alta al caminar'
-            : 'Guía por voz desactivada: actívala si quieres que Manolit te diga los pasos en voz alta';
-        };
-        btn.addEventListener('click', () => {
-          try { localStorage.setItem(CLAVE_VOZ, vozQuerida() ? '0' : '1'); } catch (e) { }
-          pintar();
-          try {
-            if (vozQuerida()) {
-              // Encender la guía por voz es una ORDEN EXPLÍCITA: si falta
-              // el permiso, se pide aquí mismo (aunque antes dijeras "Ahora
-              // no": un botón pulsado a mano siempre vuelve a preguntar).
-              if (typeof vozPermitida === 'function' && !vozPermitida()
-                  && typeof pedirPermisoVozSiHaceFalta === 'function') {
-                pedirPermisoVozSiHaceFalta(true);
-              }
-              // La acabas de encender con la caminata en marcha: arranca ya.
-              if (btnWalk.classList.contains('rs-activo') && typeof iniciarGuiaCaminata === 'function') {
-                iniciarGuiaCaminata();
-              }
-            } else {
-              // La acabas de APAGAR: silencio INMEDIATO. Se para la guía,
-              // se corta cualquier frase a medias y se vacía la cola de voz.
-              try { if (typeof detenerGuiaCaminata === 'function') detenerGuiaCaminata(); } catch (e1) { }
-              try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e2) { }
-              try { indicePasoGuiado = 0; guiaCaminataActiva = false; } catch (e3) { }
-            }
-          } catch (e) { /* el botón jamás rompe la caminata */ }
-        });
-        pintar();
-        if (!btnVozYaExistia) btnWalk.insertAdjacentElement('afterend', btn);
-      });
-    } catch (e) { /* este bloque jamás rompe la caminata */ }
-  })();
-
-  /* ---- La guía por voz de la caminata usa la MISMA voz neutral de Manolit ----
-     (mismo criterio sin género que las frases al tocarlo) */
-  try {
-    if (typeof hablarPasoGuia === 'function' && typeof ManolitWalker !== 'undefined') {
-      const hablarPasoGuiaOriginal = hablarPasoGuia;
-      hablarPasoGuia = function (texto) {
-        const resumen = document.getElementById('rsLiveSummary');
-        if (resumen) resumen.textContent = texto;
-        // Doble cerrojo: con el interruptor de voz apagado no se habla NUNCA,
-        // aunque cualquier otra parte de la app llame a esta función.
-        try { if (localStorage.getItem('manolito_guia_voz') !== '1') return; } catch (e0) { return; }
-        if (typeof vozNavegadorDisponible !== 'function' || !vozNavegadorDisponible()) return;
-        // Permiso de voz (sep-2026): esta versión "voz neutral" se saltaba
-        // el permiso, por eso la tarjeta NO salía en el móvil y la voz no
-        // sonaba nunca. Recupera el mismo cerrojo que el resto de la app.
-        if (typeof vozPermitida === 'function' && !vozPermitida()) {
-          if (typeof pedirPermisoVozSiHaceFalta === 'function') pedirPermisoVozSiHaceFalta();
-          return;
-        }
-        try {
-          const frase = new SpeechSynthesisUtterance(texto);
-          frase.lang = (document.documentElement.lang || 'es').slice(0, 5);
-          const voces = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-          const elegida = ManolitWalker._vozMasNeutra(voces);
-          if (elegida && elegida.voz) frase.voice = elegida.voz;
-          frase.pitch = elegida && elegida.genero === 'f' ? 0.88
-            : elegida && elegida.genero === 'm' ? 1.18 : 1.04;
-          frase.rate = 1;
-          // Al terminar, liberamos la sesión de audio (AirPods/Bluetooth).
-          frase.onend = liberarSesionDeAudio;
-          frase.onerror = liberarSesionDeAudio;
-          window.speechSynthesis.speak(frase);
-        } catch (e) { /* voz no disponible: queda el anuncio escrito */ }
-      };
-    }
-  } catch (e) { /* si algo falla, la guía original sigue funcionando */ }
+  /* ==================== GUÍA POR VOZ DE CAMINATA ====================
+     (sep-2026) El botón "Guía por voz", su permiso y la voz neutral de la
+     guía viven en el módulo js/a11y-guia.js, que adopta el botón
+     #rsBtnGuiaVoz que nace con el panel. Nada que hacer aquí. */
 })();
 
 /* ============================================================

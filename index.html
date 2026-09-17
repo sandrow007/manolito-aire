@@ -858,6 +858,57 @@
 })();
 </script>
 
+<!-- Preguntas frecuentes: con details/summary, sin JavaScript, bateria cero -->
+<section class="faq" id="faq" aria-labelledby="faqTitulo">
+  <h2 id="faqTitulo" data-i18n="faqTitle">Preguntas frecuentes</h2>
+  <p class="faq-intro" data-i18n="faqIntro">Las que me hacéis de verdad, contestadas sin rodeos.</p>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ1">¿Esto es gratis de verdad?</summary>
+    <p data-i18n="faqA1">Sí. Y lo seguirá siendo. No hay registro, no hay truco y no hay una versión de pago escondida. Entras, miras el aire y te vas.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ2">¿Por qué no hay anuncios?</summary>
+    <p data-i18n="faqA2">Porque los anuncios de hoy no son carteles. Son subastas que gastan agua y batería a tus espaldas cada vez que cargas una página. Aquí no entran. El proyecto se sostiene con el apoyo voluntario de la gente en Ko-fi.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ3">¿De dónde salen los datos del aire?</summary>
+    <p data-i18n="faqA3">De las estaciones oficiales repartidas por España y de los modelos europeos de Copernicus, servidos por Open-Meteo. Datos públicos y científicos, nada inventado.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ4">¿Lo de las sombras es real?</summary>
+    <p data-i18n="faqA4">Sí. Se calcula con los edificios de OpenStreetMap y la posición del sol en cada minuto. Si el mapa dice sombra, es que un edificio de verdad te la está dando.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ5">¿Me estáis espiando?</summary>
+    <p data-i18n="faqA5">No. No hay rastreadores ni cookies de terceros. Tus ajustes se guardan en tu propio navegador y de ahí no salen.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ6">¿Hay app para el móvil?</summary>
+    <p data-i18n="faqA6">No hace falta. La web funciona en el navegador de cualquier móvil sin instalar nada y sin ocupar memoria. Si la guardas en la pantalla de inicio, se abre como una app.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ7">¿Quién hace esto?</summary>
+    <p data-i18n="faqA7">Una persona, Sandro, desde Sevilla. Sin empresa detrás y sin ánimo de lucro. Con datos abiertos y con la ayuda de quien apoya el proyecto.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ8">¿Puedo usarlo en mi ciudad?</summary>
+    <p data-i18n="faqA8">Si está en España, sí. Las estaciones y los edificios cubren todo el país. Fuera de España el aire funciona en muchos sitios, pero las sombras dependen de lo bien mapeada que esté la zona en OpenStreetMap.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ9">¿Cómo puedo ayudar?</summary>
+    <p data-i18n="faqA9">Usándolo y contándolo. Y si te apetece, apoyando en Ko-fi para pagar los servidores. También puedes mejorar el mapa de tu barrio en OpenStreetMap, que es gratis y ayuda a todo el mundo.</p>
+  </details>
+</section>
+
 <div class="footer">
   <p>Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.</p>
   <p class="footer-eco">Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.</p>
@@ -886,18 +937,8 @@
     </div>
   </div>
 
-  <div class="footer-donacion">
-    <p class="donacion-mensaje">
-      Manolit∞ siempre sera gratis.<br>
-      Los servidores, por desgracia, no lo son...
-    </p>
-    <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer">
-      Apoyar en Ko‑fi
-    </a>
-  </div>
-
-  <!-- Cierre del pie: sello de eficiencia medido y redes sociales -->
-  <div class="footer-cierre">
+  <!-- Cierre del pie: a los lados del boton de Ko-fi, sin nuevo apartado -->
+  <div class="footer-final">
     <div class="footer-sello">
       <svg width="320" height="130" viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Sello de eficiencia: manolitoaire.com tiene calificación A+ en Website Carbon Rating">
         <defs>
@@ -927,6 +968,15 @@
         <text x="16" y="116" font-size="7.5" fill="#A9B3AC">Medido con Website Carbon Calculator (1ClickImpact) · 16/09/2026</text>
       </svg>
     </div>
+    <div class="footer-donacion">
+      <p class="donacion-mensaje">
+        Manolit∞ siempre sera gratis.<br>
+        Los servidores, por desgracia, no lo son...
+      </p>
+      <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer">
+        Apoyar en Ko‑fi
+      </a>
+    </div>
     <div class="footer-redes">
       <a class="footer-red" href="https://www.tiktok.com/@manolitoinfinitum8" target="_blank" rel="noopener" aria-label="TikTok de Manolit">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
@@ -936,8 +986,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.35 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.35-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 0 1-1.38-.9 3.72 3.72 0 0 1-.9-1.38c-.16-.42-.35-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.35 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.13 1.38A5.88 5.88 0 0 0 .63 4.14C.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13a5.88 5.88 0 0 0 2.13 1.38c.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.88 5.88 0 0 0 2.13-1.38 5.88 5.88 0 0 0 1.38-2.13c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.88 5.88 0 0 0-1.38-2.13A5.88 5.88 0 0 0 19.86.63C19.1.33 18.22.13 16.95.07 15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 18.16 12 6.16 6.16 0 0 0 12 5.84zM12 16a4 4 0 1 1 4-4 4 4 0 0 1-4 4zm7.85-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg>
         <span>@manolitoinfinitum8</span>
       </a>
-      <a class="footer-red" href="https://www.instagram.com/manolit_8" target="_blank" rel="noopener" aria-label="Instagram personal de Sandro">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.35 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.35-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 0 1-1.38-.9 3.72 3.72 0 0 1-.9-1.38c-.16-.42-.35-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.35 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.13 1.38A5.88 5.88 0 0 0 .63 4.14C.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13a5.88 5.88 0 0 0 2.13 1.38c.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.88 5.88 0 0 0 2.13-1.38 5.88 5.88 0 0 0 1.38-2.13c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.88 5.88 0 0 0-1.38-2.13A5.88 5.88 0 0 0 19.86.63C19.1.33 18.22.13 16.95.07 15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 18.16 12 6.16 6.16 0 0 0 12 5.84zM12 16a4 4 0 1 1 4-4 4 4 0 0 1-4 4zm7.85-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg>
+      <a class="footer-red footer-red-sola" href="https://www.instagram.com/manolit_8" target="_blank" rel="noopener" aria-label="Instagram personal de Sandro">
         <span>@manolit_8</span>
       </a>
     </div>
@@ -1010,7 +1059,10 @@
       // Rendimiento (sep-2026): MapLibre, Turf y SunCalc son librerías independientes
       // se cargan EN PARALELO y el mapa de sombras arranca mucho antes
       // (antes iban en cadena: cada una esperaba a que terminara la anterior).
+      // La guía A11Y (voz e indicaciones para personas ciegas) es un módulo
+      // propio y diminuto: carga en paralelo y shadows-route le delega.
       Promise.all([
+        cargarScript('js/a11y-guia.js'),
         cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
         cargarScript('https://unpkg.com/@turf/turf@6/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
@@ -1386,6 +1438,32 @@
       lector.readAsText(f);
     });
   }
+})();
+</script>
+
+<script>
+/* Navegacion en la misma pestana: los enlaces internos dejan de abrir
+   pestanas nuevas (la etiqueta base del head queda anulada por script).
+   Los enlaces externos (Ko-fi, redes, fuentes) siguen abriendo pestana
+   nueva con rel noopener. */
+(function () {
+  var b = document.querySelector('base');
+  if (b) b.setAttribute('target', '_self');
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    var h = a.getAttribute('href') || '';
+    if (/^https?:\/\//i.test(h)) {
+      try {
+        if (new URL(h, location.href).host !== location.host) {
+          a.target = '_blank';
+          a.rel = 'noopener';
+          return;
+        }
+      } catch (err) {}
+    }
+    a.target = '_self';
+  }, true);
 })();
 </script>
 </body>

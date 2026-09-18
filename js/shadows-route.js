@@ -4469,8 +4469,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2303050F' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
       }
       @media (max-width:480px){
-        #rsCamCtl{ right:8px; }
-        #rsCamCtl button{ width:40px; height:40px; font-size:16px; }
+        #rsCamCtl{ right:8px; gap:5px; }
+        #rsCamCtl button{ width:34px; height:34px; font-size:14px; }
+        #rsCamBrujula svg{ width:18px; height:18px; }
+        #rsCamCtl button.manolito-fs-btn{ background-size:18px 18px; }
       }
     `;
     document.head.appendChild(estiloCam);
@@ -4493,7 +4495,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btnCamMenos  = hacerBotonCam('rsCamZoomOut',   '−', t('camZoomOut', 'Alejar'));
     const btnCamArriba = hacerBotonCam('rsCamPitchUp',   '▲', t('camPitchUp', 'Mirar hacia arriba'));
     const btnCamAbajo  = hacerBotonCam('rsCamPitchDown', '▼', t('camPitchDown', 'Mirar hacia abajo'));
-    const btnCamBrujula = hacerBotonCam('rsCamBrujula', '', t('camBrujula', 'Brújula, volver al norte'));
+    const btnCamBrujula = hacerBotonCam('rsCamBrujula', '', t('camBrujula', 'Brújula, volver al norte y nivelar la vista'));
     // Flecha de brújula como la de MapLibre de siempre: punta naranja
     // al norte, cuerpo del color del texto del tema. Gira con el mapa.
     btnCamBrujula.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2l4.5 10-4.5 10-4.5-10z" fill="currentColor"/><path d="M12 2l4.5 10h-9z" fill="#FF6B1A"/></svg>';
@@ -4554,13 +4556,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     prepararPitchCam(btnCamArriba, 5);
     prepararPitchCam(btnCamAbajo, -5);
 
-    // Brújula: al tocarla vuelve al norte. En el mapa normal gira
-    // suave; en el paseo el jugador encara al norte. Y la flecha gira
-    // sola con el mapa (la cámara del paseo lleva el bearing del
-    // jugador, así que también gira dentro del paseo).
+    // Brújula: al tocarla vuelve al norte Y nivela la vista (si estás
+    // mirando al cielo o con el mapa girado, un toque te devuelve al
+    // mapa plano de siempre; en el paseo, encara al norte con la
+    // mirada cómoda de entrada). La flecha gira sola con el mapa, así
+    // que siempre se ve hacia dónde apunta la vista.
     btnCamBrujula.addEventListener('click', () => {
-      if (paseoActivo) { paseoJugador.bearing = 0; return; }
-      try { map.easeTo({ bearing: 0, duration: 300, essential: true }); } catch (e) { /* mapa a medio crear */ }
+      if (paseoActivo) {
+        paseoJugador.bearing = 0;
+        paseoJugador.pitch = CONFIG.paseoPitchInicial;
+        return;
+      }
+      try { map.easeTo({ bearing: 0, pitch: CONFIG.pitchInicial, duration: 400, essential: true }); } catch (e) { /* mapa a medio crear */ }
     });
     const brujulaSvg = btnCamBrujula.querySelector('svg');
     map.on('rotate', () => {

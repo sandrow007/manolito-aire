@@ -832,6 +832,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       paint: { 'line-color': '#00d4ff', 'line-width': 5, 'line-opacity': 0.95 },
     });
 
+    // Tramo ya recorrido (sep-2026, a lo Google Maps): la parte de la ruta
+    // que ya has andado se pinta en gris POR ENCIMA de la naranja y del
+    // cian de sombra, así de un vistazo ves lo que te queda. La fuente
+    // nace vacía y la rellena pintarTramoRecorrido() con el GPS.
+    map.addSource('ruta-recorrida', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-ruta-recorrida',
+      type: 'line',
+      source: 'ruta-recorrida',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#9aa0a6', 'line-width': 6, 'line-opacity': 0.95 },
+    });
+
     map.addSource('puntos-manuales', { type: 'geojson', data: turf.featureCollection([]) });
     map.addLayer({
       id: 'capa-puntos-manuales',
@@ -1663,6 +1676,42 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   let puntoReferenciaSol = null;
   let rutaActual = null;
 
+  /* ---- Tramo ya recorrido en gris (a lo Google Maps, sep-2026) ----
+     Mientras caminas, el trozo de ruta ya andado se pinta en gris. Se
+     actualiza DENTRO del tick de GPS que ya existía (máximo 1 lectura
+     por segundo) y en el paseo virtual (que lleva su propio freno), así
+     que no se crea ningún watcher ni temporizador nuevo: dos llamadas
+     a turf sobre la ruta ya cargada, microsegundos de trabajo y cero
+     calor extra para el móvil. */
+  let ultimoTramoRecorrido = null;
+  function pintarTramoRecorrido(lat, lon) {
+    const fuente = map.getSource('ruta-recorrida');
+    if (!rutaActual || !fuente) return;
+    try {
+      const inicio = rutaActual.geometry.coordinates[0];
+      const snap = turf.nearestPointOnLine(rutaActual, turf.point([lon, lat]));
+      const tramo = turf.lineSlice(turf.point(inicio), snap, rutaActual);
+      ultimoTramoRecorrido = tramo;
+      fuente.setData(tramo);
+    } catch (e) { /* ruta rara o punto fuera: el gris se queda como estaba */ }
+  }
+  function limpiarTramoRecorrido() {
+    ultimoTramoRecorrido = null;
+    try { map.getSource('ruta-recorrida')?.setData(turf.featureCollection([])); } catch (e) { /* la fuente aún no existe */ }
+  }
+  // Gancho para las pruebas del laboratorio, mismo patrón que __a11yPro:
+  // no se usa en la web, solo deja comprobar el gris sin salir a andar.
+  window.__rutaPro = {
+    fijarRutaPrueba(coords) {
+      rutaActual = turf.lineString(coords);
+      try { map.getSource('ruta')?.setData(rutaActual); } catch (e) { /* sin mapa todavía */ }
+      limpiarTramoRecorrido();
+    },
+    pintarTramoRecorrido,
+    limpiarTramoRecorrido,
+    ultimoTramo: () => ultimoTramoRecorrido,
+  };
+
   // Las sombras deben corresponderse con lo que el usuario ESTÁ VIENDO,
   // esté donde esté (Sevilla, Madrid, México DF…). Si el punto de
   // referencia guardado (tu GPS, el origen de la última ruta) está lejos
@@ -1998,7 +2047,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       #rsShadowBadge{
         position:absolute; left:50%; transform:translateX(-50%); bottom:12px;
         z-index:6; display:none; align-items:center; gap:8px;
-        background:rgba(251,250,247,0.94); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+        background:var(--surface, rgba(251,250,247,0.94)); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
         border:1px solid var(--line, rgba(14,59,71,0.14)); border-radius:999px;
         padding:5px 10px 5px 13px; font-size:10.5px; color:var(--sky-deep, #0E3B47);
         box-shadow:0 6px 16px rgba(22,35,46,0.16); max-width:calc(100% - 24px);
@@ -2229,7 +2278,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         font-family:inherit; font-size:9px; letter-spacing:.02em; text-transform:uppercase;
         font-weight:600; padding:3px 8px; border-radius:999px; line-height:1.5;
         border:1px solid var(--line, rgba(14,59,71,0.14));
-        background:rgba(251,250,247,0.78); color:var(--sky-deep, #0E3B47);
+        background:var(--surface, rgba(251,250,247,0.78)); color:var(--sky-deep, #0E3B47);
         backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
         cursor:pointer; box-shadow:0 1px 4px rgba(22,35,46,0.10); transition:background .15s,border-color .15s,color .15s;
       }
@@ -2242,7 +2291,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         font-family:inherit; font-size:10px; font-weight:600; line-height:1.5;
         padding:3px 8px; border-radius:999px;
         border:1px solid var(--line, rgba(14,59,71,0.14));
-        background:rgba(251,250,247,0.95); color:var(--sky-deep, #0E3B47);
+        background:var(--surface, rgba(251,250,247,0.95)); color:var(--sky-deep, #0E3B47);
         backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
         cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12);
       }
@@ -2252,7 +2301,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       /* Joystick virtual para paseo 3D */
       #rsJoystick{
         position:absolute; right:24px; bottom:24px; width:96px; height:96px;
-        border-radius:50%; background:rgba(251,250,247,0.5);
+        border-radius:50%; background:var(--surface, rgba(251,250,247,0.5));
         border:1px solid var(--line, rgba(14,59,71,0.2)); touch-action:none;
         backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
         z-index:6; display:none; pointer-events:auto;
@@ -2332,6 +2381,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
       if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
       rutaActual = null;
+      origenParaAutoRuta = null;
+      limpiarTramoRecorrido(); // si la ruta se borra, el gris también
       mostrarEstado('');
       mostrarBadgeSombra(null);
     }
@@ -2354,9 +2405,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       modoClickMapa = true;
       puntoOrigenPendiente = null;
-      esperandoSoloDestino = false;
       btnModoClick.classList.add('rs-activo');
-      mostrarEstado(t('clickOrigin', 'Haz clic en el mapa para marcar el origen.'));
+      // Si ya tienes un origen confirmado (por ejemplo «Mi ubicación»), el
+      // primer clic en el mapa pone el DESTINO directamente. Si no hay
+      // origen, el primer clic pone el origen y el segundo el destino.
+      const origenYaElegido = seleccionPorInput.get(inputOrigen);
+      if (origenYaElegido) {
+        origenParaAutoRuta = { lat: origenYaElegido.lat, lon: origenYaElegido.lon, nombre: origenYaElegido.nombre || t('myLocation', 'Mi ubicación') };
+        esperandoSoloDestino = true;
+        mostrarEstado(t('clickDestiny', 'Origen marcado, haz clic en el destino.'));
+      } else {
+        esperandoSoloDestino = false;
+        mostrarEstado(t('clickOrigin', 'Haz clic en el mapa para marcar el origen.'));
+      }
     });
 
     let esperandoSoloDestino = false;
@@ -2392,10 +2453,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
 
           origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicación') };
-          esperandoSoloDestino = true;
-          modoClickMapa = true;
           puntoOrigenPendiente = null;
-          btnModoClick.classList.add('rs-activo');
+          // Por orden directa de Sandro (sep-2026): NADA de armar solo el
+          // modo «elegir en el mapa». Tu ubicación queda puesta como origen
+          // y tú decides el siguiente paso, escribir el destino o pulsar tú
+          // mismo «Elegir en el mapa». Aquí no se activa nada solo.
         },
         () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
         // Batería (sep-2026): para MARCAR el origen basta la localización
@@ -2468,6 +2530,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           }
           puntoReferenciaSol = { lat, lon };
           if (window.ManolitA11y) window.ManolitA11y.avanzar(lat, lon); // anuncia el siguiente paso si ya toca
+          pintarTramoRecorrido(lat, lon); // el trozo ya andado pasa a gris, a lo Google Maps
           if (ahoraCaminata - ultimaSincroCaminataMs > 8000) {
             ultimaSincroCaminataMs = ahoraCaminata;
             if (rutaActual) actualizarTramosSombraRuta();
@@ -2627,6 +2690,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       actualizarCacheEdificios();
       if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
       if (rutaActual) actualizarTramosSombraRuta();
+      pintarTramoRecorrido(eye.lat, eye.lng); // el gris también avanza en el paseo virtual
       sincronizarArboles();
     }
 
@@ -3078,7 +3142,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         font-family:inherit; font-size:9.5px; letter-spacing:.04em; text-transform:uppercase;
         font-weight:700; padding:6px 11px; border-radius:999px;
         border:1px solid var(--line, rgba(14,59,71,0.14));
-        background:rgba(251,250,247,0.92); color:var(--sky-deep, #0E3B47);
+        background:var(--surface, rgba(251,250,247,0.92)); color:var(--sky-deep, #0E3B47);
         backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
         cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12); transition:background .15s,border-color .15s;
       }
@@ -3319,6 +3383,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       map.setLayoutProperty('capa-ruta-glow', 'visibility', vis);
       map.setLayoutProperty('capa-ruta-sombra', 'visibility', vis);
       map.setLayoutProperty('capa-ruta-sombra-outline', 'visibility', vis);
+      if (map.getLayer('capa-ruta-recorrida')) map.setLayoutProperty('capa-ruta-recorrida', 'visibility', vis);
     });
     tSol?.addEventListener('change', () => { asegurarActivacionSolar(); actualizarIluminacionSolar(); });
     const tNubes = document.getElementById('rsToggleNubes');
@@ -4120,11 +4185,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // muestra igualmente, pero sin tocar las casillas: las capas se
       // hacen visibles directamente en el mapa (las capas nacen visibles;
       // esto solo importa si el usuario las había ocultado a mano antes).
-      ['capa-ruta', 'capa-ruta-outline', 'capa-ruta-glow', 'capa-ruta-sombra', 'capa-ruta-sombra-outline']
+      ['capa-ruta', 'capa-ruta-outline', 'capa-ruta-glow', 'capa-ruta-sombra', 'capa-ruta-sombra-outline', 'capa-ruta-recorrida']
         .forEach((idCapa) => {
           try { if (map.getLayer(idCapa)) map.setLayoutProperty(idCapa, 'visibility', 'visible'); } catch (e) { /* capa aún no creada */ }
         });
       map.getSource('ruta').setData(turf.feature(ruta.geojson));
+      limpiarTramoRecorrido(); // ruta nueva: el gris de la caminata anterior sobra
       // Tramos fantasma: si «Sombras» está apagada, la ruta nueva sale
       // limpia (sin marcas cian/naranja) y hay que borrar los tramos
       // CONGELADOS de la ruta anterior, si no, las marcas viejas se
@@ -5673,7 +5739,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           font-family:inherit; font-size:0.9rem; font-weight:700;
           padding:10px 14px; border-radius:999px; cursor:pointer;
           border:1px solid var(--line, rgba(14,59,71,0.18));
-          background:rgba(251,250,247,0.9); color:var(--sky-deep, #0E3B47);
+          background:var(--surface, rgba(251,250,247,0.9)); color:var(--sky-deep, #0E3B47);
           transition:background .15s, border-color .15s;
         }
         #rsSyncPanel button:hover{

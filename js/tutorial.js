@@ -279,6 +279,10 @@
     if (driverActivo) return;
     const driverFactory = obtenerFactoriaDriver();
     if (!driverFactory) return;
+    // Aviso al cargador perezoso del mapa (index.html): el tutorial enseña
+    // los controles del mapa, así que el motor 3D tiene que nacer ya aunque
+    // la sección no haya estado visible 1 segundo.
+    try { window.dispatchEvent(new Event('manolit:iniciar-tutorial')); } catch (e) { /* navegador antiguo: el mapa cargará por el observer */ }
     const textos = obtenerTraducciones();
     try {
       driverActivo = driverFactory({

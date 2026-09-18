@@ -90,7 +90,21 @@
 // index.html, antes del pie. Hecha con details/summary, sin JavaScript,
 // con el tono de Sandro y sin marcas tipicas de texto de IA.
 // Cambian index.html y style.css.
-const VERSION = '2026-09-18-b' // -b 18-sep: lo del -a (agua en 6 idiomas, oscuro legible) MAS peticiones de estaciones de 13 a 6 (tandas de 100), tutorial con guarda al cambiar de idioma;
+// 2026-09-18-c: botonera de camara del mapa (zoom y mirar arriba o abajo
+// sin rueda de raton), pitch libre hasta 85 grados, joystick del paseo
+// virtual visible tambien en ordenador, y las capas de mapa (Mapa oscuro,
+// Mapa IGN, Catastro 3D y las casillas) integradas en el widget de
+// posicion solar en vez de flotar encima del mapa.
+// Cambian index.html, style.css y js/shadows-route.js.
+// 2026-09-18-d: vuelven los controles nativos del mapa (zoom, brujula y
+// el boton de pantalla completa, que llevaba tiempo sin verse). La web
+// no carga la hoja de estilos de MapLibre para ahorrar en el primer
+// pintado y sin ella esos botones se dibujaban debajo del mapa,
+// invisibles. Ahora se posicionan y se pintan sus iconos desde la
+// hoja propia, sin cargar nada extra. En iPhone el boton usa el modo
+// pantalla completa por CSS de siempre.
+// Cambian style.css y js/shadows-route.js.
+const VERSION = '2026-09-18-d' // -d 18-sep: controles nativos del mapa visibles otra vez (zoom, brujula y pantalla completa) sin cargar la CSS de MapLibre;
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

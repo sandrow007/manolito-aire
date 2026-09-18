@@ -783,19 +783,14 @@
 </div>
 <div class="map-section" id="ecoAgua" style="border:1px solid rgba(14,59,71,0.18); background:linear-gradient(135deg, rgba(23,120,138,0.08), rgba(255,107,26,0.06));">
   <div class="map-head">
-    <div class="map-title">El agua que no se ve</div>
+    <div class="map-title" data-i18n="aguaTitulo">El agua que no se ve</div>
   </div>
-  <p style="margin:4px 0 10px; line-height:1.6;">
-    Esto ya no es una estimación: la telemetría real de los últimos 30 días dice
-    <strong>176.444 peticiones, 1,80 GB movidos y 4.819 visitas</strong>. O sea, <strong>0,38 MB y unos 2 mililitros
-    de agua por visita</strong>, medidos. Mientras tanto, la publicidad programática del mundo gasta
-    <strong>unos 375 litros cada segundo</strong> en subastas de anuncios que nadie pidió: al año, miles de piscinas olímpicas.
-  </p>
+  <p style="margin:4px 0 10px; line-height:1.6;"><span data-i18n="aguaP1">Esto ya no es una estimación: la telemetría real de los últimos 30 días dice </span><strong data-i18n="aguaS1">176.444 peticiones, 1,80 GB movidos y 4.819 visitas</strong><span data-i18n="aguaP2">. O sea, </span><strong data-i18n="aguaS2">0,38 MB y unos 2 mililitros de agua por visita</strong><span data-i18n="aguaP3">, medidos. Mientras tanto, la publicidad programática del mundo gasta </span><strong data-i18n="aguaS3">unos 375 litros cada segundo</strong><span data-i18n="aguaP4"> en subastas de anuncios que nadie pidió: al año, miles de piscinas olímpicas.</span></p>
   <div id="ecoAguaVivo" role="status" aria-live="off"
-       style="font-variant-numeric:tabular-nums; font-weight:700; color:var(--sky-deep,#0E3B47); background:rgba(255,255,255,0.65); border-radius:12px; padding:10px 14px; margin-bottom:10px;">
+       style="font-variant-numeric:tabular-nums; font-weight:700; color:var(--sky-deep,#0E3B47); background:var(--surface, rgba(255,255,255,0.65)); border-radius:12px; padding:10px 14px; margin-bottom:10px;">
     Desde que abriste esta página, los anuncios del mundo llevan gastados 0 litros de agua. Tu visita aquí: ~2 ml, medidos.
   </div>
-  <a href="manolito-aire-comparativa.html#agua" target="_self" style="font-weight:700; color:var(--accent,#FF6B1A);">
+  <a href="manolito-aire-comparativa.html#agua" target="_self" data-i18n="aguaLink" style="font-weight:700; color:var(--accent,#FF6B1A);">
     Ver las cuentas completas, con los supuestos a la vista →
   </a>
 </div>
@@ -818,11 +813,25 @@
     if (!inicio) { inicio = Date.now(); sessionStorage.setItem('manolito_agua_inicio', String(inicio)); }
     sessionStorage.setItem('manolito_agua_visitas', String((Number(sessionStorage.getItem('manolito_agua_visitas')) || 0) + 1));
   } catch (e) { inicio = Date.now(); }
+  // Traducible (sep-2026): la frase sale de la plantilla aguaVivoTpl del
+  // idioma activo y el numero se formatea con su locale. Se refresca al
+  // cambiar de idioma y una vez al terminar de cargar el DOM.
+  var LOCALES = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+  var TPL_ES = 'Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados {n} litros de agua. Tu visita aquí: ~2 ml, medidos.';
+  var tpl = TPL_ES, locale = 'es-ES';
+  function refrescarIdioma() {
+    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'es') || 'es';
+    locale = LOCALES[lang] || 'es-ES';
+    var m = (typeof window.getMessages === 'function' ? window.getMessages() : null) || {};
+    tpl = m.aguaVivoTpl || TPL_ES;
+  }
+  refrescarIdioma();
+  document.addEventListener('DOMContentLoaded', refrescarIdioma);
+  document.addEventListener('langChanged', refrescarIdioma);
   var id = setInterval(function () {
     if (document.hidden) return;
     var litros = Math.round((Date.now() - inicio) / 1000 * 375);
-    el.textContent = 'Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados ' +
-      litros.toLocaleString('es-ES') + ' litros de agua. Tu visita aquí: ~2 ml, medidos.';
+    el.textContent = tpl.replace('{n}', litros.toLocaleString(locale));
   }, 250);
   window.addEventListener('pagehide', function () { clearInterval(id); });
 })();
@@ -841,11 +850,21 @@
     inicio = Number(sessionStorage.getItem('manolito_agua_inicio')) || 0;
     if (!inicio) { inicio = Date.now(); sessionStorage.setItem('manolito_agua_inicio', String(inicio)); }
   } catch (e) { inicio = Date.now(); }
+  // El numero se formatea con el locale del idioma activo (sep-2026).
+  var LOCALES = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+  var locale = 'es-ES';
+  function refrescarIdioma() {
+    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'es') || 'es';
+    locale = LOCALES[lang] || 'es-ES';
+  }
+  refrescarIdioma();
+  document.addEventListener('DOMContentLoaded', refrescarIdioma);
+  document.addEventListener('langChanged', refrescarIdioma);
   var escalon = 0;
   var id = setInterval(function () {
     if (document.hidden) return;
     var litros = Math.round((Date.now() - inicio) / 1000 * 375);
-    num.textContent = litros.toLocaleString('es-ES') + ' L';
+    num.textContent = litros.toLocaleString(locale) + ' L';
     var e = litros < 1500 ? 0 : litros < 15000 ? 1 : litros < 100000 ? 2 : 3;
     if (e !== escalon) {
       escalon = e;

@@ -219,11 +219,6 @@
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
 <base target="_blank">
 <base target="_blank">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
 </head>
 <body>
 
@@ -565,6 +560,9 @@
 </section>
 
 <div class="rs-planetario" id="rsPlanetario" data-cielo="dia">
+  <!-- Bloque sol: la cúpula, su hora y el acceso LiDAR van juntos,
+       como una sola pieza (sep-2026, orden de Sandro). -->
+  <div class="rs-planetario-sol">
   <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
     <defs>
       <radialGradient id="rsGradTierra" cx="35%" cy="30%" r="85%">
@@ -618,6 +616,7 @@
       </svg>
       <span>Renderizado LiDAR</span>
     </a>
+  </div>
   </div>
   <!-- Capas del mapa integradas en el widget de posición solar (sep-2026,
        orden de Sandro): las casillas de siempre y, debajo, los botones

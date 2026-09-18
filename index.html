@@ -561,7 +561,31 @@
 </section>
 
 <div class="rs-planetario" id="rsPlanetario" data-cielo="dia">
-  <!-- Bloque sol: la cúpula, su hora y el acceso LiDAR van juntos,
+  <!-- Capas del mapa integradas en el widget de posición solar (sep-2026,
+       orden de Sandro): las casillas de siempre y, debajo, los botones
+       de mapa base que shadows-route.js trae aquí (Mapa oscuro, Mapa
+       IGN y Catastro 3D). Todo en una fila elegante que se apila en
+       móvil, sin cambiar el tamaño de la cúpula. -->
+  <div class="rs-planetario-capas" id="rsPlanetarioCapas">
+    <div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
+      <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas">▾ Capas</button>
+      <div class="rs-layer-toggles-lista" id="rsListaCapas">
+      <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
+      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
+           es lo que más calienta el móvil; ahora solo arranca si el usuario
+           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
+           pero la CPU está en reposo hasta que tú decidas. -->
+      <label><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
+      <label><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
+      <label><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
+      <label><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
+      <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
+           Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
+      <label><input type="checkbox" id="rsToggleMicroclima"> <span>Microclima · estimado</span></label>
+      </div>
+    </div>
+    <div class="rs-capas-mapas" id="rsCapasMapas"></div>
+  </div>  <!-- Bloque sol: la cúpula y su hora van al final del widget,
        como una sola pieza (sep-2026, orden de Sandro). -->
   <div class="rs-planetario-sol">
   <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
@@ -612,7 +636,7 @@
        Es un enlace externo de la familia Manolit∞, con estilo de botón para que
        no se vea la URL y quede integrado con el diseño de la página.
        Orden lógico del widget (sep-2026, orden de Sandro): 1) planetario
-       con su hora, 2) este acceso LiDAR, 3) las capas del mapa. -->
+       1) las capas del mapa, 2) el planetario, 3) este acceso LiDAR. -->
   <a class="rs-btn-lidar" href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -621,31 +645,7 @@
     </svg>
     <span>Renderizado LiDAR</span>
   </a>
-  <!-- Capas del mapa integradas en el widget de posición solar (sep-2026,
-       orden de Sandro): las casillas de siempre y, debajo, los botones
-       de mapa base que shadows-route.js trae aquí (Mapa oscuro, Mapa
-       IGN y Catastro 3D). Todo en una fila elegante que se apila en
-       móvil, sin cambiar el tamaño de la cúpula. -->
-  <div class="rs-planetario-capas" id="rsPlanetarioCapas">
-    <div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
-      <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas">▾ Capas</button>
-      <div class="rs-layer-toggles-lista" id="rsListaCapas">
-      <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
-      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
-           es lo que más calienta el móvil; ahora solo arranca si el usuario
-           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
-           pero la CPU está en reposo hasta que tú decidas. -->
-      <label><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
-      <label><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
-      <label><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
-      <label><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
-      <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
-           Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
-      <label><input type="checkbox" id="rsToggleMicroclima"> <span>Microclima · estimado</span></label>
-      </div>
-    </div>
-    <div class="rs-capas-mapas" id="rsCapasMapas"></div>
-  </div>
+
 </div>
 
 <section id="rsAqiPanel" style="margin-top:16px;" aria-labelledby="rsAqiTitle">

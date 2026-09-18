@@ -1715,3 +1715,24 @@ body.mode-peque .im-lost-btn{
 @media (max-width:480px){
   .maplibregl-ctrl-top-right .maplibregl-ctrl-group button{ width:36px; height:36px; }
 }
+
+
+/* Widget solar ordenado (sep-2026, orden de Sandro): dos piezas claras
+   en vez de elementos esparcidos. A la izquierda el sol con su hora y
+   el acceso LiDAR formando una sola pieza; a la derecha las capas y
+   los botones de mapa, separados por una línea fina. En pantallas
+   estrechas se apilan y la línea pasa arriba. */
+.rs-planetario{ justify-content:center; align-items:center; gap:0; }
+.rs-planetario-sol{ display:flex; align-items:center; gap:16px; }
+.rs-planetario-capas{
+  border-left:1px solid var(--line, rgba(14,59,71,0.14));
+  margin-left:26px; padding-left:26px;
+}
+@media (max-width:900px){
+  .rs-planetario{ flex-direction:column; gap:14px; }
+  .rs-planetario-capas{
+    border-left:none; margin-left:0; padding-left:0;
+    border-top:1px solid var(--line, rgba(14,59,71,0.14)); padding-top:14px;
+    align-items:center; text-align:center; max-width:100%;
+  }
+}

@@ -74,8 +74,17 @@
     maxEdificiosSombra: 0,  // 0 = SIN TOPE: TODOS los edificios 3D visibles proyectan
                             // sombra, también con el zoom alejado (antes 320 cortaban
                             // todo lo que no fuera el centro: solo se veía un trozo)
-    loteSombraSize: 30, 
-    duracionVueloInicialMs: 2000,
+    loteSombraSize: 30,
+    // VUELO DE ENTRADA APAGADO (orden EcoIndex 18-sep-2026, ADITIVO y reversible):
+    // el viaje cinematográfico de zoom 2.4 al zoom final cruzaba varios niveles de
+    // zoom y obligaba a descargar tipografías del mapa y teselas de Natural Earth
+    // que luego no se usan: unas 45 peticiones HTTP regaladas en cada visita.
+    // Con el vuelo apagado el mapa nace directamente en su sitio, con el mismo
+    // pitch, bearing y zoom de siempre. La calidad visual NO cambia: es la misma
+    // vista final, solo que sin el paseo. Si algún día se quiere recuperar el
+    // vuelo basta poner vueloInicialActivo: true.
+    vueloInicialActivo: false,
+    duracionVueloInicialMs: 1200, // vuelo de entrada más corto (EcoIndex 18-sep-2026): igual de elegante, la mitad de teselas intermedias
     priorizarSombra: true,
     maxDetourSombra: 1.5,
     maxAlternativasSombra: 3,
@@ -566,18 +575,40 @@
   const CACHE_AIRE_TTL_MS = 10 * 60 * 1000;   // el aire no cambia en minutos
   const CACHE_CLIMA_TTL_MS = 10 * 60 * 1000;  // OWM actualiza cada ~10 min
 
+  // Sello anti-caché de OpenStreetMap (sep-2026, pedido de Sandro): las
+  // teselas de openfreemap llegan con max-age de DIEZ AÑOS, así que el
+  // navegador y el CDN guardan el planeta viejo aunque OSM ya vaya por
+  // delante. Al pulsar "Act. mapa" se pone aquí la hora actual y TODAS las
+  // peticiones a openfreemap (estilo, índice de teselas, teselas, glifos y
+  // sprites) salen con ese sufijo: URL nueva = caché esquivada en navegador,
+  // service worker y CDN, y baja el planeta más fresco que exista. Vale
+  // para cualquier sitio (Bollullos, Georgia o donde sea), no solo para
+  // una zona. Vacío el resto del tiempo: la caché normal hace la web rápida.
+  let selloActualizacionOSM = '';
+
  const map = new maplibregl.Map({
     container: 'shadowRouteMap',
     style: CONFIG.styleUrlClaro,
     center: CONFIG.centroInicial,
-    zoom: Math.max(CONFIG.zoomInicial - 2.3, 1),
-    pitch: 0,
-    bearing: 0,
+    // Arranque en la vista final (18-sep-2026, EcoIndex): con el vuelo de
+    // entrada apagado (CONFIG.vueloInicialActivo) el mapa nace directamente
+    // con el zoom, pitch y bearing de siempre, así la vista es idéntica a la
+    // de antes pero sin pedir teselas ni glifos de los niveles intermedios.
+    // Si el vuelo se reactiva, se vuelve al arranque 0.8 niveles más lejos
+    // para que el acercamiento se note elegante.
+    zoom: CONFIG.vueloInicialActivo ? Math.max(CONFIG.zoomInicial - 0.8, 1) : CONFIG.zoomInicial,
+    pitch: CONFIG.vueloInicialActivo ? 0 : CONFIG.pitchInicial,
+    bearing: CONFIG.vueloInicialActivo ? 0 : CONFIG.bearingInicial,
     // Rendimiento (sep-2026): tope de resolución del canvas. Un móvil con
     // devicePixelRatio 3 pinta NUEVE veces más píxeles que uno con DPR 1: es
     // la mayor fuente de calor al mover el mapa. Con tope 2 la imagen sigue
     // nítida en pantallas densas y el coste gráfico baja a menos de la mitad.
     pixelRatio: esGamaBaja ? 1 : Math.min(window.devicePixelRatio || 1, 2),
+    transformRequest: (url) => {
+      if (selloActualizacionOSM && url.indexOf('tiles.openfreemap.org') !== -1) {
+        return { url: url + (url.indexOf('?') === -1 ? '?' : '&') + '_osm=' + selloActualizacionOSM };
+      }
+    },
     attributionControl: true
 });
 
@@ -905,15 +936,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
     });
 
-    setTimeout(() => {
-      map.easeTo({
-        pitch: CONFIG.pitchInicial,
-        bearing: CONFIG.bearingInicial,
-        zoom: CONFIG.zoomInicial,
-        duration: CONFIG.duracionVueloInicialMs,
-        essential: true,
-      });
-    }, 150);
+    // El vuelo solo ocurre si está activado en CONFIG (ver nota vueloInicialActivo).
+    // Apagado, el mapa ya nace con pitch/bearing/zoom finales desde las opciones
+    // de creación, así que no hay nada que animar ni teselas extra que pedir.
+    if (CONFIG.vueloInicialActivo) {
+      setTimeout(() => {
+        map.easeTo({
+          pitch: CONFIG.pitchInicial,
+          bearing: CONFIG.bearingInicial,
+          zoom: CONFIG.zoomInicial,
+          duration: CONFIG.duracionVueloInicialMs,
+          essential: true,
+        });
+      }, 150);
+    }
   });
 
   const alTerminarMovimiento = crearDebounce(() => {
@@ -1580,7 +1616,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   map.on('zoomend', () => aplicarOpticaNubes());
   // Y al mover el mapa, la nubosidad se reconsulta solo si toca (celda/tiempo).
   map.on('moveend', () => { refrescarNubosidad(false); });
-  setInterval(() => { if (!document.hidden) refrescarNubosidad(false); }, NUBES.refrescoMs);
+  // Id guardado en el registro común (checklist de optimización: ningún
+  // setInterval suelto; así se pueden apagar todos de golpe si hace falta).
+  window.manolitIntervalos = window.manolitIntervalos || [];
+  window.manolitIntervalos.push(setInterval(() => { if (!document.hidden) refrescarNubosidad(false); }, NUBES.refrescoMs));
 
   /* --------- Capa raster de nubes REALES sobre el mapa (OpenWeatherMap) ---------
      Las teselas llegan proxiedas por el Worker (/tiles/nubes/...): la API key
@@ -2870,7 +2909,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             }
           }
         } catch (e) { /* sin Cache API: las teselas nuevas llegan al mover el mapa */ }
-        // (3) Recarga de las fuentes de teselas ya cargadas en el estilo
+        // (3) Sello anti-caché + recarga de las fuentes de teselas. El
+        // sello hace que cada petición a openfreemap salga con sufijo nuevo
+        // (ver transformRequest en la creación del mapa): navegador, service
+        // worker y CDN se esquivan y baja el planeta más reciente. Sin el
+        // sello, borrar las cachés "manolito-*" no bastaba: el navegador
+        // guarda las teselas DIEZ AÑOS (max-age de openfreemap) y seguían
+        // saliendo los edificios viejos aunque OSM ya los tuviera nuevos.
+        selloActualizacionOSM = String(Date.now());
         try {
           const estiloVivo = map.getStyle();
           if (estiloVivo && estiloVivo.sources) {
@@ -2878,11 +2924,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
               const fuente = map.getSource(idFuente);
               if (!fuente) continue;
               try {
+                if (typeof fuente.clearTiles === 'function') fuente.clearTiles();
                 if (fuente.tiles && typeof fuente.setTiles === 'function') fuente.setTiles(fuente.tiles);
                 else if (fuente.url && typeof fuente.setUrl === 'function') fuente.setUrl(fuente.url);
               } catch (e) { }
             }
           }
+          map.triggerRepaint();
         } catch (e) { }
         await trabajoArboles;
         btnActualizarOSM.textContent = t('osmRefreshed', '✓ Actualizado');

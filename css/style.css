@@ -1736,3 +1736,23 @@ body.mode-peque .im-lost-btn{
     align-items:center; text-align:center; max-width:100%;
   }
 }
+
+
+/* Widget solar compacto y centrado (sep-2026, orden de Sandro): las
+   dos piezas van juntas en el centro en vez de estirarse a lo ancho,
+   y los botones de mapa base forman una rejilla de tres columnas con
+   su título encima ocupando toda la fila. */
+.rs-planetario{
+  max-width:940px; margin-left:auto; margin-right:auto;
+  justify-content:center; gap:28px;
+}
+.rs-planetario-capas{ margin-left:0; padding-left:28px; }
+#rsCapasMapas #rsMapStyleToggle{
+  display:grid !important; grid-template-columns:repeat(3, 1fr) !important;
+  gap:6px !important;
+}
+#rsCapasMapas #rsBtnCapasMapa{ grid-column:1 / -1; }
+@media (max-width:900px){
+  .rs-planetario{ gap:14px; }
+  .rs-planetario-capas{ padding-left:0; }
+}

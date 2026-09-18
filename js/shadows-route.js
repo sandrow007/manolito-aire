@@ -4410,15 +4410,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   /* ----- Botonera única de cámara (sep-2026, orden de Sandro) -----
-     TODOS los manejos del mapa en un mismo lugar: una columna de
-     botones grandes, oscuros y con borde naranja, en el borde
-     izquierdo del mapa, centrada en vertical. Pensada para quien NO
-     tiene rueda de ratón.
-     - + y - : zoom (en el paseo, caminan adelante y atrás).
-     - ▲ y ▼ : mirar arriba y abajo, hasta 85° (en el paseo, la mirada).
-     - N     : vuelve a mirar al norte.
-     - ⛶     : pantalla completa (nativa en Android y ordenador, plan B
-               por CSS en iPhone), con su icono de salir al activarse.
+     TODOS los manejos del mapa en un mismo lugar: un mando compacto
+     de dos columnas en el borde DERECHO del mapa, centrado en
+     vertical, con botones grandes, oscuros y borde naranja. Pensado
+     para quien NO tiene rueda de ratón.
+       +  −     zoom (en el paseo, caminan adelante y atrás)
+       ▲  ▼     mirar arriba y abajo, hasta 85° (en el paseo, la mirada)
+       🧭 ⛶     brújula que gira con el mapa y vuelve al norte al
+                tocarla, y pantalla completa (nativa en Android y
+                ordenador, plan B por CSS en iPhone)
      Mantener pulsado +, -, ▲ o ▼ repite la acción, como la rueda del
      ratón pero con el dedo quieto. */
   function inyectarControlesCamara() {
@@ -4427,8 +4427,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     estiloCam.id = 'rsCamCtlEstilos';
     estiloCam.textContent = `
       #rsCamCtl{
-        position:absolute; left:12px; top:50%; transform:translateY(-50%); z-index:6;
-        display:flex; flex-direction:column; gap:6px;
+        position:absolute; right:12px; top:50%; transform:translateY(-50%); z-index:6;
+        display:grid; grid-template-columns:1fr 1fr; gap:6px;
       }
       #rsCamCtl button{
         width:44px; height:44px; border-radius:12px; font-size:18px; font-weight:700;
@@ -4441,9 +4441,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       #rsCamCtl button:hover{ background:var(--accent, #FF6B1A); }
       #rsCamCtl button:active{ transform:scale(0.94); }
-      /* Separación visual: N y pantalla completa forman su propio
-         grupito debajo de zoom e inclinación. */
-      #rsCamNorte{ margin-top:10px; }
+      /* La brújula gira con el mapa (su flecha lleva la punta naranja
+         al norte, como la de siempre). */
+      #rsCamBrujula svg{ display:block; margin:auto; transition:transform .08s linear; }
       /* El icono de pantalla completa se dibuja aquí (la regla vieja de
          la hoja de estilos solo cubría el botón cuando vivía en la
          esquina de MapLibre). Va DESPUÉS del :hover para que el icono
@@ -4469,7 +4469,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2303050F' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
       }
       @media (max-width:480px){
-        #rsCamCtl{ left:8px; }
+        #rsCamCtl{ right:8px; }
         #rsCamCtl button{ width:40px; height:40px; font-size:16px; }
       }
     `;
@@ -4493,7 +4493,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btnCamMenos  = hacerBotonCam('rsCamZoomOut',   '−', t('camZoomOut', 'Alejar'));
     const btnCamArriba = hacerBotonCam('rsCamPitchUp',   '▲', t('camPitchUp', 'Mirar hacia arriba'));
     const btnCamAbajo  = hacerBotonCam('rsCamPitchDown', '▼', t('camPitchDown', 'Mirar hacia abajo'));
-    const btnCamNorte  = hacerBotonCam('rsCamNorte', 'N', t('camNorte', 'Orientar el mapa al norte'));
+    const btnCamBrujula = hacerBotonCam('rsCamBrujula', '', t('camBrujula', 'Brújula, volver al norte'));
+    // Flecha de brújula como la de MapLibre de siempre: punta naranja
+    // al norte, cuerpo del color del texto del tema. Gira con el mapa.
+    btnCamBrujula.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2l4.5 10-4.5 10-4.5-10z" fill="currentColor"/><path d="M12 2l4.5 10h-9z" fill="#FF6B1A"/></svg>';
     const btnCamFull   = hacerBotonCam('rsCamFull', '', t('camFull', 'Pantalla completa'));
     // La clase manolito-fs-btn conecta con la lógica de pantalla
     // completa de siempre: ella misma pone el icono de salir.
@@ -4551,11 +4554,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     prepararPitchCam(btnCamArriba, 5);
     prepararPitchCam(btnCamAbajo, -5);
 
-    // N: vuelve a mirar al norte. En el mapa normal gira suave; en el
-    // paseo el jugador encara al norte.
-    btnCamNorte.addEventListener('click', () => {
+    // Brújula: al tocarla vuelve al norte. En el mapa normal gira
+    // suave; en el paseo el jugador encara al norte. Y la flecha gira
+    // sola con el mapa (la cámara del paseo lleva el bearing del
+    // jugador, así que también gira dentro del paseo).
+    btnCamBrujula.addEventListener('click', () => {
       if (paseoActivo) { paseoJugador.bearing = 0; return; }
       try { map.easeTo({ bearing: 0, duration: 300, essential: true }); } catch (e) { /* mapa a medio crear */ }
+    });
+    const brujulaSvg = btnCamBrujula.querySelector('svg');
+    map.on('rotate', () => {
+      if (brujulaSvg) brujulaSvg.style.transform = `rotate(${-map.getBearing()}deg)`;
     });
 
     // Pantalla completa: la clase ManolitoPantallaCompleta ya no se
@@ -4566,7 +4575,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     controlPantallaCompleta._btn = btnCamFull;
     btnCamFull.addEventListener('click', () => controlPantallaCompleta._alternar());
 
-    grupo.append(btnCamMas, btnCamMenos, btnCamArriba, btnCamAbajo, btnCamNorte, btnCamFull);
+    grupo.append(btnCamMas, btnCamMenos, btnCamArriba, btnCamAbajo, btnCamBrujula, btnCamFull);
     contenedorMapa.appendChild(grupo);
   }
 

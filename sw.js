@@ -104,7 +104,23 @@
 // hoja propia, sin cargar nada extra. En iPhone el boton usa el modo
 // pantalla completa por CSS de siempre.
 // Cambian style.css y js/shadows-route.js.
-const VERSION = '2026-09-18-d' // -d 18-sep: controles nativos del mapa visibles otra vez (zoom, brujula y pantalla completa) sin cargar la CSS de MapLibre;
+// 2026-09-18-e: orden visual del mapa (orden de Sandro). El zoom ya no
+// sale dos veces: se retiran los controles nativos de MapLibre y todo
+// el manejo del mapa vive en una unica botonera a la izquierda (zoom,
+// mirar arriba o abajo, norte y pantalla completa juntos). El widget
+// de posicion solar se ordena en dos piezas claras: el sol con su hora
+// y el acceso LiDAR a la izquierda, las capas a la derecha con una
+// linea fina de separacion. Y el index traia la etiqueta base pegada
+// 7 veces: se queda en una, que es la unica que usa el navegador.
+// Cambian index.html, style.css y js/shadows-route.js.
+// 2026-09-18-f: la botonera unica del mapa pasa al borde DERECHO y se
+// compacta en un mando de dos columnas (+ -, arriba abajo, brujula y
+// pantalla completa). La letra N se cambia por una brujula de verdad,
+// con la punta naranja al norte, que gira con el mapa y vuelve al
+// norte al tocarla. El widget solar queda compacto y centrado, y los
+// botones de mapa base en rejilla de tres columnas.
+// Cambian style.css y js/shadows-route.js.
+const VERSION = '2026-09-18-f' // -f 18-sep: botonera a la derecha en mando compacto, brujula giratoria en vez de la N y widget solar compacto;
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

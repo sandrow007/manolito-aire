@@ -589,7 +589,10 @@
 
 // AHORA SÍ: El mapa está creado, lo pasamos a global para que los árboles lo enganchen
 window.manolitAireMap = map;
-map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
+// Controles nativos de MapLibre retirados (sep-2026, orden de Sandro):
+// el zoom salía dos veces y los mandos estaban esparcidos. Ahora TODO
+// el manejo del mapa vive en una única botonera (inyectarControlesCamara):
+// zoom, inclinación, norte y pantalla completa, juntos.
 // Pantalla completa nativa (botón en la esquina del mapa). Al entrar/salir
 // el canvas cambia de tamaño y MapLibre hay que avisarlo con resize(), si
 // no el mapa se queda estirado o con bandas negras.
@@ -625,8 +628,17 @@ class ManolitoPantallaCompleta {
     if (this._grupo) this._grupo.remove();
     this._map = undefined;
   }
+  // La pantalla completa se pide sobre el CONTENEDOR PADRE del mapa
+  // (.map-wrap), no sobre el lienzo: así la botonera de cámara, el
+  // joystick del paseo y el panel de la hora solar (que viven en el
+  // wrap) siguen visibles y usables a pantalla completa, igual que en
+  // el plan B CSS de iPhone.
+  _objetivoFs() {
+    const cont = this._map.getContainer();
+    return cont.parentElement || cont;
+  }
   _nativoDisponible() {
-    const el = this._map.getContainer();
+    const el = this._objetivoFs();
     return !!(document.fullscreenEnabled && el.requestFullscreen);
   }
   _dentroFallback() {
@@ -650,13 +662,21 @@ class ManolitoPantallaCompleta {
     setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 350);
   }
   _alternar() {
-    if (this._dentroFallback()) { this._salirFallback(); return; }
+    if (this._dentroFallback()) {
+      this._salirFallback();
+      // Por si alguna vez coinciden los dos caminos a la vez (el nativo
+      // tarda más de 500 ms en responder), salir también del nativo.
+      if (document.fullscreenElement) {
+        try { document.exitFullscreen(); } catch (e) {}
+      }
+      return;
+    }
     if (document.fullscreenElement) {
       try { document.exitFullscreen(); } catch (e) {}
       return;
     }
     if (this._nativoDisponible()) {
-      const el = this._map.getContainer();
+      const el = this._objetivoFs();
       // iPhone a veces ACEPTA la llamada y luego no hace nada: ni entra
       // en pantalla completa ni rechaza la promesa. Por eso hay dos
       // guardianes: el catch de la promesa y una comprobación a los
@@ -680,7 +700,10 @@ class ManolitoPantallaCompleta {
   }
 }
 const controlPantallaCompleta = new ManolitoPantallaCompleta();
-map.addControl(controlPantallaCompleta);
+// Ya no se añade como control aparte de MapLibre: su botón vive en la
+// botonera única de cámara (inyectarControlesCamara), que le pasa el
+// mapa y el botón a mano. La clase y sus dos caminos (nativo y plan B
+// CSS para iPhone) son los mismos de siempre.
 document.addEventListener('fullscreenchange', () => {
   try { map.resize(); } catch (e) { /* mapa a medio crear */ }
   // El icono del botón también cambia cuando el fullscreen es nativo
@@ -4386,17 +4409,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     joy.addEventListener('lostpointercapture', limpiarJoystick);
   }
 
-  /* ----- Botonera de cámara: zoom y mirar arriba/abajo (sep-2026, orden
-     de Sandro) -----
-     Un mando único y diferenciado, pensado para quien NO tiene rueda de
-     ratón: cuatro botones grandes, oscuros y con borde naranja, siempre
-     visibles en la esquina inferior izquierda del mapa.
-     - Mapa normal: + y - acercan y alejan; ▲ y ▼ inclinan la vista
-       hasta 85° (mirar al cielo) o hasta 0° (vista desde arriba).
-     - Paseo virtual: mantener + o - camina hacia delante o hacia atrás;
-       ▲ y ▼ levantan o bajan la mirada.
-     Mantener pulsado repite la acción, como la rueda del ratón pero con
-     el dedo quieto. */
+  /* ----- Botonera única de cámara (sep-2026, orden de Sandro) -----
+     TODOS los manejos del mapa en un mismo lugar: una columna de
+     botones grandes, oscuros y con borde naranja, en el borde
+     izquierdo del mapa, centrada en vertical. Pensada para quien NO
+     tiene rueda de ratón.
+     - + y - : zoom (en el paseo, caminan adelante y atrás).
+     - ▲ y ▼ : mirar arriba y abajo, hasta 85° (en el paseo, la mirada).
+     - N     : vuelve a mirar al norte.
+     - ⛶     : pantalla completa (nativa en Android y ordenador, plan B
+               por CSS en iPhone), con su icono de salir al activarse.
+     Mantener pulsado +, -, ▲ o ▼ repite la acción, como la rueda del
+     ratón pero con el dedo quieto. */
   function inyectarControlesCamara() {
     if (document.getElementById('rsCamCtl')) return;
     const estiloCam = document.createElement('style');
@@ -4417,6 +4441,33 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       #rsCamCtl button:hover{ background:var(--accent, #FF6B1A); }
       #rsCamCtl button:active{ transform:scale(0.94); }
+      /* Separación visual: N y pantalla completa forman su propio
+         grupito debajo de zoom e inclinación. */
+      #rsCamNorte{ margin-top:10px; }
+      /* El icono de pantalla completa se dibuja aquí (la regla vieja de
+         la hoja de estilos solo cubría el botón cuando vivía en la
+         esquina de MapLibre). Va DESPUÉS del :hover para que el icono
+         no desaparezca al pasar el dedo. */
+      #rsCamCtl button.manolito-fs-btn{
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FBFAF7' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+        background-repeat:no-repeat; background-position:center; background-size:22px 22px;
+      }
+      #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
+      #rsCamCtl button.manolito-fs-btn[aria-pressed="true"]{
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FBFAF7' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
+      }
+      /* En tema oscuro la botonera es clara: el icono se pinta oscuro,
+       igual que los símbolos + - ▲ ▼ N. */
+      [data-theme="dark"] #rsCamCtl button.manolito-fs-btn,
+      .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn{
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2303050F' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+      }
+      [data-theme="dark"] #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
+      [data-theme="dark"] #rsCamCtl button.manolito-fs-btn[aria-pressed="true"],
+      .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
+      .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn[aria-pressed="true"]{
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2303050F' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
+      }
       @media (max-width:480px){
         #rsCamCtl{ left:8px; }
         #rsCamCtl button{ width:40px; height:40px; font-size:16px; }
@@ -4442,6 +4493,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btnCamMenos  = hacerBotonCam('rsCamZoomOut',   '−', t('camZoomOut', 'Alejar'));
     const btnCamArriba = hacerBotonCam('rsCamPitchUp',   '▲', t('camPitchUp', 'Mirar hacia arriba'));
     const btnCamAbajo  = hacerBotonCam('rsCamPitchDown', '▼', t('camPitchDown', 'Mirar hacia abajo'));
+    const btnCamNorte  = hacerBotonCam('rsCamNorte', 'N', t('camNorte', 'Orientar el mapa al norte'));
+    const btnCamFull   = hacerBotonCam('rsCamFull', '', t('camFull', 'Pantalla completa'));
+    // La clase manolito-fs-btn conecta con la lógica de pantalla
+    // completa de siempre: ella misma pone el icono de salir.
+    btnCamFull.classList.add('manolito-fs-btn');
 
     // + y - : en el mapa normal acercan y alejan (con repetición al
     // mantener); en el paseo virtual caminan mientras se mantienen
@@ -4495,7 +4551,22 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     prepararPitchCam(btnCamArriba, 5);
     prepararPitchCam(btnCamAbajo, -5);
 
-    grupo.append(btnCamMas, btnCamMenos, btnCamArriba, btnCamAbajo);
+    // N: vuelve a mirar al norte. En el mapa normal gira suave; en el
+    // paseo el jugador encara al norte.
+    btnCamNorte.addEventListener('click', () => {
+      if (paseoActivo) { paseoJugador.bearing = 0; return; }
+      try { map.easeTo({ bearing: 0, duration: 300, essential: true }); } catch (e) { /* mapa a medio crear */ }
+    });
+
+    // Pantalla completa: la clase ManolitoPantallaCompleta ya no se
+    // añade como control de MapLibre (su botón es este), así que le
+    // pasamos el mapa y el botón a mano. Nativa donde se puede y plan
+    // B por CSS en iPhone, como siempre.
+    controlPantallaCompleta._map = map;
+    controlPantallaCompleta._btn = btnCamFull;
+    btnCamFull.addEventListener('click', () => controlPantallaCompleta._alternar());
+
+    grupo.append(btnCamMas, btnCamMenos, btnCamArriba, btnCamAbajo, btnCamNorte, btnCamFull);
     contenedorMapa.appendChild(grupo);
   }
 

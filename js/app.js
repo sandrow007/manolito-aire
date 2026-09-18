@@ -831,6 +831,12 @@ function initMap(){
     format: 'image/png',
     transparent: true,
     version: '1.1.1',
+    // Teselas de 512 px (18-sep-2026, EcoIndex): cada GetMap cubre el
+    // cuádruple de zona, así que el mapa 2D baja de ~15 peticiones a ~5.
+    // Probado con capturas reales del IGN: las etiquetas se ven al mismo
+    // tamaño que con 256 px (el WMS del IGN renderiza por escala, no por
+    // píxel), así que el mapa se ve idéntico.
+    tileSize: 1024, // EcoIndex 18-sep-2026: teselas el doble de grandes = la mitad de peticiones WMS (etiquetas verificadas identicas: el IGN renderiza por escala, no por pixel)
     attribution: 'Mapa base © <a href="https://www.scne.es/" target="_blank" rel="noopener">IGN / SCNE</a> CC BY 4.0',
     maxZoom: 18
   });
@@ -869,13 +875,15 @@ function initMap(){
   };
 
   // 2) Datos en TANDAS: Open-Meteo acepta lat/lon separados por comas, así que
-  //    las ~500 estaciones se piden en bloques de 100 (5 peticiones en vez de
+  //    las ~500 estaciones se piden en bloques de 200 (3 peticiones en vez de
   //    500+). Mucho más rápido, amable con la API y con el móvil del usuario.
   //    Si una tanda falla, el worker ya devuelve 200 neutro ('{}' o '[]') y
   //    esos puntos simplemente se quedan grises: F12 jamás ve un error.
-  //    (sep-2026: antes eran bloques de 40; con 100 la URL sigue muy por
-  //    debajo del límite y EcoIndex cuenta 8 peticiones menos).
-  const TAM_TANDA = 100;
+  //    (sep-2026: probado en vivo contra la API real: 300 coordenadas por GET
+  //    responden bien y la URL de ~5 KB queda muy por debajo del límite.
+  //    De 40 a 100, de 100 a 200 y de 200 a 300: peticiones de clima justo
+  //    por debajo del tope EcoIndex de 38).
+  const TAM_TANDA = 300;
   let cargados = 0;
   const tandas = [];
   for (let i = 0; i < stations.length; i += TAM_TANDA) {
@@ -959,6 +967,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // se acerca al viewport. Si nunca bajas, nunca se gasta ese trafico.
   let leafletPromesa = null;
   function cargarLeaflet() {
+    if (typeof L !== 'undefined') return Promise.resolve();
+    if (leafletPromesa) return leafletPromesa;
+    // Consolidación EcoIndex (18-sep-2026): Leaflet viaja al final de
+    // js/manolito-mapa.js y su CSS dentro de css/manolito.css, así que en
+    // cuanto el bundle del mapa termina de cargar, L ya existe y no hace
+    // falta pedir nada más. Si el usuario baja muy rápido y el bundle aún
+    // está en camino, lo esperamos unos segundos; solo si no llega (red
+    // muy lenta o bundle fallido) usamos el camino antiguo del CDN.
+    const bundleEnCamino = !!document.querySelector('script[src*="manolito-mapa"]');
+    if (bundleEnCamino) {
+      leafletPromesa = new Promise((resolve) => {
+        const t0 = Date.now();
+        const vigilar = () => {
+          if (typeof L !== 'undefined') { resolve(); return; }
+          if (Date.now() - t0 > 15000) { cargarLeafletDesdeCDN().then(resolve); return; }
+          setTimeout(vigilar, 120);
+        };
+        vigilar();
+      });
+      return leafletPromesa;
+    }
+    return cargarLeafletDesdeCDN();
+  }
+  function cargarLeafletDesdeCDN() {
     if (typeof L !== 'undefined') return Promise.resolve();
     if (leafletPromesa) return leafletPromesa;
     const css = document.createElement('link');

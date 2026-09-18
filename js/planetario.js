@@ -520,7 +520,10 @@
     if (f0) fechaMostrada = f0;
     pintar();
     crearCapaEspacio();
-    setInterval(tick, 1000);
+    // Id guardado en el registro común (checklist de optimización móvil:
+    // ningún setInterval suelto; así se pueden apagar todos de golpe).
+    window.manolitIntervalos = window.manolitIntervalos || [];
+    window.manolitIntervalos.push(setInterval(tick, 1000));
     vigilarVisibilidadWidget();
     window.addEventListener('langChanged', pintar);
   }

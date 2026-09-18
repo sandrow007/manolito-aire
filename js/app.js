@@ -869,11 +869,13 @@ function initMap(){
   };
 
   // 2) Datos en TANDAS: Open-Meteo acepta lat/lon separados por comas, así que
-  //    las ~500 estaciones se piden en bloques de 40 (≈12 peticiones en vez de
+  //    las ~500 estaciones se piden en bloques de 100 (5 peticiones en vez de
   //    500+). Mucho más rápido, amable con la API y con el móvil del usuario.
   //    Si una tanda falla, el worker ya devuelve 200 neutro ('{}' o '[]') y
   //    esos puntos simplemente se quedan grises: F12 jamás ve un error.
-  const TAM_TANDA = 40;
+  //    (sep-2026: antes eran bloques de 40; con 100 la URL sigue muy por
+  //    debajo del límite y EcoIndex cuenta 8 peticiones menos).
+  const TAM_TANDA = 100;
   let cargados = 0;
   const tandas = [];
   for (let i = 0; i < stations.length; i += TAM_TANDA) {

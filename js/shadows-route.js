@@ -93,6 +93,7 @@
     paseoVelocidadMs: 2.0,
     paseoVelocidadGiro: 1.6,
     paseoLookAheadM: 25,
+    paseoZoomCalle: 18, // zoom de la vista de peatón con la API estándar (centro 25 m por delante)
     paseoMaxPitch: 85, // 85° = el máximo físico del motor MapLibre: mirada al cielo
     paseoPitchMin: 10,  // casi picado sobre la calle
     paseoPitchInicial: 55, // al entrar: vista cómoda de paseo
@@ -573,6 +574,11 @@
     zoom: Math.max(CONFIG.zoomInicial - 2.3, 1),
     pitch: 0,
     bearing: 0,
+    // Mirar arriba SIN corte (sep-2026, orden de Sandro): el tope de
+    // inclinación sube de 60° (el de fábrica) a 85°, el máximo físico de
+    // MapLibre. De cerca puedes levantar la vista hasta el horizonte y
+    // las fachadas ya no se cortan a media altura.
+    maxPitch: 85,
     // Rendimiento (sep-2026): tope de resolución del canvas. Un móvil con
     // devicePixelRatio 3 pinta NUEVE veces más píxeles que uno con DPR 1: es
     // la mayor fuente de calor al mover el mapa. Con tope 2 la imagen sigue
@@ -677,6 +683,14 @@ const controlPantallaCompleta = new ManolitoPantallaCompleta();
 map.addControl(controlPantallaCompleta);
 document.addEventListener('fullscreenchange', () => {
   try { map.resize(); } catch (e) { /* mapa a medio crear */ }
+  // El icono del botón también cambia cuando el fullscreen es nativo
+  // (Android y ordenador), incluido salir con ESC.
+  const enNativo = !!document.fullscreenElement;
+  const btnFs = document.querySelector('.manolito-fs-btn');
+  if (btnFs) {
+    btnFs.setAttribute('aria-pressed', enNativo ? 'true' : 'false');
+    btnFs.classList.toggle('manolito-fs-activo', enNativo);
+  }
 });
 // En el modo fallback (iPhone), ESC y el gesto de volver también salen.
 document.addEventListener('keydown', (e) => {
@@ -2605,7 +2619,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       mostrarEstado(t('virtualWalkHint', 'Arrastra para mirar • Joystick para moverte • Esc para salir'));
 
       const joy = document.getElementById('rsJoystick');
-      if (joy && 'ontouchstart' in window) joy.classList.add('rs-visible');
+      // Joystick visible SIEMPRE en el paseo (sep-2026, orden de Sandro):
+      // antes solo salía en pantallas táctiles y en un ordenador no había
+      // forma de caminar sin adivinar las teclas. Con ratón también se
+      // arrastra el joystick, así el movimiento es libre para todos.
+      if (joy) joy.classList.add('rs-visible');
 
       paseoRafId = requestAnimationFrame(loopPaseo);
     }
@@ -2636,7 +2654,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         puntoReferenciaSol = { lat: paseoEstadoPrevio.center.lat, lon: paseoEstadoPrevio.center.lng };
         paseoEstadoPrevio = null;
       } else {
-        map.setMaxPitch(60);
+        map.setMaxPitch(85); // el tope de la casa desde sep-2026 (mirar arriba sin corte)
       }
 
       btnPaseo.classList.remove('rs-activo');
@@ -2661,22 +2679,25 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
 
     function actualizarCamaraPaseo(eye) {
-      if (typeof map.getFreeCameraOptions !== 'function' || typeof map.setFreeCameraOptions !== 'function') {
-        // Esta versión de MapLibre GL JS no trae la API de cámara libre (FreeCameraOptions,
-        // disponible desde MapLibre GL JS 3+). En vez de reventar con un error en cadena,
-        // avisamos una sola vez y salimos limpiamente del paseo.
-        console.debug('[paseo virtual] Esta versión de MapLibre GL JS no soporta cámara libre (getFreeCameraOptions). Revisa la versión cargada en el HTML.');
-        mostrarEstado(t('virtualWalkUnsupported', 'Tu navegador o la versión del mapa cargada no soporta el paseo virtual 3D ahora mismo.'), 'error');
-        detenerPaseoVirtual();
-        return;
-      }
-      const camera = map.getFreeCameraOptions();
-      camera.position = maplibregl.MercatorCoordinate.fromLngLat(eye, CONFIG.paseoAlturaOjoM);
-      // Pitch VIVO del jugador (arrastre vertical), ya no un valor clavado:
-      // puedes mirar al cielo libremente sin que el edificio se corte.
+      // Cámara de peatón con la API ESTÁNDAR de MapLibre (sep-2026, arreglo
+      // gordo): getFreeCameraOptions/setFreeCameraOptions ya no existen en
+      // MapLibre GL JS 4.x (se retiraron de la librería) y el paseo entraba
+      // y salía al instante con un aviso. Ahora la vista de primera persona
+      // se consigue con centro unos metros por delante del jugador, zoom de
+      // calle, el pitch vivo y su bearing. Mismo resultado visual y funciona
+      // en cualquier versión de MapLibre.
       const pitchVivo = typeof paseoJugador.pitch === 'number' ? paseoJugador.pitch : CONFIG.paseoPitchInicial;
-      camera.setPitchBearing(pitchVivo, paseoJugador.bearing);
-      map.setFreeCameraOptions(camera);
+      const rad = paseoJugador.bearing * Math.PI / 180;
+      const adelante = paseoToLngLat(
+        paseoJugador.x + Math.sin(rad) * CONFIG.paseoLookAheadM,
+        paseoJugador.y - Math.cos(rad) * CONFIG.paseoLookAheadM
+      );
+      map.jumpTo({
+        center: adelante,
+        zoom: CONFIG.paseoZoomCalle,
+        pitch: pitchVivo,
+        bearing: paseoJugador.bearing,
+      });
     }
 
     // Mientras caminas: refresca periódicamente qué edificios hay alrededor
@@ -3315,7 +3336,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     wrap.style.flexDirection = 'column';
     wrap.style.gap = '6px';
     wrap.style.alignItems = 'flex-end';
-    contenedorMapa.appendChild(wrap);
+    // Capas de mapa DENTRO del widget de posición solar (sep-2026, orden
+    // de Sandro): Mapa oscuro, Mapa IGN y Catastro 3D ya no flotan
+    // encima del mapa; viven en el planetario, junto a las casillas de
+    // capas. Si el widget no estuviera en el HTML, se quedan donde estaban.
+    (document.getElementById('rsCapasMapas') || contenedorMapa).appendChild(wrap);
   }
 
   function capturarVista() {
@@ -4361,13 +4386,128 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     joy.addEventListener('lostpointercapture', limpiarJoystick);
   }
 
+  /* ----- Botonera de cámara: zoom y mirar arriba/abajo (sep-2026, orden
+     de Sandro) -----
+     Un mando único y diferenciado, pensado para quien NO tiene rueda de
+     ratón: cuatro botones grandes, oscuros y con borde naranja, siempre
+     visibles en la esquina inferior izquierda del mapa.
+     - Mapa normal: + y - acercan y alejan; ▲ y ▼ inclinan la vista
+       hasta 85° (mirar al cielo) o hasta 0° (vista desde arriba).
+     - Paseo virtual: mantener + o - camina hacia delante o hacia atrás;
+       ▲ y ▼ levantan o bajan la mirada.
+     Mantener pulsado repite la acción, como la rueda del ratón pero con
+     el dedo quieto. */
+  function inyectarControlesCamara() {
+    if (document.getElementById('rsCamCtl')) return;
+    const estiloCam = document.createElement('style');
+    estiloCam.id = 'rsCamCtlEstilos';
+    estiloCam.textContent = `
+      #rsCamCtl{
+        position:absolute; left:12px; top:50%; transform:translateY(-50%); z-index:6;
+        display:flex; flex-direction:column; gap:6px;
+      }
+      #rsCamCtl button{
+        width:44px; height:44px; border-radius:12px; font-size:18px; font-weight:700;
+        font-family:inherit; line-height:1; cursor:pointer;
+        color:var(--paper, #FBFAF7); background:var(--sky-deep, #0E3B47);
+        border:2px solid var(--accent, #FF6B1A);
+        box-shadow:0 3px 10px rgba(22,35,46,0.25);
+        touch-action:none; user-select:none; -webkit-user-select:none;
+        transition:background .15s, transform .1s;
+      }
+      #rsCamCtl button:hover{ background:var(--accent, #FF6B1A); }
+      #rsCamCtl button:active{ transform:scale(0.94); }
+      @media (max-width:480px){
+        #rsCamCtl{ left:8px; }
+        #rsCamCtl button{ width:40px; height:40px; font-size:16px; }
+      }
+    `;
+    document.head.appendChild(estiloCam);
+
+    const grupo = document.createElement('div');
+    grupo.id = 'rsCamCtl';
+    grupo.setAttribute('role', 'group');
+    grupo.setAttribute('aria-label', 'Zoom e inclinación del mapa');
+
+    function hacerBotonCam(id, simbolo, titulo) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.id = id;
+      b.textContent = simbolo;
+      b.title = titulo;
+      b.setAttribute('aria-label', titulo);
+      return b;
+    }
+    const btnCamMas    = hacerBotonCam('rsCamZoomIn',    '+', t('camZoomIn', 'Acercar'));
+    const btnCamMenos  = hacerBotonCam('rsCamZoomOut',   '−', t('camZoomOut', 'Alejar'));
+    const btnCamArriba = hacerBotonCam('rsCamPitchUp',   '▲', t('camPitchUp', 'Mirar hacia arriba'));
+    const btnCamAbajo  = hacerBotonCam('rsCamPitchDown', '▼', t('camPitchDown', 'Mirar hacia abajo'));
+
+    // + y - : en el mapa normal acercan y alejan (con repetición al
+    // mantener); en el paseo virtual caminan mientras se mantienen
+    // pulsados, reutilizando las teclas del propio paseo para que la
+    // inercia y la física sean exactamente las mismas.
+    function prepararAvanceCam(btn, tecla, accionNormal) {
+      let timer = null;
+      const soltar = () => {
+        keysDown.delete(tecla);
+        if (timer) { clearTimeout(timer); timer = null; }
+      };
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (paseoActivo) { keysDown.add(tecla); return; }
+        accionNormal();
+        const repetir = () => { accionNormal(); timer = setTimeout(repetir, 130); };
+        timer = setTimeout(repetir, 350);
+      });
+      btn.addEventListener('pointerup', soltar);
+      btn.addEventListener('pointerleave', soltar);
+      btn.addEventListener('pointercancel', soltar);
+    }
+    prepararAvanceCam(btnCamMas, 'KeyW', () => map.zoomIn());
+    prepararAvanceCam(btnCamMenos, 'KeyS', () => map.zoomOut());
+
+    // ▲ y ▼ : inclinan la vista. En el mapa normal suben o bajan el
+    // pitch (0 a 85°); en el paseo mueven la mirada del jugador dentro
+    // de sus topes (10 a 85°).
+    function prepararPitchCam(btn, delta) {
+      let timer = null;
+      const paso = () => {
+        if (paseoActivo) {
+          if (typeof paseoJugador.pitch !== 'number') paseoJugador.pitch = CONFIG.paseoPitchInicial;
+          paseoJugador.pitch = Math.min(CONFIG.paseoMaxPitch,
+            Math.max(CONFIG.paseoPitchMin, paseoJugador.pitch + delta));
+        } else {
+          map.easeTo({ pitch: Math.min(85, Math.max(0, map.getPitch() + delta)), duration: 180, essential: true });
+        }
+      };
+      const soltar = () => { if (timer) { clearTimeout(timer); timer = null; } };
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        paso();
+        const repetir = () => { paso(); timer = setTimeout(repetir, 130); };
+        timer = setTimeout(repetir, 350);
+      });
+      btn.addEventListener('pointerup', soltar);
+      btn.addEventListener('pointerleave', soltar);
+      btn.addEventListener('pointercancel', soltar);
+    }
+    prepararPitchCam(btnCamArriba, 5);
+    prepararPitchCam(btnCamAbajo, -5);
+
+    grupo.append(btnCamMas, btnCamMenos, btnCamArriba, btnCamAbajo);
+    contenedorMapa.appendChild(grupo);
+  }
+
   map.on('load', () => {
     inyectarJoystick();
+    inyectarControlesCamara();
   });
 
   mapEl.addEventListener('pointerdown', (e) => {
     if (!paseoActivo) return;
     if (e.target.closest('#rsJoystick')) return;
+    if (e.target.closest('#rsCamCtl')) return; // la botonera de cámara no inicia arrastre de mirada
     paseoToques.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { mapEl.setPointerCapture(e.pointerId); } catch(_){}
   });

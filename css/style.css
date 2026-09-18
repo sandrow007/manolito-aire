@@ -1756,3 +1756,19 @@ body.mode-peque .im-lost-btn{
   .rs-planetario{ gap:14px; }
   .rs-planetario-capas{ padding-left:0; }
 }
+
+
+/* Widget en COLUMNA con orden lógico (sep-2026, orden de Sandro):
+   1) el planetario con su hora y la luna, 2) el acceso a Renderizado
+   LiDAR, 3) las capas del mapa. Una cosa debajo de la otra, todo
+   centrado, en móvil y en ordenador. */
+.rs-planetario{ flex-direction:column; align-items:center; gap:16px; }
+.rs-planetario-sol{
+  display:flex; align-items:center; justify-content:center;
+  gap:18px; flex-wrap:wrap;
+}
+.rs-planetario-capas{
+  border-left:none; margin-left:0; padding-left:0;
+  border-top:1px solid var(--line, rgba(14,59,71,0.14)); padding-top:16px;
+  align-items:center; text-align:center; max-width:100%;
+}

@@ -457,7 +457,8 @@
       estilo.textContent = `
         #irrPanel{
           position:absolute; right:12px; top:108px; z-index:6; width:235px;
-          background:rgba(251,250,247,0.94);
+          /* antes claro fijo, en oscuro el texto quedaba ilegible */
+          background:var(--surface, rgba(251,250,247,0.94));
           backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
           border:1px solid var(--line, rgba(14,59,71,0.14));
           border-radius:14px; padding:11px 13px; color:var(--ink, #0D1F26);

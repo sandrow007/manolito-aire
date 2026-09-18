@@ -120,7 +120,15 @@
 // norte al tocarla. El widget solar queda compacto y centrado, y los
 // botones de mapa base en rejilla de tres columnas.
 // Cambian style.css y js/shadows-route.js.
-const VERSION = '2026-09-18-f' // -f 18-sep: botonera a la derecha en mando compacto, brujula giratoria en vez de la N y widget solar compacto;
+// 2026-09-18-g: widget de posicion solar en COLUMNA con el orden
+// logico que pide Sandro (1 planetario con su hora, 2 boton de
+// Renderizado LiDAR, 3 capas del mapa), centrado en movil y en
+// ordenador. Botonera del mapa mas pequena en movil (34 px). La
+// brujula, ademas de girar con el mapa, al tocarla vuelve al norte
+// y nivela la vista (si estabas mirando al cielo, te devuelve al
+// mapa plano).
+// Cambian index.html, style.css y js/shadows-route.js.
+const VERSION = '2026-09-18-g' // -g 18-sep: widget en columna con orden logico (planetario, LiDAR, capas), botonera mas pequena en movil y brujula que ademas nivela la vista;
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

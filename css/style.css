@@ -1625,3 +1625,93 @@ body.mode-peque .im-lost-btn{
 .faq-item[open] summary::after{ content:"–"; }
 .faq-item summary:hover{ color:var(--accent); }
 .faq-item p{ padding:0 4px 16px; color:var(--sky-mid); font-size:0.92rem; max-width:62ch; }
+
+/* ============================================================
+   CAPAS INTEGRADAS EN EL WIDGET SOLAR (sep-2026, orden de Sandro)
+   Las casillas de capas y los botones Mapa oscuro / Mapa IGN /
+   Catastro 3D dejan de flotar sobre el mapa y viven dentro del
+   planetario, en una fila elegante que se apila en móvil. La
+   cúpula no cambia de tamaño.
+   ============================================================ */
+.rs-planetario{ flex-direction:row; flex-wrap:wrap; justify-content:center; gap:14px 22px; }
+.rs-planetario-lado{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+.rs-planetario-capas{ display:flex; flex-direction:column; gap:8px; align-items:flex-start; max-width:360px; text-align:left; }
+.rs-planetario-capas .rs-layer-toggles{ margin-bottom:0; font-size:0.72rem; gap:8px 12px; }
+.rs-planetario-capas .rs-layer-toggles-lista{ gap:8px 12px; }
+.rs-capas-mapas{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+#rsCapasMapas #rsMapStyleToggle{ position:static !important; display:flex !important; flex-direction:row !important; flex-wrap:wrap !important; align-items:center !important; gap:6px !important; }
+@media (max-width:640px){
+  .rs-planetario{ flex-direction:column; }
+  .rs-planetario-capas{ align-items:center; max-width:100%; text-align:center; }
+}
+
+
+/* Controles nativos de MapLibre visibles otra vez (sep-2026): zoom,
+   brújula y pantalla completa. La web no carga la hoja de estilos de
+   MapLibre para que el primer pintado sea ligero, pero sin ella sus
+   botones se renderizaban debajo del mapa, recortados e invisibles.
+   Aquí se posicionan dentro del mapa y se dibujan sus iconos con SVG
+   en línea, sin cargar ninguna hoja extra. */
+.maplibregl-map{ position:relative; }
+.maplibregl-ctrl-top-right{
+  position:absolute; top:10px; right:10px; z-index:7;
+  display:flex; flex-direction:column; align-items:flex-end; gap:8px;
+}
+.maplibregl-ctrl-top-left{ position:absolute; top:10px; left:10px; z-index:7; }
+.maplibregl-ctrl-bottom-right{
+  position:absolute; right:0; bottom:0; z-index:7;
+  display:flex; align-items:flex-end; justify-content:flex-end;
+}
+.maplibregl-ctrl-bottom-left{ position:absolute; left:0; bottom:0; z-index:7; }
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group{
+  display:flex; flex-direction:column; overflow:hidden;
+  background:var(--paper, #FBFAF7); border-radius:10px;
+  border:1px solid var(--line, rgba(14,59,71,0.14));
+  box-shadow:0 3px 10px rgba(22,35,46,0.18);
+}
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group button{
+  width:30px; height:30px; display:block; cursor:pointer; padding:0;
+  background-color:transparent; border:none;
+}
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group button + button{
+  border-top:1px solid var(--line, rgba(14,59,71,0.14));
+}
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group button:hover{
+  background-color:rgba(14,59,71,0.07);
+}
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group button .maplibregl-ctrl-icon{
+  display:block; width:100%; height:100%;
+  background-repeat:no-repeat; background-position:center; background-size:18px 18px;
+}
+.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
+}
+.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E");
+}
+.maplibregl-ctrl-compass .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l4.5 10-4.5 10-4.5-10z' fill='%23333333'/%3E%3Cpath d='M12 2l4.5 10h-9z' fill='%23FF6B1A'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .maplibregl-ctrl-compass .maplibregl-ctrl-icon,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-compass .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l4.5 10-4.5 10-4.5-10z' fill='%23dddddd'/%3E%3Cpath d='M12 2l4.5 10h-9z' fill='%23FF6B1A'/%3E%3C/svg%3E");
+}
+/* Atribución compacta en la esquina inferior derecha (antes ocupaba
+   una tira entera debajo del mapa). */
+.maplibregl-ctrl-attrib{
+  font-size:10px; line-height:1.4; padding:2px 8px;
+  background:rgba(251,250,247,0.85); border-radius:8px 0 0 0;
+}
+.maplibregl-ctrl-attrib a{ color:inherit; }
+/* En móvil los botones nativos crecen un poco para el dedo. */
+@media (max-width:480px){
+  .maplibregl-ctrl-top-right .maplibregl-ctrl-group button{ width:36px; height:36px; }
+}

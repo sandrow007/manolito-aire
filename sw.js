@@ -128,7 +128,7 @@
 // y nivela la vista (si estabas mirando al cielo, te devuelve al
 // mapa plano).
 // Cambian index.html, style.css y js/shadows-route.js.
-const VERSION = '2026-09-19-b' // -g 18-sep: widget en columna con orden logico (planetario, LiDAR, capas), botonera mas pequena en movil y brujula que ademas nivela la vista;
+const VERSION = '2026-09-19-d' // -g 18-sep: widget en columna con orden logico (planetario, LiDAR, capas), botonera mas pequena en movil y brujula que ademas nivela la vista;
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

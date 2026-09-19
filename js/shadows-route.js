@@ -1,1505 +1,8233 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Manolit∞ Aire. Calidad del aire y sombra solar en tiempo real</title>
-<meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad. Huella hídrica medida con telemetría real: 0,38 MB y ~2 ml de agua por visita. La publicidad programática del mundo gasta ~375 litros de agua cada segundo.">
-<meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas, islas de calor Sevilla, rutas por sombra, ola de calor, calor urbano, web sostenible, huella de agua, bajo consumo de datos, sin publicidad, civic tech Sevilla, código abierto, ahorro de agua, huella hídrica digital, consumo de agua de internet, publicidad programática consumo, web sin anuncios, internet sostenible, web ecológica">
-<meta name="theme-color" content="#1b2029">
-<script type="text/javascript" nonce="d1bc62a4e0ce401e80c1c527b69" src="//local.adguard.org?ts=1789833658076&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260919%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260919T160351Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D905af60f8214697f1f64e3c737dd368f885492f2727ba957459c9b497b8a7e18%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="d1bc62a4e0ce401e80c1c527b69" src="//local.adguard.org?ts=1789833658076&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Manolit∞ Aire. Calidad del aire y sombra solar en tiempo real">
-<meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro. Sin publicidad: telemetría real de 30 días: 0,38 MB y ~2 ml de agua por visita, mientras la publicidad programática gasta ~375 litros cada segundo.">
-<meta property="og:image" content="https://manolitoaire.com/compartir.png">
-<meta name="twitter:card" content="summary">
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "Manolit∞ Aire",
-  "applicationCategory": "WeatherApplication",
-  "operatingSystem": "Web",
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-  "inLanguage": "es",
-  "isAccessibleForFree": true,
-  "author": { "@type": "Person", "name": "Sandro" },
-  "keywords": "calidad del aire, sombra urbana, rutas frescas, islas de calor, Sevilla, web sostenible, sin publicidad, bajo consumo de datos, huella de agua",
-  "featureList": "Rutas peatonales optimizadas por sombra real; calidad del aire en vivo; islas de calor; irradiación solar por horas; árboles 3D por especie con fenología; sin registro; sin publicidad; huella hídrica medida con telemetría real: 0,38 MB y ~2 ml de agua por visita",
-  "description": "Calidad del aire en tiempo real, rutas con sombra 3D e histórico de irradiación solar hora a hora (NASA POWER) con atenuación umbra/penumbra. Web frugal sin publicidad: una visita gasta menos agua que una pregunta a una IA."
-}
-</script>
+/* ============================================================
+   MANOLIT AIRE, Ruta real + Sombras 3D reales + AQI (origen)
+   Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
+   + Turf.js (geometría de sombra) + OSRM (ruta por calles)
+   + Dijkstra térmico client-side (red peatonal local)
 
-<!-- SEO de sostenibilidad (sep-2026, orden de Sandro): la huella hídrica
-     por visita se calculó con los bytes REALES servidos (≈2-4 ml, menos
-     que una pregunta a un chatbot de IA). La web no lleva ni un píxel de
-     publicidad programática: las subastas de anuncios en tiempo real
-     gastan más agua y más energía que esta web entera. -->
-<meta name="author" content="Sandro">
-<meta name="robots" content="index, follow, max-image-preview:large">
-<meta property="og:locale" content="es_ES">
-<meta name="twitter:title" content="Manolit∞ Aire: rutas frescas por la sombra real de Sevilla">
-<meta name="twitter:description" content="Sombra calle a calle en tiempo real, árboles por especie y aire en vivo. Sin registro, sin publicidad y con una huella de agua mínima.">
+   v5, FASE 1: motor Dijkstra térmico (Univ. Sevilla, "Mapas y rutas de sombra"):
+   - Grafo peatonal cargado desde GeoJSON estático local y filtrado por BBox +500 m.
+   - Peso térmico por arista: w(e) = Longitud(m) × (1 + penalización solar).
+   - Cola de prioridad binaria manual en Vanilla JS; objetivo < 15 ms.
+   - Fallback automático a OSRM si no hay red local disponible.
 
-<link rel="preconnect" href="https://unpkg.com">
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="preconnect" href="https://tiles.openfreemap.org">
-<!-- Solo esta CSS bloquea el render: es la que afecta al primer pintado -->
-<!-- Fuentes web FUERA (2026-09-13, brief "Mapa Eficiente y Elegante" de
-     Sandro: system fonts en vez de webfonts). Antes se cargaban Fraunces,
-     Karla e IBM Plex Mono de Google Fonts: 2 conexiones TLS y ~100 KB de
-     woff2 por visita. Y solo 4 selectores del CSS las usaban; el resto de
-     la web ya iba con la pila de sistema ('SF Pro Display','Segoe UI',
-     system-ui). Esos 4 selectores ya apuntan a var(--font-*) en style.css.
-     Beneficios: cero FOUT/CLS de fuentes (el shift de 0,22-0,53 que antes
-     se domaba con display=optional y precargas desaparece de raíz), menos
-     memoria, primer pintado más rápido y un dominio externo menos que
-     puede fallar en F12. -->
+   v4 (revisión anterior), sincronización con la capa de árboles:
+   - Se expone window.manolitAireHoraEfectiva() para que CUALQUIER
+     otro script (como arboles-globales.js) use la MISMA hora que
+     el slider de tiempo, en vez de tirar de su propio new Date().
+   - Se expone window.manolitAireCentroSol() para que los árboles
+     calculen el sol respecto al mismo punto de referencia que los
+     edificios (puntoReferenciaSol), no un centro de mapa distinto.
+   - Cada vez que cambia la hora (slider, "Ahora", solsticios,
+     toggle de sombras, paseo virtual, o el refresco automático
+     cada 60s) se llama a window.manolitAireRecalcularArboles(),
+     si existe, para que las sombras de los árboles se recalculen
+     exactamente en el mismo momento que las de los edificios.
+   - Corregido un error de sintaxis en calcularRutaConPrioridadSombra
+     ("generarPoligonosSombra= await generarPoligonosSombraPara(...)")
+     que rompía todo el script en cuanto se ejecutaba esa función.
+   - El badge de "% del trayecto en sombra" ya no se congela: se
+     recalcula cada vez que se recalculan los tramos en sombra de
+     la ruta (slider, paseo virtual, caminata...), y se oculta si
+     deja de haber ruta o sombras.
 
-<!-- Leaflet, MapLibre y Driver.css: no son necesarias para el primer pintado.
-     Se cargan sin bloquear con preload+onload y caen a <noscript> si JS está desactivado. -->
-<!-- EcoIndex (sep-2026): Leaflet y driver.js YA NO cargan de entrada.
-     El mapa 2D del aire esta al final de la pagina y el tutorial solo
-     sale una vez: app.js y tutorial.js cargan estas librerias bajo
-     demanda, justo cuando hacen falta. Ahorro: 4 peticiones y unos
-     60 KB en el primer pintado. -->
-</noscript>
+   v6, MODO OTOÑO/INVIERNO (100% aditivo, al final del archivo):
+   - Interruptor «Modo invierno: ruta por el sol» junto a «Buscar
+     ruta». Al activarlo, la búsqueda usa el DIJKSTRA INVERSO
+     (dijkstraSolar): penaliza las aristas EN SOMBRA en vez de las
+     soleadas, para pasear por el sol cuando hace frío.
+   - Con el modo apagado, el enrutado es exactamente el de siempre
+     (se conserva la función original envuelta, sin tocarla).
+   
+   v7, CORRECCIÓN DE SOMBRAS FANTASMA (calcularVolumenSombra):
+   - La envolvente convexa rellenaba patios interiores y formas
+     cóncavas: sombra que no se iba NUNCA aunque diera el sol.
+     Ahora el contorno es el barrido real de la huella y los patios
+     conservan la zona soleada. Verificado: área idéntica a la
+     sombra real de referencia.
+   ============================================================ */
 
-<!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
-<link rel="stylesheet" href="css/style.css">
-<!-- Ambientes automáticos por fecha (sep-2026): Semana Santa, Día del
-     Clima, Orgullo, Halloween... Los días normales no cambian nada. -->
-<link rel="stylesheet" href="css/ambientes.css">
-<!-- Va SIN defer y en el <head>: es diminuto, no usa el DOM y así el
-     ambiente se aplica antes del primer pintado (sin destello de la
-     paleta normal al cargar un día señalado). -->
-<script src="js/ambientes.js"></script>
+'use strict';
 
-<style>
-  #manolitoSplash{
-    --splash-sky-deep:#0E3B47; --splash-sky-mid:#17788A;
-    --splash-dawn:#FF6B1A; --splash-dawn-rgb:244, 166, 107; --splash-paper:#FBFAF7;
-    position:fixed; inset:0; width:100vw; height:100vh; z-index:99999;
-    overflow:hidden; background: radial-gradient(120% 140% at 50% 100%, var(--splash-sky-mid) 0%, var(--splash-sky-deep) 55%, #10202E 100%);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    cursor:crosshair; transition: background 1.2s ease;
-  }
-  #manolitoSplash, #manolitoSplash *{ box-sizing:border-box; margin:0; padding:0; }
-  body.manolito-splash-activo{ overflow:hidden; }
-
-  #manolitoSplash .sky-glow{
-    position:absolute; inset:0;
-    background: radial-gradient(60% 50% at 50% 15%, rgba(var(--splash-dawn-rgb), 0.18), transparent 70%);
-    animation: splashSkyBreathe 6s ease-in-out infinite; transition: background 1.2s ease;
-  }
-  @keyframes splashSkyBreathe{ 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
-
-  #manolitoSplash .wind-field{ position:absolute; inset:0; width:100%; height:100%; overflow:hidden; pointer-events:none; opacity:0.8; }
-  #manolitoSplash .wind-line{
-    fill:none; stroke:var(--splash-dawn); stroke-linecap:round;
-    stroke-dasharray:80 400; animation: splashAeroBlow linear infinite; transition: stroke 1.2s ease;
-  }
-  #manolitoSplash .w-thin{ stroke-width:0.8; opacity:0.3; }
-  #manolitoSplash .w-mid{ stroke-width:1.5; opacity:0.5; }
-  #manolitoSplash .w-thick{ stroke-width:2.5; opacity:0.2; }
-  @keyframes splashAeroBlow{ 0%{ stroke-dashoffset:600; } 100%{ stroke-dashoffset:-200; } }
-
-  #manolitoSplash .w1{ animation-duration:8s; }
-  #manolitoSplash .w2{ animation-duration:12s; animation-delay:-3s; stroke-dasharray:120 500; }
-  #manolitoSplash .w3{ animation-duration:9s; animation-delay:-5s; stroke-dasharray:60 300; }
-  #manolitoSplash .w4{ animation-duration:15s; animation-delay:-1s; }
-  #manolitoSplash .w5{ animation-duration:11s; animation-delay:-7s; stroke-dasharray:150 450; }
-  #manolitoSplash .w6{ animation-duration:14s; animation-delay:-4s; }
-
-  #manolitoSplash .particle{
-    position:absolute; border-radius:50%; background:var(--splash-dawn);
-    animation: splashFloatUp linear infinite, splashQuantumFlicker 0.25s ease-in-out infinite alternate;
-    box-shadow: 0 0 5px rgba(var(--splash-dawn-rgb), 0.6); pointer-events:none; transition: background 1.2s ease;
-  }
-  @keyframes splashFloatUp{
-    0%{ transform:translateY(20px) translateX(0); opacity:0; }
-    20%{ opacity:0.6; } 80%{ opacity:0.1; }
-    100%{ transform:translateY(-100vh) translateX(40px); opacity:0; }
-  }
-  @keyframes splashQuantumFlicker{ 0%{ opacity:0.1; } 100%{ opacity:0.9; } }
-
-  #manolitoSplash .logo-wrap{ position:relative; z-index:2; text-align:center; pointer-events:none; }
-  #manolitoSplash #logo-container{
-    width:180px; height:180px; margin:0 auto 20px;
-    display:flex; align-items:center; justify-content:center;
-    transform-style:preserve-3d; transition: transform 0.1s ease-out;
-  }
-  #manolitoSplash #logo-svg{
-    width:100%; height:100%;
-    filter: drop-shadow(0 0 12px rgba(var(--splash-dawn-rgb), 0.4));
-    animation: splashLogoFloat 5s ease-in-out infinite;
-  }
-  @keyframes splashLogoFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
-
-  #manolitoSplash .brand{
-    font-family:'Fraunces', serif; font-weight:600; font-size:clamp(1.6rem, 5vw, 2.4rem);
-    color:var(--splash-paper); letter-spacing:-0.01em; margin-top:5px;
-  }
-  #manolitoSplash .brand span{ color:var(--splash-dawn); transition: color 1.2s ease; }
-  #manolitoSplash .sub-brand{
-    font-family:'Fraunces', serif; font-weight:500; font-size:1.1rem; color:var(--splash-paper); margin-top:4px; opacity:0.85;
-  }
-  #manolitoSplash .tagline{
-    font-family:'IBM Plex Mono', monospace; font-size:0.75rem; color:var(--splash-dawn);
-    margin-top:12px; letter-spacing:0.08em; opacity:0.8; transition: color 1.2s ease;
-  }
-  #manolitoSplash .sombra-msg{
-    font-family:'IBM Plex Mono', monospace; font-size:0.65rem; color: rgba(251,250,247,0.5);
-    margin-top:8px; letter-spacing:0.05em; animation: splashFadeIn 2s ease forwards; opacity:0;
-  }
-  #manolitoSplash .clima-tag{
-    font-family:'IBM Plex Mono', monospace; font-size:0.6rem; color: rgba(251,250,247,0.35);
-    margin-top:4px; letter-spacing:0.15em; text-transform:uppercase;
-  }
-
-  #manolitoSplash .entry-btn{
-    position:absolute; bottom:35px; left:50%; transform:translateX(-50%); z-index:20;
-    font-family:'IBM Plex Mono', monospace; font-size:0.65rem; color: rgba(var(--splash-dawn-rgb), 0.4);
-    letter-spacing:0.3em; background:transparent; border:none; padding:15px 40px; cursor:pointer;
-    transition: color 0.3s ease, text-shadow 0.3s ease; animation: splashFadeIn 3s ease 1s forwards; opacity:0; outline:none;
-  }
-  #manolitoSplash .entry-btn:hover{ color:var(--splash-dawn); text-shadow: 0 0 12px rgba(var(--splash-dawn-rgb), 0.8); }
-
-  #manolitoSplash .sun-burst{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
-    width:100vw; height:100vh; pointer-events:none; z-index:10;
-  }
-  #manolitoSplash .sun-burst-core{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:450px; height:450px;
-    background: radial-gradient(circle, var(--splash-dawn) 0%, rgba(var(--splash-dawn-rgb), 0.5) 40%, transparent 70%);
-    border-radius:50%; filter:blur(15px); transition: background 1.2s ease;
-  }
-  #manolitoSplash.leaving .sun-burst{ animation: splashSolarExpand 2.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
-  @keyframes splashSolarExpand{
-    0%{ transform:translate(-50%,-50%) scale(0); opacity:0; }
-    10%{ opacity:1; }
-    80%{ opacity:0.2; transform:translate(-50%,-50%) scale(2); }
-    100%{ transform:translate(-50%,-50%) scale(3); opacity:0; }
-  }
-
-  #manolitoSplash .shadow-scene{
-    position:absolute; bottom:0; left:50%; transform:translateX(-50%);
-    width:100%; height:65%; display:flex; justify-content:center; align-items:flex-end;
-    opacity:0; z-index:9; pointer-events:none;
-  }
-  #manolitoSplash.leaving .shadow-scene{ animation: splashShadowsRise 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-  @keyframes splashShadowsRise{
-    0%{ opacity:0; transform:translateX(-50%) translateY(40px) scale(0.98); filter:blur(5px); }
-    15%{ opacity:1; filter:blur(0); transform:translateX(-50%) translateY(0) scale(1); }
-    75%{ opacity:1; filter:blur(0); transform:translateX(-50%) translateY(-5px) scale(1.02); }
-    100%{ opacity:0; transform:translateX(-50%) translateY(-20px) scale(1.05); filter:blur(8px); }
-  }
-
-  #manolitoSplash.leaving .logo-wrap,
-  #manolitoSplash.leaving .wind-field,
-  #manolitoSplash.leaving .particle,
-  #manolitoSplash.leaving .entry-btn{ opacity:0; transition: opacity 0.4s ease-out; }
-
-  #manolitoSplash.leaving{ animation: splashFadeToBlack 2.4s ease-out forwards; }
-  @keyframes splashFadeToBlack{
-    0%,80%{ background: radial-gradient(120% 140% at 50% 100%, var(--splash-sky-mid) 0%, var(--splash-sky-deep) 55%, #10202E 100%); }
-    100%{ background:#010203; }
-  }
-  @keyframes splashFadeIn{ to{ opacity:1; } }
-
-  @media (prefers-reduced-motion: reduce){
-    #manolitoSplash, #manolitoSplash *{ animation:none !important; transition:none !important; }
-  }
-</style>
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
-<meta name="apple-mobile-web-app-title" content="Manolit 3D">
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
-</head>
-<body>
-
-<a href="#main-content" class="skip-link" data-i18n="skipToContent">Saltar al contenido principal</a>
-
-<div id="manolitoSplash">
-  <div class="sky-glow"></div>
-  <svg class="wind-field" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid slice">
-    <path class="wind-line w-mid w1" d="M -100,120 C 150,280 350,20 600,180 S 850,80 1100,140" />
-    <path class="wind-line w-thin w2" d="M 1100,220 C 800,80 600,320 350,150 S 100,280 -100,180" />
-    <path class="wind-line w-thick w3" d="M -100,180 C 200,350 450,-20 750,220 S 950,50 1100,160" />
-    <path class="wind-line w-thin w4" d="M 1100,100 C 900,20 650,300 400,180 S 150,320 -100,220" />
-    <path class="wind-line w-mid w5" d="M -100,280 C 250,150 400,380 650,200 S 900,300 1100,250" />
-    <path class="wind-line w-thin w6" d="M 1100,280 C 850,380 700,100 450,250 S 200,100 -100,150" />
-  </svg>
-
-  <div id="particles"></div>
-
-  <div class="logo-wrap">
-    <div id="logo-container">
-      <svg id="logo-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="100" cy="150" r="45" fill="#E6A100" />
-        <path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#007A87" stroke-width="4" stroke-linecap="round"/>
-        <path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
-        <path d="M 100,150 C 75,125 75,175 100,150 C 125,125 125,175 100,150 Z" fill="none" stroke="#7A0016" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke="#7A0016" stroke-width="8" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div class="brand"><span>Manolit∞</span> Aire</div>
-    <div class="sub-brand">+ Sombras 3D</div>
-    <div class="tagline">Respira ∞ Camina ∞ Refúgiate ∞ Mapea ∞</div>
-    <div class="sombra-msg">∞ ∞ ∞ ∞ ∞ ∞ ∞</div>
-    <div class="clima-tag" id="climaTag"></div>
-  </div>
-
-  <button class="entry-btn" id="entryBtn"></button>
-
-  <div class="sun-burst">
-    <div class="sun-burst-core"></div>
-  </div>
-
-  <!-- Shadowmap Realista Sevilla -->
-  <div class="shadow-scene">
-    <svg viewBox="0 0 1400 400" width="100%" height="100%" preserveAspectRatio="xMidYMax slice">
-      <defs>
-        <linearGradient id="splashShadowGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#020304"/>
-          <stop offset="100%" stop-color="#05080A"/>
-        </linearGradient>
-      </defs>
-      <rect x="0" y="360" width="1400" height="40" fill="url(#splashShadowGrad)" />
-      <g transform="translate(250, 0)" fill="url(#splashShadowGrad)">
-        <path d="M -50,360 L -50,280 L 10,250 L 70,280 L 70,360 Z" />
-        <path d="M 10,250 L 10,220 L 15,220 L 15,250 Z" />
-        <path d="M -120,360 L -120,300 L -50,300 L -50,360 Z" />
-        <path d="M 70,360 L 70,310 L 140,310 L 140,360 Z" />
-        <rect x="75" y="150" width="28" height="210" />
-        <rect x="79" y="110" width="20" height="40" />
-        <rect x="83" y="90" width="12" height="20" />
-        <rect x="87" y="75" width="4" height="15" />
-        <circle cx="89" cy="72" r="2.5" />
-      </g>
-      <g transform="translate(500, 220)" fill="url(#splashShadowGrad)">
-        <path d="M 0,140 L 0,60 L 5,60 L 8,40 L 32,40 L 35,60 L 40,60 L 40,140 Z" />
-        <rect x="12" y="20" width="16" height="20" />
-        <rect x="16" y="10" width="8" height="10" />
-        <polygon points="14,10 26,10 20,0" />
-      </g>
-      <g transform="translate(1000, 80)" fill="url(#splashShadowGrad)">
-        <polygon points="0,280 35,0 55,0 40,280" />
-        <rect x="-250" y="275" width="450" height="8" />
-        <line x1="38" y1="30" x2="-200" y2="275" stroke="#020304" stroke-width="1.5" />
-        <line x1="39" y1="60" x2="-150" y2="275" stroke="#020304" stroke-width="1.5" />
-        <line x1="39" y1="90" x2="-100" y2="275" stroke="#020304" stroke-width="1.5" />
-        <line x1="40" y1="120" x2="-50" y2="275" stroke="#020304" stroke-width="1.5" />
-        <line x1="40" y1="150" x2="0" y2="275" stroke="#020304" stroke-width="1.5" />
-        <line x1="41" y1="180" x2="50" y2="275" stroke="#020304" stroke-width="1.5" />
-        <line x1="41" y1="210" x2="100" y2="275" stroke="#020304" stroke-width="1.5" />
-      </g>
-      <g transform="translate(750, 50)" fill="url(#splashShadowGrad)">
-        <path d="M 10,310 L 15,20 C 15,5 35,5 35,20 L 40,310 Z" />
-      </g>
-      <path d="M 0,360 L 0,330 L 40,330 L 50,310 L 90,310 L 90,360 Z" fill="url(#splashShadowGrad)"/>
-      <path d="M 100,360 L 100,340 L 140,320 L 180,340 L 180,360 Z" fill="url(#splashShadowGrad)"/>
-      <path d="M 400,360 L 400,320 L 430,320 L 430,290 L 470,290 L 470,360 Z" fill="url(#splashShadowGrad)"/>
-      <path d="M 600,360 L 600,310 L 650,310 L 650,330 L 710,330 L 710,360 Z" fill="url(#splashShadowGrad)"/>
-      <path d="M 850,360 L 850,300 L 880,300 L 880,320 L 930,320 L 930,360 Z" fill="url(#splashShadowGrad)"/>
-      <path d="M 1250,360 L 1250,330 L 1300,310 L 1350,330 L 1350,360 Z" fill="url(#splashShadowGrad)"/>
-      <circle cx="210" cy="350" r="15" fill="url(#splashShadowGrad)" />
-      <circle cx="230" cy="345" r="20" fill="url(#splashShadowGrad)" />
-      <circle cx="560" cy="355" r="12" fill="url(#splashShadowGrad)" />
-      <circle cx="580" cy="348" r="18" fill="url(#splashShadowGrad)" />
-      <circle cx="950" cy="350" r="16" fill="url(#splashShadowGrad)" />
-      <circle cx="970" cy="345" r="22" fill="url(#splashShadowGrad)" />
-    </svg>
-  </div>
-</div>
-
-<script>
-  (function() {
-    const overlay = document.getElementById('manolitoSplash');
-    if (!overlay) return;
-    document.body.classList.add('manolito-splash-activo');
-
-    const field = document.getElementById('particles');
-    for (let i = 0; i < 28; i++) {
-      const p = document.createElement('div');
-      p.className = 'particle';
-      const size = 1.5 + Math.random() * 2.5;
-      p.style.width = size + 'px';
-      p.style.height = size + 'px';
-      p.style.left = Math.random() * 100 + 'vw';
-      p.style.bottom = '-10px';
-      p.style.animationDuration = (5 + Math.random() * 7) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
-      p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
-      field.appendChild(p);
-    }
-
-    const logoContainer = document.getElementById('logo-container');
-    function tiltLogo(e) {
-      const x = e.clientX / window.innerWidth - 0.5;
-      const y = e.clientY / window.innerHeight - 0.5;
-      logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
-    }
-    document.addEventListener('mousemove', tiltLogo);
-
-    // NUEVO: El tutorial SOLO arranca si ambas condiciones físicas se cumplen
-    function evaluarArranqueTutorial() {
-      const cookiesAceptadas = localStorage.getItem('manolito_cookies_choice') === 'accepted';
-      const splashDestruido = document.getElementById('manolitoSplash') === null;
-      
-      if (cookiesAceptadas && splashDestruido && typeof window.iniciarTutorialManolito === 'function') {
-        window.iniciarTutorialManolito();
-      }
-    }
-
-    // Escucha el evento del banner por si el usuario acepta las cookies DESPUÉS de que el splash desaparezca
-    document.addEventListener('cookiesAceptadas', evaluarArranqueTutorial);
-
-    let isLeaving = false;
-    function executeTransition() {
-      if (isLeaving) return;
-      isLeaving = true;
-      overlay.classList.add('leaving');
-      document.removeEventListener('mousemove', tiltLogo);
-      
-      setTimeout(() => {
-        overlay.remove();
-        document.body.classList.remove('manolito-splash-activo');
-        
-        // Evalúa el arranque justo en el instante en que el DOM elimina la portada
-        evaluarArranqueTutorial();
-      }, 2400); 
-    }
-
-    document.getElementById('entryBtn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      executeTransition();
-    });
-
-    overlay.addEventListener('dblclick', executeTransition);
-    const autoBoot = setTimeout(executeTransition, 7400);
-  })();
-</script>
-
-<div class="topbar">
-  <!-- El texto estático DEBE coincidir con el de i18n (clave tagline):
-     antes traía "MAPA NACIONAL · DATOS EN VIVO" y al segundo se cambiaba
-     por el doble de largo → la barra se re-envolvía y empujaba la página
-     (CLS 0,22-0,53 medido). Ahora nace ya con el texto final. -->
-<a href="index.html" class="wordmark"><span class="wordmark-name">Manolit∞ Aire</span><span data-i18n="tagline">El aire y la sombra de tu calle, en vivo</span></a>
-  <div class="topbar-right">
-    <!-- Modo accesible: nace con el HTML (2026-09-12, CLS). Antes lo
-         inyectaba i18n.js al segundo de cargar y la barra se re-envolvía,
-         empujando toda la página (shift de 0,19 medido). i18n.js lo adopta:
-         traduce el texto y refleja el estado guardado. -->
-    <button type="button" id="btn-accesibilidad" class="acc-mode-btn" aria-pressed="false">♿ Modo accesible</button>
-    <a class="family-link" href="about.html" data-i18n="aboutLink">¿Por qué existe esto?</a>
-    <a class="family-link" href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a>
-    <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
-    <a class="family-link" href="manolito-aire-comparativa.html" target="_self">Comparativa</a>
-    <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener">Que es Manolit∞ ©</a>
-
-    <div class="chip-toggle" id="paletteToggle" title="Elige la luz de tu paseo" role="group" aria-label="Elige la luz de tu paseo">
-      <button data-palette="cosmos" class="active" aria-label="Noche de verano (ámbar farola)"></button>
-      <button data-palette="amanecer" aria-label="Pleno julio (mandarina)"></button>
-      <button data-palette="salvia" aria-label="Alameda sombreada (verde)"></button>
-      <button data-palette="lavanda" aria-label="Jacarandá de mayo (violeta)"></button>
-      <button data-palette="coral" aria-label="Flamenco de feria (coral)"></button>
-    </div>
-    <button class="icon-btn" id="themeToggle" title="Modo claro/oscuro" aria-label="Modo claro/oscuro">☾</button>
-    <div class="chip-toggle notranslate" id="langToggle" translate="no" role="group" aria-label="Idioma">
-      <button data-lang="es" class="active">ES</button>
-      <button data-lang="ca">CA</button>
-      <button data-lang="eu">EU</button>
-      <button data-lang="gl">GL</button>
-      <button data-lang="en">EN</button>
-      <button data-lang="ka">KA</button>
-    </div>
-    <!-- Botón mini "Act. mapa": nace AQUÍ, con el primer pintado (si lo
-         inyecta el JS tarde, la barra crece y empuja toda la página = CLS).
-         shadows-route.js lo adopta y le da la lógica; el texto corto y
-         nowrap evitan que la traducción re-envuelva la barra. -->
-    <button type="button" id="rsBtnActualizarOSM" class="notranslate" translate="no"
-            title="Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona"
-            aria-label="Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona"
-            data-i18n="osmRefreshBtn" data-i18n-aria-label="osmRefreshTitle">↻ Act. mapa</button>
-  </div>
-</div>
-
-<!-- Contador vivo del agua publicitaria, junto al título del mapa (sep-2026).
-     Coste: UNA escritura de texto por segundo (nada de animaciones, ni canvas,
-     ni requestAnimationFrame); el color cambia por escalones con clases CSS.
-     Pausado si la pestaña queda oculta y limpio al salir: batería ~0. -->
-<style>
-  .agua-vivo-head{
-    margin:2px 0 0; font-size:0.72rem; line-height:1.45; opacity:0.85;
-    font-family:inherit;
-  }
-  .agua-vivo-head .avh-num{
-    font-family:'IBM Plex Mono',monospace; font-size:0.95rem;
-    color:#E8A33D; font-variant-numeric:tabular-nums; margin:0 2px;
-  }
-  .agua-vivo-head .avh-num.avh-2{ color:#FF6B1A; }
-  .agua-vivo-head .avh-num.avh-3{ color:#F04A17; }
-  .agua-vivo-head .avh-num.avh-4{ color:#E11D2E; font-weight:700; }
-  .agua-vivo-head .avh-calc{
-    display:block; font-size:0.62rem; opacity:0.6; letter-spacing:0.01em;
-  }
-  @media (min-width:640px){
-    .agua-vivo-head{ text-align:right; margin-top:0; }
-    .map-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-  }
-</style>
-<div class="map-section" id="main-content" tabindex="-1">
-  <div class="map-head">
-    <div class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</div>
-    <p class="agua-vivo-head" id="aguaVivoHead" role="status" aria-live="off">
-      <span data-i18n="aguaVivoLabel">Anuncios gastando agua a nivel mundial:</span>
-      <strong class="avh-num" id="aguaVivoNum">0 L</strong>
-      <span class="avh-calc" data-i18n="aguaVivoCalc">300.000M de impresiones al día × ~1 MB × 0,06 kWh/GB × 1,8 L/kWh ≈ 375 L/s</span>
-    </p>
-  </div>
-
-<div class="rs-form">
-  <div class="rs-field">
-    <label for="rsOrigen" class="visually-hidden" data-i18n="origin">Origen</label>
-    <input type="text" id="rsOrigen" name="origen" placeholder="Punto de origen" data-i18n-placeholder="originPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasOrigen" aria-autocomplete="list">
-    <ul class="rs-sugerencias" id="rsSugerenciasOrigen" role="listbox" data-i18n-aria-label="origin" aria-label="Origen"></ul>
-  </div>
-  <div class="rs-field">
-    <label for="rsDestino" class="visually-hidden" data-i18n="destiny">Destino</label>
-    <input type="text" id="rsDestino" name="destino" placeholder="Punto de destino" data-i18n-placeholder="destinationPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasDestino" aria-autocomplete="list">
-    <ul class="rs-sugerencias" id="rsSugerenciasDestino" role="listbox" data-i18n-aria-label="destiny" aria-label="Destino"></ul>
-  </div>
-  <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar ruta</button>
-</div>
-    <div id="rsStatus" class="chat-status" style="margin:8px 0 14px;" role="status" aria-live="polite" aria-atomic="true"></div>
-    <!-- Resumen accesible de la ruta: el mapa es un canvas y un lector de
-         pantalla no puede verlo; esta región role="status" lleva siempre el
-         mismo dato en texto (distancia, duración, % sombra y posición del
-         sol). La rellena shadows-route.js con los mismos datos del cálculo. -->
-    <div id="rsLiveSummary" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
-
-    <!-- Indicaciones paso a paso accesibles: la misma información que se ve
-         en el mapa, en texto ordenado, con lectura por voz (TTS del propio
-         navegador, sin servicios externos). Pensado para personas ciegas o
-         con baja visión, y útil para cualquiera. -->
-    <section id="rsPasosSection" class="rs-pasos" aria-labelledby="rsPasosTitulo" hidden>
-      <div class="rs-pasos-cabecera">
-        <h3 id="rsPasosTitulo" data-i18n="stepsTitle">Indicaciones paso a paso</h3>
-        <button id="rsBtnEscucharPasos" type="button" class="rs-btn-escuchar" aria-pressed="false" data-i18n="stepsListen">Escuchar indicaciones</button>
-      </div>
-      <ol id="rsListaPasos" class="rs-lista-pasos"></ol>
-    </section>
-
-<div class="map-wrap">
-  <div id="shadowRouteMap">
-  </div>
-</div>
-
-<!-- Las casillas de capas ya no van sueltas aquí (sep-2026, orden de
-     Sandro): viven dentro del widget de posición solar, más abajo,
-     junto a los botones de mapa base (Mapa oscuro, Mapa IGN, Catastro
-     3D). Nada flota encima del mapa. -->
-
-<div class="rs-planetario" id="rsPlanetario" data-cielo="dia">
-  <!-- Capas del mapa integradas en el widget de posición solar (sep-2026,
-       orden de Sandro): las casillas de siempre y, debajo, los botones
-       de mapa base que shadows-route.js trae aquí (Mapa oscuro, Mapa
-       IGN y Catastro 3D). Todo en una fila elegante que se apila en
-       móvil, sin cambiar el tamaño de la cúpula. -->
-  <div class="rs-planetario-capas" id="rsPlanetarioCapas">
-    <div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
-      <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas">▾ Capas</button>
-      <div class="rs-layer-toggles-lista" id="rsListaCapas">
-      <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
-      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
-           es lo que más calienta el móvil; ahora solo arranca si el usuario
-           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
-           pero la CPU está en reposo hasta que tú decidas. -->
-      <label><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
-      <label><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
-      <label><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
-      <label><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
-      <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
-           Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
-      <label><input type="checkbox" id="rsToggleMicroclima"> <span>Microclima · estimado</span></label>
-      </div>
-    </div>
-    <div class="rs-capas-mapas" id="rsCapasMapas"></div>
-  </div>
-
-<!-- ¿No hay 3D en tu zona? (sep-2026, ADITIVO): cómo colaborar en
-     OpenStreetMap para que tu barrio salga en Manolit∞. Va PLEGADO: se
-     despliega solo al pulsar el título (details/summary nativo, sin JS). -->
-<section class="map-section" id="rsColaboraOSM">
-<details>
-  <summary id="rsColaboraTitle" class="map-title" style="font-size:1.15rem;cursor:pointer;list-style:none;user-select:none;">
-    ¿No hay 3D en tu zona? <span style="font-size:0.8rem;font-weight:400;opacity:0.75;">pulsa y te cuento cómo arreglarlo en 5 minutos ▾</span> 
-
-  </summary>
-  <div class="sci-panel" style="display:block;padding:14px 16px;line-height:1.55;margin-top:10px;">
-    <p style="margin:0 0 10px;">
-      Manolit∞ dibuja los edificios y los árboles con los datos de
-      <strong>OpenStreetMap (OSM)</strong>, el mapa libre que hacemos entre
-      todos. Si tu calle sale vacía, <strong>puedes pintarla tú en 5
-      minutos</strong> y le haces sombra a todo el barrio:
-    </p>
-    <ol style="margin:0 0 10px;padding-left:1.3em;">
-      <li style="margin-bottom:6px;">
-        Entra en <a href="https://www.openstreetmap.org" rel="noopener">openstreetmap.org</a>,
-        crea una cuenta gratis y pulsa <strong>Editar</strong>.
-      </li>
-      <li style="margin-bottom:6px;">
-        <strong>Árboles:</strong>
-        <ul style="margin:4px 0 0;padding-left:1.2em;">
-          <li><em>Árbol suelto</em> → dibuja un <strong>punto</strong> y ponle la etiqueta
-            <code>natural=tree</code>. Si sabes la especie, mejor:
-            <code>species=Naranjo amargo</code> o <code>genus=Citrus</code>
-            (también vale <code>wikipedia=es:Naranjo</code>). Así sale con su
-            copa, su color y su fruta de verdad.</li>
-          <li><em>Calle con hilera de árboles</em> → dibuja <strong>una sola
-            línea</strong> por la acera con <code>natural=tree_row</code>.
-            No pongas árbol por árbol: Manolit∞ los coloca solos, uno cada
-            ~9&nbsp;m, siguiendo tu línea.</li>
-        </ul>
-      </li>
-      <li style="margin-bottom:6px;">
-        <strong>Edificios:</strong> dibuja el contorno y pon
-        <code>building=yes</code>. Si sabes las plantas, añade
-        <code>building:levels=4</code>. Con eso la sombra sale a la altura
-        real y no “por defecto”.
-      </li>
-      <li>Guarda los cambios… y listo.</li>
-    </ol>
-    <p style="margin:0;">
-      <strong>¿Cuándo sale en Manolit∞?</strong> No te preocupes: el mapa se
-      actualiza solo <strong>cada semana</strong>, así que tu aporte aparece
-      aunque no lo veas al momento. Y si pasa la semana y no sale, o te urge
-      para algo, <a href="https://github.com/sandrow007/manolito-aire/issues" rel="noopener">escríbeme desde aquí</a>
-      y te meto la actualización a mano. 🌳
-    </p>
-  </div>
-</details>
-</section>
-  <!-- Bloque sol: la cúpula y su hora van al final del widget,
-       como una sola pieza (sep-2026, orden de Sandro). -->
-  <div class="rs-planetario-sol">
-  <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
-    <defs>
-      <radialGradient id="rsGradTierra" cx="35%" cy="30%" r="85%">
-        <stop offset="0%" stop-color="#bfe6ff"/>
-        <stop offset="45%" stop-color="#3a8fd6"/>
-        <stop offset="100%" stop-color="#0c2f63"/>
-      </radialGradient>
-      <radialGradient id="rsGradSol" cx="40%" cy="35%" r="85%">
-        <stop offset="0%" stop-color="#fffbe6"/>
-        <stop offset="55%" stop-color="#ffd76a"/>
-        <stop offset="100%" stop-color="#ff9a1f"/>
-      </radialGradient>
-      <radialGradient id="rsGradLuna" cx="38%" cy="32%" r="90%">
-        <stop offset="0%" stop-color="#ffffff"/>
-        <stop offset="60%" stop-color="#cfd8e3"/>
-        <stop offset="100%" stop-color="#8b98a9"/>
-      </radialGradient>
-    </defs>
-    <circle class="rs-planetario-cielo" cx="80" cy="80" r="74"/>
-    <!-- Las estrellas ya no son puntitos blancos fijos: las genera
-         planetario.js como luces cuánticas que titilan (grupo
-         #rsEstrellasCuanticas, insertado aquí encima del cielo). -->
-    <circle cx="80" cy="80" r="74" fill="none" stroke="var(--line)" stroke-width="1"/>
-    <circle cx="80" cy="80" r="60" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="1 3" opacity="0.8"/>
-    <circle cx="80" cy="80" r="46" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="2 3"/>
-    <text x="80" y="15" text-anchor="middle" class="rs-sol-cardinal">N</text>
-    <text x="147" y="84" text-anchor="middle" class="rs-sol-cardinal">E</text>
-    <text x="80" y="153" text-anchor="middle" class="rs-sol-cardinal">S</text>
-    <text x="13" y="84" text-anchor="middle" class="rs-sol-cardinal">O</text>
-    <g id="rsLunaOrbe"><circle r="5" fill="url(#rsGradLuna)"/></g>
-    <g id="rsTierraOrbe" transform="translate(80 80)">
-      <circle r="11" fill="url(#rsGradTierra)"/>
-      <g class="rs-tierra-giro">
-        <ellipse cx="-3.5" cy="-2" rx="4" ry="2.6" fill="#3fa060" opacity="0.55"/>
-        <ellipse cx="3.5" cy="3" rx="3" ry="2" fill="#3fa060" opacity="0.45"/>
-      </g>
-      <circle r="11" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-    </g>
-    <g id="rsSolOrbe"><circle r="8" fill="url(#rsGradSol)"/></g>
-  </svg>
-  <div class="rs-planetario-lado">
-    <div class="rs-planetario-info" id="rsPlanetarioInfo">--</div>
-  </div>
-  </div>
-  <!-- Botón de acceso a la herramienta de Renderizado LiDAR (nube de puntos 3D).
-       Es un enlace externo de la familia Manolit∞, con estilo de botón para que
-       no se vea la URL y quede integrado con el diseño de la página.
-       Orden lógico del widget (sep-2026, orden de Sandro): 1) planetario
-       1) las capas del mapa, 2) el planetario, 3) este acceso LiDAR. -->
-  <a class="rs-btn-lidar" href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-      <polyline points="3.29 7 12 12 20.71 7"/>
-      <line x1="12" y1="22" x2="12" y2="12"/>
-    </svg>
-    <span>Renderizado LiDAR</span>
-  </a>
-
-</div>
-
-<section id="rsAqiPanel" style="margin-top:16px;" aria-labelledby="rsAqiTitle">
-  <h2 id="rsAqiTitle" class="visually-hidden" data-i18n="aqiTitle">Calidad del aire en el punto de origen</h2>
-  <div id="rsAqiContent" style="display:none;">
-    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;">
-      <span id="rsAqiValue" style="font-family:var(--font-display);font-weight:700;font-size:2rem;color:var(--sky-deep);">--</span>
-      <span id="rsAqiCategory" style="font-family:var(--font-mono);font-size:0.72rem;padding:3px 9px;border-radius:999px;"></span>
-    </div>
-    <dl style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0;">
-      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">PM2.5</dt><dd style="margin:0;"><span id="rsPm25">--</span></dd></div>
-      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">PM10</dt><dd style="margin:0;"><span id="rsPm10">--</span></dd></div>
-      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">O₃</dt><dd style="margin:0;"><span id="rsO3">--</span></dd></div>
-      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">NO₂</dt><dd style="margin:0;"><span id="rsNo2">--</span></dd></div>
-    </dl>
-  </div>
-</section>
-</div>
-
-<div class="hero">
-  <div class="city-picker" id="cityPickerContainer">
-    <button class="city-dropdown-btn" id="cityDropdownBtn" aria-haspopup="listbox" aria-expanded="false">Sevilla</button>
-    <ul class="city-dropdown-list" id="cityDropdownList" role="listbox" aria-label="Ciudad">
-      <li data-value="sevilla" class="selected">Sevilla</li>
-      <li data-value="madrid">Madrid</li>
-      <li data-value="barcelona">Barcelona</li>
-      <li data-value="valencia">Valencia</li>
-      <li data-value="laspalmas">Las Palmas de Gran Canaria</li>
-      <li data-value="palma">Palma de Mallorca</li>
-      <li data-value="ceuta">Ceuta</li>
-      <li data-value="melilla">Melilla</li>
-      <li data-value="pamplona">Pamplona</li>
-      <li data-value="santiago">Santiago de Compostela</li>
-      <li data-value="zaragoza">Zaragoza</li>
-      <li data-value="malaga">Málaga</li>
-      <li data-value="eivissa">Eivissa</li>
-      <li data-value="menorca">Menorca</li>
-      <li data-value="badajoz">Badajoz</li>
-    </ul>
-  </div>
-
-  <div class="orb-wrap">
-    <div class="orb-ring"></div>
-    <div class="orb"><div class="orb-face" id="orbFace">bien</div></div>
-    <div class="peque-character" id="pequeCharacter">
-      <div class="peque-cloud" id="pequeCloudSvg"></div>
-      <div class="peque-message" id="pequeMessage">El aire está contento!</div>
-    </div>
-  </div>
-
-  <div class="human-line" id="humanLine">Cargando el aire de tu ciudad…</div>
-  <div class="sub-line" id="subLine">Un momento.</div>
-  <div class="tech-readout" id="techReadout"></div>
-
-  <div class="sci-panel" id="sciPanel">
-    <table>
-      <tr><td>PM2.5</td><td id="sciPM25">-- µg/m³</td></tr>
-      <tr><td>PM10</td><td id="sciPM10">-- µg/m³</td></tr>
-      <tr><td>NO₂</td><td id="sciNO2">-- µg/m³</td></tr>
-      <tr><td>O₃</td><td id="sciO3">-- µg/m³</td></tr>
-      <tr><td>ICA</td><td id="sciICA">--</td></tr>
-    </table>
-    <div class="sci-updated" id="sciUpdated">Actualizado: --</div>
-  </div>
-
-  <br>
-  <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
-
-  <div class="yayo-zoom-controls" role="group" aria-label="Tamaño de la letra">
-    <button type="button" class="yayo-zoom-btn" id="fontDown" aria-label="Letra más pequeña">A−</button>
-    <button type="button" class="yayo-zoom-btn" id="fontUp" aria-label="Letra más grande">A+</button>
-  </div>
-</div>
-
-<div class="modes">
-  <div class="modes-label" data-i18n="modesLabel">¿Cómo quieres que te lo cuente?</div>
-  <div class="mode-grid" id="modeGrid">
-    <div class="mode-card active" data-mode="ciudadano">
-      <span class="mode-mark">01</span>
-      <div class="mode-title" data-i18n="mode_ciudadano_title">Ciudadano</div>
-      <div class="mode-sub" data-i18n="mode_ciudadano_sub">Claro y directo</div>
-    </div>
-    <div class="mode-card" data-mode="cientifico">
-      <span class="mode-mark">02</span>
-      <div class="mode-title" data-i18n="mode_cientifico_title">Científico</div>
-      <div class="mode-sub" data-i18n="mode_cientifico_sub">Con los datos</div>
-    </div>
-    <div class="mode-card" data-mode="yayo">
-      <span class="mode-mark">03</span>
-      <div class="mode-title" data-i18n="mode_yayo_title">Abuela / Abuelo</div>
-      <div class="mode-sub" data-i18n="mode_yayo_sub">Letra grande, sin prisa</div>
-    </div>
-    <div class="mode-card" data-mode="peque">
-      <span class="mode-mark">04</span>
-      <div class="mode-title" data-i18n="mode_peque_title">Peque (5 años)</div>
-      <div class="mode-sub" data-i18n="mode_peque_sub">Con dibujitos</div>
-    </div>
-  </div>
-</div>
-
-<div class="map-section">
-  <div class="map-head">
-    <div class="map-title" data-i18n="mapTitle">El aire de España, ahora mismo</div>
-    <div class="chip-toggle" id="regionJump">
-      <button data-r="peninsula" class="active" data-i18n="region_peninsula">Península</button>
-      <button data-r="canarias" data-i18n="region_canarias">Canarias</button>
-      <button data-r="baleares" data-i18n="region_baleares">Baleares</button>
-      <button data-r="ceutamelilla" data-i18n="region_ceutamelilla">Ceuta / Melilla</button>
-    </div>
-  </div>
-  <div class="map-wrap">
-    <div id="map"></div>
-    <div class="legend">
-      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-good)"></span> <span data-i18n="legendGood">Buena</span></div>
-      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-mid)"></span> <span data-i18n="legendMid">Moderada</span></div>
-      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-bad)"></span> <span data-i18n="legendBad">Mala</span></div>
-      <div class="legend-note" data-i18n="legendNote">Los puntos son estaciones reales. El color entre ciudades es estimado, no medido.</div>
-    </div>
-  </div>
-  <div class="status-line" id="statusLine">Cargando datos en vivo…</div>
-</div>
-
-<div class="forecast-section">
-  <div class="map-head">
-    <div class="map-title">Evolución del aire · <span id="forecastCityName">Sevilla</span></div>
-  </div>
-  <div class="chart-card">
-    <div id="airChart"></div>
-    <div class="chart-legend">
-      <span><i class="dot-hist"></i> Últimas 48h (dato real)</span>
-      <span><i class="dot-fore"></i> Próximas 48h (pronóstico Copernicus/CAMS)</span>
-    </div>
-  </div>
-
-  <div class="quantum-card">
-    <div class="quantum-head">
-      <span class="quantum-badge">Manolit∞ Cuántico</span>
-      <span class="quantum-sub">pronóstico simulado para los próximos 5 días, contado sin humo</span>
-    </div>
-    <div id="quantumBars" class="quantum-bars"></div>
-
-    <div class="week-label"></div>
-    <div id="quantumWeek" class="quantum-week"></div>
-
-    <p class="quantum-disclaimer">
-      Esto NO es una predicción meteorológica oficial. Es una simulación matemática
-      (formalismo cuántico simulado por software, sin hardware cuántico real) que calcula
-      probabilidades a partir del pronóstico real de arriba. Para decisiones de salud,
-      guíate por el dato del gráfico y por fuentes oficiales, no por este número.
-    </p>
-  </div>
-</div>
-<div class="map-section" id="ecoAgua" style="border:1px solid rgba(14,59,71,0.18); background:linear-gradient(135deg, rgba(23,120,138,0.08), rgba(255,107,26,0.06));">
-  <div class="map-head">
-    <div class="map-title" data-i18n="aguaTitulo">El agua que no se ve</div>
-  </div>
-  <p style="margin:4px 0 10px; line-height:1.6;"><span data-i18n="aguaP1">Esto ya no es una estimación: la telemetría real de los últimos 30 días dice </span><strong data-i18n="aguaS1">176.444 peticiones, 1,80 GB movidos y 4.819 visitas</strong><span data-i18n="aguaP2">. O sea, </span><strong data-i18n="aguaS2">0,38 MB y unos 2 mililitros de agua por visita</strong><span data-i18n="aguaP3">, medidos. Mientras tanto, la publicidad programática del mundo gasta </span><strong data-i18n="aguaS3">unos 375 litros cada segundo</strong><span data-i18n="aguaP4"> en subastas de anuncios que nadie pidió: al año, miles de piscinas olímpicas.</span></p>
-  <div id="ecoAguaVivo" role="status" aria-live="off"
-       style="font-variant-numeric:tabular-nums; font-weight:700; color:var(--sky-deep,#0E3B47); background:var(--surface, rgba(255,255,255,0.65)); border-radius:12px; padding:10px 14px; margin-bottom:10px;">
-    Desde que abriste esta página, los anuncios del mundo llevan gastados 0 litros de agua. Tu visita aquí: ~2 ml, medidos.
-  </div>
-  <a href="manolito-aire-comparativa.html#agua" target="_self" data-i18n="aguaLink" style="font-weight:700; color:var(--accent,#FF6B1A);">
-    Ver las cuentas completas, con los supuestos a la vista →
-  </a>
-</div>
-
-<script>
-// Contador del agua de la publicidad (sep-2026): 300.000 millones de
-// impresiones/día x ~1 MB de subastas por impresión, 0,06 kWh/GB y
-// 1,8 L/kWh -> ~375 L/s. Local, sin peticiones, pausado si la pestaña
-// queda oculta y limpio al salir.
-// Sincronizado con la comparativa: el arranque vive en sessionStorage
-// (clave manolito_agua_inicio), así el conteo sigue al cambiar de página
-// dentro de la misma pestaña y vuelve a cero solo al cerrarla. También
-// se cuenta la visita (manolito_agua_visitas) para el cálculo de tu agua.
 (function () {
-  var el = document.getElementById('ecoAguaVivo');
-  if (!el) return;
-  var inicio;
-  try {
-    inicio = Number(sessionStorage.getItem('manolito_agua_inicio')) || 0;
-    if (!inicio) { inicio = Date.now(); sessionStorage.setItem('manolito_agua_inicio', String(inicio)); }
-    sessionStorage.setItem('manolito_agua_visitas', String((Number(sessionStorage.getItem('manolito_agua_visitas')) || 0) + 1));
-  } catch (e) { inicio = Date.now(); }
-  // Traducible (sep-2026): la frase sale de la plantilla aguaVivoTpl del
-  // idioma activo y el numero se formatea con su locale. Se refresca al
-  // cambiar de idioma y una vez al terminar de cargar el DOM.
-  var LOCALES = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
-  var TPL_ES = 'Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados {n} litros de agua. Tu visita aquí: ~2 ml, medidos.';
-  var tpl = TPL_ES, locale = 'es-ES';
-  function refrescarIdioma() {
-    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'es') || 'es';
-    locale = LOCALES[lang] || 'es-ES';
-    var m = (typeof window.getMessages === 'function' ? window.getMessages() : null) || {};
-    tpl = m.aguaVivoTpl || TPL_ES;
-  }
-  refrescarIdioma();
-  document.addEventListener('DOMContentLoaded', refrescarIdioma);
-  document.addEventListener('langChanged', refrescarIdioma);
-  var id = setInterval(function () {
-    if (document.hidden) return;
-    var litros = Math.round((Date.now() - inicio) / 1000 * 375);
-    el.textContent = tpl.replace('{n}', litros.toLocaleString(locale));
-  }, 250);
-  window.addEventListener('pagehide', function () { clearInterval(id); });
-})();
-</script>
+  const CONFIG = {
+    // Vista de arranque (sep-2026, por orden directa de Sandro): la
+    // PENÍNSULA entera, plana y en claro, no Sevilla a pie de calle.
+    // Además es el arranque más frío posible: a este zoom la capa de
+    // edificios 3D ni se renderiza (minzoom del estilo ~13), así que la
+    // GPU solo pinta unas pocas teselas raster en vez de miles de
+    // extrusiones inclinadas. El usuario acerca a su ciudad cuando quiera.
+    centroInicial: [-4.2, 39.8], // [lon, lat] centro de la península
+    zoomInicial: 4.7,            // península completa en pantalla de móvil
+    pitchInicial: 0,             // plano: sin extrusiones inclinadas
+    bearingInicial: 0,
+    nominatimUrl: '/geo',
+    nominatimReverseUrl: '/geo-reverso',
+    osrmUrl: '/ruta',
+    velocidadCaminandoKmh: 4.8, 
+    airQualityUrl: '/api/air-quality',
+    styleUrlClaro: 'https://tiles.openfreemap.org/styles/liberty', 
+    edificiosLayerId: 'building-3d',
+    fetchTimeoutMs: 9000,
+    fetchRetries: 2,
+    alturaPorDefectoM: 15,  // ~5 plantas: los edificios siempre superan a los árboles
+    alturaPorPlantaM: 3.2,  // si solo sabemos las plantas (levels), estimamos así
+    maxEdificiosSombra: 0,  // 0 = SIN TOPE: TODOS los edificios 3D visibles proyectan
+                            // sombra, también con el zoom alejado (antes 320 cortaban
+                            // todo lo que no fuera el centro: solo se veía un trozo)
+    loteSombraSize: 30, 
+    duracionVueloInicialMs: 2000,
+    priorizarSombra: true,
+    maxDetourSombra: 1.5,
+    maxAlternativasSombra: 3,
+    // ----- Motor Dijkstra térmico (red peatonal local + global bajo demanda) -----
+    usarRedLocalTermica: true,
+    usarOverpassTermica: true,
+    redPeatonalUrl: 'data/red-peatonal.geojson',
+    redPeatonalMargenM: 500,
+    factorPenalizacionSol: 0.7,
+    maxNodosRedPeatonal: 80000,
+    overpassRedPeatonalUrls: ['/arboles'],
+    overpassTimeoutS: 15,
+    // ----- Modo peatón virtual (cámara libre, sin GPS real) -----
+    paseoAlturaOjoM: 1.65,
+    paseoVelocidadMs: 2.0,
+    paseoVelocidadGiro: 1.6,
+    paseoLookAheadM: 25,
+    paseoZoomCalle: 18, // zoom de la vista de peatón con la API estándar (centro 25 m por delante)
+    paseoMaxPitch: 85, // 85° = el máximo físico del motor MapLibre: mirada al cielo
+    paseoPitchMin: 10,  // casi picado sobre la calle
+    paseoPitchInicial: 55, // al entrar: vista cómoda de paseo
+    paseoSincroMs: 600, // Menos frecuente, más ligero
+    paseoSuavizado: 0.12, // Inercia en el movimiento
+  };
 
-<script>
-// Contador de cabecera (sep-2026): mismo dato (~375 L/s) pero pensado para
-// no gastar NADA: setInterval de 1 s (no RAF), una sola escritura de texto,
-// color por escalones con clases (sin transiciones por frame), pausado con
-// la pestaña oculta y clearInterval al salir.
-(function () {
-  var num = document.getElementById('aguaVivoNum');
-  if (!num) return;
-  var inicio;
-  try {
-    inicio = Number(sessionStorage.getItem('manolito_agua_inicio')) || 0;
-    if (!inicio) { inicio = Date.now(); sessionStorage.setItem('manolito_agua_inicio', String(inicio)); }
-  } catch (e) { inicio = Date.now(); }
-  // El numero se formatea con el locale del idioma activo (sep-2026).
-  var LOCALES = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
-  var locale = 'es-ES';
-  function refrescarIdioma() {
-    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'es') || 'es';
-    locale = LOCALES[lang] || 'es-ES';
-  }
-  refrescarIdioma();
-  document.addEventListener('DOMContentLoaded', refrescarIdioma);
-  document.addEventListener('langChanged', refrescarIdioma);
-  var escalon = 0;
-  var id = setInterval(function () {
-    if (document.hidden) return;
-    var litros = Math.round((Date.now() - inicio) / 1000 * 375);
-    num.textContent = litros.toLocaleString(locale) + ' L';
-    var e = litros < 1500 ? 0 : litros < 15000 ? 1 : litros < 100000 ? 2 : 3;
-    if (e !== escalon) {
-      escalon = e;
-      num.className = 'avh-num' + (e ? ' avh-' + (e + 1) : '');
-    }
-  }, 1000);
-  window.addEventListener('pagehide', function () { clearInterval(id); });
-})();
-</script>
-
-<!-- Preguntas frecuentes: con details/summary, sin JavaScript, bateria cero -->
-<section class="faq" id="faq" aria-labelledby="faqTitulo">
-  <h2 id="faqTitulo" data-i18n="faqTitle">Preguntas frecuentes</h2>
-  <p class="faq-intro" data-i18n="faqIntro">Las que me hacéis de verdad, contestadas sin rodeos.</p>
-
-  <details class="faq-item">
-    <summary data-i18n="faqQ1">¿Esto es gratis de verdad?</summary>
-    <p data-i18n="faqA1">Sí. Y lo seguirá siendo. No hay registro, no hay truco y no hay una versión de pago escondida. Entras, miras el aire y te vas.</p>
-  </details>
-
-  <details class="faq-item">
-    <summary data-i18n="faqQ2">¿Por qué no hay anuncios?</summary>
-    <p data-i18n="faqA2">Porque los anuncios de hoy no son carteles. Son subastas que gastan agua y batería a tus espaldas cada vez que cargas una página. Aquí no entran. El proyecto se sostiene con el apoyo voluntario de la gente en Ko-fi.</p>
-  </details>
-
-  <details class="faq-item">
-    <summary data-i18n="faqQ3">¿De dónde salen los datos del aire?</summary>
-    <p data-i18n="faqA3">De las estaciones oficiales repartidas por España y de los modelos europeos de Copernicus, servidos por Open-Meteo. Datos públicos y científicos, nada inventado.</p>
-  </details>
-
-  <details class="faq-item">
-    <summary data-i18n="faqQ4">¿Lo de las sombras es real?</summary>
-    <p data-i18n="faqA4">Sí. Se calcula con los edificios de OpenStreetMap y la posición del sol en cada minuto. Si el mapa dice sombra, es que un edificio de verdad te la está dando.</p>
-  </details>
-
-  <details class="faq-item">
-    <summary data-i18n="faqQ5">¿Me estáis espiando?</summary>
-    <p data-i18n="faqA5">No. No hay rastreadores ni cookies de terceros. Tus ajustes se guardan en tu propio navegador y de ahí no salen.</p>
-  </details>
-
-  <details class="faq-item">
-    <summary data-i18n="faqQ6">¿Hay app para el móvil?</summary>
-    <p data-i18n="faqA6">No hace falta. La web funciona en el navegador de cualquier móvil sin instalar nada y sin ocupar memoria. Si la guardas en la pantalla de inicio, se abre como una app.</p>
-  </details>
-
-  <details class="faq-item">
-    <summary data-i18n="faqQ7">¿Quién hace esto?</summary>
-    <p data-i18n="faqA7">Una persona, Sandro, desde Sevilla. Sin empresa detrás y sin ánimo de lucro. Con datos abiertos y con la ayuda de quien apoya el proyecto.</p>
-  </details>
-
-  <details class="faq-item">
-    <summary data-i18n="faqQ8">¿Puedo usarlo en mi ciudad?</summary>
-    <p data-i18n="faqA8">Si está en España, sí. Las estaciones y los edificios cubren todo el país. Fuera de España el aire funciona en muchos sitios, pero las sombras dependen de lo bien mapeada que esté la zona en OpenStreetMap.</p>
-  </details>
-
-  <details class="faq-item">
-    <summary data-i18n="faqQ9">¿Cómo puedo ayudar?</summary>
-    <p data-i18n="faqA9">Usándolo y contándolo. Y si te apetece, apoyando en Ko-fi para pagar los servidores. También puedes mejorar el mapa de tu barrio en OpenStreetMap, que es gratis y ayuda a todo el mundo.</p>
-  </details>
-</section>
-
-<div class="footer">
-  <p>Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.</p>
-  <p class="footer-eco">Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.</p>
-  <div class="footer-family" data-i18n="footerFamily">Manolit∞ Forestal · Islas de Calor Sevilla · Manolit∞ Aire</div>
-  <div class="footer-ign" style="margin-top:8px; font-size:0.75rem; opacity:0.7;">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
-  <div style="margin-top:10px;">
-    <a href="aviso-legal.html" data-i18n="legalNotice">Aviso legal</a> · 
-    <a href="privacidad.html" data-i18n="privacy">Privacidad</a> · 
-    <a href="cookies.html" data-i18n="cookies">Cookies</a>
-  </div>
-
-  <!-- Sincronizar / Exportar datos: tus ajustes (tema, paleta, idioma,
-       modo accesible, ciudad...) viajan en un archivo JSON entre tus
-       dispositivos. Sin cuentas, sin servidores: el archivo lo genera
-       y lo lee tu propio navegador. -->
-  <div class="footer-sync">
-    <button type="button" id="btnSyncExport" class="footer-sync-toggle" data-i18n="syncLink"
-            aria-expanded="false" aria-controls="syncPanel">Sincronizar / Exportar datos</button>
-    <div id="syncPanel" class="sync-panel" hidden>
-      <p class="sync-hint" data-i18n="syncHint">Guarda tus ajustes en un archivo y recupéralos en otro dispositivo. Sin cuentas ni servidores.</p>
-      <div class="sync-panel-btns">
-        <button type="button" id="btnSyncExportar" data-i18n="syncExportBtn">Exportar mis datos</button>
-        <button type="button" id="btnSyncImportar" data-i18n="syncImportBtn">Importar datos</button>
-      </div>
-      <input type="file" id="syncFileInput" accept="application/json,.json" hidden>
-    </div>
-  </div>
-
-  <!-- Cierre del pie: a los lados del boton de Ko-fi, sin nuevo apartado -->
-  <div class="footer-final">
-    <div class="footer-sello">
-      <svg width="320" height="130" viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Sello de eficiencia: manolitoaire.com tiene calificación A+ en Website Carbon Rating">
-        <defs>
-          <linearGradient id="scaleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#22C55E"/>
-            <stop offset="35%" stop-color="#A3D977"/>
-            <stop offset="55%" stop-color="#F2C94C"/>
-            <stop offset="75%" stop-color="#F2994A"/>
-            <stop offset="100%" stop-color="#EB5757"/>
-          </linearGradient>
-          <radialGradient id="haloGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#22C55E" stop-opacity="0.35"/>
-            <stop offset="60%" stop-color="#22C55E" stop-opacity="0.12"/>
-            <stop offset="100%" stop-color="#22C55E" stop-opacity="0"/>
-          </radialGradient>
-        </defs>
-        <rect x="1" y="1" width="318" height="128" rx="10" fill="#FFFFFF" stroke="#E4E7E0" stroke-width="1"/>
-        <circle cx="54" cy="64" r="46" fill="url(#haloGrad)"/>
-        <circle cx="54" cy="64" r="30" fill="#EFFBF3" stroke="#22A55A" stroke-width="1.5"/>
-        <text x="54" y="74" text-anchor="middle" font-size="28" font-weight="700" fill="#199A4C">A+</text>
-        <text x="112" y="30" font-size="11" font-weight="600" fill="#1F2A20">manolitoaire.com</text>
-        <text x="112" y="43" font-size="9" fill="#8A9488">Website Carbon Rating</text>
-        <rect x="112" y="52" width="186" height="7" rx="3.5" fill="url(#scaleGrad)"/>
-        <circle cx="126" cy="55.5" r="5.5" fill="#FFFFFF" stroke="#199A4C" stroke-width="2"/>
-        <text x="112" y="74" font-size="9.5" fill="#5B6653">0,015 g CO₂ / visita · más limpio que el 99%</text>
-        <text x="112" y="87" font-size="9.5" fill="#5B6653">102,7 KB · hosting 100% renovable</text>
-        <text x="16" y="116" font-size="7.5" fill="#A9B3AC">Medido con Website Carbon Calculator (1ClickImpact) · 16/09/2026</text>
-      </svg>
-    </div>
-    <div class="footer-donacion">
-      <p class="donacion-mensaje">
-        Manolit∞ siempre sera gratis.<br>
-        Los servidores, por desgracia, no lo son...
-      </p>
-      <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer">
-        Apoyar en Ko‑fi
-      </a>
-    </div>
-    <div class="footer-redes">
-      <a class="footer-red" href="https://www.tiktok.com/@manolitoinfinitum8" target="_blank" rel="noopener" aria-label="TikTok de Manolit">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
-        <span>@manolitoinfinitum8</span>
-      </a>
-      <a class="footer-red" href="https://www.instagram.com/manolitoinfinitum8" target="_blank" rel="noopener" aria-label="Instagram de Manolit">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.35 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.35-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 0 1-1.38-.9 3.72 3.72 0 0 1-.9-1.38c-.16-.42-.35-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.35 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.13 1.38A5.88 5.88 0 0 0 .63 4.14C.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13a5.88 5.88 0 0 0 2.13 1.38c.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.88 5.88 0 0 0 2.13-1.38 5.88 5.88 0 0 0 1.38-2.13c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.88 5.88 0 0 0-1.38-2.13A5.88 5.88 0 0 0 19.86.63C19.1.33 18.22.13 16.95.07 15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 18.16 12 6.16 6.16 0 0 0 12 5.84zM12 16a4 4 0 1 1 4-4 4 4 0 0 1-4 4zm7.85-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg>
-        <span>@manolitoinfinitum8</span>
-      </a>
-      <a class="footer-red footer-red-sola" href="https://www.instagram.com/manolit_8" target="_blank" rel="noopener" aria-label="Instagram personal de Sandro">
-        <span>@manolit_8</span>
-      </a>
-    </div>
-  </div>
-</div>
-
-<button class="chat-fab" onclick="openChat()" aria-label="Pregúntale a Manolit∞" title="Pregúntale a Manolit∞">
-  <span class="chat-fab-ring"><span class="chat-fab-core">M∞</span></span>
-</button>
-
-<div class="chat-overlay" id="chatOverlay">
-  <div class="chat-panel" role="dialog" aria-modal="false" data-i18n-aria-label="chatDialogLabel" aria-label="Chat con Manolit">
-    <div class="chat-head">
-      <div class="chat-title"><span class="chat-logo"><i>M∞</i></span> <span data-i18n="chatTitle">Manolit∞ te lo explica</span></div>
-      <button class="icon-btn" onclick="closeChat()" data-i18n-aria-label="chatClose" aria-label="Cerrar chat">✕</button>
-    </div>
-    <div class="chat-msg mano" data-i18n="chatWelcome">Tranquilo/a, vamos con calma. Dime qué no entiendes, o elige una pregunta.</div>
-    <div id="chatBody"></div>
-    <div class="quick-qs">
-      <button data-quick="q1" onclick="askQuick('q1')" data-i18n="quick_q1">¿Qué es Manolito Aire?</button>
-      <button data-quick="q2" onclick="askQuick('q2')" data-i18n="quick_q2">¿Qué significan los colores del aire?</button>
-      <button data-quick="q3" onclick="askQuick('q3')" data-i18n="quick_q3">¿Puedo salir a hacer deporte hoy?</button>
-      <button data-quick="q4" onclick="askQuick('q4')" data-i18n="quick_q4">¿Cómo funcionan las sombras 3D?</button>
-      <button data-quick="q5" onclick="askQuick('q5')" data-i18n="quick_q5">¿Cómo busco una ruta con sombra?</button>
-      <button data-quick="q6" onclick="askQuick('q6')" data-i18n="quick_q6">¿Qué es la irradiación solar?</button>
-      <button data-quick="q7" onclick="askQuick('q7')" data-i18n="quick_q7">¿Qué es el paseo virtual 3D?</button>
-    </div>
-    <div class="chat-input-row">
-      <label for="chatInputField" class="visually-hidden" data-i18n="chatPlaceholder">Escribe tu pregunta aquí...</label>
-      <input type="text" id="chatInputField" name="pregunta" data-i18n-placeholder="chatPlaceholder" placeholder="Escribe tu pregunta aquí...">
-      <button onclick="askCustom()" data-i18n="chatSend">Enviar</button>
-    </div>
-    <div class="chat-status" id="chatStatus"></div>
-  </div>
-</div>
-
-<!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
-<script src="js/theme.js" defer></script>
-<script src="js/i18n.js" defer></script>
-<!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
-     y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
-
-<script src="js/chat.js" defer></script>
-<script src="js/app.js" defer></script>
-<script src="js/air-forecast.js" defer></script>
-<script src="js/planetario.js" defer></script>
-<script src="js/tutorial.js" defer></script>
-<!-- Los árboles viven integrados dentro de shadows-route.js (motor único de sombras) -->
-
-<script>
-  (function () {
-    const objetivo = document.getElementById('shadowRouteMap');
-    if (!objetivo) return;
-
-    let cargado = false;
-    function cargarMapaSombras() {
-      if (cargado) return;
-      cargado = true;
-
-      function cargarScript(src) {
-        return new Promise((resolve, reject) => {
-          const s = document.createElement('script');
-          s.src = src;
-          s.onload = resolve;
-          s.onerror = reject;
-          document.body.appendChild(s);
-        });
+  /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
+  function t(clave, fallback) {
+    try {
+      const fn = window.getMessages;
+      if (typeof fn === 'function') {
+        const msg = fn();
+        if (msg && msg[clave] != null) return msg[clave];
       }
+    } catch (e) { /* seguimos con el fallback */ }
+    return fallback != null ? fallback : clave;
+  }
 
-      // Rendimiento (sep-2026): MapLibre, Turf y SunCalc son librerías independientes
-      // se cargan EN PARALELO y el mapa de sombras arranca mucho antes
-      // (antes iban en cadena: cada una esperaba a que terminara la anterior).
-      // La guía A11Y (voz e indicaciones para personas ciegas) es un módulo
-      // propio y diminuto: carga en paralelo y shadows-route le delega.
-      Promise.all([
-        cargarScript('js/a11y-guia.js'),
-        cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
-        cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
-        cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
-      ])
-        .then(() => cargarScript('js/shadows-route.js'))
-        .then(() => cargarScript('js/arboles-3d.js'))
-        .then(() => cargarScript('js/irradiacion-solar.js'))
-        .then(() => cargarScript('js/microclima.js'))
-        .then(() => cargarScript('js/rendimiento-movil.js'))
-        .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
-    }
+  function leerVar(nombre) {
+    return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+  }
 
-    if ('IntersectionObserver' in window) {
-      const observador = new IntersectionObserver((entradas) => {
-        entradas.forEach((entrada) => {
-          if (entrada.isIntersecting) {
-            cargarMapaSombras();
-            observador.disconnect();
-          }
-        });
-      }, { rootMargin: '600px 0px' }); 
-      observador.observe(objetivo);
-    } else {
-      cargarMapaSombras();
-    }
-  })();
-</script>
-
-<script>
-  (function() {
-    const body = document.body;
-    const modeCards = document.querySelectorAll('.mode-card[data-mode]');
-
-    function setMode(mode) {
-      body.classList.remove('mode-cientifico', 'mode-yayo', 'mode-peque');
-      if (mode !== 'ciudadano') body.classList.add('mode-' + mode);
-
-      modeCards.forEach(c => c.classList.remove('active'));
-      const activeCard = document.querySelector(`.mode-card[data-mode="${mode}"]`);
-      if (activeCard) activeCard.classList.add('active');
-    }
-
-    modeCards.forEach(card => {
-      // Teclado: las tarjetas son divs, así que les damos foco y activación
-      // con Enter/Espacio para que funcionen sin ratón.
-      card.setAttribute('tabindex', '0');
-      card.setAttribute('role', 'button');
-      card.setAttribute('aria-pressed', card.classList.contains('active') ? 'true' : 'false');
-      card.addEventListener('click', () => setMode(card.getAttribute('data-mode')));
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          setMode(card.getAttribute('data-mode'));
-        }
-      });
+  function cederAlNavegador() {
+    return new Promise((resolve) => {
+      if ('requestIdleCallback' in window) requestIdleCallback(() => resolve(), { timeout: 120 });
+      else setTimeout(resolve, 0);
     });
+  }
 
-    // aria-pressed debe seguir al estado visual .active
-    const observarModos = new MutationObserver(() => {
-      modeCards.forEach(c => c.setAttribute('aria-pressed', c.classList.contains('active') ? 'true' : 'false'));
-    });
-    modeCards.forEach(c => observarModos.observe(c, { attributes: true, attributeFilter: ['class'] }));
+  function crearDebounce(fn, esperaMs) {
+    let temporizador = null;
+    return (...args) => {
+      clearTimeout(temporizador);
+      temporizador = setTimeout(() => fn(...args), esperaMs);
+    };
+  }
 
-    function getRobustLang() {
-      if (typeof currentLang !== 'undefined' && currentLang) return currentLang;
-      const htmlLang = document.documentElement.getAttribute('lang');
-      if (htmlLang) return htmlLang.split('-')[0];
+  /* ============================================================
+     MOTOR DIJKSTRA TÉRMICO CLIENT-SIDE, FASE 1
+     Basado en el rigor de la Universidad de Sevilla
+     ("Mapas y rutas de sombra"). Grafo peatonal local filtrado
+     por BBox +500 m; peso térmico w(e) = L(m) × (1 + penalización
+     solar). Cola de prioridad binaria manual en Vanilla JS.
+     ============================================================ */
+
+  class MinHeap {
+    constructor() { this.heap = []; }
+    isEmpty() { return this.heap.length === 0; }
+    push(item) {
+      this.heap.push(item);
+      this._bubbleUp(this.heap.length - 1);
+    }
+    pop() {
+      const h = this.heap;
+      if (h.length === 0) return null;
+      const top = h[0];
+      const end = h.pop();
+      if (h.length > 0) {
+        h[0] = end;
+        this._sinkDown(0);
+      }
+      return top;
+    }
+    _bubbleUp(idx) {
+      const h = this.heap;
+      const item = h[idx];
+      while (idx > 0) {
+        const parentIdx = (idx - 1) >> 1;
+        if (h[parentIdx].dist <= item.dist) break;
+        h[idx] = h[parentIdx];
+        idx = parentIdx;
+      }
+      h[idx] = item;
+    }
+    _sinkDown(idx) {
+      const h = this.heap;
+      const len = h.length;
+      const item = h[idx];
+      while (true) {
+        let swap = idx;
+        const left = (idx << 1) + 1;
+        const right = left + 1;
+        if (left < len && h[left].dist < h[swap].dist) swap = left;
+        if (right < len && h[right].dist < h[swap].dist) swap = right;
+        if (swap === idx) break;
+        h[idx] = h[swap];
+        idx = swap;
+      }
+      h[idx] = item;
+    }
+  }
+
+  const cacheRedPeatonal = new Map(); // clave bbox -> {bbox, geojson}
+  let promesaCargaRedLocal = null;
+
+  function bboxClave(bbox) {
+    return bbox.map((v) => v.toFixed(5)).join(',');
+  }
+
+  function bboxContiene(bboxGrande, bboxPeque) {
+    return (
+      bboxPeque[0] >= bboxGrande[0] &&
+      bboxPeque[1] >= bboxGrande[1] &&
+      bboxPeque[2] <= bboxGrande[2] &&
+      bboxPeque[3] <= bboxGrande[3]
+    );
+  }
+
+  async function cargarRedPeatonalLocal() {
+    if (promesaCargaRedLocal) return promesaCargaRedLocal;
+    promesaCargaRedLocal = (async () => {
       try {
-        const storedLang = localStorage.getItem('manolito_lang') || localStorage.getItem('lang');
-        if (storedLang) return storedLang.split('-')[0];
-      } catch (e) {}
-      return 'es';
+        const resp = await fetch(CONFIG.redPeatonalUrl);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const geojson = await resp.json();
+        if (!geojson || !Array.isArray(geojson.features)) throw new Error('GeoJSON inválido');
+        const bbox = turf.bbox(geojson);
+        cacheRedPeatonal.set(bboxClave(bbox), { bbox, geojson });
+        return { bbox, geojson };
+      } catch (e) {
+        console.debug('[Dijkstra térmico] No se pudo cargar la red peatonal local:', e.message);
+        return null;
+      } finally {
+        promesaCargaRedLocal = null;
+      }
+    })();
+    return promesaCargaRedLocal;
+  }
+
+  function overpassJsonAGeojson(datos) {
+    const nodes = {};
+    const ways = [];
+    for (const el of datos.elements || []) {
+      if (el.type === 'node') nodes[el.id] = [el.lon, el.lat];
+      else if (el.type === 'way') ways.push(el);
     }
 
-    function renderPequeFace(estado) {
-      const cloudDiv = document.getElementById('pequeCloudSvg');
-      const msgEl = document.getElementById('pequeMessage');
-      const humanEl = document.getElementById('humanLine');
-      const subEl = document.getElementById('subLine');
+    const features = [];
+    for (const way of ways) {
+      const coords = [];
+      for (const ref of way.nodes || []) {
+        if (nodes[ref]) coords.push(nodes[ref]);
+      }
+      if (coords.length >= 2) {
+        features.push({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: coords },
+          properties: way.tags || {},
+        });
+      }
+    }
+    return turf.featureCollection(features);
+  }
 
-      if (!cloudDiv || !msgEl) return;
+  async function descargarRedPeatonalOverpass(bbox) {
+    const query = `[out:json][timeout:${CONFIG.overpassTimeoutS}]; way["highway"~"footway|pedestrian|path|living_street|steps|residential|tertiary|secondary|primary"](${bbox[1]},${bbox[0]},${bbox[3]},${bbox[2]}); out body; >; out skel qt;`;
+    let ultimoError = null;
+    for (const url of CONFIG.overpassRedPeatonalUrls) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), CONFIG.overpassTimeoutS * 1000 + 3000);
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: 'data=' + encodeURIComponent(query),
+          signal: controller.signal,
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const datos = await resp.json();
+        return overpassJsonAGeojson(datos);
+      } catch (e) {
+        ultimoError = e;
+        continue;
+      } finally {
+        clearTimeout(id);
+      }
+    }
+    throw ultimoError || new Error('Overpass no disponible');
+  }
 
-      const cloudBase = `<circle cx="50" cy="50" r="32" fill="#fff" stroke="#888" stroke-width="2"/>
-                         <circle cx="28" cy="48" r="22" fill="#fff" stroke="#888" stroke-width="2"/>
-                         <circle cx="72" cy="48" r="22" fill="#fff" stroke="#888" stroke-width="2"/>`;
+  function bboxContienePunto(bbox, lon, lat) {
+    return lon >= bbox[0] && lat >= bbox[1] && lon <= bbox[2] && lat <= bbox[3];
+  }
 
-      const isWinking = Math.random() > 0.7;
-      const eyes = (isWinking && estado === 'buena')
-        ? `<line x1="34" y1="46" x2="40" y2="46" stroke="#333" stroke-width="2" stroke-linecap="round"/>
-           <circle cx="63" cy="46" r="6" fill="#333"/>`
-        : `<circle cx="37" cy="46" r="6" fill="#333"/>
-           <circle cx="63" cy="46" r="6" fill="#333"/>`;
+  async function obtenerRedPeatonal(bbox, puntosClave) {
+    // 1. Reutilizar cache si ya tenemos un bbox que cubre el solicitado
+    for (const entrada of cacheRedPeatonal.values()) {
+      if (bboxContiene(entrada.bbox, bbox)) return entrada.geojson;
+    }
 
-      const variacionesIdiomas = {
-        es: {
-          buena: [
-            { msg: '¡El aire está contento!', humano: '¡Hoy puedes jugar fuera todo el día!', sub: 'Cielo despejado.' },
-            { msg: '¡Qué aire tan limpio hoy!', humano: '¡Corre, salta y juega todo lo que quieras!', sub: 'Un día perfecto para el parque.' },
-            { msg: 'El aire está de fiesta hoy.', humano: '¡A la calle, que hoy se respira genial!', sub: 'Sin nubes de polvo por ningún lado.' },
-            { msg: 'El cielo está feliz hoy.', humano: 'Buen día para la bici o el balón en el parque.', sub: 'Aire fresquito y limpio.' }
-          ],
-          moderada: [
-            { msg: 'El aire está más o menos…', humano: 'Puedes salir, pero mejor sin correr mucho.', sub: 'Calidad aceptable.' },
-            { msg: 'El aire hoy está un poco tímido.', humano: 'Se puede jugar fuera, con calma y sin agobiarse.', sub: 'Ni bien ni mal del todo.' },
-            { msg: 'El aire está regulero hoy.', humano: 'Mejor juegos tranquilos al aire libre hoy.', sub: 'Nada grave, solo un poco flojo.' }
-          ],
-          mala: [
-            { msg: 'El aire necesita mimos…', humano: 'Hoy mejor nos quedamos dentro a pintar.', sub: 'Demasiadas partículas en la calle.' },
-            { msg: 'El aire está un poco enfadado hoy.', humano: 'Toca jugar dentro de casa un rato, ¿construimos algo?', sub: 'Mejor esperar a que se calme.' },
-            { msg: 'Hoy el cielo está cansado.', humano: 'Vamos a dibujar o leer un cuento dentro de casa.', sub: 'El aire de fuera necesita descansar.' }
-          ]
-        },
-        en: {
-          buena: [
-            { msg: 'The air is happy!', humano: 'You can play outside all day today!', sub: 'Clear skies.' },
-            { msg: 'Such clean air today!', humano: 'Run, jump and play as much as you want!', sub: 'A perfect day for the park.' },
-            { msg: 'The air is partying today.', humano: 'Go outside, breathing is great today!', sub: 'No dust clouds anywhere.' },
-            { msg: 'The sky is happy today.', humano: 'Good day for biking or playing ball in the park.', sub: 'Fresh and clean air.' }
-          ],
-          moderada: [
-            { msg: 'The air is so-so...', humano: 'You can go out, but better not run too much.', sub: 'Acceptable quality.' },
-            { msg: 'The air is a bit shy today.', humano: 'You can play outside, take it easy and don\'t stress.', sub: 'Neither entirely good nor bad.' },
-            { msg: 'The air is mediocre today.', humano: 'Better stick to quiet outdoor games today.', sub: 'Nothing serious, just a bit weak.' }
-          ],
-          mala: [
-            { msg: 'The air needs a hug...', humano: 'Better stay inside and paint today.', sub: 'Too many particles outside.' },
-            { msg: 'The air is a bit angry today.', humano: 'Time to play indoors for a while, shall we build something?', sub: 'Better wait for it to calm down.' },
-            { msg: 'The sky is tired today.', humano: 'Let\'s draw or read a story indoors.', sub: 'The outside air needs to rest.' }
-          ]
-        },
-        ca: {
-          buena: [
-            { msg: 'L\'aire està content!', humano: 'Avui pots jugar a fora tot el dia!', sub: 'Cel clar.' },
-            { msg: 'Quin aire més net avui!', humano: 'Corre, salta i juga tot el que vulguis!', sub: 'Un dia perfecte per al parc.' },
-            { msg: 'L\'aire està de festa avui.', humano: 'Al carrer, que avui s\'respira genial!', sub: 'Sense núvols de pols enlloc.' },
-            { msg: 'El cel està feliç avui.', humano: 'Bon dia per a la bici o la pilota al parc.', sub: 'Aire fresquet i net.' }
-          ],
-          moderada: [
-            { msg: 'L\'aire està més o menys…', humano: 'Pots sortir, però millor sense córrer gaire.', sub: 'Qualitat acceptable.' },
-            { msg: 'L\'aire avui està una mica tímid.', humano: 'Es pot jugar a fora, amb calma i sense atabalar-se.', sub: 'Ni bé ni malament del tot.' },
-            { msg: 'L\'aire està regular avui.', humano: 'Millor jocs tranquils a l\'aire lliure avui.', sub: 'Res greu, només una mica fluix.' }
-          ],
-          mala: [
-            { msg: 'L\'aire necessita mimos…', humano: 'Avui millor ens quedem a dins a pintar.', sub: 'Massa partícules al carrer.' },
-            { msg: 'L\'aire està una mica enfadat avui.', humano: 'Toca jugar dins de casa una estona, construïm alguna cosa?', sub: 'Millor esperar que es calmi.' },
-            { msg: 'Avui el cel està cansat.', humano: 'Anem a dibuixar o llegir un conte dins de casa.', sub: 'L\'aire de fora necessita descansar.' }
-          ]
-        },
-        gl: {
-          buena: [
-            { msg: 'O aire está contento!', humano: 'Hoxe podes xogar fóra todo o día!', sub: 'Ceo despexado.' },
-            { msg: 'Que aire tan limpo hoxe!', humano: 'Corre, salta e xoga todo o que queiras!', sub: 'Un día perfecto para o parque.' },
-            { msg: 'O aire está de festa hoxe.', humano: 'Á rúa, que hoxe respírase xenial!', sub: 'Sen nubes de po por ningures.' },
-            { msg: 'O ceo está feliz hoxe.', humano: 'Bo día para a bici ou o balón no parque.', sub: 'Aire fresquiño e limpo.' }
-          ],
-          moderada: [
-            { msg: 'O aire está máis ou menos…', humano: 'Podes saír, pero mellor sen correr moito.', sub: 'Calidade aceptable.' },
-            { msg: 'O aire hoxe está un pouco tímido.', humano: 'Pódese xogar fóra, con calma e sen agobiarse.', sub: 'Nin ben nin mal de todo.' },
-            { msg: 'O aire está regular hoxe.', humano: 'Mellor xogos tranquilos ao aire libre hoxe.', sub: 'Nada grave, só un pouco frouxo.' }
-          ],
-          mala: [
-            { msg: 'O aire necesita mimos…', humano: 'Hoxe mellor quedamos dentro a pintar.', sub: 'Demasiadas partículas na rúa.' },
-            { msg: 'O aire está un pouco enfadado hoxe.', humano: 'Toca xogar dentro de casa un cacho, construímos algo?', sub: 'Mellor esperar a que se calme.' },
-            { msg: 'Hoxe o ceo está canso.', humano: 'Imos debuxar ou ler un conto dentro de casa.', sub: 'O aire de fóra necesita descansar.' }
-          ]
-        },
-        eu: {
-          buena: [
-            { msg: 'Airea pozik dago!', humano: 'Gaur egun osoan zehar kanpoan jolastu dezakezu!', sub: 'Zeru garbia.' },
-            { msg: 'Zein aire garbia gaur!', humano: 'Korrika egin, salto egin eta jolastu nahi duzun guztia!', sub: 'Egun ezin hobea parkerako.' },
-            { msg: 'Airea festan dago gaur.', humano: 'Kalera, gaur primeran arnasten da eta!', sub: 'Ez dago hauts-hodeirik inon.' },
-            { msg: 'Zerua zoriontsu dago gaur.', humano: 'Egun ona parkean bizikletan edo baloiarekin jolasteko.', sub: 'Aire fresko eta garbia.' }
-          ],
-          moderada: [
-            { msg: 'Airea hala-hola dago…', humano: 'Atera zaitezke, baina hobe korrika asko egin gabe.', sub: 'Kalitate onargarria.' },
-            { msg: 'Airea apur bat lotsati dago gaur.', humano: 'Kanpoan jolastu daiteke, lasai eta estutu gabe.', sub: 'Ez ondo ezta gaizki ere.' },
-            { msg: 'Airea kaskar dago gaur.', humano: 'Hobe aire zabaleko jolas lasaiak gaur.', sub: 'Ez da ezer larria, pixka bat ahula besterik ez.' }
-          ],
-          mala: [
-            { msg: 'Aireak mimoak behar ditu…', humano: 'Gaur hobe barruan geratzea margotzen.', sub: 'Partikula gehiegi kalean.' },
-            { msg: 'Airea apur bat haserre dago gaur.', humano: 'Etxe barruan jolasteko unea da, zerbait eraikiko dugu?', sub: 'Hobe lasaitu arte itxarotea.' },
-            { msg: 'Gaur zerua nekatuta dago.', humano: 'Etxe barruan marraztera edo ipuin bat irakurtzera goaz.', sub: 'Kanpoko aireak atsedena behar du.' }
-          ]
+    // 2. Intentar archivo local (rápido, sin red). Basta con que cubra los
+    //    puntos de la ruta: el bbox lleva un colchón de 500 m que a veces se
+    //    sale un poco del área descargada, y eso antes tiraba toda la red.
+    if (CONFIG.usarRedLocalTermica) {
+      const local = await cargarRedPeatonalLocal();
+      if (local && local.geojson.features.length) {
+        const cubierto = bboxContiene(local.bbox, bbox)
+          || (Array.isArray(puntosClave) && puntosClave.length
+            && puntosClave.every((p) => bboxContienePunto(local.bbox, p.lon, p.lat)));
+        if (cubierto) return local.geojson;
+      }
+    }
+
+    // 3. Descargar el BBox concreto desde Overpass (global, bajo demanda)
+    if (CONFIG.usarOverpassTermica) {
+      const geojson = await descargarRedPeatonalOverpass(bbox);
+      if (geojson.features.length) {
+        cacheRedPeatonal.set(bboxClave(bbox), { bbox, geojson });
+        return geojson;
+      }
+    }
+
+    return null;
+  }
+
+  function coordKey(lon, lat) {
+    return `${lon.toFixed(8)},${lat.toFixed(8)}`;
+  }
+
+  function construirGrafoDesdeGeojson(geojson) {
+    const nodos = []; // [[lon, lat], ...]
+    const adj = [];   // [{to, longitudM}, ...]
+    const idxPorKey = new Map();
+
+    function getNodoIdx(lon, lat) {
+      const key = coordKey(lon, lat);
+      let idx = idxPorKey.get(key);
+      if (idx == null) {
+        idx = nodos.length;
+        nodos.push([lon, lat]);
+        adj.push([]);
+        idxPorKey.set(key, idx);
+      }
+      return idx;
+    }
+
+    turf.featureEach(geojson, (feature) => {
+      const geom = feature.geometry;
+      if (!geom) return;
+      let coordenadas;
+      if (geom.type === 'LineString') coordenadas = [geom.coordinates];
+      else if (geom.type === 'MultiLineString') coordenadas = geom.coordinates;
+      else return;
+
+      for (const anillo of coordenadas) {
+        if (!anillo || anillo.length < 2) continue;
+        // El nombre de la calle viaja en cada arista: es lo que permite la
+        // guía paso a paso accesible ("gira a la izquierda en Calle Feria…").
+        const nombreCalle = (feature.properties && feature.properties.name) || '';
+        for (let i = 0; i < anillo.length - 1; i++) {
+          const a = anillo[i], b = anillo[i + 1];
+          const idxA = getNodoIdx(a[0], a[1]);
+          const idxB = getNodoIdx(b[0], b[1]);
+          const longitudM = turf.distance(a, b, { units: 'meters' });
+          if (longitudM <= 0) continue;
+          adj[idxA].push({ to: idxB, longitudM, nombre: nombreCalle });
+          adj[idxB].push({ to: idxA, longitudM, nombre: nombreCalle });
         }
+      }
+    });
+
+    return { nodos, adj, idxPorKey };
+  }
+
+  function filtrarRedPorBBox(geojson, bbox) {
+    try {
+      const poly = turf.bboxPolygon(bbox);
+      return turf.featureCollection(geojson.features.filter((f) => {
+        try { return turf.booleanIntersects(f, poly); } catch (e) { return false; }
+      }));
+    } catch (e) {
+      return turf.featureCollection([]);
+    }
+  }
+
+  function encontrarNodoCercano(grafo, lon, lat) {
+    let mejorIdx = -1;
+    let mejorDist = Infinity;
+    for (let i = 0; i < grafo.nodos.length; i++) {
+      const n = grafo.nodos[i];
+      const d = (n[0] - lon) * (n[0] - lon) + (n[1] - lat) * (n[1] - lat);
+      if (d < mejorDist) {
+        mejorDist = d;
+        mejorIdx = i;
+      }
+    }
+    return mejorIdx;
+  }
+
+  function calcularPenalizacionSolar(puntoMedio, posSol, indiceSombras) {
+    if (!posSol || posSol.altitude <= 0) return 0;
+    try {
+      // Con índice espacial (rutas): consulta directa a la celda del punto.
+      // Sin índice (otros llamantes): el recorrido clásico de siempre.
+      // Sombra de edificios + sombra de árboles: ambas refrescan el paso.
+      if (indiceSombras && indiceSombras.size) {
+        if (indiceSombras.consultar(puntoMedio[0], puntoMedio[1])) return 0;
+      } else {
+        const sombras = typeof obtenerTodasLasSombras === 'function'
+          ? obtenerTodasLasSombras()
+          : ((typeof ultimaColeccionSombras !== 'undefined' && ultimaColeccionSombras && ultimaColeccionSombras.features) ? ultimaColeccionSombras.features : []);
+        for (const poligono of sombras) {
+          if (turf.booleanPointInPolygon(turf.point(puntoMedio), poligono)) return 0;
+        }
+      }
+    } catch (e) { /* no hay sombras calculadas todavía */ }
+    const intensidad = Math.max(0, Math.sin(posSol.altitude));
+    // Nubosidad real (OpenWeatherMap vía /clima): la nube difunde la
+    // radiación directa, así que el sol "quema menos" y exponerte a él
+    // penaliza menos en el Dijkstra térmico. Máximo -85%: ni con el cielo
+    // cubierto del todo la sombra deja de ser el sitio más fresco.
+    const factorSolNubes = 1 - (typeof nubosidadActual !== 'undefined' ? nubosidadActual : 0) * 0.85;
+    return CONFIG.factorPenalizacionSol * intensidad * factorSolNubes;
+  }
+
+  function dijkstraTermico(grafo, inicioIdx, finIdx, posSol, indiceSombras) {
+    const n = grafo.nodos.length;
+    const dist = new Float64Array(n).fill(Infinity);
+    const prev = new Int32Array(n).fill(-1);
+    const visitado = new Uint8Array(n);
+
+    dist[inicioIdx] = 0;
+    const heap = new MinHeap();
+    heap.push({ nodo: inicioIdx, dist: 0 });
+    // La penalización de cada arista es FIJA durante todo el cálculo
+    // (mismo punto medio, mismo sol): se memoriza y cada arista se
+    // evalúa una sola vez aunque Dijkstra la relaje varias (sep-2026).
+    const penalizacionPorArista = new Map();
+
+    while (!heap.isEmpty()) {
+      const actual = heap.pop();
+      if (!actual) break;
+      const u = actual.nodo;
+      if (visitado[u]) continue;
+      visitado[u] = 1;
+      if (u === finIdx) break;
+
+      const ux = grafo.nodos[u][0], uy = grafo.nodos[u][1];
+      for (let i = 0; i < grafo.adj[u].length; i++) {
+        const arista = grafo.adj[u][i];
+        const v = arista.to;
+        if (visitado[v]) continue;
+
+        const vx = grafo.nodos[v][0], vy = grafo.nodos[v][1];
+        const claveArista = u * n + v;
+        let penalizacion = penalizacionPorArista.get(claveArista);
+        if (penalizacion === undefined) {
+          const puntoMedio = [(ux + vx) * 0.5, (uy + vy) * 0.5];
+          penalizacion = calcularPenalizacionSolar(puntoMedio, posSol, indiceSombras);
+          penalizacionPorArista.set(claveArista, penalizacion);
+        }
+        const peso = arista.longitudM * (1 + penalizacion);
+
+        const nuevaDist = dist[u] + peso;
+        if (nuevaDist < dist[v]) {
+          dist[v] = nuevaDist;
+          prev[v] = u;
+          heap.push({ nodo: v, dist: nuevaDist });
+        }
+      }
+    }
+
+    if (dist[finIdx] === Infinity) return { camino: [], caminoIdx: [], costeTermicoM: Infinity };
+
+    const camino = [];
+    const caminoIdx = [];
+    for (let at = finIdx; at !== -1; at = prev[at]) {
+      camino.push(grafo.nodos[at]);
+      caminoIdx.push(at);
+    }
+    camino.reverse();
+    caminoIdx.reverse();
+    return { camino, caminoIdx, costeTermicoM: dist[finIdx] };
+  }
+
+  async function calcularRutaDijkstraTermico(origen, destino) {
+    const t0 = performance.now();
+
+    const lineaOD = turf.lineString([[origen.lon, origen.lat], [destino.lon, destino.lat]]);
+    const bboxBase = turf.bboxPolygon(turf.bbox(lineaOD));
+    const bboxAmpliado = turf.bbox(turf.buffer(bboxBase, CONFIG.redPeatonalMargenM, { units: 'meters' }));
+    const redCompleta = await obtenerRedPeatonal(bboxAmpliado, [origen, destino]);
+    if (!redCompleta) throw new Error('Red peatonal no disponible (ni local ni Overpass)');
+
+    const redFiltrada = filtrarRedPorBBox(redCompleta, bboxAmpliado);
+    if (!redFiltrada.features.length) throw new Error('La red peatonal no cubre el área de la ruta');
+
+    const grafo = construirGrafoDesdeGeojson(redFiltrada);
+    if (grafo.nodos.length > CONFIG.maxNodosRedPeatonal) {
+      throw new Error('La red peatonal filtrada es demasiado densa para este cálculo');
+    }
+
+    const inicioIdx = encontrarNodoCercano(grafo, origen.lon, origen.lat);
+    const finIdx = encontrarNodoCercano(grafo, destino.lon, destino.lat);
+    if (inicioIdx === -1 || finIdx === -1) throw new Error('No se ha podido enganchar origen/destino a la red peatonal');
+
+    const centro = { lat: (origen.lat + destino.lat) * 0.5, lon: (origen.lon + destino.lon) * 0.5 };
+    const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+
+    // La colección de sombras y su índice espacial se preparan UNA vez
+    // por ruta. Antes se reconstruían en CADA arista del Dijkstra (con
+    // el serialize() de la capa de árboles incluido) y la web entera se
+    // quedaba pillada al buscar una ruta de sombras (sep-2026).
+    const sombrasParaCobertura = typeof obtenerTodasLasSombras === 'function'
+      ? obtenerTodasLasSombras()
+      : (ultimaColeccionSombras?.features || []);
+    const indiceSombrasRuta = crearIndiceSombras(sombrasParaCobertura);
+
+    const resultado = dijkstraTermico(grafo, inicioIdx, finIdx, posSol, indiceSombrasRuta);
+    if (resultado.camino.length < 2) throw new Error('Dijkstra térmico no ha encontrado camino');
+
+    const distanciaRealKm = turf.length(turf.lineString(resultado.camino), { units: 'kilometers' });
+    const duracionMin = (distanciaRealKm / CONFIG.velocidadCaminandoKmh) * 60;
+
+    let coberturaSombraPct = null;
+    if (sombrasParaCobertura.length) {
+      try {
+        const lineaRuta = turf.lineString(resultado.camino);
+        coberturaSombraPct = Math.round(calcularCoberturaSombra(lineaRuta, sombrasParaCobertura, indiceSombrasRuta) * 100);
+      } catch (e) { /* el badge se actualizará después con los tramos en sombra */ }
+    }
+
+    if (window.MANOLIT_DEBUG) console.log(`[Dijkstra térmico] ${resultado.camino.length} nodos · coste ${resultado.costeTermicoM.toFixed(1)} m · ${(performance.now() - t0).toFixed(2)} ms`);
+
+    let pasos = [];
+    let pasosGuiados = [];
+    try {
+      const generados = generarPasosDesdeGrafo(grafo, resultado.caminoIdx, sombrasParaCobertura);
+      pasos = generados.pasos;
+      pasosGuiados = generados.guiados;
+    } catch (e) {
+      console.debug('No se han podido generar las indicaciones de la ruta:', e);
+    }
+
+    return {
+      geojson: { type: 'LineString', coordinates: resultado.camino },
+      distanciaKm: distanciaRealKm.toFixed(2),
+      duracionMin: Math.round(duracionMin),
+      esReal: true,
+      duracionEstimada: true,
+      coberturaSombraPct,
+      esDijkstraTermico: true,
+      pasos,
+      pasosGuiados,
+    };
+  }
+
+  // Avisa (si existe) a la capa de árboles de que recalcule sus sombras
+  // con la hora actual. Se centraliza aquí para no olvidar ningún sitio.
+  function sincronizarArboles() {
+    try {
+      if (typeof window.manolitAireRecalcularArboles === 'function') {
+        window.manolitAireRecalcularArboles();
+      }
+    } catch (e) {
+      console.debug('No se ha podido sincronizar la sombra de los árboles:', e);
+    }
+  }
+
+  const mapEl = document.getElementById('shadowRouteMap');
+  if (!mapEl) return;
+
+  const contenedorMapa = mapEl.parentElement || mapEl;
+  if (getComputedStyle(contenedorMapa).position === 'static') {
+    contenedorMapa.style.position = 'relative';
+  }
+
+  /* ---------------- Mapa MapLibre con edificios 3D reales ---------------- */
+
+  /* ---------------- Ahorro de batería/CPU: detección de gama baja --------
+     Si el dispositivo tiene ≤4 núcleos o ≤4 GB de RAM, renderizamos el
+     canvas WebGL a densidad 1 (en vez de 2-3 en pantallas retina) y
+     omitimos los efectos más caros (halo atmosférico de las sombras). */
+  const esGamaBaja = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
+    || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+
+  // Caché persistente (localStorage) con caducidad, para no repetir llamadas
+  // a APIs externas (aire, nubosidad) cuando el dato aún es reciente.
+  function cacheLocalObtener(clave, ttlMs) {
+    try {
+      const crudo = localStorage.getItem(clave);
+      if (!crudo) return null;
+      const entrada = JSON.parse(crudo);
+      if (!entrada || typeof entrada.t !== 'number' || Date.now() - entrada.t > ttlMs) return null;
+      return entrada.v;
+    } catch (e) { return null; }
+  }
+  function cacheLocalGuardar(clave, valor) {
+    try { localStorage.setItem(clave, JSON.stringify({ t: Date.now(), v: valor })); } catch (e) { /* almacenamiento lleno o privado */ }
+  }
+  const CACHE_AIRE_TTL_MS = 10 * 60 * 1000;   // el aire no cambia en minutos
+  const CACHE_CLIMA_TTL_MS = 10 * 60 * 1000;  // OWM actualiza cada ~10 min
+
+ const map = new maplibregl.Map({
+    container: 'shadowRouteMap',
+    style: CONFIG.styleUrlClaro,
+    center: CONFIG.centroInicial,
+    zoom: Math.max(CONFIG.zoomInicial - 2.3, 1),
+    pitch: 0,
+    bearing: 0,
+    // Mirar arriba SIN corte (sep-2026, orden de Sandro): el tope de
+    // inclinación sube de 60° (el de fábrica) a 85°, el máximo físico de
+    // MapLibre. De cerca puedes levantar la vista hasta el horizonte y
+    // las fachadas ya no se cortan a media altura.
+    maxPitch: 85,
+    // Rendimiento (sep-2026): tope de resolución del canvas. Un móvil con
+    // devicePixelRatio 3 pinta NUEVE veces más píxeles que uno con DPR 1: es
+    // la mayor fuente de calor al mover el mapa. Con tope 2 la imagen sigue
+    // nítida en pantallas densas y el coste gráfico baja a menos de la mitad.
+    pixelRatio: esGamaBaja ? 1 : Math.min(window.devicePixelRatio || 1, 2),
+    attributionControl: true
+});
+
+// AHORA SÍ: El mapa está creado, lo pasamos a global para que los árboles lo enganchen
+window.manolitAireMap = map;
+// Controles nativos de MapLibre retirados (sep-2026, orden de Sandro):
+// el zoom salía dos veces y los mandos estaban esparcidos. Ahora TODO
+// el manejo del mapa vive en una única botonera (inyectarControlesCamara):
+// zoom, inclinación, norte y pantalla completa, juntos.
+// Pantalla completa nativa (botón en la esquina del mapa). Al entrar/salir
+// el canvas cambia de tamaño y MapLibre hay que avisarlo con resize(), si
+// no el mapa se queda estirado o con bandas negras.
+// Pantalla completa propia (botón en la esquina del mapa). El control
+// nativo de MapLibre usa la Fullscreen API del navegador, que en iPhone
+// NO existe para elementos normales (solo vídeos): el botón no hacía
+// nada. Aquí hay dos caminos:
+//   1) Si el navegador sí soporta fullscreen real (Android, portátil),
+//      se usa el nativo, que además oculta la barra del navegador.
+//   2) Si no (iPhone), se aplica una clase CSS que fija el mapa a toda
+//      la pantalla (100dvh) por encima de todo. Mismo resultado visual.
+// En ambos casos se avisa a MapLibre con resize() para que el canvas no
+// se quede estirado ni con bandas, y ESC / volver a pulsar sale.
+class ManolitoPantallaCompleta {
+  onAdd(m) {
+    this._map = m;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'maplibregl-ctrl-icon manolito-fs-btn';
+    btn.title = 'Pantalla completa';
+    btn.setAttribute('aria-label', 'Pantalla completa');
+    btn.setAttribute('aria-pressed', 'false');
+    btn.addEventListener('click', () => this._alternar(btn));
+    const grupo = document.createElement('div');
+    grupo.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    grupo.appendChild(btn);
+    this._grupo = grupo;
+    this._btn = btn;
+    return grupo;
+  }
+  onRemove() {
+    this._salirFallback();
+    if (this._grupo) this._grupo.remove();
+    this._map = undefined;
+  }
+  // La pantalla completa se pide sobre el CONTENEDOR PADRE del mapa
+  // (.map-wrap), no sobre el lienzo: así la botonera de cámara, el
+  // joystick del paseo y el panel de la hora solar (que viven en el
+  // wrap) siguen visibles y usables a pantalla completa, igual que en
+  // el plan B CSS de iPhone.
+  _objetivoFs() {
+    const cont = this._map.getContainer();
+    return cont.parentElement || cont;
+  }
+  _nativoDisponible() {
+    const el = this._objetivoFs();
+    return !!(document.fullscreenEnabled && el.requestFullscreen);
+  }
+  _dentroFallback() {
+    return document.body.classList.contains('manolito-fs');
+  }
+  _entrarFallback() {
+    document.body.classList.add('manolito-fs');
+    this._btn.setAttribute('aria-pressed', 'true');
+    this._btn.classList.add('manolito-fs-activo');
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 60);
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 350);
+  }
+  _salirFallback() {
+    if (!this._dentroFallback()) return;
+    document.body.classList.remove('manolito-fs');
+    if (this._btn) {
+      this._btn.setAttribute('aria-pressed', 'false');
+      this._btn.classList.remove('manolito-fs-activo');
+    }
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 60);
+    setTimeout(() => { try { this._map.resize(); } catch (e) {} }, 350);
+  }
+  _alternar() {
+    if (this._dentroFallback()) {
+      this._salirFallback();
+      // Por si alguna vez coinciden los dos caminos a la vez (el nativo
+      // tarda más de 500 ms en responder), salir también del nativo.
+      if (document.fullscreenElement) {
+        try { document.exitFullscreen(); } catch (e) {}
+      }
+      return;
+    }
+    if (document.fullscreenElement) {
+      try { document.exitFullscreen(); } catch (e) {}
+      return;
+    }
+    if (this._nativoDisponible()) {
+      const el = this._objetivoFs();
+      // iPhone a veces ACEPTA la llamada y luego no hace nada: ni entra
+      // en pantalla completa ni rechaza la promesa. Por eso hay dos
+      // guardianes: el catch de la promesa y una comprobación a los
+      // 500 ms; si no hay fullscreen real, entra el plan B CSS.
+      let fallado = false;
+      const alFallar = () => {
+        if (fallado) return;
+        fallado = true;
+        this._entrarFallback();
+      };
+      try {
+        const promesa = el.requestFullscreen({ navigationUI: 'hide' });
+        if (promesa && promesa.catch) promesa.catch(alFallar);
+        setTimeout(() => { if (!document.fullscreenElement) alFallar(); }, 500);
+      } catch (e) {
+        alFallar();
+      }
+    } else {
+      this._entrarFallback();
+    }
+  }
+}
+const controlPantallaCompleta = new ManolitoPantallaCompleta();
+// Ya no se añade como control aparte de MapLibre: su botón vive en la
+// botonera única de cámara (inyectarControlesCamara), que le pasa el
+// mapa y el botón a mano. La clase y sus dos caminos (nativo y plan B
+// CSS para iPhone) son los mismos de siempre.
+document.addEventListener('fullscreenchange', () => {
+  try { map.resize(); } catch (e) { /* mapa a medio crear */ }
+  // El icono del botón también cambia cuando el fullscreen es nativo
+  // (Android y ordenador), incluido salir con ESC.
+  const enNativo = !!document.fullscreenElement;
+  const btnFs = document.querySelector('.manolito-fs-btn');
+  if (btnFs) {
+    btnFs.setAttribute('aria-pressed', enNativo ? 'true' : 'false');
+    btnFs.classList.toggle('manolito-fs-activo', enNativo);
+  }
+});
+// En el modo fallback (iPhone), ESC y el gesto de volver también salen.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') controlPantallaCompleta._salirFallback();
+});
+window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback());
+
+  // El estilo base pide iconos (office, gate, swimming_pool...) que su sprite
+  // no incluye: MapLibre llenaba la consola de avisos "Image could not be
+  // loaded". Servimos un píxel transparente bajo demanda y silencio total.
+  map.on('styleimagemissing', (e) => {
+    try {
+      if (!map.hasImage(e.id)) {
+        map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
+      }
+    } catch (err) { /* estilo a medio cargar */ }
+  });
+  let capaEdificiosDisponible = false;
+  let edificiosCacheados = [];
+  // Centroide de cada edificio cacheado (mismo orden), para no repetir
+  // turf.centroid por edificio en cada pasada del slider.
+  let centroidesEdificiosCacheados = [];
+  let cieloSolActivo = false;
+
+  /* ----- Estado: modo peatón virtual (cámara libre) ----- */
+  let paseoActivo = false;
+  let paseoRafId = null;
+  let paseoUltimoFrame = 0;
+  let paseoOrigenMercator = null;
+  let paseoMetrosAU = 0; // metros a unidades mercator
+  let paseoJugador = { x: 0, y: 0, bearing: 0 };
+  let paseoVelocidadSuavizada = 0; // inercia lineal
+  let paseoGiroSuavizado = 0;     // inercia angular
+  let paseoToques = new Map(); // pointerId -> {x,y}
+  let paseoJoystick = { active:false, startX:0, startY:0, dx:0, dy:0, pointerId:null };
+  let paseoEstadoPrevio = null; // snapshot del mapa antes de entrar, para restaurarlo al salir
+  let paseoUltimaSincroMs = 0;
+
+  // Registro global de teclas para el paseo 3D
+  const keysDown = new Set();
+  addEventListener('keydown', e => keysDown.add(e.code));
+  addEventListener('keyup', e => keysDown.delete(e.code));
+
+  map.on('load', () => {
+    const capas = map.getStyle().layers || [];
+    const capaEdificios = capas.find(
+      (l) => l.type === 'fill-extrusion' && /building/i.test(l.id)
+    );
+    if (capaEdificios) {
+      CONFIG.edificiosLayerId = capaEdificios.id;
+      capaEdificiosDisponible = true;
+      try {
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', [
+          'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+          0, '#8fb3e8',
+          30, '#5f8fd6',
+          70, '#3f6bc0',
+          140, '#274a96'
+        ]);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-opacity', 0.93);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-vertical-gradient', true);
+      } catch (e) {
+        console.debug('No se ha podido aplicar el color vivo a los edificios:', e);
+      }
+    }
+
+    map.addSource('sombras-halo', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer(
+      {
+        id: 'capa-sombras-halo',
+        type: 'fill',
+        source: 'sombras-halo',
+        paint: { 'fill-color': '#0b1220', 'fill-opacity': 0.10 },
+      },
+      capaEdificiosDisponible ? CONFIG.edificiosLayerId : undefined
+    );
+
+    map.addSource('sombras', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer(
+      {
+        id: 'capa-sombras',
+        type: 'fill',
+        source: 'sombras',
+        paint: { 'fill-color': '#0b1220', 'fill-opacity': 0.34 },
+      },
+      capaEdificiosDisponible ? CONFIG.edificiosLayerId : undefined
+    );
+
+    // Blindaje de orden: si el estilo se recarga (cambio de tema, estilo
+    // oscuro/claro, etc.) las capas planas de sombra deben quedar SIEMPRE
+    // por debajo de la extrusión 3D de los edificios, para que el edificio
+    // tape físicamente cualquier fragmento de sombra en su base.
+    map.on('styledata', () => {
+      if (!capaEdificiosDisponible || !map.getLayer(CONFIG.edificiosLayerId)) return;
+      try {
+        if (map.getLayer('capa-sombras-halo')) map.moveLayer('capa-sombras-halo', CONFIG.edificiosLayerId);
+        if (map.getLayer('capa-sombras')) map.moveLayer('capa-sombras', CONFIG.edificiosLayerId);
+      } catch (e) { /* el estilo está a medio cargar; se reintentará */ }
+    });
+
+    // Sombra recibida EN los edificios: las fachadas que caen dentro de la
+    // sombra de otro edificio se oscurecen también en 3D, no solo el suelo.
+    // Es una extrusión oscura semitransparente con la MISMA huella y altura
+    // del edificio, dibujada por encima de la extrusión normal.
+    map.addSource('edificios-en-sombra', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-edificios-en-sombra',
+      type: 'fill-extrusion',
+      source: 'edificios-en-sombra',
+      paint: {
+        'fill-extrusion-color': '#0b1220',
+        'fill-extrusion-opacity': 0.5,
+        'fill-extrusion-height': ['coalesce', ['get', 'alturaSombra'], 0],
+        'fill-extrusion-base': 0,
+        'fill-extrusion-vertical-gradient': false,
+      },
+    });
+
+    map.addSource('ruta', { type: 'geojson', data: turf.featureCollection([]) });
+    // Outline para que la ruta no se confunda con calles del mapa
+    map.addLayer({
+      id: 'capa-ruta-outline',
+      type: 'line',
+      source: 'ruta',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#1a0d00', 'line-width': 9, 'line-opacity': 0.85 },
+    });
+    map.addLayer({
+      id: 'capa-ruta-glow',
+      type: 'line',
+      source: 'ruta',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#ff9500', 'line-width': 11, 'line-opacity': 0.35, 'line-blur': 8 },
+    });
+    map.addLayer({
+      id: 'capa-ruta',
+      type: 'line',
+      source: 'ruta',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#ff7b00', 'line-width': 5, 'line-opacity': 1 },
+    });
+
+    map.addSource('ruta-sombra', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-ruta-sombra-outline',
+      type: 'line',
+      source: 'ruta-sombra',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#00151a', 'line-width': 9, 'line-opacity': 0.9 },
+    });
+    map.addLayer({
+      id: 'capa-ruta-sombra',
+      type: 'line',
+      source: 'ruta-sombra',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#00d4ff', 'line-width': 5, 'line-opacity': 0.95 },
+    });
+
+    // Tramo ya recorrido (sep-2026, a lo Google Maps): la parte de la ruta
+    // que ya has andado se pinta en gris POR ENCIMA de la naranja y del
+    // cian de sombra, así de un vistazo ves lo que te queda. La fuente
+    // nace vacía y la rellena pintarTramoRecorrido() con el GPS.
+    map.addSource('ruta-recorrida', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-ruta-recorrida',
+      type: 'line',
+      source: 'ruta-recorrida',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#9aa0a6', 'line-width': 6, 'line-opacity': 0.95 },
+    });
+
+    map.addSource('puntos-manuales', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-puntos-manuales',
+      type: 'circle',
+      source: 'puntos-manuales',
+      paint: {
+        'circle-radius': 7,
+        'circle-color': leerVar('--accent') || '#0eedc0',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#FBFAF7',
+      },
+    });
+
+    map.addSource('precision-ubicacion', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer(
+      {
+        id: 'capa-precision-ubicacion',
+        type: 'fill',
+        source: 'precision-ubicacion',
+        paint: { 'fill-color': leerVar('--accent') || '#00f2ff', 'fill-opacity': 0.12 },
+      },
+      'capa-puntos-manuales'
+    );
+    map.addLayer(
+      {
+        id: 'capa-precision-ubicacion-borde',
+        type: 'line',
+        source: 'precision-ubicacion',
+        paint: { 'line-color': leerVar('--accent') || '#00f2ff', 'line-width': 1, 'line-opacity': 0.4 },
+      },
+      'capa-puntos-manuales'
+    );
+
+    inyectarControlesTiempo();
+    inyectarControlesMapa();
+    inyectarSolVisual();
+    inyectarBadgeSombra();
+    conectarTogglesDeCapas();
+    // Velo de sombra macro de las nubes + primera consulta de nubosidad real
+    inyectarSombraNubes();
+    refrescarNubosidad(true);
+    // Capa raster con las nubes reales (tiles OWM vía proxy del Worker)
+    instalarCapaNubes();
+
+    // MOTOR SOLAR BAJO DEMANDA (sep-2026): antes se auto-activaba nada más
+    // cargar el mapa y el móvil empezaba a calcular sombras (Turf.js sobre
+    // todos los edificios) aunque el usuario solo quisiera VER el mapa:
+    // de ahí el calentamiento a los 2 minutos sin tocar nada. Ahora el
+    // motor duerme hasta que alguien encienda la casilla «Sombras», pida
+    // una ruta, entre al paseo o toque el slider de hora. El mapa se ve
+    // exactamente igual (edificios 3D, nubes, árboles), simplemente sin
+    // sombras proyectadas hasta que las pidas.
+    map.once('idle', () => {
+      // Solo despierta si el usuario ya había pedido sombras explícitamente.
+      if (document.getElementById('rsToggleSombras')?.checked && !ultimaColeccionSombras.features.length) {
+        asegurarActivacionSolar();
+        recalcularSombrasVisibles();
+      }
+    });
+
+    setTimeout(() => {
+      map.easeTo({
+        pitch: CONFIG.pitchInicial,
+        bearing: CONFIG.bearingInicial,
+        zoom: CONFIG.zoomInicial,
+        duration: CONFIG.duracionVueloInicialMs,
+        essential: true,
+      });
+    }, 150);
+  });
+
+  const alTerminarMovimiento = crearDebounce(() => {
+    if (!solarActivado || paseoActivo) return;
+    actualizarCacheEdificios();
+    if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
+    sincronizarArboles();
+  }, 220);
+  map.on('moveend', alTerminarMovimiento);
+
+  // Rendimiento (sep-2026, ADITIVO): el marcador del sol se mueve como mucho
+  // 1 vez por frame (requestAnimationFrame). Antes se recalculaba en CADA
+  // evento 'move', decenas por segundo al arrastrar el mapa, y eso
+  // calentaba el móvil sin cambiar nada visible.
+  let solRafPendiente = false;
+  map.on('move', () => {
+    if (solRafPendiente) return;
+    solRafPendiente = true;
+    requestAnimationFrame(() => { solRafPendiente = false; actualizarSolVisualEnMapa(); });
+  });
+
+  let solarActivado = false;
+  function asegurarActivacionSolar() {
+    if (solarActivado) return;
+    solarActivado = true;
+    actualizarCacheEdificios();
+  }
+
+  // Altura del edificio con la mejor fuente disponible. Muchos edificios
+  // reales no tienen 'height' en los datos abiertos (sobre todo bloques
+  // modernos fuera del centro): antes caían a 9 m y su sombra salía tres
+  // veces más corta que la real. Ahora se prueba altura exacta, altura de
+  // renderizado, número de plantas × 3.2 m y, por último, 13 m (unas 4
+  // plantas, lo típico urbano), la sombra se acerca mucho más a la calle.
+  function alturaDeEdificio(props) {
+    if (!props) return CONFIG.alturaPorDefectoM;
+    const directa = Number(props.height ?? props.render_height);
+    if (isFinite(directa) && directa > 0) return directa;
+    const plantas = Number(props.levels ?? props['building:levels'] ?? props.render_levels);
+    if (isFinite(plantas) && plantas > 0) return plantas * CONFIG.alturaPorPlantaM;
+    return CONFIG.alturaPorDefectoM;
+  }
+
+  function actualizarCacheEdificios() {
+    if (!capaEdificiosDisponible || !map.getLayer(CONFIG.edificiosLayerId)) return;
+    const crudos = map.queryRenderedFeatures({ layers: [CONFIG.edificiosLayerId] });
+    // Las teselas de zoom bajo traen los edificios FUSIONADOS en
+    // MultiPolygons de miles de partes (un solo feature puede ser media
+    // ciudad). Si se usan tal cual, se generan miles de sombras
+    // superpuestas: el móvil se ahoga y el mapa pinta sombra donde hay sol.
+    // Aquí se descomponen en edificios individuales, se deduplican los que
+    // se repiten al cruzar bordes de tesela y se descartan restos diminutos.
+    // Margen del 20% alrededor de la vista: las sombras de edificios que
+    // están JUSTO fuera de pantalla entran en ella (sobre todo al atardecer,
+    // con sombras largas). Sin ese colchón aparecían huecos de sol falsos
+    // en los bordes del mapa.
+    const vista = map.getBounds();
+    const margenLon = Math.max(0.0015, (vista.getEast() - vista.getWest()) * 0.2);
+    const margenLat = Math.max(0.0015, (vista.getNorth() - vista.getSouth()) * 0.2);
+    const cajaVista = [
+      vista.getWest() - margenLon,
+      vista.getSouth() - margenLat,
+      vista.getEast() + margenLon,
+      vista.getNorth() + margenLat,
+    ];
+    const vistos = new Set();
+    const candidatos = [];
+    const centroVista = map.getCenter();
+    for (const f of crudos) {
+      const geom = f && f.geometry;
+      if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
+      let partes;
+      try {
+        partes = turf.flatten(turf.feature(geom)).features;
+      } catch (e) { continue; }
+      for (const parte of partes) {
+        const anillo = parte.geometry && parte.geometry.coordinates && parte.geometry.coordinates[0];
+        if (!anillo || anillo.length < 4) continue;
+        const clave = anillo[0][0].toFixed(5) + ',' + anillo[0][1].toFixed(5) + ':' + anillo.length;
+        if (vistos.has(clave)) continue;
+        vistos.add(clave);
+        let cajaParte;
+        try { cajaParte = turf.bbox(parte); } catch (e) { continue; }
+        if (cajaParte[0] > cajaVista[2] || cajaParte[2] < cajaVista[0]
+          || cajaParte[1] > cajaVista[3] || cajaParte[3] < cajaVista[1]) continue;
+        let distanciaCentro = 0;
+        let centroideParte = null;
+        try {
+          // El centroide se guarda también para la capa "edificios en
+          // sombra": así no se recalcula con turf.centroid por edificio en
+          // cada pasada del slider (era lo más caro de esa capa).
+          centroideParte = turf.centroid(parte).geometry.coordinates;
+          distanciaCentro = turf.distance(
+            centroideParte, [centroVista.lng, centroVista.lat],
+            { units: 'kilometers' }
+          );
+        } catch (e) { /* distancia 0: va al principio igualmente */ }
+        candidatos.push({
+          edificio: { type: 'Feature', properties: f.properties || {}, geometry: parte.geometry },
+          distanciaCentro,
+          centroide: centroideParte,
+        });
+      }
+    }
+    // Orden por cercanía al centro (informativo; ya no hay tope que recorte).
+    candidatos.sort((a, b) => a.distanciaCentro - b.distanciaCentro);
+    const elegidos = CONFIG.maxEdificiosSombra > 0
+      ? candidatos.slice(0, CONFIG.maxEdificiosSombra)
+      : candidatos;
+    edificiosCacheados = elegidos.map((candidato) => candidato.edificio);
+    centroidesEdificiosCacheados = elegidos.map((candidato) => candidato.centroide);
+  }
+
+  /* ---------------- Sombras reales: sol + altura de edificios ---------------- */
+
+  function unirDosPoligonos(a, b) {
+    try {
+      const r = turf.union(turf.featureCollection([a, b]));
+      if (r) return r;
+    } catch (e) { /* probamos la otra firma */ }
+    try {
+      const r = turf.union(a, b);
+      if (r) return r;
+    } catch (e) { /* nos quedamos con lo que había */ }
+    return a;
+  }
+
+  function calcularVolumenSombra(poligonoSimple, distanciaKm, bearingSombra) {
+    // v7, SOMBRA POR BARRIDO REAL (antes: envolvente convexa).
+    // La envolvente convexa RELLENABA los huecos de los edificios no
+    // convexos: en bloques con patio interior, eses o uves pintaba
+    // sombra eterna donde en realidad da el sol («la sombra no se va
+    // nunca», el fallo que reportó Sandro). Ahora:
+    //   1) El contorno es el BARRIDO real de la huella en la dirección
+    //      de la sombra: cadena de silueta quieta + cadena desplazada.
+    //      O(n), sin booleanos caros, exacto para convexos y fiel en
+    //      patios/eses (verificado contra el barrido denso real:
+    //      área idéntica al m²).
+    //   2) Los PATIOS interiores conservan su sol: se descuenta la zona
+    //      del patio a la que llega el sol (patio ∩ patio retrocorrido
+    //      una sombra, exacto para patios convexos).
+    //   Respaldo ante geometrías raras: envolvente convexa (el método
+    //   viejo) y, si ni eso, la huella sin desplazar.
+    try {
+      const anillos = poligonoSimple.geometry && poligonoSimple.geometry.coordinates;
+      const anillo = anillos && anillos[0];
+      if (!anillo || anillo.length < 4) return poligonoSimple;
+
+      // Vector de barrido en grados (aproximación local: sombras < 1 km)
+      const rad = (bearingSombra * Math.PI) / 180;
+      const cosLat = Math.max(0.087, Math.cos((anillo[0][1] * Math.PI) / 180));
+      const dLon = (distanciaKm * Math.sin(rad)) / (111.32 * cosLat);
+      const dLat = (distanciaKm * Math.cos(rad)) / 110.574;
+
+      // Sol casi a pico: la sombra es prácticamente la huella del edificio.
+      if (Math.abs(dLon) + Math.abs(dLat) < 1e-9) return poligonoSimple;
+
+      const n = anillo.length - 1; // el último vértice repite al primero
+      if (n < 3) return poligonoSimple;
+
+      // Vértices tangentes: extremos laterales respecto a la sombra
+      const perpX = -dLat, perpY = dLon;
+      let iMin = 0, iMax = 0, wMin = Infinity, wMax = -Infinity;
+      for (let i = 0; i < n; i++) {
+        const w = anillo[i][0] * perpX + anillo[i][1] * perpY;
+        if (w < wMin) { wMin = w; iMin = i; }
+        if (w > wMax) { wMax = w; iMax = i; }
+      }
+
+      // Las dos cadenas entre los tangentes: una queda quieta (lado
+      // contrario a la sombra) y la otra se desplaza con la sombra.
+      const cadenaA = [];
+      for (let i = iMin; ; i = (i + 1) % n) { cadenaA.push(anillo[i]); if (i === iMax) break; }
+      const cadenaB = [];
+      for (let i = iMax; ; i = (i + 1) % n) { cadenaB.push(anillo[i]); if (i === iMin) break; }
+      const proy = (p) => p[0] * dLon + p[1] * dLat;
+      const mediaA = cadenaA.reduce((s, p) => s + proy(p), 0) / cadenaA.length;
+      const mediaB = cadenaB.reduce((s, p) => s + proy(p), 0) / cadenaB.length;
+      const quieta = mediaA <= mediaB ? cadenaA : cadenaB;
+      const movida = mediaA <= mediaB ? cadenaB : cadenaA;
+
+      const contorno = quieta.concat(movida.map((p) => [p[0] + dLon, p[1] + dLat]));
+      contorno.push(contorno[0]); // cerrar el anillo
+      const anillosSombra = [contorno];
+
+      // PATIOS: el sol entra en el trozo de patio que «ve» el cielo en
+      // la dirección del sol (patio ∩ patio retrocorrido una sombra).
+      for (let h = 1; h < anillos.length; h++) {
+        const patio = anillos[h];
+        if (!patio || patio.length < 4) continue;
+        const patioRetraido = patio.map((p) => [p[0] - dLon, p[1] - dLat]);
+        try {
+          const soleado = turf.intersect(turf.polygon([patio]), turf.polygon([patioRetraido]));
+          if (soleado && soleado.geometry) {
+            const huecos = soleado.geometry.type === 'Polygon'
+              ? [soleado.geometry.coordinates[0]]
+              : soleado.geometry.coordinates.map((g) => g[0]);
+            for (const hueco of huecos) anillosSombra.push(hueco);
+          }
+        } catch (e2) { /* patio raro: se queda sombreado entero */ }
+      }
+
+      return turf.polygon(anillosSombra, poligonoSimple.properties || {});
+    } catch (e) {
+      // Geometría rara: envolvente convexa (el método viejo) y, si ni
+      // eso funciona, la huella sin desplazar.
+      try {
+        const anillo = poligonoSimple.geometry.coordinates[0];
+        const puntos = [];
+        for (let i = 0; i < anillo.length; i++) {
+          puntos.push(turf.point(anillo[i]));
+          puntos.push(turf.transformTranslate(turf.point(anillo[i]), distanciaKm, bearingSombra, { units: 'kilometers' }));
+        }
+        const envolvente = turf.convex(turf.featureCollection(puntos));
+        if (envolvente) return envolvente;
+      } catch (e2) { /* seguimos al respaldo final */ }
+      return poligonoSimple;
+    }
+  }
+
+  function obtenerHoraEfectiva() {
+    return modoManual ? obtenerFechaDelSlider() : new Date();
+  }
+
+  // Expuesto para que cualquier otro script (árboles, etc.) use SIEMPRE
+  // la misma hora "efectiva" que el slider de tiempo, en vez de tirar de
+  // su propio new Date(). Esto es lo que faltaba para que las sombras de
+  // los árboles se movieran igual que las de los edificios.
+  window.manolitAireHoraEfectiva = () => obtenerHoraEfectiva();
+
+  // Mismo punto de referencia solar que usan los edificios (el origen de
+  // la ruta, tu posición al caminar, etc.), en vez de un centro de mapa
+  // potencialmente distinto.
+  window.manolitAireCentroSol = () => {
+    const c = centroSolarEfectivo();
+    return { lat: c.lat, lon: c.lon ?? c.lng };
+  };
+
+  let versionCalculoSombras = 0;
+  // Marca si el último barrido de sombras ya repintó los tramos de la ruta,
+  // para que aplicarCambioDeHora no lo haga DOS veces seguidas (antes cada
+  // pasada del slider lanzaba el recálculo de tramos duplicado entero).
+  let tramosSincronizadosConSombras = false;
+  let ultimaColeccionSombras = turf.featureCollection([]);
+  let reintentoIdlePendiente = false;
+
+  function limpiarCapaEdificiosEnSombra() {
+    try { map.getSource('edificios-en-sombra')?.setData(turf.featureCollection([])); } catch (e) { /* sin fuente */ }
+  }
+
+  // Oscurece en 3D los edificios cuya huella cae dentro de la sombra de OTRO
+  // edificio (cada sombra lleva properties.d = índice del edificio que la
+  // proyecta, para no oscurecer a un edificio con su propia sombra).
+  function actualizarEdificiosEnSombra(coleccionSombras) {
+    const fuente = map.getSource('edificios-en-sombra');
+    if (!fuente) return;
+    try {
+      const poligonos = (coleccionSombras && coleccionSombras.features) || [];
+      if (!poligonos.length || !edificiosCacheados.length) {
+        limpiarCapaEdificiosEnSombra();
+        return;
+      }
+      // Índice espacial de las sombras + centroides cacheados de los
+      // edificios. Antes: ~1200 turf.centroid y ~1,5 millones de pruebas
+      // de caja por cada pasada del slider. Mismo resultado exacto: una
+      // sombra tapa al edificio si su caja contiene el centroide y el
+      // punto cae dentro del polígono (la rejilla hace la misma prueba de
+      // caja, solo que una vez por sombra en vez de por pareja).
+      const indiceSombrasEd = crearIndiceSombras(poligonos);
+      const enSombra = [];
+      for (let idx = 0; idx < edificiosCacheados.length; idx++) {
+        const edificio = edificiosCacheados[idx];
+        try {
+          const centroide = centroidesEdificiosCacheados[idx] || turf.centroid(edificio).geometry.coordinates;
+          const lng = centroide[0], lat = centroide[1];
+          let tapado = false;
+          const candidatosSombra = indiceSombrasEd.consultarCandidatos(lng, lat);
+          for (let k = 0; k < candidatosSombra.length; k++) {
+            const poligonoSombra = candidatosSombra[k];
+            if (poligonoSombra.properties && poligonoSombra.properties.d === idx) continue; // su propia sombra no cuenta
+            if (turf.booleanPointInPolygon(centroide, poligonoSombra)) { tapado = true; break; }
+          }
+          if (tapado) {
+            enSombra.push({
+              type: 'Feature',
+              properties: { alturaSombra: alturaDeEdificio(edificio.properties) + 0.4 },
+              geometry: edificio.geometry,
+            });
+          }
+        } catch (e) { continue; }
+      }
+      fuente.setData(turf.featureCollection(enSombra));
+    } catch (e) {
+      limpiarCapaEdificiosEnSombra();
+    }
+  }
+
+  async function recalcularSombrasVisibles(horaOverride) {
+    if (!map.getSource('sombras')) return;
+    const miVersion = ++versionCalculoSombras;
+    tramosSincronizadosConSombras = false;
+
+    const ahora = horaOverride || obtenerHoraEfectiva();
+    const centro = centroSolarEfectivo();
+    const lat = centro.lat, lon = centro.lon ?? centro.lng;
+    const posSol = SunCalc.getPosition(ahora, lat, lon);
+    actualizarBadgeHoraDorada(ahora, lat, lon);
+
+    if (!document.getElementById('rsToggleSombras')?.checked) {
+      map.getSource('sombras').setData(turf.featureCollection([]));
+      map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+      limpiarCapaEdificiosEnSombra();
+      ultimaColeccionSombras = turf.featureCollection([]);
+      return;
+    }
+
+    if (posSol.altitude <= 0) {
+      map.getSource('sombras').setData(turf.featureCollection([]));
+      map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+      limpiarCapaEdificiosEnSombra();
+      ultimaColeccionSombras = turf.featureCollection([]);
+      mostrarAvisoSol(t('sunBelow', 'El sol está bajo el horizonte a esa hora, no hay sombras que proyectar.'));
+      return;
+    }
+    mostrarAvisoSol('');
+
+    if (!capaEdificiosDisponible) {
+      map.getSource('sombras').setData(turf.featureCollection([]));
+      map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+      limpiarCapaEdificiosEnSombra();
+      ultimaColeccionSombras = turf.featureCollection([]);
+      return;
+    }
+
+    // Antes: si la caché estaba vacía (teselas cargadas DESPUÉS del último
+    // moveend, o el usuario solo tocó el slider sin mover el mapa) se
+    // vaciaban las sombras en silencio y el mapa se quedaba "al revés":
+    // calles al sol que en la realidad tienen sombra. Ahora la caché se
+    // rellena aquí mismo, y si las teselas aún no han llegado se reintenta
+    // solo cuando el mapa termine de cargarlas (evento idle).
+    if (!edificiosCacheados.length) {
+      actualizarCacheEdificios();
+      if (!edificiosCacheados.length) {
+        if (!reintentoIdlePendiente) {
+          reintentoIdlePendiente = true;
+          let reintentoHecho = false;
+          const reintentar = () => {
+            if (reintentoHecho) return;
+            reintentoHecho = true;
+            reintentoIdlePendiente = false;
+            if (document.getElementById('rsToggleSombras')?.checked) {
+              actualizarCacheEdificios();
+              recalcularSombrasVisibles(horaOverride);
+            }
+          };
+          map.once('idle', reintentar);
+          // Red lenta o teselas que no acaban de llegar: el evento idle podría
+          // no dispararse nunca, así que hay un reintento por temporizador.
+          setTimeout(reintentar, 2500);
+        }
+        return;
+      }
+    }
+
+    const azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;
+    const bearingSombra = (azimutGrados + 180) % 360;
+
+    // CÁLCULO SÍNCRONO Y DE GOLPE (como la versión rápida de antes):
+    // proyectar la sombra de un edificio es solo una envolvente convexa
+    // (calcularVolumenSombra), así que 320 edificios se calculan en
+    // milisegundos. Ni lotes con pausa ni abortos a mitad: si el cálculo
+    // se pudiera interrumpir (versión anterior), cualquier movimiento del
+    // mapa lo cancelaba a mitad y las sombras nunca llegaban a formarse
+    // completas, por eso se veían solo unas pocas y tardaban minutos.
+    const poligonosSombra = [];
+    for (let i = 0; i < edificiosCacheados.length; i++) {
+      const edificio = edificiosCacheados[i];
+      const indiceDueno = i; // para no oscurecer un edificio con su propia sombra
+      try {
+        const altura = alturaDeEdificio(edificio.properties);
+        const longitudSombraM = altura / Math.tan(posSol.altitude);
+        if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+
+        const geom = edificio.geometry;
+        if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
+
+        const distanciaKm = longitudSombraM / 1000;
+        const partes = turf.flatten(turf.feature(geom)).features;
+        for (const parte of partes) {
+          const volumen = calcularVolumenSombra(parte, distanciaKm, bearingSombra);
+          if (volumen) {
+            volumen.properties = Object.assign({}, volumen.properties, { d: indiceDueno });
+            poligonosSombra.push(volumen);
+          }
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+
+    if (miVersion !== versionCalculoSombras) return;
+    const coleccionSombras = turf.featureCollection(poligonosSombra);
+    map.getSource('sombras')?.setData(coleccionSombras);
+    ultimaColeccionSombras = coleccionSombras;
+
+    // Y ahora el paso que faltaba: la sombra también se REFLEJA EN LOS
+    // EDIFICIOS, las fachadas tapadas por la sombra de otro edificio se
+    // oscurecen en 3D, no solo el suelo.
+    actualizarEdificiosEnSombra(coleccionSombras);
+
+    // El halo atmosférico es el efecto más caro (buffer de toda la escena):
+    // en gama baja se omite, las sombras planas ya comunican lo mismo.
+    if (!esGamaBaja && poligonosSombra.length <= 160) {
+      try {
+        const halo = turf.buffer(coleccionSombras, 3.5, { units: 'meters', steps: 4 });
+        if (miVersion === versionCalculoSombras) map.getSource('sombras-halo')?.setData(halo || turf.featureCollection([]));
+      } catch (e) {
+        map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+      }
+    } else {
+      map.getSource('sombras-halo')?.setData(turf.featureCollection([]));
+    }
+
+    // Si hay una ruta calculada, sus tramos se actualizan con las sombras
+    // recién horneadas. Imprescindible desde el arranque en península
+    // (sep-2026): si las teselas de edificios de la zona de la ruta aún
+    // estaban cargando, el cálculo de arriba llega por el reintento de
+    // 'idle' y antes NADIE avisaba a la ruta, se quedaba sin tramos aun
+    // con «Sombras» encendida.
+    if (rutaActual) {
+      try { await actualizarTramosSombraRuta(); tramosSincronizadosConSombras = true; } catch (e) { /* extra: nunca rompe el barrido */ }
+    }
+  }
+
+  function mostrarAvisoSol(texto) {
+    const el = document.getElementById('rsSunNote');
+    if (el) el.textContent = texto;
+  }
+
+  // Id guardado (sep-2026, checklist de optimización: ningún setInterval
+  // suelto, todos quedan localizables y limpiables en window.manolitIntervalos).
+  window.manolitIntervalos = window.manolitIntervalos || [];
+  window.manolitIntervalos.push(setInterval(() => {
+    if (document.hidden) return; // pestaña oculta: cero gasto de CPU/batería
+    if (!solarActivado || modoManual || paseoActivo) return;
+    // Rendimiento (sep-2026): con las sombras apagadas en el panel no hay
+    // nada que mantener, ni siquiera despertamos el cálculo (ahorro real
+    // de CPU/batería, el intervalo queda como un mero chequeo de booleanos).
+    if (!document.getElementById('rsToggleSombras')?.checked) return;
+    if (map.loaded()) recalcularSombrasVisibles();
+    actualizarIluminacionSolar();
+    sincronizarArboles();
+  }, 60 * 1000));
+
+  /* ============================================================
+     ÓPTICA ATMOSFÉRICA EN TIEMPO REAL, nubes de OpenWeatherMap
+     ------------------------------------------------------------
+     Física aplicada:
+     1) LUZ DIFUSA: bajo la nube la radiación directa se dispersa y las
+        sombras NO desaparecen, pierden contraste:
+            opacidad_efectiva = opacidad_base × (1 − nubosidad × 0.6)
+        (nubosidad ∈ [0,1], de clouds.all de OpenWeatherMap vía /clima).
+     2) SOMBRA MACRO DE NUBE: un velo suave (gradientes translúcidos) envuelve
+        la escena y unifica la iluminación de edificios y árboles.
+     3) MOTOR DE ZOOM: la densidad atmosférica crece al alejarse
+        (0.3 cerca → 0.8 lejos) y la luz difusa en el suelo es la
+        protagonista a nivel de calle (zoom ≥ 12).
+     4) La clave de OpenWeatherMap NUNCA toca el navegador: vive como
+        secret del Worker (ruta same-origin /clima). Si no hay clave o
+        la red falla, la escena asume cielo despejado (nubosidad 0).
+     ============================================================ */
+
+  let nubosidadActual = 0; // 0 (despejado) .. 1 (cubierto)
+  const NUBES = {
+    refrescoMs: 10 * 60 * 1000,      // OpenWeatherMap actualiza cada ~10 min
+    celdaGrados: 0.4,                // ~40 km: la nubosidad no cambia por calle
+    atenuacionMaxSombra: 0.6,        // la sombra nunca desaparece: -60% máx.
+    cache: new Map(),                // celda -> { t, valor }
+  };
+  let ultimaConsultaNubesMs = 0;
+
+  function celdaNubes(lat, lon) {
+    return `${Math.floor(lat / NUBES.celdaGrados)},${Math.floor(lon / NUBES.celdaGrados)}`;
+  }
+
+  async function consultarNubosidad(lat, lon) {
+    const clave = celdaNubes(lat, lon);
+    const cacheada = NUBES.cache.get(clave);
+    if (cacheada && Date.now() - cacheada.t < NUBES.refrescoMs) return cacheada.valor;
+    // Segunda capa: localStorage, para no repetir la llamada aunque el
+    // usuario recargue la página o vuelva unos minutos después.
+    const persistente = cacheLocalObtener(`manolito_cache_clima_${clave}`, CACHE_CLIMA_TTL_MS);
+    if (persistente != null) {
+      NUBES.cache.set(clave, { t: Date.now(), valor: persistente });
+      return persistente;
+    }
+    try {
+      const resp = await fetch(`/clima?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const datos = await resp.json();
+      const valor = Math.max(0, Math.min(1, Number(datos.nubes ?? 0) / 100));
+      NUBES.cache.set(clave, { t: Date.now(), valor });
+      cacheLocalGuardar(`manolito_cache_clima_${clave}`, valor);
+      return valor;
+    } catch (e) {
+      // Sin Worker/clave/red: cielo despejado por defecto, sin romper nada.
+      return cacheada ? cacheada.valor : 0;
+    }
+  }
+
+  // Densidad atmosférica según zoom: 0.3 a nivel de calle, 0.8 de lejos.
+  function densidadAtmosfericaZoom() {
+    const z = map.getZoom();
+    const p = Math.max(0, Math.min(1, (13.5 - z) / (13.5 - 9)));
+    return 0.3 + (0.8 - 0.3) * p;
+  }
+
+  // A nivel de calle (zoom ≥ 12) la luz difusa en el suelo es protagonista;
+  // al alejarte el efecto local se diluye y manda la sombra macro de la nube.
+  function factorCalleDifusa() {
+    const z = map.getZoom();
+    return z >= 12 ? 1 : Math.max(0.3, (z - 8) / 4);
+  }
+
+  function mezclarHex(hexA, hexB, p) {
+    const a = parseInt(hexA.slice(1), 16), b = parseInt(hexB.slice(1), 16);
+    const r = Math.round(((a >> 16) & 255) * (1 - p) + ((b >> 16) & 255) * p);
+    const g = Math.round(((a >> 8) & 255) * (1 - p) + ((b >> 8) & 255) * p);
+    const bl = Math.round((a & 255) * (1 - p) + (b & 255) * p);
+    return `#${((r << 16) | (g << 8) | bl).toString(16).padStart(6, '0')}`;
+  }
+
+  function aplicarOpticaNubes() {
+    // 1) Micro-sombras (edificios + árboles): más tenues bajo la nube.
+    //    La densidad atmosférica modula suavemente el efecto en torno a un
+    //    núcleo: en calle (0.3) atenúa un poco menos (la luz difusa local
+    //    rebota entre fachadas) y lejos (0.8) la escena se unifica más.
+    const densidad = densidadAtmosfericaZoom();
+    const f = 1 - nubosidadActual * NUBES.atenuacionMaxSombra * (0.55 + 0.45 * densidad) * factorCalleDifusa();
+    const colorSombra = mezclarHex('#0b1220', '#46586c', nubosidadActual * 0.8);
+    try {
+      if (map.getLayer('capa-sombras')) {
+        map.setPaintProperty('capa-sombras', 'fill-opacity', 0.34 * f);
+        map.setPaintProperty('capa-sombras', 'fill-color', colorSombra);
+      }
+      if (map.getLayer('capa-sombras-halo')) {
+        map.setPaintProperty('capa-sombras-halo', 'fill-opacity', 0.10 * f);
+        map.setPaintProperty('capa-sombras-halo', 'fill-color', colorSombra);
+      }
+      // La capa de sombra de los árboles la crea arboles-globales.js; si ya
+      // existe, se atenúa con el mismo factor (comunicación sin romper nada).
+      if (map.getLayer('capa-sombra-arboles-globales')) {
+        map.setPaintProperty('capa-sombra-arboles-globales', 'fill-opacity', 0.26 * f);
+        map.setPaintProperty('capa-sombra-arboles-globales', 'fill-color', colorSombra);
+      }
+    } catch (e) { /* alguna capa aún no existe: se aplicará en la próxima pasada */ }
+
+    // 2) Sombra macro de la masa de nubes sobre el suelo.
+    const velo = document.getElementById('rsNubesSombra');
+    if (velo) {
+      const opVelo = Math.min(0.85, nubosidadActual * densidadAtmosfericaZoom() * 0.9);
+      velo.style.opacity = String(opVelo);
+      // AHORRO REAL (sep-2026): el velo lleva una animación CSS infinita
+      // (deriva de 90 s). Antes corría LAS 24 H aunque el velo estuviera
+      // invisible (opacity 0): el compositor del iPhone mezclaba la
+      // pantalla entera cada frame con el cielo despejado incluido, el
+      // móvil se calentaba sin tocar nada. Con display:none la animación
+      // y la mezcla se DETIENEN por completo; solo vive cuando hay nube
+      // suficiente para verse.
+      velo.style.display = opVelo > 0.03 ? 'block' : 'none';
+    }
+  }
+
+  // Velo CSS: manchas suaves y enormes con blend multiply que se desplazan
+  // muy despacio, como haría la sombra real de una nube arrastrada por el viento.
+  function inyectarSombraNubes() {
+    if (document.getElementById('rsNubesSombra')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsNubesSombraEstilos';
+    estilo.textContent = `
+      #rsNubesSombra{
+        position:absolute; inset:-15%; z-index:2; pointer-events:none;
+        opacity:0; transition:opacity 1.2s ease;
+        /* Nace oculto: aplicarOpticaNubes() lo muestra solo si hay nube
+           suficiente. Mientras tanto, display:none = animación y mezcla
+           completamente detenidas (cero GPU). */
+        display:none;
+        /* Sin mix-blend-mode (sep-2026): en iPhone la mezcla multiply
+           sobre el canvas WebGL obligaba a Safari a re-mezclar la
+           pantalla ENTERA en cada frame, el mayor consumo continuo de
+           la app. Las manchas ya son gradientes oscuros translúcidos;
+           se sube su alfa ~15% y el efecto visual es el mismo sin que
+           el compositor trabaje. */
+        background:
+          radial-gradient(38% 30% at 22% 30%, rgba(30,42,60,0.62) 0%, rgba(30,42,60,0) 70%),
+          radial-gradient(46% 36% at 68% 22%, rgba(30,42,60,0.52) 0%, rgba(30,42,60,0) 72%),
+          radial-gradient(42% 34% at 45% 70%, rgba(30,42,60,0.57) 0%, rgba(30,42,60,0) 70%),
+          radial-gradient(30% 26% at 84% 62%, rgba(30,42,60,0.47) 0%, rgba(30,42,60,0) 70%);
+        animation:rsDerivaNubes 90s linear infinite alternate;
+      }
+      @keyframes rsDerivaNubes{
+        0%{ transform:translate3d(0,0,0) scale(1); }
+        100%{ transform:translate3d(6%,3%,0) scale(1.06); }
+      }
+      @media (prefers-reduced-motion: reduce){
+        #rsNubesSombra{ animation:none; }
+      }
+    `;
+    document.head.appendChild(estilo);
+    const velo = document.createElement('div');
+    velo.id = 'rsNubesSombra';
+    contenedorMapa.appendChild(velo);
+  }
+
+  async function refrescarNubosidad(forzar) {
+    const centro = centroSolarEfectivo();
+    const lat = centro.lat, lon = centro.lon ?? centro.lng;
+    if (!forzar && Date.now() - ultimaConsultaNubesMs < NUBES.refrescoMs) return;
+    ultimaConsultaNubesMs = Date.now();
+    const valor = await consultarNubosidad(lat, lon);
+    if (valor !== nubosidadActual) {
+      const salto = Math.abs(valor - nubosidadActual);
+      nubosidadActual = valor;
+      aplicarOpticaNubes();
+      actualizarIluminacionSolar();
+      // Si la nubosidad cambia MUCHO (frente nuboso entrando o saliendo) y
+      // hay una ruta activa, se recalcula sola: el Dijkstra térmico pondera
+      // la penalización solar con la nubosidad real, así que el camino más
+      // fresco con sol puede dejar de serlo con el cielo cubierto.
+      if (salto >= 0.25) recalcularRutaPorTiempo();
+    }
+  }
+
+  let recalculandoRutaPorNubes = false;
+  async function recalcularRutaPorTiempo() {
+    if (recalculandoRutaPorNubes || !rutaActual) return;
+    const o = seleccionPorInput.get(inputOrigen);
+    const d = seleccionPorInput.get(inputDestino);
+    if (!o || !d || o.lat == null || d.lat == null) return;
+    recalculandoRutaPorNubes = true;
+    try {
+      mostrarEstado(t('routeRecalcWeather', 'Ha cambiado la nubosidad, recalculando la ruta más fresca…'));
+      await ejecutarBusquedaConPuntos(o, d);
+    } catch (e) { /* si falla, se queda la ruta que había */ }
+    finally { recalculandoRutaPorNubes = false; }
+  }
+
+  // Hooks de depuración/integración: otros scripts pueden leer la nubosidad
+  // y las pruebas pueden simular una nube sin tocar OpenWeatherMap.
+  window.manolitAireNubosidad = () => nubosidadActual;
+  // Diagnóstico: cuántos edificios alimentan las sombras y cuántas hay.
+  window.manolitAireDebugSombras = () => {
+    let enFuente = -1;
+    try {
+      const src = map.getSource('sombras');
+      const datos = src && (src._data || (src.serialize && src.serialize().data));
+      enFuente = datos && datos.features ? datos.features.length : -1;
+    } catch (e) { /* sin acceso a la fuente */ }
+    let altSol = null;
+    try {
+      const c = centroSolarEfectivo();
+      altSol = +(SunCalc.getPosition(obtenerHoraEfectiva(), c.lat, c.lon ?? c.lng).altitude * 180 / Math.PI).toFixed(1);
+    } catch (e) { /* sin sol */ }
+    return {
+      edificios: edificiosCacheados.length,
+      sombras: (ultimaColeccionSombras && ultimaColeccionSombras.features.length) || 0,
+      enFuente,
+      capaEdificios: capaEdificiosDisponible,
+      altitudSol: altSol,
+    };
+  };
+  window.manolitAireSimularNubes = (v) => {
+    nubosidadActual = Math.max(0, Math.min(1, Number(v) || 0));
+    aplicarOpticaNubes();
+    actualizarIluminacionSolar();
+  };
+
+  // Coexistencia con el motor de zoom: cada zoomend re-equilibra la
+  // densidad atmosférica y el peso de la luz difusa a nivel de calle.
+  map.on('zoomend', () => aplicarOpticaNubes());
+  // Y al mover el mapa, la nubosidad se reconsulta solo si toca (celda/tiempo).
+  map.on('moveend', () => { refrescarNubosidad(false); });
+  setInterval(() => { if (!document.hidden) refrescarNubosidad(false); }, NUBES.refrescoMs);
+
+  /* --------- Capa raster de nubes REALES sobre el mapa (OpenWeatherMap) ---------
+     Las teselas llegan proxiedas por el Worker (/tiles/nubes/...): la API key
+     vive en el servidor y el edge de Cloudflare cachea cada tesela 10 min.
+     La capa va por ENCIMA de todo (edificios, copas, sombras): las nubes
+     están en el cielo, es lo físicamente correcto, y con opacidad suave
+     iluminan la escena sin taparla. Además convive con el módulo de óptica:
+     los datos de /clima atenúan las sombras mientras estas teselas las
+     muestran visualmente. */
+  const CAPA_NUBES_ID = 'capa-nubes-owm';
+  let selloTilesNubes = Date.now();
+
+  function urlTilesNubes() {
+    return [`/tiles/nubes/{z}/{x}/{y}.png?v=${selloTilesNubes}`];
+  }
+
+  function aplicarVisibilidadNubes() {
+    if (!map.getLayer(CAPA_NUBES_ID)) return;
+    const visible = document.getElementById('rsToggleNubes')?.checked !== false;
+    map.setLayoutProperty(CAPA_NUBES_ID, 'visibility', visible ? 'visible' : 'none');
+  }
+
+  // Visibilidad de las nubes según ZOOM y modo claro/oscuro:
+  // - De cerca (calle): sutiles, para no tapar edificios ni sombras.
+  // - De lejos (país): bien visibles, se leen como nubes de verdad.
+  // - Mapa oscuro: el canvas lleva un filtro CSS invert(), así que las nubes
+  //   blancas se vuelven negras y desaparecen. Bajando el brillo del raster
+  //   las nubes "naceen oscuras" y el filtro las devuelve claras: visibles.
+  //   Es solo pintura: el algoritmo de sombras ni se entera.
+  function mapaEfectivamenteOscuro() {
+    // El mapa solo está oscuro si el usuario lo pidió con su botón;
+    // el tema oscuro de la web ya no lo oscurece automáticamente.
+    return mapaOscuro;
+  }
+
+  function aplicarEstiloNubes() {
+    if (!map.getLayer(CAPA_NUBES_ID)) return;
+    const oscuro = mapaEfectivamenteOscuro();
+    try {
+      map.setPaintProperty(CAPA_NUBES_ID, 'raster-opacity', oscuro
+        ? ['interpolate', ['linear'], ['zoom'], 3, 0.92, 8, 0.78, 11, 0.55, 13, 0.42]
+        : ['interpolate', ['linear'], ['zoom'], 3, 0.85, 8, 0.62, 11, 0.42, 13, 0.32]);
+      // En oscuro: nubes oscuras antes del filtro = claras después del invert()
+      map.setPaintProperty(CAPA_NUBES_ID, 'raster-brightness-max', oscuro ? 0.16 : 1);
+      map.setPaintProperty(CAPA_NUBES_ID, 'raster-brightness-min', 0);
+      // Un poco más de contraste de lejos: las masas de nubes se distinguen mejor
+      map.setPaintProperty(CAPA_NUBES_ID, 'raster-contrast', ['interpolate', ['linear'], ['zoom'], 3, 0.28, 10, 0.12, 13, 0.05]);
+      map.setPaintProperty(CAPA_NUBES_ID, 'raster-saturation', -0.35);
+    } catch (e) { /* capa a medio crear */ }
+  }
+
+  function instalarCapaNubes() {
+    if (!map.getSource('nubes-owm')) {
+      map.addSource('nubes-owm', {
+        type: 'raster',
+        tiles: urlTilesNubes(),
+        tileSize: 256,
+        maxzoom: 12, // OWM no sirve más allá; MapLibre hace overzoom suave
+        attribution: 'Nubes © OpenWeatherMap',
+      });
+    }
+    if (!map.getLayer(CAPA_NUBES_ID)) {
+      map.addLayer({
+        id: CAPA_NUBES_ID,
+        type: 'raster',
+        source: 'nubes-owm',
+        paint: { 'raster-opacity': 0.55, 'raster-fade-duration': 400 },
+      });
+    }
+    aplicarEstiloNubes();
+    aplicarVisibilidadNubes();
+  }
+
+  // OWM renueva sus tiles cada ~10 min: cambiamos el sello para que el mapa
+  // pida la versión nueva (las teselas viejas las sirve la caché edge).
+  window.manolitIntervalos = window.manolitIntervalos || [];
+  window.manolitIntervalos.push(setInterval(() => {
+    if (document.hidden) return; // pestaña oculta: no pedir tiles nuevas
+    if (!map.getSource('nubes-owm')) return;
+    selloTilesNubes = Date.now();
+    try { map.getSource('nubes-owm').setTiles(urlTilesNubes()); } catch (e) { /* fuente a medio cargar */ }
+  }, NUBES.refrescoMs));
+
+  // Si el estilo se recargara por cualquier motivo, la capa se reinstala sola.
+  map.on('styledata', () => {
+    if (map.isStyleLoaded() && !map.getSource('nubes-owm')) {
+      try { instalarCapaNubes(); } catch (e) { /* estilo a medio cargar */ }
+    }
+  });
+
+  /* ---------------- Widget de posición del sol ---------------- */
+
+  let puntoReferenciaSol = null;
+  let rutaActual = null;
+
+  /* ---- Tramo ya recorrido en gris (a lo Google Maps, sep-2026) ----
+     Mientras caminas, el trozo de ruta ya andado se pinta en gris. Se
+     actualiza DENTRO del tick de GPS que ya existía (máximo 1 lectura
+     por segundo) y en el paseo virtual (que lleva su propio freno), así
+     que no se crea ningún watcher ni temporizador nuevo: dos llamadas
+     a turf sobre la ruta ya cargada, microsegundos de trabajo y cero
+     calor extra para el móvil. */
+  let ultimoTramoRecorrido = null;
+  function pintarTramoRecorrido(lat, lon) {
+    const fuente = map.getSource('ruta-recorrida');
+    if (!rutaActual || !fuente) return;
+    try {
+      const inicio = rutaActual.geometry.coordinates[0];
+      const snap = turf.nearestPointOnLine(rutaActual, turf.point([lon, lat]));
+      const tramo = turf.lineSlice(turf.point(inicio), snap, rutaActual);
+      ultimoTramoRecorrido = tramo;
+      fuente.setData(tramo);
+    } catch (e) { /* ruta rara o punto fuera: el gris se queda como estaba */ }
+  }
+  function limpiarTramoRecorrido() {
+    ultimoTramoRecorrido = null;
+    try { map.getSource('ruta-recorrida')?.setData(turf.featureCollection([])); } catch (e) { /* la fuente aún no existe */ }
+  }
+  // Gancho para las pruebas del laboratorio, mismo patrón que __a11yPro:
+  // no se usa en la web, solo deja comprobar el gris sin salir a andar.
+  window.__rutaPro = {
+    fijarRutaPrueba(coords) {
+      rutaActual = turf.lineString(coords);
+      try { map.getSource('ruta')?.setData(rutaActual); } catch (e) { /* sin mapa todavía */ }
+      limpiarTramoRecorrido();
+    },
+    pintarTramoRecorrido,
+    limpiarTramoRecorrido,
+    ultimoTramo: () => ultimoTramoRecorrido,
+  };
+
+  // Las sombras deben corresponderse con lo que el usuario ESTÁ VIENDO,
+  // esté donde esté (Sevilla, Madrid, México DF…). Si el punto de
+  // referencia guardado (tu GPS, el origen de la última ruta) está lejos
+  // del centro actual del mapa, se usa el centro de la pantalla: el sol de
+  // otra ciudad no sirve para la calle que tienes delante.
+  function centroSolarEfectivo() {
+    const c = map.getCenter();
+    if (puntoReferenciaSol) {
+      const lonRef = puntoReferenciaSol.lon ?? puntoReferenciaSol.lng;
+      if (Math.abs(puntoReferenciaSol.lat - c.lat) < 0.6 && Math.abs(lonRef - c.lng) < 0.6) {
+        return puntoReferenciaSol;
+      }
+    }
+    return c;
+  }
+
+  // TODAS las sombras que hay en escena ahora mismo: las de los edificios
+  // (ultimaColeccionSombras, calculadas en este archivo) MÁS las de los
+  // árboles (fuente 'arboles-globales-sombra', que rellena
+  // arboles-globales.js). Sin esto, pasar bajo la sombra de un árbol no
+  // contaba como sombra ni en el % ni en el pintado cian de la ruta.
+  function obtenerSombrasDeArboles() {
+    try {
+      const fuente = map.getSource('arboles-globales-sombra');
+      if (!fuente) return [];
+      const datos = fuente._data || (fuente.serialize && fuente.serialize().data);
+      if (!datos || !datos.features) return [];
+      return datos.features.filter(
+        (f) => f && f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
+      );
+    } catch (e) { /* la capa de árboles no está cargada o activada */ }
+    return [];
+  }
+
+  function obtenerTodasLasSombras() {
+    const edificios = (ultimaColeccionSombras && ultimaColeccionSombras.features) || [];
+    const arboles = obtenerSombrasDeArboles();
+    return arboles.length ? edificios.concat(arboles) : edificios;
+  }
+
+  /* ---------------- Índice espacial de sombras (sep-2026, anti-cuelgues) ----------------
+     Antes, cada pregunta «¿este punto está en sombra?» recorría TODAS las
+     sombras con el ray-casting completo de Turf, y dentro del Dijkstra de
+     rutas eso ocurría decenas de miles de veces seguidas; peor aún, la
+     colección se RECONSTRUÍA en cada arista (serialize() + filter + concat
+     de la capa de árboles incluidos). Resultado: la web entera se quedaba
+     pillada al buscar una ruta. Esto es una rejilla uniforme: cada sombra
+     se apunta en las celdas que toca su caja y cada consulta solo prueba
+     las sombras de su celda. El resultado es EXACTAMENTE el mismo (sigue
+     mandando Turf por dentro), solo se descartan a lo barato las sombras
+     lejanas. */
+  function crearIndiceSombras(poligonos) {
+    const entradas = [];
+    for (const p of poligonos || []) {
+      if (!p || !p.geometry) continue;
+      let caja;
+      try { caja = turf.bbox(p); } catch (e) { continue; }
+      entradas.push({ caja, poligono: p });
+    }
+    const total = entradas.length;
+    if (!total) return { size: 0, consultar: function () { return false; }, consultarCandidatos: function () { return []; } };
+
+    // Tamaño de celda: ~1.5× el ancho medio de las sombras, acotado entre
+    // ~70 m y ~450 m. Así cada celda suele contener poquísimas sombras.
+    let anchoMedio = 0;
+    for (const e of entradas) anchoMedio += Math.max(0.0002, e.caja[2] - e.caja[0]);
+    anchoMedio /= total;
+    const celda = Math.min(0.004, Math.max(0.0006, anchoMedio * 1.5));
+
+    const rejilla = new Map();
+    const globales = [];
+    entradas.forEach((e) => {
+      const x0 = Math.floor(e.caja[0] / celda), x1 = Math.floor(e.caja[2] / celda);
+      const y0 = Math.floor(e.caja[1] / celda), y1 = Math.floor(e.caja[3] / celda);
+      // Sombra gigante (toca más de 64 celdas): se consulta aparte siempre.
+      if ((x1 - x0 + 1) * (y1 - y0 + 1) > 64) { globales.push(e); return; }
+      for (let x = x0; x <= x1; x++) {
+        for (let y = y0; y <= y1; y++) {
+          const clave = x * 1e7 + y;
+          let lista = rejilla.get(clave);
+          if (!lista) { lista = []; rejilla.set(clave, lista); }
+          lista.push(e);
+        }
+      }
+    });
+
+    const probar = (e, lon, lat) => {
+      const c = e.caja;
+      if (lon < c[0] || lon > c[2] || lat < c[1] || lat > c[3]) return false;
+      // Turf acepta la coordenada cruda [lon, lat]: sin crear objetos
+      // Point en el bucle caliente (turf >= 4 lo admite vía getCoord).
+      try { return turf.booleanPointInPolygon([lon, lat], e.poligono); } catch (err) { return false; }
+    };
+
+    const consultar = (lon, lat) => {
+      const lista = rejilla.get(Math.floor(lon / celda) * 1e7 + Math.floor(lat / celda));
+      if (lista) {
+        for (let i = 0; i < lista.length; i++) {
+          if (probar(lista[i], lon, lat)) return true;
+        }
+      }
+      for (let i = 0; i < globales.length; i++) {
+        if (probar(globales[i], lon, lat)) return true;
+      }
+      return false;
+    };
+
+    // Solo el filtro por caja, sin point-in-polygon: devuelve las sombras
+    // cuya caja contiene el punto. Para llamadores que necesitan iterar los
+    // candidatos con sus propiedades (p. ej. excluir la sombra del propio
+    // edificio) antes de hacer la prueba exacta cara.
+    const consultarCandidatos = (lon, lat) => {
+      const salida = [];
+      const meter = (e) => {
+        const c = e.caja;
+        if (lon < c[0] || lon > c[2] || lat < c[1] || lat > c[3]) return;
+        salida.push(e.poligono);
+      };
+      const lista = rejilla.get(Math.floor(lon / celda) * 1e7 + Math.floor(lat / celda));
+      if (lista) for (let i = 0; i < lista.length; i++) meter(lista[i]);
+      for (let i = 0; i < globales.length; i++) meter(globales[i]);
+      return salida;
+    };
+    return { size: total, consultar, consultarCandidatos };
+  }
+
+  function puntoEnSombra(punto) {
+    const sombras = obtenerTodasLasSombras();
+    for (const poligono of sombras) {
+      try {
+        if (turf.booleanPointInPolygon(punto, poligono)) return true;
+      } catch (e) { /* geometría rara: la ignoramos */ }
+    }
+    return false;
+  }
+
+  // ¿Un tramo de ruta TOCA la sombra de algún árbol? La sombra de un tronco
+  // de palmera mide ~1 m de ancha y los tramos son de 10 m: mirar solo el
+  // punto medio la perdía casi siempre. Aquí se comprueba la INTERSECCIÓN
+  // real línea-polígono, así cualquier cruce cuenta, por fina que sea.
+  function tramoTocaSombraDeArbol(tramo, sombrasArboles) {
+    // Admite la lista cruda de polígonos o las entradas con caja ya
+    // calculada ({caja, poligono}) que prepara el filtrado de tramos.
+    // Con caja, si las cajas no se tocan las geometrías tampoco pueden
+    // tocarse: la intersección exacta solo se paga cuando toca (sep-2026).
+    let cajaTramo = null;
+    for (const entrada of sombrasArboles) {
+      const conCaja = entrada && entrada.poligono;
+      const poligono = conCaja ? entrada.poligono : entrada;
+      if (conCaja) {
+        if (!cajaTramo) { try { cajaTramo = turf.bbox(tramo); } catch (e0) { cajaTramo = null; break; } }
+        const c = entrada.caja;
+        if (cajaTramo[0] > c[2] || cajaTramo[2] < c[0] || cajaTramo[1] > c[3] || cajaTramo[3] < c[1]) continue;
+      }
+      try {
+        if (turf.booleanIntersects(tramo, poligono)) return true;
+      } catch (e) { /* geometría rara: probamos por puntos */
+        try {
+          for (const c of tramo.geometry.coordinates) {
+            if (turf.booleanPointInPolygon(turf.point(c), poligono)) return true;
+          }
+        } catch (e2) { /* la ignoramos */ }
+      }
+    }
+    return false;
+  }
+
+  // Contador de generación del filtrado de tramos (sep-2026, aditivo):
+  // permite abortar cálculos viejos cuando el slider de hora se mueve
+  // rápido y se solapan varias llamadas, solo la última escribe en el mapa.
+  let generacionTramosSombra = 0;
+
+  async function actualizarTramosSombraRuta() {
+    const fuente = map.getSource('ruta-sombra');
+    if (!fuente) return;
+    const haySombras = (ultimaColeccionSombras?.features?.length || 0) + obtenerSombrasDeArboles().length;
+    // Ruta congelada (sep-2026, corrección de lógica, PRIMERO de todo): si
+    // el usuario APAGA la casilla «Sombras» para pasearse por el mapa
+    // limpio, la ruta YA calculada NO se desmarca: sus tramos de sombra
+    // (cian) y de sol quedan congelados exactamente como se calcularon, y
+    // el badge de % también. Solo se borran si el usuario borra la ruta
+    // (botón reiniciar, que limpia las fuentes directamente) o calcula
+    // otra nueva. Antes, apagar las sombras vaciaba las colecciones y los
+    // tramos desaparecían del mapa.
+    if (!document.getElementById('rsToggleSombras')?.checked) return;
+    if (!rutaActual || !haySombras) {
+      fuente.setData(turf.featureCollection([]));
+      // El badge de % de sombra ya no se queda con el valor viejo cuando
+      // deja de haber ruta o sombras que mostrar.
+      mostrarBadgeSombra(null);
+      return;
+    }
+    try {
+      const tramos = turf.lineChunk(rutaActual, 0.01, { units: 'kilometers' });
+      const sombrasEdificios = (ultimaColeccionSombras && ultimaColeccionSombras.features) || [];
+      const sombrasArboles = obtenerSombrasDeArboles();
+      // Rendimiento (sep-2026, brief "Mapa Eficiente y Elegante" de Sandro):
+      // una ruta de 2 km son ~200 tramos × booleanPointInPolygon contra
+      // TODAS las sombras de edificios + intersección con cada árbol, y
+      // esto se dispara en CADA movimiento del slider de hora, en el hilo
+      // principal atrancaba el arrastre. Ahora el filtrado cede al
+      // navegador cada 25 tramos con requestIdleCallback (o setTimeout(0)
+      // si no existe): el resultado es EXACTAMENTE el mismo (la lógica de
+      // filtrado no ha cambiado ni una línea), solo se reparte en tiempos
+      // muertos en vez de atragantarse de una vez.
+      // Guardia de generación: si el slider se mueve muy rápido, llamadas
+      // solapadas podrían terminar desordenadas; solo la ÚLTIMA escribe.
+      generacionTramosSombra++;
+      const miGeneracionTramos = generacionTramosSombra;
+      // Índice espacial de las sombras de edificios: cada tramo consulta
+      // solo las de su celda, mismo resultado que recorrerlas todas.
+      const indiceEdificios = crearIndiceSombras(sombrasEdificios);
+      // Cajas de los árboles precalculadas una vez: la intersección
+      // línea-polígono solo se paga cuando las cajas se tocan.
+      const cajasArboles = [];
+      for (const poligonoArbol of sombrasArboles) {
+        try { cajasArboles.push({ caja: turf.bbox(poligonoArbol), poligono: poligonoArbol }); } catch (e) { /* sin caja: fuera */ }
+      }
+      const esTramoEnSombra = (tramo) => {
+        const coords = tramo.geometry.coordinates;
+        const medio = coords[Math.floor(coords.length / 2)] || coords[0];
+        // Edificios: sombra grande, basta el punto medio (rápido).
+        if (indiceEdificios.consultar(medio[0], medio[1])) return true;
+        // Árboles: sombra fina, hace falta intersección real con el tramo.
+        return tramoTocaSombraDeArbol(tramo, cajasArboles);
+      };
+      const tramosEnSombra = [];
+      for (let i = 0; i < tramos.features.length; i++) {
+        if (esTramoEnSombra(tramos.features[i])) tramosEnSombra.push(tramos.features[i]);
+        if (i % 25 === 24 && i < tramos.features.length - 1) {
+          await new Promise((resolver) => {
+            if ('requestIdleCallback' in window) requestIdleCallback(() => resolver(), { timeout: 250 });
+            else setTimeout(resolver, 0);
+          });
+          if (miGeneracionTramos !== generacionTramosSombra) return; // hay un cálculo más nuevo: este se aborta en silencio
+        }
+      }
+      fuente.setData(turf.featureCollection(tramosEnSombra));
+      // Antes el badge de "% del trayecto en sombra" solo se calculaba una
+      // vez, al buscar la ruta, y se quedaba congelado aunque cambiaras la
+      // hora con el slider. Ahora se recalcula cada vez que se recalculan
+      // los tramos en sombra (que ya se llama desde el slider, el paseo
+      // virtual, la caminata, etc.), así que el badge siempre va en vivo.
+      if (tramos.features.length) {
+        mostrarBadgeSombra(Math.round((tramosEnSombra.length / tramos.features.length) * 100));
+      } else {
+        mostrarBadgeSombra(null);
+      }
+    } catch (e) {
+      console.debug('No se ha podido calcular qué tramos de la ruta están en sombra:', e);
+      fuente.setData(turf.featureCollection([]));
+    }
+  }
+
+  // El módulo de árboles (integrado al final de este archivo) avisa por aquí
+  // cada vez que recalcula sus sombras: la ruta se repinta y el badge se
+  // actualiza SOLO, sin esperar a que toques el slider. Si no, los tramos
+  // cian de los árboles llegaban tarde o no llegaban.
+  window.manolitAireActualizarSombraRuta = () => {
+    try { actualizarTramosSombraRuta(); } catch (e) { /* la ruta aún no existe */ }
+  };
+  function calcularAnguloSol(horaOverride) {
+    const centro = centroSolarEfectivo();
+    const lat = centro.lat;
+    const lon = centro.lon ?? centro.lng;
+    const pos = SunCalc.getPosition(horaOverride || obtenerHoraEfectiva(), lat, lon);
+    const azimutDeg = ((pos.azimuth * 180) / Math.PI + 180) % 360;
+    const alturaDeg = (pos.altitude * 180) / Math.PI;
+    return { azimutDeg, alturaDeg };
+  }
+
+  function actualizarIluminacionSolar(horaOverride) {
+    const tSol = document.getElementById('rsToggleSol');
+    if (!tSol) return;
+
+    if (!tSol.checked) {
+      map.setSky(undefined);
+      cieloSolActivo = false;
+      map.setLight({ anchor: 'viewport', color: '#ffffff', intensity: 0.35, position: [1.5, 0, 40] });
+      actualizarSolVisualEnMapa();
+      return;
+    }
+
+    const { azimutDeg, alturaDeg } = calcularAnguloSol(horaOverride);
+    const bajoHorizonte = alturaDeg <= 0;
+    const polar = Math.max(0, 90 - Math.max(alturaDeg, 0));
+
+    // Luz difusa por nubosidad real: la nube dispersa la luz directa del
+    // sol, así que la iluminación direccional baja y el cielo se apaga
+    // hacia gris sin llegar a apagarse del todo (luz ambiental difusa).
+    const factorNubLuz = 1 - nubosidadActual * 0.5;
+    const grisNube = mezclarHex('#199EF3', '#8fa0b3', nubosidadActual * 0.85);
+
+    map.setLight({
+      anchor: 'map',
+      color: bajoHorizonte ? '#3a4a63' : '#fff6e6',
+      intensity: bajoHorizonte ? 0.15 : Math.min(1, (0.35 + alturaDeg / 90) * factorNubLuz),
+      position: [1.5, azimutDeg, polar],
+    });
+
+    map.setSky({
+      'sky-color': bajoHorizonte ? '#0a1220' : grisNube,
+      'sky-horizon-blend': 0.5,
+      'horizon-color': bajoHorizonte ? '#2a3a55' : '#ffffff',
+      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 10, 1, 12, 0.3]
+    });
+    cieloSolActivo = true;
+
+    actualizarSolVisualEnMapa();
+  }
+
+  function inyectarSolVisual() {
+    if (document.getElementById('rsSolVisual')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsSolVisualEstilos';
+    estilo.textContent = `
+      #rsSolVisual{
+        position:absolute; width:34px; height:34px; border-radius:50%;
+        background:radial-gradient(circle, #fff6d8 0%, #ffcf7a 45%, rgba(255,207,122,0) 75%);
+        box-shadow:0 0 22px 10px rgba(255,207,122,0.55);
+        transform:translate(-50%,-50%);
+        pointer-events:none; z-index:4; display:none;
+        transition:left .25s linear, top .25s linear, opacity .25s ease;
+      }
+    `;
+    document.head.appendChild(estilo);
+    const sol = document.createElement('div');
+    sol.id = 'rsSolVisual';
+    contenedorMapa.appendChild(sol);
+  }
+
+  // Rendimiento (sep-2026, ADITIVO): getBoundingClientRect fuerza un layout
+  // (reflow) en cada llamada. Se cachea y solo se recalcula cuando el mapa
+  // cambia de tamaño ('resize'), que es cuando el rect puede variar.
+  let rectContenedorCache = null;
+  map.on('resize', () => { rectContenedorCache = null; });
+
+  function actualizarSolVisualEnMapa() {
+    const el = document.getElementById('rsSolVisual');
+    const tSol = document.getElementById('rsToggleSol');
+    if (!el) return;
+    if (!tSol || !tSol.checked) { el.style.display = 'none'; return; }
+
+    const { azimutDeg, alturaDeg } = calcularAnguloSol();
+    if (alturaDeg <= 0) { el.style.display = 'none'; return; }
+
+    if (!rectContenedorCache) rectContenedorCache = contenedorMapa.getBoundingClientRect();
+    const rect = rectContenedorCache;
+    if (!rect.width || !rect.height) return;
+
+    const anguloRelativo = ((azimutDeg - map.getBearing()) * Math.PI) / 180;
+    const cx = rect.width / 2;
+    const cy = rect.height * 0.55;
+    const radioOrbita = Math.min(rect.width, rect.height) * 0.44;
+    const factorAltura = Math.min(alturaDeg, 90) / 90;
+
+    const x = cx + radioOrbita * Math.sin(anguloRelativo);
+    const y = cy - radioOrbita * factorAltura * 0.9 - rect.height * 0.04;
+
+    el.style.left = `${Math.max(16, Math.min(rect.width - 16, x))}px`;
+    el.style.top = `${Math.max(16, Math.min(rect.height - 16, y))}px`;
+    el.style.opacity = String(0.55 + factorAltura * 0.45);
+    el.style.display = 'block';
+  }
+
+  function actualizarBadgeHoraDorada(fechaEfectiva, lat, lon) {
+    const badge = document.getElementById('rsGoldenBadge');
+    const posSol = SunCalc.getPosition(fechaEfectiva, lat, lon);
+    const altitudeDeg = (posSol.altitude * 180) / Math.PI;
+
+    let solarNoonMs = null;
+    let estado = null;
+
+    try {
+      const tiempos = SunCalc.getTimes(fechaEfectiva, lat, lon);
+      solarNoonMs = tiempos.solarNoon.getTime();
+      const t2 = fechaEfectiva.getTime();
+      const enDorada =
+        (t2 >= tiempos.sunrise.getTime() && t2 <= tiempos.goldenHourEnd.getTime()) ||
+        (t2 >= tiempos.goldenHour.getTime() && t2 <= tiempos.sunset.getTime());
+      const enAzul =
+        (t2 >= tiempos.dawn.getTime() && t2 <= tiempos.sunrise.getTime()) ||
+        (t2 >= tiempos.sunset.getTime() && t2 <= tiempos.dusk.getTime());
+      estado = enDorada ? 'dorada' : enAzul ? 'azul' : null;
+    } catch (e) { /* sin datos de horario fiables, seguimos sin badge */ }
+
+    if (badge) {
+      if (estado === 'dorada') {
+        badge.textContent = t('goldenHour', 'Hora dorada');
+        badge.style.visibility = 'visible';
+        badge.style.color = '#e7b06a';
+        badge.style.background = '#e7b06a22';
+        badge.style.borderColor = '#e7b06a55';
+      } else if (estado === 'azul') {
+        badge.textContent = t('blueHour', 'Hora azul');
+        badge.style.visibility = 'visible';
+        badge.style.color = '#7fb3c9';
+        badge.style.background = '#7fb3c922';
+        badge.style.borderColor = '#7fb3c955';
+      } else {
+        badge.style.visibility = 'hidden';
+      }
+    }
+
+    actualizarIndicadorSolar(altitudeDeg, solarNoonMs != null ? fechaEfectiva.getTime() <= solarNoonMs : true);
+  }
+
+  function actualizarIndicadorSolar(altitudeDeg, esManana) {
+    const punto = document.getElementById('rsSolPunto');
+    const grupo = document.getElementById('rsSolGrupo');
+    if (!punto || !grupo) return;
+
+    if (altitudeDeg == null || altitudeDeg <= 0) {
+      grupo.style.opacity = '0.25';
+      return;
+    }
+    grupo.style.opacity = '1';
+
+    const cx = 30, cy = 30, r = 26;
+    const altura = Math.max(0, Math.min(90, altitudeDeg));
+    const theta = esManana ? 180 - altura : altura;
+    const rad = (theta * Math.PI) / 180;
+    const x = cx + r * Math.cos(rad);
+    const y = cy - r * Math.sin(rad);
+    punto.setAttribute('cx', x.toFixed(1));
+    punto.setAttribute('cy', y.toFixed(1));
+  }
+
+  /* ---------------- Badge discreto de % de sombra (desplegable, no ocupa toda la pantalla) ---------------- */
+
+  function inyectarBadgeSombra() {
+    if (document.getElementById('rsShadowBadge')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsShadowBadgeEstilos';
+    estilo.textContent = `
+      #rsShadowBadge{
+        position:absolute; left:50%; transform:translateX(-50%); bottom:12px;
+        z-index:6; display:none; align-items:center; gap:8px;
+        background:var(--surface, rgba(251,250,247,0.94)); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+        border:1px solid var(--line, rgba(14,59,71,0.14)); border-radius:999px;
+        padding:5px 10px 5px 13px; font-size:10.5px; color:var(--sky-deep, #0E3B47);
+        box-shadow:0 6px 16px rgba(22,35,46,0.16); max-width:calc(100% - 24px);
+        white-space:nowrap;
+      }
+      #rsShadowBadge.rs-visible{ display:inline-flex; }
+      #rsShadowBadgeCerrar{
+        background:transparent; border:none; color:var(--sky-mid, #17788A); font-size:14px;
+        cursor:pointer; line-height:1; padding:0 2px;
+      }
+      #rsShadowBadgeCerrar:hover{ color:var(--ink, #0D1F26); }
+      @media (max-width:480px){ #rsShadowBadge{ font-size:10.5px; bottom:8px; padding:5px 8px 5px 12px; } }
+    `;
+    document.head.appendChild(estilo);
+
+    const badge = document.createElement('div');
+    badge.id = 'rsShadowBadge';
+    // El badge vive SIEMPRE en el DOM (solo se muestra/oculta con la clase)
+    // y anuncia el % de sombra al cambiar: aria-live polite + atomic.
+    badge.setAttribute('role', 'status');
+    badge.setAttribute('aria-live', 'polite');
+    badge.setAttribute('aria-atomic', 'true');
+    const texto = document.createElement('span');
+    texto.id = 'rsShadowBadgeTexto';
+    const cerrar = document.createElement('button');
+    cerrar.id = 'rsShadowBadgeCerrar';
+    cerrar.type = 'button';
+    cerrar.textContent = '×';
+    cerrar.setAttribute('aria-label', 'Cerrar');
+    cerrar.addEventListener('click', () => badge.classList.remove('rs-visible'));
+    badge.append(texto, cerrar);
+    contenedorMapa.appendChild(badge);
+  }
+
+  function mostrarBadgeSombra(pct) {
+    const badge = document.getElementById('rsShadowBadge');
+    const texto = document.getElementById('rsShadowBadgeTexto');
+    if (!badge || !texto || pct == null) { badge?.classList.remove('rs-visible'); return; }
+    texto.textContent = `${pct}% ${t('shadeCoverage', 'del trayecto en sombra')}`;
+    badge.classList.add('rs-visible');
+  }
+
+  /* ---------------- Slider de tiempo ---------------- */
+
+  let modoManual = false;
+  let fechaBaseManual = new Date();
+  let sliderTiempo = null;
+  let etiquetaTiempo = null;
+  let temporizadorSlider = null;
+  let anunciadorHora = null;
+  let temporizadorAnuncio = null;
+  let resumenRutaAccesible = '';
+
+  function fechaSolsticio(tipo) {
+    const anio = new Date().getFullYear();
+    return tipo === 'verano' ? new Date(anio, 5, 21, 12, 0, 0) : new Date(anio, 11, 21, 12, 0, 0);
+  }
+
+  function minutosDesdeFecha(fecha) {
+    return fecha.getHours() * 60 + fecha.getMinutes();
+  }
+
+  function obtenerFechaDelSlider() {
+    const d = new Date(fechaBaseManual);
+    const minutos = Number(sliderTiempo?.value ?? minutosDesdeFecha(new Date()));
+    d.setHours(Math.floor(minutos / 60), minutos % 60, 0, 0);
+    return d;
+  }
+
+  function formatoHora(fecha) {
+    return fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function actualizarEtiquetaTiempo(contexto) {
+    if (!etiquetaTiempo) return;
+    const fecha = obtenerFechaDelSlider();
+    const prefijo =
+      contexto === 'verano' ? t('summerSolstice', 'Solsticio de verano') + ': ' :
+      contexto === 'invierno' ? t('winterSolstice', 'Solsticio de invierno') + ': ' :
+      modoManual ? t('simulating', 'Simulando') + ': ' :
+      t('now', 'Ahora') + ': ';
+    etiquetaTiempo.textContent = prefijo + formatoHora(fecha);
+    // El slider anuncia la hora en formato legible, no los minutos crudos.
+    if (sliderTiempo) sliderTiempo.setAttribute('aria-valuetext', formatoHora(fecha));
+    // Anuncio por lector de pantalla con debounce (~400 ms): mientras se
+    // arrastra no se machaca al usuario; al soltar, escucha la hora final.
+    clearTimeout(temporizadorAnuncio);
+    temporizadorAnuncio = setTimeout(() => {
+      if (anunciadorHora) {
+        const badge = document.getElementById('rsShadowBadgeTexto');
+        const sombraTxt = badge && badge.textContent ? ` · ${badge.textContent}` : '';
+        anunciadorHora.textContent = etiquetaTiempo.textContent + sombraTxt;
+      }
+      actualizarResumenAccesible();
+    }, 400);
+  }
+
+  // El mapa es un canvas: invisible para lectores de pantalla. Esta región
+  // role="status" (oculta visualmente, en index.html) repite en texto lo
+  // que el mapa enseña: resumen de la ruta (distancia, duración, % sombra)
+  // y la posición del sol, con los mismos datos del cálculo.
+  function actualizarResumenAccesible() {
+    const el = document.getElementById('rsLiveSummary');
+    if (!el) return;
+    let texto = resumenRutaAccesible ? resumenRutaAccesible + ' ' : '';
+    try {
+      const { azimutDeg, alturaDeg } = calcularAnguloSol();
+      texto += alturaDeg > 0
+        ? `${t('sunSummaryAbove', 'Sol a')} ${Math.round(alturaDeg)} ${t('sunSummaryDeg', 'grados de altura')}, ${t('sunSummaryAzimuth', 'azimut')} ${Math.round(azimutDeg)}°.`
+        : t('sunSummaryBelow', 'De noche: el sol está bajo el horizonte.');
+    } catch (e) { /* sin mapa o sin SunCalc todavía: queda solo el resumen */ }
+    el.textContent = texto;
+  }
+
+  async function aplicarCambioDeHora(contexto) {
+    actualizarEtiquetaTiempo(contexto);
+    // Avisar al planetario: el sol y la luna siguen la hora elegida a mano.
+    try {
+      const centroPlan = centroSolarEfectivo();
+      window.planetarioNotificarHora?.(
+        obtenerFechaDelSlider(),
+        centroPlan.lat,
+        centroPlan.lon ?? centroPlan.lng
+      );
+    } catch (e) { /* el planetario es opcional */ }
+    await recalcularSombrasVisibles();
+    actualizarIluminacionSolar();
+    // Solo si el barrido de sombras no lo ha hecho ya en esta misma pasada
+    // (antes se ejecutaba dos veces seguidas por cada toque del slider).
+    if (!tramosSincronizadosConSombras) await actualizarTramosSombraRuta();
+    // Punto clave: cada cambio de hora (slider, "Ahora", solsticios) debe
+    // avisar también a los árboles, o si no se quedan con la hora vieja.
+    sincronizarArboles();
+  }
+
+  function inyectarEstilosPanel() {
+    if (document.getElementById('rsPanelEstilos')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsPanelEstilos';
+    estilo.textContent = `
+      #rsTimeControls{
+        position:absolute; left:12px; bottom:12px; z-index:5;
+        width:max-content; min-width:190px; max-width:calc(100% - 24px);
+        background:linear-gradient(160deg, rgba(251,250,247,0.96) 0%, rgba(255,107,26,0.16) 100%);
+        backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+        border:1px solid rgba(255,107,26,0.4); border-radius:14px;
+        box-shadow:0 8px 22px rgba(22,35,46,0.16);
+        padding:10px 13px; font-family:inherit; color:var(--ink, #0D1F26);
+        transition:opacity .18s ease, transform .18s ease;
+      }
+      #rsTimeControls .rs-cuerpo{ overflow:visible; }
+      #rsTimeControls.rs-cerrado .rs-cuerpo{ display:none; }
+      #rsTimeControls .rs-fila{ display:flex; align-items:center; gap:8px; }
+      #rsTimeControls .rs-cabecera{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+      #rsTimeControls.rs-cerrado .rs-cabecera{ margin-bottom:0; }
+      #rsTimeControls:not(.rs-cerrado) .rs-cabecera{ margin-bottom:7px; }
+      #rsTimeControls .rs-eyebrow{
+        font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--sky-mid, #17788A);
+        font-weight:700;
+      }
+      #rsPlegarBtn{
+        appearance:none; border:none; background:transparent; color:var(--sky-mid, #17788A);
+        cursor:pointer; padding:2px 4px; opacity:.75; line-height:0;
+      }
+      #rsPlegarBtn:hover{ opacity:1; }
+      #rsPlegarBtn svg{ display:block; transition:transform .2s ease; }
+      #rsTimeControls.rs-cerrado #rsPlegarBtn svg{ transform:rotate(180deg); }
+      #rsTimeLabel{
+        font-family:var(--font-mono, 'IBM Plex Mono', monospace);
+        font-size:12px; letter-spacing:.02em; color:#C24500; font-weight:700;
+      }
+      #rsGoldenBadge{
+        font-size:8.5px; font-weight:700; letter-spacing:.04em; padding:2px 7px 2px 5px;
+        border-radius:999px; border:1px solid rgba(255,107,26,0.5); white-space:nowrap;
+        background:rgba(255,107,26,0.14);
+        display:inline-flex; align-items:center; gap:4px; color:#C24500;
+      }
+      #rsGoldenBadge::before{ content:''; width:5px; height:5px; border-radius:50%; background:currentColor; }
+      #rsTimeControls .rs-divisor{
+        height:1px; margin:8px 0; background:var(--line, rgba(14,59,71,0.14));
+      }
+      #rsTimeSlider{
+        -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; cursor:pointer; margin:4px 0 1px;
+      }
+      #rsTimeSlider::-webkit-slider-runnable-track{
+        height:3px; background:var(--line, rgba(14,59,71,0.18)); border-radius:2px;
+      }
+      #rsTimeSlider::-webkit-slider-thumb{
+        -webkit-appearance:none; margin-top:-6px; width:14px; height:14px; border-radius:50%;
+        background:var(--accent, #FF6B1A); border:2px solid var(--paper, #FBFAF7); box-shadow:0 1px 4px rgba(22,35,46,0.25);
+      }
+      #rsTimeSlider::-moz-range-track{ height:3px; background:var(--line, rgba(14,59,71,0.18)); border-radius:2px; }
+      #rsTimeSlider::-moz-range-thumb{
+        width:12px; height:12px; border-radius:50%; background:var(--accent, #FF6B1A); border:2px solid var(--paper, #FBFAF7);
+      }
+      #rsTimeControls .rs-botones{ display:flex; gap:5px; flex-wrap:wrap; margin-top:8px; }
+      #rsTimeControls button{
+        flex:1; min-width:0; font-size:9px; letter-spacing:.04em; text-transform:uppercase;
+        padding:6px 6px; border-radius:9px; border:1px solid var(--line, rgba(14,59,71,0.14));
+        background:var(--mist, #EDF1F0); color:var(--sky-deep, #0E3B47);
+        cursor:pointer; font-weight:700; transition:background .15s,border-color .15s;
+      }
+      #rsTimeControls button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
+      #rsTimeControls button:active{ background:var(--accent-soft, rgba(255,107,26,0.3)); }
+      #rsTimeControls button.rs-btn-capturar{ flex-basis:100%; color:var(--sky-mid, #17788A); }
+      @media (max-width:480px){ #rsTimeControls{ min-width:170px; } } }
+    `;
+    document.head.appendChild(estilo);
+  }
+
+  /* ---------------- Elegir puntos directamente en el mapa + geolocalización ---------------- */
+
+  let modoClickMapa = false;
+  let puntoOrigenPendiente = null;
+  let btnModoClickRef = null;
+
+  function inyectarEstilosMapaControles() {
+    if (document.getElementById('rsMapaEstilos')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsMapaEstilos';
+    estilo.textContent = `
+      /* Botonera fina y elegante (2026-09-12): una línea, máx dos.
+         right:auto + max-width para que el contenedor no cruce toda la
+         pantalla (además deja de interceptar toques del mapa arriba). */
+      #rsMapControls{
+        position:absolute; left:10px; top:10px; right:auto; z-index:5; display:flex; gap:4px; flex-wrap:wrap;
+        max-width:calc(100vw - 20px);
+      }
+      #rsMapControls button{
+        font-family:inherit; font-size:9px; letter-spacing:.02em; text-transform:uppercase;
+        font-weight:600; padding:3px 8px; border-radius:999px; line-height:1.5;
+        border:1px solid var(--line, rgba(14,59,71,0.14));
+        background:var(--surface, rgba(251,250,247,0.78)); color:var(--sky-deep, #0E3B47);
+        backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
+        cursor:pointer; box-shadow:0 1px 4px rgba(22,35,46,0.10); transition:background .15s,border-color .15s,color .15s;
+      }
+      #rsMapControls button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
+      #rsMapControls button.rs-activo{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); color:var(--sky-deep, #0E3B47); }
+      @media (max-width:480px){ #rsMapControls{ gap:3px; top:8px; left:8px; } #rsMapControls button{ padding:2px 7px; font-size:8px; } }
+
+      /* Botonera plegable: plegada solo queda el botón ≡ flotando */
+      #rsBtnPlegarControles{
+        font-family:inherit; font-size:10px; font-weight:600; line-height:1.5;
+        padding:3px 8px; border-radius:999px;
+        border:1px solid var(--line, rgba(14,59,71,0.14));
+        background:var(--surface, rgba(251,250,247,0.95)); color:var(--sky-deep, #0E3B47);
+        backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+        cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12);
+      }
+      #rsMapControls.rs-plegado{ right:auto; }
+      #rsMapControls.rs-plegado > button:not(#rsBtnPlegarControles){ display:none; }
+
+      /* Joystick virtual para paseo 3D */
+      #rsJoystick{
+        position:absolute; right:24px; bottom:24px; width:96px; height:96px;
+        border-radius:50%; background:var(--surface, rgba(251,250,247,0.5));
+        border:1px solid var(--line, rgba(14,59,71,0.2)); touch-action:none;
+        backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+        z-index:6; display:none; pointer-events:auto;
+      }
+      #rsJoystickKnob{
+        position:absolute; left:50%; top:50%; width:38px; height:38px;
+        transform:translate(-50%,-50%); border-radius:50%;
+        background:var(--accent, #FF6B1A); border:2px solid var(--paper, #FBFAF7);
+        box-shadow:0 3px 10px rgba(22,35,46,0.3); touch-action:none;
+      }
+      #rsJoystick.rs-visible{ display:block; }
+      @media (max-width:480px){
+        #rsJoystick{ width:78px; height:78px; right:16px; bottom:16px; }
+        #rsJoystickKnob{ width:32px; height:32px; }
+      }
+    `;
+    document.head.appendChild(estilo);
+  }
+
+  function inyectarControlesMapa() {
+    if (document.getElementById('rsMapControls')) return;
+    inyectarEstilosMapaControles();
+
+    const panelMapa = document.createElement('div');
+    panelMapa.id = 'rsMapControls';
+
+    const btnModoClick = document.createElement('button');
+    btnModoClick.type = 'button';
+    btnModoClick.id = 'rsBtnPickMap';
+    btnModoClick.textContent = t('pickMap', 'Elegir en el mapa');
+    btnModoClickRef = btnModoClick;
+
+    const btnUbicacion = document.createElement('button');
+    btnUbicacion.type = 'button';
+    btnUbicacion.id = 'rsBtnMyLocation';
+    btnUbicacion.textContent = t('myLocation', 'Mi ubicación');
+
+    const btnCaminar = document.createElement('button');
+    btnCaminar.type = 'button';
+    btnCaminar.id = 'rsBtnWalk';
+    btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
+
+    // Guía por voz: nace CON el panel (2026-09-12, CLS). Antes la inyectaba
+    // el módulo de voz segundos después junto a "Iniciar caminata" y toda
+    // la botonera se movía. El módulo de voz la adopta y le da la lógica.
+    const btnGuiaVoz = document.createElement('button');
+    btnGuiaVoz.type = 'button';
+    btnGuiaVoz.id = 'rsBtnGuiaVoz';
+    let vozInicialOn = false;
+    try { vozInicialOn = localStorage.getItem('manolito_guia_voz') === '1'; } catch (e) { }
+    btnGuiaVoz.setAttribute('aria-pressed', vozInicialOn ? 'true' : 'false');
+    if (vozInicialOn) btnGuiaVoz.classList.add('rs-activo');
+    btnGuiaVoz.textContent = (vozInicialOn ? '🔊 ' : '🔇 ') + t('voiceGuide', 'Guía por voz');
+
+    const btnPaseo = document.createElement('button');
+    btnPaseo.type = 'button';
+    btnPaseo.id = 'rsBtnPaseo';
+    btnPaseo.textContent = t('virtualWalkStart', 'Paseo virtual 3D');
+
+    const btnReiniciar = document.createElement('button');
+    btnReiniciar.type = 'button';
+    btnReiniciar.id = 'rsBtnReset';
+    btnReiniciar.textContent = t('resetBtn', 'Reiniciar');
+
+    function reiniciarTodo() {
+      detenerPaseoVirtual();
+      salirDeModoClick();
+      detenerCaminata();
+      inputOrigen.value = '';
+      inputDestino.value = '';
+      seleccionPorInput.delete(inputOrigen);
+      seleccionPorInput.delete(inputDestino);
+      map.getSource('ruta')?.setData(turf.featureCollection([]));
+      map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
+      map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
+      map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
+      if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
+      if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
+      rutaActual = null;
+      origenParaAutoRuta = null;
+      limpiarTramoRecorrido(); // si la ruta se borra, el gris también
+      mostrarEstado('');
+      mostrarBadgeSombra(null);
+    }
+
+    btnReiniciar.addEventListener('click', reiniciarTodo);
+
+    function salirDeModoClick() {
+      modoClickMapa = false;
+      puntoOrigenPendiente = null;
+      esperandoSoloDestino = false;
+      btnModoClick.classList.remove('rs-activo');
+      map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
+    }
+
+    btnModoClick.addEventListener('click', () => {
+      if (modoClickMapa) {
+        salirDeModoClick();
+        mostrarEstado('');
+        return;
+      }
+      modoClickMapa = true;
+      puntoOrigenPendiente = null;
+      btnModoClick.classList.add('rs-activo');
+      // Si ya tienes un origen confirmado (por ejemplo «Mi ubicación»), el
+      // primer clic en el mapa pone el DESTINO directamente. Si no hay
+      // origen, el primer clic pone el origen y el segundo el destino.
+      const origenYaElegido = seleccionPorInput.get(inputOrigen);
+      if (origenYaElegido) {
+        origenParaAutoRuta = { lat: origenYaElegido.lat, lon: origenYaElegido.lon, nombre: origenYaElegido.nombre || t('myLocation', 'Mi ubicación') };
+        esperandoSoloDestino = true;
+        mostrarEstado(t('clickDestiny', 'Origen marcado, haz clic en el destino.'));
+      } else {
+        esperandoSoloDestino = false;
+        mostrarEstado(t('clickOrigin', 'Haz clic en el mapa para marcar el origen.'));
+      }
+    });
+
+    let esperandoSoloDestino = false;
+    let origenParaAutoRuta = null;
+
+    btnUbicacion.addEventListener('click', () => {
+      if (!('geolocation' in navigator)) {
+        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
+        return;
+      }
+      mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicación…'));
+      // Primero lectura FINA y FRESCA del GPS (una sola vez: el chip se
+      // apaga al responder, la batería ni lo nota). maximumAge:0 prohíbe
+      // lecturas viejas de la caché: con caché el muñeco salía plantado
+      // donde estuviste hace un rato ("aparece por ahí"). Si la fina
+      // falla (interior, túnel), respaldo por red/wifi.
+      const pedirUbicacionPrecisa = (usarPosicion, alFallar) => {
+        navigator.geolocation.getCurrentPosition(
+          usarPosicion,
+          () => navigator.geolocation.getCurrentPosition(
+            usarPosicion,
+            alFallar,
+            { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
+          ),
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+      };
+      pedirUbicacionPrecisa(
+        async (pos) => {
+          const lat = pos.coords.latitude, lon = pos.coords.longitude;
+          const precisionM = Math.round(pos.coords.accuracy || 0);
+
+          seleccionPorInput.set(inputOrigen, { lat, lon, nombre: t('myLocation', 'Mi ubicación'), texto: t('myLocation', 'Mi ubicación') });
+          inputOrigen.value = t('myLocation', 'Mi ubicación');
+
+          const puntoUbicacion = turf.point([lon, lat]);
+          map.getSource('puntos-manuales')?.setData(turf.featureCollection([puntoUbicacion]));
+          if (precisionM > 0) {
+            const circuloPrecision = turf.circle([lon, lat], precisionM / 1000, { units: 'kilometers', steps: 48 });
+            map.getSource('precision-ubicacion')?.setData(turf.featureCollection([circuloPrecision]));
+          } else {
+            map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
+          }
+
+          const notaPrecision = precisionM > 0
+            ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m. ${t('locationNote', 'Sin GPS real puede ser orientativa')})`
+            : '';
+          mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision}. ${t('chooseDestination', 'Toca un punto del mapa para poner el destino.')}`, 'ok');
+          map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
+
+          origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicación') };
+          puntoOrigenPendiente = null;
+          // Por orden directa de Sandro (sep-2026): NADA de armar solo el
+          // modo «elegir en el mapa». Tu ubicación queda puesta como origen
+          // y tú decides el siguiente paso, escribir el destino o pulsar tú
+          // mismo «Elegir en el mapa». Aquí no se activa nada solo.
+        },
+        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error')
+      );
+    });
+
+    /* ---- Modo caminar: sigue tu posición en vivo mientras te mueves ---- */
+    let watchId = null;
+    let marcadorCaminando = null;
+
+    function detenerCaminata() {
+      if (window.ManolitA11y) window.ManolitA11y.detenerGuia();
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+      if (marcadorCaminando) { marcadorCaminando.remove(); marcadorCaminando = null; }
+      btnCaminar.classList.remove('rs-activo');
+      btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
+    }
+
+    btnCaminar.addEventListener('click', () => {
+      if (watchId != null) { detenerCaminata(); mostrarEstado(''); return; }
+      if (paseoActivo) detenerPaseoVirtual(); // los dos modos de caminar no pueden convivir
+      if (!('geolocation' in navigator)) {
+        mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
+        return;
+      }
+      btnCaminar.classList.add('rs-activo');
+      btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
+      mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
+      // Si hay una ruta calculada con indicaciones, arranca la guía por voz:
+      // anuncia el primer paso ya y los siguientes al acercarte a cada punto.
+      if (window.ManolitA11y) window.ManolitA11y.iniciarGuiaCaminata();
+
+      const el = document.createElement('div');
+      el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#0E3B47'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#0E3B47')}33;`;
+      marcadorCaminando = new maplibregl.Marker({ element: el });
+
+      // Ahorro de batería andando (sep-2026): el GPS dispara ~1 lectura
+      // cada 2 s y antes CADA lectura animaba la cámara y recalculaba las
+      // sombras de TODOS los árboles, eso calentaba el móvil en minutos.
+      // Ahora: la cámara solo te sigue si te has movido >12 m, y las
+      // sombras/ruta se recalculan como mucho 1 vez cada 8 s (a pie, el
+      // sol no cambia de verdad en menos tiempo).
+      let ultimaCamaraCaminata = null;
+      let ultimaSincroCaminataMs = 0;
+      let ultimaLecturaGpsMs = 0;
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          // Debounce GPS (sep-2026, ADITIVO): máximo 1 lectura procesada
+          // por segundo. Algunos móviles disparan watchPosition en ráfagas
+          // de varias lecturas seguidas; las extra no aportaban nada (la
+          // cámara y las sombras ya van con su propio throttle) y cada una
+          // despertaba el hilo principal.
+          const ahoraGpsMs = Date.now();
+          if (ahoraGpsMs - ultimaLecturaGpsMs < 1000) return;
+          ultimaLecturaGpsMs = ahoraGpsMs;
+          const lat = pos.coords.latitude, lon = pos.coords.longitude;
+          marcadorCaminando.setLngLat([lon, lat]); // primero la posición: un Marker sin LngLat rompe al añadirse
+          if (!marcadorCaminando._map) marcadorCaminando.addTo(map);
+          const ahoraCaminata = Date.now();
+          const movidoSuficiente = !ultimaCamaraCaminata
+            || turf.distance(turf.point([ultimaCamaraCaminata[0], ultimaCamaraCaminata[1]]), turf.point([lon, lat]), { units: 'meters' }) > 12;
+          if (movidoSuficiente) {
+            ultimaCamaraCaminata = [lon, lat];
+            map.easeTo({ center: [lon, lat], duration: 600 });
+          }
+          puntoReferenciaSol = { lat, lon };
+          if (window.ManolitA11y) window.ManolitA11y.avanzar(lat, lon); // anuncia el siguiente paso si ya toca
+          pintarTramoRecorrido(lat, lon); // el trozo ya andado pasa a gris, a lo Google Maps
+          if (ahoraCaminata - ultimaSincroCaminataMs > 8000) {
+            ultimaSincroCaminataMs = ahoraCaminata;
+            if (rutaActual) actualizarTramosSombraRuta();
+            sincronizarArboles();
+          }
+        },
+        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
+        // Batería (sep-2026, orden de Sandro: el móvil NO se calienta):
+        // enableHighAccuracy:true mantenía el chip GPS del iPhone a máxima
+        // potencia durante TODA la caminata, es hardware de radio, la
+        // fuente de calor nº 1 de cualquier móvil. Con localización por
+        // red/wifi la precisión peatonal en ciudad (±20-40 m) sobra para
+        // seguir la ruta y anunciar pasos, y el chip GPS apenas trabaja.
+        // El filtro de >12 m para mover la cámara absorbe el tembleque.
+        { enableHighAccuracy: false, maximumAge: 3000, timeout: 15000 }
+      );
+    });
+
+    /* ---- Paseo virtual 3D: cámara libre, sin GPS real ----
+       Arreglado: se guarda el estado del mapa antes de entrar y se
+       restaura tal cual al salir; la cámara libre y la caminata GPS
+       se excluyen mutuamente; y las sombras/edificios se refrescan
+       según la posición del jugador mientras camina. */
+    function entrarPaseoVirtual() {
+      if (paseoActivo) return;
+      if (watchId != null) detenerCaminata(); // no convivir con la caminata GPS real
+
+      // Guardamos el estado real del mapa para poder volver a él tal cual al salir
+      paseoEstadoPrevio = {
+        center: map.getCenter(),
+        zoom: map.getZoom(),
+        pitch: map.getPitch(),
+        bearing: map.getBearing(),
+        maxPitch: map.getMaxPitch(),
       };
 
-      const lang = getRobustLang();
-      const idiomaSeleccionado = variacionesIdiomas[lang] ? variacionesIdiomas[lang] : variacionesIdiomas['es'];
-      const estadoData = idiomaSeleccionado[estado] || idiomaSeleccionado.mala; 
-      const seleccion = estadoData[Math.floor(Math.random() * estadoData.length)];
+      const centro = map.getCenter();
+      paseoOrigenMercator = maplibregl.MercatorCoordinate.fromLngLat(centro);
+      paseoMetrosAU = paseoOrigenMercator.meterInMercatorCoordinateUnits();
 
-      let svg = '';
+      paseoJugador.x = 0;
+      paseoJugador.y = 0;
+      paseoJugador.bearing = map.getBearing() || 0;
+      // Mirada vertical LIBRE (sep-2026, orden de Sandro): el pitch ya no
+      // está clavado, arrastra el dedo arriba/abajo para mirar al cielo
+      // o a tus pies. 85° es el máximo físico de MapLibre; sin ese tope
+      // la proyección se rompe. Los edificios ya no se cortan a media
+      // fachada al acercarte.
+      paseoJugador.pitch = CONFIG.paseoPitchInicial;
+      paseoVelocidadSuavizada = 0;
+      paseoGiroSuavizado = 0;
 
-      if (estado === 'buena') {
-        svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase}
-                 ${eyes}
-                 <path d="M32 62 Q50 80 68 62" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
-               </svg>`;
-      } else if (estado === 'moderada') {
-        svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase}
-                 ${eyes}
-                 <line x1="32" y1="64" x2="68" y2="64" stroke="#333" stroke-width="3" stroke-linecap="round"/>
-               </svg>`;
-      } else {
-        svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase}
-                 ${eyes}
-                 <path d="M32 66 Q50 52 68 66" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
-                 <rect x="30" y="56" width="40" height="14" rx="4" fill="#ddd" stroke="#666" stroke-width="2"/>
-                 <line x1="30" y1="61" x2="70" y2="61" stroke="#666" stroke-width="2"/>
-                 <line x1="28" y1="59" x2="18" y2="55" stroke="#666" stroke-width="2"/>
-                 <line x1="72" y1="59" x2="82" y2="55" stroke="#666" stroke-width="2"/>
-               </svg>`;
+      map.dragPan.disable();
+      map.scrollZoom.disable();
+      map.dragRotate.disable();
+      map.touchZoomRotate.disable();
+      map.doubleClickZoom.disable();
+      map.keyboard.disable();
+
+      map.setMaxPitch(CONFIG.paseoMaxPitch);
+      paseoActivo = true;
+      paseoUltimoFrame = performance.now();
+      paseoUltimaSincroMs = 0; // fuerza una sincronización de sombras nada más entrar
+
+      asegurarActivacionSolar();
+      map.getSource('sombras-halo')?.setData(turf.featureCollection([])); // el halo es caro; se omite durante el paseo
+
+      if (btnPaseo) {
+        btnPaseo.classList.add('rs-activo');
+        btnPaseo.textContent = t('virtualWalkStop', 'Salir del paseo');
       }
+      mostrarEstado(t('virtualWalkHint', 'Arrastra para mirar • Joystick para moverte • Esc para salir'));
 
-      msgEl.textContent = seleccion.msg;
-      if (humanEl) humanEl.textContent = seleccion.humano;
-      if (subEl) subEl.textContent = seleccion.sub; 
-      
-      cloudDiv.innerHTML = svg;
+      const joy = document.getElementById('rsJoystick');
+      // Joystick visible SIEMPRE en el paseo (sep-2026, orden de Sandro):
+      // antes solo salía en pantallas táctiles y en un ordenador no había
+      // forma de caminar sin adivinar las teclas. Con ratón también se
+      // arrastra el joystick, así el movimiento es libre para todos.
+      if (joy) joy.classList.add('rs-visible');
+
+      paseoRafId = requestAnimationFrame(loopPaseo);
     }
-    
-    window.actualizarModoPeque = renderPequeFace;
 
-    window.actualizarPanelCientifico = function(datos) {
-      const { pm25, pm10, no2, o3, ica, hora } = datos;
-      const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-      setVal('sciPM25', pm25 + ' µg/m³');
-      setVal('sciPM10', pm10 + ' µg/m³');
-      setVal('sciNO2',  no2 + ' µg/m³');
-      setVal('sciO3',   o3 + ' µg/m³');
-      setVal('sciICA',  ica);
-      setVal('sciUpdated', 'Actualizado: ' + hora);
-    };
+    function detenerPaseoVirtual() {
+      if (!paseoActivo) return;
+      paseoActivo = false;
+      if (paseoRafId) cancelAnimationFrame(paseoRafId);
+      paseoRafId = null;
 
-    // Efecto mágico del modo peque: emojis que suben flotando por el hero.
-    // app.js llama a syncModeFx(mode) cada vez que cambia el modo.
-    window.syncModeFx = function(mode) {
-      const hero = document.querySelector('.hero');
-      if (!hero) return;
-      hero.querySelectorAll('.peque-sparkle').forEach(e => e.remove());
-      if (mode !== 'peque') return;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      const emojis = ['🎈', '⭐', '🫧', '🌈', '🦋', '☀️', '🍃'];
-      for (let i = 0; i < 10; i++) {
-        const s = document.createElement('span');
-        s.className = 'peque-sparkle';
-        s.textContent = emojis[i % emojis.length];
-        s.style.left = (4 + Math.random() * 92) + '%';
-        s.style.animationDuration = (5 + Math.random() * 5) + 's';
-        s.style.animationDelay = (Math.random() * 6) + 's';
-        s.style.fontSize = (1.1 + Math.random() * 1.2) + 'rem';
-        hero.appendChild(s);
+      map.dragPan.enable();
+      map.scrollZoom.enable();
+      map.dragRotate.enable();
+      map.touchZoomRotate.enable();
+      map.doubleClickZoom.enable();
+      map.keyboard.enable();
+
+      // Devolvemos el mapa exactamente a como estaba antes de entrar
+      // (si no, se queda "roto": cámara libre pegada al suelo, sin salir de FreeCameraOptions)
+      if (paseoEstadoPrevio) {
+        map.setMaxPitch(paseoEstadoPrevio.maxPitch);
+        map.jumpTo({
+          center: paseoEstadoPrevio.center,
+          zoom: paseoEstadoPrevio.zoom,
+          pitch: paseoEstadoPrevio.pitch,
+          bearing: paseoEstadoPrevio.bearing,
+        });
+        puntoReferenciaSol = { lat: paseoEstadoPrevio.center.lat, lon: paseoEstadoPrevio.center.lng };
+        paseoEstadoPrevio = null;
+      } else {
+        map.setMaxPitch(85); // el tope de la casa desde sep-2026 (mirar arriba sin corte)
       }
-    };
 
-  })();
+      btnPaseo.classList.remove('rs-activo');
+      btnPaseo.textContent = t('virtualWalkStart', 'Paseo virtual 3D');
+      mostrarEstado('');
 
-  (function() {
-    const btn = document.getElementById('cityDropdownBtn');
-    const list = document.getElementById('cityDropdownList');
-    const items = list.querySelectorAll('li');
-    const forecastCityName = document.getElementById('forecastCityName');
+      const joy = document.getElementById('rsJoystick');
+      if (joy) { joy.style.display = 'none'; joy.classList.remove('rs-visible'); }
+      paseoJoystick.active = false;
 
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      list.classList.toggle('open');
-      btn.setAttribute('aria-expanded', list.classList.contains('open') ? 'true' : 'false');
+      actualizarCacheEdificios();
+      if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
+      sincronizarArboles();
+    }
+
+    function paseoToLngLat(x, y) {
+      return new maplibregl.MercatorCoordinate(
+        paseoOrigenMercator.x + x * paseoMetrosAU,
+        paseoOrigenMercator.y + y * paseoMetrosAU,
+        0
+      ).toLngLat();
+    }
+
+    function actualizarCamaraPaseo(eye) {
+      // Cámara de peatón con la API ESTÁNDAR de MapLibre (sep-2026, arreglo
+      // gordo): getFreeCameraOptions/setFreeCameraOptions ya no existen en
+      // MapLibre GL JS 4.x (se retiraron de la librería) y el paseo entraba
+      // y salía al instante con un aviso. Ahora la vista de primera persona
+      // se consigue con centro unos metros por delante del jugador, zoom de
+      // calle, el pitch vivo y su bearing. Mismo resultado visual y funciona
+      // en cualquier versión de MapLibre.
+      const pitchVivo = typeof paseoJugador.pitch === 'number' ? paseoJugador.pitch : CONFIG.paseoPitchInicial;
+      const rad = paseoJugador.bearing * Math.PI / 180;
+      const adelante = paseoToLngLat(
+        paseoJugador.x + Math.sin(rad) * CONFIG.paseoLookAheadM,
+        paseoJugador.y - Math.cos(rad) * CONFIG.paseoLookAheadM
+      );
+      map.jumpTo({
+        center: adelante,
+        zoom: CONFIG.paseoZoomCalle,
+        pitch: pitchVivo,
+        bearing: paseoJugador.bearing,
+      });
+    }
+
+    // Mientras caminas: refresca periódicamente qué edificios hay alrededor
+    // y recalcula sus sombras con la posición virtual real del jugador
+    // (antes esto solo pasaba con el evento 'moveend', que no salta en
+    // modo cámara libre, así que las sombras se quedaban congeladas).
+    function sincronizarSombrasPaseo(eye, now) {
+      if (now - paseoUltimaSincroMs < CONFIG.paseoSincroMs) return;
+      paseoUltimaSincroMs = now;
+      puntoReferenciaSol = { lat: eye.lat, lon: eye.lng };
+      actualizarCacheEdificios();
+      if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
+      if (rutaActual) actualizarTramosSombraRuta();
+      pintarTramoRecorrido(eye.lat, eye.lng); // el gris también avanza en el paseo virtual
+      sincronizarArboles();
+    }
+
+    function loopPaseo(now) {
+      if (!paseoActivo) return;
+      // Rendimiento (sep-2026, ADITIVO): tope de 30 fps en el paseo virtual.
+      // Antes el bucle corría a 60 fps (cada frame del navegador) y cada frame
+      // movía la cámara libre => MapLibre re-renderizaba TODO el mapa 60 veces
+      // por segundo. Era la mayor fuente de calor del móvil. A 30 fps el paseo
+      // se ve igual de fluido (el movimiento usa dt real, no frames) y la GPU
+      // trabaja la mitad. Los frames "salteados" solo reprograman el rAF.
+      if (now - paseoUltimoFrame < 33) {
+        paseoRafId = requestAnimationFrame(loopPaseo);
+        return;
+      }
+      const dt = Math.min(0.05, (now - paseoUltimoFrame) / 1000);
+      paseoUltimoFrame = now;
+
+      let avanceObjetivo = 0;
+      let giroObjetivo = 0;
+
+      if (keysDown.has('KeyW') || keysDown.has('ArrowUp')) avanceObjetivo += 1;
+      if (keysDown.has('KeyS') || keysDown.has('ArrowDown')) avanceObjetivo -= 1;
+      if (keysDown.has('KeyA') || keysDown.has('ArrowLeft')) giroObjetivo -= 1;
+      if (keysDown.has('KeyD') || keysDown.has('ArrowRight')) giroObjetivo += 1;
+
+      if (paseoJoystick.active) {
+        avanceObjetivo = -paseoJoystick.dy;
+        giroObjetivo = paseoJoystick.dx * 0.6;
+      }
+
+      // Suavizado tipo inercia para que el movimiento sea más "virtual" y menos brusco
+      const suavizado = Math.min(1, CONFIG.paseoSuavizado + dt * 2);
+      paseoGiroSuavizado += (giroObjetivo - paseoGiroSuavizado) * suavizado;
+      paseoVelocidadSuavizada += (avanceObjetivo - paseoVelocidadSuavizada) * suavizado;
+
+      if (Math.abs(paseoGiroSuavizado) > 0.01) {
+        paseoJugador.bearing += paseoGiroSuavizado * 90 * dt;
+      }
+
+      if (Math.abs(paseoVelocidadSuavizada) > 0.01) {
+        const step = paseoVelocidadSuavizada * CONFIG.paseoVelocidadMs * dt;
+        const rad = paseoJugador.bearing * Math.PI / 180;
+        // En proyecciones Mercator, -Y es el Norte absoluto
+        paseoJugador.x += Math.sin(rad) * step;
+        paseoJugador.y -= Math.cos(rad) * step;
+      }
+
+      const eye = paseoToLngLat(paseoJugador.x, paseoJugador.y);
+      actualizarCamaraPaseo(eye);
+      sincronizarSombrasPaseo(eye, now);
+
+      paseoRafId = requestAnimationFrame(loopPaseo);
+    }
+
+    // Eventos globales de teclado para salir rápido
+    addEventListener('keydown', (e) => {
+      if (e.code === 'Escape' && paseoActivo) detenerPaseoVirtual();
     });
 
-    items.forEach(item => {
-      // Las opciones de ciudad también se eligen solo con teclado.
-      item.setAttribute('role', 'option');
-      item.setAttribute('tabindex', '0');
-      item.setAttribute('aria-selected', item.classList.contains('selected') ? 'true' : 'false');
-      item.addEventListener('click', () => {
-        const value = item.getAttribute('data-value');
-        const text = item.textContent;
-        btn.firstChild.textContent = text;
-        items.forEach(i => { i.classList.remove('selected'); i.setAttribute('aria-selected', 'false'); });
-        item.classList.add('selected');
-        item.setAttribute('aria-selected', 'true');
-        list.classList.remove('open');
-        btn.setAttribute('aria-expanded', 'false');
-
-        if (typeof window.setCurrentCity === 'function') {
-          window.setCurrentCity(value);
-        }
-        if (forecastCityName) forecastCityName.textContent = text;
-      });
-      item.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          item.click();
-        }
-      });
+    btnPaseo.addEventListener('click', () => {
+      if (paseoActivo) detenerPaseoVirtual();
+      else entrarPaseoVirtual();
     });
 
-    document.addEventListener('click', () => { list.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); });
-  })();
-</script>
-<script>
-/* ============================================================
-   SINCRONIZAR / EXPORTAR DATOS (sep-2026)
-   Exporta los ajustes locales (claves "manolito*" de
-   localStorage, sin cachés) a un JSON descargable y los
-   recupera en otro dispositivo. Sin cuentas ni servidores:
-   el archivo lo genera y lo lee el propio navegador.
-   ============================================================ */
-(function(){
-  'use strict';
-  var PREFIJO = 'manolito';
-  var esCache = function(k){ return k.indexOf('manolito_cache') === 0; };
-  var toggle = document.getElementById('btnSyncExport');
-  var panel = document.getElementById('syncPanel');
-  if (!toggle || !panel) return;
-  toggle.addEventListener('click', function(){
-    var abierto = panel.hidden;
-    panel.hidden = !abierto;
-    toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
-  });
-  var btnExp = document.getElementById('btnSyncExportar');
-  var btnImp = document.getElementById('btnSyncImportar');
-  var input = document.getElementById('syncFileInput');
+    // Se exponen para poder usarlas desde fuera de esta función (reiniciarTodo, etc.)
+    window.__rsDetenerPaseoVirtual = detenerPaseoVirtual;
 
-  if (btnExp) btnExp.addEventListener('click', function(){
-    var ajustes = {};
-    try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
-        if (k && k.indexOf(PREFIJO) === 0 && !esCache(k)) ajustes[k] = localStorage.getItem(k);
-      }
-    } catch (e) { /* sin almacenamiento: se exporta el paquete vacío */ }
-    var paquete = { app: 'manolito-aire', version: 1, fecha: new Date().toISOString(), ajustes: ajustes };
-    var blob = new Blob([JSON.stringify(paquete, null, 2)], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'manolito-aire-datos.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-  });
+    /* ---- Botones FIJOS de Árboles e Irradiación Solar ----
+       Antes los creaban sus módulos (arboles-globales.js / irradiacion-solar.js)
+       cuando conseguían cargar y encontrar este panel; si no, el botón no
+       aparecía NUNCA (de ahí lo de "unas veces sale y otras no").
+       Ahora los crea el propio mapa y son fijos: si el módulo aún no está,
+       el primer clic lo carga y lo activa; si ya está, manda el módulo. */
+    function cargarScriptLocal(src) {
+      if (document.querySelector(`script[src="${src}"]`)) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.body.appendChild(s);
+      });
+    }
+    function botonCapaFijo(id, texto, src) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.id = id;
+      b.textContent = texto;
+      b.addEventListener('click', () => {
+        if (b.dataset.listo === '1') return; // el módulo ya gestiona este botón
+        if (b.dataset.cargando === '1') return;
+        b.dataset.cargando = '1';
+        b.dataset.autoActivar = '1';
+        const textoPrev = b.textContent;
+        b.textContent = '…';
+        cargarScriptLocal(src).catch(() => {
+          delete b.dataset.cargando;
+          delete b.dataset.autoActivar;
+          b.textContent = textoPrev;
+          mostrarEstado(t('layerLoadError', 'No se ha podido cargar la capa. Inténtalo de nuevo.'), 'error');
+        });
+      });
+      return b;
+    }
+    // Árboles: el módulo ya vive INTEGRADO al final de este mismo archivo,
+    // así que el botón es un botón normal (lo "adopta" el módulo en cuanto
+    // arranca). Nada de carga perezosa: cero puntos de fallo.
+    const btnArboles = document.createElement('button');
+    btnArboles.type = 'button';
+    btnArboles.id = 'rsBtnArboles';
+    btnArboles.textContent = t('treesBtn', 'Árboles');
+    // Irradiación Solar: sigue siendo un módulo aparte con carga perezosa.
+    const btnIrradiacion = botonCapaFijo('rsBtnIrradiacion', t('irrLayerBtn', 'Irradiación Solar'), 'js/irradiacion-solar.js');
 
-  if (btnImp && input) {
-    btnImp.addEventListener('click', function(){ input.click(); });
-    input.addEventListener('change', function(){
-      var f = input.files && input.files[0];
-      input.value = '';
-      if (!f) return;
-      var lector = new FileReader();
-      lector.onload = function(){
-        try {
-          var paquete = JSON.parse(String(lector.result));
-          if (!paquete || paquete.app !== 'manolito-aire' || !paquete.ajustes || typeof paquete.ajustes !== 'object') {
-            throw new Error('formato no válido');
+    // Botoncito "↻ Actualizar mapa" (sep-2026, orden de Sandro): fuerza la
+    // descarga FRESCA de OpenStreetMap para la vista actual, lo que
+    // acabáis de dibujar en OSM aparece al momento, sin esperar al
+    // refresco automático de 12 h. El aviso de estado confirma el resultado.
+    /* Botón mini "Act. mapa" (2026-09-12, pedido de Sandro): FUERA del
+       panel de botones, arriba a la derecha, muy pequeño. Y que actualice
+       DE VERDAD, antes solo renovaba los árboles, pero las TESELAS del
+       mapa base las sirve el Service Worker con cache-first y los cambios
+       dibujados en OpenStreetMap nunca llegaban a verse. Ahora hace las
+       tres cosas: (1) árboles frescos de Overpass (cabecera X-Arboles-
+       Fresca, que además renueva la caché KV del Worker), (2) purga las
+       cachés "manolito-*" (teselas incluidas) desde la propia página y
+       (3) fuerza a MapLibre a recargar las fuentes de teselas visibles.
+       Uso puntual, sin intervalos ni bucles nuevos: no calienta el móvil. */
+    // CLS (2026-09-12): el botón NACE en el HTML (index.html, barra
+    // superior) para que la página ya salga pintada con él, inyectarlo
+    // tarde hacía crecer la barra y empujaba toda la página (CLS 0,53).
+    // Aquí solo lo ADOPTAMOS; si una página no lo trae, se crea como antes.
+    let btnActualizarOSM = document.getElementById('rsBtnActualizarOSM');
+    const btnActYaExistia = !!btnActualizarOSM;
+    if (!btnActualizarOSM) {
+      btnActualizarOSM = document.createElement('button');
+      btnActualizarOSM.type = 'button';
+      btnActualizarOSM.id = 'rsBtnActualizarOSM';
+      btnActualizarOSM.textContent = t('osmRefreshBtn', '↻ Act. mapa');
+      btnActualizarOSM.setAttribute('data-i18n', 'osmRefreshBtn');
+      btnActualizarOSM.setAttribute('data-i18n-aria-label', 'osmRefreshTitle');
+    }
+    btnActualizarOSM.title = t('osmRefreshTitle', 'Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona');
+    if (!btnActualizarOSM.getAttribute('aria-label')) btnActualizarOSM.setAttribute('aria-label', btnActualizarOSM.title);
+    btnActualizarOSM.addEventListener('click', async () => {
+      if (btnActualizarOSM.disabled) return;
+      btnActualizarOSM.disabled = true;
+      const textoPrevio = btnActualizarOSM.textContent;
+      btnActualizarOSM.textContent = t('osmRefreshing', 'Cargando…');
+      btnActualizarOSM.classList.add('rs-cargando');
+      try {
+        // (1) Árboles frescos (bypass + renovación de la caché del Worker).
+        // Si el módulo de árboles aún no ha terminado de iniciarse (clic
+        // muy temprano), lo esperamos: antes se resolvía al instante y el
+        // "✓ Actualizado" mentía, no se había consultado nada (QA, ronda CLS).
+        let trabajoArboles = null;
+        if (typeof window.manolitAireActualizarOSM === 'function') {
+          trabajoArboles = window.manolitAireActualizarOSM();
+        } else {
+          const esperaModuloDesde = Date.now();
+          while (typeof window.manolitAireActualizarOSM !== 'function' && Date.now() - esperaModuloDesde < 8000) {
+            await new Promise((r) => setTimeout(r, 150));
           }
-          Object.keys(paquete.ajustes).forEach(function(k){
-            if (k.indexOf(PREFIJO) === 0 && !esCache(k)) {
-              try { localStorage.setItem(k, String(paquete.ajustes[k])); } catch (e) { /* clave concreta sin espacio: se salta */ }
+          trabajoArboles = (typeof window.manolitAireActualizarOSM === 'function')
+            ? window.manolitAireActualizarOSM()
+            : Promise.resolve();
+        }
+        // (2) Purga de cachés propias: sin esto las teselas viejas ganan
+        try {
+          if ('caches' in window) {
+            const nombresCaches = await caches.keys();
+            for (const nombreCache of nombresCaches) {
+              if (nombreCache.indexOf('manolito-') === 0) {
+                try { await caches.delete(nombreCache); } catch (e) { }
+              }
+            }
+          }
+        } catch (e) { /* sin Cache API: las teselas nuevas llegan al mover el mapa */ }
+        // (3) Recarga de las fuentes de teselas ya cargadas en el estilo
+        try {
+          const estiloVivo = map.getStyle();
+          if (estiloVivo && estiloVivo.sources) {
+            for (const idFuente of Object.keys(estiloVivo.sources)) {
+              const fuente = map.getSource(idFuente);
+              if (!fuente) continue;
+              try {
+                if (fuente.tiles && typeof fuente.setTiles === 'function') fuente.setTiles(fuente.tiles);
+                else if (fuente.url && typeof fuente.setUrl === 'function') fuente.setUrl(fuente.url);
+              } catch (e) { }
+            }
+          }
+        } catch (e) { }
+        await trabajoArboles;
+        btnActualizarOSM.textContent = t('osmRefreshed', '✓ Actualizado');
+        mostrarEstado(t('osmRefreshed', 'Mapa y datos de OpenStreetMap actualizados en esta zona.'), 'ok');
+      } catch (e) {
+        btnActualizarOSM.textContent = '✕ Error';
+        mostrarEstado(t('osmRefreshError', 'No se ha podido actualizar ahora mismo. Inténtalo en un minuto.'), 'error');
+      } finally {
+        setTimeout(() => {
+          btnActualizarOSM.textContent = textoPrevio;
+          btnActualizarOSM.classList.remove('rs-cargando');
+          btnActualizarOSM.disabled = false;
+        }, 2600);
+      }
+    });
+    // Si el botón venía en el HTML ya está en la barra superior; si lo
+    // hemos creado nosotros, lo llevamos allí (o a flotante fijo sin topbar).
+    if (!btnActYaExistia) {
+      const destinoBtnAct = document.querySelector('.topbar-right') || document.querySelector('.topbar');
+      if (destinoBtnAct) destinoBtnAct.appendChild(btnActualizarOSM);
+      else document.body.appendChild(btnActualizarOSM);
+    }
+
+    // Botón ≡ para plegar/desplegar TODA la botonera: cuando el usuario
+    // quiere el mapa completamente limpio (capturas, enseñar la sombra a
+    // alguien, pantallas pequeñas) no hay nada tapando la vista.
+    const btnPlegarControles = document.createElement('button');
+    btnPlegarControles.type = 'button';
+    btnPlegarControles.id = 'rsBtnPlegarControles';
+    btnPlegarControles.textContent = '≡';
+    btnPlegarControles.setAttribute('aria-label', 'Mostrar u ocultar los botones del mapa');
+    btnPlegarControles.setAttribute('aria-expanded', 'true');
+    btnPlegarControles.addEventListener('click', () => {
+      const plegado = panelMapa.classList.toggle('rs-plegado');
+      btnPlegarControles.textContent = plegado ? '☰' : '≡';
+      btnPlegarControles.setAttribute('aria-expanded', plegado ? 'false' : 'true');
+    });
+
+    // El botón de actualizar OSM ya NO va en el panel: vive fijo arriba a
+    // la derecha, muy pequeño, para que la botonera quepa en una línea.
+    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnGuiaVoz, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
+    contenedorMapa.appendChild(panelMapa);
+
+    map.on('click', (e) => {
+      if (!modoClickMapa) return;
+      const { lat, lng } = e.lngLat;
+
+      if (esperandoSoloDestino && origenParaAutoRuta) {
+        const origenFijado = origenParaAutoRuta;
+        const destinoFijado = { lat, lon: lng };
+        map.getSource('puntos-manuales')?.setData(turf.featureCollection([
+          turf.point([origenFijado.lon, origenFijado.lat]),
+          turf.point([lng, lat]),
+        ]));
+        inputDestino.value = t('pointMap', 'Punto marcado en el mapa');
+        salirDeModoClick();
+        manejarBusqueda(
+          { ...origenFijado },
+          { ...destinoFijado, nombre: t('pointMap', 'Punto marcado en el mapa') }
+        );
+        geocodificarInverso(lat, lng).then((nombre) => { inputDestino.value = nombre; });
+        return;
+      }
+
+      if (!puntoOrigenPendiente) {
+        puntoOrigenPendiente = { lat, lon: lng };
+        map.getSource('puntos-manuales')?.setData(turf.featureCollection([turf.point([lng, lat])]));
+        inputOrigen.value = t('pointMap', 'Punto marcado en el mapa');
+        mostrarEstado(t('clickDestiny', 'Origen marcado, haz clic en el destino.'));
+        geocodificarInverso(lat, lng).then((nombre) => { inputOrigen.value = nombre; });
+        return;
+      }
+
+      const origenFijado = puntoOrigenPendiente;
+      const destinoFijado = { lat, lon: lng };
+      map.getSource('puntos-manuales')?.setData(turf.featureCollection([
+        turf.point([origenFijado.lon, origenFijado.lat]),
+        turf.point([lng, lat]),
+      ]));
+      inputDestino.value = t('pointMap', 'Punto marcado en el mapa');
+      salirDeModoClick();
+      manejarBusqueda(
+        { ...origenFijado, nombre: t('pointMap', 'Punto marcado en el mapa') },
+        { ...destinoFijado, nombre: t('pointMap', 'Punto marcado en el mapa') }
+      );
+      geocodificarInverso(origenFijado.lat, origenFijado.lon).then((nombre) => { inputOrigen.value = nombre; });
+      geocodificarInverso(lat, lng).then((nombre) => { inputDestino.value = nombre; });
+    });
+  }
+
+  function inyectarControlesTiempo() {
+    if (document.getElementById('rsTimeControls')) return;
+    inyectarEstilosPanel();
+
+    const panel = document.createElement('div');
+    panel.id = 'rsTimeControls';
+
+    const cabecera = document.createElement('div');
+    cabecera.className = 'rs-cabecera';
+    const eyebrow = document.createElement('span');
+    eyebrow.className = 'rs-eyebrow';
+    eyebrow.id = 'rsEyebrowSol';
+    eyebrow.textContent = t('sunPosition', 'Posición solar');
+
+    const svgSol = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svgSol.setAttribute('viewBox', '0 0 60 34');
+    svgSol.setAttribute('width', '48');
+    svgSol.setAttribute('height', '28');
+    svgSol.innerHTML = `
+      <g id="rsSolGrupo" style="transition:opacity .3s;">
+        <path d="M 4 30 A 26 26 0 0 1 56 30" fill="none" stroke="#c98a4b" stroke-width="1" stroke-dasharray="1.5 3" opacity="0.55"/>
+        <line x1="4" y1="30" x2="56" y2="30" stroke="#ffffff22" stroke-width="1"/>
+        <circle id="rsSolPunto" cx="30" cy="4" r="3.4" fill="#e7b06a"/>
+      </g>`;
+
+    const btnPlegar = document.createElement('button');
+    btnPlegar.id = 'rsPlegarBtn';
+    btnPlegar.type = 'button';
+    btnPlegar.setAttribute('aria-label', 'Mostrar u ocultar el panel de posición solar');
+    btnPlegar.innerHTML = '<svg width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    btnPlegar.addEventListener('click', async () => {
+      const estabaCerrado = panel.classList.contains('rs-cerrado');
+      panel.classList.toggle('rs-cerrado');
+      if (estabaCerrado) {
+        asegurarActivacionSolar();
+        await recalcularSombrasVisibles();
+        actualizarIluminacionSolar();
+        await actualizarTramosSombraRuta();
+        sincronizarArboles();
+      }
+    });
+
+    panel.classList.add('rs-cerrado');
+
+    cabecera.append(eyebrow, svgSol, btnPlegar);
+
+    const cuerpo = document.createElement('div');
+    cuerpo.className = 'rs-cuerpo';
+
+    const filaEtiqueta = document.createElement('div');
+    filaEtiqueta.className = 'rs-fila';
+    filaEtiqueta.style.justifyContent = 'space-between';
+    etiquetaTiempo = document.createElement('span');
+    etiquetaTiempo.id = 'rsTimeLabel';
+    const badgeDorada = document.createElement('span');
+    badgeDorada.id = 'rsGoldenBadge';
+    badgeDorada.style.visibility = 'hidden';
+    badgeDorada.textContent = t('goldenHour', 'Hora dorada');
+    filaEtiqueta.append(etiquetaTiempo, badgeDorada);
+
+    sliderTiempo = document.createElement('input');
+    sliderTiempo.type = 'range';
+    sliderTiempo.id = 'rsTimeSlider';
+    sliderTiempo.min = '0';
+    sliderTiempo.max = '1439';
+    sliderTiempo.step = '5';
+    sliderTiempo.value = String(minutosDesdeFecha(new Date()));
+    sliderTiempo.setAttribute('aria-label', t('timeSlider', 'Hora del día'));
+
+    // Región aria-live separada para anunciar la hora mientras se arrastra
+    // el slider, con debounce de ~400 ms para no saturar al lector de
+    // pantalla (solo anuncia cuando el usuario se detiene un momento).
+    anunciadorHora = document.createElement('div');
+    anunciadorHora.id = 'rsTimeAnnouncer';
+    anunciadorHora.className = 'visually-hidden';
+    anunciadorHora.setAttribute('aria-live', 'polite');
+    anunciadorHora.setAttribute('aria-atomic', 'true');
+
+    sliderTiempo.addEventListener('input', () => {
+      modoManual = true;
+      fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual : new Date();
+      // Debounce de 250 ms: arrastrar el slider NO recalcula la geometría 3D
+      // en cada evento; solo al detenerse un momento (ahorro enorme de CPU).
+      clearTimeout(temporizadorSlider);
+      temporizadorSlider = setTimeout(() => aplicarCambioDeHora(esFechaSolsticioActiva), 250);
+      actualizarEtiquetaTiempo(esFechaSolsticioActiva);
+    });
+
+    let esFechaSolsticioActiva = false;
+
+    const divisor = document.createElement('div');
+    divisor.className = 'rs-divisor';
+
+    const filaBotones = document.createElement('div');
+    filaBotones.className = 'rs-botones';
+
+    function crearBoton(texto, id) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      if (id) b.id = id;
+      b.textContent = texto;
+      return b;
+    }
+
+    const btnAhora = crearBoton(t('now', 'Ahora'), 'rsBtnAhora');
+    const btnVerano = crearBoton(t('btnSummer', 'Verano'), 'rsBtnVerano');
+    const btnInvierno = crearBoton(t('btnWinter', 'Invierno'), 'rsBtnInvierno');
+    const btnCapturar = crearBoton(t('captureView', 'Capturar vista'), 'rsBtnCapturar');
+    btnCapturar.className = 'rs-btn-capturar';
+
+    btnAhora.addEventListener('click', () => {
+      modoManual = false;
+      esFechaSolsticioActiva = false;
+      fechaBaseManual = new Date();
+      sliderTiempo.value = String(minutosDesdeFecha(new Date()));
+      aplicarCambioDeHora(false);
+    });
+
+    btnVerano.addEventListener('click', () => {
+      modoManual = true;
+      esFechaSolsticioActiva = 'verano';
+      fechaBaseManual = fechaSolsticio('verano');
+      sliderTiempo.value = '780';
+      aplicarCambioDeHora('verano');
+    });
+
+    btnInvierno.addEventListener('click', () => {
+      modoManual = true;
+      esFechaSolsticioActiva = 'invierno';
+      fechaBaseManual = fechaSolsticio('invierno');
+      sliderTiempo.value = '780';
+      aplicarCambioDeHora('invierno');
+    });
+
+    btnCapturar.addEventListener('click', capturarVista);
+
+    filaBotones.append(btnAhora, btnVerano, btnInvierno, btnCapturar);
+    // "Ahora / Verano / Invierno" forman un grupo lógico de preajustes;
+    // display:contents mantiene el layout exacto sin cambiar el HTML visual.
+    const grupoPreajustes = document.createElement('div');
+    grupoPreajustes.setAttribute('role', 'group');
+    grupoPreajustes.setAttribute('aria-label', t('timePresets', 'Preajustes de hora'));
+    grupoPreajustes.style.display = 'contents';
+    filaBotones.insertBefore(grupoPreajustes, filaBotones.firstChild);
+    grupoPreajustes.append(btnAhora, btnVerano, btnInvierno);
+    cuerpo.append(filaEtiqueta, sliderTiempo, divisor, filaBotones, anunciadorHora);
+    panel.append(cabecera, cuerpo);
+    contenedorMapa.appendChild(panel);
+
+    actualizarEtiquetaTiempo(false);
+  }
+
+  /* ---------------- Capa de mapa oscura ---------------- */
+
+  let mapaOscuro = false;
+  function inyectarControlToggleMapaOscuro() {
+    if (document.getElementById('rsMapStyleToggle')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'rsMapStyleToggleEstilos';
+    estilo.textContent = `
+      #rsMapStyleToggle{
+        /* subido 60px para no tapar el botón de atribución de MapLibre
+           (WCAG 2.5.8: los objetivos táctiles no pueden quedar parcialmente ocultos) */
+        position:absolute; right:12px; bottom:72px; z-index:5;
+      }
+      #rsMapStyleToggle button{
+        font-family:inherit; font-size:9.5px; letter-spacing:.04em; text-transform:uppercase;
+        font-weight:700; padding:6px 11px; border-radius:999px;
+        border:1px solid var(--line, rgba(14,59,71,0.14));
+        background:var(--surface, rgba(251,250,247,0.92)); color:var(--sky-deep, #0E3B47);
+        backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+        cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12); transition:background .15s,border-color .15s;
+      }
+      #rsMapStyleToggle button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
+      /* Mapa oscuro SOLO a petición (botón "Mapa oscuro"). El filtro
+         invert() sobre el canvas WebGL es un pase de GPU a pantalla
+         completa en CADA repintado del mapa, y antes se aplicaba SOLO
+         al arrancar, porque la web nace en tema oscuro: el mapa salía
+         oscuro (Sandro lo pidió claro: "el inicio mapa claro, la
+         península, en blanco") y el iPhone pagaba el filtro desde el
+         primer frame. Ahora el mapa nace claro siempre y el filtro solo
+         existe cuando el usuario pulsa el botón (sep-2026). */
+      .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
+        filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
+      }
+    `;
+    document.head.appendChild(estilo);
+
+    const wrap = document.createElement('div');
+    wrap.id = 'rsMapStyleToggle';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'rsBtnMapaOscuro';
+    btn.textContent = t('darkMapOn', 'Mapa oscuro');
+    // La etiqueta del botón refleja el estado del mapa. El mapa NACE
+    // claro siempre (sep-2026, orden de Sandro): el tema oscuro de la web
+    // ya no lo invierte automáticamente; solo lo oscurece este botón.
+    const sincronizarEtiquetaMapa = () => {
+      const efectivoOscuro = mapaOscuro;
+      btn.textContent = efectivoOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
+      btn.setAttribute('aria-pressed', efectivoOscuro ? 'true' : 'false');
+    };
+    new MutationObserver(() => { sincronizarEtiquetaMapa(); aplicarEstiloNubes(); })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    btn.addEventListener('click', () => {
+      mapaOscuro = !mapaOscuro;
+      contenedorMapa.classList.toggle('rs-mapa-oscuro-activo', mapaOscuro);
+      sincronizarEtiquetaMapa();
+      aplicarEstiloNubes(); // las nubes cambian de brillo para seguir viéndose
+    });
+    sincronizarEtiquetaMapa();
+    wrap.appendChild(btn);
+
+    /* --- Capa base IGN (WMS público del Instituto Geográfico Nacional) ---
+       Teselas WMS gratuitas y reutilizables (CC BY 4.0 scne.es). Se pintan
+       ENCIMA del mapa vectorial pero DEBAJO de los edificios 3D y las
+       sombras, como cartografía de fondo alternativa. */
+    const IGN_SRC = 'ign-wms-base';
+    const IGN_CAPA = 'ign-wms-base-capa';
+    let ignActivo = false;
+    const asegurarCapaIGN = () => {
+      try {
+        if (!map.getSource(IGN_SRC)) {
+          map.addSource(IGN_SRC, {
+            type: 'raster',
+            tiles: ['/ign-wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=IGNBaseTodo&WIDTH=256&HEIGHT=256&SRS=EPSG:3857&BBOX={bbox-epsg-3857}'],
+            tileSize: 256,
+            attribution: 'Mapa base © <a href="https://www.scne.es/" target="_blank" rel="noopener">IGN / SCNE</a> CC BY 4.0',
+          });
+        }
+        if (!map.getLayer(IGN_CAPA)) {
+          // Debajo de los edificios 3D si la capa existe; si no, encima de todo el fondo
+          const antes = map.getLayer(CONFIG.edificiosLayerId) ? CONFIG.edificiosLayerId : undefined;
+          map.addLayer({ id: IGN_CAPA, type: 'raster', source: IGN_SRC,
+            paint: { 'raster-opacity': 0.9, 'raster-fade-duration': 300 },
+            layout: { visibility: 'none' } }, antes);
+        }
+      } catch (e) {
+        // Estilo aún cargando: reintentar cuando termine
+        map.once('idle', () => { if (ignActivo) asegurarCapaIGN(), map.setLayoutProperty(IGN_CAPA, 'visibility', 'visible'); });
+      }
+    };
+    const btnIGN = document.createElement('button');
+    btnIGN.type = 'button';
+    btnIGN.id = 'rsBtnMapaIGN';
+    btnIGN.textContent = 'Mapa IGN';
+    btnIGN.setAttribute('aria-pressed', 'false');
+    btnIGN.title = 'Cartografía del Instituto Geográfico Nacional (CC BY 4.0 scne.es)';
+    btnIGN.addEventListener('click', () => {
+      ignActivo = !ignActivo;
+      if (ignActivo) {
+        asegurarCapaIGN();
+        try { if (map.getLayer(IGN_CAPA)) map.setLayoutProperty(IGN_CAPA, 'visibility', 'visible'); } catch (e) {}
+      } else {
+        try { if (map.getLayer(IGN_CAPA)) map.setLayoutProperty(IGN_CAPA, 'visibility', 'none'); } catch (e) {}
+      }
+      btnIGN.setAttribute('aria-pressed', ignActivo ? 'true' : 'false');
+      btnIGN.style.background = ignActivo ? 'var(--accent-soft, rgba(255,107,26,0.16))' : '';
+      btnIGN.style.borderColor = ignActivo ? 'var(--accent, #FF6B1A)' : '';
+    });
+    wrap.appendChild(btnIGN);
+
+    /* --- Catastro de España: densidad de alturas (fucsia/verde) ---
+       100% gratis y sin API key: raster WMS oficial INSPIRE de la Sede
+       Electrónica del Catastro (edificios BU.Building) proxiedado por el
+       Worker (/catastro-wms, igual que /ign-wms) MÁS las extrusiones 3D
+       recoloreadas por altura (verde = bajo → fucsia = alto), el estilo de
+       densidad de edificación del Catastro. Las sombras NO se tocan: el
+       motor lee geometría y alturas, no colores, así que siguen calculando
+       igual sobre los mismos volúmenes. */
+    const CAT_SRC = 'catastro-wms-base';
+    const CAT_CAPA = 'catastro-wms-capa';
+    let catastroActivo = false;
+    const COLOR_EDIFICIOS_NORMAL = [
+      'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+      0, '#8fb3e8',
+      30, '#5f8fd6',
+      70, '#3f6bc0',
+      140, '#274a96'
+    ];
+    // Gradiente de densidad del Catastro: verde (bajos) → amarillo →
+    // naranja → fucsia (torres). Se lee de un vistazo dónde se concentra
+    // la altura de la ciudad.
+    const COLOR_EDIFICIOS_CATASTRO = [
+      'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+      0, '#2f9e44',
+      12, '#8ac926',
+      25, '#ffca3a',
+      45, '#f3722c',
+      80, '#d6006d',
+      140, '#9d0060'
+    ];
+    const asegurarCapaCatastro = () => {
+      try {
+        if (!map.getSource(CAT_SRC)) {
+          map.addSource(CAT_SRC, {
+            type: 'raster',
+            tiles: ['/catastro-wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=TRUE&LAYERS=PARCELA&STYLES=Default&WIDTH=256&HEIGHT=256&SRS=EPSG:3857&BBOX={bbox-epsg-3857}'],
+            tileSize: 256,
+            attribution: '© <a href="https://www.sedecatastro.gob.es/" target="_blank" rel="noopener">Dirección General del Catastro</a>',
+          });
+        }
+        if (!map.getLayer(CAT_CAPA)) {
+          const antes = map.getLayer(CONFIG.edificiosLayerId) ? CONFIG.edificiosLayerId : undefined;
+          map.addLayer({ id: CAT_CAPA, type: 'raster', source: CAT_SRC,
+            paint: { 'raster-opacity': 0.75, 'raster-fade-duration': 300 },
+            layout: { visibility: 'none' } }, antes);
+        }
+      } catch (e) {
+        map.once('idle', () => { if (catastroActivo) { asegurarCapaCatastro(); try { map.setLayoutProperty(CAT_CAPA, 'visibility', 'visible'); } catch (e2) {} } });
+      }
+    };
+    const btnCatastro = document.createElement('button');
+    btnCatastro.type = 'button';
+    btnCatastro.id = 'rsBtnCatastro';
+    btnCatastro.textContent = 'Catastro 3D';
+    btnCatastro.setAttribute('aria-pressed', 'false');
+    btnCatastro.title = 'Densidad de alturas oficial del Catastro de España (gratis, sin registro)';
+    btnCatastro.addEventListener('click', () => {
+      catastroActivo = !catastroActivo;
+      if (catastroActivo) {
+        asegurarCapaCatastro();
+        try { if (map.getLayer(CAT_CAPA)) map.setLayoutProperty(CAT_CAPA, 'visibility', 'visible'); } catch (e) {}
+        if (capaEdificiosDisponible && map.getLayer(CONFIG.edificiosLayerId)) {
+          try { map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', COLOR_EDIFICIOS_CATASTRO); } catch (e) {}
+        }
+      } else {
+        try { if (map.getLayer(CAT_CAPA)) map.setLayoutProperty(CAT_CAPA, 'visibility', 'none'); } catch (e) {}
+        if (capaEdificiosDisponible && map.getLayer(CONFIG.edificiosLayerId)) {
+          try { map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', COLOR_EDIFICIOS_NORMAL); } catch (e) {}
+        }
+      }
+      btnCatastro.setAttribute('aria-pressed', catastroActivo ? 'true' : 'false');
+      btnCatastro.style.background = catastroActivo ? 'var(--accent-soft, rgba(255,107,26,0.16))' : '';
+      btnCatastro.style.borderColor = catastroActivo ? 'var(--accent, #FF6B1A)' : '';
+    });
+    wrap.appendChild(btnCatastro);
+    // El wrap pasa a apilar los dos botones en vertical
+    wrap.style.display = 'flex';
+    wrap.style.flexDirection = 'column';
+    wrap.style.gap = '6px';
+    wrap.style.alignItems = 'flex-end';
+    // Capas de mapa DENTRO del widget de posición solar (sep-2026, orden
+    // de Sandro): Mapa oscuro, Mapa IGN y Catastro 3D ya no flotan
+    // encima del mapa; viven en el planetario, junto a las casillas de
+    // capas. Si el widget no estuviera en el HTML, se quedan donde estaban.
+    (document.getElementById('rsCapasMapas') || contenedorMapa).appendChild(wrap);
+  }
+
+  function capturarVista() {
+    try {
+      map.once('render', () => {
+        try {
+          const canvas = map.getCanvas();
+          const url = canvas.toDataURL('image/png');
+          const enlace = document.createElement('a');
+          enlace.href = url;
+          enlace.download = `manolito-aire-${Date.now()}.png`;
+          document.body.appendChild(enlace);
+          enlace.click();
+          enlace.remove();
+        } catch (errInterno) {
+          console.debug('No se ha podido exportar la vista como imagen:', errInterno);
+          mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
+        }
+      });
+      map.triggerRepaint();
+    } catch (e) {
+      console.debug('No se ha podido exportar la vista como imagen:', e);
+      mostrarEstado(t('captureError', 'No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.'), 'error');
+    }
+  }
+
+  /* ---------------- Toggles de capas ---------------- */
+
+  function conectarTogglesDeCapas() {
+    inyectarControlToggleMapaOscuro();
+
+    const tEdificios = document.getElementById('rsToggleEdificios');
+    const tSombras = document.getElementById('rsToggleSombras');
+    const tRuta = document.getElementById('rsToggleRuta');
+    const tSol = document.getElementById('rsToggleSol');
+
+    tEdificios?.addEventListener('change', () => {
+      const vis = tEdificios.checked ? 'visible' : 'none';
+      if (capaEdificiosDisponible) {
+        map.setLayoutProperty(CONFIG.edificiosLayerId, 'visibility', vis);
+      }
+      // Las fachadas en sombra son una extrusión aparte: si se ocultan los
+      // edificios, sus sombras recibidas también deben desaparecer.
+      if (map.getLayer('capa-edificios-en-sombra')) {
+        map.setLayoutProperty('capa-edificios-en-sombra', 'visibility', vis);
+      }
+    });
+    tSombras?.addEventListener('change', async () => {
+      asegurarActivacionSolar();
+      // Carrera corregida (sep-2026): el barrido de sombras de edificios
+      // es async y antes NO se esperaba, los árboles avisaban a la ruta
+      // antes de que las sombras de edificios existieran, y los tramos
+      // de la ruta salían vacíos o a medias. Ahora se espera al barrido
+      // y DESPUÉS se actualizan los tramos explícitamente (además esto
+      // cubre el caso de tener la capa de árboles oculta, donde el aviso
+      // de los árboles nunca llega y la ruta se quedaba sin tramos).
+      await recalcularSombrasVisibles();
+      sincronizarArboles();
+      try { await actualizarTramosSombraRuta(); } catch (e) { /* la ruta aún no existe */ }
+    });
+    tRuta?.addEventListener('change', () => {
+      const vis = tRuta.checked ? 'visible' : 'none';
+      map.setLayoutProperty('capa-ruta', 'visibility', vis);
+      map.setLayoutProperty('capa-ruta-outline', 'visibility', vis);
+      map.setLayoutProperty('capa-ruta-glow', 'visibility', vis);
+      map.setLayoutProperty('capa-ruta-sombra', 'visibility', vis);
+      map.setLayoutProperty('capa-ruta-sombra-outline', 'visibility', vis);
+      if (map.getLayer('capa-ruta-recorrida')) map.setLayoutProperty('capa-ruta-recorrida', 'visibility', vis);
+    });
+    tSol?.addEventListener('change', () => { asegurarActivacionSolar(); actualizarIluminacionSolar(); });
+    const tNubes = document.getElementById('rsToggleNubes');
+    tNubes?.addEventListener('change', aplicarVisibilidadNubes);
+
+    // Fila de capas plegable (botón "▾ Capas" en index.html): limpia la
+    // vista sin perder el estado de los checkboxes.
+    const btnPlegarCapas = document.getElementById('rsBtnPlegarCapas');
+    btnPlegarCapas?.addEventListener('click', () => {
+      const cont = btnPlegarCapas.closest('.rs-layer-toggles');
+      if (!cont) return;
+      const plegado = cont.classList.toggle('rs-plegado');
+      btnPlegarCapas.textContent = plegado ? '▸ Capas' : '▾ Capas';
+      btnPlegarCapas.setAttribute('aria-expanded', plegado ? 'false' : 'true');
+    });
+  }
+
+  /* ---------------- Red: fetch con timeout + reintentos ---------------- */
+
+  async function fetchConReintentos(url, options = {}, intentos = CONFIG.fetchRetries) {
+    for (let intento = 0; intento <= intentos; intento++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), CONFIG.fetchTimeoutMs);
+      try {
+        const respuesta = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
+        return await respuesta.json();
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (intento === intentos) throw err;
+        await new Promise((r) => setTimeout(r, 600 * (intento + 1)));
+      }
+    }
+  }
+
+  /* ---------------- Geocodificación (Nominatim) ---------------- */
+
+  async function consultarNominatim(consulta) {
+    const url = new URL(CONFIG.nominatimUrl, window.location.origin);
+    url.searchParams.set('q', consulta);
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('limit', '1');
+    // Nominatim es UN motor mundial (no hay "motor de España" aparte), pero
+    // hay que decirle el país: sin este filtro una calle típica podía salir
+    // en Latinoamérica o no encontrarse. Las sugerencias del desplegable ya
+    // llevaban countrycodes=es; faltaba aquí, en la búsqueda directa.
+    url.searchParams.set('countrycodes', 'es');
+    return fetchConReintentos(url.toString(), { headers: { 'Accept-Language': 'es' } });
+  }
+
+  async function geocodificar(direccionTexto) {
+    const variantes = [
+      direccionTexto,
+      `${direccionTexto}, España`,
+      direccionTexto.replace(/\s*\d+\s*$/, '').trim(),
+      `${direccionTexto.replace(/\s*\d+\s*$/, '').trim()}, España`,
+    ].filter((v, i, arr) => v && arr.indexOf(v) === i);
+
+    for (const intento of variantes) {
+      try {
+        const datos = await consultarNominatim(intento);
+        if (datos && datos.length > 0) {
+          return { lat: parseFloat(datos[0].lat), lon: parseFloat(datos[0].lon), nombre: datos[0].display_name };
+        }
+      } catch (e) {
+      }
+      await new Promise((r) => setTimeout(r, 350));
+    }
+
+    throw new Error(`${t('notFound', 'No se ha encontrado')}: "${direccionTexto}". ${t('tryFormat', 'Prueba a escribirla como calle, número, ciudad')}.`);
+  }
+
+  async function geocodificarInverso(lat, lon) {
+    try {
+      const url = new URL(CONFIG.nominatimReverseUrl, window.location.origin);
+      url.searchParams.set('lat', lat);
+      url.searchParams.set('lon', lon);
+      url.searchParams.set('format', 'json');
+      const datos = await fetchConReintentos(url.toString(), { headers: { 'Accept-Language': 'es' } }, 1);
+      return datos?.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    } catch (e) {
+      return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    }
+  }
+
+  /* ---------------- Ruta real por calles (OSRM) ---------------- */
+
+  async function calcularRutaReal(origen, destino) {
+    const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
+    const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&steps=true`;
+
+    try {
+      const datos = await fetchConReintentos(url);
+      if (datos?.code === 'Ok' && datos.routes?.[0]) {
+        let pasos = [];
+        let pasosGuiados = [];
+        try {
+          const sombras = typeof obtenerTodasLasSombras === 'function' ? obtenerTodasLasSombras() : [];
+          const generados = generarPasosDesdeOSRM(datos.routes[0], sombras);
+          pasos = generados.pasos;
+          pasosGuiados = generados.guiados;
+        } catch (ePasos) { /* las indicaciones son un extra: nunca rompen la ruta */ }
+        const distanciaKmNum = datos.routes[0].distance / 1000;
+        let duracionMinNum = datos.routes[0].duration / 60;
+
+        const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
+        let duracionEstimada = false;
+        if (velocidadKmh > 9 || duracionMinNum <= 0) {
+          duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
+          duracionEstimada = true;
+        }
+
+        return {
+          geojson: datos.routes[0].geometry,
+          distanciaKm: distanciaKmNum.toFixed(2),
+          duracionMin: Math.round(duracionMinNum),
+          esReal: true,
+          duracionEstimada,
+          pasos,
+          pasosGuiados,
+        };
+      }
+      throw new Error('OSRM no ha devuelto una ruta válida.');
+    } catch (err) {
+      console.debug('Routing real no disponible, usando línea directa:', err);
+      return {
+        geojson: { type: 'LineString', coordinates: [[origen.lon, origen.lat], [destino.lon, destino.lat]] },
+        distanciaKm: null,
+        duracionMin: null,
+        esReal: false,
+      };
+    }
+  }
+
+  /* ---------------- Ruta con prioridad de sombra (entre alternativas reales) ---------------- */
+
+  function calcularCoberturaSombra(geojsonLinea, poligonosSombra, indiceSombras) {
+    if (!poligonosSombra.length) return 0;
+    try {
+      const linea = geojsonLinea.type === 'Feature' ? geojsonLinea : turf.feature(geojsonLinea);
+      const tramos = turf.lineChunk(linea, 0.015, { units: 'kilometers' }).features;
+      if (!tramos.length) return 0;
+      // Índice espacial una vez por medición: cada punto medio consulta
+      // solo las sombras de su celda (mismo resultado, sin barrido total).
+      const indice = indiceSombras || crearIndiceSombras(poligonosSombra);
+      let enSombra = 0;
+      for (const tramo of tramos) {
+        const coords = tramo.geometry.coordinates;
+        const medio = coords[Math.floor(coords.length / 2)] || coords[0];
+        if (indice.consultar(medio[0], medio[1])) enSombra++;
+      }
+      return enSombra / tramos.length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  /* ---------------- Guía paso a paso accesible (calle a calle, sombra a sombra) ----------------
+     Para personas ciegas o con baja visión: la ruta calculada se convierte en
+     una lista de indicaciones en texto plano ("Gira a la izquierda en Calle
+     Feria y sigue 120 m, tramo en sombra"), que un lector de pantalla lee
+     directamente o el botón "Escuchar indicaciones" lee en voz alta con la
+     voz del propio navegador (speechSynthesis, 100% local). */
+
+  // Interpola {tokens} en las plantillas de i18n: t() + reemplazo simple.
+  function tp(clave, fallback, vars) {
+    let texto = t(clave, fallback);
+    for (const k in vars) texto = texto.split('{' + k + '}').join(vars[k]);
+    return texto;
+  }
+
+  function direccionCardinalTexto(bearing) {
+    // 8 rumbos; el bearing 0 es norte y crece en sentido horario.
+    const claves = ['dirN', 'dirNE', 'dirE', 'dirSE', 'dirS', 'dirSW', 'dirW', 'dirNW'];
+    const idx = ((Math.round(bearing / 45) % 8) + 8) % 8;
+    return t(claves[idx], ['norte', 'noreste', 'este', 'sureste', 'sur', 'suroeste', 'oeste', 'noroeste'][idx]);
+  }
+
+  function normalizarGiro(bearingPrevio, bearingNuevo) {
+    // Diferencia de rumbo en [-180, 180]: negativo = izquierda, positivo = derecha.
+    let d = ((bearingNuevo - bearingPrevio + 540) % 360) - 180;
+    return d;
+  }
+
+  function fraccionSombraTramo(coords, sombras, indiceSombras) {
+    // null = no hay sombras calculadas (de noche, capa apagada…): no se dice nada.
+    if (!sombras || !sombras.length || !coords || coords.length < 2) return null;
+    try {
+      const linea = turf.lineString(coords);
+      const tramos = turf.lineChunk(linea, 0.02, { units: 'kilometers' }).features;
+      if (!tramos.length) return null;
+      // Índice espacial (una vez por guía completa, lo crea el llamante):
+      // cada punto medio consulta solo su celda, mismo resultado.
+      const indice = indiceSombras || crearIndiceSombras(sombras);
+      let enSombra = 0;
+      for (const tramo of tramos) {
+        const c = tramo.geometry.coordinates;
+        const medio = c[Math.floor(c.length / 2)] || c[0];
+        if (indice.consultar(medio[0], medio[1])) enSombra++;
+      }
+      return enSombra / tramos.length;
+    } catch (e) { return null; }
+  }
+
+  function textoSombra(fraccion, metros) {
+    if (fraccion == null) return { frase: '', consejo: '' };
+    let frase;
+    if (fraccion >= 0.6) frase = t('shadeShade', 'tramo en sombra');
+    else if (fraccion <= 0.25) frase = t('shadeSun', 'tramo al sol');
+    else frase = t('shadeMixed', 'tramo con sol y sombra');
+    // Consejo de calor solo donde de verdad duele: tramo largo y casi sin sombra.
+    const consejo = (fraccion <= 0.25 && metros >= 120)
+      ? t('shadeTip', 'Consejo: es un tramo largo al sol, ve despacio, camina por el lado con edificios y lleva agua.')
+      : '';
+    return { frase, consejo };
+  }
+
+  function redondearMetros(m) {
+    return Math.max(10, Math.round(m / 5) * 5);
+  }
+
+  function nombreCalleBonito(nombre) {
+    return nombre && nombre.trim() ? nombre.trim() : t('stepUnnamed', 'la calle sin nombre');
+  }
+
+  // Construye los pasos a partir del camino del Dijkstra térmico (grafo propio).
+  // Devuelve { pasos: [texto...], guiados: [{ texto, punto }] }: cada paso
+  // lleva el punto del mapa donde empieza, para que la caminata con GPS
+  // pueda anunciarlo justo al llegar.
+  function generarPasosDesdeGrafo(grafo, caminoIdx, sombras) {
+    const pasos = [];
+    const guiados = [];
+    if (!grafo || !caminoIdx || caminoIdx.length < 2) return { pasos, guiados };
+
+    // 1. Agrupar aristas consecutivas de la misma calle.
+    const grupos = [];
+    for (let i = 0; i < caminoIdx.length - 1; i++) {
+      const u = caminoIdx[i], v = caminoIdx[i + 1];
+      const arista = (grafo.adj[u] || []).find(a => a.to === v && a.nombre) || (grafo.adj[u] || []).find(a => a.to === v);
+      if (!arista) continue;
+      const nombre = arista.nombre || '';
+      const a = grafo.nodos[u], b = grafo.nodos[v];
+      const ultimo = grupos[grupos.length - 1];
+      if (ultimo && ultimo.nombre === nombre) {
+        ultimo.metros += arista.longitudM;
+        ultimo.coords.push(b);
+      } else {
+        grupos.push({ nombre, metros: arista.longitudM, coords: [a, b] });
+      }
+    }
+    if (!grupos.length) return { pasos, guiados };
+
+    // 2. Convertir cada grupo en una frase con su giro y su sombra.
+    // El índice espacial se crea UNA vez para toda la guía (antes cada
+    // calle barría todas las sombras de nuevo).
+    const indiceSombrasGuia = (sombras && sombras.length) ? crearIndiceSombras(sombras) : null;
+    let bearingAnterior = null;
+    grupos.forEach((g, i) => {
+      const metros = redondearMetros(g.metros);
+      const calle = nombreCalleBonito(g.nombre);
+      const bearingIni = turf.bearing(g.coords[0], g.coords[1]);
+      const bearingFin = turf.bearing(g.coords[g.coords.length - 2], g.coords[g.coords.length - 1]);
+      const { frase, consejo } = textoSombra(fraccionSombraTramo(g.coords, sombras, indiceSombrasGuia), metros);
+      const colaSombra = frase ? '. ' + frase : '';
+
+      let texto;
+      if (i === 0) {
+        texto = tp('stepDepart', 'Sal por {calle} hacia el {dir}, {metros} metros', {
+          calle, dir: direccionCardinalTexto(bearingIni), metros,
+        }) + colaSombra + '.';
+      } else {
+        const giro = normalizarGiro(bearingAnterior, bearingIni);
+        const abs = Math.abs(giro);
+        if (abs < 25) {
+          texto = tp('stepContinue', 'Sigue por {calle} durante {metros} metros', { calle, metros }) + colaSombra + '.';
+        } else if (abs > 135) {
+          texto = tp('stepUturn', 'Da la vuelta y toma {calle}, {metros} metros', { calle, metros }) + colaSombra + '.';
+        } else {
+          const leve = abs < 60;
+          const clave = giro < 0 ? (leve ? 'stepSlightLeft' : 'stepTurnLeft') : (leve ? 'stepSlightRight' : 'stepTurnRight');
+          const fallback = giro < 0
+            ? (leve ? 'Gira levemente a la izquierda en {calle} y sigue {metros} metros' : 'Gira a la izquierda en {calle} y sigue {metros} metros')
+            : (leve ? 'Gira levemente a la derecha en {calle} y sigue {metros} metros' : 'Gira a la derecha en {calle} y sigue {metros} metros');
+          texto = tp(clave, fallback, { calle, metros }) + colaSombra + '.';
+        }
+      }
+      if (consejo) texto += ' ' + consejo;
+      pasos.push(texto);
+      guiados.push({ texto, punto: g.coords[0] });
+      bearingAnterior = bearingFin;
+    });
+
+    const textoLlegada = t('stepArrive', 'Has llegado a tu destino.');
+    pasos.push(textoLlegada);
+    const ultimoGrupo = grupos[grupos.length - 1];
+    guiados.push({ texto: textoLlegada, punto: ultimoGrupo.coords[ultimoGrupo.coords.length - 1], esLlegada: true });
+    return { pasos, guiados };
+  }
+
+  // Lo mismo pero para las rutas OSRM (respaldo y alternativas): la respuesta
+  // con steps=true ya trae maniobras, nombres de calle y distancias.
+  function generarPasosDesdeOSRM(rutaOsrm, sombras) {
+    const pasos = [];
+    const guiados = [];
+    const pasosOsrm = (rutaOsrm.legs || []).flatMap(l => l.steps || []);
+    if (!pasosOsrm.length) return { pasos, guiados };
+
+    // Índice espacial UNA vez para toda la guía (antes cada paso barría
+    // todas las sombras de nuevo, sep-2026).
+    const indiceSombrasGuia = (sombras && sombras.length) ? crearIndiceSombras(sombras) : null;
+
+    for (const s of pasosOsrm) {
+      const calle = nombreCalleBonito(s.name);
+      const metros = redondearMetros(s.distance || 0);
+      const coords = s.geometry?.coordinates || [];
+      const { frase, consejo } = textoSombra(fraccionSombraTramo(coords, sombras, indiceSombrasGuia), metros);
+      const colaSombra = frase ? '. ' + frase : '';
+      const maniobra = s.maneuver || {};
+      const tipo = maniobra.type || '';
+      const mod = maniobra.modifier || '';
+
+      let texto = null;
+      if (tipo === 'depart') {
+        const dir = coords.length >= 2 ? direccionCardinalTexto(turf.bearing(coords[0], coords[1])) : '';
+        texto = tp('stepDepart', 'Sal por {calle} hacia el {dir}, {metros} metros', { calle, dir, metros }) + colaSombra + '.';
+      } else if (tipo === 'arrive') {
+        texto = t('stepArrive', 'Has llegado a tu destino.');
+      } else if (tipo === 'roundabout' || tipo === 'rotary') {
+        texto = tp('stepRoundabout', 'En la rotonda, toma la salida hacia {calle} y sigue {metros} metros', { calle, metros }) + colaSombra + '.';
+      } else if (mod === 'uturn') {
+        texto = tp('stepUturn', 'Da la vuelta y toma {calle}, {metros} metros', { calle, metros }) + colaSombra + '.';
+      } else if (mod.includes('left') || mod.includes('right')) {
+        const izq = mod.includes('left');
+        const leve = mod.includes('slight');
+        const clave = izq ? (leve ? 'stepSlightLeft' : 'stepTurnLeft') : (leve ? 'stepSlightRight' : 'stepTurnRight');
+        const fallback = izq
+          ? (leve ? 'Gira levemente a la izquierda en {calle} y sigue {metros} metros' : 'Gira a la izquierda en {calle} y sigue {metros} metros')
+          : (leve ? 'Gira levemente a la derecha en {calle} y sigue {metros} metros' : 'Gira a la derecha en {calle} y sigue {metros} metros');
+        texto = tp(clave, fallback, { calle, metros }) + colaSombra + '.';
+      } else if (metros > 0) {
+        texto = tp('stepContinue', 'Sigue por {calle} durante {metros} metros', { calle, metros }) + colaSombra + '.';
+      }
+      if (texto) {
+        if (consejo && tipo !== 'arrive') texto += ' ' + consejo;
+        pasos.push(texto);
+        // Punto de la maniobra: donde empieza este paso, para la guía GPS.
+        const puntoManiobra = Array.isArray(maniobra.location) ? maniobra.location
+          : (coords.length ? coords[0] : null);
+        if (puntoManiobra) guiados.push({ texto, punto: puntoManiobra, esLlegada: tipo === 'arrive' });
+      }
+    }
+    // Si OSRM no cerró con "arrive", lo añadimos nosotros.
+    const ultimo = pasos[pasos.length - 1] || '';
+    if (!ultimo.startsWith(t('stepArrive', 'Has llegado').slice(0, 10))) {
+      const textoLlegada = t('stepArrive', 'Has llegado a tu destino.');
+      pasos.push(textoLlegada);
+      const ultCoords = pasosOsrm[pasosOsrm.length - 1]?.geometry?.coordinates;
+      const puntoFin = ultCoords?.length ? ultCoords[ultCoords.length - 1] : null;
+      if (puntoFin) guiados.push({ texto: textoLlegada, punto: puntoFin, esLlegada: true });
+    }
+    return { pasos, guiados };
+  }
+
+  // Genera los polígonos de sombra proyectados por una lista de edificios.
+  async function generarPoligonosSombraPara(listaEdificios, posSolActual) {
+    if (!posSolActual || posSolActual.altitude <= 0) return [];
+    const azimutGrados = (posSolActual.azimuth * 180) / Math.PI + 180;
+    const bearingSombra = (azimutGrados + 180) % 360;
+    const poligonos = [];
+    for (const edificio of listaEdificios) {
+      try {
+        const altura = alturaDeEdificio(edificio.properties);
+        const longitudSombraM = altura / Math.tan(posSolActual.altitude);
+        if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+        const geom = edificio.geometry;
+        if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon')) continue;
+        const distanciaKm = longitudSombraM / 1000;
+        const partes = turf.flatten(turf.feature(geom)).features;
+        for (const parte of partes) {
+          const volumen = calcularVolumenSombra(parte, distanciaKm, bearingSombra);
+          if (volumen) poligonos.push(volumen);
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    return poligonos;
+  }
+
+  function esperarMapaListo(timeoutMs = 4000) {
+    return new Promise((resolve) => {
+      let resuelto = false;
+      const terminar = () => { if (!resuelto) { resuelto = true; resolve(); } };
+      map.once('idle', terminar);
+      setTimeout(terminar, timeoutMs);
+    });
+  }
+
+  async function calcularRutaConPrioridadSombra(origen, destino) {
+    if (!CONFIG.priorizarSombra) return calcularRutaReal(origen, destino);
+
+    if (CONFIG.usarRedLocalTermica) {
+      try {
+        return await calcularRutaDijkstraTermico(origen, destino);
+      } catch (e) {
+        console.debug('[Routing] Dijkstra térmico local no disponible, se recurre a OSRM:', e.message);
+      }
+    }
+
+    try {
+      const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
+      const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&alternatives=true&steps=true`;
+      const datos = await fetchConReintentos(url);
+
+      if (datos?.code !== 'Ok' || !datos.routes?.length) {
+        return calcularRutaReal(origen, destino);
+      }
+
+      const candidatas = datos.routes.slice(0, CONFIG.maxAlternativasSombra);
+      if (candidatas.length === 1) {
+        return calcularRutaReal(origen, destino);
+      }
+
+      const todasLasCoords = candidatas.flatMap((r) => r.geometry.coordinates);
+      if (todasLasCoords.length < 2) return calcularRutaReal(origen, destino);
+
+      const bboxCombinado = turf.bbox(turf.lineString(todasLasCoords));
+      map.jumpTo({
+        center: [(bboxCombinado[0] + bboxCombinado[2]) / 2, (bboxCombinado[1] + bboxCombinado[3]) / 2],
+        zoom: Math.max(map.getZoom(), 16),
+      });
+      await esperarMapaListo();
+      actualizarCacheEdificios();
+
+      const centro = { lat: (origen.lat + destino.lat) / 2, lon: (origen.lon + destino.lon) / 2 };
+      const posSolActual = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+
+      let poligonosSombra = [];
+      if (posSolActual.altitude > 0 && capaEdificiosDisponible && edificiosCacheados.length) {
+        poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
+      }
+
+      const distanciaMinimaKm = Math.min(...candidatas.map((r) => r.distance / 1000));
+
+      let mejor = null;
+      for (const ruta of candidatas) {
+        const distanciaKm = ruta.distance / 1000;
+        const cobertura = poligonosSombra.length ? calcularCoberturaSombra(ruta.geometry, poligonosSombra) : 0;
+        const dentroDeMargen = distanciaKm <= distanciaMinimaKm * CONFIG.maxDetourSombra;
+        const candidato = { ruta, distanciaKm, cobertura, dentroDeMargen };
+        if (!mejor) { mejor = candidato; continue; }
+        if (dentroDeMargen && !mejor.dentroDeMargen) { mejor = candidato; continue; }
+        if (dentroDeMargen === mejor.dentroDeMargen) {
+          if (cobertura > mejor.cobertura + 0.02) mejor = candidato;
+          else if (Math.abs(cobertura - mejor.cobertura) <= 0.02 && distanciaKm < mejor.distanciaKm) mejor = candidato;
+        }
+      }
+
+      const distanciaKmNum = mejor.distanciaKm;
+      let duracionMinNum = mejor.ruta.duration / 60;
+      const velocidadKmh = duracionMinNum > 0 ? distanciaKmNum / (duracionMinNum / 60) : 0;
+      let duracionEstimada = false;
+      if (velocidadKmh > 9 || duracionMinNum <= 0) {
+        duracionMinNum = (distanciaKmNum / CONFIG.velocidadCaminandoKmh) * 60;
+        duracionEstimada = true;
+      }
+
+      // La guía paso a paso se genera UNA vez: antes se llamaba dos
+      // veces seguidas a la misma función con los mismos datos, el
+      // doble de trabajo justo en el momento más cargado (sep-2026).
+      let pasosGeneradosRuta = { pasos: [], guiados: [] };
+      try { pasosGeneradosRuta = generarPasosDesdeOSRM(mejor.ruta, poligonosSombra); }
+      catch (ePasos) { /* sin guía, la ruta se pinta igual */ }
+
+      return {
+        geojson: mejor.ruta.geometry,
+        distanciaKm: distanciaKmNum.toFixed(2),
+        duracionMin: Math.round(duracionMinNum),
+        esReal: true,
+        duracionEstimada,
+        coberturaSombraPct: poligonosSombra.length ? Math.round(mejor.cobertura * 100) : null,
+        pasos: pasosGeneradosRuta.pasos || [],
+        pasosGuiados: pasosGeneradosRuta.guiados || [],
+      };
+    } catch (err) {
+      console.debug('Routing con prioridad de sombra no disponible, usando ruta normal:', err);
+      return calcularRutaReal(origen, destino);
+    }
+  }
+
+  /* ---------------- Calidad del aire (Open-Meteo) ---------------- */
+
+  async function obtenerCalidadAire(lat, lon) {
+    // Caché de 10 min por zona (~1 km): la calidad del aire no cambia en
+    // minutos y así mover el slider o recalcular la ruta no repite la llamada.
+    const claveCache = `manolito_cache_aire_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+    const cacheado = cacheLocalObtener(claveCache, CACHE_AIRE_TTL_MS);
+    if (cacheado) return cacheado;
+
+    const url = new URL(CONFIG.airQualityUrl, window.location.origin);
+    url.searchParams.set('latitude', lat);
+    url.searchParams.set('longitude', lon);
+    url.searchParams.set('current', ['us_aqi', 'pm2_5', 'pm10', 'ozone', 'nitrogen_dioxide'].join(','));
+    url.searchParams.set('timezone', 'auto');
+
+    const datos = await fetchConReintentos(url.toString());
+    // Respaldo directo (sep-2026, ADITIVO): si el proxy no consigue datos
+    // (devuelve objeto vacío), se pregunta directo a Open-Meteo (admite CORS).
+    if (!datos || !datos.current) {
+      const directo = new URL('https://air-quality-api.open-meteo.com/v1/air-quality');
+      directo.searchParams.set('latitude', lat);
+      directo.searchParams.set('longitude', lon);
+      directo.searchParams.set('current', ['us_aqi', 'pm2_5', 'pm10', 'ozone', 'nitrogen_dioxide'].join(','));
+      directo.searchParams.set('timezone', 'auto');
+      const datosDirectos = await fetchConReintentos(directo.toString());
+      if (!datosDirectos || !datosDirectos.current) throw new Error('La API de calidad del aire no ha devuelto datos.');
+      cacheLocalGuardar(claveCache, datosDirectos.current);
+      return datosDirectos.current;
+    }
+    cacheLocalGuardar(claveCache, datos.current);
+    return datos.current;
+  }
+
+  function clasificarAQI(valor) {
+    if (valor == null || Number.isNaN(valor)) return { etiqueta: t('aqiNoData', 'Sin datos'), color: leerVar('--sky-mid') };
+    if (valor <= 50) return { etiqueta: t('aqiGood', 'Buena'), color: leerVar('--breath-good') };
+    if (valor <= 100) return { etiqueta: t('aqiModerate', 'Moderada'), color: leerVar('--breath-mid') };
+    return { etiqueta: t('aqiBad', 'Mala'), color: leerVar('--breath-bad') };
+  }
+
+  function pintarPanelAQI(current) {
+    if (!current) return;
+    const placeholder = document.getElementById('rsAqiPlaceholder');
+    const contenido = document.getElementById('rsAqiContent');
+    const categoriaElChk = document.getElementById('rsAqiCategory');
+    if (!placeholder || !contenido || !categoriaElChk) return;
+    const aqi = current.us_aqi;
+    const clasificacion = clasificarAQI(aqi);
+
+    document.getElementById('rsAqiValue').textContent = aqi != null ? Math.round(aqi) : '--';
+    const categoriaEl = document.getElementById('rsAqiCategory');
+    categoriaEl.textContent = clasificacion.etiqueta;
+    categoriaEl.style.color = clasificacion.color;
+    categoriaEl.style.background = clasificacion.color + '26';
+
+    document.getElementById('rsPm25').textContent = current.pm2_5 != null ? `${current.pm2_5} µg/m³` : '--';
+    document.getElementById('rsPm10').textContent = current.pm10 != null ? `${current.pm10} µg/m³` : '--';
+    document.getElementById('rsO3').textContent = current.ozone != null ? `${current.ozone} µg/m³` : '--';
+    document.getElementById('rsNo2').textContent = current.nitrogen_dioxide != null ? `${current.nitrogen_dioxide} µg/m³` : '--';
+
+    placeholder.style.display = 'none';
+    contenido.style.display = 'block';
+  }
+
+  /* ---------------- Marcadores ---------------- */
+
+  let marcadorOrigen = null, marcadorDestino = null;
+
+  function pintarMarcadores(origen, destino) {
+    if (marcadorOrigen) marcadorOrigen.remove();
+    if (marcadorDestino) marcadorDestino.remove();
+
+    const pin = (color) => {
+      const el = document.createElement('div');
+      el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${color};border:3px solid var(--paper);box-shadow:0 0 0 2px ${color}66;`;
+      return el;
+    };
+
+    marcadorOrigen = new maplibregl.Marker({ element: pin(leerVar('--accent') || '#00f2ff') })
+      .setLngLat([origen.lon, origen.lat])
+      .setPopup(new maplibregl.Popup().setHTML(`<b>${t('origin', 'Origen')}</b><br>${origen.nombre}`))
+      .addTo(map);
+
+    marcadorDestino = new maplibregl.Marker({ element: pin(leerVar('--sky-deep') || '#0E3B47') })
+      .setLngLat([destino.lon, destino.lat])
+      .setPopup(new maplibregl.Popup().setHTML(`<b>${t('destiny', 'Destino')}</b><br>${destino.nombre}`))
+      .addTo(map);
+  }
+
+  /* ---------------- UI principal ---------------- */
+
+  const inputOrigen = document.getElementById('rsOrigen');
+  const inputDestino = document.getElementById('rsDestino');
+  const btnBuscar = document.getElementById('rsBuscarBtn');
+  const statusEl = document.getElementById('rsStatus');
+
+  function mostrarEstado(texto, tipo) {
+    statusEl.textContent = texto;
+    statusEl.style.color = tipo === 'error' ? leerVar('--breath-bad') : tipo === 'ok' ? leerVar('--breath-good') : leerVar('--sky-mid');
+  }
+
+  function ponerCargando(cargando) {
+    btnBuscar.disabled = cargando;
+    btnBuscar.textContent = cargando ? t('searching', 'Buscando…') : t('searchBtn', 'Buscar ruta');
+  }
+
+  /* ---------------- Autocompletado tipo Google (Nominatim) ---------------- */
+
+  const seleccionPorInput = new Map();
+
+  function crearAutocompletado(input, contenedorSugerenciasId) {
+    const contenedor = document.getElementById(contenedorSugerenciasId);
+    if (!contenedor) return;
+
+    let temporizador = null;
+    let controladorActual = null;
+    let indiceActivo = -1;
+    let ultimosResultados = [];
+
+    input.addEventListener('input', () => {
+      seleccionPorInput.delete(input);
+      indiceActivo = -1;
+      const texto = input.value.trim();
+
+      clearTimeout(temporizador);
+      if (texto.length < 3) {
+        contenedor.innerHTML = '';
+        contenedor.style.display = 'none';
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
+        return;
+      }
+
+      temporizador = setTimeout(async () => {
+        if (controladorActual) controladorActual.abort();
+        controladorActual = new AbortController();
+
+        try {
+          const url = new URL(CONFIG.nominatimUrl, window.location.origin);
+          url.searchParams.set('q', texto);
+          url.searchParams.set('format', 'json');
+          url.searchParams.set('limit', '6');
+          url.searchParams.set('addressdetails', '1');
+          url.searchParams.set('countrycodes', 'es');
+
+          const resp = await fetch(url.toString(), {
+            headers: { 'Accept-Language': 'es' },
+            signal: controladorActual.signal,
+          });
+          const resultados = await resp.json();
+          pintarSugerencias(resultados, texto);
+        } catch (e) {
+          if (e.name !== 'AbortError') contenedor.innerHTML = '';
+        }
+      }, 350);
+    });
+
+    function reordenarPorCiudadEscrita(resultados, textoOriginal) {
+      const textoLower = textoOriginal.toLowerCase();
+      return [...resultados].sort((a, b) => {
+        const ciudadA = (a.address?.city || a.address?.town || a.address?.village || '').toLowerCase();
+        const ciudadB = (b.address?.city || b.address?.town || b.address?.village || '').toLowerCase();
+        const coincideA = ciudadA && textoLower.includes(ciudadA) ? 1 : 0;
+        const coincideB = ciudadB && textoLower.includes(ciudadB) ? 1 : 0;
+        return coincideB - coincideA;
+      });
+    }
+
+    function seleccionarSugerencia(r) {
+      input.value = r.display_name;
+      seleccionPorInput.set(input, {
+        lat: parseFloat(r.lat),
+        lon: parseFloat(r.lon),
+        nombre: r.display_name,
+        texto: r.display_name,
+      });
+      contenedor.innerHTML = '';
+      contenedor.style.display = 'none';
+      indiceActivo = -1;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+    }
+
+    function resaltarActivo() {
+      const items = contenedor.querySelectorAll('li[data-idx]');
+      items.forEach((li, i) => {
+        li.style.background = i === indiceActivo ? (leerVar('--accent') || '#09ffbd') + '22' : '';
+        li.setAttribute('aria-selected', i === indiceActivo ? 'true' : 'false');
+      });
+      // Patrón combobox: el foco queda en el input y el lector de pantalla
+      // sabe qué opción está activa por aria-activedescendant.
+      if (indiceActivo >= 0 && items[indiceActivo]) {
+        items[indiceActivo].scrollIntoView({ block: 'nearest' });
+        input.setAttribute('aria-activedescendant', items[indiceActivo].id);
+      } else {
+        input.removeAttribute('aria-activedescendant');
+      }
+    }
+
+    function pintarSugerencias(resultados, textoOriginal) {
+      ultimosResultados = [];
+      if (!resultados || resultados.length === 0) {
+        contenedor.innerHTML = `<li class="rs-sug-empty" role="option" aria-disabled="true">${t('noResults', 'Sin resultados')}</li>`;
+        contenedor.style.display = 'block';
+        input.setAttribute('aria-expanded', 'true');
+        return;
+      }
+
+      resultados = reordenarPorCiudadEscrita(resultados, textoOriginal);
+      ultimosResultados = resultados;
+      indiceActivo = -1;
+
+      contenedor.innerHTML = resultados
+        .map((r, i) => {
+          const ciudad = r.address?.city || r.address?.town || r.address?.village || r.address?.municipality || '';
+          const resto = r.display_name.split(',')[0];
+          return `<li data-idx="${i}" id="${contenedorSugerenciasId}-opt-${i}" role="option" aria-selected="false">
+            <span class="rs-sug-linea1">${resto}</span>
+            <span class="rs-sug-linea2">${ciudad ? ciudad + ' · ' : ''}${r.address?.state || ''}</span>
+          </li>`;
+        })
+        .join('');
+      contenedor.style.display = 'block';
+      input.setAttribute('aria-expanded', 'true');
+      input.removeAttribute('aria-activedescendant');
+
+      contenedor.querySelectorAll('li[data-idx]').forEach((li) => {
+        li.addEventListener('click', () => seleccionarSugerencia(resultados[Number(li.dataset.idx)]));
+      });
+    }
+
+    input.addEventListener('keydown', (e) => {
+      const visible = contenedor.style.display !== 'none' && ultimosResultados.length > 0;
+      if (!visible) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        indiceActivo = (indiceActivo + 1) % ultimosResultados.length;
+        resaltarActivo();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        indiceActivo = (indiceActivo - 1 + ultimosResultados.length) % ultimosResultados.length;
+        resaltarActivo();
+      } else if (e.key === 'Enter' && indiceActivo >= 0) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        seleccionarSugerencia(ultimosResultados[indiceActivo]);
+      } else if (e.key === 'Escape') {
+        contenedor.style.display = 'none';
+        indiceActivo = -1;
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target !== input && !contenedor.contains(e.target)) {
+        contenedor.style.display = 'none';
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
+      }
+    });
+  }
+
+  crearAutocompletado(inputOrigen, 'rsSugerenciasOrigen');
+  crearAutocompletado(inputDestino, 'rsSugerenciasDestino');
+
+  async function resolverPunto(input) {
+    const seleccionado = seleccionPorInput.get(input);
+    const texto = input.value.trim();
+    if (seleccionado && seleccionado.texto === texto) return seleccionado;
+    return geocodificar(texto);
+  }
+
+  async function manejarBusqueda(origenDirecto, destinoDirecto) {
+    if (origenDirecto && destinoDirecto) {
+      return ejecutarBusquedaConPuntos(origenDirecto, destinoDirecto);
+    }
+
+    const textoOrigen = inputOrigen.value.trim();
+    const textoDestino = inputDestino.value.trim();
+    if (!textoOrigen || !textoDestino) {
+      mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
+      return;
+    }
+
+    ponerCargando(true);
+    mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
+
+    try {
+      const [origen, destino] = await Promise.all([resolverPunto(inputOrigen), resolverPunto(inputDestino)]);
+      await ejecutarBusquedaConPuntos(origen, destino);
+    } catch (err) {
+      console.debug(err);
+      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+      ponerCargando(false);
+    }
+  }
+
+  /* ---------------- Indicaciones paso a paso accesibles ----------------
+     (sep-2026) Todo el motor A11Y (guía por voz, lectura de indicaciones,
+     permiso de voz, lista accesible) vive ahora en js/a11y-guia.js, un
+     módulo propio. Aquí solo se le delega con window.ManolitA11y. */
+
+  async function ejecutarBusquedaConPuntos(origen, destino) {
+    ponerCargando(true);
+    mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
+
+    try {
+      const ruta = await calcularRutaConPrioridadSombra(origen, destino);
+
+      // Control manual total (sep-2026, corrección por orden directa de
+      // Sandro): NINGUNA casilla se auto-marca nunca. Al abrir la app solo
+      // vienen marcadas «Edificios 3D» y «Nubes»; el resto se elige a mano.
+      // Buscar una ruta ya ES una orden explícita, así que la ruta se
+      // muestra igualmente, pero sin tocar las casillas: las capas se
+      // hacen visibles directamente en el mapa (las capas nacen visibles;
+      // esto solo importa si el usuario las había ocultado a mano antes).
+      ['capa-ruta', 'capa-ruta-outline', 'capa-ruta-glow', 'capa-ruta-sombra', 'capa-ruta-sombra-outline', 'capa-ruta-recorrida']
+        .forEach((idCapa) => {
+          try { if (map.getLayer(idCapa)) map.setLayoutProperty(idCapa, 'visibility', 'visible'); } catch (e) { /* capa aún no creada */ }
+        });
+      map.getSource('ruta').setData(turf.feature(ruta.geojson));
+      limpiarTramoRecorrido(); // ruta nueva: el gris de la caminata anterior sobra
+      // Tramos fantasma: si «Sombras» está apagada, la ruta nueva sale
+      // limpia (sin marcas cian/naranja) y hay que borrar los tramos
+      // CONGELADOS de la ruta anterior, si no, las marcas viejas se
+      // quedaban pintadas encima de la ruta nueva. Con «Sombras»
+      // encendida, los tramos nuevos se calculan unas líneas más abajo
+      // (actualizarTramosSombraRuta) y machacan a los viejos.
+      if (!document.getElementById('rsToggleSombras')?.checked) {
+        map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
+        mostrarBadgeSombra(null);
+      }
+      map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
+      map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
+      pintarMarcadores(origen, destino);
+
+      const bounds = ruta.geojson.coordinates.reduce(
+        (b, c) => b.extend(c),
+        new maplibregl.LngLatBounds(ruta.geojson.coordinates[0], ruta.geojson.coordinates[0])
+      );
+      map.fitBounds(bounds, { padding: 70, maxZoom: 17, duration: 800 });
+
+      puntoReferenciaSol = { lat: origen.lat, lon: origen.lon };
+      rutaActual = ruta.esReal ? turf.feature(ruta.geojson) : null;
+      asegurarActivacionSolar();
+      await recalcularSombrasVisibles();
+      actualizarIluminacionSolar();
+      await actualizarTramosSombraRuta();
+      sincronizarArboles();
+
+      if (ruta.esReal) {
+        const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
+        const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
+        const resumenRuta = `${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`;
+        mostrarEstado(resumenRuta, 'ok');
+        resumenRutaAccesible = resumenRuta;
+        actualizarResumenAccesible();
+        mostrarBadgeSombra(ruta.coberturaSombraPct);
+        if (window.ManolitA11y) {
+          window.ManolitA11y.setResumen(resumenRuta);
+          window.ManolitA11y.renderizarPasos(ruta.pasos || [], ruta.pasosGuiados || []);
+        }
+      } else {
+        mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado), mostrando línea directa.'), 'error');
+        mostrarBadgeSombra(null);
+        if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
+      }
+
+      try {
+        const aire = await obtenerCalidadAire(origen.lat, origen.lon);
+        pintarPanelAQI(aire);
+      } catch (errAire) {
+        console.debug(errAire);
+        mostrarEstado(t('airDataUnavailable', 'No se ha podido cargar la calidad del aire ahora mismo (demasiadas peticiones). Prueba de nuevo en unos segundos.'), 'error');
+      }
+    } catch (err) {
+      console.debug(err);
+      if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
+      mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+    } finally {
+      ponerCargando(false);
+    }
+  }
+
+  ponerCargando(false);
+  if (inputOrigen && !inputOrigen.value) inputOrigen.setAttribute('placeholder', t('originPlaceholder', inputOrigen.getAttribute('placeholder')));
+  if (inputDestino && !inputDestino.value) inputDestino.setAttribute('placeholder', t('destinationPlaceholder', inputDestino.getAttribute('placeholder')));
+  const tituloRuta = document.getElementById('rsRouteMapTitle');
+  if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
+
+  btnBuscar.addEventListener('click', manejarBusqueda);
+  const btnEscucharPasos = document.getElementById('rsBtnEscucharPasos');
+  // El botón "Escuchar indicaciones" lo enlaza el módulo A11Y (js/a11y-guia.js).
+  [inputOrigen, inputDestino].forEach((input) => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); manejarBusqueda(); }
+    });
+  });
+
+  // Los colores de ruta son fijos y de alto contraste (naranja al sol, cyan en sombra)
+  // para que se distingan siempre del mapa base, independientemente del tema.
+
+  document.addEventListener('langChanged', () => {
+    if (btnModoClickRef) btnModoClickRef.textContent = t('pickMap', 'Elegir en el mapa');
+    const btnLoc = document.getElementById('rsBtnMyLocation');
+    if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicación');
+    const btnWalk = document.getElementById('rsBtnWalk');
+    if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
+
+    const btnPaseo = document.getElementById('rsBtnPaseo');
+    if (btnPaseo) btnPaseo.textContent = paseoActivo ? t('virtualWalkStop', 'Salir del paseo') : t('virtualWalkStart', 'Paseo virtual 3D');
+
+    const btnDark = document.getElementById('rsBtnMapaOscuro');
+    if (btnDark){
+      const webOscura = document.documentElement.getAttribute('data-theme') === 'dark';
+      const efectivoOscuro = webOscura ? !mapaOscuro : mapaOscuro;
+      btnDark.textContent = efectivoOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
+    }
+    const eyebrow = document.getElementById('rsEyebrowSol');
+    if (eyebrow) eyebrow.textContent = t('sunPosition', 'Posición solar');
+    const btnCapturar = document.getElementById('rsBtnCapturar');
+    if (btnCapturar) btnCapturar.textContent = t('captureView', 'Capturar vista');
+    const btnAhora = document.getElementById('rsBtnAhora');
+    if (btnAhora) btnAhora.textContent = t('now', 'Ahora');
+    const btnVerano = document.getElementById('rsBtnVerano');
+    if (btnVerano) btnVerano.textContent = t('btnSummer', 'Verano');
+    const btnInvierno = document.getElementById('rsBtnInvierno');
+    if (btnInvierno) btnInvierno.textContent = t('btnWinter', 'Invierno');
+    ponerCargando(false);
+    if (etiquetaTiempo) actualizarEtiquetaTiempo(false);
+    if (inputOrigen && !inputOrigen.value) inputOrigen.setAttribute('placeholder', t('originPlaceholder', inputOrigen.getAttribute('placeholder')));
+    if (inputDestino && !inputDestino.value) inputDestino.setAttribute('placeholder', t('destinationPlaceholder', inputDestino.getAttribute('placeholder')));
+    const tituloRuta = document.getElementById('rsRouteMapTitle');
+    if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
+    const btnReset = document.getElementById('rsBtnReset');
+    if (btnReset) btnReset.textContent = t('resetBtn', 'Reiniciar');
+  });
+
+  /* ============================================================
+     JOYSTICK VIRTUAL + EVENTOS POINTER PARA PASEO 3D
+     ============================================================ */
+  function inyectarJoystick() {
+    if (document.getElementById('rsJoystick')) return;
+    const joy = document.createElement('div');
+    joy.id = 'rsJoystick';
+    const knob = document.createElement('div');
+    knob.id = 'rsJoystickKnob';
+    joy.appendChild(knob);
+    contenedorMapa.appendChild(joy);
+
+    const maxR = 28; 
+
+    joy.addEventListener('pointerdown', (e) => {
+      if (!paseoActivo) return;
+      e.preventDefault();
+      joy.setPointerCapture(e.pointerId);
+      paseoJoystick.active = true;
+      paseoJoystick.pointerId = e.pointerId;
+      const rect = joy.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      paseoJoystick.startX = cx;
+      paseoJoystick.startY = cy;
+      paseoJoystick.dx = 0;
+      paseoJoystick.dy = 0;
+      knob.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
+      joy.classList.add('rs-visible');
+    });
+
+    joy.addEventListener('pointermove', (e) => {
+      if (!paseoActivo || !paseoJoystick.active || e.pointerId !== paseoJoystick.pointerId) return;
+      const dx = e.clientX - paseoJoystick.startX;
+      const dy = e.clientY - paseoJoystick.startY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const scale = dist > maxR ? maxR / dist : 1;
+      paseoJoystick.dx = (dx * scale) / maxR; 
+      paseoJoystick.dy = (dy * scale) / maxR; 
+      knob.style.transform = `translate(-50%, -50%) translate(${dx * scale}px, ${dy * scale}px)`;
+    });
+
+    const limpiarJoystick = () => {
+      paseoJoystick.active = false;
+      paseoJoystick.dx = 0;
+      paseoJoystick.dy = 0;
+      knob.style.transform = `translate(-50%, -50%) translate(0px, 0px)`;
+    };
+
+    joy.addEventListener('pointerup', limpiarJoystick);
+    joy.addEventListener('pointercancel', limpiarJoystick);
+    joy.addEventListener('lostpointercapture', limpiarJoystick);
+  }
+
+  /* ----- Botonera única de cámara (sep-2026, orden de Sandro) -----
+     TODOS los manejos del mapa en un mismo lugar: un mando compacto
+     de dos columnas en el borde DERECHO del mapa, centrado en
+     vertical, con botones grandes, oscuros y borde naranja. Pensado
+     para quien NO tiene rueda de ratón.
+       +  −     zoom (en el paseo, caminan adelante y atrás)
+       ▲  ▼     mirar arriba y abajo, hasta 85° (en el paseo, la mirada)
+       🧭 ⛶     brújula que gira con el mapa y vuelve al norte al
+                tocarla, y pantalla completa (nativa en Android y
+                ordenador, plan B por CSS en iPhone)
+     Mantener pulsado +, -, ▲ o ▼ repite la acción, como la rueda del
+     ratón pero con el dedo quieto. */
+  function inyectarControlesCamara() {
+    if (document.getElementById('rsCamCtl')) return;
+    const estiloCam = document.createElement('style');
+    estiloCam.id = 'rsCamCtlEstilos';
+    estiloCam.textContent = `
+      #rsCamCtl{
+        position:absolute; right:12px; top:50%; transform:translateY(-50%); z-index:6;
+        display:grid; grid-template-columns:1fr; gap:5px;
+      }
+      #rsCamCtl button{
+        width:36px; height:36px; border-radius:10px; font-size:15px; font-weight:700;
+        font-family:inherit; line-height:1; cursor:pointer;
+        /* Naranja Manolit FIJO en los dos temas: con variables de tema
+           el oscuro lo aclaraba y quedaba texto claro sobre fondo claro. */
+        color:#0E3B47; background:#FF6B1A;
+        border:2px solid rgba(14,59,71,0.35);
+        box-shadow:0 3px 10px rgba(22,35,46,0.25);
+        touch-action:none; user-select:none; -webkit-user-select:none;
+        transition:filter .15s, transform .1s;
+      }
+      #rsCamCtl button:hover{ filter:brightness(1.12); }
+      #rsCamCtl button:active{ transform:scale(0.94); }
+      /* La brújula gira con el mapa (su flecha lleva la punta naranja
+         al norte, como la de siempre). */
+      #rsCamBrujula svg{ display:block; margin:auto; width:18px; height:18px; transition:transform .08s linear; }
+      /* Mi ubicación: el logo Manolit en miniatura (bucle infinito, sol
+         dorado, corazón vino), diseño propio en vez de la diana genérica. */
+      #rsCamUbicacion svg{ display:block; margin:auto; width:16px; height:23px; }
+      /* Pulso al tocarla: así se nota que ha respondido aunque el
+         mapa ya estuviera al norte y nivelado. */
+      @keyframes rsBrujulaPulso{ 0%{ scale:1; } 40%{ scale:1.3; } 100%{ scale:1; } }
+      #rsCamBrujula.rs-pulsada svg{ animation:rsBrujulaPulso .35s ease; }
+      /* El icono de pantalla completa se dibuja aquí (la regla vieja de
+         la hoja de estilos solo cubría el botón cuando vivía en la
+         esquina de MapLibre). Va DESPUÉS del :hover para que el icono
+         no desaparezca al pasar el dedo. */
+      #rsCamCtl button.manolito-fs-btn{
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+        background-repeat:no-repeat; background-position:center; background-size:18px 18px;
+      }
+      #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
+      #rsCamCtl button.manolito-fs-btn[aria-pressed="true"]{
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
+      }
+      /* En tema oscuro la botonera es clara: el icono se pinta oscuro,
+       igual que los símbolos + - ▲ ▼ N. */
+      [data-theme="dark"] #rsCamCtl button.manolito-fs-btn,
+      .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn{
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+      }
+      [data-theme="dark"] #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
+      [data-theme="dark"] #rsCamCtl button.manolito-fs-btn[aria-pressed="true"],
+      .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
+      .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn[aria-pressed="true"]{
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
+      }
+      @media (max-width:480px){
+        #rsCamCtl{ right:8px; gap:4px; }
+        #rsCamCtl button{ width:28px; height:28px; font-size:12px; border-radius:8px; border-width:1.5px; }
+        #rsCamBrujula svg{ width:14px; height:14px; }
+        #rsCamUbicacion svg{ width:12px; height:18px; }
+        #rsCamCtl button.manolito-fs-btn{ background-size:14px 14px; }
+      }
+    `;
+    document.head.appendChild(estiloCam);
+
+    const grupo = document.createElement('div');
+    grupo.id = 'rsCamCtl';
+    grupo.setAttribute('role', 'group');
+    grupo.setAttribute('aria-label', 'Zoom e inclinación del mapa');
+
+    function hacerBotonCam(id, simbolo, titulo) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.id = id;
+      b.textContent = simbolo;
+      b.title = titulo;
+      b.setAttribute('aria-label', titulo);
+      return b;
+    }
+    const btnCamMas    = hacerBotonCam('rsCamZoomIn',    '+', t('camZoomIn', 'Acercar'));
+    const btnCamMenos  = hacerBotonCam('rsCamZoomOut',   '−', t('camZoomOut', 'Alejar'));
+    const btnCamArriba = hacerBotonCam('rsCamPitchUp',   '▲', t('camPitchUp', 'Mirar hacia arriba'));
+    const btnCamAbajo  = hacerBotonCam('rsCamPitchDown', '▼', t('camPitchDown', 'Mirar hacia abajo'));
+    const btnCamBrujula = hacerBotonCam('rsCamBrujula', '', t('camBrujula', 'Brújula, volver al norte y nivelar la vista'));
+    // Flecha de brújula como la de MapLibre de siempre: punta naranja
+    // al norte, cuerpo del color del texto del tema. Gira con el mapa.
+    btnCamBrujula.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2l4.5 10-4.5 10-4.5-10z" fill="currentColor"/><path d="M12 2l4.5 10h-9z" fill="#FBFAF7"/></svg>';
+    // Mi ubicación JUNTO a los zooms, la inclinación y la N (orden de
+    // Sandro, sep-2026): el logo Manolit en miniatura (bucle infinito,
+    // sol dorado y corazón, los colores de la marca), no una diana
+    // genérica. Al pulsarlo hace EXACTAMENTE lo mismo que el botón
+    // «Mi ubicación» del panel: misma petición de GPS fina y fresca,
+    // mismo círculo de precisión y mismo muñeco, sin duplicar lógica.
+    const btnCamUbi = hacerBotonCam('rsCamUbicacion', '', t('myLocation', 'Mi ubicación'));
+    btnCamUbi.innerHTML = '<svg viewBox="0 0 120 170" aria-hidden="true"><path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z" fill="none" stroke="#7A0016" stroke-width="10" stroke-linejoin="round"/><circle cx="60" cy="63" r="25" fill="#E6A100"/><path d="M 41,68 Q 50.5,60.5 60,68 T 79,68" fill="none" stroke="#007A87" stroke-width="5" stroke-linecap="round"/><path d="M 60,56 C 47,42 47,68 60,56 C 73,42 73,68 60,56 Z" fill="none" stroke="#7A0016" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    btnCamUbi.addEventListener('click', () => {
+      const original = document.getElementById('rsBtnMyLocation');
+      if (original) { original.click(); return; }
+      try { mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error'); } catch (e) { /* panel a medio montar */ }
+    });
+    const btnCamFull   = hacerBotonCam('rsCamFull', '', t('camFull', 'Pantalla completa'));
+    // La clase manolito-fs-btn conecta con la lógica de pantalla
+    // completa de siempre: ella misma pone el icono de salir.
+    btnCamFull.classList.add('manolito-fs-btn');
+
+    // + y - : en el mapa normal acercan y alejan (con repetición al
+    // mantener); en el paseo virtual caminan mientras se mantienen
+    // pulsados, reutilizando las teclas del propio paseo para que la
+    // inercia y la física sean exactamente las mismas.
+    function prepararAvanceCam(btn, tecla, accionNormal) {
+      let timer = null;
+      const soltar = () => {
+        keysDown.delete(tecla);
+        if (timer) { clearTimeout(timer); timer = null; }
+      };
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (paseoActivo) { keysDown.add(tecla); return; }
+        accionNormal();
+        const repetir = () => { accionNormal(); timer = setTimeout(repetir, 130); };
+        timer = setTimeout(repetir, 350);
+      });
+      btn.addEventListener('pointerup', soltar);
+      btn.addEventListener('pointerleave', soltar);
+      btn.addEventListener('pointercancel', soltar);
+    }
+    prepararAvanceCam(btnCamMas, 'KeyW', () => map.zoomIn());
+    prepararAvanceCam(btnCamMenos, 'KeyS', () => map.zoomOut());
+
+    // ▲ y ▼ : inclinan la vista. En el mapa normal suben o bajan el
+    // pitch (0 a 85°); en el paseo mueven la mirada del jugador dentro
+    // de sus topes (10 a 85°).
+    function prepararPitchCam(btn, delta) {
+      let timer = null;
+      const paso = () => {
+        if (paseoActivo) {
+          if (typeof paseoJugador.pitch !== 'number') paseoJugador.pitch = CONFIG.paseoPitchInicial;
+          paseoJugador.pitch = Math.min(CONFIG.paseoMaxPitch,
+            Math.max(CONFIG.paseoPitchMin, paseoJugador.pitch + delta));
+        } else {
+          map.easeTo({ pitch: Math.min(85, Math.max(0, map.getPitch() + delta)), duration: 180, essential: true });
+        }
+      };
+      const soltar = () => { if (timer) { clearTimeout(timer); timer = null; } };
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        paso();
+        const repetir = () => { paso(); timer = setTimeout(repetir, 130); };
+        timer = setTimeout(repetir, 350);
+      });
+      btn.addEventListener('pointerup', soltar);
+      btn.addEventListener('pointerleave', soltar);
+      btn.addEventListener('pointercancel', soltar);
+    }
+    prepararPitchCam(btnCamArriba, 5);
+    prepararPitchCam(btnCamAbajo, -5);
+
+    // Brújula: al tocarla vuelve al norte Y nivela la vista (si estás
+    // mirando al cielo o con el mapa girado, un toque te devuelve al
+    // mapa plano de siempre; en el paseo, encara al norte con la
+    // mirada cómoda de entrada). La flecha gira sola con el mapa, así
+    // que siempre se ve hacia dónde apunta la vista.
+    btnCamBrujula.addEventListener('click', () => {
+      if (paseoActivo) {
+        paseoJugador.bearing = 0;
+        paseoJugador.pitch = CONFIG.paseoPitchInicial;
+        return;
+      }
+      try { map.easeTo({ bearing: 0, pitch: CONFIG.pitchInicial, duration: 400, essential: true }); } catch (e) { /* mapa a medio crear */ }
+    });
+    const brujulaSvg = btnCamBrujula.querySelector('svg');
+    const girarBrujula = () => {
+      if (brujulaSvg) brujulaSvg.style.transform = `rotate(${-map.getBearing()}deg)`;
+    };
+    map.on('rotate', girarBrujula);
+    girarBrujula(); // deja la flecha puesta segun el rumbo de entrada
+    btnCamBrujula.addEventListener('click', () => {
+      btnCamBrujula.classList.remove('rs-pulsada');
+      void btnCamBrujula.offsetWidth; // reinicia la animacion
+      btnCamBrujula.classList.add('rs-pulsada');
+      setTimeout(() => btnCamBrujula.classList.remove('rs-pulsada'), 400);
+    });
+
+    // Pantalla completa: la clase ManolitoPantallaCompleta ya no se
+    // añade como control de MapLibre (su botón es este), así que le
+    // pasamos el mapa y el botón a mano. Nativa donde se puede y plan
+    // B por CSS en iPhone, como siempre.
+    controlPantallaCompleta._map = map;
+    controlPantallaCompleta._btn = btnCamFull;
+    btnCamFull.addEventListener('click', () => controlPantallaCompleta._alternar());
+
+    grupo.append(btnCamMas, btnCamMenos, btnCamArriba, btnCamAbajo, btnCamBrujula, btnCamUbi, btnCamFull);
+    contenedorMapa.appendChild(grupo);
+  }
+
+  map.on('load', () => {
+    inyectarJoystick();
+    inyectarControlesCamara();
+  });
+
+  mapEl.addEventListener('pointerdown', (e) => {
+    if (!paseoActivo) return;
+    if (e.target.closest('#rsJoystick')) return;
+    if (e.target.closest('#rsCamCtl')) return; // la botonera de cámara no inicia arrastre de mirada
+    paseoToques.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { mapEl.setPointerCapture(e.pointerId); } catch(_){}
+  });
+
+  mapEl.addEventListener('pointermove', (e) => {
+    if (!paseoActivo) return;
+    const prev = paseoToques.get(e.pointerId);
+    if (!prev) return;
+
+    const dx = e.clientX - prev.x;
+    const dy = e.clientY - prev.y;
+    const sensibilidad = 0.3; 
+
+    paseoJugador.bearing -= dx * sensibilidad;
+    // Mirada vertical libre: arrastrar hacia arriba levanta la vista
+    // (hasta 85°, casi el horizonte/cielo); hacia abajo la baja (10°).
+    if (typeof paseoJugador.pitch !== 'number') paseoJugador.pitch = CONFIG.paseoPitchInicial;
+    paseoJugador.pitch = Math.min(CONFIG.paseoMaxPitch,
+      Math.max(CONFIG.paseoPitchMin, paseoJugador.pitch - dy * 0.25));
+
+    prev.x = e.clientX;
+    prev.y = e.clientY;
+  });
+
+  mapEl.addEventListener('pointerup', (e) => paseoToques.delete(e.pointerId));
+  mapEl.addEventListener('pointercancel', (e) => paseoToques.delete(e.pointerId));
+
+  /* ============================================================
+     v6, MODO OTOÑO/INVIERNO: «RUTA DE SOL» (Dijkstra inverso)
+     ------------------------------------------------------------
+     En verano el motor térmico de más arriba penaliza las aristas
+     EXPUESTAS AL SOL para darte el camino más fresco. Este bloque
+     hace exactamente lo contrario: penaliza las aristas EN SOMBRA,
+     para que en otoño/invierno la ruta busque el sol (luz y calor
+     radiante cuando apetece).
+
+     100% ADITIVO, no se ha tocado ni una línea del código de
+     siempre:
+     - Los cálculos de aquí son la VERSIÓN INVERSA de los
+       originales (misma red peatonal, mismo grafo, mismo MinHeap).
+     - Al final se ENVUELVE calcularRutaConPrioridadSombra
+       guardando antes la referencia original: con el modo
+       apagado, TODO funciona exactamente igual que antes.
+     - Si el Dijkstra solar no puede (sin red local, de noche...),
+       se recurre a la ruta real normal (la corta de siempre).
+     ============================================================ */
+
+  // Penalización INVERSA: lo que cuesta es la SOMBRA.
+  // Misma magnitud que la penalización solar del verano (así el
+  // algoritmo es igual de estable en ambos modos) y mismo efecto
+  // de la nubosidad: con el cielo cubierto la sombra importa menos.
+  function calcularPenalizacionSombra(puntoMedio, posSol, indiceSombras) {
+    if (!posSol || posSol.altitude <= 0) return 0; // de noche no hay sol que buscar
+    let enSombra = false;
+    try {
+      if (indiceSombras && indiceSombras.size) {
+        enSombra = indiceSombras.consultar(puntoMedio[0], puntoMedio[1]);
+      } else {
+        const sombras = typeof obtenerTodasLasSombras === 'function'
+          ? obtenerTodasLasSombras()
+          : ((typeof ultimaColeccionSombras !== 'undefined' && ultimaColeccionSombras && ultimaColeccionSombras.features) ? ultimaColeccionSombras.features : []);
+        for (const poligono of sombras) {
+          if (turf.booleanPointInPolygon(turf.point(puntoMedio), poligono)) { enSombra = true; break; }
+        }
+      }
+    } catch (e) { /* sin sombras calculadas todavía: todo cuenta como soleado */ }
+    if (!enSombra) return 0; // al sol, la arista no penaliza
+    const intensidad = Math.max(0, Math.sin(posSol.altitude));
+    const factorSolNubes = 1 - (typeof nubosidadActual !== 'undefined' ? nubosidadActual : 0) * 0.85;
+    return CONFIG.factorPenalizacionSol * intensidad * factorSolNubes;
+  }
+
+  // Dijkstra inverso: idéntico al térmico, pero pesando con la
+  // penalización por SOMBRA de arriba.
+  function dijkstraSolar(grafo, inicioIdx, finIdx, posSol, indiceSombras) {
+    const n = grafo.nodos.length;
+    const dist = new Float64Array(n).fill(Infinity);
+    const prev = new Int32Array(n).fill(-1);
+    const visitado = new Uint8Array(n);
+
+    dist[inicioIdx] = 0;
+    const heap = new MinHeap();
+    heap.push({ nodo: inicioIdx, dist: 0 });
+    // Penalización memorizada por arista: cada una se evalúa una sola
+    // vez aunque el algoritmo la relaje varias (sep-2026, anti-cuelgues).
+    const penalizacionPorArista = new Map();
+
+    while (!heap.isEmpty()) {
+      const actual = heap.pop();
+      if (!actual) break;
+      const u = actual.nodo;
+      if (visitado[u]) continue;
+      visitado[u] = 1;
+      if (u === finIdx) break;
+
+      const ux = grafo.nodos[u][0], uy = grafo.nodos[u][1];
+      for (let i = 0; i < grafo.adj[u].length; i++) {
+        const arista = grafo.adj[u][i];
+        const v = arista.to;
+        if (visitado[v]) continue;
+
+        const vx = grafo.nodos[v][0], vy = grafo.nodos[v][1];
+        const claveArista = u * n + v;
+        let penalizacion = penalizacionPorArista.get(claveArista);
+        if (penalizacion === undefined) {
+          const puntoMedio = [(ux + vx) * 0.5, (uy + vy) * 0.5];
+          penalizacion = calcularPenalizacionSombra(puntoMedio, posSol, indiceSombras);
+          penalizacionPorArista.set(claveArista, penalizacion);
+        }
+        const peso = arista.longitudM * (1 + penalizacion);
+
+        const nuevaDist = dist[u] + peso;
+        if (nuevaDist < dist[v]) {
+          dist[v] = nuevaDist;
+          prev[v] = u;
+          heap.push({ nodo: v, dist: nuevaDist });
+        }
+      }
+    }
+
+    if (dist[finIdx] === Infinity) return { camino: [], caminoIdx: [], costeSolarM: Infinity };
+
+    const camino = [];
+    const caminoIdx = [];
+    for (let at = finIdx; at !== -1; at = prev[at]) {
+      camino.push(grafo.nodos[at]);
+      caminoIdx.push(at);
+    }
+    camino.reverse();
+    caminoIdx.reverse();
+    return { camino, caminoIdx, costeSolarM: dist[finIdx] };
+  }
+
+  async function calcularRutaDijkstraSolar(origen, destino) {
+    const t0 = performance.now();
+
+    const lineaOD = turf.lineString([[origen.lon, origen.lat], [destino.lon, destino.lat]]);
+    const bboxBase = turf.bboxPolygon(turf.bbox(lineaOD));
+    const bboxAmpliado = turf.bbox(turf.buffer(bboxBase, CONFIG.redPeatonalMargenM, { units: 'meters' }));
+    const redCompleta = await obtenerRedPeatonal(bboxAmpliado, [origen, destino]);
+    if (!redCompleta) throw new Error('Red peatonal no disponible (ni local ni Overpass)');
+
+    const redFiltrada = filtrarRedPorBBox(redCompleta, bboxAmpliado);
+    if (!redFiltrada.features.length) throw new Error('La red peatonal no cubre el área de la ruta');
+
+    const grafo = construirGrafoDesdeGeojson(redFiltrada);
+    if (grafo.nodos.length > CONFIG.maxNodosRedPeatonal) {
+      throw new Error('La red peatonal filtrada es demasiado densa para este cálculo');
+    }
+
+    const inicioIdx = encontrarNodoCercano(grafo, origen.lon, origen.lat);
+    const finIdx = encontrarNodoCercano(grafo, destino.lon, destino.lat);
+    if (inicioIdx === -1 || finIdx === -1) throw new Error('No se ha podido enganchar origen/destino a la red peatonal');
+
+    const centro = { lat: (origen.lat + destino.lat) * 0.5, lon: (origen.lon + destino.lon) * 0.5 };
+    const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+
+    // Igual que en la ruta de sombras: colección e índice espacial UNA
+    // vez por ruta, no en cada arista (sep-2026, anti-cuelgues).
+    const sombrasParaCobertura = typeof obtenerTodasLasSombras === 'function'
+      ? obtenerTodasLasSombras()
+      : (ultimaColeccionSombras?.features || []);
+    const indiceSombrasRuta = crearIndiceSombras(sombrasParaCobertura);
+
+    const resultado = dijkstraSolar(grafo, inicioIdx, finIdx, posSol, indiceSombrasRuta);
+    if (resultado.camino.length < 2) throw new Error('Dijkstra solar no ha encontrado camino');
+
+    const distanciaRealKm = turf.length(turf.lineString(resultado.camino), { units: 'kilometers' });
+    const duracionMin = (distanciaRealKm / CONFIG.velocidadCaminandoKmh) * 60;
+
+    let coberturaSombraPct = null;
+    if (sombrasParaCobertura.length) {
+      try {
+        const lineaRuta = turf.lineString(resultado.camino);
+        coberturaSombraPct = Math.round(calcularCoberturaSombra(lineaRuta, sombrasParaCobertura, indiceSombrasRuta) * 100);
+      } catch (e) { /* el badge se actualizará después con los tramos en sombra */ }
+    }
+
+    if (window.MANOLIT_DEBUG) console.log(`[Dijkstra solar] ${resultado.camino.length} nodos · coste ${resultado.costeSolarM.toFixed(1)} m · ${(performance.now() - t0).toFixed(2)} ms`);
+
+    let pasos = [];
+    let pasosGuiados = [];
+    try {
+      const generados = generarPasosDesdeGrafo(grafo, resultado.caminoIdx, sombrasParaCobertura);
+      pasos = generados.pasos;
+      pasosGuiados = generados.guiados;
+    } catch (e) {
+      console.debug('No se han podido generar las indicaciones de la ruta de sol:', e);
+    }
+
+    return {
+      geojson: { type: 'LineString', coordinates: resultado.camino },
+      distanciaKm: distanciaRealKm.toFixed(2),
+      duracionMin: Math.round(duracionMin),
+      esReal: true,
+      duracionEstimada: true,
+      // OJO: en modo invierno este % debe salir BAJO, es la parte
+      // del paseo que queda a la sombra (el panel ya lo muestra).
+      coberturaSombraPct,
+      esDijkstraSolar: true,
+      esRutaSolar: true,
+      pasos,
+      pasosGuiados,
+    };
+  }
+
+  // ---- Interruptor «Modo invierno: ruta por el sol» ----
+  // Se inyecta al final del formulario de ruta (junto a «Buscar
+  // ruta») sin tocar el HTML ni el código de búsqueda existente.
+  let modoInviernoRuta = false;
+
+  function inyectarToggleRutaSol() {
+    const form = document.querySelector('.rs-form');
+    if (!form || document.getElementById('rsToggleRutaSol')) return;
+
+    if (!document.getElementById('rsToggleRutaSolEstilos')) {
+      const estilo = document.createElement('style');
+      estilo.id = 'rsToggleRutaSolEstilos';
+      estilo.textContent = [
+        '.rs-toggle-invierno{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:0.92em;cursor:pointer;user-select:none;}',
+        '.rs-toggle-invierno.rs-invierno-activo{color:#d98a00;font-weight:600;}'
+      ].join('\n');
+      document.head.appendChild(estilo);
+    }
+
+    const etiqueta = document.createElement('label');
+    etiqueta.className = 'rs-toggle-invierno';
+    const caja = document.createElement('input');
+    caja.type = 'checkbox';
+    caja.id = 'rsToggleRutaSol';
+    const texto = document.createElement('span');
+    texto.textContent = t('winterSunRoute', 'Modo invierno: ruta por el sol');
+    const iconoSol = document.createElement('span');
+    iconoSol.className = 'rs-icono-sol';
+    iconoSol.setAttribute('aria-hidden', 'true');
+    iconoSol.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
+    etiqueta.append(caja, iconoSol, texto);
+    form.appendChild(etiqueta);
+
+    caja.addEventListener('change', () => {
+      modoInviernoRuta = caja.checked;
+      etiqueta.classList.toggle('rs-invierno-activo', modoInviernoRuta);
+      mostrarEstado(modoInviernoRuta
+        ? t('winterModeOn', 'Modo invierno activado: la próxima ruta buscará el sol (los tramos en sombra pesan más).')
+        : t('winterModeOff', 'Modo invierno desactivado: las rutas vuelven a buscar la sombra.'), 'ok');
+    });
+
+    document.addEventListener('langChanged', () => {
+      texto.textContent = t('winterSunRoute', 'Modo invierno: ruta por el sol');
+    });
+  }
+  inyectarToggleRutaSol();
+
+  // Puente ADITIVO: envolvemos la función de enrutado de siempre.
+  // Con el modo apagado delega tal cual; con el modo encendido
+  // intenta primero el Dijkstra solar y, si no es posible, cae a
+  // la ruta real normal (NUNCA a la de sombra: no tendría sentido
+  // en invierno).
+  const calcularRutaConPrioridadSombraOriginal = calcularRutaConPrioridadSombra;
+  calcularRutaConPrioridadSombra = async function (origen, destino) {
+    if (!modoInviernoRuta) return calcularRutaConPrioridadSombraOriginal(origen, destino);
+    try {
+      return await calcularRutaDijkstraSolar(origen, destino);
+    } catch (e) {
+      console.debug('[Modo invierno] Dijkstra solar no disponible; se usa la ruta real normal:', e && e.message);
+      return calcularRutaReal(origen, destino);
+    }
+  };
+
+
+  /* ============================================================
+     ALTURAS OFICIALES DEL CATASTRO, sombras con la altura real
+     ------------------------------------------------------------
+     El ~90% de los edificios de OSM no trae altura ni plantas
+     (comprobado en Carretera de Carmona: 232 de 249 sin dato),
+     así que caían a la altura por defecto y su sombra salía
+     demasiado corta: calles que a media tarde están tapadas por
+     los bloques aparecían al sol. El Catastro publica GRATIS y
+     SIN CLAVE las plantas reales de cada edificio (WFS INSPIRE
+     bu:BuildingPart → numberOfFloorsAboveGround) con CORS
+     abierto, así que el navegador lo consulta directo, sin
+     proxy y sin tocar el Worker.
+
+     Cómo encaja: cuando una parte de edificio del Catastro
+     contiene el centroide de un edificio del mapa, se escribe
+     su altura oficial (plantas × alturaPorPlantaM) en
+     properties.height, que es lo PRIMERO que mira
+     alturaDeEdificio: todo el motor (sombras de suelo y
+     fachadas oscurecidas) pasa a usar el dato real del Estado
+     sin tocar una sola línea anterior. Si el Catastro no cubre
+     la zona o la red falla, no cambia nada: sigue la cadena de
+     siempre (altura OSM → plantas OSM → altura por defecto).
+     ============================================================ */
+  if (!window.__manolitoCatastroAlturas) {
+    window.__manolitoCatastroAlturas = true;
+
+    const CATASTRO = {
+      celdaGrados: 0.006,       // ~600 m: la zona que se pide de una vez
+      maxCeldasPorPasada: 3,    // no saturar: como mucho 3 celdas nuevas por parada
+      zoomMinimo: 14,           // de lejos la sombra apenas se aprecia: no gastar datos
+      ttlLocalMs: 30 * 24 * 60 * 60 * 1000, // el Catastro cambia muy despacio
+      ttlErrorMs: 10 * 60 * 1000,           // si una celda falla, se reintenta a los 10 min
+      plantaM: CONFIG.alturaPorPlantaM,     // 3.2 m por planta, como el resto del motor
+      celdaRejilla: 0.001,      // rejilla fina (~110 m) para casar edificio ↔ parte
+    };
+    const celdasCatastro = new Map();  // clave -> { t, estado: 'ok'|'vacia'|'error'|'cargando' }
+    const partesCatastro = [];         // { ring: [[lon,lat],...], alturaM }
+    const rejillaCatastro = new Map(); // "cx:cy" (0.001°) -> array de índices de partesCatastro
+
+    function claveCeldaCatastro(lat, lon) {
+      return Math.floor(lat / CATASTRO.celdaGrados) + 'x' + Math.floor(lon / CATASTRO.celdaGrados);
+    }
+    function claveRejillaCatastro(lat, lon) {
+      return Math.floor(lat / CATASTRO.celdaRejilla) + ':' + Math.floor(lon / CATASTRO.celdaRejilla);
+    }
+
+    function registrarParteCatastro(ring, alturaM) {
+      if (!ring || ring.length < 4 || !(alturaM > 0)) return;
+      const indice = partesCatastro.length;
+      partesCatastro.push({ ring, alturaM });
+      let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+      for (const p of ring) {
+        if (p[0] < minLon) minLon = p[0]; if (p[0] > maxLon) maxLon = p[0];
+        if (p[1] < minLat) minLat = p[1]; if (p[1] > maxLat) maxLat = p[1];
+      }
+      for (let cy = Math.floor(minLat / CATASTRO.celdaRejilla); cy <= Math.floor(maxLat / CATASTRO.celdaRejilla); cy++) {
+        for (let cx = Math.floor(minLon / CATASTRO.celdaRejilla); cx <= Math.floor(maxLon / CATASTRO.celdaRejilla); cx++) {
+          const clave = cy + ':' + cx;
+          let lista = rejillaCatastro.get(clave);
+          if (!lista) { lista = []; rejillaCatastro.set(clave, lista); }
+          lista.push(indice);
+        }
+      }
+    }
+
+    // Ray casting clásico: ¿está el punto dentro del anillo?
+    function puntoEnAnilloCatastro(lon, lat, ring) {
+      let dentro = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+        if (((yi > lat) !== (yj > lat)) && (lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)) dentro = !dentro;
+      }
+      return dentro;
+    }
+
+    // Altura oficial (m) en un punto: la parte del Catastro con más
+    // plantas que contiene el punto. 0 = sin dato oficial aquí.
+    function alturaOficialEn(lon, lat) {
+      const lista = rejillaCatastro.get(claveRejillaCatastro(lat, lon));
+      if (!lista) return 0;
+      let mejor = 0;
+      for (const indice of lista) {
+        const parte = partesCatastro[indice];
+        if (parte.alturaM > mejor && puntoEnAnilloCatastro(lon, lat, parte.ring)) mejor = parte.alturaM;
+      }
+      return mejor;
+    }
+
+    // Escribe la altura oficial en properties.height de cada edificio
+    // cacheado cuyo centro cae dentro de una parte del Catastro. Como
+    // alturaDeEdificio mira props.height antes que nada, el motor
+    // entero (sombra de suelo + fachadas) usa el dato real al instante.
+    function aplicarAlturasCatastroACache(recalcular) {
+      if (!partesCatastro.length || !edificiosCacheados.length) return 0;
+      let cambiados = 0;
+      for (const edificio of edificiosCacheados) {
+        try {
+          const props = edificio.properties || (edificio.properties = {});
+          if (props._alturaCatastroOK) continue;
+          const anillo = edificio.geometry && edificio.geometry.coordinates && edificio.geometry.coordinates[0];
+          if (!anillo || anillo.length < 4) continue;
+          let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+          for (const p of anillo) {
+            if (p[0] < minLon) minLon = p[0]; if (p[0] > maxLon) maxLon = p[0];
+            if (p[1] < minLat) minLat = p[1]; if (p[1] > maxLat) maxLat = p[1];
+          }
+          const alturaM = alturaOficialEn((minLon + maxLon) / 2, (minLat + maxLat) / 2);
+          if (alturaM > 0) {
+            props.height = alturaM;      // el Catastro manda: es el dato oficial del Estado
+            props._alturaCatastroOK = 1; // no volver a procesar este edificio
+            cambiados++;
+          }
+        } catch (e) { continue; }
+      }
+      if (cambiados > 0 && recalcular && document.getElementById('rsToggleSombras')?.checked) {
+        recalcularSombrasVisibles();
+      }
+      return cambiados;
+    }
+
+    // El GML del Catastro es muy regular: cada <bu-ext2d:BuildingPart>
+    // trae sus anillos exteriores (posList "lat lon lat lon ...") y sus
+    // plantas. Se extrae con expresiones regulares acotadas, sin parser
+    // XML pesado; si un trozo no encaja, simplemente se salta.
+    function parsearGmlCatastro(texto) {
+      let registradas = 0;
+      if (!texto || texto.indexOf('BuildingPart') === -1) return 0;
+      const trozos = texto.split('<bu-ext2d:BuildingPart');
+      for (let i = 1; i < trozos.length; i++) {
+        try {
+          const trozo = trozos[i];
+          const mPlantas = trozo.match(/numberOfFloorsAboveGround[^>]*>\s*(\d+)/);
+          if (!mPlantas) continue;
+          const plantas = parseInt(mPlantas[1], 10);
+          if (!(plantas > 0)) continue;
+          const alturaM = plantas * CATASTRO.plantaM;
+          const reAnillos = /<gml:exterior>[\s\S]*?<gml:posList[^>]*>([^<]+)<\/gml:posList>/g;
+          let mAnillo;
+          while ((mAnillo = reAnillos.exec(trozo)) !== null) {
+            const numeros = mAnillo[1].trim().split(/\s+/).map(Number);
+            const ring = [];
+            for (let k = 0; k + 1 < numeros.length; k += 2) {
+              if (isFinite(numeros[k]) && isFinite(numeros[k + 1])) ring.push([numeros[k + 1], numeros[k]]); // [lon, lat]
+            }
+            if (ring.length >= 4) { registrarParteCatastro(ring, alturaM); registradas++; }
+          }
+        } catch (e) { continue; }
+      }
+      return registradas;
+    }
+
+    function guardarCeldaCatastro(clave, alturasYRings) {
+      try {
+        localStorage.setItem('manolito_catastro_v1_' + clave,
+          JSON.stringify({ t: Date.now(), p: alturasYRings }));
+      } catch (e) { /* cuota llena: se vuelve a pedir otra vez, sin drama */ }
+    }
+
+    function cargarCeldaCatastroLocal(clave) {
+      try {
+        const crudo = localStorage.getItem('manolito_catastro_v1_' + clave);
+        if (!crudo) return false;
+        const datos = JSON.parse(crudo);
+        if (!datos || !datos.t || Date.now() - datos.t > CATASTRO.ttlLocalMs) return false;
+        let n = 0;
+        for (const par of datos.p || []) {
+          if (par && par[1] && par[1].length >= 4) { registrarParteCatastro(par[1], par[0]); n++; }
+        }
+        celdasCatastro.set(clave, { t: Date.now(), estado: n ? 'ok' : 'vacia' });
+        return true;
+      } catch (e) { return false; }
+    }
+
+    async function descargarCeldaCatastro(clave, s, w, n, e) {
+      const previa = celdasCatastro.get(clave);
+      if (previa && (previa.estado === 'ok' || previa.estado === 'vacia' || previa.estado === 'cargando')) return false;
+      if (previa && previa.estado === 'error' && Date.now() - previa.t < CATASTRO.ttlErrorMs) return false;
+      if (cargarCeldaCatastroLocal(clave)) return true;
+      celdasCatastro.set(clave, { t: Date.now(), estado: 'cargando' });
+      try {
+        const url = 'https://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=getfeature'
+          + '&typenames=bu:BuildingPart&srsname=EPSG:4326'
+          + '&BBOX=' + s.toFixed(6) + ',' + w.toFixed(6) + ',' + n.toFixed(6) + ',' + e.toFixed(6);
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const texto = await resp.text();
+        const antes = partesCatastro.length;
+        parsearGmlCatastro(texto);
+        const nuevas = partesCatastro.length - antes;
+        // Guardado local compacto (solo altura + anillos), para no repetir
+        // la descarga al volver a la misma zona otro día.
+        const compacto = [];
+        for (let i = antes; i < partesCatastro.length; i++) {
+          compacto.push([partesCatastro[i].alturaM, partesCatastro[i].ring]);
+        }
+        guardarCeldaCatastro(clave, compacto);
+        celdasCatastro.set(clave, { t: Date.now(), estado: nuevas ? 'ok' : 'vacia' });
+        return nuevas > 0;
+      } catch (e) {
+        celdasCatastro.set(clave, { t: Date.now(), estado: 'error' });
+        return false;
+      }
+    }
+
+    let catastroTemporizador = null;
+    function programarCatastro() {
+      clearTimeout(catastroTemporizador);
+      catastroTemporizador = setTimeout(async () => {
+        try {
+          if (!map || !map.getBounds || map.getZoom() < CATASTRO.zoomMinimo) return;
+          const vista = map.getBounds();
+          const filas = [];
+          for (let cy = Math.floor(vista.getSouth() / CATASTRO.celdaGrados); cy <= Math.floor(vista.getNorth() / CATASTRO.celdaGrados); cy++) {
+            for (let cx = Math.floor(vista.getWest() / CATASTRO.celdaGrados); cx <= Math.floor(vista.getEast() / CATASTRO.celdaGrados); cx++) {
+              filas.push([cy, cx]);
+            }
+          }
+          if (filas.length > 9) return; // vista enorme: no gastar datos
+          let pedidas = 0, llegaronDatos = false;
+          for (const [cy, cx] of filas) {
+            if (pedidas >= CATASTRO.maxCeldasPorPasada) break;
+            const clave = cy + 'x' + cx;
+            const previa = celdasCatastro.get(clave);
+            if (previa && previa.estado !== 'error') continue;
+            pedidas++;
+            const s = cy * CATASTRO.celdaGrados, n = s + CATASTRO.celdaGrados;
+            const w = cx * CATASTRO.celdaGrados, e = w + CATASTRO.celdaGrados;
+            if (await descargarCeldaCatastro(clave, s, w, n, e)) llegaronDatos = true;
+          }
+          // Siempre que haya partes disponibles (nuevas o ya en memoria)
+          // se repasa la caché: los edificios recién entrados en pantalla
+          // también reciben su altura oficial.
+          if (partesCatastro.length) aplicarAlturasCatastroACache(true);
+          void llegaronDatos;
+        } catch (e) { /* nunca ensuciar la consola: a la próxima parada se reintenta */ }
+      }, 700);
+    }
+
+    // Puente aditivo: cada vez que el motor refresca su caché de
+    // edificios, se les aplican las alturas oficiales ya descargadas
+    // (instantáneo, sin red). Si aún no hay partes de la zona, no pasa
+    // nada y quedan con la altura de siempre hasta que lleguen.
+    const actualizarCacheEdificiosBase = actualizarCacheEdificios;
+    actualizarCacheEdificios = function () {
+      actualizarCacheEdificiosBase();
+      try { aplicarAlturasCatastroACache(false); } catch (e) { /* sin Catastro: como antes */ }
+    };
+
+    map.on('moveend', programarCatastro);
+    map.once('idle', programarCatastro);
+    programarCatastro();
+  }
+
+
+
+  // Helper reutilizable para esperar a que los elementos del DOM aparezcan y
+  // poder inyectar controles adicionales (footer, botones del mapa, etc.) sin
+  // depender de una carga concreta en un bloque concreto del archivo.
+  function cuandoExista(selector, cb, intentos = 0) {
+    const el = document.querySelector(selector);
+    if (el) { cb(el); return; }
+    if (intentos < 40) setTimeout(() => cuandoExista(selector, cb, intentos + 1), 250);
+  }
+
+  /* ============================================================
+     LA FLECHA MANOLIT, puntero caminante que avanza contigo
+     ------------------------------------------------------------
+     La figura del logo (cabeza dorada, ojos teal, corazón vino)
+     con piernas y brazos articulados. Aparece en el mapa cuando:
+       · pulsas MI UBICACIÓN (se planta donde estás),
+       · pulsas INICIAR CAMINATA (camina contigo por GPS en vivo),
+       · pulsas PASEO VIRTUAL 3D (camina con tu avatar virtual).
+     El paso se anima por DISTANCIA recorrida, no por tiempo:
+     si te paras, las piernas se paran. 100% aditivo: escucha los
+     botones que ya existen y NO toca la lógica anterior. El punto
+     azul de precisión de siempre sigue ahí debajo, intacto.
+     Detalle técnico: pitchAlignment 'viewport' (no 'map') para que
+     la figura se vea de pie en pantalla aunque el mapa esté muy
+     inclinado; el rumbo sí sigue al mapa (rotationAlignment 'map').
+     ============================================================ */
+  if (!window.__manolitWalkerIntegrado) {
+    window.__manolitWalkerIntegrado = true;
+
+    class ManolitWalker {
+      // Manolit va SIEMPRE derecho (como un muñeco de pie), nunca tumbado.
+      // Para mirar a izquierda/derecha se usa un espejo scaleX, no una
+      // rotación en el plano: así la figura no se "dobla" nunca.
+      constructor(opts = {}) {
+        this.size = opts.size ?? 48;
+        this.strideMeters = opts.strideMeters ?? 1.4;
+        this.maxLegSwing = opts.maxLegSwing ?? 24;
+        this.maxArmSwing = opts.maxArmSwing ?? 14;
+        this.colors = {
+          gold: opts.gold ?? '#E6A100',
+          teal: opts.teal ?? '#007A87',
+          wine: opts.wine ?? '#7A0016',
+        };
+        this._reduced = false;
+        try {
+          this._reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        } catch (e) { this._reduced = false; }
+        this._distanceAccum = 0;
+        this._frasesAndaluz = [
+          // Saludos y ánimos
+          '¡Ea, miarma! ¿Nó vamoh a pasear o qué?',
+          '¡Venga, alma de cántaro, que la sombrita noh espera!',
+          '¡Hola, qué arte! Yo te llevo por lo fresquito, tú tranquilo.',
+          '¡Ea, ya está Manolit aquí, que esto se arregla andando!',
+          '¡Vamoh poco a poco, que el que corre en Sevilla se derrite!',
+          '¡Qué ilusión verte, compare! ¿Buscamo la sombra o qué?',
+          // Calor y solana
+          '¡Ojú, qué calor, miarma! Esto es un horno con vistas.',
+          '¡Madre mía, qué solana! Hasta los lagartos andan buscando toldo.',
+          '¡Qué bochorno, compare! Esto no es Sevilla, es la freidora del cielo.',
+          '¡Ojú, qué calor más malo! Voy a derretirme como un helao de cucurucho.',
+          '¡Qué flama, miarma! Ni los chicharrones aguantan esta tarde.',
+          '¡Anda que no pega el Lorenzo ni ná! Menos mal que me tienes a mí.',
+          '¡Socorro, que esto achicharra! Vamoh por la sombra o no vamoh.',
+          '¡Qué calorón, shiquillo! Esto no lo aguanta ni el botijo.',
+          '¡Ojú! Con esta temperatura el asfalto hace tortilla sin huevo.',
+          // Sombra y ruta
+          '¡Mira qué sombrita más rica ahí al lao! Eso sí que es vida.',
+          '¡Por aquí, por aquí! Que en esta calle hay más sombra que en la Giralda.',
+          '¡Fíjate qué fresquito bajo los naranjos! Esto es una maravilla.',
+          '¡Agárrate a la pared de la sombra, que eso es oro puro!',
+          '¡Tira pa cá, miarma, que esta plaza tiene toldo y glorietas!',
+          '¡Qué bien se está aquí a la sombrita! Ni en el pilón de mi casa.',
+          '¡Crucemos de sombra en sombra como los gatos, que son mu listos!',
+          '¡Esta callejuela es una gozada! Fresquito y sin sol de cara.',
+          // Árboles y aire
+          '¡Ay, qué bien huele este naranjo! Respira hondo, miarma.',
+          '¡Mira qué arbolío! Con árboles así se respira otra cosa.',
+          '¡Este airecito sí que entra bien! Nada que ver con la avenida.',
+          '¡Benditos sean los árboles, compare, que ellos sí que se dan prisa fresquecito!',
+          '¡Respira, respira! Que por aquí el aire está fino filipino.',
+          // Ánimo andaluz general
+          '¡No te preocupeh, que Manolit te guía como si ná!',
+          '¡Tú camina con calma, que la prisa no es buena ni pa el gazpacho!',
+          '¡Ea, ya queda menos! Menos que un minuto de sombra al mediodía.',
+          '¡Qué arte tienes caminando, miarma! Pareces de Triana.',
+          '¡Vamoh que noh vamoh! Y con este paseo, ni a la Macarena.',
+          '¡Alegría, que la vida son dos días y en Sevilla hace sol en casi todos!',
+          '¡Tú a tu ritmo, que aquí el único que corre es el Guadalquivir!',
+          '¡Y si te cansa, noh paramo un momentito y ya está! Esto no es la Vuelta.',
+          // Despedidas y llegada
+          '¡Ya hemoh llegao, miarma! Qué paseo más bonito noh hemoh dao.',
+          '¡Hasta luego, Mari... digo, hasta la próxima caminata, compare!',
+          '¡Esto ya está hecho! Un aplauso pa nosotros, que lo vale.'
+        ];
+        this._lastLngLat = null;
+        this._moving = false;
+        this._ultimoMovMs = Date.now();
+        this._idleTimer = null;
+        this._onda = { x: 0, y: 0 };
+        this._ondaRaf = null;
+        this._mirando = 1; // 1 = derecha, -1 = izquierda (espejo)
+        this._sentado = false;
+        this._saludando = false;
+        this._explorando = false;
+        this._caprichoTimer = null;
+        ManolitWalker._inyectarEstilos();
+        this._buildElement();
+        this._tick();
+      }
+      get element() { return this._el; }
+      update(lngLat, dxPantalla) {
+        if (this._lastLngLat) {
+          const dist = ManolitWalker._haversine(this._lastLngLat, lngLat);
+          if (dist > 0.05) this._distanceAccum += dist;
+        }
+        if (typeof dxPantalla === 'number' && Math.abs(dxPantalla) > 0.5) {
+          this._mirando = dxPantalla > 0 ? 1 : -1;
+        }
+        this._lastLngLat = lngLat;
+        this._markMoving();
+      }
+      setIdle() { this._distanceAccum = 0; }
+      stopWalkingRoute() {
+        if (this._ondaRaf) { cancelAnimationFrame(this._ondaRaf); this._ondaRaf = null; }
+      }
+      destroy() {
+        this.stopWalkingRoute();
+        if (this._idleTimer) clearTimeout(this._idleTimer);
+        if (this._caprichoTimer) clearTimeout(this._caprichoTimer);
+        this._explorando = false;
+        this._el.remove();
+      }
+      _markMoving() {
+        this._moving = true;
+        this._ultimoMovMs = Date.now();
+        clearTimeout(this._idleTimer);
+        this._idleTimer = setTimeout(() => { this._moving = false; }, 900);
+        // Si estaba de capricho por el mapa, vuelve corriendo a tu punto y saluda.
+        if (this._explorando) this._volverATuPunto();
+      }
+      _decirFraseAndaluza() {
+        try {
+          if (!('speechSynthesis' in window)) return;
+          // Permiso de voz (sep-2026): la mascota solo habla si lo concediste.
+          if (window.ManolitA11y && !window.ManolitA11y.vozPermitida()) {
+            window.ManolitA11y.pedirPermisoVoz();
+            return;
+          }
+          const frase = new SpeechSynthesisUtterance(
+            this._frasesAndaluz[Math.floor(Math.random() * this._frasesAndaluz.length)]
+          );
+          frase.lang = 'es-ES';
+
+          // VOZ SIN GÉNERO: ningún navegador ofrece hoy una voz española
+          // declarada "neutral" (comprobado en la lista Readium Speech, la
+          // referencia de voces de la Web Speech API: todas las es-* son
+          // femeninas o masculinas). Lo que SÍ podemos hacer es buscar la voz
+          // española de más calidad disponible y compensar su tono hacia el
+          // centro: las femeninas bajan un poco y las masculinas suben un
+          // poco, hasta un registro intermedio que no suena ni a mujer ni a
+          // hombre. El acento andaluz lo ponen las palabras escritas (seseo,
+          // aspiraciones, "miarma", "vamoh"...): no existe ninguna voz TTS
+          // andaluza gratuita en 2026.
+          const voces = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+          const elegida = ManolitWalker._vozMasNeutra(voces);
+          if (elegida && elegida.voz) frase.voice = elegida.voz;
+
+          // Tono base según el género de la voz encontrada, llevado al centro,
+          // con un pelín de variedad en cada frase para que no suene a disco.
+          const base = elegida && elegida.genero === 'f' ? 0.88
+            : elegida && elegida.genero === 'm' ? 1.18
+            : 1.04;
+          frase.pitch = Math.min(2, Math.max(0.5, base + (Math.random() * 0.12 - 0.06)));
+          frase.rate = 0.92 + Math.random() * 0.16;
+          frase.volume = 0.9;
+
+          window.speechSynthesis.cancel();
+          // Al acabar el saludo, soltamos la sesión de audio del sistema
+          // para no dejar pillados los AirPods/Bluetooth (sep-2026).
+          frase.onend = () => window.ManolitA11y && window.ManolitA11y.liberarSesionDeAudio();
+          frase.onerror = frase.onend;
+          window.speechSynthesis.speak(frase);
+        } catch (e) { /* si no hay voz disponible, no rompe la app */ }
+      }
+      // Elige la voz española de mejor calidad disponible y detecta su
+      // género por el nombre para poder neutralizar el tono después.
+      static _vozMasNeutra(voces) {
+        try {
+          const espanolas = (voces || []).filter((v) => (v.lang || '').toLowerCase().replace('_', '-').startsWith('es'));
+          if (!espanolas.length) return null;
+          const FEMENINAS = /elvira|helena|laura|marisol|mónica|monica|paloma|salome|dalia|elena|isabella|femenina|female|mujer|woman|sabina|carlota/i;
+          const MASCULINAS = /alvaro|álvaro|jorge|pablo|tomas|gonzalo|alonso|enrique|andres|andrés|masculina|\bmale\b|hombre|\bman\b|emilio/i;
+          // De mayor a menor calidad según la lista Readium Speech:
+          // neurales de Edge/Windows, luego Google, luego las del sistema.
+          const puntuar = (v) => {
+            const n = (v.name || '').toLowerCase();
+            let p = 0;
+            if (/online \(natural\)|neural|natural/.test(n)) p += 30;
+            if (/google/.test(n)) p += 20;
+            if ((v.lang || '').toLowerCase().startsWith('es-es')) p += 10; // castellano: lo más cercano al texto andaluz
+            if (v.localService) p += 2;
+            return p;
+          };
+          const ordenadas = espanolas.slice().sort((a, b) => puntuar(b) - puntuar(a));
+          const voz = ordenadas[0];
+          const nombre = voz.name || '';
+          let genero = 'n';
+          if (MASCULINAS.test(nombre)) genero = 'm';
+          else if (FEMENINAS.test(nombre)) genero = 'f';
+          return { voz, genero };
+        } catch (e) { return null; }
+      }
+      _bindClickSpeech() {
+        if (!this._el || this._el.dataset.manolitClickBound) return;
+        this._el.dataset.manolitClickBound = '1';
+        this._el.style.cursor = 'pointer';
+        this._el.style.userSelect = 'none';
+        this._el.style.pointerEvents = 'auto';
+        this._el.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          this._decirFraseAndaluza();
+        });
+      }
+      _bindClickSpeechToMarker(marker) {
+        if (!marker || !marker.getElement) return;
+        const root = marker.getElement();
+        if (!root || root.dataset.manolitMarkerBound) return;
+        root.dataset.manolitMarkerBound = '1';
+        root.style.cursor = 'pointer';
+        root.style.pointerEvents = 'auto';
+        root.style.zIndex = '999';
+        root.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          this._decirFraseAndaluza();
+        });
+      }
+      _tick() {
+        const paso = () => {
+          // Ahorro de batería (sep-2026): con la pestaña oculta el muñeco
+          // se duerme, nada de mover poses 15 veces por segundo sin nadie
+          // mirando. Al volver, el bucle sigue donde estaba.
+          if (document.hidden) { this._tickTimer = setTimeout(paso, 500); return; }
+          const now = Date.now();
+          if (this._moving) this._ultimoMovMs = now;
+          else if (!this._reduced && !this._explorando && now - this._ultimoMovMs > 10000) {
+            // Llevas 10 s parado: Manolit se aburre y empieza su vida.
+            this._explorando = true;
+            this._capricho();
+          }
+          // Rendimiento (sep-2026, ADITIVO): si Manolit está quieto (no
+          // camina, no explora, no saluda, no está sentándose/levantándose),
+          // la pose NO cambia, re-aplicarla 15 veces por segundo solo
+          // servía para forzar recálculos de estilo en el navegador (calor).
+          // Quieto: saltamos _applyPose y el tic baja a 4 Hz (la detección
+          // de "10 s aburrido" sigue funcionando igual, con margen de sobra).
+          // En cuanto hay actividad, el tic vuelve a 66 ms y se ve IDÉNTICO.
+          const enActividad = this._moving || this._explorando || this._saludando
+            || this._sentado || this._ondaRaf || this._reduced;
+          if (enActividad || !this._poseAplicadaAlgunaVez) {
+            this._applyPose();
+            this._poseAplicadaAlgunaVez = true;
+          }
+          this._tickTimer = setTimeout(paso, enActividad ? 66 : 250);
+        };
+        paso();
+      }
+      _capricho() {
+        if (!this._explorando || this._moving) return;
+        const r = Math.random();
+        if (r < 0.55) {
+          // Paseíto por los alrededores de tu punto (sin salirse de cerca).
+          const tx = (Math.random() * 60 - 30);
+          const ty = (Math.random() * 32 - 16);
+          this._irCaminandoPx(tx, ty, () => {
+            if (Math.random() < 0.4) this._saluda();
+            if (this._explorando && !this._moving) {
+              this._caprichoTimer = setTimeout(() => this._capricho(), 1800 + Math.random() * 2200);
             }
           });
-          location.reload();
-        } catch (e) {
-          var msg = (window.getMessages && window.getMessages().syncImportError)
-            || 'Ese archivo no es una copia de Manolit∞ Aire. No se ha importado nada.';
-          window.alert(msg);
+        } else if (r < 0.8) {
+          // Se sienta un rato a descansar.
+          this._sentado = true;
+          this._caprichoTimer = setTimeout(() => {
+            this._sentado = false;
+            if (this._explorando && !this._moving) {
+              this._caprichoTimer = setTimeout(() => this._capricho(), 1800 + Math.random() * 2200);
+            }
+          }, 3200 + Math.random() * 2200);
+        } else {
+          this._saluda();
+          this._caprichoTimer = setTimeout(() => this._capricho(), 2600 + Math.random() * 2000);
         }
-      };
-      lector.readAsText(f);
-    });
-  }
-})();
-</script>
-
-<script>
-/* Navegacion en la misma pestana: los enlaces internos dejan de abrir
-   pestanas nuevas (la etiqueta base del head queda anulada por script).
-   Los enlaces externos (Ko-fi, redes, fuentes) siguen abriendo pestana
-   nueva con rel noopener. */
-(function () {
-  var b = document.querySelector('base');
-  if (b) b.setAttribute('target', '_self');
-  document.addEventListener('click', function (e) {
-    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
-    if (!a) return;
-    var h = a.getAttribute('href') || '';
-    if (/^https?:\/\//i.test(h)) {
-      try {
-        if (new URL(h, location.href).host !== location.host) {
-          a.target = '_blank';
-          a.rel = 'noopener';
+      }
+      _volverATuPunto() {
+        this._explorando = false;
+        if (this._caprichoTimer) { clearTimeout(this._caprichoTimer); this._caprichoTimer = null; }
+        this._sentado = false;
+        this._irCaminandoPx(0, 0, () => { this._saluda(); }, true);
+      }
+      // Caminata suavizada hasta un desplazamiento en píxeles respecto a tu punto.
+      _irCaminandoPx(tx, ty, alLlegar, rapido) {
+        this.stopWalkingRoute();
+        if (this._reduced) {
+          this._onda = { x: tx, y: ty };
+          if (alLlegar) alLlegar();
           return;
         }
-      } catch (err) {}
+        const sx = this._onda.x, sy = this._onda.y;
+        const dx = tx - sx, dy = ty - sy;
+        const distancia = Math.hypot(dx, dy);
+        if (distancia < 1) { if (alLlegar) alLlegar(); return; }
+        this._mirando = dx >= 0 ? 1 : -1;
+        const velocidad = rapido ? 90 : 42; // px por segundo
+        const duracion = (distancia / velocidad) * 1000;
+        const t0 = performance.now();
+        const frame = (t) => {
+          if (!this._explorando && !rapido) return; // interrumpido: manda _volverATuPunto
+          let p = (t - t0) / duracion;
+          if (p >= 1) p = 1;
+          const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; // ease in-out
+          this._onda = { x: sx + dx * e, y: sy + dy * e };
+          // Las piernas también avanzan con este paseíto.
+          this._distanceAccum += (distancia * (e - (frame._e || 0))) * (this.strideMeters / 26);
+          frame._e = e;
+          if (p < 1) this._ondaRaf = requestAnimationFrame(frame);
+          else {
+            this._ondaRaf = null;
+            frame._e = 0;
+            if (alLlegar) alLlegar();
+          }
+        };
+        frame._e = 0;
+        this._ondaRaf = requestAnimationFrame(frame);
+      }
+      _saluda() {
+        if (this._reduced || this._saludando || !this._armWave) return;
+        this._saludando = true;
+        this._armWave.classList.add('waving');
+        const fin = () => {
+          this._armWave.classList.remove('waving');
+          this._saludando = false;
+          this._armWave.removeEventListener('animationend', fin);
+        };
+        this._armWave.addEventListener('animationend', fin);
+      }
+      _applyPose() {
+        const phase = (this._distanceAccum / this.strideMeters) * Math.PI * 2;
+        const legPhase = Math.sin(phase);
+        if (this._sentado) {
+          // Pose de sentado: piernas recogidas y cuerpo bajado.
+          this._legL.style.transform = 'rotate(70deg)';
+          this._legR.style.transform = 'rotate(-70deg)';
+          this._body.style.transform = 'translateY(5px)';
+          this._armR.style.transform = 'rotate(-12deg)';
+          if (!this._saludando) this._armWave.style.transform = 'rotate(12deg)';
+        } else {
+          const legAngle = legPhase * this.maxLegSwing;
+          const armAngle = legPhase * this.maxArmSwing;
+          this._legL.style.transform = `rotate(${legAngle}deg)`;
+          this._legR.style.transform = `rotate(${-legAngle}deg)`;
+          this._armR.style.transform = `rotate(${-armAngle}deg)`;
+          if (!this._saludando) this._armWave.style.transform = `rotate(${armAngle}deg)`;
+          const bob = Math.abs(legPhase) * 2.2;
+          this._body.style.transform = `translateY(${-bob}px)`;
+        }
+        // OJO: el transform del elemento raíz lo ESCRIBE MapLibre para
+        // colocar el marcador en el mapa. Jamás se toca desde aquí.
+        // Espejo para mirar a izquierda/derecha SIN tumbear la figura.
+        this._flipEl.style.transform = `scaleX(${this._mirando})`;
+        this._ondaEl.style.transform = `translate(${this._onda.x}px, ${this._onda.y}px)`;
+      }
+      static _inyectarEstilos() {
+        if (document.getElementById('manolit-walker-estilos')) return;
+        const st = document.createElement('style');
+        st.id = 'manolit-walker-estilos';
+        st.textContent = `
+          .manolit-walker .mw-body { animation: mwBreathe 3.4s ease-in-out infinite; }
+          .manolit-walker .mw-eyes { animation: mwBlink 4.6s linear infinite; transform-origin: 60px 63px; }
+          .manolit-walker .mw-heart { animation: mwPulse 1.6s ease-in-out infinite; transform-origin: 60px 58px; }
+          .manolit-walker .mw-armwave.waving { animation: mwWave 1.15s ease-in-out 1; }
+          @keyframes mwBreathe {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(1.2px); }
+          }
+          @keyframes mwBlink {
+            0%, 92%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.08); }
+          }
+          @keyframes mwPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+          }
+          @keyframes mwWave {
+            0% { transform: rotate(0deg); }
+            12% { transform: rotate(-150deg); }
+            24% { transform: rotate(-168deg); }
+            36% { transform: rotate(-150deg); }
+            48% { transform: rotate(-168deg); }
+            60% { transform: rotate(-152deg); }
+            82% { transform: rotate(-30deg); }
+            100% { transform: rotate(0deg); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .manolit-walker .mw-body,
+            .manolit-walker .mw-eyes,
+            .manolit-walker .mw-heart,
+            .manolit-walker .mw-armwave.waving { animation: none !important; }
+          }
+        `;
+        document.head.appendChild(st);
+      }
+      _buildElement() {
+        const { colors } = this;
+        // El SVG es 120×170: el contenedor respeta esa proporción para
+        // que la figura no se aplaste.
+        const w = this.size, h = Math.round(this.size * 170 / 120);
+        const wrap = document.createElement('div');
+        wrap.className = 'manolit-walker';
+        wrap.style.cssText = `
+          position:relative;
+          width:${w}px;height:${h}px;
+          overflow:visible;
+          pointer-events:auto;
+          cursor:pointer;
+          filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
+        `;
+        wrap.innerHTML = `
+          <div class="mw-onda" style="position:absolute;inset:0;overflow:visible;">
+          <div class="mw-flip" style="width:100%;height:100%;transform-origin:50% 50%;">
+          <svg viewBox="0 0 120 170" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+            <g class="mw-body" style="transform-origin:60px 90px;">
+              <g class="leg leg-l" style="transform-origin:60px 118px;">
+                <line x1="60" y1="118" x2="45" y2="155" stroke="${colors.wine}" stroke-width="6" stroke-linecap="round"/>
+                <ellipse cx="42" cy="158" rx="7" ry="4" fill="${colors.wine}"/>
+              </g>
+              <g class="leg leg-r" style="transform-origin:60px 118px;">
+                <line x1="60" y1="118" x2="75" y2="155" stroke="${colors.wine}" stroke-width="6" stroke-linecap="round"/>
+                <ellipse cx="78" cy="158" rx="7" ry="4" fill="${colors.wine}"/>
+              </g>
+              <g class="arm arm-r" style="transform-origin:94px 76px;">
+                <line x1="94" y1="76" x2="114" y2="104" stroke="${colors.wine}" stroke-width="5" stroke-linecap="round"/>
+              </g>
+
+              <!-- La forma del logo Manolit: dos líneas internas + bucle infinito + corazón.
+                   Coincide con la versión del HTML pegado: no es un muñeco de pie, es la marca del proyecto. -->
+              <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
+                    fill="rgba(2,4,6,0.35)" stroke="${colors.wine}" stroke-width="5" stroke-linejoin="round"/>
+              <circle cx="60" cy="63" r="26" fill="${colors.gold}"/>
+              <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="${colors.teal}" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 43,75 Q 51.5,69.5 60,75 T 77,75" fill="none" stroke="${colors.teal}" stroke-width="2.4" stroke-linecap="round"/>
+              <path class="mw-heart" d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z" fill="none" stroke="${colors.wine}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <g class="mw-armwave" style="transform-origin:26px 76px;">
+                <line x1="26" y1="76" x2="6" y2="104" stroke="${colors.wine}" stroke-width="5" stroke-linecap="round"/>
+                <circle cx="5" cy="106" r="4.5" fill="${colors.gold}" stroke="${colors.wine}" stroke-width="2.5"/>
+              </g>
+            </g>
+          </svg>
+          </div>
+          </div>
+        `;
+        this._el = wrap;
+        this._ondaEl = wrap.querySelector('.mw-onda');
+        this._flipEl = wrap.querySelector('.mw-flip');
+        this._body = wrap.querySelector('.mw-body');
+        this._legL = wrap.querySelector('.leg-l');
+        this._legR = wrap.querySelector('.leg-r');
+        this._armR = wrap.querySelector('.arm-r');
+        this._armWave = wrap.querySelector('.mw-armwave');
+        this._bindClickSpeech();
+      }
+      static _haversine([lng1, lat1], [lng2, lat2]) {
+        const R = 6371000;
+        const toRad = (d) => (d * Math.PI) / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+      static _angleDelta(from, to) {
+        return ((to - from + 540) % 360) - 180;
+      }
     }
-    a.target = '_self';
-  }, true);
+    window.ManolitWalker = window.ManolitWalker || ManolitWalker;
+
+    /* ----- Marcador en el mapa: uno solo, reutilizado por los 3 modos ----- */
+    const manolit = { walker: null, marker: null, watchId: null, paseoTimer: null, vigilanciaCaminata: null, versionUbicacion: 0 };
+
+    function asegurarManolitEnMapa(lngLat) {
+      if (!manolit.walker) {
+        manolit.walker = new ManolitWalker({ size: 46 });
+        manolit.marker = new maplibregl.Marker({
+          element: manolit.walker.element,
+          rotationAlignment: 'viewport',
+          pitchAlignment: 'viewport',
+          anchor: 'center',
+          offset: [0, -12],
+        });
+        if (manolit.walker && typeof manolit.walker._bindClickSpeechToMarker === 'function') {
+          manolit.walker._bindClickSpeechToMarker(manolit.marker);
+        }
+      } else if (manolit.marker && manolit.walker && typeof manolit.walker._bindClickSpeechToMarker === 'function') {
+        manolit.walker._bindClickSpeechToMarker(manolit.marker);
+      }
+      manolit.marker.setLngLat(lngLat); // primero posición: un Marker sin LngLat rompe al añadirse
+      if (!manolit.marker._map) manolit.marker.addTo(map);
+      const root = manolit.marker && manolit.marker.getElement ? manolit.marker.getElement() : null;
+      if (root) {
+        root.style.pointerEvents = 'auto';
+        root.style.cursor = 'pointer';
+      }
+      return manolit.walker;
+    }
+    function quitarManolitDeMapa() {
+      try { if (manolit.marker) manolit.marker.remove(); } catch (e) { /* ya fuera */ }
+      if (manolit.walker) { manolit.walker.destroy(); }
+      manolit.walker = null;
+      manolit.marker = null;
+    }
+
+    // Compat: la caminata ya no usa un watchPosition propio (seguimos el
+    // punto azul de la app), pero REINICIAR aún llama a esta función.
+    function detenerManolitGPS() { pararVigilanciaCaminata(); }
+
+    /* ----- MI UBICACIÓN: la flecha se planta EXACTAMENTE donde
+       la app marca tu punto (leemos la misma fuente 'puntos-manuales'
+       que pinta la app, así nunca hay dos posiciones distintas) ----- */
+    cuandoExista('#rsBtnMyLocation', (btn) => {
+      btn.addEventListener('click', () => {
+        const version = ++manolit.versionUbicacion;
+        let intentos = 0;
+        const buscar = () => {
+          if (version !== manolit.versionUbicacion) return; // clic más reciente manda
+          try {
+            const src = map.getSource('puntos-manuales');
+            const datos = src && (src._data || (src.serialize && src.serialize().data));
+            const feat = datos && datos.features && datos.features.find(
+              (f) => f && f.geometry && f.geometry.type === 'Point'
+            );
+            if (feat) {
+              const ll = feat.geometry.coordinates;
+              asegurarManolitEnMapa(ll).setIdle();
+              return;
+            }
+          } catch (e) { /* fuente aún no lista: reintenta */ }
+          if (++intentos < 30) setTimeout(buscar, 400); // hasta ~12 s (permiso GPS lento)
+        };
+        setTimeout(buscar, 300);
+      });
+    });
+
+    /* ----- INICIAR CAMINATA: la flecha ES tu punto azul -----
+       Antes lanzábamos un segundo watchPosition propio: en PC sin GPS
+       la ubicación por IP salta de sitio y la flecha aparecía y
+       desaparecía. Ahora NO pedimos otra ubicación: seguimos el
+       marcador que la propia app ya mueve (el punto azul), leyendo
+       su posición en pantalla y convirtiéndola a coordenadas con
+       map.unproject. La flecha va siempre pegada a tu punto real,
+       y las piernas se animan con tu movimiento real. */
+    function buscarMarcadorPuntoAzul() {
+      try {
+        const marcadores = document.querySelectorAll('.maplibregl-marker');
+        // PRIMERO el punto de la caminata ("el punto blanco"): el que crea
+        // "Iniciar caminata" tiene un halo de 6px (box-shadow 0 0 0 6px) que
+        // no tiene ningún otro marcador. OJO: MapLibre usa el div que le das
+        // COMO raíz del marcador, así que el estilo redondo puede estar en la
+        // propia raíz o en su primer hijo; se miran los dos.
+        for (const m of marcadores) {
+          const estiloRaiz = m.getAttribute('style') || '';
+          const hijo = m.firstElementChild;
+          const estiloHijo = (hijo && hijo.getAttribute('style')) || '';
+          if ((/border-radius:\s*50%/.test(estiloRaiz) && /0 0 0 6px/.test(estiloRaiz))
+            || (/border-radius:\s*50%/.test(estiloHijo) && /0 0 0 6px/.test(estiloHijo))) return m;
+        }
+        // Si no hay caminata en marcha, cualquier punto redondo sirve
+        // (compatibilidad con el comportamiento anterior).
+        for (const m of marcadores) {
+          const hijo = m.firstElementChild;
+          const estiloRaiz = m.getAttribute('style') || '';
+          if (/border-radius:\s*50%/.test(estiloRaiz)) return m;
+          if (hijo && /border-radius:\s*50%/.test(hijo.getAttribute('style') || '')) return m;
+        }
+      } catch (e) { /* DOM a medias: siguiente pasada */ }
+      return null;
+    }
+    function pararVigilanciaCaminata() {
+      if (manolit.vigilanciaCaminata) { clearInterval(manolit.vigilanciaCaminata); manolit.vigilanciaCaminata = null; }
+    }
+    cuandoExista('#rsBtnWalk', (btn) => {
+      btn.addEventListener('click', () => {
+        setTimeout(() => {
+          try {
+            if (!btn.classList.contains('rs-activo')) { pararVigilanciaCaminata(); return; }
+            pararVigilanciaCaminata();
+            manolit.vigilanciaCaminata = setInterval(() => {
+              try {
+                // Pestaña oculta (sep-2026, ADITIVO): no sondear el DOM 7
+                // veces por segundo sin nadie mirando; al volver, el
+                // intervalo sigue y la flecha retoma su sitio sola.
+                if (document.hidden) return;
+                // Si la caminata se paró por otra vía (paseo, reiniciar),
+                // la clase ya no está: paramos solos y la flecha se queda
+                // quieta en la última posición conocida.
+                if (!btn.classList.contains('rs-activo')) {
+                  pararVigilanciaCaminata();
+                  // La caminata se paró por otra vía: la voz también se calla.
+                  try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e0) { }
+                  return;
+                }
+                const m = buscarMarcadorPuntoAzul();
+                if (!m || !m.isConnected) return; // aún no llegó la 1ª posición GPS
+                // Sustitución de verdad: el punto azul se oculta y en su
+                // sitio queda la flecha Manolit (mismo marcador, misma
+                // posición exacta que mueve la app).
+                const puntoAzul = m.firstElementChild || m;
+                if (!m.dataset.manolitOculto) {
+                  m.dataset.manolitOculto = '1';
+                  // visibility (no display): el marcador sigue existiendo y
+                  // MapLibre lo sigue moviendo, que es de donde leemos la
+                  // posición para plantar a Manolit encima.
+                  puntoAzul.style.visibility = 'hidden';
+                }
+                const r = m.getBoundingClientRect();
+                if (!r.width && !r.height) return;
+                const c = map.getCanvas().getBoundingClientRect();
+                const cx = r.left + r.width / 2 - c.left;
+                const ll = map.unproject([
+                  cx,
+                  r.top + r.height / 2 - c.top,
+                ]);
+                const dx = (typeof manolit._ultimoXCaminata === 'number') ? cx - manolit._ultimoXCaminata : 0;
+                manolit._ultimoXCaminata = cx;
+                const arr = [ll.lng, ll.lat];
+                asegurarManolitEnMapa(arr).update(arr, dx);
+              } catch (e) { /* un tic fallido no rompe nada */ }
+            }, 150);
+          } catch (e) { /* nunca romper el botón original */ }
+        }, 50);
+      });
+    });
+
+    /* ----- PASEO VIRTUAL 3D: la flecha sigue a tu avatar -----
+       En cámara libre el "centro" del mapa no es el jugador; la
+       posición real está en la cámara (getFreeCameraOptions). */
+    function detenerManolitPaseo() {
+      if (manolit.paseoTimer) { clearTimeout(manolit.paseoTimer); manolit.paseoTimer = null; }
+    }
+    cuandoExista('#rsBtnPaseo', (btn) => {
+      btn.addEventListener('click', () => {
+        setTimeout(() => {
+          try {
+            if (!btn.classList.contains('rs-activo')) { detenerManolitPaseo(); return; }
+            detenerManolitPaseo();
+            const paso = () => {
+              manolit.paseoTimer = null;
+              // Pestaña oculta (sep-2026, ADITIVO): la flecha del paseo no
+              // necesita reposicionarse 8 veces por segundo sin nadie
+              // mirando; reintentamos más despacio y sin trabajo.
+              if (document.hidden) { manolit.paseoTimer = setTimeout(paso, 500); return; }
+              // Si se salió del paseo sin botón (tecla Escape), la clase
+              // ya no está: paramos solos y sin ruido.
+              if (!btn.classList.contains('rs-activo')) return;
+              try {
+                if (typeof map.getFreeCameraOptions === 'function') {
+                  const mc = map.getFreeCameraOptions().position;
+                  if (mc) {
+                    const ll = mc.toLngLat();
+                    const arr = [ll.lng, ll.lat];
+                    let dx = 0;
+                    if (typeof manolit._ultimoLngPaseo === 'number') {
+                      dx = arr[0] - manolit._ultimoLngPaseo;
+                    }
+                    manolit._ultimoLngPaseo = arr[0];
+                    asegurarManolitEnMapa(arr).update(arr, dx * 1e5);
+                  }
+                }
+              } catch (e) { /* cámara a medio mover: siguiente tic */ }
+              manolit.paseoTimer = setTimeout(paso, 120);
+            };
+            paso();
+          } catch (e) { /* nunca romper el botón original */ }
+        }, 50);
+      });
+    });
+
+    /* ----- REINICIAR: la flecha también se retira ----- */
+    cuandoExista('#rsBtnReset', (btn) => {
+      btn.addEventListener('click', () => {
+        detenerManolitGPS();
+        detenerManolitPaseo();
+        pararVigilanciaCaminata();
+        quitarManolitDeMapa();
+      });
+    });
+
+    /* ============================================================
+       BOTÓN DE CHAT MANOLIT, el FAB de siempre con nuestra figura
+       y una burbuja «¡Pregúntame!» encima. El clic sigue abriendo
+       el chat de siempre (su onclick no se toca). La burbuja se
+       despide en cuanto la tocas una vez.
+       ============================================================ */
+    function inyectarManolitChat(intentos = 0) {
+      let fab;
+      try { fab = document.querySelector('.chat-fab'); } catch (e) { return; }
+      if (!fab) {
+        if (intentos < 40) setTimeout(() => inyectarManolitChat(intentos + 1), 250);
+        return;
+      }
+      if (fab.dataset.manolitListo) return;
+      fab.dataset.manolitListo = '1';
+      try {
+        const estilo = document.createElement('style');
+        estilo.id = 'manolit-chat-estilos';
+        estilo.textContent = `
+          .chat-fab{display:flex;align-items:center;justify-content:center;overflow:visible;}
+          .chat-fab .manolit-walker-chat{pointer-events:none;animation:manolitSaludo 3.2s ease-in-out infinite;}
+          .manolit-chat-bubble{
+            position:absolute; bottom:calc(100% + 10px); right:0;
+            background:rgba(2,4,6,0.92); color:#fff;
+            border:1px solid rgba(230,161,0,0.55);
+            padding:7px 12px; border-radius:14px 14px 4px 14px;
+            font-size:13px; font-weight:600; white-space:nowrap;
+            pointer-events:none;
+            box-shadow:0 4px 14px rgba(0,0,0,0.35);
+            animation:manolitSaludo 3.2s ease-in-out infinite;
+          }
+          @keyframes manolitSaludo{
+            0%,100%{transform:translateY(0);}
+            50%{transform:translateY(-4px);}
+          }
+          @media (prefers-reduced-motion: reduce){
+            .chat-fab .manolit-walker-chat,
+            .manolit-chat-bubble{animation:none;}
+          }
+        `;
+        document.head.appendChild(estilo);
+
+        // Figura estática (la misma del caminante, en pose neutra)
+        const figura = document.createElement('span');
+        figura.className = 'manolit-walker-chat';
+        figura.innerHTML = `
+          <svg viewBox="0 0 120 170" width="30" height="43" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <g>
+              <line x1="60" y1="118" x2="45" y2="155" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <ellipse cx="42" cy="158" rx="7" ry="4" fill="#7A0016"/>
+              <line x1="60" y1="118" x2="75" y2="155" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <ellipse cx="78" cy="158" rx="7" ry="4" fill="#7A0016"/>
+              <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
+                    fill="rgba(2,4,6,0.35)" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
+              <circle cx="60" cy="63" r="26" fill="#E6A100"/>
+              <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 43,75 Q 51.5,69.5 60,75 T 77,75" fill="none" stroke="#007A87" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z"
+                    fill="none" stroke="#7A0016" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>
+        `;
+        fab.innerHTML = '';
+        fab.appendChild(figura);
+
+        // Burbuja «¡Pregúntame!» (con traducción si el i18n la tiene;
+        // si la clave no existe, no tocamos nada raro: texto fijo en español)
+        let textoBurbuja = '¡Pregúntame!';
+        try {
+          const candidato = window.i18n && window.i18n.t ? window.i18n.t('askMe') : null;
+          if (candidato && candidato !== 'askMe') textoBurbuja = candidato;
+        } catch (e) { /* i18n aún no listo: español */ }
+        const burbuja = document.createElement('span');
+        burbuja.className = 'manolit-chat-bubble';
+        burbuja.textContent = textoBurbuja;
+        fab.appendChild(burbuja);
+        fab.addEventListener('click', () => { burbuja.style.display = 'none'; }, { once: true });
+      } catch (e) { /* si algo falla, el FAB original sigue funcionando */ }
+    }
+    inyectarManolitChat();
+  }
+
+
+
+  /* ============================================================
+     LOGO DEL PANEL DE CHAT, la figura Manolit también cuando el
+     chat se despliega: sustituye al círculo multicolor de la
+     cabecera «Manolit∞ te lo explica». El panel y sus funciones
+     no se tocan; solo cambia el icono.
+       ============================================================ */
+  if (!window.__manolitChatLogoListo) {
+    window.__manolitChatLogoListo = true;
+    (function ponerLogoManolitEnPanel(intentos) {
+      let logo;
+      try { logo = document.querySelector('#chatOverlay .chat-logo'); } catch (e) { return; }
+      if (!logo) {
+        if ((intentos || 0) < 40) setTimeout(() => ponerLogoManolitEnPanel((intentos || 0) + 1), 250);
+        return;
+      }
+      if (logo.dataset.manolitListo) return;
+      logo.dataset.manolitListo = '1';
+      try {
+        logo.style.cssText += ';background:none!important;box-shadow:none!important;border:none!important;padding:0;width:auto;height:auto;';
+        logo.innerHTML = `
+          <svg viewBox="0 0 120 170" width="20" height="28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <g>
+              <line x1="60" y1="118" x2="45" y2="155" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <ellipse cx="42" cy="158" rx="7" ry="4" fill="#7A0016"/>
+              <line x1="60" y1="118" x2="75" y2="155" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <ellipse cx="78" cy="158" rx="7" ry="4" fill="#7A0016"/>
+              <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
+                    fill="rgba(2,4,6,0.35)" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
+              <line x1="26" y1="76" x2="6" y2="104" stroke="#7A0016" stroke-width="5" stroke-linecap="round"/>
+              <line x1="94" y1="76" x2="114" y2="104" stroke="#7A0016" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="60" cy="63" r="26" fill="#E6A100"/>
+              <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 43,75 Q 51.5,69.5 60,75 T 77,75" fill="none" stroke="#007A87" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z"
+                    fill="none" stroke="#7A0016" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>
+        `;
+      } catch (e) { /* si falla, el logo original sigue ahí */ }
+    })(0);
+  }
+
+
+
+  /* ==================== SINCRONIZAR / EXPORTAR DATOS ====================
+     Botón discreto en el PIE de la web (fuera del mapa), junto a
+     «Aviso legal · Privacidad · Cookies». Exporta/importa en un archivo
+     JSON los ajustes de la persona (tema, idioma, tamaño de letra,
+     caché de alturas del Catastro...) y sus puntos guardados en el mapa.
+     Todo ocurre en el dispositivo: sin servidores, sin cuentas, gratis. */
+  (function inyectarSyncDatos() {
+    function inyectarEstilosSync() {
+      if (document.getElementById('rs-sync-estilos')) return;
+      const st = document.createElement('style');
+      st.id = 'rs-sync-estilos';
+      st.textContent = `
+        #rsLinkSync{ cursor:pointer; }
+        #rsSyncOverlay{
+          position:fixed; inset:0; z-index:12000; display:none;
+          align-items:center; justify-content:center;
+          background:rgba(14,25,32,0.45);
+          backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+          padding:16px;
+        }
+        #rsSyncOverlay.rs-sync-abierto{ display:flex; }
+        #rsSyncPanel{
+          width:min(420px, 94vw);
+          background:var(--paper, #FBFAF7); color:var(--sky-deep, #0E3B47);
+          border:1px solid var(--line, rgba(14,59,71,0.14));
+          border-radius:16px; box-shadow:0 14px 40px rgba(10,20,26,0.28);
+          padding:20px 22px; font-family:inherit;
+        }
+        #rsSyncPanel h2{
+          margin:0 0 6px; font-size:1.05rem; font-weight:800; letter-spacing:.01em;
+        }
+        #rsSyncPanel p{ margin:6px 0; font-size:0.86rem; line-height:1.45; opacity:0.88; }
+        #rsSyncPanel .rs-sync-botones{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+        #rsSyncPanel button{
+          font-family:inherit; font-size:0.9rem; font-weight:700;
+          padding:10px 14px; border-radius:999px; cursor:pointer;
+          border:1px solid var(--line, rgba(14,59,71,0.18));
+          background:var(--surface, rgba(251,250,247,0.9)); color:var(--sky-deep, #0E3B47);
+          transition:background .15s, border-color .15s;
+        }
+        #rsSyncPanel button:hover{
+          background:var(--accent-soft, rgba(255,107,26,0.16));
+          border-color:var(--accent, #FF6B1A);
+        }
+        #rsSyncPanel button.rs-sync-principal{
+          background:var(--accent, #FF6B1A); border-color:var(--accent, #FF6B1A);
+          color:var(--paper, #FBFAF7);
+        }
+        #rsSyncPanel .rs-sync-nota{
+          margin-top:12px; font-size:0.72rem; opacity:0.6; line-height:1.4;
+        }
+        #rsSyncEstado{ min-height:1.1em; font-weight:700; }
+      `;
+      document.head.appendChild(st);
+    }
+
+    function recogerPuntosManuales() {
+      try {
+        if (typeof map === 'undefined' || !map || !map.getSource) return [];
+        const src = map.getSource('puntos-manuales');
+        if (!src) return [];
+        const data = src._data || (src.serialize && src.serialize().data);
+        const feats = (data && data.features) || [];
+        return feats
+          .filter((f) => f && f.geometry && f.geometry.type === 'Point')
+          .map((f) => ({ geometry: f.geometry, properties: f.properties || {} }));
+      } catch (e) { return []; }
+    }
+
+    function recogerAjustes() {
+      const ajustes = {};
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.indexOf('manolito_') === 0 || k === 'lang')) {
+            ajustes[k] = localStorage.getItem(k);
+          }
+        }
+      } catch (e) { /* sin localStorage: se exporta solo lo demás */ }
+      return ajustes;
+    }
+
+    function exportarDatos() {
+      const paquete = {
+        app: 'manolito-aire',
+        formato: 1,
+        fecha: new Date().toISOString(),
+        ajustes: recogerAjustes(),
+        puntos: recogerPuntosManuales(),
+      };
+      const blob = new Blob([JSON.stringify(paquete, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const marca = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+      a.href = url;
+      a.download = 'manolito-datos-' + marca + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      return paquete;
+    }
+
+    function importarDatos(paquete) {
+      if (!paquete || paquete.app !== 'manolito-aire' || typeof paquete !== 'object') {
+        throw new Error('archivo-no-manolito');
+      }
+      let nAjustes = 0;
+      const ajustes = paquete.ajustes || {};
+      Object.keys(ajustes).forEach((k) => {
+        if ((k.indexOf('manolito_') === 0 || k === 'lang') && typeof ajustes[k] === 'string') {
+          try { localStorage.setItem(k, ajustes[k]); nAjustes++; } catch (e) { /* lleno o bloqueado */ }
+        }
+      });
+      let nPuntos = 0;
+      const nuevos = Array.isArray(paquete.puntos) ? paquete.puntos : [];
+      try {
+        if (nuevos.length && typeof map !== 'undefined' && map && map.getSource) {
+          const src = map.getSource('puntos-manuales');
+          if (src && src.setData) {
+            const actuales = recogerPuntosManuales();
+            const validos = nuevos.filter((f) =>
+              f && f.geometry && f.geometry.type === 'Point' &&
+              Array.isArray(f.geometry.coordinates) &&
+              f.geometry.coordinates.every((c) => typeof c === 'number' && isFinite(c)));
+            nPuntos = validos.length;
+            const fc = (typeof turf !== 'undefined' && turf.featureCollection)
+              ? turf.featureCollection(actuales.concat(validos))
+              : { type: 'FeatureCollection', features: actuales.concat(validos) };
+            src.setData(fc);
+          }
+        }
+      } catch (e) { /* puntos opcionales: los ajustes ya se han llevado */ }
+      return { ajustes: nAjustes, puntos: nPuntos };
+    }
+
+    function montarPanelSync() {
+      if (document.getElementById('rsSyncOverlay')) return;
+      inyectarEstilosSync();
+      const overlay = document.createElement('div');
+      overlay.id = 'rsSyncOverlay';
+      overlay.innerHTML = `
+        <div id="rsSyncPanel" role="dialog" aria-modal="true" aria-labelledby="rsSyncTitulo">
+          <h2 id="rsSyncTitulo">Sincronizar / Exportar datos</h2>
+          <p>Guarda en un archivo tus ajustes de Manolit∞ Aire (tema, idioma, tamaño de letra,
+             alturas del Catastro ya descargadas) y tus puntos del mapa. Así los llevas a otro
+             móvil u ordenador, o los recuperas si borras el navegador.</p>
+          <div class="rs-sync-botones">
+            <button type="button" class="rs-sync-principal" id="rsBtnSyncExportar">⤓ Exportar mis datos</button>
+            <button type="button" id="rsBtnSyncImportar">⤒ Importar / Sincronizar</button>
+            <button type="button" id="rsBtnSyncCerrar">Cerrar</button>
+          </div>
+          <p id="rsSyncEstado" aria-live="polite"></p>
+          <p class="rs-sync-nota">Todo pasa solo en tu dispositivo. Nada se sube a ningún servidor:
+             el archivo lo guardas tú y lo compartes tú si quieres.</p>
+          <input type="file" id="rsSyncFichero" accept="application/json,.json" style="display:none">
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      const estado = overlay.querySelector('#rsSyncEstado');
+      const cerrar = () => overlay.classList.remove('rs-sync-abierto');
+      overlay.addEventListener('click', (ev) => { if (ev.target === overlay) cerrar(); });
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape' && overlay.classList.contains('rs-sync-abierto')) cerrar();
+      });
+      overlay.querySelector('#rsBtnSyncCerrar').addEventListener('click', cerrar);
+      overlay.querySelector('#rsBtnSyncExportar').addEventListener('click', () => {
+        try {
+          const p = exportarDatos();
+          const nA = Object.keys(p.ajustes || {}).length;
+          const nP = (p.puntos || []).length;
+          estado.textContent = 'Exportado: ' + nA + ' ajustes y ' + nP + ' puntos. Revisa tu carpeta de descargas.';
+        } catch (e) {
+          estado.textContent = 'No se pudo exportar en este navegador.';
+        }
+      });
+      const input = overlay.querySelector('#rsSyncFichero');
+      overlay.querySelector('#rsBtnSyncImportar').addEventListener('click', () => input.click());
+      input.addEventListener('change', () => {
+        const f = input.files && input.files[0];
+        input.value = '';
+        if (!f) return;
+        const lector = new FileReader();
+        lector.onload = () => {
+          try {
+            const paquete = JSON.parse(String(lector.result));
+            const r = importarDatos(paquete);
+            estado.textContent = 'Sincronizado: ' + r.ajustes + ' ajustes y ' + r.puntos +
+              ' puntos. Recarga con Ctrl+Mayús+R para verlo todo aplicado.';
+          } catch (e) {
+            estado.textContent = 'Ese archivo no es una copia válida de Manolit∞ Aire.';
+          }
+        };
+        lector.onerror = () => { estado.textContent = 'No se pudo leer el archivo.'; };
+        lector.readAsText(f);
+      });
+    }
+
+    function abrirPanelSync() {
+      montarPanelSync();
+      const overlay = document.getElementById('rsSyncOverlay');
+      if (overlay) overlay.classList.add('rs-sync-abierto');
+    }
+
+    // El enlace va en el PIE, junto a Aviso legal · Privacidad · Cookies:
+    // discreto, con el estilo de la web y fuera del mapa.
+    // (sep-2026) El pie ya trae de serie el botón #btnSyncExport: se USA
+    // ESE y no se crea un segundo enlace, antes salía "Sincronizar /
+    // Exportar datos" DOS veces en el pie (botón + enlace). Solo si la
+    // página no tuviera el botón se crearía el enlace como respaldo.
+    cuandoExista('.footer a[href="aviso-legal.html"]', (enlaceLegal) => {
+      const botonExistente = document.getElementById('btnSyncExport');
+      if (botonExistente && !botonExistente.dataset.rsSyncBound) {
+        botonExistente.dataset.rsSyncBound = '1';
+        botonExistente.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          try { abrirPanelSync(); } catch (e) { /* nunca romper el pie */ }
+        });
+        return; // ya hay entrada visible: no crear el enlace duplicado
+      }
+      if (botonExistente) return; // ya enlazado en otra pasada
+      if (document.getElementById('rsLinkSync')) return;
+      const contenedor = enlaceLegal.parentElement;
+      if (!contenedor) return;
+      const separador = document.createTextNode(' · ');
+      const enlace = document.createElement('a');
+      enlace.id = 'rsLinkSync';
+      enlace.href = '#';
+      enlace.textContent = t('syncData', 'Sincronizar / Exportar datos');
+      enlace.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        try { abrirPanelSync(); } catch (e) { /* nunca romper el pie */ }
+      });
+      contenedor.appendChild(separador);
+      contenedor.appendChild(enlace);
+    });
+  })();
+
+  /* ==================== GUÍA POR VOZ DE CAMINATA ====================
+     (sep-2026) El botón "Guía por voz", su permiso y la voz neutral de la
+     guía viven en el módulo js/a11y-guia.js, que adopta el botón
+     #rsBtnGuiaVoz que nace con el panel. Nada que hacer aquí. */
 })();
-</script>
-</body>
-</html>
+
+/* ============================================================
+   MÓDULO DE ÁRBOLES GLOBALES (INTEGRADO)
+   Antes era js/arboles-globales.js, un archivo aparte con carga
+   perezosa que daba fallos ("unas veces sale y otras no"). Ahora
+   vive aquí dentro: un solo motor de sombras, un solo archivo,
+   cero puntos de fallo de carga. Sigue esperando a
+   window.manolitAireMap, que este mismo archivo define arriba.
+   ============================================================ */
+/* ============================================================
+   ÁRBOLES GLOBALES + SOMBRA, capa independiente, vía Overpass/OSM
+
+   v8, Especies realistas con estaciones (ADITIVO, sep-2026):
+   - Naranjo (Citrus × sinensis / aurantium): copa redondeada y densa
+     inspirada en una malla real low-poly (6,2 m de referencia), tronco
+     marrón oscuro, naranjas visibles de otoño a invierno y flor de
+     azahar (blanca) en primavera. Perenne: nunca se queda sin hoja.
+   - Albizia julibrissin (acacia de Constantinopla): copa en sombrilla
+     de 8-10 m, flor rosa en verano, hoja dorada que CAE en otoño
+     (animación suave de caída) y ramas desnudas en invierno.
+   - Las estaciones salen de la fecha real (obtenerHoraEfectiva) y la
+     caída se acelera con la nubosidad real (manolitAireNubosidad).
+   - El resto de especies y las sombras quedan EXACTAMENTE como estaban.
+
+   v7, Robustez Overpass + formas por especie:
+   - Cooldown exponencial ante errores 429/502/504/CORS para no saturar Overpass.
+   - Timeout y área de consulta reducidos.
+   - Clasificación por species/genus y sombras realistas por tipo de árbol.
+
+   v5, FIX CRÍTICO de unidades + Sombras Orgánicas Asimétricas
+   ============================================================ */
+
+'use strict';
+
+(function () {
+  // El botón del mapa puede cargar este script dos veces (precarga en cadena
+  // + carga perezosa al pulsar). La segunda ejecución no debe hacer nada.
+  if (window.__arbolesGlobalesCargado) return;
+  window.__arbolesGlobalesCargado = true;
+
+  const CONFIG = {
+    overpassUrls: [
+      // 1º: nuestro propio proxy en Cloudflare, same-origin (sin CORS y sin
+      // depender del dominio workers.dev). Lleva caché KV de 6 h: si la zona
+      // ya se pidió, responde al instante aunque Overpass esté caído.
+      // Si el Worker no tiene la ruta, cae a los espejos públicos de abajo.
+      '/arboles',
+      // Espejos públicos de respaldo en Europa y Taiwán (nada de
+      // infraestructura rusa). lz4/z.overpass-api.de son colas alternativas
+      // del operador alemán, suelen ir menos saturadas que la principal.
+      'https://lz4.overpass-api.de/api/interpreter',
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter',
+      'https://overpass.nchc.org.tw/api/interpreter',
+      // OJO: overpass.osm.ch está devolviendo respuestas 200 VACÍAS y
+      // corruptas (timestamp_osm_base:"116617"), fuera de la lista.
+    ],
+    overpassTimeoutS: 15,
+
+    alturaMinimaM: 2,
+    alturaEstimadaSinDatoM: 6,
+    radioCopaPorDefectoM: 2.2,
+
+    maxArbolesEnPantalla: 1000,
+    maxArbolesConSombra: 250,
+    loteSombraSize: 20,
+    sincroSombraMs: 60 * 1000,
+    esperaMoveendMs: 500,
+    maxLadoConsultaKm: 2.5,
+    cacheCeldasGrados: 0.01,
+    esperaMapaMs: 15000,
+  };
+
+  /* ---------------- Tipología de árboles (forma + sombra realista) ---------------- */
+
+  const TIPOS_ARBOL = {
+    palmera: {
+      keywords: ['phoenix', 'washingtonia', 'palma', 'palm', 'date palm', 'datilera'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 2.0,
+      forma: 'palmera',
+      color: '#7a9b4a',
+    },
+    pino: {
+      keywords: ['pinus', 'pino', 'pine', 'cedrus', 'cedro', 'cedar', 'ciprés', 'cypress', 'cupressus', 'abeto', 'fir'],
+      alturaMediaM: 14,
+      radioCopaMedioM: 3.0,
+      forma: 'conica',
+      color: '#2d5a3d',
+    },
+    encina_roble: {
+      keywords: ['quercus', 'encina', 'roble', 'oak', 'alcornoque', 'cork oak', 'quejigo'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 6.0,
+      forma: 'ancha_redondeada',
+      color: '#4f7a35',
+    },
+    olivo: {
+      keywords: ['olea', 'olivo', 'olive', 'acebuche'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_irregular',
+      color: '#6b8c42',
+    },
+    // Naranjo realista (va ANTES que 'citrico' para que los cítricos con
+    // nombre de naranjo:naranjo, orange, sinensis, aurantium: usen este
+    // modelo; limoneros, mandarinos y pomelos siguen con 'citrico').
+    naranjo: {
+      keywords: ['naranjo', 'naranja', 'orange', 'aurantium', 'sinensis', 'bitter orange', 'seville orange', 'sweet orange'],
+      alturaMediaM: 6.2, // altura de referencia de la malla real low-poly
+      radioCopaMedioM: 2.9,
+      forma: 'naranjo',
+      color: '#4f7a3d', // verde oscuro del follaje de la malla real
+    },
+    // Albizia julibrissin, acacia de Constantinopla: sombrilla de 8-10 m.
+    albizia: {
+      keywords: ['albizia', 'julibrissin', 'acacia de constantinopla', 'acacia de persia', 'silk tree', 'árbol de la seda', 'arbol de la seda'],
+      alturaMediaM: 9,
+      radioCopaMedioM: 5.0, // copa más ancha: la sombrilla real abre casi tanto como alta es
+      forma: 'sombrilla',
+      color: '#5c9e3f',
+    },
+    citrico: {
+      keywords: ['citrus', 'naranjo', 'limonero', 'orange', 'lemon', 'mandarino', 'pomelo'],
+      alturaMediaM: 5,
+      radioCopaMedioM: 2.8,
+      forma: 'redondeada',
+      color: '#5a8a3a',
+    },
+    platanero: {
+      keywords: ['platanus', 'plátano', 'platano', 'plane', 'sicomoro'],
+      alturaMediaM: 16,
+      radioCopaMedioM: 5.5,
+      forma: 'ancha_redondeada',
+      color: '#4a8a3f',
+    },
+    eucalipto: {
+      keywords: ['eucalyptus', 'eucalipto', 'gum'],
+      alturaMediaM: 18,
+      radioCopaMedioM: 3.0,
+      forma: 'oval_alargada',
+      color: '#3d6b4a',
+    },
+    olmo: {
+      keywords: ['ulmus', 'olmo', 'elm'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 5.0,
+      forma: 'ancha_redondeada',
+      color: '#5a8f3d',
+    },
+    chopo: {
+      keywords: ['populus', 'chopo', 'poplar', 'álamo', 'alamo'],
+      alturaMediaM: 15,
+      radioCopaMedioM: 4.0,
+      forma: 'oval_alargada',
+      color: '#4f9a45',
+    },
+    // --- Más especies típicas de calle (sep-2026): para que un árbol con
+    // solo name/description ("tipuana", "jacarandá", "laurel"...) salga con
+    // su porte real en vez de genérico. Todas usan formas ya existentes.
+    tipuana: {
+      keywords: ['tipuana', 'tipu '],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.2,
+      forma: 'ancha_redondeada',
+      color: '#5e9b4c',
+    },
+    jacaranda: {
+      keywords: ['jacaranda', 'jacarandá'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#5f9e4f',
+    },
+    morera: {
+      keywords: ['morus', 'morera', 'moral', 'mulberry'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 3.5,
+      forma: 'ancha_irregular',
+      color: '#4e8f3f',
+    },
+    ficus: {
+      keywords: ['ficus', 'higuera', 'fig tree', 'figuier'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_redondeada',
+      color: '#4d8a3e',
+    },
+    laurel: {
+      keywords: ['laurus', 'laurel'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 2.5,
+      forma: 'oval_alargada',
+      color: '#3f7d38',
+    },
+    granado: {
+      keywords: ['punica', 'granado', 'pomegranate'],
+      alturaMediaM: 4,
+      radioCopaMedioM: 2.0,
+      forma: 'redondeada',
+      color: '#5a8f40',
+    },
+    paraiso: {
+      keywords: ['melia', 'paraíso', 'paraiso', 'chinaberry', 'azedarach'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 3.5,
+      forma: 'ancha_irregular',
+      color: '#5b9348',
+    },
+    ginkgo: {
+      keywords: ['ginkgo', 'gingko'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 3.0,
+      forma: 'oval_alargada',
+      color: '#7cb342',
+    },
+    generico: {
+      alturaMediaM: CONFIG.alturaEstimadaSinDatoM,
+      radioCopaMedioM: CONFIG.radioCopaPorDefectoM,
+      forma: 'redondeada',
+      color: '#7fb069',
+    },
+  };
+
+  function clasificarArbol(tags) {
+    const texto = [
+      tags.species || '',
+      tags['species:es'] || '',
+      tags['species:en'] || '',
+      tags.genus || '',
+      tags.taxon || '',
+      tags.name || '',
+      tags['leaf_type'] || '',
+      // Más sitios donde la gente apunta el árbol sin usar species/genus
+      // (sep-2026): descripciones, nombres locales y variantes regionales.
+      tags.description || '',
+      tags['description:es'] || '',
+      tags['name:es'] || '',
+      tags.alt_name || '',
+      tags.loc_name || '',
+      tags['taxon:es'] || '',
+      tags['species:ca'] || '',
+      tags['species:gl'] || '',
+      tags['species:eu'] || '',
+      // Etiquetas Wikipedia de OSM (p. ej. species:wikipedia="en:Citrus ×
+      // sinensis" o genus:wikipedia="es:Citrus"): contienen el nombre de la
+      // especie/género y así el árbol se reconoce aunque falte "species".
+      (tags['species:wikipedia'] || '').replace(/^[a-z-]+:/i, ''),
+      (tags['genus:wikipedia'] || '').replace(/^[a-z-]+:/i, ''),
+      (tags.wikipedia || '').replace(/^[a-z-]+:/i, ''),
+      (tags['wikipedia:species'] || '').replace(/^[a-z-]+:/i, ''),
+      (tags['wikipedia:genus'] || '').replace(/^[a-z-]+:/i, ''),
+    ].join(' ').toLowerCase();
+
+    for (const [tipo, info] of Object.entries(TIPOS_ARBOL)) {
+      if (tipo === 'generico') continue;
+      for (const kw of info.keywords) {
+        if (texto.includes(kw.toLowerCase())) return { tipo, ...info };
+      }
+    }
+    return { tipo: 'generico', ...TIPOS_ARBOL.generico };
+  }
+
+  function estimarDimensionesArbol(tags, clasificacion) {
+    let altura = leerNumero(tags, ['height', 'maxheight']);
+    let diametroCopa = leerNumero(tags, ['diameter_crown', 'crown_diameter']);
+
+    if (altura == null) {
+      const circ = leerNumero(tags, ['circumference', 'circumference_dbh', 'dbh']);
+      if (circ) {
+        // Altura aproximada a partir del diámetro a la altura del pecho
+        const factor = clasificacion.forma === 'conica' ? 2.8 : clasificacion.forma === 'palmera' ? 5.0 : 2.0;
+        altura = Math.max(3, (circ / Math.PI) * factor);
+      } else {
+        altura = clasificacion.alturaMediaM;
+      }
+    }
+
+    if (diametroCopa == null) {
+      const circ = leerNumero(tags, ['circumference', 'circumference_dbh', 'dbh']);
+      if (circ) {
+        diametroCopa = circ / Math.PI;
+      } else {
+        const proporcion = {
+          palmera: 0.22,
+          conica: 0.30,
+          oval_alargada: 0.32,
+          ancha_redondeada: 0.75,
+          ancha_irregular: 0.65,
+          redondeada: 0.55,
+          naranjo: 0.62,   // copa globosa y densa (malla real)
+          sombrilla: 0.95, // la albizia abre la copa casi como su altura
+        }[clasificacion.forma] || 0.5;
+        diametroCopa = altura * proporcion;
+      }
+    }
+
+    // Palmera: copa siempre pequeña y alta
+    if (clasificacion.forma === 'palmera') {
+      diametroCopa = Math.min(diametroCopa, 3.5);
+      altura = Math.max(altura, 6);
+    }
+
+    const radioCopaM = Math.max(0.6, diametroCopa / 2);
+    return { altura, radioCopaM };
+  }
+
+  function leerNumero(tags, claves) {
+    for (const clave of claves) {
+      const v = tags?.[clave];
+      if (v == null || v === '') continue;
+      const n = parseFloat(String(v).replace(',', '.'));
+      if (!Number.isNaN(n) && n > 0) return n;
+    }
+    return null;
+  }
+
+  /* --------- Estaciones reales + fenología por especie (v8, ADITIVO) ---------
+     Solo afecta al naranjo y a la albizia: para el resto de árboles
+     fenologiaArbol devuelve null y todo sigue exactamente como antes. */
+
+  // Estación del hemisferio norte a partir de la fecha EFECTIVA de la app
+  // (la misma que mueve las sombras: respeta el simulador horario).
+  // Progreso 0..1 dentro de la estación actual (0 = recién empezada,
+  // 1 = a punto de cambiar). Usado para que la caída de hoja de la
+  // albizia sea gradual, no un salto brusco al cruzar de estación.
+  // OJO: enero-marzo pertenece al invierno que empezó el 21 de diciembre
+  // DEL AÑO ANTERIOR, sin esa primera entrada la función devolvía 0
+  // (mentira: un 15 de enero ya lleva ~27% del invierno recorrido).
+  function progresoEstacion(fecha) {
+    const anio = fecha.getFullYear();
+    const inicios = [
+      new Date(anio - 1, 11, 21), // invierno del año pasado (cubre ene-mar)
+      new Date(anio, 2, 20),      // primavera
+      new Date(anio, 5, 21),      // verano
+      new Date(anio, 8, 23),      // otoño
+      new Date(anio, 11, 21),     // invierno
+    ];
+    const ms = fecha.getTime();
+    for (let i = inicios.length - 1; i >= 0; i--) {
+      if (ms >= inicios[i].getTime()) {
+        const fin = i === inicios.length - 1
+          ? new Date(anio + 1, 2, 20).getTime()
+          : inicios[i + 1].getTime();
+        return Math.max(0, Math.min(1, (ms - inicios[i].getTime()) / (fin - inicios[i].getTime())));
+      }
+    }
+    return 0; // inalcanzable: el invierno del año pasado siempre es <= hoy
+  }
+
+  function obtenerEstacion(fecha) {
+    const mes = fecha.getMonth(); // 0 = enero
+    const dia = fecha.getDate();
+    // Estaciones ASTRONÓMICAS de España (hemisferio norte): el verano dura
+    // hasta el 22-23 de septiembre, NO acaba el 31 de agosto. Antes todo
+    // septiembre se trataba como otoño y la albizia salía marrón y
+    // perdiendo hoja en pleno verano (bug corregido sep-2026).
+    if ((mes === 2 && dia >= 20) || mes === 3 || mes === 4 || (mes === 5 && dia < 21)) return 'primavera';
+    if ((mes === 5 && dia >= 21) || mes === 6 || mes === 7 || (mes === 8 && dia < 23)) return 'verano';
+    if ((mes === 8 && dia >= 23) || mes === 9 || mes === 10 || (mes === 11 && dia < 21)) return 'otono';
+    return 'invierno';
+  }
+
+  // Nubosidad real (0 despejado .. 1 cubierto) que ya calcula la app vía
+  // /clima; con temporal los pétalos y las hojas caen antes.
+  function obtenerNubosidadArboles() {
+    try {
+      if (typeof window.manolitAireNubosidad === 'function') {
+        const n = window.manolitAireNubosidad();
+        if (typeof n === 'number' && !isNaN(n)) return Math.min(1, Math.max(0, n));
+      }
+    } catch (e) { /* cielo despejado */ }
+    return 0;
+  }
+
+  // Qué se ve en cada especie según la estación:
+  // - densidadHoja: 1 copa llena .. 0 desnudo (escala copa y sombra).
+  // - colorHoja:    sustituye al verde base (null = color de siempre).
+  // - conFruto:     naranjas visibles colgando de la copa.
+  // - conFlor:      azahar (blanco) en el naranjo, pompones rosas en la albizia.
+  // - cayendo:      hojas/pétalos cayendo (animación suave en otoño).
+  function fenologiaArbol(tipo, estacion, progreso) {
+    // Naranjo: PERENNE. Azahar en primavera (marzo-mayo, el patio sevillano
+    // huele a azahar); naranjas de otoño a finales de invierno.
+    if (tipo === 'naranjo') {
+      return {
+        densidadHoja: 1,
+        colorHoja: null,
+        // Naranjas VISIBLES todo el año (petición de Sandro, sep-2026): en
+        // Sevilla el naranjo amargo guarda fruto colgando casi siempre.
+        conFruto: estacion !== 'primavera',
+        // En verano además cuelgan las naranjas VERDES pequeñas de la
+        // cosecha nueva, mezcladas con las maduras que aún quedan.
+        frutoVerde: estacion === 'verano',
+        conFlor: estacion === 'primavera',
+        cayendo: false,
+      };
+    }
+    // Albizia (acacia de Constantinopla): CADUCA. Brotación en primavera,
+    // flor rosa en verano, hoja dorada que cae en otoño, desnuda en invierno.
+    if (tipo === 'albizia') {
+      if (estacion === 'primavera') return { densidadHoja: 0.75, colorHoja: '#7fc54f', conFruto: false, conFlor: false, cayendo: false };
+      if (estacion === 'verano') return { densidadHoja: 1, colorHoja: null, conFruto: false, conFlor: true, cayendo: false };
+      if (estacion === 'otono') {
+        // Caída GRADUAL a lo largo del otoño: empieza casi llena (0.85)
+        // y termina casi pelada (0.10), en vez de saltar de golpe.
+        const p = typeof progreso === 'number' ? progreso : 0.5;
+        const densidad = 0.85 - 0.75 * p;
+        return { densidadHoja: densidad, colorHoja: '#c9862f', conFruto: false, conFlor: false, cayendo: true };
+      }
+      // Invierno: NO queda a 0, se deja un residuo (0.12) que representa
+      // la masa de ramas desnudas, para que el árbol siga siendo visible
+      // y no un palo casi invisible.
+      return { densidadHoja: 0.12, colorHoja: '#8a6d4b', conFruto: false, conFlor: false, cayendo: false };
+    }
+    return null;
+  }
+
+  function cederAlNavegador() {
+    return new Promise((resolve) => {
+      if ('requestIdleCallback' in window) requestIdleCallback(() => resolve(), { timeout: 120 });
+      else setTimeout(resolve, 0);
+    });
+  }
+
+  function esperarMapa() {
+    return new Promise((resolve, reject) => {
+      const t0 = Date.now();
+      (function intento() {
+        if (window.manolitAireMap) return resolve(window.manolitAireMap);
+        if (Date.now() - t0 > CONFIG.esperaMapaMs) {
+          return reject(new Error('No se ha encontrado window.manolitAireMap. Añade "window.manolitAireMap = map;" justo después de crear el mapa en manolit-aire.js'));
+        }
+        setTimeout(intento, 200);
+      })();
+    });
+  }
+
+  esperarMapa().then(iniciar).catch((e) => console.debug('[arboles-globales]', e.message));
+
+  function obtenerHoraEfectiva() {
+    if (typeof window.manolitAireHoraEfectiva === 'function') {
+      try {
+        const h = window.manolitAireHoraEfectiva();
+        if (h instanceof Date && !isNaN(h)) return h;
+      } catch (e) { /* seguimos con el respaldo */ }
+    }
+    return new Date();
+  }
+
+  function obtenerCentroSolar(map) {
+    if (typeof window.manolitAireCentroSol === 'function') {
+      try {
+        const c = window.manolitAireCentroSol();
+        if (c && typeof c.lat === 'number' && typeof c.lon === 'number') return c;
+      } catch (e) { /* seguimos con el respaldo */ }
+    }
+    const c = map.getCenter();
+    return { lat: c.lat, lon: c.lng != null ? c.lng : c.lon };
+  }
+
+  function sombrasActivadasEnPanel() {
+    const t = document.getElementById('rsToggleSombras');
+    return !t || t.checked;
+  }
+
+  async function iniciar(map) {
+
+    function primeraCapaEdificiosOSuelo() {
+      const capas = map.getStyle().layers || [];
+      const edificios = capas.find((l) => l.type === 'fill-extrusion' && /building/i.test(l.id));
+      return edificios ? edificios.id : undefined;
+    }
+
+    // Garantiza (también tras cada recarga de estilo) que la capa plana de
+    // sombra de los árboles queda SIEMPRE por debajo de la extrusión 3D de
+    // los edificios: así el edificio tapa físicamente cualquier fragmento
+    // de sombra que intente colarse en su base.
+    function asegurarOrdenCapas() {
+      try {
+        const idEdificios = primeraCapaEdificiosOSuelo();
+        if (!idEdificios) return;
+        if (map.getLayer('capa-sombra-arboles-globales')) {
+          map.moveLayer('capa-sombra-arboles-globales', idEdificios);
+        }
+      } catch (e) { /* el estilo aún no está listo; se reintentará */ }
+    }
+    map.on('styledata', asegurarOrdenCapas);
+
+    function asegurarCapas() {
+      if (!map.getSource('arboles-globales-sombra')) {
+        map.addSource('arboles-globales-sombra', { type: 'geojson', data: turf.featureCollection([]) });
+        map.addLayer({
+          id: 'capa-sombra-arboles-globales',
+          type: 'fill',
+          source: 'arboles-globales-sombra',
+          paint: {
+            'fill-color': '#0b1220',
+            'fill-opacity': 0.26,
+          },
+        }, primeraCapaEdificiosOSuelo());
+      }
+      asegurarOrdenCapas();
+      if (!map.getSource('arboles-globales-copas')) {
+        map.addSource('arboles-globales-copas', { type: 'geojson', data: turf.featureCollection([]) });
+        map.addLayer({
+          id: 'capa-arboles-globales-3d',
+          type: 'fill-extrusion',
+          source: 'arboles-globales-copas',
+          paint: {
+            'fill-extrusion-color': [
+              'case',
+              // Tronco: el naranjo lleva el marrón oscuro de su malla real;
+              // el resto, el marrón de siempre.
+              ['==', ['get', 'tipo'], 'tronco'], ['coalesce', ['get', 'colorTronco'], '#8b5a2b'],
+              // Frutos y flores (naranjas, azahar, pompones de albizia) y
+              // hojas cayendo: cada punto lleva su propio color.
+              ['==', ['get', 'tipo'], 'fruto'], ['coalesce', ['get', 'color'], '#E8792A'],
+              ['==', ['get', 'tipo'], 'flor'], ['coalesce', ['get', 'color'], '#FFF6E0'],
+              ['==', ['get', 'tipo'], 'hoja_cayendo'], ['coalesce', ['get', 'color'], '#c9862f'],
+              ['==', ['get', 'tipo'], 'copa'], [
+                'case',
+                ['has', 'color'], ['get', 'color'],
+                [
+                  'interpolate', ['linear'], ['coalesce', ['get', 'altura'], 5],
+                  3, '#7fb069',
+                  8, '#4f8a3d',
+                  15, '#2f5d2a',
+                ]
+              ],
+              '#7fb069'
+            ],
+            'fill-extrusion-base': ['coalesce', ['get', 'baseM'], 0],
+            'fill-extrusion-height': ['coalesce', ['get', 'alturaTotalM'], 0],
+            'fill-extrusion-opacity': 0.92,
+          },
+        });
+      }
+    }
+
+    if (map.loaded()) {
+      asegurarCapas();
+    } else {
+      map.once('load', asegurarCapas);
+    }
+
+    let capaVisible = true;
+    let overpassBackoffHasta = 0;
+    let overpassErroresSeguidos = 0;
+
+    // El botón ya lo crea SIEMPRE shadows-route.js (fijo en el mapa); aquí
+    // solo lo "adoptamos": le ponemos el texto traducido y la lógica.
+    function inyectarToggle() {
+      const btn = document.getElementById('rsBtnArboles');
+      if (!btn || btn.dataset.listo === '1') return false;
+      btn.dataset.listo = '1';
+      delete btn.dataset.cargando;
+      btn.textContent = (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
+      btn.classList.add('rs-activo');
+      btn.setAttribute('aria-pressed', 'true');
+      const textoBoton = () => (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
+      btn.addEventListener('click', async () => {
+        capaVisible = !capaVisible;
+        btn.classList.toggle('rs-activo', capaVisible);
+        btn.setAttribute('aria-pressed', capaVisible ? 'true' : 'false');
+        ['capa-arboles-globales-3d', 'capa-sombra-arboles-globales'].forEach((id) => {
+          if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', capaVisible ? 'visible' : 'none');
+        });
+        if (capaVisible) {
+          // Feedback de carga: la consulta a Overpass puede tardar unos
+          // segundos; sin aviso parece que el botón "no hace nada".
+          btn.textContent = 'Cargando árboles…';
+          try {
+            await cargarArbolesDeLaVista();
+            recalcularSombrasArboles();
+          } finally {
+            btn.textContent = textoBoton();
+          }
+        }
+      });
+      return true;
+    }
+    // Retraducir el botón al cambiar el idioma (evento de i18n.js)
+    document.addEventListener('langChanged', () => {
+      const b = document.getElementById('rsBtnArboles');
+      if (b && typeof window.getMessages === 'function') b.textContent = window.getMessages().treesBtn || 'Árboles';
+    });
+    // Reintenta hasta que el botón fijo exista (antes, si el panel no estaba
+    // en ese momento, el botón no aparecía jamás).
+    (function intentarToggle(n) {
+      if (inyectarToggle()) return;
+      if (n > 0) setTimeout(() => intentarToggle(n - 1), 400);
+    })(50);
+
+    let arbolesGrandes = [];
+    const celdasConsultadas = new Set();
+    let consultaEnCurso = false;
+
+    // Modo "árboles frescos" (sep-2026): si la URL trae ?arboles=frescos, la
+    // PRIMERA consulta de esta carga de página ignora la caché de celdas de
+    // la sesión y avisa al proxy (cabecera X-Arboles-Fresca) para que pida
+    // los datos recién publicados en OpenStreetMap. Sirve para ver al momento
+    // un árbol que acabas de plantar en OSM (OSM tarda 1-2 min en replicarse
+    // a los espejos Overpass: si no sale a la primera, espera un par de
+    // minutos y recarga otra vez con el mismo parámetro).
+    let frescosPendiente = false;
+    try {
+      frescosPendiente = new URLSearchParams(window.location.search).get('arboles') === 'frescos';
+    } catch (e) { /* sin URLSearchParams: modo normal */ }
+
+    function celdasDeVista(bounds) {
+      const paso = CONFIG.cacheCeldasGrados;
+      const celdas = [];
+      const minLat = Math.floor(bounds.getSouth() / paso) * paso;
+      const maxLat = Math.ceil(bounds.getNorth() / paso) * paso;
+      const minLon = Math.floor(bounds.getWest() / paso) * paso;
+      const maxLon = Math.ceil(bounds.getEast() / paso) * paso;
+      for (let lat = minLat; lat < maxLat; lat += paso) {
+        for (let lon = minLon; lon < maxLon; lon += paso) {
+          celdas.push(`${lat.toFixed(3)},${lon.toFixed(3)}`);
+        }
+      }
+      return celdas;
+    }
+
+    function anchoVistaKm(bounds) {
+      return turf.distance(
+        turf.point([bounds.getWest(), bounds.getCenter ? bounds.getCenter().lat : (bounds.getNorth() + bounds.getSouth()) / 2]),
+        turf.point([bounds.getEast(), bounds.getCenter ? bounds.getCenter().lat : (bounds.getNorth() + bounds.getSouth()) / 2]),
+        { units: 'kilometers' }
+      );
+    }
+
+    async function consultarOverpass(bbox) {
+      const ahora = Date.now();
+      if (ahora < overpassBackoffHasta) {
+        throw new Error('Overpass en cooldown por errores recientes');
+      }
+
+      // Además de los árboles puntuales (node natural=tree) pedimos las
+      // HILERAS de árboles (way natural=tree_row): en OSM se dibujan como
+      // una sola línea y aquí las convertimos en árboles cada ~9 m.
+      // "out geom" hace que las vías traigan su geometría en línea (los
+      // nodos siguen trayendo lat/lon igual que con "out body").
+      const query = `[out:json][timeout:${CONFIG.overpassTimeoutS}];(node["natural"="tree"](${bbox.join(',')});way["natural"="tree_row"](${bbox.join(',')}););out geom;`;
+      let ultimoError = null;
+      for (let i = 0; i < CONFIG.overpassUrls.length; i++) {
+        const url = CONFIG.overpassUrls[i];
+        try {
+          const controller = new AbortController();
+          // El proxy propio (/arboles) prueba varios espejos en cadena con
+          // timeout individual, así que le damos más margen (25 s); a los
+          // espejos públicos directos los cortamos antes (18 s).
+          const presupuestoMs = url.startsWith('/') ? 25000 : CONFIG.overpassTimeoutS * 1000 + 3000;
+          const id = setTimeout(() => controller.abort(), presupuestoMs);
+          const cabecerasOverpass = { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' };
+          // Modo frescos: el proxy /arboles salta su caché y pregunta en
+          // vivo a OpenStreetMap; además deja renovada la caché compartida.
+          if (frescosPendiente && url.startsWith('/')) cabecerasOverpass['X-Arboles-Fresca'] = '1';
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: cabecerasOverpass,
+            body: 'data=' + encodeURIComponent(query),
+            signal: controller.signal,
+          });
+          clearTimeout(id);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const datos = await r.json();
+          // Espejo corrupto: 200 con lista vacía y fecha basura (p. ej.
+          // timestamp_osm_base:"116617"). Un vacío real tiene fecha válida.
+          const ts = datos?.osm3s?.timestamp_osm_base;
+          const corrupto =
+            Array.isArray(datos?.elements) && datos.elements.length === 0 &&
+            typeof ts === 'string' && ts !== '' && !ts.includes('T');
+          if (corrupto) throw new Error('Espejo Overpass con datos corruptos');
+          if (!datos || !Array.isArray(datos.elements)) throw new Error('Respuesta Overpass inválida');
+          overpassErroresSeguidos = 0;
+          return datos;
+        } catch (e) {
+          ultimoError = e;
+          if (i < CONFIG.overpassUrls.length - 1) {
+            await new Promise((res) => setTimeout(res, 700 * (i + 1)));
+          }
+          continue;
+        }
+      }
+
+      overpassErroresSeguidos++;
+      const backoffMs = Math.min(90000, 4000 * Math.pow(2, overpassErroresSeguidos - 1));
+      overpassBackoffHasta = Date.now() + backoffMs;
+      console.debug(`[arboles-globales] Overpass falló ${overpassErroresSeguidos} veces seguidas. Cooldown ${(backoffMs / 1000).toFixed(0)} s.`);
+      throw ultimoError || new Error('Overpass no disponible');
+    }
+
+    // Convierte una HILERA de árboles (way natural=tree_row) en puntos
+    // individuales a lo largo de la línea, uno cada ~9 m (separación típica
+    // de arbolado urbano en alineación). Cada punto generado se procesa
+    // luego como un árbol normal con los tags de la hilera (especie, etc.).
+    function expandirHilera(el) {
+      if (el.type !== 'way' || !el.tags || el.tags.natural !== 'tree_row') return [];
+      const geom = Array.isArray(el.geometry) ? el.geometry : [];
+      if (geom.length < 2) return [];
+      const coords = geom
+        .filter((p) => p && p.lat != null && p.lon != null)
+        .map((p) => [p.lon, p.lat]);
+      if (coords.length < 2) return [];
+      let linea;
+      try {
+        linea = turf.lineString(coords);
+      } catch (e) {
+        return [];
+      }
+      const longitudKm = turf.length(linea, { units: 'kilometers' });
+      if (!isFinite(longitudKm) || longitudKm <= 0) return [];
+      const SEPARACION_KM = 0.009; // 9 m entre árbol y árbol
+      const puntos = [];
+      // Primer árbol en el arranque de la línea y luego uno cada 9 m;
+      // el último tramo (<4,5 m) no genera árbol extra para no amontonar.
+      const nArboles = Math.max(1, Math.round(longitudKm / SEPARACION_KM) + 1);
+      for (let i = 0; i < nArboles; i++) {
+        const d = Math.min(i * SEPARACION_KM, longitudKm);
+        const p = turf.along(linea, d, { units: 'kilometers' });
+        const [lon, lat] = p.geometry.coordinates;
+        puntos.push({ type: 'node', lat, lon, tags: el.tags });
+      }
+      return puntos;
+    }
+
+    // Saca un nombre legible de las etiquetas Wikipedia de OSM
+    // ("es:Naranjo" -> "Naranjo", "en:Citrus × sinensis" -> "Citrus × sinensis")
+    // para los árboles que no traen species/genus pero sí wikipedia.
+    function nombreDeWikipedia(tags) {
+      const cruda = tags['species:wikipedia'] || tags.wikipedia || tags['genus:wikipedia'] || '';
+      const limpia = cruda.replace(/^[a-z-]+:/i, '').replace(/_/g, ' ').trim();
+      return limpia || null;
+    }
+
+    function procesarElementoOSM(el) {
+      if (el.type !== 'node' || el.lat == null || el.lon == null) return null;
+      const tags = el.tags || {};
+      const clasificacion = clasificarArbol(tags);
+      const { altura, radioCopaM } = estimarDimensionesArbol(tags, clasificacion);
+      if (altura <= CONFIG.alturaMinimaM) return null;
+      const nombre = tags.species || tags['species:es'] || tags.genus || nombreDeWikipedia(tags) || clasificacion.tipo || 'Árbol';
+      return {
+        punto: turf.point([el.lon, el.lat]),
+        altura,
+        radioCopaM,
+        nombre,
+        forma: clasificacion.forma,
+        color: clasificacion.color,
+        tipo: clasificacion.tipo,
+      };
+    }
+
+    async function cargarArbolesDeLaVista() {
+      if (!capaVisible || consultaEnCurso) return;
+      const bounds = map.getBounds();
+      if (anchoVistaKm(bounds) > CONFIG.maxLadoConsultaKm) return;
+
+      // En modo frescos (una sola vez por carga) también se reconsultan las
+      // celdas ya vistas en esta sesión: queremos el dato nuevo de OSM.
+      const forzarAhora = frescosPendiente;
+      const celdas = celdasDeVista(bounds).filter((c) => forzarAhora || !celdasConsultadas.has(c));
+      if (!celdas.length) { dibujarArbolesVisibles(); return; }
+
+      // Si Overpass está en cooldown, no intentamos más consultas; usamos lo que haya
+      if (Date.now() < overpassBackoffHasta) {
+        dibujarArbolesVisibles();
+        return;
+      }
+
+      celdas.forEach((c) => celdasConsultadas.add(c));
+
+      consultaEnCurso = true;
+      try {
+        const bbox = [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()];
+        const datos = await consultarOverpass(bbox);
+        const elementos = datos.elements || [];
+        if (forzarAhora) {
+          // Quitamos los árboles viejos de esta zona antes de añadir los
+          // recién llegados de OSM: misma zona consultada dos veces no debe
+          // duplicar árboles en el mapa.
+          arbolesGrandes = arbolesGrandes.filter((a) => {
+            const [lonA, latA] = a.punto.geometry.coordinates;
+            return !(latA >= bbox[0] && lonA >= bbox[1] && latA <= bbox[2] && lonA <= bbox[3]);
+          });
+        }
+        for (const el of elementos) {
+          // Las hileras (way natural=tree_row) se expanden primero en
+          // puntos cada ~9 m; los nodos sueltos pasan tal cual.
+          const candidatos = el.type === 'way' ? expandirHilera(el) : [el];
+          for (const cand of candidatos) {
+            const arbol = procesarElementoOSM(cand);
+            if (arbol) arbolesGrandes.push(arbol);
+            // INP (2026-09-12): tramos de 80 en vez de 200. Con miles de
+            // árboles, 200 seguidos secuestraban el hilo ~200-300 ms y un
+            // toque en el mapa esperaba eso (INP 592 ms medido en el
+            // panel de Cloudflare). Con 80 el navegador atiende el dedo
+            // entre tramo y tramo; el total tarda lo mismo.
+            if (arbolesGrandes.length % 80 === 0) await cederAlNavegador();
+          }
+        }
+        // Sello del refresco de 12 h (sep-2026): datos OSM recién bajados.
+        try { localStorage.setItem('manolito_osm_refresco_ms', String(Date.now())); } catch (e2) { }
+      } catch (e) {
+        console.debug('[arboles-globales] Overpass no disponible ahora mismo:', e.message);
+        celdas.forEach((c) => celdasConsultadas.delete(c));
+      } finally {
+        consultaEnCurso = false;
+        // El modo frescos se gasta en la primera consulta: el resto de la
+        // sesión funciona con la caché normal (y el proxy ya quedó renovado).
+        frescosPendiente = false;
+      }
+
+      dibujarArbolesVisibles();
+      programarSincroSombra(true);
+    }
+
+    function dibujarArbolesVisibles() {
+      if (!map.getSource('arboles-globales-copas') || !capaVisible) return [];
+      const b = map.getBounds();
+      const enVista = arbolesGrandes.filter((a) => {
+        const [lon, lat] = a.punto.geometry.coordinates;
+        return lon >= b.getWest() && lon <= b.getEast() && lat >= b.getSouth() && lat <= b.getNorth();
+      }).slice(0, CONFIG.maxArbolesEnPantalla);
+
+      // Estación real (fecha efectiva de la app) y tope de árboles
+      // decorados con fruto/flor por pasada, para no pasarnos de features.
+      const estacion = obtenerEstacion(obtenerHoraEfectiva());
+      const nubosidad = obtenerNubosidadArboles();
+      let decoradosEstePase = 0;
+      const MAX_ARBOLES_DECORADOS = 150;
+
+      // ------- DESCAMUFLAJE 3D (ADITIVO sep-2026, orden de Sandro) -------
+      // En OSM a veces el MISMO árbol está dos veces: una con especie
+      // (Citrus × … → modelo 3D real) y otra sin etiquetar a 2-3 m. Esa
+      // segunda copia dibujaba su copa plana ATRAVESADA en la copa 3D: el
+      // "cubo verde" que camuflaba al naranjo y z-fighting al hacer zoom.
+      // Quien tiene modelo 3D real manda: cualquier otro árbol a menos de
+      // (su radio de copa + 0,6 m, mínimo 3,2 m) no se pinta en plano.
+      // No se borra dato alguno: solo se deja de duplicar lo que el motor
+      // 3D ya dibuja mejor.
+      const protegidos3D = arbolesGrandes.filter((a) => a.tipo === 'albizia' || a.tipo === 'naranjo');
+      const cercaDeProtegido3D = (lon, lat) => {
+        const cosLat = Math.cos(lat * Math.PI / 180);
+        for (const p of protegidos3D) {
+          const [plon, plat] = p.punto.geometry.coordinates;
+          const dx = (plon - lon) * cosLat * 111320;
+          const dy = (plat - lat) * 110540;
+          const limite = Math.max(3.2, (p.radioCopaM || 3) + 0.6);
+          if (dx * dx + dy * dy < limite * limite) return true;
+        }
+        return false;
+      };
+
+      const features = [];
+      for (const a of enVista) {
+        const forma = a.forma || 'redondeada';
+        const [lon, lat] = a.punto.geometry.coordinates;
+        // Si este árbol "normal" está pegado a un naranjo/albizia con
+        // modelo 3D real, no se pinta en plano: es el camuflaje del cubo.
+        if (a.tipo !== 'albizia' && a.tipo !== 'naranjo' && cercaDeProtegido3D(lon, lat)) continue;
+        // Fenología (solo naranjo y albizia; null = como siempre).
+        const feno = fenologiaArbol(a.tipo, estacion, progresoEstacion(obtenerHoraEfectiva()));
+        const factorHoja = feno ? (0.30 + 0.70 * feno.densidadHoja) : 1;
+        const colorCopa = feno && feno.colorHoja ? feno.colorHoja : a.color;
+
+        // Proporciones del tronco y las copas según la forma real del árbol
+        let factorTronco = 0.35, factorCopaBaja = 0.40, factorCopaAlta = 0.25;
+        if (forma === 'palmera') { factorTronco = 0.80; factorCopaBaja = 0.15; factorCopaAlta = 0.05; }
+        else if (forma === 'conica') { factorTronco = 0.45; factorCopaBaja = 0.35; factorCopaAlta = 0.20; }
+        else if (forma === 'oval_alargada') { factorTronco = 0.50; factorCopaBaja = 0.30; factorCopaAlta = 0.20; }
+        else if (forma === 'ancha_redondeada') { factorTronco = 0.30; factorCopaBaja = 0.45; factorCopaAlta = 0.25; }
+        else if (forma === 'ancha_irregular') { factorTronco = 0.32; factorCopaBaja = 0.43; factorCopaAlta = 0.25; }
+        else if (forma === 'naranjo') { factorTronco = 0.49; factorCopaBaja = 0.36; factorCopaAlta = 0.15; }
+        else if (forma === 'sombrilla') { factorTronco = 0.38; factorCopaBaja = 0.44; factorCopaAlta = 0.18; }
+
+        const alturaTroncoM = Math.max(1, a.altura * factorTronco);
+        const alturaCopaInferiorM = a.altura * factorCopaBaja;
+        const alturaCopaSuperiorM = Math.max(0.5, a.altura * factorCopaAlta);
+        const radioTroncoM = Math.max(0.15, a.radioCopaM * (forma === 'palmera' ? 0.10 : 0.15));
+
+        const tronco = turf.circle(a.punto, radioTroncoM / 1000, { units: 'kilometers', steps: 8 });
+        tronco.properties = { altura: a.altura, baseM: 0, alturaTotalM: alturaTroncoM, nombre: a.nombre, tipo: 'tronco', forma, color: a.color };
+        // El naranjo lleva el marrón oscuro de su malla real (0x5b4230).
+        if (a.tipo === 'naranjo') tronco.properties.colorTronco = '#5b4230';
+        features.push(tronco);
+
+        // COPAS. Naranjo y albizia (con hoja y de cerca) usan un RACIMO DE
+        // BULTOS irregulares solapados, aspecto de follaje real como la
+        // malla, nada de "dos cilindros apilados". El resto de especies
+        // sigue con los dos pisos de siempre, y la albizia desnuda de
+        // invierno también (copa mínima parda = ramas).
+        const usaCopaRealista =
+          (forma === 'naranjo' || forma === 'sombrilla') &&
+          !(feno && feno.densidadHoja === 0) &&
+          (forma === 'naranjo' ? map.getZoom() >= 14 : map.getZoom() >= 17);
+
+        if (usaCopaRealista) {
+          const bultos = crearCopaRealista(a, forma, alturaTroncoM, factorHoja, feno, lon, lat);
+          for (const b of bultos) features.push(b);
+        } else {
+          // Copa inferior: forma realista según especie. En las especies con
+          // fenología (naranjo/albizia) la copa se encoge con la pérdida de
+          // hoja: en invierno la albizia queda en ramas desnudas.
+          const radioInferior = (forma === 'palmera' ? a.radioCopaM * 0.90 : a.radioCopaM) * factorHoja;
+          const copaInferior = crearFormaCopa(a.punto, radioInferior / 1000, forma, lon, lat);
+          copaInferior.properties = { altura: a.altura, baseM: alturaTroncoM, alturaTotalM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
+          features.push(copaInferior);
+
+          // Copa superior: más pequeña y cerrada (salvo palmera)
+          const radioSuperior = (forma === 'palmera' ? a.radioCopaM * 0.80 : a.radioCopaM * 0.65) * factorHoja;
+          const formaSuperior = forma === 'palmera' ? 'palmera' : forma === 'conica' ? 'conica' : forma === 'sombrilla' ? 'sombrilla' : forma === 'naranjo' ? 'naranjo' : 'redondeada';
+          const copaSuperior = crearFormaCopa(a.punto, radioSuperior / 1000, formaSuperior, lon, lat + 0.0001);
+          copaSuperior.properties = { altura: a.altura, baseM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), alturaTotalM: alturaTroncoM + (a.altura - alturaTroncoM) * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
+          features.push(copaSuperior);
+        }
+
+        // ------- Frutos, flores y hojas cayendo (v8, solo naranjo/albizia) -------
+        if (feno && decoradosEstePase < MAX_ARBOLES_DECORADOS && feno.densidadHoja > 0) {
+          decoradosEstePase++;
+          const baseCopaM = alturaTroncoM;
+          const techoCopaM = alturaTroncoM + alturaCopaInferiorM + alturaCopaSuperiorM;
+
+          // NARANJAS: repartidas por la piel de la copa (otoño-invierno),
+          // como en la malla real. Colores 0xE8792A / 0xCF6A1E del modelo.
+          if (feno.conFruto) {
+            for (let k = 0; k < 12; k++) {
+              const ang = pseudoRandom(lon, lat, 300 + k) * 360;
+              const dist = a.radioCopaM * (0.45 + 0.50 * pseudoRandom(lon, lat, 320 + k));
+              const baseFruto = baseCopaM + (techoCopaM - baseCopaM) * (0.20 + 0.60 * pseudoRandom(lon, lat, 340 + k));
+              const rFruto = 0.30 + 0.08 * pseudoRandom(lon, lat, 360 + k); // más grandes que la realidad: a zoom de calle deben verse
+              features.push(crearPuntoDecorativo(a.punto, ang, dist, rFruto, {
+                altura: a.altura, baseM: baseFruto, alturaTotalM: baseFruto + rFruto * 2,
+                nombre: a.nombre, tipo: 'fruto', forma,
+                color: k % 2 === 0 ? '#E8792A' : '#CF6A1E',
+              }));
+            }
+          }
+
+          // NARANJAS VERDES (verano): la naranja ya está colgando pero
+          // aún sin madurar, pequeñas y verdes, como en la calle real en
+          // septiembre. Así el naranjo se reconoce como naranjo todo el año.
+          if (feno.frutoVerde) {
+            for (let k = 0; k < 7; k++) {
+              const ang = pseudoRandom(lon, lat, 300 + k) * 360;
+              const dist = a.radioCopaM * (0.45 + 0.50 * pseudoRandom(lon, lat, 320 + k));
+              const baseFruto = baseCopaM + (techoCopaM - baseCopaM) * (0.20 + 0.60 * pseudoRandom(lon, lat, 340 + k));
+              const rFruto = 0.20 + 0.06 * pseudoRandom(lon, lat, 360 + k); // más pequeñas que las maduras
+              features.push(crearPuntoDecorativo(a.punto, ang, dist, rFruto, {
+                altura: a.altura, baseM: baseFruto, alturaTotalM: baseFruto + rFruto * 2,
+                nombre: a.nombre, tipo: 'fruto', forma,
+                color: k % 2 === 0 ? '#8AAF3F' : '#739632',
+              }));
+            }
+          }
+
+          // FLORES: azahar blanco en el naranjo (primavera); pompones
+          // ROSA DELICADO (#F2A9C4, como las borlas sedosas reales de la
+          // albizia) coronando la sombrilla en verano.
+          if (feno.conFlor) {
+            const esAlbizia = a.tipo === 'albizia';
+            const nFlores = esAlbizia ? 8 : 9;
+            for (let k = 0; k < nFlores; k++) {
+              const ang = pseudoRandom(lon, lat, 400 + k) * 360;
+              const dist = a.radioCopaM * (esAlbizia ? (0.35 + 0.55 * pseudoRandom(lon, lat, 420 + k)) : (0.25 + 0.60 * pseudoRandom(lon, lat, 420 + k)));
+              const baseFlor = baseCopaM + (techoCopaM - baseCopaM) * (esAlbizia ? (0.70 + 0.28 * pseudoRandom(lon, lat, 440 + k)) : (0.55 + 0.40 * pseudoRandom(lon, lat, 440 + k)));
+              const rFlor = esAlbizia ? 0.32 : 0.24; // escala mapa, no escala flor real
+              features.push(crearPuntoDecorativo(a.punto, ang, dist, rFlor, {
+                altura: a.altura, baseM: baseFlor, alturaTotalM: baseFlor + rFlor * 1.6,
+                nombre: a.nombre, tipo: 'flor', forma,
+                color: esAlbizia ? '#F2A9C4' : '#FFF6E0',
+              }));
+            }
+          }
+
+          // CAÍDA (albizia en otoño): hojas doradas descendiendo en bucle
+          // suave. Con nubosidad alta (temporal) caen más deprisa. La fase
+          // es determinista por árbol: no saltan entre repintados normales.
+          if (feno.cayendo) {
+            const velocidadCaida = 1 + nubosidad * 0.8;
+            for (let k = 0; k < 5; k++) {
+              const fase = pseudoRandom(lon, lat, 900 + k);
+              const progreso = ((Date.now() / 4200) * velocidadCaida + fase) % 1;
+              const ang = pseudoRandom(lon, lat, 920 + k) * 360;
+              const dist = a.radioCopaM * (0.25 + 0.60 * pseudoRandom(lon, lat, 940 + k));
+              const baseHoja = Math.max(0.05, baseCopaM + (techoCopaM - baseCopaM) * (1 - progreso) - 0.1);
+              features.push(crearPuntoDecorativo(a.punto, ang, dist, 0.17, {
+                altura: a.altura, baseM: baseHoja, alturaTotalM: baseHoja + 0.16,
+                nombre: a.nombre, tipo: 'hoja_cayendo', forma, color: '#c9862f',
+              }));
+            }
+          }
+        }
+      }
+      map.getSource('arboles-globales-copas').setData(turf.featureCollection(features));
+      return enVista;
+    }
+
+    /* ---------------- Generación de Sombras Orgánicas ---------------- */
+
+    function pseudoRandom(x, y, seed) {
+      const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+      return n - Math.floor(n);
+    }
+
+    // Puntito decorativo (naranja, flor, hoja cayendo): un círculo
+    // diminuto desplazado del centro del árbol, con su propia altura.
+    function crearPuntoDecorativo(centro, anguloDeg, distanciaM, radioM, props) {
+      const p = distanciaM > 0.01
+        ? turf.transformTranslate(centro, distanciaM / 1000, anguloDeg, { units: 'kilometers' })
+        : centro;
+      const dot = turf.circle(p, Math.max(0.05, radioM) / 1000, { units: 'kilometers', steps: 6 });
+      dot.properties = props;
+      return dot;
+    }
+
+    /* --------- Copa realista en racimo de bultos (v8.1, ADITIVO) ---------
+       La malla real del naranjo no es un cilindro: es una MASA de follaje
+       hecha de matas irregulares solapadas con 4 tonos de verde. Aquí cada
+       copa se construye así: un anillo de bultos deformes + dos bultos
+       centrales que cierran la bola (naranjo) o el disco (albizia).
+       Cada bulto usa semillas distintas: ningún árbol sale igual a otro. */
+
+    // Tonos exactos del follaje de la malla real del naranjo.
+    const PALETA_NARANJO = ['#4f7a3d', '#5e8c47', '#3f6733', '#6a9950'];
+    // Albizia por estación: brote primaveral, verde verano, oro otoñal.
+    const PALETA_ALBIZIA_PRIMAVERA = ['#7fc54f', '#8fd35f', '#6fb43f', '#9ce06f'];
+    const PALETA_ALBIZIA_VERANO = ['#5c9e3f', '#6fae4a', '#4c8a35', '#7fc54f'];
+    const PALETA_ALBIZIA_OTONO = ['#c9862f', '#d79a3f', '#b57728', '#cf9240'];
+
+    function paletaPara(forma, feno) {
+      if (forma === 'naranjo') return PALETA_NARANJO;
+      if (feno && feno.colorHoja === '#c9862f') return PALETA_ALBIZIA_OTONO;
+      if (feno && feno.colorHoja === '#7fc54f') return PALETA_ALBIZIA_PRIMAVERA;
+      return PALETA_ALBIZIA_VERANO;
+    }
+
+    function crearCopaRealista(a, forma, alturaTroncoM, factorHoja, feno, lon, lat) {
+      const bultos = [];
+      const esNaranjo = forma === 'naranjo';
+      const paleta = paletaPara(forma, feno);
+      const alturaCopaTotal = Math.max(1, a.altura - alturaTroncoM);
+      // Banda de follaje: el naranjo es una bola que nace bajo y tapa el
+      // tronco; la albizia abre su disco ancho y plano en lo alto.
+      const baseFollaje = esNaranjo
+        ? alturaTroncoM + alturaCopaTotal * 0.05
+        : alturaTroncoM + alturaCopaTotal * 0.30;
+      const techoFollaje = a.altura;
+
+      const empujarBulto = (centro, radioM, baseM, techoM, semilla) => {
+        const bulto = crearFormaCopa(centro, Math.max(0.0002, radioM / 1000), 'ancha_irregular', lon + semilla * 0.0007, lat - semilla * 0.0005);
+        bulto.properties = {
+          altura: a.altura,
+          baseM: Math.max(alturaTroncoM, baseM),
+          alturaTotalM: Math.min(a.altura, Math.max(baseM + 0.4, techoM)),
+          nombre: a.nombre, tipo: 'copa', forma,
+          color: paleta[semilla % paleta.length],
+        };
+        bultos.push(bulto);
+      };
+
+      // Anillo de bultos exteriores (la piel irregular de la copa)
+      const nAnillo = esNaranjo ? 7 : 8;
+      for (let k = 0; k < nAnillo; k++) {
+        const ang = (k * 360) / nAnillo + pseudoRandom(lon, lat, 700 + k) * 45;
+        const dist = a.radioCopaM * (esNaranjo
+          ? (0.28 + 0.34 * pseudoRandom(lon, lat, 710 + k))
+          : (0.48 + 0.42 * pseudoRandom(lon, lat, 710 + k))) * factorHoja;
+        const rBulto = a.radioCopaM * (esNaranjo
+          ? (0.36 + 0.16 * pseudoRandom(lon, lat, 720 + k))
+          : (0.30 + 0.14 * pseudoRandom(lon, lat, 720 + k))) * factorHoja;
+        const baseB = baseFollaje + (techoFollaje - baseFollaje) * (esNaranjo
+          ? (0.05 + 0.55 * pseudoRandom(lon, lat, 730 + k))
+          : (0.30 + 0.45 * pseudoRandom(lon, lat, 730 + k)));
+        const grosor = alturaCopaTotal * (esNaranjo
+          ? (0.34 + 0.20 * pseudoRandom(lon, lat, 740 + k))
+          : (0.24 + 0.14 * pseudoRandom(lon, lat, 740 + k)));
+        const centro = dist > 0.01
+          ? turf.transformTranslate(a.punto, dist / 1000, ang, { units: 'kilometers' })
+          : a.punto;
+        empujarBulto(centro, rBulto, baseB, baseB + grosor, k);
+      }
+
+      // Dos bultos centrales que cierran la parte alta
+      for (let k = 0; k < 2; k++) {
+        const rBulto = a.radioCopaM * (esNaranjo ? (0.44 - k * 0.12) : (0.38 - k * 0.10)) * factorHoja;
+        const grosor = alturaCopaTotal * (esNaranjo ? (0.46 - k * 0.14) : (0.36 - k * 0.12));
+        const baseB = techoFollaje - grosor;
+        empujarBulto(a.punto, rBulto, baseB, baseB + grosor, nAnillo + k);
+      }
+
+      return bultos;
+    }
+
+    function crearFormaCopa(centro, radioKm, forma, lon, lat, paraSombra) {
+      const pasos = {
+        palmera: 28,
+        conica: 14,
+        oval_alargada: 18,
+        ancha_redondeada: 22,
+        ancha_irregular: 26,
+        redondeada: 18,
+        naranjo: 20,
+        sombrilla: 24,
+      }[forma] || 18;
+
+      const coords = [];
+      for (let i = 0; i < pasos; i++) {
+        const anguloDeg = (i * 360) / pasos;
+        const anguloRad = (anguloDeg * Math.PI) / 180;
+        let factorRadio = 1;
+
+        switch (forma) {
+          case 'ancha_redondeada':
+            factorRadio = 1.0 + 0.22 * Math.cos(2 * anguloRad);
+            break;
+          case 'ancha_irregular':
+            factorRadio = 0.92 + 0.28 * Math.cos(2 * anguloRad) + 0.18 * pseudoRandom(lon, lat, i + 50);
+            break;
+          case 'conica':
+            factorRadio = 0.82 + 0.12 * Math.cos(2 * anguloRad);
+            break;
+          case 'oval_alargada':
+            factorRadio = 0.88 + 0.18 * Math.cos(2 * anguloRad);
+            break;
+          case 'palmera':
+            // Palmera: corona pequeña con palmas que sobresalen
+            const esPalma = i % 4 === 0;
+            factorRadio = esPalma ? 1.55 : 0.72;
+            break;
+          case 'naranjo':
+            if (paraSombra) {
+              // Para la SOMBRA proyectada: silueta simple y casi convexa.
+              // Los 3 lóbulos solo van en la copa visible, con lóbulos
+              // aquí la unión con el trapecio de proyección se auto-cruza
+              // y genera geometría corrupta.
+              factorRadio = 0.96 + 0.07 * Math.cos(2 * anguloRad);
+            } else {
+              // Naranjo: copa globosa asimétrica, medida sobre la malla real
+              // (bbox x≈1.49 vs z≈1.31), más ancha que profunda, con 3 lóbulos
+              // suaves en vez de un círculo perfecto.
+              factorRadio = (0.92 + 0.10 * Math.cos(anguloRad))
+                          * (1.0 + 0.06 * Math.cos(3 * anguloRad));
+            }
+            break;
+          case 'sombrilla':
+            if (paraSombra) {
+              factorRadio = 1.04 + 0.10 * Math.cos(3 * anguloRad);
+            } else {
+              // Albizia: parasol amplio y achatado, con 3 lóbulos marcados
+              // (las ramas del multi-tronco abren en abanico, no un círculo).
+              factorRadio = (0.95 + 0.14 * Math.cos(anguloRad))
+                          * (1.0 + 0.14 * Math.cos(3 * anguloRad));
+            }
+            break;
+        }
+
+        // Ruido orgánico general
+        factorRadio *= 0.82 + pseudoRandom(lon, lat, i) * 0.30;
+
+        const radioEfectivo = Math.max(0.000001, radioKm * factorRadio);
+        const pt = turf.transformTranslate(centro, radioEfectivo, anguloDeg, { units: 'kilometers' }).geometry.coordinates;
+        coords.push(pt);
+      }
+      coords.push(coords[0]);
+      return turf.polygon([coords]);
+    }
+
+    function crearCopaIrregular(centro, radioKm, lon, lat) {
+      return crearFormaCopa(centro, radioKm, 'redondeada', lon, lat);
+    }
+
+    function unirDosPoligonos(a, b) {
+      try {
+        const r = turf.union(turf.featureCollection([a, b]));
+        if (r) return r;
+      } catch (e) { }
+      try {
+        const r = turf.union(a, b);
+        if (r) return r;
+      } catch (e) { }
+      return a;
+    }
+
+    /* --------- Recorte geométrico: la sombra NUNCA entra en un edificio ---------
+       Sombra_Final = Sombra_Proyectada − Planta_Edificio (turf.difference).
+       Las plantas se obtienen de la propia capa 3D de edificios ya pintada
+       (queryRenderedFeatures), se precalcula su bbox y solo se recorta contra
+       los edificios cuya caja toca la de la sombra: O(sombras × edificios)
+       en cajas baratas y difference solo cuando hay solape real. */
+
+    /* --------- ¿La extrusión 3D de los edificios ya TAPA la sombra plana? ---
+       Rendimiento (sep-2026, ADITIVO): el recorte sombra−edificio
+       (turf.difference por cada árbol y cada edificio tocado) es, medido
+       con el profiler de Chrome, LO MÁS CARO de toda la web con
+       diferencia: ~10 s de hilo principal bloqueado por barrido en zonas
+       densas, y la causa de que el mapa se quedara "pillado".
+       Ese recorte es INVISIBLE cuando se cumplen dos cosas a la vez:
+         1) la capa plana de sombra de los árboles está POR DEBAJO de la
+            extrusión 3D (lo garantiza asegurarOrdenCapas() tras cada
+            styledata: el edificio tapa físicamente la sombra al pintarse);
+         2) la extrusión es prácticamente opaca (≥ 0,9; la web la fija a
+            0,93 al cargar el estilo, en los dos temas, porque el tema
+            oscuro es un filtro CSS y no cambia el estilo del mapa).
+       Cumplidas ambas, restar la huella no cambia ningún píxel visible ni
+       el cálculo de rutas (las calles no atraviesan edificios: la parte
+       recortada nunca toca un tramo peatonal real), así que se omite.
+       La comprobación se repite cada pocos segundos: si el estilo cambiara
+       algún día (sombra por encima o edificios transparentes), el recorte
+       vuelve a activarse solo. */
+    let cacheTapaEdificios = { ms: 0, tapa: false };
+    function sombrasArbolesTapadasPorEdificios() {
+      const ahora = Date.now();
+      if (ahora - cacheTapaEdificios.ms < 5000) return cacheTapaEdificios.tapa;
+      let tapa = false;
+      try {
+        const capas = map.getStyle().layers || [];
+        const idxSombra = capas.findIndex((l) => l.id === 'capa-sombra-arboles-globales');
+        const idxEdif = capas.findIndex((l) => l.type === 'fill-extrusion' && /building/i.test(l.id));
+        if (idxSombra >= 0 && idxEdif >= 0 && idxSombra < idxEdif) {
+          let opacidad = 1;
+          try {
+            const p = map.getPaintProperty(capas[idxEdif].id, 'fill-extrusion-opacity');
+            if (typeof p === 'number') opacidad = p;
+          } catch (e) { /* sin dato: la capa base es opaca de fábrica */ }
+          tapa = opacidad >= 0.9;
+        }
+      } catch (e) { /* ante la duda, se recorta como siempre */ }
+      cacheTapaEdificios = { ms: ahora, tapa };
+      return tapa;
+    }
+
+    function obtenerHuellasEdificios() {
+      try {
+        const capas = map.getStyle().layers || [];
+        const capaEd = capas.find((l) => l.type === 'fill-extrusion' && /building/i.test(l.id));
+        if (!capaEd || !map.getLayer(capaEd.id)) return [];
+        const vistos = new Set();
+        const huellas = [];
+        for (const f of map.queryRenderedFeatures({ layers: [capaEd.id] })) {
+          if (!f || !f.geometry) continue;
+          if (f.geometry.type !== 'Polygon' && f.geometry.type !== 'MultiPolygon') continue;
+          const clave = f.id != null ? f.id : JSON.stringify(f.geometry.coordinates[0] && f.geometry.coordinates[0][0]);
+          if (vistos.has(clave)) continue;
+          vistos.add(clave);
+          try {
+            huellas.push({ feature: f, caja: turf.bbox(f) });
+          } catch (e) { /* geometría rara: la ignoramos */ }
+        }
+        return huellas;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function cajasSeTocan(a, b) {
+      return !(b[0] > a[2] || b[2] < a[0] || b[1] > a[3] || b[3] < a[1]);
+    }
+
+    function restarEdificio(sombra, edificio) {
+      // Turf v6 usa FeatureCollection de 2 polígonos; probamos también la
+      // firma clásica de 2 argumentos por compatibilidad.
+      try {
+        const r = turf.difference(turf.featureCollection([sombra, edificio]));
+        if (r) return r;
+      } catch (e) { /* probamos la otra firma */ }
+      try {
+        const r = turf.difference(sombra, edificio);
+        if (r) return r;
+      } catch (e) { /* nos quedamos con la sombra sin recortar */ }
+      return sombra;
+    }
+
+    function recortarContraEdificios(sombra, huellas) {
+      if (!huellas.length) return sombra;
+      let resultado = sombra;
+      let caja;
+      try { caja = turf.bbox(resultado); } catch (e) { return sombra; }
+      for (const h of huellas) {
+        if (!cajasSeTocan(caja, h.caja)) continue;
+        const antes = resultado;
+        resultado = restarEdificio(resultado, h.feature);
+        // Recorte vacío (la sombra quedó 100% cubierta por la planta del
+        // edificio): no hay nada que pintar. Antes caía al catch de bbox y
+        // devolvía la sombra SIN recortar, dibujándola dentro del edificio.
+        if (!resultado) return null;
+        if (resultado !== antes) {
+          try { caja = turf.bbox(resultado); } catch (e) { return antes; }
+        }
+      }
+      return resultado;
+    }
+
+    function calcularSombraArbol(arbol, distanciaKm, bearingSombra) {
+      const forma = arbol.forma || 'redondeada';
+      const perpendicular = (bearingSombra + 90) % 360;
+      const radioTroncoKm = Math.max(arbol.radioCopaM * (forma === 'palmera' ? 0.08 : 0.12), 0.25) / 1000;
+      // Especies con fenología: la sombra se encoge con la pérdida de hoja
+      // (una albizia desnuda en invierno apenas da sombra, como en la calle).
+      const fechaSombra = obtenerHoraEfectiva();
+      const fenoSombra = fenologiaArbol(arbol.tipo, obtenerEstacion(fechaSombra), progresoEstacion(fechaSombra));
+      const factorHojaSombra = fenoSombra ? (0.25 + 0.75 * fenoSombra.densidadHoja) : 1;
+      const radioCopaKm = (arbol.radioCopaM * factorHojaSombra) / 1000;
+      const [lon, lat] = arbol.punto.geometry.coordinates;
+
+      const lejano = turf.transformTranslate(arbol.punto, distanciaKm, bearingSombra, { units: 'kilometers' });
+
+      // Copa proyectada: mantiene la silueta realista del tipo de árbol
+      const radioProyectado = forma === 'palmera' ? radioCopaKm * 0.85 : radioCopaKm;
+      const copaProyectada = crearFormaCopa(lejano, radioProyectado, forma, lon, lat, true);
+
+      // Para palmeras la sombra es la corona proyectada + una banda fina y
+      // alargada: el tronco de la palmera es estrecho pero ALTO, y proyecta
+      // una línea de sombra desde la base hasta la corona (falta no tenerla).
+      if (forma === 'palmera') {
+        const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
+        // Cuna del tronco: base fina (radio del tronco) ensanchándose apenas
+        // un poco hacia donde cae la corona (el penacho abre un pelín el haz).
+        try {
+          const pBaseA = turf.transformTranslate(arbol.punto, radioTroncoKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+          const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+          const pLejosA = turf.transformTranslate(lejano, radioTroncoKm * 1.6, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+          const pLejosB = turf.transformTranslate(lejano, radioTroncoKm * 1.6, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+          const cunaTronco = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
+          return unirDosPoligonos(unirDosPoligonos(cunaTronco, copaProyectada), baseRedondeada);
+        } catch (e) {
+          return unirDosPoligonos(copaProyectada, baseRedondeada);
+        }
+      }
+
+      // Cuerpo de la sombra entre el tronco y la copa proyectada
+      const pBaseA = turf.transformTranslate(arbol.punto, radioTroncoKm, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+      const pBaseB = turf.transformTranslate(arbol.punto, radioTroncoKm, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+
+      // Ancho de la cuna según la forma (copas anchas proyectan más volumen lateral)
+      const factorAncho = { ancha_redondeada: 0.90, ancha_irregular: 0.85, redondeada: 0.75, conica: 0.55, oval_alargada: 0.60, naranjo: 0.80, sombrilla: 0.95 }[forma] || 0.75;
+      const pLejosA = turf.transformTranslate(lejano, radioCopaKm * factorAncho, perpendicular, { units: 'kilometers' }).geometry.coordinates;
+      const pLejosB = turf.transformTranslate(lejano, radioCopaKm * factorAncho, (perpendicular + 180) % 360, { units: 'kilometers' }).geometry.coordinates;
+
+      let cuna;
+      try {
+        cuna = turf.polygon([[pBaseA, pLejosA, pLejosB, pBaseB, pBaseA]]);
+      } catch (e) {
+        return copaProyectada;
+      }
+
+      const baseRedondeada = turf.circle(arbol.punto, radioTroncoKm, { units: 'kilometers', steps: 8 });
+
+      let sombraFinal = unirDosPoligonos(cuna, copaProyectada);
+      return unirDosPoligonos(sombraFinal, baseRedondeada);
+    }
+
+    let versionSombra = 0;
+
+    // Avisa a la ruta (si existe) de que las sombras de los árboles han
+    // cambiado, para que repinte sus tramos cian y el % en ese momento.
+    // Debounce corto: el recálculo escribe en lotes y no queremos 15 repintados.
+    let avisoRutaSombra = null;
+    function avisarARutaDeNuevasSombras() {
+      clearTimeout(avisoRutaSombra);
+      avisoRutaSombra = setTimeout(() => {
+        try { window.manolitAireActualizarSombraRuta?.(); } catch (e) { /* sin ruta activa */ }
+      }, 150);
+    }
+
+    // Firma de la última pasada, para la guardia anti-doble-recálculo.
+    let ultimaPasadaSombraArboles = { ms: 0, horaMs: 0, panelOn: null };
+
+    async function recalcularSombrasArboles(forzar) {
+      if (!map.getSource('arboles-globales-sombra') || !capaVisible) return;
+
+      // Rendimiento (sep-2026, ADITIVO): al mover el mapa con las sombras
+      // encendidas, DOS handlers moveend llamaban aquí (el principal a los
+      // ~220 ms y el del módulo de árboles a los ~500 ms): dos barridos
+      // completos de árboles + recorte contra edificios por cada
+      // movimiento = CPU doble y calor. Si nada relevante ha cambiado
+      // (misma hora efectiva, mismo estado del panel) y la última pasada
+      // fue hace menos de 1,5 s, la segunda llamada se salta. La carga de
+      // árboles nuevos entra con forzar=true y NUNCA se salta; un cambio
+      // de hora (slider) o del interruptor de sombras tampoco se salta
+      // nunca, porque cambia la firma.
+      const panelOnAhora = sombrasActivadasEnPanel();
+      // Guardia por MINUTO (sep-2026): antes se comparaba la hora con
+      // precisión de milisegundos, pero en hora en vivo obtenerHoraEfectiva()
+      // devuelve new Date(), que cambia en CADA llamada, así que la guardia
+      // anti-doble-barrido no paraba nada y cada aviso (intervalo de 60 s,
+      // moveend, sincronías externas) lanzaba el barrido completo de 250
+      // árboles. El sol se mueve ~0,25° por minuto (invisible en pantalla),
+      // así que "misma hora" = mismo minuto. Con el slider, que va por
+      // minutos, el comportamiento es idéntico al de antes.
+      const horaMsAhora = (() => { try { return Math.floor(obtenerHoraEfectiva().getTime() / 60000); } catch (e) { return 0; } })();
+      const ahoraMs = Date.now();
+      if (!forzar
+          && ultimaPasadaSombraArboles.panelOn === panelOnAhora
+          && ultimaPasadaSombraArboles.horaMs === horaMsAhora
+          && ahoraMs - ultimaPasadaSombraArboles.ms < 1500) {
+        return;
+      }
+      ultimaPasadaSombraArboles = { ms: ahoraMs, horaMs: horaMsAhora, panelOn: panelOnAhora };
+
+      if (!panelOnAhora) {
+        map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+        avisarARutaDeNuevasSombras();
+        return;
+      }
+
+      const miVersion = ++versionSombra;
+
+      const centro = obtenerCentroSolar(map);
+      const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
+
+      if (posSol.altitude <= 0) {
+        map.getSource('arboles-globales-sombra').setData(turf.featureCollection([]));
+        avisarARutaDeNuevasSombras();
+        return;
+      }
+
+      const azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;
+      const bearingSombra = (azimutGrados + 180) % 360;
+
+      const enVista = dibujarArbolesVisibles();
+      const paraSombra = enVista.slice(0, CONFIG.maxArbolesConSombra);
+
+      const tangenteSol = Math.tan(posSol.altitude);
+      if (!tangenteSol) return;
+
+      // Plantas de los edificios 3D visibles: las sombras se recortan
+      // contra ellas para que jamás se dibujen "dentro" de un edificio.
+      // SOLO cuando el recorte hace falta de verdad: si la extrusión 3D
+      // ya tapa la sombra al pintarse (ver sombrasArbolesTapadasPorEdificios),
+      // ni siquiera se consultan las huellas (queryRenderedFeatures de toda
+      // la vista) ni se hace ningún turf.difference.
+      const huellasEdificios = sombrasArbolesTapadasPorEdificios() ? [] : obtenerHuellasEdificios();
+
+      const sombras = [];
+      for (let i = 0; i < paraSombra.length; i += CONFIG.loteSombraSize) {
+        if (miVersion !== versionSombra) return;
+        const lote = paraSombra.slice(i, i + CONFIG.loteSombraSize);
+        for (const arbol of lote) {
+          const longitudSombraM = arbol.altura / tangenteSol;
+          if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+          const distanciaKm = longitudSombraM / 1000;
+          let volumen = calcularSombraArbol(arbol, distanciaKm, bearingSombra);
+          if (volumen) volumen = recortarContraEdificios(volumen, huellasEdificios);
+          if (volumen) sombras.push(volumen);
+        }
+        if (miVersion !== versionSombra) return;
+        map.getSource('arboles-globales-sombra')?.setData(turf.featureCollection(sombras));
+        avisarARutaDeNuevasSombras();
+        if (i + CONFIG.loteSombraSize < paraSombra.length) await cederAlNavegador();
+      }
+    }
+
+    let temporizadorSombra = null;
+    function programarSincroSombra(inmediato) {
+      clearInterval(temporizadorSombra);
+      // forzar=true: hay árboles NUEVOS cargados, la guardia
+      // anti-doble-recálculo no debe saltarse esta pasada jamás.
+      if (inmediato) recalcularSombrasArboles(true);
+      temporizadorSombra = setInterval(() => {
+        if (document.hidden) return; // pestaña oculta: no recalcular nada
+        recalcularSombrasArboles();
+      }, CONFIG.sincroSombraMs);
+    }
+
+    // Animación suave de la caída de hoja (albizia en otoño). Muy ligera:
+    // solo repinta las copas si hay alguna albizia cargada, la pestaña
+    // está visible y el usuario NO pidió reducir movimiento. Si algo falla,
+    // se queda quieta: es decorativa, jamás rompe el mapa.
+    let temporizadorCaida = null;
+    function programarAnimacionCaida() {
+      clearInterval(temporizadorCaida);
+      temporizadorCaida = setInterval(() => {
+        try {
+          if (document.hidden || !capaVisible) return;
+          if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+          if (obtenerEstacion(obtenerHoraEfectiva()) !== 'otono') return;
+          if (!arbolesGrandes.some((a) => a.tipo === 'albizia')) return;
+          // Rendimiento (sep-2026, ADITIVO): la caída de hojas solo se ve
+          // con zoom cercano y albizias en pantalla. Si no, no se repinta
+          // nada (antes reconstruía TODOS los árboles cada 2,4 s aunque
+          // la animación fuera invisible en la vista actual).
+          if (map.getZoom() < 15.5) return;
+          const bCaida = map.getBounds();
+          const hayAlbiziaEnVista = arbolesGrandes.some((a) => {
+            if (a.tipo !== 'albizia') return false;
+            const [lonA, latA] = a.punto.geometry.coordinates;
+            return lonA >= bCaida.getWest() && lonA <= bCaida.getEast()
+                && latA >= bCaida.getSouth() && latA <= bCaida.getNorth();
+          });
+          if (!hayAlbiziaEnVista) return;
+          dibujarArbolesVisibles();
+        } catch (e) { /* decorativo: nunca rompe */ }
+      }, 2400);
+    }
+
+    let esperaMoveend = null;
+    map.on('moveend', () => {
+      clearTimeout(esperaMoveend);
+      esperaMoveend = setTimeout(() => {
+        cargarArbolesDeLaVista();
+        recalcularSombrasArboles();
+      }, CONFIG.esperaMoveendMs);
+    });
+
+    /* ---- Actualización de datos OSM cada 12 h (sep-2026, orden de Sandro) ----
+       Lo que la gente dibuja en OpenStreetMap debe verse en HORAS, no en
+       una semana. Tres capas que trabajan juntas:
+       1) WORKER: la caché compartida caduca a las 12 h (ver worker.js).
+       2) AUTOMÁTICO: si la última descarga tiene más de 12 h, la primera
+       consulta de esta sesión ya va en "modo frescos" (ignora cachés y
+       renueva el dato para todo el mundo). El chequeo cuesta una resta
+       cada 30 min y no pide nada si la pestaña está oculta.
+       3) MANUAL: el botón "↻ Actualizar mapa" (junto a Árboles) fuerza
+       la descarga fresca de la vista actual al momento. */
+    const CLAVE_REFRESCO_OSM = 'manolito_osm_refresco_ms';
+    const REFRESCO_OSM_MS = 12 * 3600 * 1000; // 12 horas
+
+    async function actualizarDatosOSM() {
+      try { localStorage.setItem(CLAVE_REFRESCO_OSM, String(Date.now())); } catch (e) { }
+      celdasConsultadas.clear();
+      frescosPendiente = true; // bypass del caché del Worker + la renueva
+      // Si ya hay una consulta Overpass en vuelo (la lanzó el propio mapa
+      // al moverse), la esperamos antes de lanzar la nuestra: sin esto el
+      // refresco manual no consultaba NADA nuevo y el "✓ Actualizado"
+      // mentía. Tope de 10 s por si Overpass se duerme.
+      const esperaDesde = Date.now();
+      while (consultaEnCurso && Date.now() - esperaDesde < 10000) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      await cargarArbolesDeLaVista();
+    }
+    window.manolitAireActualizarOSM = actualizarDatosOSM;
+
+    try {
+      const ultimaRefresco = Number(localStorage.getItem(CLAVE_REFRESCO_OSM) || 0);
+      if (Date.now() - ultimaRefresco > REFRESCO_OSM_MS) frescosPendiente = true;
+    } catch (e) { /* sin localStorage: modo normal */ }
+    window.manolitIntervalos = window.manolitIntervalos || [];
+    window.manolitIntervalos.push(setInterval(() => {
+      if (document.hidden) return; // pestaña oculta: cero gasto
+      try {
+        const ultimaRefresco = Number(localStorage.getItem(CLAVE_REFRESCO_OSM) || 0);
+        if (Date.now() - ultimaRefresco > REFRESCO_OSM_MS) actualizarDatosOSM();
+      } catch (e) { /* el refresco jamás rompe el mapa */ }
+    }, 30 * 60 * 1000));
+
+    window.manolitAireRecalcularArboles = recalcularSombrasArboles;
+
+    // --- Hooks para la albizia 3D real (js/albizia-3d.js), ADITIVO sep-2026 ---
+    // La capa 3D necesita: qué albizias hay cargadas (posición y medidas
+    // reales OSM), la estación de la fecha efectiva y el progreso dentro de
+    // ella. Nada de lo existente se toca; solo se EXPONE lectura.
+    window.manolitAireAlbizias = () => arbolesGrandes
+      .filter((a) => a.tipo === 'albizia')
+      .map((a) => ({
+        lon: a.punto.geometry.coordinates[0],
+        lat: a.punto.geometry.coordinates[1],
+        altura: a.altura,
+        radioCopaM: a.radioCopaM,
+        nombre: a.nombre,
+      }));
+    window.manolitAireEstacionActual = () => obtenerEstacion(obtenerHoraEfectiva());
+    window.manolitAireProgresoEstacion = () => progresoEstacion(obtenerHoraEfectiva());
+    // Igual que manolitAireAlbizias pero con AMBAS especies con modelo 3D
+    // (albizia + naranjo) y su tipo, para js/arboles-3d.js.
+    window.manolitAireArboles3D = () => arbolesGrandes
+      .filter((a) => a.tipo === 'albizia' || a.tipo === 'naranjo')
+      .map((a) => ({
+        lon: a.punto.geometry.coordinates[0],
+        lat: a.punto.geometry.coordinates[1],
+        altura: a.altura,
+        radioCopaM: a.radioCopaM,
+        nombre: a.nombre,
+        tipo: a.tipo,
+      }));
+
+    await cargarArbolesDeLaVista();
+    recalcularSombrasArboles();
+    programarAnimacionCaida();
+  }
+
+  /* ==================== MEJORAS VISUALES sep-2026 (ADITIVO) ====================
+     Nada de lo existente se toca: solo se añaden detalles por encima.
+     1) Botones de estilo de mapa (claro / IGN / Catastro 3D) plegables.
+     2) Manolit con brazos más visibles, mano derecha, saludo periódico
+        y un balanceo suave constante (respetando reduced-motion). */
+
+  // --- 1) Capas de mapa plegables ---
+  // El grupo #rsMapStyleToggle nace cuando el mapa termina de cargar, y eso
+  // en un móvil con mala red puede tardar: por eso hay reintentos suaves.
+  // (Este archivo tiene varios IIFE independientes: este bloque es
+  // autosuficiente y no usa helpers de otros módulos.)
+  (function mejoraCapasPlegables() {
+    try {
+      const tt = (typeof t === 'function') ? t : function (k, f) { return f; };
+      const mejorar = function (grupo) {
+        try {
+          if (!grupo || grupo.dataset.rsPlegable === '1') return;
+          grupo.dataset.rsPlegable = '1';
+          const hijos = Array.prototype.slice.call(grupo.querySelectorAll('button'));
+          if (!hijos.length) { delete grupo.dataset.rsPlegable; return; }
+          hijos.forEach(function (b) {
+            // Catastro 3D va siempre visible en su propia fila, debajo
+            // de Capas y Capas de mapa (orden de Sandro, sep-2026): el
+            // 3D se tiene que ver sin abrir ningun desplegable.
+            if (b.id === 'rsBtnCatastro') return;
+            b.classList.add('rs-capa-hija');
+          });
+
+          const master = document.createElement('button');
+          master.type = 'button';
+          master.id = 'rsBtnCapasMapa';
+          master.setAttribute('aria-expanded', 'true');
+          master.innerHTML =
+            '<svg class="rs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 2 10 5-10 5L2 7l10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>' +
+            '<span></span>' +
+            '<svg class="rs-chevr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>';
+          const pintar = function () {
+            const s = master.querySelector('span');
+            if (s) s.textContent = tt('mapLayers', 'Capas de mapa');
+          };
+          pintar();
+          document.addEventListener('langChanged', pintar);
+          grupo.insertBefore(master, grupo.firstChild);
+
+          const fijar = function (colapsado) {
+            grupo.classList.toggle('rs-colapsado', colapsado);
+            master.setAttribute('aria-expanded', colapsado ? 'false' : 'true');
+          };
+          master.addEventListener('click', function () {
+            fijar(!grupo.classList.contains('rs-colapsado'));
+          });
+          // Arranca desplegado: el grupo vive dentro del widget, debajo
+          // del mapa, asi que no tapa nada y los botones se ven directos.
+          fijar(false);
+        } catch (e) { /* las capas siguen como estaban */ }
+      };
+      // Reintentos propios, suaves y baratos (90 × 400 ms = 36 s de margen
+      // de sobra para que el mapa termine de cargar y cree los botones).
+      // RENDIMIENTO: sin MutationObserver sobre todo el documento, con el
+      // mapa metiendo y quitando tiles a tope, observar cada cambio del DOM
+      // salía caro en el móvil. Un getElementById cada 400 ms no cuesta nada.
+      var intentosCapas = 0;
+      (function reintentarCapas() {
+        try {
+          const g = document.getElementById('rsMapStyleToggle');
+          if (g) { mejorar(g); return; }
+          if (++intentosCapas < 90) setTimeout(reintentarCapas, 400);
+        } catch (e) { /* aditivo: jamás rompe */ }
+      })();
+    } catch (e) { /* aditivo: jamás rompe */ }
+  })();
+
+  // --- 2) Manolit: brazos visibles + mano derecha + saludo + balanceo ---
+  (function mejoraManolitVisual() {
+    try {
+      if (!window.ManolitWalker || window.ManolitWalker.__rsMejoraVisual) return;
+      window.ManolitWalker.__rsMejoraVisual = true;
+      const proto = window.ManolitWalker.prototype;
+
+      const buildOriginal = proto._buildElement;
+      proto._buildElement = function () {
+        buildOriginal.call(this);
+        try {
+          const raiz = this._el;
+          const svg = raiz && raiz.querySelector('svg');
+          if (!svg) return;
+          // Brazos más gruesos: con trazo 5 apenas se veían en el móvil.
+          const lineas = svg.querySelectorAll('.arm-r line, .mw-armwave line');
+          for (let i = 0; i < lineas.length; i++) lineas[i].setAttribute('stroke-width', '6');
+          // Mano en el brazo derecho (el del saludo ya la trae de serie).
+          const brazoDer = svg.querySelector('.arm-r');
+          if (brazoDer && !brazoDer.querySelector('.mw-mano-r')) {
+            const otraMano = svg.querySelector('.mw-armwave circle');
+            const mano = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            mano.setAttribute('class', 'mw-mano-r');
+            mano.setAttribute('cx', '115');
+            mano.setAttribute('cy', '106');
+            mano.setAttribute('r', '4.5');
+            mano.setAttribute('fill', otraMano ? (otraMano.getAttribute('fill') || '#FFD24A') : '#FFD24A');
+            mano.setAttribute('stroke', otraMano ? (otraMano.getAttribute('stroke') || '#7A0016') : '#7A0016');
+            mano.setAttribute('stroke-width', '2.5');
+            brazoDer.appendChild(mano);
+          }
+          // Balanceo constante: envolvemos la onda en un div que SÍ podemos
+          // animar por CSS (la onda no: el paseo escribe sus transforms).
+          const onda = svg.closest('.mw-onda');
+          if (onda && onda.parentNode && !(onda.parentNode.classList && onda.parentNode.classList.contains('mw-sway'))) {
+            const sway = document.createElement('div');
+            sway.className = 'mw-sway';
+            sway.style.cssText = 'position:absolute;inset:0;overflow:visible;';
+            onda.parentNode.insertBefore(sway, onda);
+            sway.appendChild(onda);
+            this._swayEl = sway;
+          } else if (onda && onda.parentNode && onda.parentNode.classList && onda.parentNode.classList.contains('mw-sway')) {
+            this._swayEl = onda.parentNode;
+          }
+        } catch (e) { /* Manolit original intacto */ }
+      };
+
+      // RENDIMIENTO: el balanceo ya NO es una animación CSS infinita a 60 fps.
+      // Se escribe desde _applyPose, que Manolit ya ejecuta cada 66 ms con su
+      // propio reloj: cero bucles nuevos, cero coste extra de compositor.
+      const poseOriginal = proto._applyPose;
+      proto._applyPose = function () {
+        poseOriginal.call(this);
+        try {
+          const sway = this._swayEl;
+          if (!sway) return;
+          if (this._reduced || document.hidden) return;
+          sway.style.transform = 'rotate(' + (Math.sin(Date.now() / 1600) * 1.6).toFixed(2) + 'deg)';
+        } catch (e) { }
+      };
+
+      const speechOriginal = proto._bindClickSpeech;
+      proto._bindClickSpeech = function () {
+        speechOriginal.call(this);
+        try {
+          const yo = this;
+          // Saludo nada más aparecer.
+          setTimeout(function () { try { yo._saluda(); } catch (e) { } }, 700);
+          // Y un saludito de vez en cuando mientras está quieto.
+          yo._olaTimer = setInterval(function () {
+            try {
+              if (document.hidden) return; // pestaña oculta: no saludar (ahorro batería)
+              if (!document.contains(yo._el)) { clearInterval(yo._olaTimer); return; }
+              if (yo._moving || yo._saludando || yo._explorando || yo._sentado || yo._reduced) return;
+              yo._saluda();
+            } catch (e) { }
+          }, 14000);
+        } catch (e) { }
+      };
+
+      const destroyOriginal = proto.destroy;
+      proto.destroy = function () {
+        try { if (this._olaTimer) clearInterval(this._olaTimer); } catch (e) { }
+        destroyOriginal.call(this);
+      };
+    } catch (e) { /* aditivo: jamás rompe */ }
+  })();
+
+
+  /* ==================== MANOLIT DEL CHAT CON BRAZOS Y SALUDO ====================
+     El muñeco del botón «¡Pregúntame!» es un SVG aparte del caminante del
+     mapa y se había quedado SIN BRAZOS. Aquí se los ponemos (con sus manos
+     doradas), el izquierdo SALUDA de verdad cada pocos segundos y todo él
+     tiene un vaivén suave. Barato a propósito: figura de 30 px, ciclos
+     largos, y quieto si el sistema pide reducir movimiento.
+     Aditivo y autosuficiente (este IIFE no ve los helpers de otros). */
+  (function mejoraManolitChat() {
+    try {
+      if (window.__manolitChatConBrazos) return;
+      window.__manolitChatConBrazos = true;
+      const NS = 'http://www.w3.org/2000/svg';
+
+      // 1) Estilos propios: saludo del brazo + vaivén del cuerpecito.
+      //    El saludo dura ~2 s dentro de un ciclo de 7 s: saluda y descansa.
+      if (!document.getElementById('manolit-chat-brazos-estilos')) {
+        const st = document.createElement('style');
+        st.id = 'manolit-chat-brazos-estilos';
+        st.textContent = [
+          '.chat-fab .mcb-brazo-saludo{ transform-origin:26px 76px; animation:mcbOla 7s ease-in-out infinite; }',
+          '@keyframes mcbOla{',
+          '  0%,58%,100%{ transform:rotate(0deg); }',
+          '  64%{ transform:rotate(-150deg); }',
+          '  70%{ transform:rotate(-128deg); }',
+          '  76%{ transform:rotate(-150deg); }',
+          '  82%{ transform:rotate(-128deg); }',
+          '  88%{ transform:rotate(0deg); }',
+          '}',
+          /* El vaivén va en el SVG (elemento distinto del span, que ya tiene
+             su bob de arriba-abajo): así los dos movimientos se componen. */
+          '.chat-fab .manolit-walker-chat svg{ transform-origin:50% 90%; animation:mcbVaiven 5.5s ease-in-out infinite; }',
+          '@keyframes mcbVaiven{ 0%,100%{ transform:rotate(-2deg); } 50%{ transform:rotate(2deg); } }',
+          '@media (prefers-reduced-motion: reduce){',
+          '  .chat-fab .mcb-brazo-saludo, .chat-fab .manolit-walker-chat svg{ animation:none !important; }',
+          '}'
+        ].join('\n');
+        document.head.appendChild(st);
+      }
+
+      // 2) Brazos para el muñeco del FAB (no los traía).
+      const ponerBrazosFab = function () {
+        const svg = document.querySelector('.chat-fab .manolit-walker-chat svg');
+        if (!svg) return false;
+        const g = svg.querySelector('g');
+        if (!g) return true;
+        if (g.dataset.mcbBrazos === '1') return true;
+        g.dataset.mcbBrazos = '1';
+        // Brazo derecho: quieto, con mano (va detrás del cuerpo).
+        const der = document.createElementNS(NS, 'g');
+        der.innerHTML = '<line x1="94" y1="76" x2="114" y2="104" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/><circle cx="115" cy="106" r="4.5" fill="#E6A100" stroke="#7A0016" stroke-width="2"/>';
+        const cuerpo = g.querySelector('path');
+        if (cuerpo) g.insertBefore(der, cuerpo); else g.appendChild(der);
+        // Brazo izquierdo: el que saluda (va delante, como en el caminante).
+        const izq = document.createElementNS(NS, 'g');
+        izq.setAttribute('class', 'mcb-brazo-saludo');
+        izq.innerHTML = '<line x1="26" y1="76" x2="6" y2="104" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/><circle cx="5" cy="106" r="4.5" fill="#E6A100" stroke="#7A0016" stroke-width="2"/>';
+        g.appendChild(izq);
+        return true;
+      };
+
+      // 3) El logo de la cabecera del chat tenía brazos finos y sin manos:
+      //    mismos brazos de 6 px y manitas doradas, a juego.
+      const arreglarLogoPanel = function () {
+        const logo = document.querySelector('#chatOverlay .chat-logo svg');
+        if (!logo) return false;
+        const g = logo.querySelector('g');
+        if (!g) return true;
+        if (g.dataset.mcbLogo === '1') return true;
+        g.dataset.mcbLogo = '1';
+        const lineas = g.querySelectorAll('line');
+        for (let i = 0; i < lineas.length; i++) {
+          const l = lineas[i];
+          if (l.getAttribute('y1') === '76') l.setAttribute('stroke-width', '6');
+        }
+        if (!g.querySelector('.mcb-mano-izq')) {
+          const mi = document.createElementNS(NS, 'circle');
+          mi.setAttribute('class', 'mcb-mano-izq');
+          mi.setAttribute('cx', '5'); mi.setAttribute('cy', '106'); mi.setAttribute('r', '4.5');
+          mi.setAttribute('fill', '#E6A100'); mi.setAttribute('stroke', '#7A0016'); mi.setAttribute('stroke-width', '2');
+          g.appendChild(mi);
+          const md = document.createElementNS(NS, 'circle');
+          md.setAttribute('cx', '115'); md.setAttribute('cy', '106'); md.setAttribute('r', '4.5');
+          md.setAttribute('fill', '#E6A100'); md.setAttribute('stroke', '#7A0016'); md.setAttribute('stroke-width', '2');
+          g.appendChild(md);
+        }
+        return true;
+      };
+
+      // Reintentos suaves y baratos (sin observadores de DOM).
+      let intentosChat = 0;
+      (function reintentarChat() {
+        try {
+          const fabListo = ponerBrazosFab();
+          const logoListo = arreglarLogoPanel();
+          if ((!fabListo || !logoListo) && ++intentosChat < 90) setTimeout(reintentarChat, 400);
+        } catch (e) { /* aditivo: jamás rompe el chat */ }
+      })();
+    } catch (e) { /* aditivo: jamás rompe el chat */ }
+  })();
+
+})();

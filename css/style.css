@@ -1781,3 +1781,8 @@ body.mode-peque .im-lost-btn{
 /* Catastro 3D siempre a la vista en su propia fila, justo debajo de
    Capas y Capas de mapa (orden de Sandro, sep-2026). No se pliega. */
 #rsCapasMapas #rsBtnCatastro{ grid-column: 1 / -1; }
+
+/* Planetario (sep-2026, orden de Sandro): la hora y los datos del sol
+   van DEBAJO de la cúpula, centrados, nunca al lado. */
+.rs-planetario-sol{ flex-direction: column; flex-wrap: nowrap; gap: 10px; }
+.rs-planetario-lado{ align-items: center; text-align: center; }

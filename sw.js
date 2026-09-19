@@ -1,325 +1,1788 @@
 /* ============================================================
-   MANOLIT AIRE · sw.js (Service Worker)
-   Licencia: AGPL-3.0, igual que el resto del proyecto.
-   ------------------------------------------------------------
-   Objetivo: que la web cargue rápido y aguante cortes de red en
-   el móvil, SIN servicios nuevos ni de pago. Es un archivo
-   estático más; funciona igual en Cloudflare Workers/Pages free.
-
-   Política de caché:
-   - CACHE-FIRST (primero caché, luego red si falta):
-     tiles del mapa, librerías JS de CDN, fuentes y estáticos
-     propios (js/css/imágenes). Cambian poco: velocidad máxima.
-   - NETWORK-FIRST (primero red; si falla, caché):
-     páginas HTML y datos dinámicos (Open-Meteo, Overpass y los
-     proxies propios /api /geo /ruta /clima /arboles). Así los
-     datos están frescos cuando hay red y hay respaldo cuando
-     no la hay.
-   - NUNCA se cachean POST (el chat /manolito) ni otras APIs
-     que no sean GET.
-
-   Para publicar una versión nueva de los estáticos basta subir
-   el número VERSION de abajo: se borran las cachés viejas.
+   MANOLITO AIRE, hoja de estilos compartida
+   Tokens de color separados por tema para poder cambiar
+   claro/oscuro y el acento sin tocar el resto del CSS.
    ============================================================ */
-'use strict';
 
-// 2026-09-12-a: botonera fina + botón mini "Act. mapa" con purga de cachés.
-// Subir VERSION hace que, al activarse, este SW borre las cachés viejas
-// (teselas incluidas) y los clientes reciban el JS/CSS nuevo.
-// 2026-09-13-c: las teselas de OpenFreeMap pasan de CACHE-FIRST a
-// STALE-WHILE-REVALIDATE. Motivo: con cache-first el estilo JSON cacheado
-// apuntaba SIEMPRE al planeta viejo (planet/AAAAMMDD.../) y los edificios
-// nuevos de OSM nunca aparecían aunque OpenFreeMap ya los llevaba. Ahora la
-// tesela se sirve al instante desde caché (misma velocidad) pero se
-// revalida en segundo plano: el mapa se auto-actualiza solo.
-// 2026-09-14-a: (1) descamuflaje: el árbol plano duplicado pegado a un
-// naranjo/albizia 3D ya no se pinta (adiós al "cubo verde" y al flash
-// negro al hacer zoom); (2) el naranjo 3D da naranjas MADURAS también en
-// verano (orden de Sandro); (3) emisivo del naranjo ajustado para que no
-// brille de más de cerca. Cambian arboles-3d.js y shadows-route.js.
-// 2026-09-14-b: SEO de sostenibilidad en index.html (huella hídrica por
-// visita ~1-4 ml, sin publicidad programática; metas, OG, JSON-LD y línea
-// visible en el footer). Solo cambia index.html.
-// 2026-09-14-c: IRRADIACIÓN SOLAR GLOBAL REAL (irradiacion-solar.js v4 +
-// i18n.js). Antes TODAS las consultas a NASA POWER usaban lat/lon fijos de
-// Sevilla: el mismo dato en cualquier parte del mundo. Ahora el punto de
-// consulta sigue al centro del mapa y a cada clic, agrupado por la celda
-// real de la malla NASA (0.5°), cacheado por celda (memoria + 7 días):
-// Sevilla da Sevilla, Tokio da Tokio. Marcador naranja del punto, coords
-// en popup y panel, media anual del punto, y timeout de 12 s en red.
-// 2026-09-14-d: sección "El agua que no se ve" en manolito-aire-comparativa.html
-// (cuentas reales: ~3 ml/visita vs ~375 L/s de la publicidad programática
-// mundial, gráfica interactiva por periodos + contador en vivo, sin librerías)
-// y banda destacada del mismo dato en index.html antes del footer.
-// 2026-09-16-a: datos de agua ACTUALIZADOS con telemetría real de Cloudflare
-// (16 ago – 15 sep 2026: 176.444 peticiones, 1,80 GB, 4.819 visitas →
-// 0,38 MB y ~2 ml por visita medidos). Cambian index.html (banda, footer,
-// SEO: description/keywords/OG/JSON-LD) y manolito-aire-comparativa.html
-// (tarjetas con telemetría + franja de estadísticas reales).
-// 2026-09-16-b: (1) se eliminan TODOS los guiones largos de los textos de la
-// web (marca típica de texto de IA; ahora suena a persona); (2) contador vivo
-// en la cabecera del mapa: "Anuncios gastando agua a nivel mundial: N L" con
-// la fórmula en pequeño y el número subiendo de color por escalones. Coste:
-// una escritura de texto por segundo, sin animaciones; batería ~0.
-// Cambian index.html, js/i18n.js (6 idiomas) y textos de varios js.
-// 2026-09-16-c: (1) TODOS los contadores de agua comparten el mismo arranque
-// (sessionStorage, clave manolito_agua_inicio): el conteo sigue al pasar del
-// mapa a la comparativa dentro de la misma pestaña y vuelve a cero al cerrarla.
-// (2) La comparativa se abre en la misma pestaña (target _self en los enlaces).
-// (3) Nueva sección en la comparativa: "Cuánta agua gasta tu móvil" (guía
-// Android/iPhone + calculadora GB x 200 L) e indicador discreto de sesión.
-// 2026-09-16-d: cierre del pie en index.html: sello de eficiencia A+
-// (Website Carbon Rating, sin metadatos externos) y fila discreta de redes
-// sociales (TikTok e Instagram, iconos SVG en línea, sin peso extra).
-// Cambian index.html y style.css.
-// 2026-09-16-e: la barra superior deja de ser fija (sticky): al bajar por la
-// pagina se queda arriba y ya no tapa el mapa ni corta el contenido.
-// Cambia style.css.
-// 2026-09-16-f: se actualiza la pagina "Por que existe esto" (about.html) con
-// el nuevo texto de Sandro (huella hidrica digital, publicidad programatica,
-// cero anuncios por coherencia y llamada a una futura ley), limpio de guiones
-// largos, punto y coma y dos puntos en los textos visibles.
-// Cambia about.html.
-// 2026-09-16-g: toda la navegacion interna se abre en la misma pestana
-// (script que anula el target _blank de la etiqueta base en index, about,
-// comparativa y las paginas legales). Los enlaces externos siguen abriendo
-// pestana nueva con rel noopener.
-// Cambian index.html, about.html, manolito-aire-comparativa.html,
-// aviso-legal.html, privacidad.html y cookies.html.
-// 2026-09-16-h: nueva seccion de preguntas frecuentes (FAQ) al final de
-// index.html, antes del pie. Hecha con details/summary, sin JavaScript,
-// con el tono de Sandro y sin marcas tipicas de texto de IA.
-// Cambian index.html y style.css.
-// 2026-09-18-c: botonera de camara del mapa (zoom y mirar arriba o abajo
-// sin rueda de raton), pitch libre hasta 85 grados, joystick del paseo
-// virtual visible tambien en ordenador, y las capas de mapa (Mapa oscuro,
-// Mapa IGN, Catastro 3D y las casillas) integradas en el widget de
-// posicion solar en vez de flotar encima del mapa.
-// Cambian index.html, style.css y js/shadows-route.js.
-// 2026-09-18-d: vuelven los controles nativos del mapa (zoom, brujula y
-// el boton de pantalla completa, que llevaba tiempo sin verse). La web
-// no carga la hoja de estilos de MapLibre para ahorrar en el primer
-// pintado y sin ella esos botones se dibujaban debajo del mapa,
-// invisibles. Ahora se posicionan y se pintan sus iconos desde la
-// hoja propia, sin cargar nada extra. En iPhone el boton usa el modo
-// pantalla completa por CSS de siempre.
-// Cambian style.css y js/shadows-route.js.
-// 2026-09-18-e: orden visual del mapa (orden de Sandro). El zoom ya no
-// sale dos veces: se retiran los controles nativos de MapLibre y todo
-// el manejo del mapa vive en una unica botonera a la izquierda (zoom,
-// mirar arriba o abajo, norte y pantalla completa juntos). El widget
-// de posicion solar se ordena en dos piezas claras: el sol con su hora
-// y el acceso LiDAR a la izquierda, las capas a la derecha con una
-// linea fina de separacion. Y el index traia la etiqueta base pegada
-// 7 veces: se queda en una, que es la unica que usa el navegador.
-// Cambian index.html, style.css y js/shadows-route.js.
-// 2026-09-18-f: la botonera unica del mapa pasa al borde DERECHO y se
-// compacta en un mando de dos columnas (+ -, arriba abajo, brujula y
-// pantalla completa). La letra N se cambia por una brujula de verdad,
-// con la punta naranja al norte, que gira con el mapa y vuelve al
-// norte al tocarla. El widget solar queda compacto y centrado, y los
-// botones de mapa base en rejilla de tres columnas.
-// Cambian style.css y js/shadows-route.js.
-// 2026-09-18-g: widget de posicion solar en COLUMNA con el orden
-// logico que pide Sandro (1 planetario con su hora, 2 boton de
-// Renderizado LiDAR, 3 capas del mapa), centrado en movil y en
-// ordenador. Botonera del mapa mas pequena en movil (34 px). La
-// brujula, ademas de girar con el mapa, al tocarla vuelve al norte
-// y nivela la vista (si estabas mirando al cielo, te devuelve al
-// mapa plano).
-// Cambian index.html, style.css y js/shadows-route.js.
-const VERSION = '2026-09-19-d' // -g 18-sep: widget en columna con orden logico (planetario, LiDAR, capas), botonera mas pequena en movil y brujula que ademas nivela la vista;
-const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
-const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
-const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
+:root{
+  /* --- tema claro (por defecto), paleta propia "Aire de Sevilla":
+         petróleo de azulejo, mandarina eléctrica, jacarandá y menta viva.
+         Nada de melocotones genéricos: esta paleta es solo de Manolit∞ --- */
+  --sky-deep:#0E3B47;
+  --sky-mid:#17788A;
+  --mist:#E4F1EB;
+  --paper:#F6FAF7;
+  --ink:#0D1F26;
+  --line: rgba(14,59,71,0.14);
+  --surface: rgba(255,255,255,0.85);
+  --border: rgba(14,59,71,0.14);
 
-/* Hosts de contenido casi inmutable: librerías y fuentes */
-const HOSTS_ESTATICOS = [
-	'cdn.jsdelivr.net',
-	'unpkg.com',
-	'fonts.googleapis.com',
-	'fonts.gstatic.com',
-];
+  /* --- acento (tema de color, cambiable) --- */
+  --accent: #FF6B1A;      /* mandarina de Sevilla, por defecto */
+  --accent-soft: rgba(255,107,26,0.16);
+  --accent-2: #7B2FFF;    /* jacarandá */
+  --accent-text: #C24500; /* versión oscura del acento para texto (contraste AA) */
 
-/* Hosts con STALE-WHILE-REVALIDATE: rápidos Y auto-actualizados */
-const HOSTS_REVALIDABLES = [
-	'tiles.openfreemap.org',
-];
+  /* --- estados del aire (no cambian con el tema) --- */
+  --breath-good:#00B98A;  /* menta viva */
+  --breath-mid:#FFB800;   /* sol de albero */
+  --breath-bad:#E63E5F;   /* flamenco */
 
-/* Rutas propias con datos dinámicos (proxies del worker) */
-const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/arboles', '/manolito'];
-
-/* Hosts de datos dinámicos externos */
-const HOSTS_DINAMICOS = [
-	'api.open-meteo.com',
-	'overpass-api.de',
-	'lz4.overpass-api.de',
-	'overpass.kumi.systems',
-	'overpass.nchc.org.tw',
-];
-
-/* ---------------- install / activate ---------------- */
-self.addEventListener('install', function(ev) {
-	// Activar cuanto antes; no precacheamos nada para no fallar
-	// nunca la instalación por un recurso concreto.
-	self.skipWaiting();
-});
-
-self.addEventListener('activate', function(ev) {
-	ev.waitUntil(
-		caches.keys()
-		.then(function(claves) {
-			return Promise.all(
-				claves
-				.filter(function(c) {
-					return c.indexOf('manolito-') === 0 && c.indexOf(VERSION) === -1;
-				})
-				.map(function(c) {
-					return caches.delete(c);
-				})
-			);
-		})
-		.then(function() {
-			return self.clients.claim();
-		})
-	);
-});
-
-/* ---------------- utilidades ---------------- */
-function esEstatico(url) {
-	if (HOSTS_ESTATICOS.indexOf(url.hostname) !== -1) return true;
-	if (url.origin === self.location.origin) {
-		return /\.(js|css|png|jpe?g|svg|ico|webp|woff2?|ttf|webmanifest|geojson)(\?.*)?$/i.test(url.pathname);
-	}
-	return false;
+  /* --- tipografía hermanada con islasdecalorsevilla.com: sans de sistema
+         para texto y display, mono para datos (aspecto profesional/tech) --- */
+  --font-display:'SF Pro Display','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font-body:'SF Pro Display','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font-mono:'IBM Plex Mono','Courier New',monospace;
 }
 
-function esDinamico(url) {
-	if (HOSTS_DINAMICOS.indexOf(url.hostname) !== -1) return true;
-	if (url.origin === self.location.origin) {
-		return RUTAS_DINAMICAS.some(function(r) {
-			return url.pathname.indexOf(r) === 0;
-		});
-	}
-	return false;
+/* --- modo oscuro --- */
+/* --- tema oscuro "Noche Cuántica": paleta hermanada con
+       islasdecalorsevilla.com (azul noche profundo, cian neón, violeta
+       jacarandá, dorado y turquesa para los estados del aire) --- */
+[data-theme="dark"]{
+  --sky-deep:#E8F0FF;
+  --sky-mid:#00F0FF;
+  --mist:#0A0C1F;
+  --paper:#03050F;
+  --ink:#E8F0FF;
+  --line: rgba(0,240,255,0.14);
+  --accent:#00F0FF;
+  --accent-soft: rgba(0,240,255,0.13);
+  --accent-2:#7B2FFF;
+  --accent-text:#7DF9FF;
+  --breath-good:#00FFC8;
+  --breath-mid:#FFD745;
+  --breath-bad:#FF00E5;
+  --surface: rgba(10,12,31,0.88);
+  --border: rgba(0,240,255,0.18);
 }
 
-function recortarCache(nombreCache, maximo) {
-	// Borra las entradas más antiguas si nos pasamos del tope.
-	return caches.open(nombreCache).then(function(cache) {
-		return cache.keys().then(function(claves) {
-			if (claves.length <= maximo) return;
-			const sobrantes = claves.length - maximo;
-			return Promise.all(claves.slice(0, sobrantes).map(function(k) {
-				return cache.delete(k);
-			}));
-		});
-	}).catch(function() {
-		/* recortar es opcional */ });
+/* --- variantes de acento (paletas alternativas, todas con carácter) --- */
+[data-palette="cosmos"]{   --accent:#00F0FF; --accent-soft: rgba(0,240,255,0.13); --accent-text:#00A3B0; }
+[data-palette="amanecer"]{ --accent:#FF6B1A; --accent-soft: rgba(255,107,26,0.16); --accent-text:#C24500; }
+[data-palette="salvia"]{   --accent:#00B98A; --accent-soft: rgba(0,185,138,0.16); --accent-text:#00785A; }
+[data-palette="lavanda"]{  --accent:#7B2FFF; --accent-soft: rgba(123,47,255,0.14); --accent-text:#6A1FE0; }
+[data-palette="coral"]{    --accent:#E63E5F; --accent-soft: rgba(230,62,95,0.14); --accent-text:#C11840; }
+[data-theme="dark"][data-palette="cosmos"]{   --accent-text:#7DF9FF; }
+[data-theme="dark"][data-palette="amanecer"]{ --accent-text:#FF9A5C; }
+[data-theme="dark"][data-palette="salvia"]{   --accent-text:#2BD9A4; }
+[data-theme="dark"][data-palette="lavanda"]{  --accent-text:#B28CFF; }
+[data-theme="dark"][data-palette="coral"]{    --accent-text:#FF8FA8; }
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
+body{
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
-function cacheFirst(peticion) {
-	return caches.match(peticion).then(function(guardada) {
-		if (guardada) return guardada;
-		return fetch(peticion).then(function(respuesta) {
-			// Solo guardamos respuestas válidas (u opacas de CDNs de tiles)
-			if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
-				const copia = respuesta.clone();
-				caches.open(CACHE_ESTATICA).then(function(cache) {
-						cache.put(peticion, copia);
-					})
-					.then(function() {
-						recortarCache(CACHE_ESTATICA, MAX_ENTRADAS_ESTATICAS);
-					})
-					.catch(function() {
-						/* caché llena o no disponible */ });
-			}
-			return respuesta;
-		});
-	});
+a{ color: var(--sky-mid); }
+
+/* ---------- barra superior, común a todas las páginas ---------- */
+.topbar{
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+  justify-content: flex-start;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  /* z-index alto + transform propio: el canvas WebGL del mapa no puede
+     pintarse NUNCA por encima de la barra al hacer scroll (en Chrome el
+     canvas acelerado por GPU a veces se "subía" sobre el sticky) */
+  position: sticky; top:0; z-index: 1000;
+  transform: translateZ(0);
+}
+.topbar-right{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  margin-left: auto;
+}
+.wordmark{
+  font-family: var(--font-display); font-weight:600; font-size: 1.2rem;
+  color: var(--sky-deep); display:flex; align-items:baseline; gap:8px; text-decoration:none;
+}
+.wordmark span{
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight:600; color: var(--accent-text);
+  background: var(--paper); padding: 2px 7px; border-radius: 999px; letter-spacing: 0.02em;
+}
+/* El nombre de la marca lleva un degradado animado que fluye por las letras
+   (guiño al estilo de Islas de Calor Sevilla), con la paleta de esta web */
+.wordmark .wordmark-name{
+  font-family: var(--font-display); font-size: inherit; font-weight: inherit;
+  padding: 0; border: none; border-radius: 0; letter-spacing: inherit;
+  background: linear-gradient(110deg, var(--sky-deep) 0%, var(--sky-mid) 22%, var(--accent) 45%, var(--accent-2) 68%, var(--breath-good) 86%, var(--sky-deep) 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 0 9px rgba(255,107,26,0.32));
+  animation: wordmarkFlow 6s ease-in-out infinite;
+}
+@keyframes wordmarkFlow{
+  0%,100%{ background-position: 0% 50%; }
+  50%{ background-position: 100% 50%; }
+}
+.topbar-right{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+
+.chip-toggle{ display:flex; gap:2px; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+.chip-toggle button{
+  border:none; background:transparent; padding:6px 10px; font-family:var(--font-mono);
+  font-size:0.7rem; cursor:pointer; color: var(--sky-mid);
+}
+.chip-toggle button.active{ background: var(--sky-deep); color:var(--paper); }
+
+.icon-btn{
+  border:1px solid var(--line); background:transparent; width:34px; height:34px;
+  border-radius:50%; cursor:pointer; color:var(--sky-mid); font-size:1rem;
+  display:flex; align-items:center; justify-content:center;
+}
+.icon-btn:hover{ border-color: var(--accent); color: var(--accent); }
+
+.family-link{ font-size:0.78rem; color: var(--sky-mid); text-decoration:none; border-bottom:1px dotted var(--sky-mid); }
+.family-link:hover{ color: var(--accent); border-color: var(--accent); }
+
+/* ---------- hero / orbe ---------- */
+.hero{ max-width: 720px; margin: 0 auto; padding: 48px 24px 20px; text-align:center; }
+.city-picker{
+  display:inline-flex; align-items:center; gap:8px; font-family:var(--font-mono);
+  font-size:0.72rem; color: var(--sky-mid); background: var(--mist);
+  padding: 6px 14px; border-radius: 999px; margin-bottom: 26px;
+}
+.city-picker select{ border:none; background:transparent; font-family:var(--font-mono); font-size:0.72rem; color: var(--sky-deep); font-weight:600; }
+select{ color-scheme: light dark; }
+select, select option{ background: var(--paper); color: var(--sky-deep); }
+
+.orb-wrap{ position:relative; width: 200px; height:200px; margin: 0 auto 24px; display:flex; align-items:center; justify-content:center; }
+.orb-ring{
+  position:absolute; inset:0; border-radius:50%;
+  border: 1px solid color-mix(in srgb, var(--state-color, var(--breath-good)) 35%, transparent);
+  animation: ringPulse 4s ease-in-out infinite;
+}
+.orb{
+  width: 138px; height:138px; border-radius:50%;
+  background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--state-color, var(--breath-good)) 60%, white 25%), var(--state-color, var(--breath-good)) 70%);
+  animation: breathe 4s ease-in-out infinite;
+  display:flex; align-items:center; justify-content:center;
+  transition: background 0.6s ease;
+}
+.orb-face{ font-family: var(--font-mono); font-size:0.68rem; color: rgba(255,255,255,0.92); font-weight:500; text-transform:uppercase; letter-spacing:0.04em; }
+@keyframes breathe{
+  0%,100%{ transform: scale(0.92); }
+  50%{ transform: scale(1.05); }
+}
+@keyframes ringPulse{
+  0%,100%{ transform: scale(1); opacity:0.7; }
+  50%{ transform: scale(1.18); opacity:0.15; }
+}
+@media (prefers-reduced-motion: reduce){ .orb, .orb-ring{ animation: none; } }
+
+.human-line{ font-family: var(--font-display); font-weight: 600; font-size: clamp(1.4rem, 4vw, 2.1rem); color: var(--sky-deep); max-width: 520px; margin: 0 auto 10px; line-height:1.25; }
+.sub-line{ color: var(--sky-mid); font-size:0.96rem; max-width:440px; margin:0 auto 20px; }
+.tech-readout{ font-family: var(--font-mono); font-size: 0.75rem; color: var(--sky-deep); background: var(--mist); display:inline-block; padding: 8px 14px; border-radius: 10px; }
+
+.im-lost-btn{
+  margin-top: 22px; border:1px solid var(--sky-deep); background: transparent; color: var(--sky-deep);
+  font-family: var(--font-body); font-weight:600; font-size:0.86rem; padding: 11px 20px; border-radius: 999px; cursor:pointer;
+}
+.im-lost-btn:hover{ background: var(--sky-deep); color: var(--paper); }
+
+/* ---------- modos ---------- */
+.modes{ max-width: 780px; margin: 40px auto 0; padding: 0 24px; }
+.modes-label{ font-family: var(--font-mono); font-size:0.66rem; text-transform:uppercase; letter-spacing: 0.09em; color: var(--sky-mid); text-align:center; margin-bottom:14px; }
+.mode-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; }
+@media (max-width: 640px){ .mode-grid{ grid-template-columns: repeat(2,1fr); } }
+.mode-card{ border: 1px solid var(--line); background: var(--paper); border-radius: 14px; padding: 16px 12px; text-align:center; cursor:pointer; }
+.mode-card:hover{ border-color: var(--accent); }
+.mode-card.active{ background: var(--sky-deep); border-color: var(--sky-deep); }
+.mode-card.active .mode-title, .mode-card.active .mode-sub{ color: var(--paper); }
+.mode-mark{ font-family:var(--font-mono); font-size:0.75rem; display:inline-block; margin-bottom:6px; color:var(--accent-text); background:var(--paper); padding:0 5px; border-radius:4px; }
+.mode-title{ font-family: var(--font-display); font-weight:600; font-size:0.9rem; color: var(--sky-deep); }
+.mode-sub{ font-size:0.68rem; color: var(--sky-mid); margin-top:2px; }
+
+/* ---------- mapa ---------- */
+.map-section{ max-width: 1000px; margin: 46px auto 0; padding: 0 24px; }
+.map-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px; }
+/* Títulos de sección con el mismo degradado fluido que la marca:
+   la página respira color, no un funeral blanco */
+.map-title{
+  font-family:var(--font-display); font-weight:600; font-size:1.15rem;
+  background: linear-gradient(110deg, var(--sky-deep) 0%, var(--sky-mid) 30%, var(--accent) 55%, var(--breath-good) 80%, var(--sky-deep) 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: wordmarkFlow 8s ease-in-out infinite;
+}
+/* isolation:isolate crea un contexto de apilamiento propio: nada de lo
+   que el mapa pinte dentro (canvas WebGL, controles con z-index) puede
+   salirse por encima de la barra superior fija al hacer scroll. */
+.map-wrap{ position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); isolation:isolate; }
+
+/* El mapa de sombras 3D abre la página: marco de degradado cálido
+   (naranja → azul → verde) para que tenga vida y no se mezcle con el fondo */
+.map-section:has(#shadowRouteMap) .map-wrap{
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--paper), var(--paper)) padding-box,
+    linear-gradient(120deg, var(--accent) 0%, var(--sky-mid) 50%, var(--breath-good) 100%) border-box;
+  box-shadow: 0 18px 44px rgba(22,35,46,0.16), 0 0 0 5px rgba(255,107,26,0.07);
+}
+#map{ height: 460px; width:100%; background:var(--mist); }
+
+/* El mapa de rutas y sombras 3D es la pieza protagonista: más alto y
+   con altura fluida según el viewport (dvh corrige la barra del
+   navegador en iPhone/Android, que con vh recortaba el mapa). */
+#shadowRouteMap{
+  width:100%;
+  height: clamp(440px, 62vh, 760px);
+  height: clamp(440px, 62dvh, 760px);
+  background:var(--mist);
 }
 
-// Sirve la copia cacheada al instante (si existe) y SIEMPRE pide a red en
-// segundo plano para refrescarla: velocidad de cache-first sin congelar
-// el contenido. Así el planeta nuevo de OpenFreeMap entra solo.
-function staleWhileRevalidate(peticion) {
-	return caches.open(CACHE_ESTATICA).then(function(cache) {
-		return cache.match(peticion).then(function(guardada) {
-			const promesaRed = fetch(peticion).then(function(respuesta) {
-				if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
-					cache.put(peticion, respuesta.clone())
-						.then(function() {
-							recortarCache(CACHE_ESTATICA, MAX_ENTRADAS_ESTATICAS);
-						})
-						.catch(function() {
-							/* caché llena o no disponible */ });
-				}
-				return respuesta;
-			}).catch(function() {
-				return guardada || Response.error();
-			});
-			return guardada || promesaRed;
-		});
-	});
+/* En móvil el mapa de sombras rompe el margen lateral y crece hasta
+   casi toda la pantalla útil, respetando los bordes seguros del iPhone
+   (notch / barra inferior) con safe-area-inset. */
+@media (max-width: 640px){
+  .map-section{ padding: 0 8px; }
+  #shadowRouteMap{
+    height: calc(72vh);
+    height: calc(72dvh - env(safe-area-inset-top, 0px));
+  }
+  .map-wrap{ border-radius:12px; }
 }
 
-function networkFirst(peticion) {
-	return fetch(peticion).then(function(respuesta) {
-		if (respuesta && respuesta.ok) {
-			const copia = respuesta.clone();
-			caches.open(CACHE_DINAMICA).then(function(cache) {
-					cache.put(peticion, copia);
-				})
-				.catch(function() {
-					/* sin caché */ });
-		}
-		return respuesta;
-	}).catch(function() {
-		return caches.match(peticion).then(function(guardada) {
-			// Si no hay red ni caché, devolvemos error de red estándar.
-			return guardada || Response.error();
-		});
-	});
+/* Rendimiento de scroll en móvil: las secciones largas que están
+   fuera de pantalla no se renderizan hasta acercarse al viewport.
+   contain-intrinsic-size evita saltos de barra de desplazamiento. */
+.forecast-section, .map-section, .explain, .content{
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
 }
 
-/* ---------------- fetch ---------------- */
-self.addEventListener('fetch', function(ev) {
-	const peticion = ev.request;
+/* Gestos táctiles fluidos sobre los mapas en iOS/Android */
+.map-wrap, #shadowRouteMap, #map{
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-x pan-y;
+}
+/* MapLibre gestiona sus propios gestos (pellizcar para zoom) */
+#shadowRouteMap .maplibregl-canvas{ touch-action: none; }
+.legend{ position:absolute; bottom:14px; left:14px; z-index:400; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 14px; font-size:0.75rem; box-shadow:0 4px 14px rgba(0,0,0,0.1); }
+.legend-row{ display:flex; align-items:center; gap:6px; margin:3px 0; }
+.legend-dot{ width:10px; height:10px; border-radius:50%; }
+.legend-note{ color: var(--sky-mid); margin-top:6px; font-style:italic; max-width:190px; }
+.status-line{ text-align:center; font-family:var(--font-mono); font-size:0.68rem; color:var(--sky-mid); padding:8px; }
+.popup-human{ font-family:var(--font-display); font-weight:600; font-size:0.96rem; color:var(--sky-deep); margin-bottom:4px; }
+.popup-tech{ font-family:var(--font-mono); font-size:0.66rem; color:var(--sky-mid); }
+.popup-tag{ font-size:0.63rem; color:var(--accent); font-family:var(--font-mono); margin-top:4px; display:block; }
 
-	// Solo GET: el chat (/manolito) y cualquier POST van directos a red.
-	if (peticion.method !== 'GET') return;
+[data-theme="dark"] .leaflet-control-zoom a{ background:var(--mist); color:var(--ink); border-color:var(--line); }
+[data-theme="dark"] .leaflet-control-zoom a:hover{ background:var(--sky-deep); color:var(--paper); }
+[data-theme="dark"] .leaflet-popup-content-wrapper,
+[data-theme="dark"] .leaflet-popup-tip{ background:var(--paper); color:var(--ink); }
+[data-theme="dark"] .leaflet-control-attribution{ background:rgba(0,0,0,0.55); color:var(--sky-mid); }
+[data-theme="dark"] .leaflet-control-attribution a{ color:var(--sky-mid); }
 
-	let url;
-	try {
-		url = new URL(peticion.url);
-	} catch (e) {
-		return;
-	}
-	if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+/* ---------- sección "qué significa esto" ---------- */
+.explain{ max-width: 720px; margin: 50px auto 0; padding: 0 24px; }
+.explain h2{ font-family:var(--font-display); color:var(--sky-deep); font-size:1.4rem; }
+.explain-card{ background: var(--mist); border-radius:16px; padding:18px 20px; margin-bottom:12px; }
+.explain-card b{ color: var(--sky-deep); }
 
-	// Navegaciones (entrar a la web): frescura primero.
-	if (peticion.mode === 'navigate') {
-		ev.respondWith(networkFirst(peticion));
-		return;
-	}
+/* ---------- footer ---------- */
+.footer{ margin-top: 60px; border-top: 1px solid var(--line); padding: 26px 24px 40px; text-align:center; color: var(--sky-mid); font-size:0.78rem; }
+.footer-family{ margin-top:8px; font-family: var(--font-mono); font-size:0.75rem; }
 
-	if (esDinamico(url)) {
-		ev.respondWith(networkFirst(peticion));
-		return;
-	}
+/* ---------- chat flotante ---------- */
+/* ---- Botón del chat: logo M∞ con anillo de degradado giratorio ----
+   Los colores del anillo y de las letras vienen de --chat-ring / --chat-ink,
+   que chat.js cambia en cada carga (7 variantes rotando). */
+.chat-fab{
+  position:fixed; bottom:22px; right:22px; z-index:1200;
+  width:58px; height:58px; border-radius:50%; border:none; padding:0;
+  background:transparent; cursor:pointer;
+  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.35));
+  transition: transform .18s ease;
+}
+.chat-fab:hover{ transform: scale(1.07); }
+.chat-fab:active{ transform: scale(0.97); }
+.chat-fab-ring{
+  display:flex; width:100%; height:100%; border-radius:50%; padding:3px;
+  background: var(--chat-ring, conic-gradient(#00f0ff,#7b2fff,#ff00e5,#ff8800,#ffee00,#00ffc8,#00f0ff));
+  animation: chatRingSpin 9s linear infinite;
+}
+.chat-fab-core{
+  flex:1; border-radius:50%; background:#0B1220;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:1.02rem; letter-spacing:-0.02em;
+  background-image: var(--chat-ink, linear-gradient(100deg,#00f0ff,#7b2fff,#ff00e5));
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+  animation: chatRingSpinInv 9s linear infinite; /* contrarresta el giro: las letras quietas */
+}
+@keyframes chatRingSpin{ to{ transform: rotate(360deg); } }
+@keyframes chatRingSpinInv{ from{ transform: rotate(0); } to{ transform: rotate(-360deg); } }
+@media (prefers-reduced-motion: reduce){
+  .chat-fab-ring, .chat-fab-core{ animation:none; }
+}
+/* Mini logo M∞ en la cabecera del panel */
+.chat-logo{
+  display:inline-flex; width:26px; height:26px; border-radius:50%; padding:2px;
+  background: var(--chat-ring, conic-gradient(#00f0ff,#7b2fff,#ff00e5,#ff8800,#ffee00,#00ffc8,#00f0ff));
+  margin-right:6px; flex-shrink:0;
+}
+.chat-logo i{
+  flex:1; border-radius:50%; background:#0B1220; font-style:normal;
+  font-family:var(--font-display); font-weight:700; font-size:8.5px;
+  display:flex; align-items:center; justify-content:center;
+  background-image: var(--chat-ink, linear-gradient(100deg,#00f0ff,#7b2fff,#ff00e5));
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+}
+/* El chat NO es modal: sin fondo oscuro ni bloqueo, se puede navegar
+   por la web con el chat abierto. Se cierra con la X o con Escape. */
+.chat-overlay{
+  position:fixed; inset:0; background:transparent;
+  display:none; align-items:flex-end; justify-content:flex-end; z-index:1200;
+  padding: 0 22px 96px 0; pointer-events:none;
+}
+.chat-overlay.open{ display:flex; }
+.chat-panel{
+  background: var(--surface, var(--paper)); width:100%; max-width: 370px; border-radius: 18px;
+  padding: 16px; max-height: 66vh; overflow-y:auto; pointer-events:auto;
+  border: 1px solid var(--border, var(--line));
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.08);
+}
+.chat-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.chat-title{ font-family:var(--font-display); font-weight:600; font-size:1rem; color: var(--sky-deep); }
+.chat-msg{ background: var(--mist); border-radius: 12px; padding: 10px 12px; margin-bottom:8px; font-size:0.84rem; max-width: 88%; line-height:1.45; }
+.chat-msg.mano{ background: var(--accent-soft); }
+.chat-msg.user{ margin-left:auto; background: var(--sky-deep); color: var(--paper); }
+.quick-qs{ display:flex; flex-wrap:wrap; gap:6px; margin: 10px 0; }
+.quick-qs button{
+  font-size:0.7rem; border:1px solid var(--line); background:transparent;
+  border-radius:999px; padding:5px 11px; cursor:pointer; color: var(--sky-deep);
+  transition: border-color .15s, background .15s;
+}
+.quick-qs button:hover{ border-color: var(--accent); background: var(--accent-soft); }
+.chat-input-row{ display:flex; gap:7px; margin-top:6px; }
+.chat-input-row input{
+  flex:1; border:1px solid var(--line); border-radius:10px; padding:9px 12px;
+  background:var(--paper); color:var(--ink); font-family: var(--font-body); font-size:0.84rem;
+}
+.chat-input-row button{ background: var(--sky-deep); color:var(--paper); border:none; border-radius:10px; padding: 0 15px; font-weight:600; font-size:0.82rem; cursor:pointer; }
+.chat-status{ font-family:var(--font-mono); font-size:0.6rem; color:var(--sky-mid); margin-top:5px; }
 
-	// Teselas del mapa: al instante desde caché + revalidación en segundo
-	// plano (que los edificios nuevos de OSM lleguen sin tocar nada).
-	if (HOSTS_REVALIDABLES.indexOf(url.hostname) !== -1) {
-		ev.respondWith(staleWhileRevalidate(peticion));
-		return;
-	}
+/* En móvil el chat sigue siendo una hoja inferior a todo lo ancho */
+@media (max-width: 640px){
+  .chat-overlay{ justify-content:center; padding:0; }
+  .chat-panel{ max-width:100%; border-radius:16px 16px 0 0; max-height:76vh; padding:16px 16px calc(14px + env(safe-area-inset-bottom, 0px)); }
+}
 
-	if (esEstatico(url)) {
-		ev.respondWith(cacheFirst(peticion));
-		return;
-	}
+/* (el antiguo .chat-fab-logo de texto ya no existe: el logo es el anillo M∞) */
 
-	// Resto (mayoría same-origin): network-first suave con respaldo.
-	ev.respondWith(networkFirst(peticion));
-});
+/* ---------- páginas de contenido (about, legal) ---------- */
+.content{ max-width: 680px; margin: 0 auto; padding: 40px 24px 60px; }
+.content h1{ font-family:var(--font-display); color:var(--sky-deep); font-size:1.9rem; }
+.content h2{ font-family:var(--font-display); color:var(--sky-deep); font-size:1.25rem; margin-top:34px; }
+.content p{ color: var(--ink); }
+.content .lead{ font-size:1.05rem; color: var(--sky-mid); }
+
+/* ---------- gráfico de evolución ---------- */
+.forecast-section{ max-width: 1000px; margin: 46px auto 0; padding: 0 24px; }
+.chart-card{ background: var(--mist); border-radius:16px; padding:20px; margin-bottom:20px; }
+#airChart{ width:100%; }
+#airChart svg{ width:100%; height:auto; display:block; }
+.chart-line-hist{ fill:none; stroke:var(--sky-mid); stroke-width:2; }
+.chart-line-fore{ fill:none; stroke:var(--accent); stroke-width:2; stroke-dasharray:5 4; }
+.chart-now-line{ stroke:var(--breath-bad); stroke-width:1; stroke-dasharray:2 3; }
+.chart-axis-label{ font-family:var(--font-mono); font-size:9px; fill:var(--sky-mid); }
+.chart-legend{ display:flex; gap:18px; margin-top:10px; font-size:0.75rem; color:var(--sky-mid); flex-wrap:wrap; background:var(--paper); border-radius:8px; padding:4px 8px; width:fit-content; }
+.chart-legend i{ display:inline-block; width:14px; height:2px; margin-right:5px; vertical-align:middle; }
+.dot-hist{ background:var(--sky-mid); }
+.dot-fore{ background:var(--accent); border-top:2px dashed var(--accent); background:none; height:0; }
+
+/* ---------- motor cuántico probabilístico ---------- */
+.quantum-card{ background: var(--paper); border:1px solid var(--line); border-radius:16px; padding:22px; }
+.quantum-head{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+.quantum-badge{ font-family:var(--font-display); font-weight:700; color:var(--sky-deep); font-size:1.05rem; }
+.quantum-sub{ font-family:var(--font-mono); font-size:0.75rem; color:var(--sky-mid); }
+.quantum-bars{ display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+.qbar-row{ display:flex; align-items:center; gap:10px; }
+.qbar-label{ width:90px; font-size:0.82rem; color:var(--ink); flex-shrink:0; }
+.qbar-track{ flex:1; height:14px; background:var(--mist); border-radius:999px; overflow:hidden; }
+.qbar-fill{ height:100%; border-radius:999px; transition:width 0.6s ease; }
+.qbar-pct{ width:44px; text-align:right; font-family:var(--font-mono); font-size:0.78rem; color:var(--sky-mid); flex-shrink:0; }
+.quantum-disclaimer{ font-size:0.78rem; color:var(--sky-mid); font-style:italic; line-height:1.5; margin:0; }
+
+/* ---------- gráfica cuántica interactiva ---------- */
+/* Cada barra es un botón: mismo layout que antes, pero clicable/tocable. */
+.qbar-btn{
+  appearance:none; -webkit-appearance:none;
+  display:flex; align-items:center; gap:10px; width:100%; box-sizing:border-box;
+  background:none; border:none; padding:5px 6px; margin:0;
+  font:inherit; color:inherit; text-align:left; cursor:pointer;
+  border-radius:10px;
+}
+.qbar-btn:hover, .qbar-btn.qbar-activo{ background:var(--mist); }
+.qbar-btn.qbar-activo .qbar-pct{ color:var(--ink); font-weight:700; }
+/* Los spans heredan las medidas de las clases originales (eran divs) */
+.qbar-btn .qbar-label, .qbar-btn .qbar-track, .qbar-btn .qbar-pct{ display:block; }
+
+/* Línea con los números reales del aire (media/pico/mínimo PM2.5) */
+.quantum-stats{
+  font-family:var(--font-mono); font-size:0.78rem; color:var(--sky-deep);
+  margin:2px 0 10px; line-height:1.5;
+}
+/* Detalle al tocar una barra (también lo leen los lectores de pantalla) */
+.quantum-detail{
+  display:none; font-size:0.82rem; line-height:1.55; color:var(--ink);
+  background:var(--mist); border-radius:10px; padding:10px 14px; margin-bottom:14px;
+}
+.quantum-detail.visible{ display:block; }
+
+/* ---------- tooltip del gráfico (propio, no de librería) ---------- */
+#airChart{ position:relative; }
+.chart-hit{ cursor:crosshair; }
+.chart-tooltip{
+  position:absolute; z-index:10; pointer-events:none;
+  background: var(--sky-deep); color: var(--paper);
+  border-radius: 6px; padding: 6px 10px; font-family: var(--font-mono);
+  font-size: 0.72rem; white-space:nowrap; transform: translateX(-50%);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+.chart-tooltip b{ display:block; font-size:0.78rem; }
+.chart-tooltip span{ color: var(--accent); font-size:0.64rem; }
+
+/* ---------- semana cuántica ---------- */
+.week-label{ font-family:var(--font-mono); font-size:0.64rem; color:var(--sky-mid); text-transform:uppercase; letter-spacing:0.06em; margin:18px 0 8px; }
+.quantum-week{ display:flex; gap:6px; align-items:flex-end; height:70px; }
+.week-day{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; cursor:default; }
+.week-bar-track{ flex:1; width:100%; display:flex; align-items:flex-end; }
+.week-bar-fill{ width:100%; border-radius:3px 3px 0 0; min-height:4px; transition:height 0.4s ease; }
+.week-day-label{ font-family:var(--font-mono); font-size:0.6rem; color:var(--sky-mid); text-transform:uppercase; margin-top:4px; }
+
+/* ---------- gráfico interactivo ---------- */
+.chart-wrap{ position:relative; }
+.chart-hover-line{ stroke:var(--sky-deep); stroke-width:1; opacity:0.35; }
+.chart-hover-dot{ fill:var(--accent); stroke:var(--paper); stroke-width:1.5; }
+.chart-tooltip{
+  position:absolute; top:-6px; transform: translate(-50%, -100%);
+  background: var(--sky-deep); color: var(--paper); padding:8px 12px; border-radius:10px;
+  pointer-events:none; white-space:nowrap; box-shadow:0 6px 16px rgba(0,0,0,0.2);
+}
+.chart-tooltip::after{
+  content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%);
+  border:5px solid transparent; border-top-color:var(--sky-deep);
+}
+.chart-tooltip .tt-date{ font-family:var(--font-mono); font-size:0.64rem; color:var(--accent); margin-bottom:2px; letter-spacing:0.02em; }
+.chart-tooltip .tt-value{ font-family:var(--font-display); font-weight:600; font-size:0.92rem; }
+.chart-tooltip .tt-tag{ color: rgba(251,250,247,0.6); font-style:italic; }
+
+/* ---------- desglose de 5 días ---------- */
+.qday-row{ display:flex; align-items:center; gap:12px; }
+.qday-label{ width:70px; font-family:var(--font-mono); font-size:0.72rem; color:var(--sky-mid); flex-shrink:0; }
+.qday-track{ flex:1; height:16px; border-radius:999px; overflow:hidden; display:flex; background:var(--mist); }
+.qday-seg{ height:100%; transition:width 0.6s ease; }
+.qday-dominant{ width:78px; text-align:right; font-family:var(--font-display); font-weight:600; font-size:0.78rem; color:var(--sky-deep); flex-shrink:0; }
+
+.yayo-zoom-controls { display: none; gap: 16px; justify-content: center; align-items: center; margin-top: 18px; }
+.yayo-zoom-btn {
+  width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--sky-deep, #0E3B47);
+  background: var(--paper, #FBFAF7); color: var(--sky-deep, #0E3B47);
+  font-family: var(--font-display, 'Fraunces', serif); font-size: 1.6rem; font-weight: 700;
+  cursor: pointer; box-shadow: 0 4px 14px rgba(14,59,71,0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.yayo-zoom-btn:hover { background: var(--accent-soft, rgba(255,107,26,0.16)); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14,59,71,0.22); }
+.yayo-zoom-btn:active { transform: translateY(1px); }
+
+/* ============================================================
+   MEJORAS PARA LOS MODOS (CIENTÍFICO, YAYO, PEQUE)
+   ============================================================ */
+
+body.mode-cientifico .orb-face { font-family: 'IBM Plex Mono', monospace; font-size: 2.6rem; font-weight: 500; }
+body.mode-cientifico .human-line { font-family: 'IBM Plex Mono', monospace; }
+body.mode-cientifico .tech-readout { font-family: 'IBM Plex Mono', monospace; font-size: 1rem; color: var(--text-soft, #555); }
+
+.sci-panel {
+  display: none; margin: 1rem auto 0; background: var(--surface, rgba(255,255,255,0.85));
+  backdrop-filter: blur(8px); border-radius: 1.2rem; padding: 0.8rem 1.2rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; max-width: 340px;
+  border: 1px solid var(--border, #ccc); text-align: left; color: var(--text, #333);
+}
+body.mode-cientifico .sci-panel { display: block; }
+.sci-panel table { width: 100%; border-collapse: collapse; }
+.sci-panel td { padding: 0.25rem 0; border-bottom: 1px dashed var(--border, #ccc); }
+.sci-panel td:first-child { font-weight: 600; }
+.sci-panel td:last-child { text-align: right; }
+.sci-updated { font-size: 0.75rem; color: var(--text-soft, #777); margin-top: 0.5rem; text-align: right; }
+
+body.mode-yayo .orb { width: 200px; height: 200px; }
+body.mode-yayo .orb-face { font-size: 2.6rem; }
+body.mode-yayo .orb-ring { width: 260px; height: 260px; }
+body.mode-yayo .human-line { font-size: 1.8rem; line-height: 1.4; }
+body.mode-yayo .sub-line { font-size: 1.4rem; }
+body.mode-yayo .tech-readout { font-size: 1.3rem; }
+body.mode-yayo .im-lost-btn { font-size: 1.2rem; padding: 0.8rem 1.6rem; }
+body.mode-yayo .yayo-zoom-controls { display: flex; }
+
+body.mode-peque .orb, body.mode-peque .orb-ring, body.mode-peque .tech-readout { display: none; }
+
+.peque-character {
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  margin: 0 auto; width: 100%; animation: fadeIn 0.4s ease-out forwards;
+}
+body.mode-peque .peque-character { display: flex; }
+
+.peque-cloud {
+  width: 120px; height: 120px; position: relative; will-change: transform;
+  animation: floatY 3s ease-in-out infinite, floatX 5s ease-in-out infinite;
+}
+.peque-cloud svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+
+@keyframes floatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes floatX { 0%, 100% { margin-left: 0; } 50% { margin-left: -4px; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.peque-message {
+  font-size: 1.5rem; font-weight: 700; color: var(--text, #333); text-align: center;
+  margin-top: 0.8rem; background: var(--surface, rgba(255, 255, 255, 0.75));
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  padding: 0.4rem 1.4rem; border-radius: 2rem; border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+body.mode-peque .human-line { font-size: 1.4rem; font-weight: 600; color: var(--text, #444); margin-top: 0.5rem; }
+body.mode-peque .sub-line { font-size: 1.1rem; color: var(--text-soft, #666); }
+
+body.mode-peque .im-lost-btn {
+  background: #FFD166; color: #333; font-weight: 600; font-size: 1.1rem; border-radius: 2rem;
+  padding: 0.7rem 1.5rem; border: 2px solid #FFB347; box-shadow: 0 4px 8px rgba(255, 179, 71, 0.2);
+  cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); will-change: transform, box-shadow;
+}
+body.mode-peque .im-lost-btn:hover { background: #FFC033; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(255, 179, 71, 0.3); }
+body.mode-peque .im-lost-btn:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(255, 179, 71, 0.2); }
+
+/* ---- Efectos mágicos del modo peque ---- */
+body.mode-peque .hero { position: relative; overflow: hidden; }
+.peque-sparkle {
+  position: absolute; bottom: -48px; pointer-events: none; z-index: 1;
+  opacity: 0; will-change: transform, opacity;
+  animation: pequeRise linear infinite;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
+}
+@keyframes pequeRise {
+  0%   { transform: translateY(0) rotate(-8deg) scale(0.7); opacity: 0; }
+  12%  { opacity: 0.95; }
+  50%  { transform: translateY(-44vh) rotate(10deg) scale(1.08); }
+  100% { transform: translateY(-88vh) rotate(-6deg) scale(0.85); opacity: 0; }
+}
+/* La nube respira y baila con squash & stretch */
+body.mode-peque .peque-cloud { animation: floatY 2.2s ease-in-out infinite, pequeSquash 1.6s ease-in-out infinite; }
+@keyframes pequeSquash { 0%, 100% { scale: 1 1; } 30% { scale: 1.07 0.93; } 60% { scale: 0.95 1.07; } }
+/* El mensaje aparece con un rebote alegre */
+body.mode-peque .peque-message { animation: pequePop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes pequePop { from { transform: scale(0.55); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .peque-sparkle { display: none; }
+  body.mode-peque .peque-cloud { animation: floatY 3s ease-in-out infinite; }
+}
+
+.orb-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+/* ============================================================
+   SELECTOR DE CIUDAD ELEGANTE
+   ============================================================ */
+.city-picker { position: relative; display: flex; justify-content: center; margin: 1rem 0; }
+.city-dropdown-btn {
+  background: var(--surface, #fff); border: 1px solid var(--border, #ccc); border-radius: 2rem;
+  padding: 0.7rem 1.8rem; font-family: 'Karla', sans-serif; font-weight: 600; font-size: 1rem;
+  color: var(--text, #333); cursor: pointer; backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s;
+}
+.city-dropdown-btn:hover { background: var(--hover, #f0f0f0); }
+.city-dropdown-btn::after { content: '▾'; font-size: 0.8rem; margin-left: 0.3rem; }
+.city-dropdown-list {
+  position: absolute; top: calc(100% + 0.5rem); left: 50%; transform: translateX(-50%);
+  background: var(--surface, #fff); backdrop-filter: blur(12px); border: 1px solid var(--border, #ccc);
+  border-radius: 1rem; box-shadow: 0 8px 24px rgba(0,0,0,0.12); list-style: none; padding: 0.4rem 0;
+  margin: 0; width: max-content; min-width: 220px; max-height: 260px; overflow-y: auto; z-index: 100; display: none;
+}
+.city-dropdown-list.open { display: block; }
+.city-dropdown-list li {
+  padding: 0.6rem 1.2rem; font-family: 'Karla', sans-serif; font-size: 0.95rem;
+  color: var(--text, #333); cursor: pointer; transition: background 0.15s;
+}
+city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
+.city-dropdown-list li.selected { font-weight: 700; background: var(--hover, #e8e8e8); }
+
+/* ============================================================
+   APARTADO DE DONACIONES (DISCRETO)
+   ============================================================ */
+.footer-donacion { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed var(--line, #ccc); text-align: center; font-family: 'Karla', sans-serif; color: var(--text-soft, #666); }
+.donacion-mensaje { font-size: 0.9rem; line-height: 1.4; margin: 0 0 0.6rem 0; }
+.donacion-boton {
+  display: inline-block; padding: 0.4rem 1.2rem; border: 1px solid var(--line, #ccc); border-radius: 2rem;
+  font-size: 0.85rem; font-weight: 600; text-decoration: none; color: var(--ink, #333);
+  background: var(--surface, rgba(255,255,255,0.7)); backdrop-filter: blur(4px); transition: background 0.2s, border-color 0.2s;
+}
+.donacion-boton:hover { background: var(--hover, #f0f0f0); border-color: #aaa; }
+
+.rs-form{ display:flex; flex-wrap:wrap; gap:10px; }
+.rs-form input[type="text"]{
+  flex:1; min-width:200px; padding:10px 14px; border:1px solid var(--line);
+  border-radius:10px; background:var(--paper); color:var(--ink);
+  font-family:var(--font-body); font-size:0.9rem; outline:none;
+}
+.rs-form input[type="text"]:focus{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.rs-form .im-lost-btn{ margin:0; }
+/* El botón protagonista del mapa: degradado acento → segundo acento,
+   hermanado con el cian→violeta de islasdecalorsevilla.com */
+#rsBuscarBtn{
+  border:none;
+  background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2, #E04E00) 100%);
+  color: var(--paper); font-weight:700;
+  box-shadow: 0 6px 18px var(--accent-soft);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+#rsBuscarBtn:hover{ background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2, #E04E00) 100%); color:var(--paper); transform:translateY(-1px); filter:brightness(1.08); box-shadow:0 10px 24px var(--accent-soft); }
+#rsBuscarBtn:active{ transform:translateY(1px); }
+.rs-layer-toggles{ display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:10px; font-size:0.8rem; color:var(--sky-deep); font-weight:600; }
+.rs-layer-toggles-lista{ display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+.rs-layer-toggles.rs-plegado .rs-layer-toggles-lista{ display:none; }
+#rsBtnPlegarCapas{
+  font-family:inherit; font-size:0.72rem; letter-spacing:.05em; text-transform:uppercase;
+  font-weight:700; padding:5px 12px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--line); background:var(--paper); color:var(--sky-deep);
+  transition:background .15s, border-color .15s;
+}
+#rsBtnPlegarCapas:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent); }
+.rs-layer-toggles label{ display:flex; align-items:center; gap:6px; cursor:pointer; }
+.rs-layer-toggles input[type="checkbox"]{ accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
+.rs-sol-widget{
+  position:absolute; bottom:14px; right:14px; z-index:400;
+  background:var(--paper); border:1px solid var(--line); border-radius:14px;
+  padding:10px; box-shadow:0 4px 14px rgba(0,0,0,0.15); text-align:center;
+}
+.rs-sol-cardinal{ font-family:var(--font-mono); font-size:8px; fill:var(--sky-mid); }
+.rs-sol-info{ font-family:var(--font-mono); font-size:0.62rem; color:var(--sky-mid); display:flex; flex-direction:column; gap:1px; margin-top:4px; }
+
+/* Planetario: canica azul (Tierra) + Sol + Luna, centrado y vivo */
+.rs-planetario{ display:flex; flex-direction:column; align-items:center; width:100%; margin:16px auto 4px; text-align:center; }
+.rs-planetario svg{ display:block; filter:drop-shadow(0 6px 18px rgba(14,59,71,0.18)); }
+/* La cúpula respira con el tema y la paleta elegidos (color-mix con variables vivas) */
+.rs-planetario-cielo{ fill:rgba(23,120,138,0.10); fill:color-mix(in srgb, var(--sky-mid) 11%, color-mix(in srgb, var(--accent) 11%, transparent)); transition:fill 1.2s ease; }
+.rs-planetario[data-cielo="tarde"] .rs-planetario-cielo{ fill:rgba(255,107,26,0.18); fill:color-mix(in srgb, var(--accent) 22%, transparent); }
+.rs-planetario[data-cielo="noche"] .rs-planetario-cielo{ fill:rgba(8,20,38,0.88); }
+[data-theme="dark"] .rs-planetario-cielo{ fill:rgba(159,216,206,0.12); fill:color-mix(in srgb, var(--sky-mid) 15%, color-mix(in srgb, var(--accent) 12%, transparent)); }
+[data-theme="dark"] .rs-planetario[data-cielo="tarde"] .rs-planetario-cielo{ fill:color-mix(in srgb, var(--accent) 24%, transparent); }
+[data-theme="dark"] .rs-planetario[data-cielo="noche"] .rs-planetario-cielo{ fill:rgba(2,8,18,0.92); }
+.rs-planetario[data-cielo="noche"] .rs-sol-cardinal{ fill:#9FD8CE; }
+.rs-estrella{ fill:#ffffff; opacity:0; transition:opacity 1.2s ease; }
+.rs-planetario[data-cielo="noche"] .rs-estrella{ opacity:0.85; }
+#rsSolOrbe, #rsLunaOrbe{ transition:transform 1s linear, opacity 0.6s ease; }
+#rsSolOrbe circle{ filter:drop-shadow(0 0 6px rgba(255,180,60,0.9)); }
+#rsLunaOrbe circle{ filter:drop-shadow(0 0 3px rgba(200,215,235,0.7)); }
+.rs-tierra-giro{ transform-box:fill-box; transform-origin:center; animation:rsGiroTierra 60s linear infinite; }
+@keyframes rsGiroTierra{ to{ transform:rotate(360deg); } }
+.rs-planetario-info{ font-family:var(--font-mono); font-size:0.62rem; color:var(--sky-mid); margin-top:4px; letter-spacing:0.02em; }
+
+/* ============================================================
+   RUTA Y SOMBRAS 3D, sugerencias del autocompletado + mapa oscuro
+   ============================================================ */
+
+/* Lista de sugerencias del buscador de direcciones (usada por
+   shadows-route.js; antes no tenía estilos propios en esta hoja,
+   por eso salía sin formato / pegada al input). */
+.rs-field{ position:relative; flex:1; min-width:200px; }
+.rs-sugerencias{
+  position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:50;
+  list-style:none; margin:0; padding:6px 0; display:none;
+  background:var(--paper); border:1px solid var(--line); border-radius:12px;
+  box-shadow:0 10px 28px rgba(0,0,0,0.14); max-height:260px; overflow-y:auto;
+}
+.rs-sugerencias li{
+  padding:8px 14px; cursor:pointer; font-size:0.84rem; color:var(--ink);
+  display:flex; flex-direction:column; gap:1px;
+}
+.rs-sugerencias li:hover{ background:var(--accent-soft); }
+.rs-sugerencias li.rs-sug-empty{ color:var(--sky-mid); cursor:default; font-style:italic; }
+.rs-sug-linea1{ font-weight:600; }
+.rs-sug-linea2{ font-size:0.7rem; color:var(--sky-mid); }
+
+/* Fondo del contenedor del mapa cuando el modo oscuro está activo:
+   el filtro CSS que oscurece de verdad el lienzo lo añade
+   shadows-route.js sobre #shadowRouteMap .maplibregl-canvas; esto es
+   solo el color de fondo mientras cargan los tiles. */
+.rs-mapa-oscuro-activo{ background:#0b0f14; }
+
+/* El mapa nacional (Leaflet) también se oscurece con la web:
+   solo las teselas, los puntos de colores quedan intactos */
+[data-theme="dark"] #map .leaflet-tile-pane{
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
+}
+/* ============================================================
+   MODO NOCHE, widgets flotantes del mapa
+   Cuando la web está en modo oscuro (o el usuario pulsa
+   "Mapa oscuro" a mano), TODOS los paneles sobre el mapa pasan
+   a cristal oscuro con acento mandarina: nada de focos blancos.
+   ============================================================ */
+[data-theme="dark"] #rsTimeControls,
+.rs-mapa-oscuro-activo #rsTimeControls,
+[data-theme="dark"] #irrPanel,
+.rs-mapa-oscuro-activo #irrPanel,
+[data-theme="dark"] #rsShadowBadge,
+.rs-mapa-oscuro-activo #rsShadowBadge{
+  background: linear-gradient(160deg, rgba(10,30,38,0.95) 0%, rgba(64,32,10,0.42) 100%);
+  border-color: rgba(255,122,51,0.38);
+  color: #E8F4F0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+[data-theme="dark"] #rsTimeLabel,
+.rs-mapa-oscuro-activo #rsTimeLabel{ color:#FF9A5C; }
+[data-theme="dark"] #rsTimeControls .rs-eyebrow,
+.rs-mapa-oscuro-activo #rsTimeControls .rs-eyebrow{ color:#9FD8CE; }
+[data-theme="dark"] #rsGoldenBadge,
+.rs-mapa-oscuro-activo #rsGoldenBadge{
+  background:rgba(255,122,51,0.16); border-color:rgba(255,122,51,0.45); color:#FF9A5C;
+}
+[data-theme="dark"] #rsTimeControls .rs-divisor,
+.rs-mapa-oscuro-activo #rsTimeControls .rs-divisor{ background:rgba(232,244,240,0.16); }
+[data-theme="dark"] #rsTimeControls button,
+.rs-mapa-oscuro-activo #rsTimeControls button{
+  background:rgba(232,244,240,0.09); color:#E8F4F0; border-color:rgba(232,244,240,0.2);
+}
+[data-theme="dark"] #rsTimeControls button:hover,
+.rs-mapa-oscuro-activo #rsTimeControls button:hover{
+  background:rgba(255,122,51,0.22); border-color:#FF7A33;
+}
+[data-theme="dark"] #rsTimeControls button.rs-btn-capturar,
+.rs-mapa-oscuro-activo #rsTimeControls button.rs-btn-capturar{ color:#9FD8CE; }
+[data-theme="dark"] #rsPlegarBtn,
+.rs-mapa-oscuro-activo #rsPlegarBtn{ color:#9FD8CE; }
+[data-theme="dark"] #rsTimeSlider::-webkit-slider-runnable-track,
+.rs-mapa-oscuro-activo #rsTimeSlider::-webkit-slider-runnable-track{ background:rgba(232,244,240,0.25); }
+[data-theme="dark"] #rsTimeSlider::-moz-range-track,
+.rs-mapa-oscuro-activo #rsTimeSlider::-moz-range-track{ background:rgba(232,244,240,0.25); }
+[data-theme="dark"] #rsTimeSlider::-webkit-slider-thumb,
+.rs-mapa-oscuro-activo #rsTimeSlider::-webkit-slider-thumb{ border-color:#0A1E26; }
+[data-theme="dark"] #rsTimeSlider::-moz-range-thumb,
+.rs-mapa-oscuro-activo #rsTimeSlider::-moz-range-thumb{ border-color:#0A1E26; }
+
+[data-theme="dark"] #rsMapControls button,
+.rs-mapa-oscuro-activo #rsMapControls button,
+[data-theme="dark"] #rsMapStyleToggle button,
+.rs-mapa-oscuro-activo #rsMapStyleToggle button{
+  background:rgba(10,30,38,0.88); color:#E8F4F0;
+  border-color:rgba(232,244,240,0.22); box-shadow:0 3px 10px rgba(0,0,0,0.4);
+}
+[data-theme="dark"] #rsMapControls button:hover,
+.rs-mapa-oscuro-activo #rsMapControls button:hover,
+[data-theme="dark"] #rsMapStyleToggle button:hover,
+.rs-mapa-oscuro-activo #rsMapStyleToggle button:hover{
+  background:var(--accent-soft); border-color:var(--accent);
+}
+[data-theme="dark"] #rsMapControls button.rs-activo,
+.rs-mapa-oscuro-activo #rsMapControls button.rs-activo{
+  background:linear-gradient(120deg, var(--accent) 0%, var(--accent-2, #FF7A33) 100%);
+  color:#03050F; border-color:transparent; box-shadow:0 4px 14px var(--accent-soft);
+}
+[data-theme="dark"] #rsShadowBadgeCerrar,
+.rs-mapa-oscuro-activo #rsShadowBadgeCerrar{ color:#9FD8CE; }
+[data-theme="dark"] #rsJoystick,
+.rs-mapa-oscuro-activo #rsJoystick{
+  background:rgba(10,30,38,0.55); border-color:rgba(232,244,240,0.25);
+}
+[data-theme="dark"] #rsJoystickKnob,
+.rs-mapa-oscuro-activo #rsJoystickKnob{ border-color:#0A1E26; }
+
+[data-theme="dark"] #irrPanel .irr-cabecera,
+.rs-mapa-oscuro-activo #irrPanel .irr-cabecera{ color:#E8F4F0; }
+[data-theme="dark"] #irrPanel label,
+.rs-mapa-oscuro-activo #irrPanel label,
+[data-theme="dark"] #irrPanel .irr-leyenda,
+.rs-mapa-oscuro-activo #irrPanel .irr-leyenda,
+[data-theme="dark"] #irrLeyendaAtenuacion,
+.rs-mapa-oscuro-activo #irrLeyendaAtenuacion{ color:#9FD8CE; }
+[data-theme="dark"] #irrPanel input[type=number],
+.rs-mapa-oscuro-activo #irrPanel input[type=number]{
+  background:rgba(232,244,240,0.09); color:#E8F4F0; border-color:rgba(232,244,240,0.2);
+}
+[data-theme="dark"] #irrPanel input[type=range]::-webkit-slider-runnable-track,
+.rs-mapa-oscuro-activo #irrPanel input[type=range]::-webkit-slider-runnable-track{ background:rgba(232,244,240,0.25); }
+[data-theme="dark"] #irrPanel input[type=range]::-webkit-slider-thumb,
+.rs-mapa-oscuro-activo #irrPanel input[type=range]::-webkit-slider-thumb{ border-color:#0A1E26; }
+[data-theme="dark"] #irrResumen b,
+.rs-mapa-oscuro-activo #irrResumen b{ color:#E8F4F0; }
+[data-theme="dark"] #irrCerrar,
+.rs-mapa-oscuro-activo #irrCerrar{ color:#9FD8CE; }
+
+/* Atribución del mapa y mini-controles nativos en noche */
+[data-theme="dark"] .maplibregl-ctrl-attrib,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-attrib{ background:rgba(10,30,38,0.72); }
+[data-theme="dark"] .maplibregl-ctrl-attrib a,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-attrib a{ color:#9FD8CE; }
+[data-theme="dark"] .maplibregl-ctrl-group,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-group{ background:rgba(10,30,38,0.88); }
+[data-theme="dark"] .maplibregl-ctrl-group button,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-group button{ background:transparent; }
+
+/* ---------- Accesibilidad: objetivos táctiles ---------- */
+/* El botón "i" de atribución de MapLibre medía 20×20px (mínimo táctil 24×24) */
+.maplibregl-ctrl-attrib-button{ min-width:26px !important; min-height:26px !important; }
+
+/* ============================================================
+   ACCESIBILIDAD, lectores de pantalla y modo accesible
+   ============================================================ */
+
+/* Texto solo para lectores de pantalla (invisible, pero en el DOM) */
+.visually-hidden{
+  position:absolute !important; width:1px !important; height:1px !important;
+  padding:0 !important; margin:-1px !important; overflow:hidden !important;
+  clip:rect(0 0 0 0) !important; clip-path:inset(50%) !important;
+  white-space:nowrap !important; border:0 !important;
+}
+
+/* Skip link: oculto hasta que recibe foco con Tab */
+.skip-link{
+  position:absolute; left:12px; top:-64px; z-index:100002;
+  background:var(--paper, #FBFAF7); color:var(--ink, #0D1F26);
+  font-family:var(--font-mono); font-size:0.8rem; font-weight:700;
+  padding:10px 14px; border:2px solid var(--accent-text, #C24500);
+  border-radius:8px; text-decoration:none;
+}
+.skip-link:focus{ top:12px; }
+
+/* Foco visible SIEMPRE con teclado (mínimo 3px, contraste AA sobre fondo) */
+:focus-visible{
+  outline:3px solid var(--accent-text, #C24500) !important;
+  outline-offset:2px;
+}
+
+/* Botón "Modo accesible" del header (lo inyecta i18n.js en todas las páginas) */
+.acc-mode-btn{
+  font-family:var(--font-mono); font-size:0.7rem; font-weight:700;
+  letter-spacing:0.02em; padding:6px 12px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--line); background:transparent; color:var(--sky-mid);
+  white-space:nowrap;
+}
+.acc-mode-btn:hover{ border-color:var(--accent); color:var(--accent); }
+.acc-mode-btn[aria-pressed="true"]{
+  background:var(--sky-deep); color:var(--paper); border-color:var(--sky-deep);
+}
+
+/* ---------- Modo accesible (baja visión) ---------- */
+/* Letra base más grande y aireada */
+body.modo-accesible{
+  font-size:1.25rem !important;
+  line-height:1.7 !important;
+  background:#FFFFFF !important;
+  color:#000000 !important;
+}
+
+/* Sin animaciones ni transiciones: nada se mueve */
+body.modo-accesible *{
+  animation:none !important;
+  transition:none !important;
+  scroll-behavior:auto !important;
+}
+
+/* Contraste máximo: fondo blanco y texto negro en todo el contenido
+   (se respetan canvas y SVG: el mapa y el planetario siguen dibujándose) */
+body.modo-accesible :not(canvas):not(svg):not(svg *){
+  background-color:transparent !important;
+  color:#000000 !important;
+  border-color:#000000 !important;
+  box-shadow:none !important;
+  text-shadow:none !important;
+}
+body.modo-accesible input,
+body.modo-accesible select,
+body.modo-accesible textarea{
+  background:#FFFFFF !important;
+  border:2px solid #000000 !important;
+  color:#000000 !important;
+}
+
+/* Enlaces y botones: subrayados y con contorno permanente de 3px */
+body.modo-accesible a,
+body.modo-accesible button{
+  text-decoration:underline !important;
+  outline:3px solid #000000 !important;
+  outline-offset:1px;
+}
+
+/* Imágenes un poco más contrastadas */
+body.modo-accesible img{ filter:contrast(1.1) !important; }
+
+/* En modo accesible el mapa no se invierte: fondo claro predecible */
+body.modo-accesible #shadowRouteMap .maplibregl-canvas,
+body.modo-accesible #map .leaflet-tile-pane{ filter:none !important; }
+
+/* ===== Indicaciones paso a paso (accesibilidad) ===== */
+.rs-pasos{
+  margin:10px 0 16px;
+  padding:14px 16px;
+  border:1px solid var(--border-color, rgba(127,127,127,.35));
+  border-radius:12px;
+  background:var(--card-bg, rgba(127,127,127,.07));
+}
+.rs-pasos-cabecera{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; flex-wrap:wrap; margin-bottom:8px;
+}
+.rs-pasos-cabecera h3{ margin:0; font-size:1.05rem; }
+.rs-btn-escuchar{
+  cursor:pointer;
+  padding:8px 14px;
+  border-radius:999px;
+  border:2px solid var(--accent-text, #2563eb);
+  background:transparent;
+  color:var(--accent-text, #2563eb);
+  font-weight:600;
+}
+.rs-btn-escuchar[aria-pressed="true"]{
+  background:var(--accent-text, #2563eb);
+  color:#fff;
+}
+.rs-lista-pasos{
+  margin:0; padding-left:1.4em;
+  display:flex; flex-direction:column; gap:6px;
+}
+.rs-lista-pasos li{ line-height:1.55; }
+body.modo-accesible .rs-pasos{ background:#fff !important; color:#000 !important; border-color:#000 !important; }
+body.modo-accesible .rs-btn-escuchar{ border-color:#000 !important; color:#000 !important; }
+body.modo-accesible .rs-btn-escuchar[aria-pressed="true"]{ background:#000 !important; color:#fff !important; }
+
+/* ===== prefers-reduced-motion: ahorro de batería + accesibilidad =====
+   Muchos SO activan "reducir movimiento" junto al modo ahorro. Si está
+   activo, paramos TODAS las animaciones y transiciones decorativas. */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:0.001s !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.001s !important;
+    scroll-behavior:auto !important;
+  }
+}
+
+
+/* ---------- Driver.js (tour guiado) hermanado con el tema oscuro ---------- */
+[data-theme="dark"] .driver-popover{
+  background:#0A0C1F; color:#E8F0FF;
+  border:1px solid rgba(0,240,255,0.25);
+  box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 24px rgba(0,240,255,0.08);
+}
+[data-theme="dark"] .driver-popover-title{ color:#E8F0FF; font-family:var(--font-display); }
+[data-theme="dark"] .driver-popover-description{ color:rgba(232,240,255,0.82); }
+[data-theme="dark"] .driver-popover-progress-text{ color:rgba(0,240,255,0.7); }
+[data-theme="dark"] .driver-popover-close-btn{ color:rgba(232,240,255,0.6); }
+[data-theme="dark"] .driver-popover-close-btn:hover{ color:#00F0FF; }
+[data-theme="dark"] .driver-popover-next-btn{
+  background:linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 100%);
+  color:#03050F; border:none; text-shadow:none; font-weight:700;
+}
+[data-theme="dark"] .driver-popover-prev-btn,
+[data-theme="dark"] .driver-popover-close-btn-text{
+  background:transparent; color:rgba(232,240,255,0.75);
+  border:1px solid rgba(0,240,255,0.3); text-shadow:none;
+}
+[data-theme="dark"] .driver-popover-arrow-side-left{ border-left-color:#0A0C1F; }
+[data-theme="dark"] .driver-popover-arrow-side-right{ border-right-color:#0A0C1F; }
+[data-theme="dark"] .driver-popover-arrow-side-top{ border-top-color:#0A0C1F; }
+[data-theme="dark"] .driver-popover-arrow-side-bottom{ border-bottom-color:#0A0C1F; }
+
+/* ================= Pantalla completa del mapa 3D (propio) =================
+   El botón nativo de MapLibre no funciona en iPhone (iOS solo permite
+   fullscreen en vídeos). Este modo propio fija el mapa a toda la pantalla
+   real del dispositivo (100dvh: descuenta la barra del navegador) y se
+   pone por encima de TODO (topbar, chat, planetario...). */
+body.manolito-fs{ overflow:hidden; }
+body.manolito-fs .map-section:has(#shadowRouteMap){
+  padding:0 !important;
+  content-visibility:visible !important;
+}
+body.manolito-fs .map-section:has(#shadowRouteMap) .map-wrap{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  height:100dvh;
+  z-index:99999;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  background:#000;
+  margin:0;
+}
+body.manolito-fs #shadowRouteMap{
+  width:100%;
+  height:100vh;
+  height:100dvh;
+}
+/* Dentro de la pantalla completa solo vive el mapa: el planetario, los
+   botones de capas y demás secciones quedan fuera (el planetario se
+   colaba por encima en el móvil). */
+body.manolito-fs .rs-planetario,
+body.manolito-fs .rs-layer-toggles,
+body.manolito-fs .rs-form,
+body.manolito-fs #rsStatus,
+body.manolito-fs .rs-pasos,
+body.manolito-fs #rsAqiPanel,
+body.manolito-fs .chat-fab{ display:none !important; }
+
+/* Icono del botón de pantalla completa (el sprite de MapLibre solo se
+   aplica a su control nativo; el nuestro dibuja el suyo). */
+.maplibregl-ctrl-group button.manolito-fs-btn{
+  width:29px; height:29px;
+  background-color:transparent;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:18px 18px;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+  cursor:pointer;
+}
+[data-theme="dark"] .maplibregl-ctrl-group button.manolito-fs-btn{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+}
+.maplibregl-ctrl-group button.manolito-fs-btn.manolito-fs-activo,
+.maplibregl-ctrl-group button.manolito-fs-btn[aria-pressed="true"]{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .maplibregl-ctrl-group button.manolito-fs-btn.manolito-fs-activo,
+[data-theme="dark"] .maplibregl-ctrl-group button.manolito-fs-btn[aria-pressed="true"]{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
+}
+
+/* ================= Ajustes móvil del mapa 3D =================
+   1) La sección del mapa de sombras NO usa content-visibility:auto:
+      en iPhone ese atajo de rendimiento calculaba mal las alturas al
+      hacer scroll y el planetario se pintaba encima del mapa. Como esta
+      sección está arriba del todo (casi siempre visible), quitarlo no
+      cuesta rendimiento.
+   2) El lienzo de MapLibre queda recortado a su caja: si el canvas se
+      redimensiona tarde, nunca puede desbordarse encima de otra cosa. */
+.map-section:has(#shadowRouteMap){
+  content-visibility:visible !important;
+  contain-intrinsic-size:none !important;
+}
+#shadowRouteMap{ overflow:hidden; }
+
+
+/* ============================================================
+   MEJORAS VISUALES sep-2026, bloque ADITIVO
+   (no se ha borrado ni tocado ninguna regla anterior;
+    al ir las últimas, estas ganan cuando pisan alguna)
+   ============================================================ */
+
+/* --- Formulario de ruta: tarjeta elegante con iconos dibujados --- */
+.rs-form{
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(14,59,71,0.10);
+}
+.rs-form .rs-field input[type="text"]{
+  min-height: 44px;
+  padding-left: 38px;
+  background-repeat: no-repeat;
+  background-position: 10px center;
+  background-size: 18px 18px;
+}
+#rsOrigen{ background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E7C86' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E"); }
+#rsDestino{ background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E04E00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E"); }
+
+/* Botón Buscar ruta: protagonista, con lupa dibujada en CSS.
+   El icono es un ::before (no texto): el cambio de idioma no lo borra. */
+#rsBuscarBtn{
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 10px 22px; border-radius: 12px;
+  font-size: 0.95rem; letter-spacing: 0.02em;
+}
+#rsBuscarBtn::before{
+  content: ""; width: 16px; height: 16px; flex: 0 0 auto;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+/* --- Modo invierno: pastilla con sol dibujado (adiós al emoji) --- */
+.rs-toggle-invierno{
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 14px;
+  width: fit-content;
+  box-shadow: 0 2px 8px rgba(14,59,71,0.08);
+}
+.rs-toggle-invierno.rs-invierno-activo{
+  border-color: #d98a00;
+  background: rgba(217,138,0,0.08);
+}
+.rs-icono-sol{ display: inline-flex; align-items: center; color: #d98a00; }
+.rs-icono-sol svg{ width: 18px; height: 18px; }
+
+/* --- Capas de mapa plegables (Mapa claro / IGN / Catastro 3D) --- */
+#rsBtnCapasMapa{ display: inline-flex; align-items: center; gap: 6px; }
+#rsBtnCapasMapa .rs-ico{ width: 15px; height: 15px; flex: 0 0 auto; }
+#rsBtnCapasMapa .rs-chevr{ width: 14px; height: 14px; flex: 0 0 auto; transition: transform 0.25s ease; }
+#rsMapStyleToggle:not(.rs-colapsado) #rsBtnCapasMapa .rs-chevr{ transform: rotate(180deg); }
+#rsMapStyleToggle.rs-colapsado .rs-capa-hija{ display: none !important; }
+
+/* --- Manolit: balanceo suave constante (respeta reduced-motion) --- */
+@keyframes mwSway{ 0%,100%{ transform: rotate(-1.7deg); } 50%{ transform: rotate(1.7deg); } }
+.mw-sway{ animation: mwSway 4.6s ease-in-out infinite; transform-origin: 50% 88%; will-change: transform; }
+@media (prefers-reduced-motion: reduce){ .mw-sway{ animation: none !important; } }
+
+/* --- Topbar en móvil (≤700px): orden lógico por filas ---
+   1ª fila: marca + tema · 2ª: idiomas · 3ª: paleta · 4ª: accesible · 5ª: familia */
+@media (max-width: 700px){
+  .topbar{ gap: 8px 10px; padding: 10px 12px; }
+  .topbar .wordmark{ order: 1; }
+  .topbar .wordmark > span:not(.wordmark-name){ font-size: 0.58rem; padding: 2px 6px; }
+  .topbar #themeToggle{ order: 2; margin-left: auto; }
+  .topbar .topbar-right{ display: contents; }
+  .topbar #langToggle{ order: 3; flex: 1 1 100%; }
+  .topbar #langToggle button{ flex: 1; padding: 8px 4px; }
+  .topbar #paletteToggle{ order: 4; margin: 0 auto; }
+  .topbar .acc-mode-btn{ order: 5; flex: 1 1 100%; margin: 0; }
+  .topbar .family-link{
+    order: 6; font-size: 0.72rem; padding: 4px 10px; margin: 0;
+    border: 1px solid var(--line); border-radius: 999px;
+  }
+  /* El formulario de ruta en columna, cómodo para el pulgar */
+  .rs-form .rs-field{ flex: 1 1 100%; min-width: 0; }
+  .rs-form #rsBuscarBtn{ width: 100%; }
+}
+
+
+/* --- RENDIMIENTO sep-2026: el balanceo de Manolit lo escribe el propio
+   reloj del muñeco (66 ms) desde JS; una animación CSS infinita obligaba
+   al compositor a repintar 60 veces por segundo todo el rato. --- */
+.mw-sway{ animation: none !important; will-change: auto; }
+
+/* --- BOTÓN RENDERIZADO LIDAR (sep-2026): acceso a la herramienta externa
+   de nubes de puntos LiDAR, bajo el panel de posición solar. Estilo de
+   botón-píldora coherente con la web: sin URL visible, centrado, con
+   icono de cubo dibujado (nada de emojis) y hover suave. --- */
+.rs-btn-lidar{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  margin:12px auto 2px; padding:10px 20px; border-radius:999px;
+  font-family:var(--font-mono); font-size:0.8rem; font-weight:600; letter-spacing:0.03em;
+  color:#ffffff; text-decoration:none;
+  background:linear-gradient(135deg, var(--sky-deep) 0%, var(--sky-mid) 100%);
+  border:1px solid color-mix(in srgb, var(--sky-mid) 55%, #ffffff 20%);
+  box-shadow:0 4px 14px rgba(14,59,71,0.28);
+  transition:transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.rs-btn-lidar svg{ width:16px; height:16px; flex:0 0 auto; }
+.rs-btn-lidar:hover, .rs-btn-lidar:focus-visible{
+  transform:translateY(-2px);
+  box-shadow:0 8px 20px rgba(14,59,71,0.36);
+  filter:brightness(1.08);
+}
+.rs-btn-lidar:active{ transform:translateY(0); }
+.rs-btn-lidar:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+[data-theme="dark"] .rs-btn-lidar{
+  color:#06222b;
+  background:linear-gradient(135deg, var(--sky-mid) 0%, var(--sky-deep) 100%);
+  border-color:color-mix(in srgb, var(--sky-mid) 60%, transparent);
+  box-shadow:0 4px 16px rgba(0,240,255,0.18);
+}
+[data-theme="dark"] .rs-btn-lidar:hover, [data-theme="dark"] .rs-btn-lidar:focus-visible{
+  box-shadow:0 8px 22px rgba(0,240,255,0.28);
+}
+@media (prefers-reduced-motion: reduce){
+  .rs-btn-lidar{ transition:none; }
+  .rs-btn-lidar:hover, .rs-btn-lidar:focus-visible{ transform:none; }
+}
+
+/* ============================================================
+   HUMANIZACIÓN sep-2026, la web sale de la calle, no de una
+   plantilla: CTA mandarina plana (el naranjo no tiene gradiente),
+   jerarquía de radios, noche de verano de verdad (farola, no
+   neón), paletas con nombre de momento sevillano y leyenda de
+   irradiación con puntos dibujados en vez de emojis.
+   Todo se añade al final y pisa lo anterior con cariño.
+   ============================================================ */
+
+/* --- 1. CTA principal con jerarquía: botón de verdad, no píldora --- */
+#rsBuscarBtn{
+  background:var(--accent) !important;
+  border-radius:14px !important;
+  font-size:1rem !important;
+  letter-spacing:0.01em !important;
+  text-transform:none !important;
+}
+#rsBuscarBtn:hover{
+  background:var(--accent) !important;
+  filter:brightness(1.07) !important;
+  transform:translateY(-1px) !important;
+}
+
+/* --- 2. Botón LiDAR plano (mea culpa: llevaba gradiente) --- */
+.rs-btn-lidar{ background:var(--sky-deep) !important; }
+[data-theme="dark"] .rs-btn-lidar{ background:var(--sky-mid) !important; }
+
+/* --- 3. «Posición del sol» legible: nada de eyebrow de 8.5px --- */
+#rsTimeControls .rs-eyebrow{
+  text-transform:none !important;
+  font-size:11px !important;
+  letter-spacing:0.02em !important;
+  font-weight:600 !important;
+}
+
+/* --- 4. Controles del mapa: la versalita se queda (convención
+   cartográfica real) pero a tamaño que lean los abuelos --- */
+#rsMapControls button{
+  font-size:11px !important;
+  letter-spacing:0.03em !important;
+  padding:7px 12px !important;
+}
+@media (max-width:480px){
+  #rsMapControls button{ font-size:10.5px !important; padding:6px 10px !important; }
+}
+
+/* --- 5. Noche de verano de verdad: turquesa apagado en vez de
+   cian neón (los datos se leen igual, sin efecto gamer) --- */
+[data-theme="dark"]{ --sky-mid:#4FBFB5; }
+
+/* --- 6. Paletas con nombre de momento sevillano. Los valores
+   data-palette NO cambian (los usa theme.js); solo color/etiqueta.
+   cosmos pasa a ser «Noche de verano»: ámbar de farola de sodio --- */
+[data-palette="cosmos"]{ --accent:#FFB85C; --accent-soft:rgba(255,184,92,0.16); --accent-text:#9A5B00; }
+[data-theme="dark"][data-palette="cosmos"]{ --accent-text:#FFCF8F; }
+
+/* --- 7. Selector de paleta: puntos de color llanos en vez de
+   glifos lunares ◌◐◑◒◓ (que no decían nada de sol ni de sombra) --- */
+#paletteToggle button{
+  font-size:0 !important;
+  width:24px; height:24px;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+#paletteToggle button::before{
+  content:''; width:13px; height:13px; border-radius:50%; display:block;
+  box-shadow:inset 0 0 0 1.5px rgba(0,0,0,0.18);
+}
+#paletteToggle button[data-palette="cosmos"]::before{   background:#FFB85C; }
+#paletteToggle button[data-palette="amanecer"]::before{ background:#FF6B1A; }
+#paletteToggle button[data-palette="salvia"]::before{   background:#00B98A; }
+#paletteToggle button[data-palette="lavanda"]::before{  background:#7B2FFF; }
+#paletteToggle button[data-palette="coral"]::before{    background:#E63E5F; }
+
+/* --- 8. Leyenda de irradiación: puntos del MISMO color que las
+   zonas del mapa (los define irradiacion-solar.js en línea) --- */
+.irr-linea{ display:inline-flex; align-items:center; gap:6px; }
+.irr-punto{
+  display:inline-block; width:10px; height:10px; border-radius:50%;
+  flex:0 0 auto; box-shadow:inset 0 0 0 1px rgba(0,0,0,0.15);
+}
+
+/* --- 9. Contraste del CTA según paleta (AA): texto oscuro sobre
+   ámbar/mandarina/menta/coral, blanco solo sobre jacarandá --- */
+#rsBuscarBtn{ color:#2A1A05 !important; }
+#rsBuscarBtn:hover{ color:#2A1A05 !important; }
+[data-palette="lavanda"] #rsBuscarBtn,
+[data-palette="lavanda"] #rsBuscarBtn:hover{ color:#FFFFFF !important; }
+
+/* ---------- GRÁFICA DEL AIRE INTERACTIVA (sep-2026) ----------
+   Cursor que sigue al dedo/ratón/teclado y globo con el valor. */
+.chart-cursor-line{ stroke:var(--sky-mid, #4FBFB5); stroke-width:1; stroke-dasharray:3 3; opacity:.8; }
+.chart-cursor-dot{ stroke:#fff; stroke-width:1.5; }
+#airChart svg:focus-visible{ outline:2px solid var(--accent, #FFB85C); outline-offset:2px; border-radius:6px; }
+.chart-tip{
+  position:absolute;
+  top:-8px;
+  left:50%;
+  transform:translate(-50%, -100%);
+  background:var(--panel, #ffffff);
+  color:var(--ink, #2A1A05);
+  border:1px solid var(--line, rgba(14,59,71,0.18));
+  border-radius:10px;
+  padding:5px 10px;
+  font-size:12px;
+  font-family:var(--font-body, inherit);
+  white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,0.12);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .15s ease;
+  z-index:5;
+}
+.chart-tip.visible{ opacity:1; }
+/* Modo oscuro (sep-2026): --panel no existe como variable y el tooltip
+   quedaba fondo blanco con texto casi blanco (--ink es claro en dark):
+   ilegible. Ahora en oscuro tiene fondo oscuro y texto claro, siempre. */
+[data-theme="dark"] .chart-tip{
+  background:#12232E;
+  color:#E8F0FF;
+  border-color:rgba(125,249,255,0.35);
+  box-shadow:0 4px 14px rgba(0,0,0,0.5);
+}
+#airChart{ padding-top:26px; }
+
+/* ---------- SINCRONIZAR / EXPORTAR DATOS (pie) ---------- */
+.footer-sync{ margin-top:10px; }
+.footer-sync-toggle{
+  background:none; border:none; padding:4px 2px;
+  color:inherit; opacity:.8; font:inherit; font-size:.85rem;
+  text-decoration:underline; text-underline-offset:3px;
+  cursor:pointer; min-height:44px;
+}
+.footer-sync-toggle:hover, .footer-sync-toggle:focus-visible{ opacity:1; }
+.sync-panel{
+  max-width:520px; margin:10px auto 0; padding:14px 16px;
+  border:1px solid var(--line, rgba(14,59,71,0.18)); border-radius:14px;
+  background:var(--panel, #ffffff); text-align:center;
+}
+.sync-hint{ margin:0 0 10px; font-size:.85rem; opacity:.85; }
+.sync-panel-btns{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.sync-panel-btns button{
+  border:1px solid var(--line, rgba(14,59,71,0.18)); border-radius:12px;
+  background:var(--accent-soft, rgba(255,184,92,0.16));
+  color:inherit; font:inherit; font-size:.85rem;
+  padding:10px 16px; min-height:48px; cursor:pointer;
+}
+.sync-panel-btns button:hover{ border-color:var(--accent, #FFB85C); }
+
+/* ================================================================
+   Botonera fina + botón mini "Act. mapa" (2026-09-12, pedido de Sandro)
+   "todo en una linea y dos, mas suave, mas fino, mas elegante, no tan
+   bruto". Estas reglas van al FINAL del archivo y con !important para
+   ganar a las reglas !important de tamaño grande de más arriba (que
+   siguen existiendo; solo las supera la cascada). ADITIVO.
+   ================================================================ */
+#rsMapControls{ right:auto !important; gap:4px !important; max-width:calc(100vw - 20px); }
+#rsMapControls button{
+  font-size:9px !important; padding:3px 8px !important; letter-spacing:0.02em !important;
+  font-weight:600 !important; line-height:1.5 !important; border-radius:999px !important;
+  box-shadow:0 1px 4px rgba(22,35,46,0.10) !important;
+  background:rgba(251,250,247,0.78) !important;
+  backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
+}
+[data-theme="dark"] #rsMapControls button,
+.rs-mapa-oscuro-activo #rsMapControls button{
+  background:rgba(10,30,38,0.78) !important; color:#E8F4F0;
+  box-shadow:0 1px 4px rgba(0,0,0,0.35) !important;
+}
+#rsBtnPlegarControles{ font-size:10px !important; padding:3px 8px !important; }
+@media (max-width:480px){
+  #rsMapControls{ gap:2px !important; top:8px !important; left:8px !important; max-width:calc(100vw - 16px); }
+  #rsMapControls button{ font-size:7.5px !important; padding:2px 6px !important; letter-spacing:0.01em !important; }
+}
+
+/* Botón mini de actualizar: FUERA del mapa, en la barra superior,
+   muy pequeño y discreto (pedido de Sandro 2026-09-12). */
+#rsBtnActualizarOSM{
+  margin:0 0 0 auto; /* a la derecha de su fila en la barra superior */
+  flex:none; white-space:nowrap; /* ni crece ni se parte: la barra no se re-envuelve al traducir */
+  font-family:inherit; font-size:8.5px; letter-spacing:0.03em; text-transform:uppercase;
+  font-weight:600; padding:3px 8px; border-radius:999px; line-height:1.5;
+  border:1px solid var(--line, rgba(14,59,71,0.16));
+  background:rgba(251,250,247,0.78); color:var(--sky-deep, #0E3B47);
+  backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
+  cursor:pointer; box-shadow:0 1px 4px rgba(22,35,46,0.10);
+  transition:background .15s,border-color .15s,opacity .15s;
+}
+/* Respaldo: si una página no tuviera topbar, flota fijo arriba a la derecha. */
+body > #rsBtnActualizarOSM{ position:fixed; top:10px; right:48px; z-index:30; }
+#rsBtnActualizarOSM:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
+#rsBtnActualizarOSM:disabled{ cursor:wait; }
+#rsBtnActualizarOSM.rs-cargando{ animation:rsActMapaPulso 1.1s ease-in-out infinite; }
+@keyframes rsActMapaPulso{ 0%,100%{ opacity:1; } 50%{ opacity:0.55; } }
+[data-theme="dark"] #rsBtnActualizarOSM,
+.rs-mapa-oscuro-activo #rsBtnActualizarOSM{
+  background:rgba(10,30,38,0.78); color:#E8F4F0;
+  border-color:rgba(232,244,240,0.22); box-shadow:0 1px 4px rgba(0,0,0,0.35);
+}
+@media (max-width:480px){
+  #rsBtnActualizarOSM{ font-size:8px; padding:2px 7px; }
+  body > #rsBtnActualizarOSM{ top:8px; right:44px; }
+}
+@media (prefers-reduced-motion:reduce){
+  #rsBtnActualizarOSM.rs-cargando{ animation:none; }
+}
+
+
+/* ============================================================
+   MAPA EFICIENTE Y ELEGANTE (sep-2026, brief de Sandro)
+   ------------------------------------------------------------
+   BLOQUE 100% ADITIVO: no se ha borrado ni una línea del CSS
+   original; estas reglas vienen al final y ganan por cascada
+   (y por !important donde el original también lo usaba).
+
+   Auditoría previa (medida sobre este mismo archivo):
+   - 8 backdrop-filter: blur() recomponían la GPU en CADA frame
+     al flotar sobre el mapa WebGL → paneles ahora OPACOS.
+   - 14 gradientes, varios animados (wordmarkFlow, anillo
+     arcoíris del chat) → colores SÓLIDOS de la paleta propia.
+     El brief prohíbe explícitamente la estética "IA generativa".
+   - Sombras con blur de 40-50px (buffers offscreen enormes en
+     GPU móvil) → sombras cortas de 2-16px, estilo Figma.
+   - floatX animaba margin-left = reflow del documento 60
+     veces/seg en loop infinito → un solo keyframes con
+     translate (solo compone, nunca recalcula layout).
+   - transition: all + will-change: box-shadow → propiedades
+     concretas; will-change solo transform (manda el brief).
+   - Fraunces/Karla solo se usaban en 4 selectores → system
+     stack (los <link> de Google Fonts se quitan en index.html:
+     menos red, menos memoria, cero FOUT).
+
+   Lo que NO se toca: body.modo-accesible (el alto contraste
+   manda sobre este bloque), la paleta de acentos, ni ninguna
+   animación que ya fuera solo transform/opacity.
+   ============================================================ */
+
+/* --- 1. Superficies SÓLIDAS: la variable madre se vuelve opaca
+        y todos los paneles que la usan se solidifican de golpe --- */
+:root{ --surface:#FFFFFF; }
+[data-theme="dark"]{ --surface:#0B0D20; }
+
+/* --- 2. Muerte a los 8 backdrop-filter (la GPU descansa) --- */
+.chat-panel,
+.sci-panel,
+.peque-message,
+.city-dropdown-btn,
+.city-dropdown-list,
+.donacion-boton,
+#rsMapControls button,
+#rsBtnActualizarOSM{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
+/* Fondos sólidos para los que llevaban rgba semitransparente
+   propio (no usaban var(--surface)): */
+#rsMapControls button{ background:#FBFAF7 !important; }
+#rsBtnActualizarOSM{ background:#FBFAF7; }
+[data-theme="dark"] #rsMapControls button,
+.rs-mapa-oscuro-activo #rsMapControls button{ background:#0B1E26 !important; }
+[data-theme="dark"] #rsBtnActualizarOSM,
+.rs-mapa-oscuro-activo #rsBtnActualizarOSM{ background:#0B1E26; }
+
+/* --- 3. Gradientes → sólidos (la identidad se mantiene) --- */
+
+/* Titular del mapa y wordmark: texto sólido, sin flujo animado
+   ni drop-shadow (repintaban el texto en cada frame). */
+.map-title,
+.wordmark .wordmark-name{
+  background:none;
+  -webkit-background-clip:initial; background-clip:initial;
+  -webkit-text-fill-color:var(--sky-deep); color:var(--sky-deep);
+  filter:none;
+  animation:none;
+}
+
+/* El orbe de calidad del aire conserva su color de ESTADO
+   (eso es información, no decoración): sólido con un borde
+   interior sutil en vez del degradado radial. La animación
+   breathe se queda: es solo transform, cuesta cero. */
+.orb{
+  background:var(--state-color, var(--breath-good));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.22), 0 2px 8px rgba(13,31,38,0.18);
+}
+
+/* Marco del mapa: borde sólido de la línea de la casa en vez
+   del truco de doble gradiente padding-box/border-box. */
+.map-section:has(#shadowRouteMap) .map-wrap{
+  background:var(--paper);
+  border-color:var(--line);
+  box-shadow:0 2px 8px rgba(13,31,38,0.10);
+}
+
+/* Botón buscar: mandarina AA (la paleta ya trae --accent-text,
+   la versión oscura del acento pensada para contraste) y hover
+   sin filter:brightness (el filter repinta; no hace falta). */
+#rsBuscarBtn{
+  background:var(--accent-text);
+  color:#FFFFFF;
+  box-shadow:0 2px 8px var(--accent-soft);
+}
+#rsBuscarBtn:hover{
+  background:var(--accent);
+  color:var(--paper);
+  filter:none;
+  box-shadow:0 2px 8px var(--accent-soft);
+}
+
+/* Badge de sombra en mapa oscuro: panel sólido. */
+.rs-mapa-oscuro-activo #rsShadowBadge{ background:#0A1E26; }
+
+/* Botón activo de los controles del mapa (modo oscuro). */
+.rs-mapa-oscuro-activo #rsMapControls button.rs-activo{
+  background:var(--accent) !important;
+  color:#06222B !important;
+}
+
+/* Botón "siguiente" del tour guiado en tema oscuro. */
+[data-theme="dark"] .driver-popover-next-btn{
+  background:var(--accent);
+  color:#03050F;
+}
+
+/* Botón LiDAR: sólido petróleo (claro) / cian (oscuro). */
+.rs-btn-lidar{
+  background:var(--sky-deep);
+  color:#FFFFFF;
+  box-shadow:0 2px 8px rgba(14,59,71,0.22);
+}
+.rs-btn-lidar:hover, .rs-btn-lidar:focus-visible{
+  filter:none;
+  box-shadow:0 4px 12px rgba(14,59,71,0.30);
+}
+[data-theme="dark"] .rs-btn-lidar{
+  background:var(--sky-mid);
+  color:#06222B;
+  box-shadow:0 2px 8px rgba(0,240,255,0.16);
+}
+[data-theme="dark"] .rs-btn-lidar:hover, [data-theme="dark"] .rs-btn-lidar:focus-visible{
+  box-shadow:0 4px 12px rgba(0,240,255,0.24);
+}
+
+/* --- 4. El anillo arcoíris del chat muere (el brief prohíbe
+        la estética "IA generativa"): anillo sólido del acento
+        de la casa, núcleo sólido, letras sólidas, cero giros --- */
+.chat-fab-ring{
+  background:var(--accent);
+  animation:none;
+}
+.chat-fab-core{
+  background:var(--paper);
+  background-image:none;
+  -webkit-text-fill-color:var(--accent-text); color:var(--accent-text);
+  animation:none;
+}
+.chat-logo{ background:var(--accent); }
+.chat-logo i{
+  background:var(--paper);
+  background-image:none;
+  -webkit-text-fill-color:var(--accent-text); color:var(--accent-text);
+}
+
+/* --- 5. Sombras gigantes → sombras cortas (la jerarquía se
+        mantiene con 2-16px; 44-50px eran puro gasto de GPU) --- */
+.chat-panel{ box-shadow:0 4px 16px rgba(0,0,0,0.18); }
+[data-theme="dark"] .driver-popover{ box-shadow:0 4px 12px rgba(0,0,0,0.50); }
+
+/* --- 6. floatX animaba margin-left (reflow 60 veces/seg en
+        loop infinito). Un solo keyframes con translate: el
+        compositor lo mueve sin tocar el layout. Mismo vaivén --- */
+.peque-cloud{ animation:flotarSuave 5s ease-in-out infinite; will-change:transform; }
+@keyframes flotarSuave{
+  0%,100%{ transform:translate(0,0); }
+  50%{ transform:translate(-4px,-10px); }
+}
+
+/* --- 7. transition: all → propiedades concretas; will-change
+        solo transform (el brief veta will-change en box-shadow) --- */
+body.mode-peque .im-lost-btn{
+  transition:transform 0.2s cubic-bezier(0.4,0,0.2,1), background-color 0.2s;
+  will-change:transform;
+}
+
+/* --- 8. System fonts en los 4 selectores que aún pedían
+        Fraunces/Karla (los <link> de Google Fonts salen de
+        index.html: 2 conexiones TLS y ~100KB menos por visita) --- */
+.yayo-zoom-btn{ font-family:var(--font-display); }
+.city-dropdown-btn,
+.city-dropdown-list li,
+.footer-donacion{ font-family:var(--font-body); }
+
+/* ---------- cierre del pie: sello y redes a los lados del Ko-fi ---------- */
+.footer-final{ margin-top:22px; padding-top:16px; border-top:1px dashed var(--line, #ccc); display:flex; align-items:center; justify-content:space-between; gap:22px; flex-wrap:wrap; }
+.footer-final .footer-donacion{ margin-top:0; padding-top:0; border-top:none; flex:1 1 auto; }
+.footer-sello{ max-width:200px; margin:0; opacity:.85; flex:none; }
+.footer-sello svg{ display:block; width:100%; height:auto; border-radius:10px; }
+.footer-redes{ margin-top:0; display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex:none; }
+.footer-red{ display:inline-flex; align-items:center; gap:6px; color:var(--sky-mid); text-decoration:none; font-size:0.72rem; opacity:.7; }
+.footer-red:hover, .footer-red:focus-visible{ opacity:1; }
+.footer-red svg{ width:15px; height:15px; fill:currentColor; flex:none; }
+.footer-red-sola{ padding-left:21px; }
+@media (max-width: 700px){
+  .footer-final{ flex-direction:column; justify-content:center; }
+  .footer-redes{ align-items:center; }
+  .footer-red-sola{ padding-left:0; }
+}
+
+/* ---------- la barra superior ya no persigue el scroll ---------- */
+/* Antes era sticky y tapaba el mapa al bajar. Ahora se queda en su sitio,
+   arriba del todo, y al hacer scroll desaparece con el resto del contenido. */
+.topbar{ position: static; transform: none; }
+
+/* ---------- preguntas frecuentes (FAQ) ---------- */
+.faq{ max-width:760px; margin:56px auto 0; padding:0 24px; }
+.faq h2{ font-family:var(--font-display); font-weight:600; font-size:1.5rem; text-align:center; }
+.faq-intro{ text-align:center; color:var(--sky-mid); font-size:0.9rem; margin-top:6px; }
+.faq-item{ border-bottom:1px solid var(--line); }
+.faq-item summary{
+  cursor:pointer; list-style:none; padding:15px 34px 15px 4px; position:relative;
+  font-weight:600; font-size:0.98rem;
+}
+.faq-item summary::-webkit-details-marker{ display:none; }
+.faq-item summary::after{
+  content:"+"; position:absolute; right:8px; top:13px;
+  font-family:var(--font-mono); font-size:1.05rem; color:var(--sky-mid);
+}
+.faq-item[open] summary::after{ content:"–"; }
+.faq-item summary:hover{ color:var(--accent); }
+.faq-item p{ padding:0 4px 16px; color:var(--sky-mid); font-size:0.92rem; max-width:62ch; }
+
+/* ============================================================
+   CAPAS INTEGRADAS EN EL WIDGET SOLAR (sep-2026, orden de Sandro)
+   Las casillas de capas y los botones Mapa oscuro / Mapa IGN /
+   Catastro 3D dejan de flotar sobre el mapa y viven dentro del
+   planetario, en una fila elegante que se apila en móvil. La
+   cúpula no cambia de tamaño.
+   ============================================================ */
+.rs-planetario{ flex-direction:row; flex-wrap:wrap; justify-content:center; gap:14px 22px; }
+.rs-planetario-lado{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+.rs-planetario-capas{ display:flex; flex-direction:column; gap:8px; align-items:flex-start; max-width:360px; text-align:left; }
+.rs-planetario-capas .rs-layer-toggles{ margin-bottom:0; font-size:0.72rem; gap:8px 12px; }
+.rs-planetario-capas .rs-layer-toggles-lista{ gap:8px 12px; }
+.rs-capas-mapas{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+#rsCapasMapas #rsMapStyleToggle{ position:static !important; display:flex !important; flex-direction:row !important; flex-wrap:wrap !important; align-items:center !important; gap:6px !important; }
+@media (max-width:640px){
+  .rs-planetario{ flex-direction:column; }
+  .rs-planetario-capas{ align-items:center; max-width:100%; text-align:center; }
+}
+
+
+/* Controles nativos de MapLibre visibles otra vez (sep-2026): zoom,
+   brújula y pantalla completa. La web no carga la hoja de estilos de
+   MapLibre para que el primer pintado sea ligero, pero sin ella sus
+   botones se renderizaban debajo del mapa, recortados e invisibles.
+   Aquí se posicionan dentro del mapa y se dibujan sus iconos con SVG
+   en línea, sin cargar ninguna hoja extra. */
+.maplibregl-map{ position:relative; }
+.maplibregl-ctrl-top-right{
+  position:absolute; top:10px; right:10px; z-index:7;
+  display:flex; flex-direction:column; align-items:flex-end; gap:8px;
+}
+.maplibregl-ctrl-top-left{ position:absolute; top:10px; left:10px; z-index:7; }
+.maplibregl-ctrl-bottom-right{
+  position:absolute; right:0; bottom:0; z-index:7;
+  display:flex; align-items:flex-end; justify-content:flex-end;
+}
+.maplibregl-ctrl-bottom-left{ position:absolute; left:0; bottom:0; z-index:7; }
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group{
+  display:flex; flex-direction:column; overflow:hidden;
+  background:var(--paper, #FBFAF7); border-radius:10px;
+  border:1px solid var(--line, rgba(14,59,71,0.14));
+  box-shadow:0 3px 10px rgba(22,35,46,0.18);
+}
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group button{
+  width:30px; height:30px; display:block; cursor:pointer; padding:0;
+  background-color:transparent; border:none;
+}
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group button + button{
+  border-top:1px solid var(--line, rgba(14,59,71,0.14));
+}
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group button:hover{
+  background-color:rgba(14,59,71,0.07);
+}
+.maplibregl-ctrl-top-right .maplibregl-ctrl-group button .maplibregl-ctrl-icon{
+  display:block; width:100%; height:100%;
+  background-repeat:no-repeat; background-position:center; background-size:18px 18px;
+}
+.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
+}
+.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E");
+}
+.maplibregl-ctrl-compass .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l4.5 10-4.5 10-4.5-10z' fill='%23333333'/%3E%3Cpath d='M12 2l4.5 10h-9z' fill='%23FF6B1A'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .maplibregl-ctrl-compass .maplibregl-ctrl-icon,
+.rs-mapa-oscuro-activo .maplibregl-ctrl-compass .maplibregl-ctrl-icon{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l4.5 10-4.5 10-4.5-10z' fill='%23dddddd'/%3E%3Cpath d='M12 2l4.5 10h-9z' fill='%23FF6B1A'/%3E%3C/svg%3E");
+}
+/* Atribución compacta en la esquina inferior derecha (antes ocupaba
+   una tira entera debajo del mapa). */
+.maplibregl-ctrl-attrib{
+  font-size:10px; line-height:1.4; padding:2px 8px;
+  background:rgba(251,250,247,0.85); border-radius:8px 0 0 0;
+}
+.maplibregl-ctrl-attrib a{ color:inherit; }
+/* En móvil los botones nativos crecen un poco para el dedo. */
+@media (max-width:480px){
+  .maplibregl-ctrl-top-right .maplibregl-ctrl-group button{ width:36px; height:36px; }
+}
+
+
+/* Widget solar ordenado (sep-2026, orden de Sandro): dos piezas claras
+   en vez de elementos esparcidos. A la izquierda el sol con su hora y
+   el acceso LiDAR formando una sola pieza; a la derecha las capas y
+   los botones de mapa, separados por una línea fina. En pantallas
+   estrechas se apilan y la línea pasa arriba. */
+.rs-planetario{ justify-content:center; align-items:center; gap:0; }
+.rs-planetario-sol{ display:flex; align-items:center; gap:16px; }
+.rs-planetario-capas{
+  border-left:1px solid var(--line, rgba(14,59,71,0.14));
+  margin-left:26px; padding-left:26px;
+}
+@media (max-width:900px){
+  .rs-planetario{ flex-direction:column; gap:14px; }
+  .rs-planetario-capas{
+    border-left:none; margin-left:0; padding-left:0;
+    border-top:1px solid var(--line, rgba(14,59,71,0.14)); padding-top:14px;
+    align-items:center; text-align:center; max-width:100%;
+  }
+}
+
+
+/* Widget solar compacto y centrado (sep-2026, orden de Sandro): las
+   dos piezas van juntas en el centro en vez de estirarse a lo ancho,
+   y los botones de mapa base forman una rejilla de tres columnas con
+   su título encima ocupando toda la fila. */
+.rs-planetario{
+  max-width:940px; margin-left:auto; margin-right:auto;
+  justify-content:center; gap:28px;
+}
+.rs-planetario-capas{ margin-left:0; padding-left:28px; }
+#rsCapasMapas #rsMapStyleToggle{
+  display:grid !important; grid-template-columns:repeat(3, 1fr) !important;
+  gap:6px !important;
+}
+#rsCapasMapas #rsBtnCapasMapa{ grid-column:1 / -1; }
+@media (max-width:900px){
+  .rs-planetario{ gap:14px; }
+  .rs-planetario-capas{ padding-left:0; }
+}
+
+
+/* Widget en COLUMNA con orden lógico (sep-2026, orden de Sandro):
+   1) el planetario con su hora y la luna, 2) el acceso a Renderizado
+   LiDAR, 3) las capas del mapa. Una cosa debajo de la otra, todo
+   centrado, en móvil y en ordenador. */
+.rs-planetario{ flex-direction:column; align-items:center; gap:16px; }
+.rs-planetario-sol{
+  display:flex; align-items:center; justify-content:center;
+  gap:18px; flex-wrap:wrap;
+}
+.rs-planetario-capas{
+  border-left:none; margin-left:0; padding-left:0;
+  border-top:1px solid var(--line, rgba(14,59,71,0.14)); padding-top:16px;
+  align-items:center; text-align:center; max-width:100%;
+}
+
+/* Reorden definitivo del widget (sep-2026, v6): capas arriba (van con el
+   mapa), despues el planetario y debajo del todo el Renderizado LiDAR.
+   La linea divisoria ya no hace falta porque las capas abren el bloque. */
+.rs-planetario-capas{ border-top: none; padding-top: 0; }
+
+/* Catastro 3D siempre a la vista en su propia fila, justo debajo de
+   Capas y Capas de mapa (orden de Sandro, sep-2026). No se pliega. */
+#rsCapasMapas #rsBtnCatastro{ grid-column: 1 / -1; }
+
+/* Planetario (sep-2026, orden de Sandro): la hora y los datos del sol
+   van DEBAJO de la cúpula, centrados, nunca al lado. */
+.rs-planetario-sol{ flex-direction: column; flex-wrap: nowrap; gap: 10px; }
+.rs-planetario-lado{ align-items: center; text-align: center; }

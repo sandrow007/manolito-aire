@@ -2573,7 +2573,23 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         return;
       }
       mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicación…'));
-      navigator.geolocation.getCurrentPosition(
+      // Primero lectura FINA y FRESCA del GPS (una sola vez: el chip se
+      // apaga al responder, la batería ni lo nota). maximumAge:0 prohíbe
+      // lecturas viejas de la caché: con caché el muñeco salía plantado
+      // donde estuviste hace un rato ("aparece por ahí"). Si la fina
+      // falla (interior, túnel), respaldo por red/wifi.
+      const pedirUbicacionPrecisa = (usarPosicion, alFallar) => {
+        navigator.geolocation.getCurrentPosition(
+          usarPosicion,
+          () => navigator.geolocation.getCurrentPosition(
+            usarPosicion,
+            alFallar,
+            { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
+          ),
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+      };
+      pedirUbicacionPrecisa(
         async (pos) => {
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
           const precisionM = Math.round(pos.coords.accuracy || 0);
@@ -2603,12 +2619,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           // y tú decides el siguiente paso, escribir el destino o pulsar tú
           // mismo «Elegir en el mapa». Aquí no se activa nada solo.
         },
-        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
-        // Batería (sep-2026): para MARCAR el origen basta la localización
-        // por red/wifi (±20-40 m en ciudad). enableHighAccuracy:true
-        // encendía el chip GPS a máxima potencia, la mayor fuente de
-        // calor de un móvil, solo para poner un punto en el mapa.
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error')
       );
     });
 
@@ -4543,18 +4554,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     estiloCam.textContent = `
       #rsCamCtl{
         position:absolute; right:12px; top:50%; transform:translateY(-50%); z-index:6;
-        display:grid; grid-template-columns:1fr 1fr; gap:6px;
+        display:grid; grid-template-columns:1fr; gap:5px;
       }
       #rsCamCtl button{
         width:36px; height:36px; border-radius:10px; font-size:15px; font-weight:700;
         font-family:inherit; line-height:1; cursor:pointer;
-        color:var(--paper, #FBFAF7); background:var(--sky-deep, #0E3B47);
-        border:2px solid var(--accent, #FF6B1A);
+        /* Naranja Manolit FIJO en los dos temas: con variables de tema
+           el oscuro lo aclaraba y quedaba texto claro sobre fondo claro. */
+        color:#0E3B47; background:#FF6B1A;
+        border:2px solid rgba(14,59,71,0.35);
         box-shadow:0 3px 10px rgba(22,35,46,0.25);
         touch-action:none; user-select:none; -webkit-user-select:none;
-        transition:background .15s, transform .1s;
+        transition:filter .15s, transform .1s;
       }
-      #rsCamCtl button:hover{ background:var(--accent, #FF6B1A); }
+      #rsCamCtl button:hover{ filter:brightness(1.12); }
       #rsCamCtl button:active{ transform:scale(0.94); }
       /* La brújula gira con el mapa (su flecha lleva la punta naranja
          al norte, como la de siempre). */
@@ -4568,24 +4581,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
          esquina de MapLibre). Va DESPUÉS del :hover para que el icono
          no desaparezca al pasar el dedo. */
       #rsCamCtl button.manolito-fs-btn{
-        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FBFAF7' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
         background-repeat:no-repeat; background-position:center; background-size:18px 18px;
       }
       #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
       #rsCamCtl button.manolito-fs-btn[aria-pressed="true"]{
-        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FBFAF7' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
       }
       /* En tema oscuro la botonera es clara: el icono se pinta oscuro,
        igual que los símbolos + - ▲ ▼ N. */
       [data-theme="dark"] #rsCamCtl button.manolito-fs-btn,
       .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn{
-        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2303050F' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
       }
       [data-theme="dark"] #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
       [data-theme="dark"] #rsCamCtl button.manolito-fs-btn[aria-pressed="true"],
       .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
       .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn[aria-pressed="true"]{
-        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2303050F' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
+        background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
       }
       @media (max-width:480px){
         #rsCamCtl{ right:8px; gap:4px; }
@@ -4617,7 +4630,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btnCamBrujula = hacerBotonCam('rsCamBrujula', '', t('camBrujula', 'Brújula, volver al norte y nivelar la vista'));
     // Flecha de brújula como la de MapLibre de siempre: punta naranja
     // al norte, cuerpo del color del texto del tema. Gira con el mapa.
-    btnCamBrujula.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2l4.5 10-4.5 10-4.5-10z" fill="currentColor"/><path d="M12 2l4.5 10h-9z" fill="#FF6B1A"/></svg>';
+    btnCamBrujula.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2l4.5 10-4.5 10-4.5-10z" fill="currentColor"/><path d="M12 2l4.5 10h-9z" fill="#FBFAF7"/></svg>';
     const btnCamFull   = hacerBotonCam('rsCamFull', '', t('camFull', 'Pantalla completa'));
     // La clase manolito-fs-btn conecta con la lógica de pantalla
     // completa de siempre: ella misma pone el icono de salir.

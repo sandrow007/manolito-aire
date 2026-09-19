@@ -1772,3 +1772,12 @@ body.mode-peque .im-lost-btn{
   border-top:1px solid var(--line, rgba(14,59,71,0.14)); padding-top:16px;
   align-items:center; text-align:center; max-width:100%;
 }
+
+/* Reorden definitivo del widget (sep-2026, v6): capas arriba (van con el
+   mapa), despues el planetario y debajo del todo el Renderizado LiDAR.
+   La linea divisoria ya no hace falta porque las capas abren el bloque. */
+.rs-planetario-capas{ border-top: none; padding-top: 0; }
+
+/* Catastro 3D siempre a la vista en su propia fila, justo debajo de
+   Capas y Capas de mapa (orden de Sandro, sep-2026). No se pliega. */
+#rsCapasMapas #rsBtnCatastro{ grid-column: 1 / -1; }

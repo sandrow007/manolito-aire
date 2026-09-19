@@ -1786,3 +1786,17 @@ body.mode-peque .im-lost-btn{
    van DEBAJO de la cúpula, centrados, nunca al lado. */
 .rs-planetario-sol{ flex-direction: column; flex-wrap: nowrap; gap: 10px; }
 .rs-planetario-lado{ align-items: center; text-align: center; }
+
+/* Reorden del widget (sep-2026, orden de Sandro): «¿No hay 3D en tu
+   zona?» vive DENTRO del widget, justo debajo de las capas del mapa,
+   nunca por encima de ellas. Centrado y sin el margen grande de sección. */
+.rs-planetario > #rsColaboraOSM{ margin:2px auto 0; width:min(680px, 94%); padding:0; }
+.rs-planetario > #rsColaboraOSM summary{ text-align:center; }
+
+/* Capas y Capas de mapa, una AL LADO de la otra (orden de Sandro,
+   sep-2026): los dos botones maestros comparten fila y su contenido
+   desplegado cae debajo de cada uno. En pantallas muy estrechas se
+   apilan solos gracias al wrap. */
+.rs-planetario-capas{ flex-direction:row; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:8px 18px; }
+.rs-planetario-capas .rs-layer-toggles{ flex-direction:column; align-items:center; gap:8px; }
+.rs-planetario-capas .rs-layer-toggles-lista{ justify-content:center; }

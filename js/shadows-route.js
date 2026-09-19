@@ -384,15 +384,21 @@
     return mejorIdx;
   }
 
-  function calcularPenalizacionSolar(puntoMedio, posSol) {
+  function calcularPenalizacionSolar(puntoMedio, posSol, indiceSombras) {
     if (!posSol || posSol.altitude <= 0) return 0;
     try {
+      // Con índice espacial (rutas): consulta directa a la celda del punto.
+      // Sin índice (otros llamantes): el recorrido clásico de siempre.
       // Sombra de edificios + sombra de árboles: ambas refrescan el paso.
-      const sombras = typeof obtenerTodasLasSombras === 'function'
-        ? obtenerTodasLasSombras()
-        : ((typeof ultimaColeccionSombras !== 'undefined' && ultimaColeccionSombras && ultimaColeccionSombras.features) ? ultimaColeccionSombras.features : []);
-      for (const poligono of sombras) {
-        if (turf.booleanPointInPolygon(turf.point(puntoMedio), poligono)) return 0;
+      if (indiceSombras && indiceSombras.size) {
+        if (indiceSombras.consultar(puntoMedio[0], puntoMedio[1])) return 0;
+      } else {
+        const sombras = typeof obtenerTodasLasSombras === 'function'
+          ? obtenerTodasLasSombras()
+          : ((typeof ultimaColeccionSombras !== 'undefined' && ultimaColeccionSombras && ultimaColeccionSombras.features) ? ultimaColeccionSombras.features : []);
+        for (const poligono of sombras) {
+          if (turf.booleanPointInPolygon(turf.point(puntoMedio), poligono)) return 0;
+        }
       }
     } catch (e) { /* no hay sombras calculadas todavía */ }
     const intensidad = Math.max(0, Math.sin(posSol.altitude));
@@ -404,7 +410,7 @@
     return CONFIG.factorPenalizacionSol * intensidad * factorSolNubes;
   }
 
-  function dijkstraTermico(grafo, inicioIdx, finIdx, posSol) {
+  function dijkstraTermico(grafo, inicioIdx, finIdx, posSol, indiceSombras) {
     const n = grafo.nodos.length;
     const dist = new Float64Array(n).fill(Infinity);
     const prev = new Int32Array(n).fill(-1);
@@ -413,6 +419,10 @@
     dist[inicioIdx] = 0;
     const heap = new MinHeap();
     heap.push({ nodo: inicioIdx, dist: 0 });
+    // La penalización de cada arista es FIJA durante todo el cálculo
+    // (mismo punto medio, mismo sol): se memoriza y cada arista se
+    // evalúa una sola vez aunque Dijkstra la relaje varias (sep-2026).
+    const penalizacionPorArista = new Map();
 
     while (!heap.isEmpty()) {
       const actual = heap.pop();
@@ -429,8 +439,13 @@
         if (visitado[v]) continue;
 
         const vx = grafo.nodos[v][0], vy = grafo.nodos[v][1];
-        const puntoMedio = [(ux + vx) * 0.5, (uy + vy) * 0.5];
-        const penalizacion = calcularPenalizacionSolar(puntoMedio, posSol);
+        const claveArista = u * n + v;
+        let penalizacion = penalizacionPorArista.get(claveArista);
+        if (penalizacion === undefined) {
+          const puntoMedio = [(ux + vx) * 0.5, (uy + vy) * 0.5];
+          penalizacion = calcularPenalizacionSolar(puntoMedio, posSol, indiceSombras);
+          penalizacionPorArista.set(claveArista, penalizacion);
+        }
         const peso = arista.longitudM * (1 + penalizacion);
 
         const nuevaDist = dist[u] + peso;
@@ -479,20 +494,26 @@
     const centro = { lat: (origen.lat + destino.lat) * 0.5, lon: (origen.lon + destino.lon) * 0.5 };
     const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
 
-    const resultado = dijkstraTermico(grafo, inicioIdx, finIdx, posSol);
+    // La colección de sombras y su índice espacial se preparan UNA vez
+    // por ruta. Antes se reconstruían en CADA arista del Dijkstra (con
+    // el serialize() de la capa de árboles incluido) y la web entera se
+    // quedaba pillada al buscar una ruta de sombras (sep-2026).
+    const sombrasParaCobertura = typeof obtenerTodasLasSombras === 'function'
+      ? obtenerTodasLasSombras()
+      : (ultimaColeccionSombras?.features || []);
+    const indiceSombrasRuta = crearIndiceSombras(sombrasParaCobertura);
+
+    const resultado = dijkstraTermico(grafo, inicioIdx, finIdx, posSol, indiceSombrasRuta);
     if (resultado.camino.length < 2) throw new Error('Dijkstra térmico no ha encontrado camino');
 
     const distanciaRealKm = turf.length(turf.lineString(resultado.camino), { units: 'kilometers' });
     const duracionMin = (distanciaRealKm / CONFIG.velocidadCaminandoKmh) * 60;
 
     let coberturaSombraPct = null;
-    const sombrasParaCobertura = typeof obtenerTodasLasSombras === 'function'
-      ? obtenerTodasLasSombras()
-      : (ultimaColeccionSombras?.features || []);
     if (sombrasParaCobertura.length) {
       try {
         const lineaRuta = turf.lineString(resultado.camino);
-        coberturaSombraPct = Math.round(calcularCoberturaSombra(lineaRuta, sombrasParaCobertura) * 100);
+        coberturaSombraPct = Math.round(calcularCoberturaSombra(lineaRuta, sombrasParaCobertura, indiceSombrasRuta) * 100);
       } catch (e) { /* el badge se actualizará después con los tramos en sombra */ }
     }
 
@@ -1789,6 +1810,75 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return arboles.length ? edificios.concat(arboles) : edificios;
   }
 
+  /* ---------------- Índice espacial de sombras (sep-2026, anti-cuelgues) ----------------
+     Antes, cada pregunta «¿este punto está en sombra?» recorría TODAS las
+     sombras con el ray-casting completo de Turf, y dentro del Dijkstra de
+     rutas eso ocurría decenas de miles de veces seguidas; peor aún, la
+     colección se RECONSTRUÍA en cada arista (serialize() + filter + concat
+     de la capa de árboles incluidos). Resultado: la web entera se quedaba
+     pillada al buscar una ruta. Esto es una rejilla uniforme: cada sombra
+     se apunta en las celdas que toca su caja y cada consulta solo prueba
+     las sombras de su celda. El resultado es EXACTAMENTE el mismo (sigue
+     mandando Turf por dentro), solo se descartan a lo barato las sombras
+     lejanas. */
+  function crearIndiceSombras(poligonos) {
+    const entradas = [];
+    for (const p of poligonos || []) {
+      if (!p || !p.geometry) continue;
+      let caja;
+      try { caja = turf.bbox(p); } catch (e) { continue; }
+      entradas.push({ caja, poligono: p });
+    }
+    const total = entradas.length;
+    if (!total) return { size: 0, consultar: function () { return false; } };
+
+    // Tamaño de celda: ~1.5× el ancho medio de las sombras, acotado entre
+    // ~70 m y ~450 m. Así cada celda suele contener poquísimas sombras.
+    let anchoMedio = 0;
+    for (const e of entradas) anchoMedio += Math.max(0.0002, e.caja[2] - e.caja[0]);
+    anchoMedio /= total;
+    const celda = Math.min(0.004, Math.max(0.0006, anchoMedio * 1.5));
+
+    const rejilla = new Map();
+    const globales = [];
+    entradas.forEach((e) => {
+      const x0 = Math.floor(e.caja[0] / celda), x1 = Math.floor(e.caja[2] / celda);
+      const y0 = Math.floor(e.caja[1] / celda), y1 = Math.floor(e.caja[3] / celda);
+      // Sombra gigante (toca más de 64 celdas): se consulta aparte siempre.
+      if ((x1 - x0 + 1) * (y1 - y0 + 1) > 64) { globales.push(e); return; }
+      for (let x = x0; x <= x1; x++) {
+        for (let y = y0; y <= y1; y++) {
+          const clave = x * 1e7 + y;
+          let lista = rejilla.get(clave);
+          if (!lista) { lista = []; rejilla.set(clave, lista); }
+          lista.push(e);
+        }
+      }
+    });
+
+    const probar = (e, lon, lat) => {
+      const c = e.caja;
+      if (lon < c[0] || lon > c[2] || lat < c[1] || lat > c[3]) return false;
+      // Turf acepta la coordenada cruda [lon, lat]: sin crear objetos
+      // Point en el bucle caliente (turf >= 4 lo admite vía getCoord).
+      try { return turf.booleanPointInPolygon([lon, lat], e.poligono); } catch (err) { return false; }
+    };
+
+    const consultar = (lon, lat) => {
+      const lista = rejilla.get(Math.floor(lon / celda) * 1e7 + Math.floor(lat / celda));
+      if (lista) {
+        for (let i = 0; i < lista.length; i++) {
+          if (probar(lista[i], lon, lat)) return true;
+        }
+      }
+      for (let i = 0; i < globales.length; i++) {
+        if (probar(globales[i], lon, lat)) return true;
+      }
+      return false;
+    };
+    return { size: total, consultar };
+  }
+
   function puntoEnSombra(punto) {
     const sombras = obtenerTodasLasSombras();
     for (const poligono of sombras) {
@@ -1804,7 +1894,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // punto medio la perdía casi siempre. Aquí se comprueba la INTERSECCIÓN
   // real línea-polígono, así cualquier cruce cuenta, por fina que sea.
   function tramoTocaSombraDeArbol(tramo, sombrasArboles) {
-    for (const poligono of sombrasArboles) {
+    // Admite la lista cruda de polígonos o las entradas con caja ya
+    // calculada ({caja, poligono}) que prepara el filtrado de tramos.
+    // Con caja, si las cajas no se tocan las geometrías tampoco pueden
+    // tocarse: la intersección exacta solo se paga cuando toca (sep-2026).
+    let cajaTramo = null;
+    for (const entrada of sombrasArboles) {
+      const conCaja = entrada && entrada.poligono;
+      const poligono = conCaja ? entrada.poligono : entrada;
+      if (conCaja) {
+        if (!cajaTramo) { try { cajaTramo = turf.bbox(tramo); } catch (e0) { cajaTramo = null; break; } }
+        const c = entrada.caja;
+        if (cajaTramo[0] > c[2] || cajaTramo[2] < c[0] || cajaTramo[1] > c[3] || cajaTramo[3] < c[1]) continue;
+      }
       try {
         if (turf.booleanIntersects(tramo, poligono)) return true;
       } catch (e) { /* geometría rara: probamos por puntos */
@@ -1860,17 +1962,22 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // solapadas podrían terminar desordenadas; solo la ÚLTIMA escribe.
       generacionTramosSombra++;
       const miGeneracionTramos = generacionTramosSombra;
+      // Índice espacial de las sombras de edificios: cada tramo consulta
+      // solo las de su celda, mismo resultado que recorrerlas todas.
+      const indiceEdificios = crearIndiceSombras(sombrasEdificios);
+      // Cajas de los árboles precalculadas una vez: la intersección
+      // línea-polígono solo se paga cuando las cajas se tocan.
+      const cajasArboles = [];
+      for (const poligonoArbol of sombrasArboles) {
+        try { cajasArboles.push({ caja: turf.bbox(poligonoArbol), poligono: poligonoArbol }); } catch (e) { /* sin caja: fuera */ }
+      }
       const esTramoEnSombra = (tramo) => {
         const coords = tramo.geometry.coordinates;
-        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
+        const medio = coords[Math.floor(coords.length / 2)] || coords[0];
         // Edificios: sombra grande, basta el punto medio (rápido).
-        for (const poligono of sombrasEdificios) {
-          try {
-            if (turf.booleanPointInPolygon(medio, poligono)) return true;
-          } catch (e) { /* geometría rara: la ignoramos */ }
-        }
+        if (indiceEdificios.consultar(medio[0], medio[1])) return true;
         // Árboles: sombra fina, hace falta intersección real con el tramo.
-        return tramoTocaSombraDeArbol(tramo, sombrasArboles);
+        return tramoTocaSombraDeArbol(tramo, cajasArboles);
       };
       const tramosEnSombra = [];
       for (let i = 0; i < tramos.features.length; i++) {
@@ -3569,21 +3676,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   /* ---------------- Ruta con prioridad de sombra (entre alternativas reales) ---------------- */
 
-  function calcularCoberturaSombra(geojsonLinea, poligonosSombra) {
+  function calcularCoberturaSombra(geojsonLinea, poligonosSombra, indiceSombras) {
     if (!poligonosSombra.length) return 0;
     try {
       const linea = geojsonLinea.type === 'Feature' ? geojsonLinea : turf.feature(geojsonLinea);
       const tramos = turf.lineChunk(linea, 0.015, { units: 'kilometers' }).features;
       if (!tramos.length) return 0;
+      // Índice espacial una vez por medición: cada punto medio consulta
+      // solo las sombras de su celda (mismo resultado, sin barrido total).
+      const indice = indiceSombras || crearIndiceSombras(poligonosSombra);
       let enSombra = 0;
       for (const tramo of tramos) {
         const coords = tramo.geometry.coordinates;
-        const medio = turf.point(coords[Math.floor(coords.length / 2)] || coords[0]);
-        for (const poligono of poligonosSombra) {
-          try {
-            if (turf.booleanPointInPolygon(medio, poligono)) { enSombra++; break; }
-          } catch (e) { }
-        }
+        const medio = coords[Math.floor(coords.length / 2)] || coords[0];
+        if (indice.consultar(medio[0], medio[1])) enSombra++;
       }
       return enSombra / tramos.length;
     } catch (e) {
@@ -3618,20 +3724,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return d;
   }
 
-  function fraccionSombraTramo(coords, sombras) {
+  function fraccionSombraTramo(coords, sombras, indiceSombras) {
     // null = no hay sombras calculadas (de noche, capa apagada…): no se dice nada.
     if (!sombras || !sombras.length || !coords || coords.length < 2) return null;
     try {
       const linea = turf.lineString(coords);
       const tramos = turf.lineChunk(linea, 0.02, { units: 'kilometers' }).features;
       if (!tramos.length) return null;
+      // Índice espacial (una vez por guía completa, lo crea el llamante):
+      // cada punto medio consulta solo su celda, mismo resultado.
+      const indice = indiceSombras || crearIndiceSombras(sombras);
       let enSombra = 0;
       for (const tramo of tramos) {
         const c = tramo.geometry.coordinates;
-        const medio = turf.point(c[Math.floor(c.length / 2)] || c[0]);
-        for (const poligono of sombras) {
-          try { if (turf.booleanPointInPolygon(medio, poligono)) { enSombra++; break; } } catch (e) { }
-        }
+        const medio = c[Math.floor(c.length / 2)] || c[0];
+        if (indice.consultar(medio[0], medio[1])) enSombra++;
       }
       return enSombra / tramos.length;
     } catch (e) { return null; }
@@ -3686,13 +3793,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (!grupos.length) return { pasos, guiados };
 
     // 2. Convertir cada grupo en una frase con su giro y su sombra.
+    // El índice espacial se crea UNA vez para toda la guía (antes cada
+    // calle barría todas las sombras de nuevo).
+    const indiceSombrasGuia = (sombras && sombras.length) ? crearIndiceSombras(sombras) : null;
     let bearingAnterior = null;
     grupos.forEach((g, i) => {
       const metros = redondearMetros(g.metros);
       const calle = nombreCalleBonito(g.nombre);
       const bearingIni = turf.bearing(g.coords[0], g.coords[1]);
       const bearingFin = turf.bearing(g.coords[g.coords.length - 2], g.coords[g.coords.length - 1]);
-      const { frase, consejo } = textoSombra(fraccionSombraTramo(g.coords, sombras), metros);
+      const { frase, consejo } = textoSombra(fraccionSombraTramo(g.coords, sombras, indiceSombrasGuia), metros);
       const colaSombra = frase ? '. ' + frase : '';
 
       let texto;
@@ -3737,11 +3847,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const pasosOsrm = (rutaOsrm.legs || []).flatMap(l => l.steps || []);
     if (!pasosOsrm.length) return { pasos, guiados };
 
+    // Índice espacial UNA vez para toda la guía (antes cada paso barría
+    // todas las sombras de nuevo, sep-2026).
+    const indiceSombrasGuia = (sombras && sombras.length) ? crearIndiceSombras(sombras) : null;
+
     for (const s of pasosOsrm) {
       const calle = nombreCalleBonito(s.name);
       const metros = redondearMetros(s.distance || 0);
       const coords = s.geometry?.coordinates || [];
-      const { frase, consejo } = textoSombra(fraccionSombraTramo(coords, sombras), metros);
+      const { frase, consejo } = textoSombra(fraccionSombraTramo(coords, sombras, indiceSombrasGuia), metros);
       const colaSombra = frase ? '. ' + frase : '';
       const maniobra = s.maneuver || {};
       const tipo = maniobra.type || '';
@@ -3893,6 +4007,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         duracionEstimada = true;
       }
 
+      // La guía paso a paso se genera UNA vez: antes se llamaba dos
+      // veces seguidas a la misma función con los mismos datos, el
+      // doble de trabajo justo en el momento más cargado (sep-2026).
+      let pasosGeneradosRuta = { pasos: [], guiados: [] };
+      try { pasosGeneradosRuta = generarPasosDesdeOSRM(mejor.ruta, poligonosSombra); }
+      catch (ePasos) { /* sin guía, la ruta se pinta igual */ }
+
       return {
         geojson: mejor.ruta.geometry,
         distanciaKm: distanciaKmNum.toFixed(2),
@@ -3900,14 +4021,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         esReal: true,
         duracionEstimada,
         coberturaSombraPct: poligonosSombra.length ? Math.round(mejor.cobertura * 100) : null,
-        pasos: (() => {
-          try { return generarPasosDesdeOSRM(mejor.ruta, poligonosSombra).pasos; }
-          catch (ePasos) { return []; }
-        })(),
-        pasosGuiados: (() => {
-          try { return generarPasosDesdeOSRM(mejor.ruta, poligonosSombra).guiados; }
-          catch (ePasos) { return []; }
-        })(),
+        pasos: pasosGeneradosRuta.pasos || [],
+        pasosGuiados: pasosGeneradosRuta.guiados || [],
       };
     } catch (err) {
       console.debug('Routing con prioridad de sombra no disponible, usando ruta normal:', err);
@@ -4431,7 +4546,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         display:grid; grid-template-columns:1fr 1fr; gap:6px;
       }
       #rsCamCtl button{
-        width:44px; height:44px; border-radius:12px; font-size:18px; font-weight:700;
+        width:36px; height:36px; border-radius:10px; font-size:15px; font-weight:700;
         font-family:inherit; line-height:1; cursor:pointer;
         color:var(--paper, #FBFAF7); background:var(--sky-deep, #0E3B47);
         border:2px solid var(--accent, #FF6B1A);
@@ -4443,14 +4558,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       #rsCamCtl button:active{ transform:scale(0.94); }
       /* La brújula gira con el mapa (su flecha lleva la punta naranja
          al norte, como la de siempre). */
-      #rsCamBrujula svg{ display:block; margin:auto; transition:transform .08s linear; }
+      #rsCamBrujula svg{ display:block; margin:auto; width:18px; height:18px; transition:transform .08s linear; }
+      /* Pulso al tocarla: así se nota que ha respondido aunque el
+         mapa ya estuviera al norte y nivelado. */
+      @keyframes rsBrujulaPulso{ 0%{ scale:1; } 40%{ scale:1.3; } 100%{ scale:1; } }
+      #rsCamBrujula.rs-pulsada svg{ animation:rsBrujulaPulso .35s ease; }
       /* El icono de pantalla completa se dibuja aquí (la regla vieja de
          la hoja de estilos solo cubría el botón cuando vivía en la
          esquina de MapLibre). Va DESPUÉS del :hover para que el icono
          no desaparezca al pasar el dedo. */
       #rsCamCtl button.manolito-fs-btn{
         background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FBFAF7' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
-        background-repeat:no-repeat; background-position:center; background-size:22px 22px;
+        background-repeat:no-repeat; background-position:center; background-size:18px 18px;
       }
       #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
       #rsCamCtl button.manolito-fs-btn[aria-pressed="true"]{
@@ -4469,10 +4588,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2303050F' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
       }
       @media (max-width:480px){
-        #rsCamCtl{ right:8px; gap:5px; }
-        #rsCamCtl button{ width:34px; height:34px; font-size:14px; }
-        #rsCamBrujula svg{ width:18px; height:18px; }
-        #rsCamCtl button.manolito-fs-btn{ background-size:18px 18px; }
+        #rsCamCtl{ right:8px; gap:4px; }
+        #rsCamCtl button{ width:28px; height:28px; font-size:12px; border-radius:8px; border-width:1.5px; }
+        #rsCamBrujula svg{ width:14px; height:14px; }
+        #rsCamCtl button.manolito-fs-btn{ background-size:14px 14px; }
       }
     `;
     document.head.appendChild(estiloCam);
@@ -4570,8 +4689,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       try { map.easeTo({ bearing: 0, pitch: CONFIG.pitchInicial, duration: 400, essential: true }); } catch (e) { /* mapa a medio crear */ }
     });
     const brujulaSvg = btnCamBrujula.querySelector('svg');
-    map.on('rotate', () => {
+    const girarBrujula = () => {
       if (brujulaSvg) brujulaSvg.style.transform = `rotate(${-map.getBearing()}deg)`;
+    };
+    map.on('rotate', girarBrujula);
+    girarBrujula(); // deja la flecha puesta segun el rumbo de entrada
+    btnCamBrujula.addEventListener('click', () => {
+      btnCamBrujula.classList.remove('rs-pulsada');
+      void btnCamBrujula.offsetWidth; // reinicia la animacion
+      btnCamBrujula.classList.add('rs-pulsada');
+      setTimeout(() => btnCamBrujula.classList.remove('rs-pulsada'), 400);
     });
 
     // Pantalla completa: la clase ManolitoPantallaCompleta ya no se
@@ -4646,15 +4773,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // Misma magnitud que la penalización solar del verano (así el
   // algoritmo es igual de estable en ambos modos) y mismo efecto
   // de la nubosidad: con el cielo cubierto la sombra importa menos.
-  function calcularPenalizacionSombra(puntoMedio, posSol) {
+  function calcularPenalizacionSombra(puntoMedio, posSol, indiceSombras) {
     if (!posSol || posSol.altitude <= 0) return 0; // de noche no hay sol que buscar
     let enSombra = false;
     try {
-      const sombras = typeof obtenerTodasLasSombras === 'function'
-        ? obtenerTodasLasSombras()
-        : ((typeof ultimaColeccionSombras !== 'undefined' && ultimaColeccionSombras && ultimaColeccionSombras.features) ? ultimaColeccionSombras.features : []);
-      for (const poligono of sombras) {
-        if (turf.booleanPointInPolygon(turf.point(puntoMedio), poligono)) { enSombra = true; break; }
+      if (indiceSombras && indiceSombras.size) {
+        enSombra = indiceSombras.consultar(puntoMedio[0], puntoMedio[1]);
+      } else {
+        const sombras = typeof obtenerTodasLasSombras === 'function'
+          ? obtenerTodasLasSombras()
+          : ((typeof ultimaColeccionSombras !== 'undefined' && ultimaColeccionSombras && ultimaColeccionSombras.features) ? ultimaColeccionSombras.features : []);
+        for (const poligono of sombras) {
+          if (turf.booleanPointInPolygon(turf.point(puntoMedio), poligono)) { enSombra = true; break; }
+        }
       }
     } catch (e) { /* sin sombras calculadas todavía: todo cuenta como soleado */ }
     if (!enSombra) return 0; // al sol, la arista no penaliza
@@ -4665,7 +4796,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   // Dijkstra inverso: idéntico al térmico, pero pesando con la
   // penalización por SOMBRA de arriba.
-  function dijkstraSolar(grafo, inicioIdx, finIdx, posSol) {
+  function dijkstraSolar(grafo, inicioIdx, finIdx, posSol, indiceSombras) {
     const n = grafo.nodos.length;
     const dist = new Float64Array(n).fill(Infinity);
     const prev = new Int32Array(n).fill(-1);
@@ -4674,6 +4805,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     dist[inicioIdx] = 0;
     const heap = new MinHeap();
     heap.push({ nodo: inicioIdx, dist: 0 });
+    // Penalización memorizada por arista: cada una se evalúa una sola
+    // vez aunque el algoritmo la relaje varias (sep-2026, anti-cuelgues).
+    const penalizacionPorArista = new Map();
 
     while (!heap.isEmpty()) {
       const actual = heap.pop();
@@ -4690,8 +4824,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (visitado[v]) continue;
 
         const vx = grafo.nodos[v][0], vy = grafo.nodos[v][1];
-        const puntoMedio = [(ux + vx) * 0.5, (uy + vy) * 0.5];
-        const penalizacion = calcularPenalizacionSombra(puntoMedio, posSol);
+        const claveArista = u * n + v;
+        let penalizacion = penalizacionPorArista.get(claveArista);
+        if (penalizacion === undefined) {
+          const puntoMedio = [(ux + vx) * 0.5, (uy + vy) * 0.5];
+          penalizacion = calcularPenalizacionSombra(puntoMedio, posSol, indiceSombras);
+          penalizacionPorArista.set(claveArista, penalizacion);
+        }
         const peso = arista.longitudM * (1 + penalizacion);
 
         const nuevaDist = dist[u] + peso;
@@ -4740,20 +4879,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const centro = { lat: (origen.lat + destino.lat) * 0.5, lon: (origen.lon + destino.lon) * 0.5 };
     const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
 
-    const resultado = dijkstraSolar(grafo, inicioIdx, finIdx, posSol);
+    // Igual que en la ruta de sombras: colección e índice espacial UNA
+    // vez por ruta, no en cada arista (sep-2026, anti-cuelgues).
+    const sombrasParaCobertura = typeof obtenerTodasLasSombras === 'function'
+      ? obtenerTodasLasSombras()
+      : (ultimaColeccionSombras?.features || []);
+    const indiceSombrasRuta = crearIndiceSombras(sombrasParaCobertura);
+
+    const resultado = dijkstraSolar(grafo, inicioIdx, finIdx, posSol, indiceSombrasRuta);
     if (resultado.camino.length < 2) throw new Error('Dijkstra solar no ha encontrado camino');
 
     const distanciaRealKm = turf.length(turf.lineString(resultado.camino), { units: 'kilometers' });
     const duracionMin = (distanciaRealKm / CONFIG.velocidadCaminandoKmh) * 60;
 
     let coberturaSombraPct = null;
-    const sombrasParaCobertura = typeof obtenerTodasLasSombras === 'function'
-      ? obtenerTodasLasSombras()
-      : (ultimaColeccionSombras?.features || []);
     if (sombrasParaCobertura.length) {
       try {
         const lineaRuta = turf.lineString(resultado.camino);
-        coberturaSombraPct = Math.round(calcularCoberturaSombra(lineaRuta, sombrasParaCobertura) * 100);
+        coberturaSombraPct = Math.round(calcularCoberturaSombra(lineaRuta, sombrasParaCobertura, indiceSombrasRuta) * 100);
       } catch (e) { /* el badge se actualizará después con los tramos en sombra */ }
     }
 
@@ -7721,7 +7864,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           grupo.dataset.rsPlegable = '1';
           const hijos = Array.prototype.slice.call(grupo.querySelectorAll('button'));
           if (!hijos.length) { delete grupo.dataset.rsPlegable; return; }
-          hijos.forEach(function (b) { b.classList.add('rs-capa-hija'); });
+          hijos.forEach(function (b) {
+            // Catastro 3D va siempre visible en su propia fila, debajo
+            // de Capas y Capas de mapa (orden de Sandro, sep-2026): el
+            // 3D se tiene que ver sin abrir ningun desplegable.
+            if (b.id === 'rsBtnCatastro') return;
+            b.classList.add('rs-capa-hija');
+          });
 
           const master = document.createElement('button');
           master.type = 'button';
@@ -7746,8 +7895,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           master.addEventListener('click', function () {
             fijar(!grupo.classList.contains('rs-colapsado'));
           });
-          // En pantallas pequeñas arranca plegado para no tapar el mapa.
-          fijar(window.innerWidth <= 700);
+          // Arranca desplegado: el grupo vive dentro del widget, debajo
+          // del mapa, asi que no tapa nada y los botones se ven directos.
+          fijar(false);
         } catch (e) { /* las capas siguen como estaban */ }
       };
       // Reintentos propios, suaves y baratos (90 × 400 ms = 36 s de margen

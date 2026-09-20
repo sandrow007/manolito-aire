@@ -330,7 +330,7 @@ export default {
     if (url.pathname === '/clima') {
       // Respuesta neutra 200 cuando falta la clave o falla OWM: el frontend
       // asume cielo despejado y la consola (F12) queda limpia, sin errores.
-      const cieloDespejado = () => new Response(JSON.stringify({ nubes: 0, descripcion: '', humedad: null, amanecer: null, atardecer: null }), {
+      const cieloDespejado = () => new Response(JSON.stringify({ nubes: 0, descripcion: '', humedad: null, amanecer: null, atardecer: null, temperatura: null }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
       });
@@ -352,6 +352,9 @@ export default {
           nubes: Math.max(0, Math.min(100, Number(d?.clouds?.all ?? 0))),
           descripcion: d?.weather?.[0]?.description || '',
           humedad: d?.main?.humidity ?? null,
+          // (sep-2026) Temperatura actual: la usa Manolit para contarla en
+          // sus frases de estación ("¡estamos a 12 grados, miarma!").
+          temperatura: isFinite(Number(d?.main?.temp)) ? Number(d.main.temp) : null,
           amanecer: d?.sys?.sunrise ?? null,
           atardecer: d?.sys?.sunset ?? null,
         };

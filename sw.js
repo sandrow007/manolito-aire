@@ -127,8 +127,13 @@
 // brujula, ademas de girar con el mapa, al tocarla vuelve al norte
 // y nivela la vista (si estabas mirando al cielo, te devuelve al
 // mapa plano).
-// Cambian js/microclima.js, worker.js y sw.js.
-const VERSION = '2026-09-19-g' // -g 19-sep: microclima con modo predictivo (prevision horaria de Open-Meteo via worker), inercia termica por material, mas resolucion de superficie OSM y ponderacion por albedo y evapotranspiracion;
+// (historial de versiones en los comentarios de abajo)
+// Cambian index.html (carga la CSS oficial de MapLibre, sin ella los
+// marcadores DOM no se veian NUNCA), js/shadows-route.js (Manolit ya se
+// VE al dar a Mi ubicacion y aguanta GPS lento de movil) y
+// js/microclima.js (respaldo directo a Open-Meteo si el worker aun no
+// tiene la ruta nueva).
+const VERSION = '2026-09-19-h' // -h 19-sep: Manolit visible con Mi ubicacion (CSS de MapLibre + position absolute) + paciencia con GPS lento + microclima con respaldo directo;
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

@@ -247,6 +247,12 @@
   // que las sirve same-origin con caché edge. La respuesta trae la hora
   // actual y la previsión horaria (ayer, hoy y mañana) en unixtime, así
   // que la misma caché vale para pasado, presente y futuro cercano.
+  // RESPALDO: si el worker desplegado aún no tiene la ruta /prevision
+  // (worker.js viejo) se llama a Open-Meteo directamente, igual que
+  // hacía la v3: la capa funciona desde el minuto uno y sin tocar nada.
+  // La decisión se recuerda durante la sesión para no insistir.
+  let previsionDirecta = false;
+
   async function obtenerPrevision() {
     const c = mapa.getCenter();
     const ahora = Date.now();
@@ -256,9 +262,16 @@
       return previsionCache;
     }
     try {
-      const r = await fetch(`/prevision?lat=${c.lat.toFixed(3)}&lon=${c.lng.toFixed(3)}`);
+      const consulta = `latitude=${c.lat.toFixed(3)}&longitude=${c.lng.toFixed(3)}` +
+        '&current=temperature_2m,cloudcover,relative_humidity_2m' +
+        '&hourly=temperature_2m,cloudcover,relative_humidity_2m' +
+        '&past_days=1&forecast_days=2&timezone=auto&timeformat=unixtime';
+      const url = previsionDirecta
+        ? `https://api.open-meteo.com/v1/forecast?${consulta}`
+        : `/prevision?lat=${c.lat.toFixed(3)}&lon=${c.lng.toFixed(3)}`;
+      const r = await fetch(url);
       if (!r.ok) throw new Error('prevision ' + r.status);
-      const d = await r.json();
+      const d = await r.json(); // si el worker viejo devuelve HTML u '{}', salta abajo
       const t = Number(d && d.current && d.current.temperature_2m);
       const horas = {};
       if (d && d.hourly && Array.isArray(d.hourly.time)) {
@@ -283,7 +296,13 @@
         actualH: Number(d && d.current && d.current.relative_humidity_2m),
         horas
       };
-    } catch (e) { /* se sirve la caché que hubiera, aunque sea vieja */ }
+    } catch (e) {
+      if (!previsionDirecta) {
+        previsionDirecta = true;
+        return obtenerPrevision(); // reintento único yendo directo a Open-Meteo
+      }
+      /* se sirve la caché que hubiera, aunque sea vieja */
+    }
     return previsionCache;
   }
 

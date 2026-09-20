@@ -2689,7 +2689,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (window.ManolitA11y) window.ManolitA11y.iniciarGuiaCaminata();
 
       const el = document.createElement('div');
-      el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#0E3B47'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#0E3B47')}33;`;
+      el.style.cssText = `position:absolute;top:0;left:0;width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#0E3B47'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#0E3B47')}33;`;
       marcadorCaminando = new maplibregl.Marker({ element: el });
 
       // Ahorro de batería andando (sep-2026): el GPS dispara ~1 lectura
@@ -4153,7 +4153,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     const pin = (color) => {
       const el = document.createElement('div');
-      el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${color};border:3px solid var(--paper);box-shadow:0 0 0 2px ${color}66;`;
+      el.style.cssText = `position:absolute;top:0;left:0;width:16px;height:16px;border-radius:50%;background:${color};border:3px solid var(--paper);box-shadow:0 0 0 2px ${color}66;`;
       return el;
     };
 
@@ -5735,8 +5735,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const w = this.size, h = Math.round(this.size * 170 / 120);
         const wrap = document.createElement('div');
         wrap.className = 'manolit-walker';
+        // OJO: la raíz del marcador debe ser position:absolute (regla de
+        // MapLibre .maplibregl-marker). Con 'relative' el elemento entra en
+        // flujo normal DEBAJO del canvas y MapLibre lo desplaza con su
+        // transform desde ahí: el muñeco quedaba una pantalla más abajo,
+        // recortado por el overflow del mapa, o sea INVISIBLE. Los hijos
+        // absolutos (.mw-onda, .mw-sway) se anclan igual a esta raíz.
         wrap.style.cssText = `
-          position:relative;
+          position:absolute;
+          top:0;left:0;
           width:${w}px;height:${h}px;
           overflow:visible;
           pointer-events:auto;
@@ -5862,7 +5869,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
               return;
             }
           } catch (e) { /* fuente aún no lista: reintenta */ }
-          if (++intentos < 30) setTimeout(buscar, 400); // hasta ~12 s (permiso GPS lento)
+          // GPS real de móvil: la cadena fina (12 s) + respaldo (15 s) puede
+          // tardar casi medio minuto en interior. 150 intentos × 400 ms = 60 s
+          // de margen; antes eran 12 s y Manolit nunca llegaba a plantarse.
+          if (++intentos < 150) setTimeout(buscar, 400);
         };
         setTimeout(buscar, 300);
       });

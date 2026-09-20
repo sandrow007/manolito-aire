@@ -3124,6 +3124,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // El botón de actualizar OSM ya NO va en el panel: vive fijo arriba a
     // la derecha, muy pequeño, para que la botonera quepa en una línea.
     panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnGuiaVoz, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
+    // (sep-2026, orden de Sandro) «Mi ubicación» sale de la barra de arriba:
+    // el botón SIGUE en el DOM porque el mini-Manolit de la pila de cámara
+    // (rsCamUbicacion) le delega su click, pero ya no ocupa hueco en el banner.
+    btnUbicacion.style.display = 'none';
     contenedorMapa.appendChild(panelMapa);
 
     map.on('click', (e) => {
@@ -5409,6 +5413,69 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           '¡Hasta luego, Mari... digo, hasta la próxima caminata, compare!',
           '¡Esto ya está hecho! Un aplauso pa nosotros, que lo vale.'
         ];
+        /* ---- VOZ DE ESTACIÓN (sep-2026, orden de Sandro) ----
+           Manolit comenta la estación del año real, como los árboles que
+           cambian solos: en invierno se queja del frío, en otoño y en
+           primavera suelta sus bromitas y en verano oficial (desde el 21
+           de junio) habla de calor y sombrita. Fechas de hemisferio
+           norte. Las frases con {t} solo salen cuando conocemos la
+           temperatura real de la calle (ver _refrescarTemperatura). */
+        this._frasesEstaciones = {
+          invierno: [
+            '¡Ojú, qué frío, miarma! Esto no es Sevilla, es una nevera con Giralda.',
+            '¡Que me congelo, compare! Yo nací pa la sombrita, no pa la escarcha.',
+            '¡Qué fresquita está la mañana! Vamoh andando, que eso calienta má que la manta.',
+            '¡Brrr! Si me quedo quieto me plantan en un belén.',
+            '¡El invierno aquí es suavecito, pero ojú con la humedad, que traspasa!',
+            '¡Venga, al sol que calienta! En invierno la sombra sobra, miarma.',
+            '¡Qué frío má serio! Me faltan lah castañah asáh y me sobra el airecito.',
+            '¡Anda que no se agradece ná un cafelito caliente con este tiempo!',
+            '¡Mira qué naranjos má valientes! Verdes en diciembre, eso es casta.',
+            '¡Abrígate bien, compare, que el invierno no perdona ni en Triana!',
+            '¡Estamos a {t}! Que me tiembla hasta el corazoncito, miarma.',
+            '¡{t} ahí fuera! Abrígate, que el invierno parece de broma pero muerde.',
+            '¡Marcando {t}! Y yo aquí, plantaito como un naranjo sin manta.'
+          ],
+          otono: [
+            '¡Ya está aquí el otoño, miarma! Caen las hojas y yo me pongo nostálgico.',
+            '¡Qué bien se está! Ni frío ni calor, el otoño es el término medio de los listos.',
+            '¡Mira qué alfombra de hojas! Pisa despacito, que crujen como patá fritá.',
+            '¡El otoño es la primavera al revé! Cada hoja que cae es una flor del suelo.',
+            '¡Con este tiempo apetecen castañas, miarma! Y un paseíto sin prisa.',
+            '¡Ojú, que anochece antes! No te fíes, que la tarde se te echa encima.',
+            '¡Qué olorcito a tierra mojá! Eso no lo embotella ni la perfume má cara.',
+            '¡Los naranjos aguantan verdes, que son así de valientes! Otros ya van soltando.',
+            '¡Octubre es un mes traidor! De mañana chaqueta y de tarde manga corta.',
+            '¡Si llega el chaparrón, corre, miarma! Que la lluvia de otoño no avisa.',
+            '¡Estamos a {t}! Tiempo de chaquetilla fina, que el otoño va por capas.',
+            '¡{t} y olor a otoño! Esto sí que es vivir, miarma.'
+          ],
+          primavera: [
+            '¡Primavera, miarma! El azahar huele tan rico que hasta yo me pongo poeta.',
+            '¡Qué florecita está la ciudad! Sevilla en primavera no se aguanta de bonita.',
+            '¡Ojú, el polen anda suelto! Si estornudo yo, que soy de mentira, imagínate tú.',
+            '¡Los ojillos llorosos son el precio de tanta flor! Pero qué bien huele.',
+            '¡Qué ganas de Feria que tiene el aire! Aunque yo con la sombrita me conformo.',
+            '¡Las golondrinas ya están aquí! Una no hace verano, pero alegra la tarde.',
+            '¡Ni frío ni calorón! La primavera es como yo, miarma, templaita y agradable.',
+            '¡Mira qué naranjos má contentos! En primavera hasta las sombras huelen bien.',
+            '¡Abril, aguas mil! Si te pilla el chaparrón, yo te cubro con la hoja.',
+            '¡Los jazmines ya se están preparando! Dentro de ná esto huele a gloria.',
+            '¡Estamos a {t} y huele a azahar! Esto es lo mejor del año, compare.',
+            '¡{t} de primavera del buen libro! Ni frío ni calor, miarma.'
+          ],
+          verano: [
+            '¡Verano oficial, miarma! Empieza la temporada de la sombrita fina.',
+            '¡Ya está aquí el verano! A partir de ahora la sombra es oro y yo soy el banquero.',
+            '¡El verano en Sevilla es un horno, pero contigo hasta el horno se pasa bien!',
+            '¡Agosto no perdona, compare! Botijo lleno y a vivir de sombra en sombra.',
+            '¡En verano madruga, que a las doce el Lorenzo no tiene piedad!',
+            '¡Qué noches má ricas las de verano! De día sombra y de noche terracita.',
+            '¡{t}, miarma! Esto no es una calle, es un sartén de los gordos.',
+            '¡Estamos a {t}! Vamoh por la sombra o noh fundimo como el helao.',
+            '¡Marcando {t}! Y eso a la sombra, que al sol ni te lo cuento.'
+          ]
+        };
         this._lastLngLat = null;
         this._moving = false;
         this._ultimoMovMs = Date.now();
@@ -5455,6 +5522,46 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         // Si estaba de capricho por el mapa, vuelve corriendo a tu punto y saluda.
         if (this._explorando) this._volverATuPunto();
       }
+      // Estación del año real por fecha oficial (hemisferio norte):
+      // primavera desde el 20 de marzo, verano desde el 21 de junio,
+      // otoño desde el 23 de septiembre e invierno desde el 21 de
+      // diciembre. Como los árboles, cambia sola cada año.
+      _estacionActual() {
+        const ahora = new Date();
+        const m = ahora.getMonth(), d = ahora.getDate();
+        if ((m === 2 && d >= 20) || m === 3 || m === 4 || (m === 5 && d < 21)) return 'primavera';
+        if ((m === 5 && d >= 21) || m === 6 || m === 7 || (m === 8 && d < 23)) return 'verano';
+        if ((m === 8 && d >= 23) || m === 9 || m === 10 || (m === 11 && d < 21)) return 'otono';
+        return 'invierno';
+      }
+      // Elige la frase adecuada: más de la mitad de las veces habla de la
+      // estación en curso (si hay temperatura conocida la suelta en la
+      // frase) y el resto tira del repertorio general de siempre. Fuera
+      // del verano se apartan las frases de calor, que en enero cantan.
+      _elegirFraseEstacional() {
+        try {
+          const est = this._estacionActual();
+          const deEstacion = (this._frasesEstaciones && this._frasesEstaciones[est]) || [];
+          const generales = est === 'verano' ? this._frasesAndaluz
+            : this._frasesAndaluz.filter((f) => !/calor|solana|bochorno|derrit|flama|lorenzo|achicharra|tortilla|freidora/i.test(f));
+          const cache = ManolitWalker._tempCache;
+          const t = cache && isFinite(cache.t) ? cache.t : null;
+          const usarEstacion = deEstacion.length && Math.random() < 0.55;
+          const fuente = usarEstacion ? deEstacion : generales;
+          const conTemp = fuente.filter((f) => f.indexOf('{t}') >= 0);
+          const sinTemp = fuente.filter((f) => f.indexOf('{t}') < 0);
+          let pool = (t !== null && conTemp.length && Math.random() < 0.6) ? conTemp : sinTemp;
+          if (!pool.length) pool = fuente.length ? fuente : this._frasesAndaluz;
+          let frase = pool[Math.floor(Math.random() * pool.length)];
+          if (t !== null && frase.indexOf('{t}') >= 0) {
+            const g = Math.round(t);
+            frase = frase.replace('{t}', g === 1 ? '1 grado' : g + ' grados');
+          }
+          return frase;
+        } catch (e) {
+          return this._frasesAndaluz[Math.floor(Math.random() * this._frasesAndaluz.length)];
+        }
+      }
       _decirFraseAndaluza() {
         try {
           if (!('speechSynthesis' in window)) return;
@@ -5463,9 +5570,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             window.ManolitA11y.pedirPermisoVoz();
             return;
           }
-          const frase = new SpeechSynthesisUtterance(
-            this._frasesAndaluz[Math.floor(Math.random() * this._frasesAndaluz.length)]
-          );
+          const frase = new SpeechSynthesisUtterance(this._elegirFraseEstacional());
           frase.lang = 'es-ES';
 
           // VOZ SIN GÉNERO: ningún navegador ofrece hoy una voz española
@@ -5498,6 +5603,39 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           frase.onerror = frase.onend;
           window.speechSynthesis.speak(frase);
         } catch (e) { /* si no hay voz disponible, no rompe la app */ }
+      }
+      // Temperatura ambiente para las frases de estación: una consulta cada
+      // 15 minutos como mucho y solo si hay red. Primero pregunta al Worker
+      // (/clima ya devuelve temperatura) y, si no hay dato, directamente a
+      // Open-Meteo, que no pide clave. Si todo falla, Manolit habla sin
+      // número y tan contento. Nunca bloquea y nunca ensucia la consola.
+      static async _refrescarTemperatura(lat, lon) {
+        try {
+          const c = ManolitWalker._tempCache || (ManolitWalker._tempCache = { t: null, ts: 0, lat: null, lon: null });
+          const ahora = Date.now();
+          const mismaZona = c.lat !== null && Math.abs(c.lat - lat) < 0.25 && Math.abs(c.lon - lon) < 0.25;
+          if (c.ts && ahora - c.ts < 900000 && mismaZona) return c.t;
+          let temp = null;
+          try {
+            const r = await fetch(`/clima?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}`);
+            if (r.ok) {
+              const d = await r.json();
+              if (d && isFinite(Number(d.temperatura))) temp = Number(d.temperatura);
+            }
+          } catch (e) { /* sin Worker o sin datos, se intenta Open-Meteo */ }
+          if (temp === null && navigator.onLine !== false) {
+            try {
+              const r2 = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&current=temperature_2m&timezone=auto`);
+              if (r2.ok) {
+                const d2 = await r2.json();
+                const v = d2 && d2.current && Number(d2.current.temperature_2m);
+                if (isFinite(v)) temp = v;
+              }
+            } catch (e) { /* sin temperatura no pasa nada */ }
+          }
+          ManolitWalker._tempCache = { t: temp, ts: ahora, lat, lon };
+          return temp;
+        } catch (e) { return null; }
       }
       // Elige la voz española de mejor calidad disponible y detecta su
       // género por el nombre para poder neutralizar el tono después.
@@ -5536,11 +5674,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         this._el.addEventListener('click', (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
+          // Si la temperatura lleva más de 15 min sin refrescarse, la pide
+          // en segundo plano para la PRÓXIMA frase (esta habla ya, sin esperar).
+          try {
+            const mk = this._markerRef;
+            const ll = mk && mk.getLngLat ? mk.getLngLat() : null;
+            if (ll) ManolitWalker._refrescarTemperatura(ll.lat, ll.lng);
+          } catch (e) { }
           this._decirFraseAndaluza();
         });
       }
       _bindClickSpeechToMarker(marker) {
         if (!marker || !marker.getElement) return;
+        this._markerRef = marker; // para la charla de estación y su temperatura
         const root = marker.getElement();
         if (!root || root.dataset.manolitMarkerBound) return;
         root.dataset.manolitMarkerBound = '1';
@@ -5829,6 +5975,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         manolit.walker._bindClickSpeechToMarker(manolit.marker);
       }
       manolit.marker.setLngLat(lngLat); // primero posición: un Marker sin LngLat rompe al añadirse
+      // Precalienta la temperatura de la zona para que la primera frase
+      // de estación ya pueda decir los grados (perezosa, una cada 15 min).
+      try {
+        const lon = Array.isArray(lngLat) ? lngLat[0] : (lngLat.lng ?? lngLat.lon);
+        const lat = Array.isArray(lngLat) ? lngLat[1] : lngLat.lat;
+        if (isFinite(lat) && isFinite(lon)) ManolitWalker._refrescarTemperatura(lat, lon);
+      } catch (e) { /* sin temperatura habla igual */ }
       if (!manolit.marker._map) manolit.marker.addTo(map);
       const root = manolit.marker && manolit.marker.getElement ? manolit.marker.getElement() : null;
       if (root) {
@@ -8128,12 +8281,42 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
               yo._saluda();
             } catch (e) { }
           }, 14000);
+          // Charla de estación (sep-2026, orden de Sandro): además de hablar
+          // cuando le tocas, Manolit comenta la estación por su cuenta cada
+          // 100-180 segundos. Solo si la pestaña está visible, él está
+          // quietecito y la voz YA tiene permiso (nunca abre él solo la
+          // petición de permiso). Un intervalo de 15 s que casi siempre
+          // sale por la puerta: coste prácticamente cero.
+          yo._ultimaCharlaMs = Date.now();
+          yo._charlaExtraMs = 0;
+          yo._charlaTimer = setInterval(function () {
+            try {
+              if (document.hidden) return;
+              if (!document.contains(yo._el)) { clearInterval(yo._charlaTimer); return; }
+              // Aunque esté de capricho (explorando alrededor de tu punto)
+              // puede hablar: es su momento más gracioso. Solo calla si
+              // caminas de verdad, saluda, está sentado o hay reduced-motion.
+              if (yo._moving || yo._saludando || yo._sentado || yo._reduced) return;
+              if (!(window.ManolitA11y && window.ManolitA11y.vozPermitida && window.ManolitA11y.vozPermitida())) return;
+              const ahora = Date.now();
+              if (ahora - yo._ultimaCharlaMs < 100000 + yo._charlaExtraMs) return;
+              yo._ultimaCharlaMs = ahora;
+              yo._charlaExtraMs = Math.floor(Math.random() * 80000);
+              const hablar = function () { try { yo._decirFraseAndaluza(); } catch (e) { } };
+              const mk = yo._markerRef;
+              const ll = mk && mk.getLngLat ? mk.getLngLat() : null;
+              if (ll && window.ManolitWalker && window.ManolitWalker._refrescarTemperatura) {
+                Promise.resolve(window.ManolitWalker._refrescarTemperatura(ll.lat, ll.lng)).then(hablar).catch(hablar);
+              } else hablar();
+            } catch (e) { }
+          }, 15000);
         } catch (e) { }
       };
 
       const destroyOriginal = proto.destroy;
       proto.destroy = function () {
         try { if (this._olaTimer) clearInterval(this._olaTimer); } catch (e) { }
+        try { if (this._charlaTimer) clearInterval(this._charlaTimer); } catch (e) { }
         destroyOriginal.call(this);
       };
     } catch (e) { /* aditivo: jamás rompe */ }

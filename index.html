@@ -67,6 +67,13 @@
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
 <link rel="stylesheet" href="css/style.css">
+<!-- CSS oficial de MapLibre GL 4.7.1 (sep-2026): la página cargaba el JS
+     pero nunca su hoja de estilos. Sin ella los marcadores DOM (Manolit,
+     los pines de origen/destino, el punto de la caminata) pierden el
+     position:absolute y caen en flujo normal DEBAJO del canvas: existían
+     pero no se veían nunca. Con esta hoja vuelven a su sitio, y de regalo
+     los popups y la atribución quedan con su estilo correcto. -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <!-- Ambientes automáticos por fecha (sep-2026): Semana Santa, Día del
      Clima, Orgullo, Halloween... Los días normales no cambian nada. -->
 <link rel="stylesheet" href="css/ambientes.css">
@@ -506,10 +513,37 @@
      junto a los botones de mapa base (Mapa oscuro, Mapa IGN, Catastro
      3D). Nada flota encima del mapa. -->
 
+<div class="rs-planetario" id="rsPlanetario" data-cielo="dia">
+  <!-- Capas del mapa integradas en el widget de posición solar (sep-2026,
+       orden de Sandro): las casillas de siempre y, debajo, los botones
+       de mapa base que shadows-route.js trae aquí (Mapa oscuro, Mapa
+       IGN y Catastro 3D). Todo en una fila elegante que se apila en
+       móvil, sin cambiar el tamaño de la cúpula. -->
+  <div class="rs-planetario-capas" id="rsPlanetarioCapas">
+    <div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
+      <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas">▾ Capas</button>
+      <div class="rs-layer-toggles-lista" id="rsListaCapas">
+      <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
+      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
+           es lo que más calienta el móvil; ahora solo arranca si el usuario
+           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
+           pero la CPU está en reposo hasta que tú decidas. -->
+      <label><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
+      <label><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
+      <label><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
+      <label><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
+      <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
+           Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
+      <label><input type="checkbox" id="rsToggleMicroclima"> <span>Microclima · estimado</span></label>
+      </div>
+    </div>
+    <div class="rs-capas-mapas" id="rsCapasMapas"></div>
+  </div>
+
 <!-- ¿No hay 3D en tu zona? (sep-2026, ADITIVO): cómo colaborar en
      OpenStreetMap para que tu barrio salga en Manolit∞. Va PLEGADO: se
      despliega solo al pulsar el título (details/summary nativo, sin JS). -->
-<section class="map-section" id="rsColaboraOSM" style="margin-top:18px;">
+<section class="map-section" id="rsColaboraOSM">
 <details>
   <summary id="rsColaboraTitle" class="map-title" style="font-size:1.15rem;cursor:pointer;list-style:none;user-select:none;">
     ¿No hay 3D en tu zona? <span style="font-size:0.8rem;font-weight:400;opacity:0.75;">pulsa y te cuento cómo arreglarlo en 5 minutos ▾</span> 
@@ -559,33 +593,7 @@
   </div>
 </details>
 </section>
-
-<div class="rs-planetario" id="rsPlanetario" data-cielo="dia">
-  <!-- Capas del mapa integradas en el widget de posición solar (sep-2026,
-       orden de Sandro): las casillas de siempre y, debajo, los botones
-       de mapa base que shadows-route.js trae aquí (Mapa oscuro, Mapa
-       IGN y Catastro 3D). Todo en una fila elegante que se apila en
-       móvil, sin cambiar el tamaño de la cúpula. -->
-  <div class="rs-planetario-capas" id="rsPlanetarioCapas">
-    <div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
-      <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas">▾ Capas</button>
-      <div class="rs-layer-toggles-lista" id="rsListaCapas">
-      <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
-      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
-           es lo que más calienta el móvil; ahora solo arranca si el usuario
-           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
-           pero la CPU está en reposo hasta que tú decidas. -->
-      <label><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
-      <label><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
-      <label><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
-      <label><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
-      <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
-           Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
-      <label><input type="checkbox" id="rsToggleMicroclima"> <span>Microclima · estimado</span></label>
-      </div>
-    </div>
-    <div class="rs-capas-mapas" id="rsCapasMapas"></div>
-  </div>  <!-- Bloque sol: la cúpula y su hora van al final del widget,
+  <!-- Bloque sol: la cúpula y su hora van al final del widget,
        como una sola pieza (sep-2026, orden de Sandro). -->
   <div class="rs-planetario-sol">
   <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
@@ -767,7 +775,6 @@
   </div>
   <div class="status-line" id="statusLine">Cargando datos en vivo…</div>
 </div>
-
 
 <div class="forecast-section">
   <div class="map-head">

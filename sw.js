@@ -12,7 +12,7 @@
      propios (js/css/imágenes). Cambian poco: velocidad máxima.
    - NETWORK-FIRST (primero red; si falla, caché):
      páginas HTML y datos dinámicos (Open-Meteo, Overpass y los
-     proxies propios /api /geo /ruta /clima /arboles). Así los
+     proxies propios /api /geo /ruta /clima /prevision /arboles). Así los
      datos están frescos cuando hay red y hay respaldo cuando
      no la hay.
    - NUNCA se cachean POST (el chat /manolito) ni otras APIs
@@ -127,8 +127,8 @@
 // brujula, ademas de girar con el mapa, al tocarla vuelve al norte
 // y nivela la vista (si estabas mirando al cielo, te devuelve al
 // mapa plano).
-// Cambian index.html, style.css y js/shadows-route.js.
-const VERSION = '2026-09-19-f' // -f 19-sep: sombras de arboles sin recorte invisible (la web deja de congelarse), aviso 3D debajo de las capas, Capas y Capas de mapa en la misma fila y boton Mi ubicacion con el logo Manolit en la botonera del mapa;
+// Cambian js/microclima.js, worker.js y sw.js.
+const VERSION = '2026-09-19-g' // -g 19-sep: microclima con modo predictivo (prevision horaria de Open-Meteo via worker), inercia termica por material, mas resolucion de superficie OSM y ponderacion por albedo y evapotranspiracion;
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
@@ -147,7 +147,7 @@ const HOSTS_REVALIDABLES = [
 ];
 
 /* Rutas propias con datos dinámicos (proxies del worker) */
-const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/arboles', '/manolito'];
+const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/manolito'];
 
 /* Hosts de datos dinámicos externos */
 const HOSTS_DINAMICOS = [

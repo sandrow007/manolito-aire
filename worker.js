@@ -1,517 +1,713 @@
-﻿﻿const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': '*',
-};
+/* ============================================================
+   MICROCLIMA GLOBAL, capa opcional de temperatura de superficie
+   v2 RENDIMIENTO: nunca congela la página.
+   ------------------------------------------------------------
+   Qué pinta: un mapa de calor (azul = fresco, rojo = caliente)
+   sobre el mapa de sombras 3D, estimando la temperatura del suelo
+   con tres fuentes GRATIS y honestas:
 
-const SYSTEM_PROMPT_AIRE = (idioma) => `Eres Manolit, el asistente de Manolit∞ Aire y sombras 3D (manolitoaire.com). Tu personalidad es cercana, natural y con cultura general amplia: hablas de cualquier tema con soltura (música, historia, filosofía, arte, actualidad, objetos cotidianos, lo que sea) igual que lo haría un amigo con curiosidad. Nunca fuerces la conversación de vuelta al clima si el usuario está hablando de otra cosa; sigue su hilo con naturalidad. Responde SIEMPRE en el mismo idioma en el que la persona te escribe; si no puedes detectarlo con claridad, responde en ${idioma}. Si te hablan en español, a veces (no siempre) se te escapa alguna expresión andaluza, con gracia y sin abusar.
+     1) Open-Meteo  -> temperatura base del aire (1 llamada / 15 min)
+     2) El propio mapa -> tipo de superficie leído de los tiles
+        vectoriales YA CARGADOS (cero llamadas extra a Overpass)
+     3) El motor de sombras existente -> si el punto está en sombra,
+        se atenúa el calentamiento solar
 
-CONOCES A FONDO la web y puedes explicar todas sus funciones (solo si preguntan por ella):
+   HONESTIDAD: esto es una ESTIMACIÓN por modelo (literatura de isla
+   de calor urbana), NO una medición por satélite. La leyenda lo dice.
 
-1. CALIDAD DEL AIRE: mapa nacional de España con estaciones en vivo (PM2.5, PM10, NO2, O3...), orbes de color según lo respirable que está el aire, histórico y pronóstico de 48 h con gráfica, y modos de vista: ciudadano (simple), científico (datos técnicos), yayo (letra grande) y peque (para niños, con personaje).
+   POR QUÉ ESTA V2 NO SE CUELGA (la v1 sí):
+   - La v1 llamaba a queryRenderedFeatures POR CADA CELDA (miles de
+     llamadas, cada una escanea todo lo renderizado -> minutos de
+     bloqueo y diálogo de "página no responde").
+   - La v2 hace UNA ÚNICA consulta por todo el viewport, indexa los
+     polígonos por su caja (bbox) y luego cada celda solo comprueba
+     los 1-5 polígonos candidatos. Además procesa POR TANDAS con
+     pausas (cede el hilo al navegador) y ABORTA si el mapa se mueve
+     antes de terminar. Resultado: fluido incluso en móvil.
 
-2. MAPA DE SOMBRAS 3D: edificios en 3D que proyectan su sombra real según la posición del sol (cálculo astronómico con la hora elegida). TODOS los edificios visibles proyectan sombra, sin límite. Hay slider de tiempo, solsticios de verano/invierno, hora dorada, hora azul y modo oscuro del mapa.
+   CAMBIOS DE ESTA REVISIÓN (a petición):
+   - La leyenda se mueve a la esquina INFERIOR DERECHA (antes
+     izquierda), para no tapar la barra de horarios/ruta.
+   - La leyenda ahora tiene un botón "×" para CERRARLA sin apagar
+     la capa: el microclima sigue activo en el mapa, solo se oculta
+     la cajita. Queda un botón circular pequeño para reabrirla.
 
-3. ÁRBOLES Y PALMERAS: árboles reales de OpenStreetMap con volumen 3D y su sombra proyectada. Las palmeras proyectan también la sombra fina y alargada de su tronco. Las sombras de árboles se recortan para no entrar nunca dentro de los edificios.
+   CAMBIOS v3 (a petición):
+   - La leyenda nace OCULTA: solo se ve el botón 🌡. Se abre solo
+     si el usuario quiere verla, y su elección se recuerda.
+   - RELOJ SOLAR: la capa solo se calcula con el reloj en PASADO
+     o PRESENTE (datos reales). Si el reloj marca futuro, la capa
+     se oculta sola y el botón cambia a ⏳: la estimación futura
+     aún no está disponible.
 
-4. RUTAS CON SOMBRA: buscas origen y destino (o tocas el mapa, o usas tu ubicación GPS) y la ruta se calcula sobre la red peatonal real. El porcentaje de sombra cuenta TODAS las sombras: edificios Y árboles. Los tramos en sombra van en cian y un badge muestra el % en vivo al mover la hora. Existe una ruta "fresca" (Dijkstra térmico) que prefiere calles con sombra. Cada ruta genera INDICACIONES PASO A PASO en texto (calle por calle, giros, metros y sol/sombra), en una sección plegable con botón "Escuchar indicaciones" (voz del dispositivo, sin enviar nada a servidores). Y con "Iniciar caminata", la GUÍA POR VOZ te sigue por GPS avisándote de cada giro hasta llegar.
+   CAMBIOS v4 (a petición): la capa aprende a mirar adelante.
+   - MODO PREDICTIVO: con el reloj solar en el futuro la capa YA
+     NO se oculta. Usa la previsión horaria de Open-Meteo servida
+     por el worker (/prevision, misma casa, caché edge 10 min) y
+     pinta la estimación de esa hora. La leyenda avisa de que es
+     previsión, nunca la hace pasar por medición.
+   - CACHÉ HORARIA: la previsión se guarda indexada por hora unix
+     (ayer, hoy y mañana), así que mover el reloj no dispara nuevas
+     llamadas: una sola petición cada 15 min por zona, como antes.
+   - INERCIA TÉRMICA: cada material acumula el sol de las últimas
+     horas con su propia constante de tiempo (el asfalto tarda en
+     calentarse y sigue templado de noche, el césped responde al
+     momento). Se implementa como media exponencial de la exposición
+     solar (geometría SunCalc + nubosidad horaria) PRECALCULADA por
+     material: el coste por celda no sube nada.
+   - MÁS RESOLUCIÓN OSM: rejilla de 30 a 24 px y clases nuevas
+     (peatonal, arena, roca) leídas de los mismos tiles.
+   - ALBEDO + EVAPOTRANSPIRACIÓN: los offsets positivos se corrigen
+     con el albedo típico de cada superficie (el asfalto negro se
+     calienta mucho más que una acera clara) y los enfriamientos se
+     modulan con la humedad horaria (el bosque enfría más con aire
+     seco, porque evapotranspira mejor).
+   - DPR: la rejilla se calcula en píxeles CSS y se dibuja escalada
+     a los píxeles físicos del canvas. En móviles retina la capa
+     queda alineada con el mapa y más fina, no estirada.
+   ============================================================ */
 
-5. NUBES REALES: capa de nubes en vivo de OpenWeatherMap sobre el mapa. La nubosidad real atenúa las sombras con física de luz difusa: con nubes pierden contraste pero NUNCA desaparecen.
+(function () {
+  'use strict';
 
-6. IRRADIACIÓN SOLAR: histórico hora a hora con datos reales de la NASA (POWER), con atenuación por umbra/penumbra de edificios y árboles.
+  /* ---- CONSTANTES AJUSTABLES (literatura UHI) ---- */
+  const OFFSET_SUPERFICIE = {
+    asfalto: 16,          // punto medio +12 a +20 °C en sol directo
+    edificio: 14,         // punto medio +10 a +18
+    peatonal: 11,         // aceras y plazas claras: calientan menos que el asfalto
+    suelo_desnudo: 7,     // punto medio +5 a +10
+    roca: 10,             // roca desnuda: se calienta pero menos que asfalto
+    arena: 12,            // arena seca: muy caliente al tacto, albedo alto
+    vegetacion_baja: 1.5, // punto medio 0 a +3
+    bosque: -6,           // enfriamiento por copa arbórea
+    agua: -3.5,           // efecto moderador del agua
+    urbano_generico: 10   // fallback si el punto no clasifica
+  };
+  // v4 INERCIA TÉRMICA: constante de tiempo (horas) de cada material.
+  // A mayor tau, más tarda en calentarse y más tarda en enfriarse:
+  // el agua guarda el fresco de la mañana hasta la tarde, el asfalto
+  // sigue templado bien entrada la noche, el césped responde al momento.
+  const TAU_HORAS = {
+    asfalto: 2.5,
+    edificio: 3,
+    peatonal: 2,
+    suelo_desnudo: 1.5,
+    roca: 2,
+    arena: 1.5,
+    vegetacion_baja: 0.8,
+    bosque: 1.2,
+    agua: 6,
+    urbano_generico: 2
+  };
+  // v4 ALBEDO típico (fracción de luz solar que cada superficie refleja):
+  // a más albedo, menos energía se queda en el suelo. Solo corrige los
+  // offsets POSITIVOS (los negativos enfrían por sombra y evapotranspiración,
+  // no por reflexión).
+  const ALBEDO_SUPERFICIE = {
+    asfalto: 0.08,
+    edificio: 0.20,
+    peatonal: 0.32,
+    suelo_desnudo: 0.25,
+    roca: 0.23,
+    arena: 0.38,
+    vegetacion_baja: 0.22,
+    bosque: 0.16,
+    agua: 0.07,
+    urbano_generico: 0.15
+  };
+  const ALBEDO_REF = 0.15; // albedo de referencia implícito en OFFSET_SUPERFICIE
+  // v4 EVAPOTRANSPIRACIÓN: cuánto del enfriamiento de cada superficie depende
+  // de evaporar agua. Con humedad alta el aire está casi saturado y ese
+  // enfriamiento se reduce; con aire seco es más fuerte.
+  const ET_PESO = {
+    asfalto: 0,
+    edificio: 0,
+    peatonal: 0.05,
+    suelo_desnudo: 0.10,
+    roca: 0,
+    arena: 0.05,
+    vegetacion_baja: 0.55,
+    bosque: 0.75,
+    agua: 0.9,
+    urbano_generico: 0.15
+  };
+  const FACTOR_SOMBRA = 0.21;        // fracción de aporte solar que queda en sombra (luz difusa)
+  const REJILLA_PX = 24;             // celda en píxeles CSS (más grande = más rápido)
+  const CACHE_TEMP_MS = 15 * 60000;  // previsión: máximo 1 llamada / 15 min por zona
+  const DEBOUNCE_MS = 400;
+  const FILAS_POR_TANDA = 6;         // filas de rejilla por tanda antes de ceder el hilo
 
-7. EXTRAS: planetario en vivo con sol y luna (fase e iluminación lunar real), pantalla completa que funciona también en iPhone, paseo virtual 3D con joystick (WASD/flechas), captura de vista, capas base opcionales IGN y Catastro, cambio de idioma (español, catalán, euskera, gallego, inglés y georgiano), modo oscuro y paletas de color.
+  let mapa = null;
+  // v4: una sola caché con la previsión completa (actual + horas).
+  // "horas" va indexada por hora unix (segundos): mover el reloj solar
+  // consulta esta tabla sin volver a llamar a la red.
+  let previsionCache = { ts: 0, lat: null, lon: null, actualT: null, actualN: null, actualH: null, horas: {} };
+  let temporizador = null;
+  let activo = false;
+  let versionCalculo = 0;            // para abortar cálculos viejos
+  let ultimaHoraClave = -1;          // minuto de la última pasada (ahorra repaints iguales)
 
-PRIVACIDAD: la web no usa rastreadores ni publicidad; la ubicación solo se usa si la persona la comparte y no se guarda en ningún servidor.
+  /* ---- índice espacial simple: cajas (bbox) por tipo ---- */
 
-ESPECIALIDAD CATEDRÁTICA. Cuando la conversación SÍ toca clima urbano, sombras o salud solar, eres un experto genuino en:
+  function construirIndiceSuperficie() {
+    // UNA sola consulta para todo el viewport (esto es lo que la v1
+    // hacía miles de veces). Clasificamos cada polígono UNA vez.
+    const idx = { agua: [], bosque: [], vegetacion_baja: [], edificio: [], asfalto: [], peatonal: [], suelo_desnudo: [], roca: [], arena: [] };
+    let feats = [];
+    try { feats = mapa.queryRenderedFeatures() || []; } catch (e) { return idx; }
 
-- SOMBRAS Y LUZ NATURAL en general: cómo se proyectan, cómo cambian con la hora y la estación.
-- ESTIMACIÓN DE ALTURAS por descripción: calculas los metros aproximados de edificios y árboles a partir de lo que cuenta el usuario. Ejemplo de razonamiento: "un edificio de 3 plantas son unos 9-10 metros; si ese árbol llega a la altura de la planta 2, serán unos 6 metros; a esta hora (00:00) la sombra cae hacia tal dirección y mide aproximadamente X metros". Da siempre cifras aproximadas y útiles, con sentido común.
-- POSICIÓN SOLAR: cómo cambia la sombra según la hora del día y la estación del año (solsticios, equinoccios, hora dorada, hora azul).
-- NUBOSIDAD: cómo afecta a la radiación solar y a la sensación térmica.
-- MERCURIO RETRÓGRADO: sabes explicar qué es astronómicamente (un efecto óptico aparente) y su significado cultural/astrológico, con naturalidad y sin burlarte de quien pregunta.
-- ÁRBOLES: especies comunes en las grandes ciudades de España (Sevilla, Madrid, Barcelona, Valencia, Córdoba, Jaén, Huelva, Jerez, Almería), en Tbilisi y del mundo en general: tipo de hoja, sombra que producen, alturas típicas y por qué varía entre especies y estaciones.
-- POLEN Y AIRE: polen por época y zona, calidad del aire y contaminación de los coches detectable según la ubicación de la persona (tráfico, avenidas, horas punta).
-- SALUD SOLAR: cómo la radiación solar afecta a la piel y a los ojos: tipos de UV (UVA, UVB), fototipos de piel y recomendaciones de protección. Por qué algunas personas son más sensibles (fotosensibilidad, lupus, medicación fotosensibilizante).
-- PLAYA Y SOL: consejos para quien está cerca de la playa en verano Y en invierno, porque en invierno el sol también quema aunque no lo parezca (y la arena y el mar reflejan radiación).
+    const vistos = new Set();
+    for (const f of feats) {
+      if (!f.geometry || (f.geometry.type !== 'Polygon' && f.geometry.type !== 'MultiPolygon')) continue;
+      const sl = (f.sourceLayer || '').toLowerCase();
+      const cls = ((f.properties && (f.properties.class || f.properties.subclass)) || '').toLowerCase();
+      const lay = ((f.layer && f.layer.id) || '').toLowerCase();
 
-EN TEMAS DE SALUD: da información educativa clara y consejos generales de sentido común (protección, horarios de riesgo, hidratación). No diagnostiques condiciones ni sustituyas a un médico. Si alguien describe un problema de piel u ojos concreto, sugiere con naturalidad que lo consulte con un dermatólogo u oftalmólogo, sin sonar a aviso legal.
+      let tipo = null;
+      if (sl === 'water' || lay.includes('water')) tipo = 'agua';
+      else if (cls === 'wood' || cls === 'forest') tipo = 'bosque';
+      else if (['park', 'grass', 'garden', 'meadow', 'cemetery', 'pitch', 'playground', 'village_green', 'recreation_ground'].includes(cls)) tipo = 'vegetacion_baja';
+      else if (sl === 'building' || lay.includes('building')) tipo = 'edificio';
+      else if (sl === 'transportation' || lay.includes('road')) {
+        // v4: dentro de la red vial se distingue lo peatonal (aceras,
+        // plazas, carriles: pavimento claro, albedo alto) de la calzada
+        // de asfalto negro. Es la mayor fuente de "resolución" nueva:
+        // justo las calles por donde camina la gente.
+        if (['pedestrian', 'footway', 'path', 'cycleway', 'corridor', 'pedestrian_area', 'steps', 'track'].includes(cls)) tipo = 'peatonal';
+        else tipo = 'asfalto';
+      }
+      else if (cls === 'sand' || cls === 'beach') tipo = 'arena';
+      else if (cls === 'bare_rock' || cls === 'scree' || cls === 'cliff') tipo = 'roca';
+      else if (cls === 'bare_soil') tipo = 'suelo_desnudo';
+      if (!tipo) continue;
 
-SU CREADOR Y SU FAMILIA (si preguntan, cuenta esto tal cual; si no lo preguntan, no hace falta soltarlo):
-- Manolit∞ Aire la creó Sandro, un georgiano-español (sevillano, andaluz) que se cansó de que nadie diera soluciones prácticas ante una crisis como el cambio climático y decidió construirlas él mismo.
-- Esta web es libre y gratuita para todo el mundo, para siempre: nadie puede venderla ni ponerle suscripción.
-- Tiene "hermanos": Manolit∞ Forestal (manolitoforestal.space, predictor de incendios forestales en tiempo real) e Islas de Calor Sevilla (islasdecalorsevilla.com, mapa de estrés térmico urbano).
-- NO INVENTES: si te preguntan por Sandro o por los proyectos algo que no está aquí, di lo que sabes y reconoce con naturalidad que lo demás no lo sabes. Mejor un "eso no te lo sé decir" que un dato inventado.
+      // la misma geometría puede salir duplicada por tiles: deduplicar
+      let clave;
+      try { clave = tipo + JSON.stringify(f.geometry.coordinates).slice(0, 120); } catch (e) { continue; }
+      if (vistos.has(clave)) continue;
+      vistos.add(clave);
 
-REGLAS DE ORO:
-- BREVEDAD ESTRICTA: responde en 2-4 frases cortas, máximo unas 60 palabras. Directo y específico, sin rodeos ni listas largas. Solo escribe más si el usuario pide explícitamente más detalle.
-- Nunca fuerces una venta ni redirijas la conversación hacia "usa Manolit∞ para..." salvo que el usuario lo pida. Tu prioridad es ser útil y agradable, no vender.
-- NO INVENTES datos concretos (cifras, fechas, nombres): si no lo sabes, dilo con naturalidad.
-- Si te preguntan algo que no sea de esta web ni de aire/sol/sombras/clima urbano, responde igualmente con tu cultura general y sigue su hilo, igual de breve.`;
-
-const langNames = { es:'español', ca:'català', eu:'euskera', gl:'galego', en:'English' };
-
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+      try { idx[tipo].push({ bbox: turf.bbox(f), geo: f }); } catch (e) { /* geometría rara: fuera */ }
     }
 
-    if (url.pathname === '/manolito' || url.pathname === '/api/chat') {
-      if (request.method !== 'POST') {
-        return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
-      }
-      try {
-        const body = await request.json();
-        const message = body.message || body.prompt || '';
-        const idioma = body.idioma || 'es';
-
-        if (!message) {
-          return new Response(JSON.stringify({ error: 'Message is required' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
-          });
+    // Copas de árboles del propio motor = microclima de bosque urbano
+    try {
+      const copas = mapa.querySourceFeatures('arboles-globales-copas') || [];
+      for (const f of copas) {
+        if (f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')) {
+          try { idx.bosque.push({ bbox: turf.bbox(f), geo: f }); } catch (e) {}
         }
-
-        const uiLangName = langNames[idioma] || 'español';
-        const systemPrompt = SYSTEM_PROMPT_AIRE(uiLangName);
-
-        // --- Cadena de Fallback: Cloudflare AI -> OpenRouter ---
-
-        let aiResponse = '';
-
-        // 1. Intentar con Cloudflare Workers AI
-        try {
-          const messages = [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message }
-          ];
-          const response = await env.AI.run('@cf/meta/llama-3.1-8b-instruct-fast', { messages, max_tokens: 450 });
-          aiResponse = typeof response === 'string' ? response : (response.response || '');
-        } catch (e) {
-          console.error("Cloudflare AI failed:", e);
-          // Si falla, no hacemos nada y dejamos que el código siga hacia OpenRouter
-        }
-
-        // 2. Si Cloudflare falló Y tenemos una clave de OpenRouter, usarla
-        if (!aiResponse && env.OPENROUTER_API_KEY) {
-          try {
-            const orResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${env.OPENROUTER_API_KEY}`,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                "model": "mistralai/mistral-7b-instruct:free",
-                "max_tokens": 450,
-                "messages": [{ "role": "system", "content": systemPrompt }, { "role": "user", "content": message }]
-              })
-            });
-            if (orResponse.ok) {
-              const orData = await orResponse.json();
-              aiResponse = orData.choices?.[0]?.message?.content.trim() || '';
-            }
-          } catch (e) {
-            console.error("OpenRouter fallback failed:", e);
-          }
-        }
-
-        return new Response(JSON.stringify({ respuesta: aiResponse || '' }), {
-          headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
-        });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: String(err.message || err) }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
-        });
       }
-    }
+    } catch (e) { /* fuente de árboles aún no existe */ }
 
-    if (url.pathname.startsWith('/api/air-quality')) {
-      const params = url.search || '';
-      const targetUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality' + params;
-      // Regla de oro de esta casa: el navegador NUNCA ve un error en F12.
-      // Si Open-Meteo falla o nos limita (429), devolvemos 200 con objeto
-      // vacío y el frontend muestra "·" / "sin datos" sin ensuciar consola.
-      const vacio = () => new Response('{}', {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
-      });
-      try {
-        // Caché en el edge de Cloudflare (10 min): las consultas van en TANDAS
-        // de ~40 estaciones (13 URLs únicas para toda España), así que casi
-        // todas las visitas se sirven de la caché sin tocar Open-Meteo. Esto
-        // es lo que evita el rate-limit del origen: el tráfico que sale hacia
-        // Open-Meteo pasa de ~500 peticiones por visita a ~13 cada 10 minutos.
-        const resp = await fetch(targetUrl, {
-          headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
-          cf: { cacheTtl: 600, cacheEverything: true },
-        });
-        if (!resp.ok) return vacio();
-        const data = await resp.text();
-        return new Response(data, {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
-        });
-      } catch (err) {
-        return vacio();
-      }
-    }
-
-    // --- Proxy anti-CORS + caché KV para los árboles (Overpass / OpenStreetMap) ---
-    // Los espejos públicos de Overpass se caen a menudo (502/504/silencio
-    // total), así que la defensa va en tres capas:
-    //   1) KV: si esta misma zona se pidió hace <7 días, se sirve al
-    //      instante sin tocar Overpass; si la copia es más vieja, se sirve
-    //      igualmente y se renueva EN SEGUNDO PLANO (stale-while-revalidate):
-    //      los árboles de OSM se actualizan solos cada semana, sin esperas.
-    //   2) Carrera de espejos: se lanzan todos EN PARALELO con 15 s de
-    //      timeout cada uno y gana el primero que responda bien. El Worker
-    //      nunca se cuelga (15 s máx.) ni espera a espejos muertos.
-    //   3) Si todos los espejos fallan, se sirve la copia del KV aunque sea
-    //      vieja (los árboles no se mueven: un dato de hace 2 días es
-    //      infinitamente mejor que ningún dato).
-    if (url.pathname === '/arboles') {
-      if (request.method !== 'POST') {
-        return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
-      }
-      try {
-        const rawBody = await request.text();
-
-        // Clave de caché = bbox de la consulta Overpass, redondeado a 3
-        // decimales (~100 m): la misma calle comparte caché entre usuarios.
-        let claveKv = null;
-        try {
-          const m = decodeURIComponent(rawBody).match(/\(([-\d.,\s]+)\)/);
-          if (m) claveKv = 'arboles:' + m[1].split(',').map((n) => parseFloat(n).toFixed(3)).join(',');
-        } catch (e) { /* sin clave: seguimos sin caché */ }
-
-        const kv = env.AIR_QUALITY_CACHE || null;
-        // Actualización cada 12 h (sep-2026, orden de Sandro): antes una
-        // copia se consideraba "fresca" durante 7 días, y lo que la gente
-        // dibujaba en OpenStreetMap tardaba una semana en aparecer en la
-        // web. Ahora la caché compartida caduca a las 12 horas; y el
-        // botón "↻ Actualizar" de la web (cabecera X-Arboles-Fresca) la
-        // renueva al momento para todo el mundo.
-        const FRESCA_MS = 12 * 3600 * 1000; // 12 horas
-        // Modo "frescos": la página puede pedir los datos recién bajados de
-        // OSM (p. ej. ?arboles=frescos tras plantar un árbol en el mapa). El
-        // bypass es por zona y además deja la caché compartida ya renovada
-        // para todo el mundo.
-        const forzarFresca = request.headers.get('X-Arboles-Fresca') === '1';
-
-        // La copia del KV se lee UNA vez y se reutiliza en todas las ramas.
-        let copiaKv = null;
-        if (kv && claveKv) {
-          try {
-            const { value, metadata } = await kv.getWithMetadata(claveKv);
-            copiaKv = value || null;
-            if (!forzarFresca && value && metadata && metadata.ts && Date.now() - metadata.ts < FRESCA_MS) {
-              return new Response(value, {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
-              });
-            }
-          } catch (e) { /* KV inaccesible: seguimos a los espejos */ }
-        }
-
-        const espejos = [
-          // Espejos públicos de Overpass en Europa y Taiwán (nada de
-          // infraestructura rusa). DA IGUAL el orden: se lanzan TODOS EN
-          // PARALELO y gana el primero que responda con datos válidos
-          // (carrera), con 15 s de timeout por espejo. Así el Worker nunca
-          // se cuelga ni espera a un espejo muerto. Los tres dominios
-          // *.overpass-api.de son colas independientes del mismo operador
-          // alemán (el principal suele ser el más saturado).
-          'https://lz4.overpass-api.de/api/interpreter',
-          'https://z.overpass-api.de/api/interpreter',
-          'https://overpass-api.de/api/interpreter',
-          'https://overpass.kumi.systems/api/interpreter',
-          'https://overpass.private.coffee/api/interpreter',
-          'https://overpass.nchc.org.tw/api/interpreter',
-          // OJO: overpass.osm.ch devuelve 200 con elements vacío y fecha
-          // basura (timestamp_osm_base:"116617"), corrupto y fuera.
-        ];
-        const intentarEspejo = async (espejo) => {
-          const controller = new AbortController();
-          const temporizador = setTimeout(() => controller.abort(), 15000);
-          try {
-            const r = await fetch(espejo, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                // User-Agent identificativo: los espejos Overpass limitan o
-                // bloquean peticiones anónimas (técnica anti-bot).
-                'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)',
-              },
-              body: rawBody,
-              signal: controller.signal,
-            });
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            const txt = await r.text();
-            // Validar el contenido: un 200 con JSON vacío corrupto no vale.
-            let datos = null;
-            try { datos = JSON.parse(txt); } catch (e) { throw new Error('no JSON'); }
-            const ts = datos?.osm3s?.timestamp_osm_base;
-            const corrupto =
-              Array.isArray(datos?.elements) && datos.elements.length === 0 &&
-              typeof ts === 'string' && ts !== '' && !ts.includes('T');
-            if (corrupto) throw new Error('espejo corrupto');
-            if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
-            return txt;
-          } finally {
-            clearTimeout(temporizador);
-          }
-        };
-        // Stale-while-revalidate (sep-2026): si hay copia vieja (más de 7
-        // días) y NO se pidió refresco forzado, se sirve AL INSTANTE y se
-        // lanza la renovación contra Overpass en segundo plano. El usuario
-        // nunca espera; la próxima visita (la de cualquiera) ya verá los
-        // árboles nuevos. Así OSM se actualiza solo, semanalmente.
-        if (copiaKv && !forzarFresca) {
-          if (ctx && typeof ctx.waitUntil === 'function') {
-            ctx.waitUntil(
-              Promise.any(espejos.map(intentarEspejo))
-                .then((nueva) => kv.put(claveKv, nueva, { expirationTtl: 2592000, metadata: { ts: Date.now() } }))
-                .catch(() => { /* si la renovación falla, la copia vieja sigue sirviendo */ })
-            );
-          }
-          return new Response(copiaKv, {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'vieja-refrescando', ...CORS_HEADERS }
-          });
-        }
-
-        // Promise.any: el primer espejo bueno gana al instante; solo se
-        // espera a todos (máx. 15 s) si TODOS fallan.
-        let respuesta = null;
-        try {
-          respuesta = await Promise.any(espejos.map(intentarEspejo));
-        } catch (e) { /* AggregateError: todos fallaron */ }
-
-        if (respuesta) {
-          // Guardamos en KV en segundo plano (30 días de vida: la copia de
-          // emergencia aguanta aunque Overpass pase semanas caprichoso) sin
-          // retrasar la respuesta al navegador.
-          if (kv && claveKv && ctx && typeof ctx.waitUntil === 'function') {
-            ctx.waitUntil(
-              kv.put(claveKv, respuesta, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {})
-            );
-          }
-          return new Response(respuesta, {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'nueva', ...CORS_HEADERS }
-          });
-        }
-
-        // Todos los espejos caídos: servimos la copia del KV aunque esté vieja.
-        if (copiaKv) {
-          return new Response(copiaKv, {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Arboles-Cache': 'vieja', ...CORS_HEADERS }
-          });
-        }
-
-        throw new Error('Overpass no disponible en ningún espejo');
-      } catch (err) {
-        // 200 con lista vacía: el mapa pinta la zona sin árboles y F12
-        // queda limpio (un 502 aparecería como error aunque la web funcione).
-        return new Response(JSON.stringify({ elements: [] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
-        });
-      }
-    }
-
-    // --- Nubosidad en tiempo real (OpenWeatherMap) para la luz difusa ---
-    // GET /clima?lat=..&lon=.. -> { nubes: 0-100, descripcion, humedad }
-    // La API key vive SOLO aquí, como secret del Worker (nunca en el cliente):
-    //   npx wrangler secret put OPENWEATHER_API_KEY
-    if (url.pathname === '/clima') {
-      // Respuesta neutra 200 cuando falta la clave o falla OWM: el frontend
-      // asume cielo despejado y la consola (F12) queda limpia, sin errores.
-      const cieloDespejado = () => new Response(JSON.stringify({ nubes: 0, descripcion: '', humedad: null, amanecer: null, atardecer: null }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
-      });
-      try {
-        if (!env.OPENWEATHER_API_KEY) return cieloDespejado();
-        const lat = parseFloat(url.searchParams.get('lat'));
-        const lon = parseFloat(url.searchParams.get('lon'));
-        if (!isFinite(lat) || !isFinite(lon)) {
-          return new Response(JSON.stringify({ error: 'lat/lon requeridos' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
-          });
-        }
-        const owm = `https://api.openweathermap.org/data/2.5/weather?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}&appid=${env.OPENWEATHER_API_KEY}&units=metric&lang=es`;
-        const r = await fetch(owm, { headers: { 'User-Agent': 'manolito-aire/1.0' } });
-        if (!r.ok) throw new Error(`OpenWeatherMap HTTP ${r.status}`);
-        const d = await r.json();
-        const salida = {
-          nubes: Math.max(0, Math.min(100, Number(d?.clouds?.all ?? 0))),
-          descripcion: d?.weather?.[0]?.description || '',
-          humedad: d?.main?.humidity ?? null,
-          amanecer: d?.sys?.sunrise ?? null,
-          atardecer: d?.sys?.sunset ?? null,
-        };
-        return new Response(JSON.stringify(salida), {
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
-        });
-      } catch (err) {
-        return cieloDespejado();
-      }
-    }
-
-    // --- Tiles de nubes reales (OpenWeatherMap) para pintarlas sobre el mapa ---
-    // GET /tiles/nubes/{z}/{x}/{y}.png -> PNG de la capa clouds_new de OWM.
-    // La API key vive SOLO aquí (secret del Worker): el navegador jamás la ve.
-    // Cloudflare edge cachea cada tesela 10 min (OWM las renueva ~cada 10 min),
-    // así que miles de visitas a la misma zona cuestan UNA llamada a OWM.
-    const mNubes = url.pathname.match(/^\/tiles\/nubes\/(\d+)\/(\d+)\/(\d+)\.png$/);
-    if (mNubes) {
-      // Tesela transparente de 1×1: si falta la clave o falla OWM, el mapa
-      // simplemente no pinta nubes ahí y F12 queda limpio (200, no error).
-      const teselaVacia = () => {
-        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
-        return new Response(transparente, {
-          status: 200,
-          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=60', ...CORS_HEADERS }
-        });
-      };
-      try {
-        if (!env.OPENWEATHER_API_KEY) return teselaVacia();
-        const z = parseInt(mNubes[1], 10), x = parseInt(mNubes[2], 10), y = parseInt(mNubes[3], 10);
-        const max = 2 ** z;
-        if (!(z >= 0 && z <= 19) || !(x >= 0 && x < max) || !(y >= 0 && y < max)) {
-          return new Response(JSON.stringify({ error: 'z/x/y fuera de rango' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
-          });
-        }
-        const owm = `https://tile.openweathermap.org/map/clouds_new/${z}/${x}/${y}.png?appid=${env.OPENWEATHER_API_KEY}`;
-        const r = await fetch(owm, {
-          headers: { 'User-Agent': 'manolito-aire/1.0' },
-          cf: { cacheTtl: 600, cacheEverything: true },
-        });
-        if (!r.ok) throw new Error(`OpenWeatherMap tiles HTTP ${r.status}`);
-        return new Response(r.body, {
-          headers: {
-            'Content-Type': r.headers.get('Content-Type') || 'image/png',
-            'Cache-Control': 'public, max-age=600',
-            ...CORS_HEADERS
-          }
-        });
-      } catch (err) {
-        return teselaVacia();
-      }
-    }
-
-    // --- Proxy Nominatim (buscar calles / nombre de un punto) -------------
-    // GET /geo?q=calle -> [] si falla; GET /geo-reverso?lat&lon -> {} si falla.
-    // El navegador nunca ve un 4xx/5xx: F12 limpio y la web degrada en silencio.
-    if (url.pathname === '/geo' || url.pathname === '/geo-reverso') {
-      const vacio = url.pathname === '/geo' ? '[]' : '{}';
-      try {
-        const destino = 'https://nominatim.openstreetmap.org' +
-          (url.pathname === '/geo' ? '/search' : '/reverse') + url.search +
-          (url.search ? '&' : '?') + 'accept-language=es';
-        const r = await fetch(destino, { headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' } });
-        if (!r.ok) throw new Error(`Nominatim HTTP ${r.status}`);
-        return new Response(await r.text(), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
-        });
-      } catch (err) {
-        return new Response(vacio, {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
-        });
-      }
-    }
-
-    // --- Proxy OSRM (ruta a pie por calles reales) -------------------------
-    // GET /ruta/foot/{lon,lat;lon,lat}?... -> {"code":"Error"} si falla:
-    // el frontend ya tiene plan B (línea directa / Dijkstra) y F12 no se entera.
-    if (url.pathname.startsWith('/ruta/')) {
-      try {
-        const destino = 'https://routing.openstreetmap.de/routed-foot/route/v1' +
-          url.pathname.slice('/ruta'.length) + url.search;
-        const r = await fetch(destino, { headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' } });
-        if (!r.ok) throw new Error(`OSRM HTTP ${r.status}`);
-        return new Response(await r.text(), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
-        });
-      } catch (err) {
-        return new Response('{"code":"Error"}', {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
-        });
-      }
-    }
-
-    // --- Proxy WMS del IGN (capa base opcional "Mapa IGN") ----------------
-    // El WMS del IGN no envía cabeceras CORS: llamado directo desde el
-    // navegador llenaría F12 de errores. Lo servimos same-origin, con caché
-    // en el edge 1 h, y si el IGN falla devolvemos tesela transparente 200.
-    if (url.pathname === '/ign-wms') {
-      const teselaVaciaIGN = () => {
-        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
-        return new Response(transparente, {
-          status: 200,
-          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
-        });
-      };
-      try {
-        const destino = 'https://www.ign.es/wms-inspire/ign-base' + url.search;
-        const r = await fetch(destino, {
-          headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
-          cf: { cacheTtl: 3600, cacheEverything: true },
-        });
-        if (!r.ok) throw new Error(`IGN WMS HTTP ${r.status}`);
-        const ct = r.headers.get('Content-Type') || '';
-        if (!ct.includes('image')) throw new Error('IGN no devolvió imagen');
-        return new Response(r.body, {
-          status: 200,
-          headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=3600', ...CORS_HEADERS }
-        });
-      } catch (err) {
-        return teselaVaciaIGN();
-      }
-    }
-
-    // --- Proxy WMS del Catastro (capa opcional "Catastro 3D") -----------
-    // WMS INSPIRE oficial de la Sede Electrónica del Catastro: gratis, sin
-    // API key ni registro. No envía CORS, así que lo servimos same-origin
-    // con caché edge 1 h; si Catastro falla, tesela transparente 200 (F12
-    // limpio siempre).
-    if (url.pathname === '/catastro-wms') {
-      const teselaVaciaCatastro = () => {
-        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
-        return new Response(transparente, {
-          status: 200,
-          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
-        });
-      };
-      try {
-        const destino = 'https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx' + url.search;
-        const r = await fetch(destino, {
-          headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
-          cf: { cacheTtl: 3600, cacheEverything: true },
-        });
-        if (!r.ok) throw new Error(`Catastro WMS HTTP ${r.status}`);
-        const ct = r.headers.get('Content-Type') || '';
-        if (!ct.includes('image')) throw new Error('Catastro no devolvió imagen');
-        return new Response(r.body, {
-          status: 200,
-          headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=3600', ...CORS_HEADERS }
-        });
-      } catch (err) {
-        return teselaVaciaCatastro();
-      }
-    }
-
-    return env.ASSETS.fetch(request);
+    return idx;
   }
-};
+
+  function construirIndiceSombras() {
+    const lista = [];
+    for (const src of ['sombras', 'arboles-globales-sombra']) {
+      try {
+        const feats = mapa.querySourceFeatures(src) || [];
+        for (const f of feats) {
+          if (f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')) {
+            try { lista.push({ bbox: turf.bbox(f), geo: f }); } catch (e) {}
+          }
+        }
+      } catch (e) { /* fuente no lista */ }
+    }
+    return lista;
+  }
+
+  function enPoligono(lista, lng, lat) {
+    // solo comprueba polígonos cuya caja contiene el punto (casi ninguno)
+    for (const p of lista) {
+      const b = p.bbox;
+      if (lng < b[0] || lat < b[1] || lng > b[2] || lat > b[3]) continue;
+      try {
+        if (turf.booleanPointInPolygon(turf.point([lng, lat]), p.geo)) return true;
+      } catch (e) {}
+    }
+    return false;
+  }
+
+  function clasificarPunto(idx, lng, lat) {
+    if (enPoligono(idx.agua, lng, lat)) return 'agua';
+    if (enPoligono(idx.bosque, lng, lat)) return 'bosque';
+    if (enPoligono(idx.vegetacion_baja, lng, lat)) return 'vegetacion_baja';
+    if (enPoligono(idx.edificio, lng, lat)) return 'edificio';
+    if (enPoligono(idx.peatonal, lng, lat)) return 'peatonal';
+    if (enPoligono(idx.asfalto, lng, lat)) return 'asfalto';
+    if (enPoligono(idx.arena, lng, lat)) return 'arena';
+    if (enPoligono(idx.roca, lng, lat)) return 'roca';
+    if (enPoligono(idx.suelo_desnudo, lng, lat)) return 'suelo_desnudo';
+    return 'urbano_generico';
+  }
+
+  // v4: la temperatura y la nubosidad llegan por el worker (/prevision),
+  // que las sirve same-origin con caché edge. La respuesta trae la hora
+  // actual y la previsión horaria (ayer, hoy y mañana) en unixtime, así
+  // que la misma caché vale para pasado, presente y futuro cercano.
+  async function obtenerPrevision() {
+    const c = mapa.getCenter();
+    const ahora = Date.now();
+    const mismaZona = previsionCache.lat !== null &&
+      Math.abs(previsionCache.lat - c.lat) < 0.25 && Math.abs(previsionCache.lon - c.lng) < 0.25;
+    if (previsionCache.ts && mismaZona && ahora - previsionCache.ts < CACHE_TEMP_MS) {
+      return previsionCache;
+    }
+    try {
+      const r = await fetch(`/prevision?lat=${c.lat.toFixed(3)}&lon=${c.lng.toFixed(3)}`);
+      if (!r.ok) throw new Error('prevision ' + r.status);
+      const d = await r.json();
+      const t = Number(d && d.current && d.current.temperature_2m);
+      const horas = {};
+      if (d && d.hourly && Array.isArray(d.hourly.time)) {
+        const tt = d.hourly.temperature_2m || [], nn = d.hourly.cloudcover || [], hh = d.hourly.relative_humidity_2m || [];
+        for (let i = 0; i < d.hourly.time.length; i++) {
+          const temp = Number(tt[i]);
+          if (!isFinite(temp)) continue;
+          horas[Math.floor(Number(d.hourly.time[i]))] = {
+            t: temp,
+            n: Number(nn[i]),
+            h: Number(hh[i])
+          };
+        }
+      }
+      if (!isFinite(t) && Object.keys(horas).length === 0) throw new Error('sin datos');
+      previsionCache = {
+        ts: ahora,
+        lat: c.lat,
+        lon: c.lng,
+        actualT: isFinite(t) ? t : null,
+        actualN: Number(d && d.current && d.current.cloudcover),
+        actualH: Number(d && d.current && d.current.relative_humidity_2m),
+        horas
+      };
+    } catch (e) { /* se sirve la caché que hubiera, aunque sea vieja */ }
+    return previsionCache;
+  }
+
+  // Temperatura, nubosidad y humedad PARA LA HORA QUE MARCA EL RELOJ.
+  // Si esa hora está en la previsión se usa su dato horario; si está
+  // más lejos (solsticios, otro día) se cae a la temperatura actual
+  // y la leyenda ya dice que todo esto es una estimación por modelo.
+  function datosParaHora(horaMs) {
+    const p = previsionCache;
+    const celda = p.horas[Math.floor(horaMs / 3600000)];
+    const nubesActuales = () => {
+      if (isFinite(p.actualN)) return p.actualN;
+      try { return (typeof window.manolitAireNubosidad === 'function') ? window.manolitAireNubosidad() : null; } catch (e) { return null; }
+    };
+    if (celda && isFinite(celda.t)) {
+      return {
+        t: celda.t,
+        nubes: isFinite(celda.n) ? celda.n : nubesActuales(),
+        humedad: isFinite(celda.h) ? celda.h : (isFinite(p.actualH) ? p.actualH : null)
+      };
+    }
+    if (p.actualT !== null && isFinite(p.actualT)) {
+      return { t: p.actualT, nubes: nubesActuales(), humedad: isFinite(p.actualH) ? p.actualH : null };
+    }
+    return null;
+  }
+
+  function obtenerHoraRelojMs() {
+    try {
+      if (typeof window.manolitAireHoraEfectiva === 'function') {
+        const h = window.manolitAireHoraEfectiva();
+        const ms = (h instanceof Date) ? h.getTime() : new Date(h).getTime();
+        if (isFinite(ms)) return ms;
+      }
+    } catch (e) { /* reloj aún no listo */ }
+    return Date.now();
+  }
+
+  // v4: offset efectivo de cada superficie = offset base corregido por
+  // ALBEDO (solo calentamientos) y modulado por EVAPOTRANSPIRACIÓN
+  // (solo superficies que enfrían evaporando, según la humedad del aire).
+  function offsetEfectivo(tipo, humedad) {
+    let base = (OFFSET_SUPERFICIE[tipo] !== undefined) ? OFFSET_SUPERFICIE[tipo] : OFFSET_SUPERFICIE.urbano_generico;
+    if (base > 0) {
+      const albedo = ALBEDO_SUPERFICIE[tipo] || ALBEDO_REF;
+      base *= Math.pow(ALBEDO_REF / albedo, 0.5);
+    }
+    const et = ET_PESO[tipo] || 0;
+    if (et > 0 && base !== 0) {
+      const hr = isFinite(humedad) ? Math.max(0, Math.min(100, humedad)) : 50;
+      base *= 1 - et * (1 - hr / 100) * 0.5;
+    }
+    return base;
+  }
+
+  // v4 INERCIA TÉRMICA, precalculada por material (coste por celda: cero).
+  // La exposición solar de una hora cualquiera NO depende del punto del
+  // mapa (el sol es el mismo para todo el viewport), así que para cada
+  // material se suma una media exponencial hacia atrás:
+  //     expo = (s0 * ahora + resto de horas pasadas) / peso total
+  // donde s0 es el sol del instante (el único término que la sombra
+  // actual puede atenuar) y "resto" es la memoria térmica del material.
+  function precomputarExposicion(horaMs, p) {
+    const tabla = {};
+    const c = mapa.getCenter();
+    const solDisponible = typeof SunCalc !== 'undefined';
+    const nubesEn = (ms) => {
+      const cel = p.horas[Math.floor(ms / 3600000)];
+      if (cel && isFinite(cel.n)) return cel.n;
+      if (isFinite(p.actualN)) return p.actualN;
+      try { return (typeof window.manolitAireNubosidad === 'function') ? window.manolitAireNubosidad() : 0; } catch (e) { return 0; }
+    };
+    for (const tipo in OFFSET_SUPERFICIE) {
+      const tau = TAU_HORAS[tipo] || 2;
+      const pasos = Math.min(6, Math.max(2, Math.ceil(tau * 2)));
+      let s0 = 0, resto = 0, peso = 0;
+      for (let k = 0; k <= pasos; k++) {
+        const ms = horaMs - k * 3600000;
+        let s = 0;
+        if (solDisponible) {
+          try {
+            const pos = SunCalc.getPosition(new Date(ms), c.lat, c.lng);
+            if (pos && pos.altitude > 0) {
+              s = Math.sin(pos.altitude);
+              s *= 1 - Math.max(0, Math.min(100, nubesEn(ms))) / 100 * 0.75;
+            }
+          } catch (e) { s = 0; }
+        } else {
+          // Sin SunCalc (no debería pasar): comportamiento clásico.
+          s = 1 - Math.max(0, Math.min(100, nubesEn(ms))) / 100 * 0.6;
+        }
+        const w = Math.exp(-k / tau);
+        if (k === 0) s0 = s; else resto += w * s;
+        peso += w;
+      }
+      tabla[tipo] = { s0, resto, peso: peso || 1 };
+    }
+    return tabla;
+  }
+
+  function colorPara(t, tMin, tMax) {
+    const x = Math.max(0, Math.min(1, (t - tMin) / (tMax - tMin || 1)));
+    const h = 220 - 220 * x; // 220° azul (fresco) -> 0° rojo (caliente)
+    return `hsl(${h.toFixed(0)}, 85%, 55%)`;
+  }
+
+  const ceder = () => new Promise(r => setTimeout(r, 0));
+
+  /* ---- ciclo principal: POR TANDAS y con aborto ---- */
+
+  async function recalcular(espacial) {
+    if (!activo || !mapa) return;
+    // v4: con el reloj en el futuro TAMBIÉN se calcula (previsión horaria).
+    const miVersion = ++versionCalculo;
+    const horaMs = obtenerHoraRelojMs();
+
+    // Ahorro: si solo se movió el slider y seguimos dentro del mismo
+    // minuto solar, la imagen sería idéntica. El mapa movido (espacial)
+    // siempre recalcula.
+    const horaClave = Math.floor(horaMs / 60000);
+    if (!espacial && horaClave === ultimaHoraClave) return;
+
+    await obtenerPrevision();
+    if (!activo || miVersion !== versionCalculo) return;
+    const datosHora = datosParaHora(horaMs);
+    if (datosHora === null) return;
+    const tBase = datosHora.t;
+    ultimaHoraClave = horaClave;
+
+    const idx = construirIndiceSuperficie();
+    const sombras = construirIndiceSombras();
+    if (miVersion !== versionCalculo) return;
+
+    // v4: exposición solar acumulada por material (inercia térmica).
+    // Se calcula UNA vez para todo el viewport.
+    const expoPorTipo = precomputarExposicion(horaMs, previsionCache);
+
+    const canvas = document.getElementById('microclima-canvas');
+    if (!canvas) return;
+    // v4 DPR: la rejilla y las coordenadas se calculan en píxeles CSS
+    // (lo que unproject entiende) y el canvas se dibuja escalado a los
+    // píxeles físicos. En pantallas retina la capa queda alineada y fina.
+    const lienzoMapa = mapa.getCanvas();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, lienzoMapa.clientWidth || Math.round(lienzoMapa.width / dpr));
+    const h = Math.max(1, lienzoMapa.clientHeight || Math.round(lienzoMapa.height / dpr));
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    // Pasada 1 (por tandas): temperatura por celda + rango para normalizar
+    const celdas = [];
+    let tMin = Infinity, tMax = -Infinity, fila = 0;
+    for (let y = REJILLA_PX / 2; y < h; y += REJILLA_PX) {
+      for (let x = REJILLA_PX / 2; x < w; x += REJILLA_PX) {
+        const lngLat = mapa.unproject([x, y]);
+        const tipo = clasificarPunto(idx, lngLat.lng, lngLat.lat);
+        const E = expoPorTipo[tipo] || expoPorTipo.urbano_generico;
+        const enSombra = enPoligono(sombras, lngLat.lng, lngLat.lat);
+        // La sombra solo atenúa el aporte del INSTANTE (s0): lo que el
+        // material acumuló durante las últimas horas se nota igualmente.
+        const expo = (E.s0 * (enSombra ? FACTOR_SOMBRA : 1) + E.resto) / E.peso;
+        const t = tBase + offsetEfectivo(tipo, datosHora.humedad) * expo;
+        celdas.push({ x, y, t });
+        if (t < tMin) tMin = t;
+        if (t > tMax) tMax = t;
+      }
+      fila++;
+      if (fila % FILAS_POR_TANDA === 0) {
+        await ceder();                       // cede el hilo: la página respira
+        if (miVersion !== versionCalculo) return; // el mapa se movió: aborta
+      }
+    }
+
+    // Pasada 2: pintar (rápida, solo dibujo)
+    const radio = REJILLA_PX * 0.72;
+    for (const c of celdas) {
+      ctx.fillStyle = colorPara(c.t, tMin, tMax);
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, radio, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (miVersion !== versionCalculo) return;
+
+    const coords = [
+      mapa.unproject([0, 0]).toArray(),
+      mapa.unproject([w, 0]).toArray(),
+      mapa.unproject([w, h]).toArray(),
+      mapa.unproject([0, h]).toArray()
+    ];
+    const url = canvas.toDataURL('image/png');
+    const src = mapa.getSource('microclima');
+    if (src) {
+      src.updateImage({ url, coordinates: coords });
+    } else {
+      mapa.addSource('microclima', { type: 'image', url, coordinates: coords });
+      let antesDe = null;
+      try {
+        const capas = mapa.getStyle().layers;
+        const capaRef = capas.find(l => l.id === 'sombras-relleno' || l.id === 'edificios-3d' || l.id === 'building-3d');
+        if (capaRef) antesDe = capaRef.id;
+      } catch (e) {}
+      mapa.addLayer({
+        id: 'microclima-capa',
+        type: 'raster',
+        source: 'microclima',
+        paint: { 'raster-opacity': 0.45, 'raster-fade-duration': 0 }
+      }, antesDe || undefined);
+    }
+    actualizarLeyenda(tMin, tMax);
+  }
+
+  /* ---- leyenda: esquina inferior DERECHA, con botón de cerrar ---- */
+
+  let notaVisible = false;
+  // v3: la leyenda nace OCULTA, solo se ve si el usuario pulsa
+  // el botón 🌡 (él decide cuándo verla; su elección se recuerda).
+  let leyendaCerrada = true;
+  try { leyendaCerrada = localStorage.getItem('manolito_microclima_leyenda') !== '1'; } catch (e) { /* sin almacenamiento */ }
+  let ultimoRango = null;          // último {tMin, tMax} para redibujar al reabrir
+
+  function pintarLeyendaAbierta(tMin, tMax) {
+    const leyenda = document.getElementById('microclima-leyenda');
+    if (!leyenda) return;
+    leyenda.style.pointerEvents = 'auto';
+    leyenda.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;font-weight:600;">' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<span>Microclima</span>' +
+          '<button id="microclima-info-btn" aria-expanded="false" title="Qué es esta capa" ' +
+          'style="pointer-events:auto;cursor:pointer;border:1px solid rgba(255,255,255,0.4);background:transparent;' +
+          'color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;line-height:1;padding:0;">i</button>' +
+        '</div>' +
+        '<button id="microclima-cerrar-btn" title="Ocultar (la capa sigue activa en el mapa)" ' +
+        'style="pointer-events:auto;cursor:pointer;border:none;background:transparent;color:#fff;' +
+        'opacity:0.75;font-size:15px;line-height:1;padding:0 2px;">×</button>' +
+      '</div>' +
+      '<div style="height:7px;border-radius:4px;margin-top:4px;background:linear-gradient(90deg,hsl(220,85%,55%),hsl(120,85%,55%),hsl(60,85%,55%),hsl(0,85%,55%));"></div>' +
+      `<div style="display:flex;justify-content:space-between;font-size:10px;margin-top:2px;"><span>${tMin.toFixed(0)}°C</span><span>${tMax.toFixed(0)}°C</span></div>` +
+      '<div id="microclima-nota" style="display:' + (notaVisible ? 'block' : 'none') + ';font-size:9px;opacity:0.75;margin-top:3px;line-height:1.25;">' +
+        'Estimación por modelo (superficie, sombra e inercia térmica), no una medición por satélite. Con el reloj en el futuro se usa la previsión horaria de Open-Meteo.' +
+      '</div>' +
+      (esFuturo
+        ? '<div style="color:#ffd27a;font-size:9px;margin-top:3px;line-height:1.25;">Previsión por horas. Cuanto más lejos esté la hora marcada, menos precisa será.</div>'
+        : '');
+
+    const btnInfo = document.getElementById('microclima-info-btn');
+    if (btnInfo) {
+      btnInfo.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        notaVisible = !notaVisible;
+        const nota = document.getElementById('microclima-nota');
+        if (nota) nota.style.display = notaVisible ? 'block' : 'none';
+        btnInfo.setAttribute('aria-expanded', notaVisible ? 'true' : 'false');
+      });
+    }
+    const btnCerrar = document.getElementById('microclima-cerrar-btn');
+    if (btnCerrar) {
+      btnCerrar.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        leyendaCerrada = true;
+        try { localStorage.setItem('manolito_microclima_leyenda', '0'); } catch (e) {}
+        pintarLeyendaCerrada();
+      });
+    }
+  }
+
+  function pintarLeyendaCerrada() {
+    const leyenda = document.getElementById('microclima-leyenda');
+    if (!leyenda) return;
+    leyenda.style.width = 'auto';
+    leyenda.style.padding = '0';
+    leyenda.style.background = 'transparent';
+    leyenda.style.backdropFilter = 'none';
+    leyenda.style.pointerEvents = 'auto';
+    leyenda.innerHTML =
+      '<button id="microclima-reabrir-btn" title="Mostrar leyenda de microclima" ' +
+      'style="pointer-events:auto;cursor:pointer;border:1px solid rgba(255,255,255,0.4);' +
+      'background:rgba(10,15,25,0.82);color:#fff;border-radius:50%;width:28px;height:28px;' +
+      'font-size:14px;line-height:1;backdrop-filter:blur(4px);">🌡</button>';
+    const btn = document.getElementById('microclima-reabrir-btn');
+    if (btn) {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        leyendaCerrada = false;
+        try { localStorage.setItem('manolito_microclima_leyenda', '1'); } catch (e) {}
+        leyenda.style.width = '150px';
+        leyenda.style.padding = '7px 9px';
+        leyenda.style.background = 'rgba(10,15,25,0.82)';
+        leyenda.style.backdropFilter = 'blur(4px)';
+        if (ultimoRango) pintarLeyendaAbierta(ultimoRango.tMin, ultimoRango.tMax);
+      });
+    }
+  }
+
+  function actualizarLeyenda(tMin, tMax) {
+    const leyenda = document.getElementById('microclima-leyenda');
+    if (!leyenda) return;
+    leyenda.style.display = 'block';
+    ultimoRango = { tMin, tMax };
+    if (leyendaCerrada) {
+      pintarLeyendaCerrada();
+    } else {
+      pintarLeyendaAbierta(tMin, tMax);
+    }
+  }
+
+  function crearLeyenda() {
+    if (document.getElementById('microclima-leyenda')) return;
+    const wrap = document.querySelector('.map-wrap') || document.body;
+    const div = document.createElement('div');
+    div.id = 'microclima-leyenda';
+    // Esquina inferior DERECHA (antes izquierda: tapaba la barra de horarios/ruta)
+    div.style.cssText = 'display:none;position:absolute;right:10px;bottom:10px;z-index:5;width:150px;' +
+      'background:rgba(10,15,25,0.82);color:#fff;padding:7px 9px;border-radius:10px;' +
+      'font-family:inherit;font-size:11px;pointer-events:auto;backdrop-filter:blur(4px);';
+    wrap.appendChild(div);
+    if (!document.getElementById('microclima-canvas')) {
+      const lienzo = document.createElement('canvas');
+      lienzo.id = 'microclima-canvas';
+      lienzo.style.display = 'none';
+      document.body.appendChild(lienzo);
+    }
+  }
+
+  /* ---- sincronización con el reloj solar: pasado, presente y FUTURO ----
+     v4: la capa ya no se oculta al mirar adelante. Con el reloj en pasado
+     o presente usa la meteorología actual y las horas ya pasadas de la
+     previsión; con el reloj en el futuro usa la previsión horaria de
+     Open-Meteo y la leyenda lo dice claramente. La variable esFuturo
+     solo decide qué aviso muestra la leyenda y cuándo conviene
+     recalcular (al cruzar la frontera cambia la fuente de datos). */
+  let esFuturo = false;
+  let temporizadorReloj = null;
+
+  function horaEsFutura() {
+    try {
+      if (typeof window.manolitAireHoraEfectiva !== 'function') return false;
+      const h = window.manolitAireHoraEfectiva();
+      const ms = (h instanceof Date) ? h.getTime() : new Date(h).getTime();
+      if (!isFinite(ms)) return false;
+      return ms > Date.now() + 5 * 60 * 1000; // margen de 5 minutos
+    } catch (e) { return false; }
+  }
+
+  function aplicarVisibilidadPorReloj() {
+    // v4: la capa permanece visible siempre que esté encendida; aquí solo
+    // se repinta la leyenda para que el aviso de "previsión" aparezca o
+    // desaparezca según la hora marcada.
+    if (!leyendaCerrada && ultimoRango) pintarLeyendaAbierta(ultimoRango.tMin, ultimoRango.tMax);
+  }
+
+  function sincronizarConRelojSolar() {
+    // Ahorro de batería (sep-2026, ADITIVO): con la pestaña oculta no hay
+    // nada que sincronizar, el intervalo de 2 s seguía despertando el hilo
+    // principal sin nadie mirando. Al volver a la pestaña, el siguiente tic
+    // (máx. 2 s) retoma la sincronización exactamente donde iba.
+    if (document.hidden) return;
+    const futuro = horaEsFutura();
+    if (futuro === esFuturo) return;
+    esFuturo = futuro;
+    aplicarVisibilidadPorReloj();
+    // Al cruzar la frontera (en cualquier dirección) cambia la fuente de
+    // datos: se recalcula para que el cambio se note al momento.
+    if (activo) recalcular(true);
+  }
+
+  function encender() {
+    activo = true;
+    // v3: NO se fuerza la leyenda abierta, queda como la dejara
+    // el usuario la última vez (por defecto, oculta: solo el 🌡).
+    crearLeyenda();
+    esFuturo = horaEsFutura();
+    aplicarVisibilidadPorReloj();
+    clearInterval(temporizadorReloj);
+    temporizadorReloj = setInterval(sincronizarConRelojSolar, 2000);
+    recalcular(true);
+  }
+
+  function apagar() {
+    activo = false;
+    versionCalculo++; // aborta cualquier cálculo en curso
+    clearTimeout(temporizador);
+    clearInterval(temporizadorReloj);
+    esFuturo = false;
+    ultimaHoraClave = -1;
+    try { if (mapa.getLayer('microclima-capa')) mapa.removeLayer('microclima-capa'); } catch (e) {}
+    try { if (mapa.getSource('microclima')) mapa.removeSource('microclima'); } catch (e) {}
+    const leyenda = document.getElementById('microclima-leyenda');
+    if (leyenda) leyenda.style.display = 'none';
+  }
+
+  // Dos caminos hacia el mismo recálculo: mover el mapa siempre manda
+  // (cambia la superficie visible); mover el reloj solo recalcula si
+  // el minuto solar cambió de verdad (arrastrar el slider ya no
+  // repinta la misma imagen veinte veces).
+  function programar(espacial) {
+    if (!activo) return;
+    versionCalculo++; // el cálculo anterior muere aquí
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => recalcular(espacial), DEBOUNCE_MS);
+  }
+
+  function alMoverse() { programar(true); }
+  function alTocarReloj() { programar(false); }
+
+  /* ---- arranque: espera a que el mapa de sombras exista ---- */
+  function iniciar() {
+    mapa = window.manolitAireMap;
+    if (!mapa || typeof turf === 'undefined') { setTimeout(iniciar, 500); return; }
+    const toggle = document.getElementById('rsToggleMicroclima');
+    if (!toggle) { setTimeout(iniciar, 500); return; }
+
+    toggle.addEventListener('change', () => (toggle.checked ? encender() : apagar()));
+    mapa.on('moveend', alMoverse);
+    const slider = document.getElementById('rsHoraSlider') || document.querySelector('input[type="range"]');
+    if (slider) slider.addEventListener('input', alTocarReloj);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciar);
+  } else {
+    iniciar();
+  }
+})();

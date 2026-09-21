@@ -1861,3 +1861,27 @@ body.mode-peque .im-lost-btn{
 @media (max-width: 700px){
   .topbar > .yayo-zoom-controls{ order:7; }
 }
+
+/* Cabecera del chat siempre visible (sep-2026, orden de Sandro): la X
+   de cierre no se pierde hacia arriba cuando el historial crece. La
+   cabecera se pega al techo del panel con márgenes negativos que cubren
+   el relleno del panel, así el texto pasa por debajo sin asomar. */
+/* X fija de verdad: el panel llevaba padding-top:16px y el sticky no
+   puede subir por encima de la caja de contenido de su padre, así que
+   siempre quedaba una tira de 16 px por donde se colaba el historial.
+   Panel sin padding-top y cabecera pegada al borde. Las esquinas
+   redondeadas las recorta el propio overflow del panel. */
+.chat-panel{ padding-top:0; }
+.chat-head{
+  position:sticky; top:0; z-index:2;
+  margin:0 -16px 10px; padding:16px 16px 10px;
+  background: var(--surface, var(--paper));
+  border-bottom:1px solid var(--border, var(--line));
+}
+
+/* Botones de inicio del chat en horizontal compacto (sep-2026, orden de
+   Sandro): dos columnas iguales, uno al lado del otro. El chip de la
+   ruta con sombra (lo crea shadows-route.js) ocupa la fila entera. */
+.quick-qs{ display:grid; grid-template-columns:1fr 1fr; }
+.quick-qs button{ text-align:center; }
+.quick-qs #rsChipRutaChat{ grid-column:1 / -1; justify-content:center; }

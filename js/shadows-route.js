@@ -2684,6 +2684,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision}. ${t('chooseDestination', 'Toca un punto del mapa para poner el destino.')}`, 'ok');
       }
       if (volar) map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
+      // Puente con el chat: si el chip «¿Calculo tu ruta desde aquí?» está
+      // esperando una posición calibrada, se la entregamos aquí.
+      if (window.__manolitUbicacionCb) {
+        try { window.__manolitUbicacionCb.resolve({ lat, lon }); } catch (e) { }
+        window.__manolitUbicacionCb = null;
+      }
     };
 
     const despertarGPS = (desdeBoton) => {
@@ -2708,6 +2714,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             const avisar = gpsAvisoPendiente;
             dormirGPS();
             if (avisar) mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error');
+            if (window.__manolitUbicacionCb) {
+              try { window.__manolitUbicacionCb.reject(new Error('denegado')); } catch (e) { }
+              window.__manolitUbicacionCb = null;
+            }
           }
           // Lectura no disponible o tardía: se sigue esperando dentro del
           // plazo; el temporizador de abajo es quien decide el final.
@@ -2721,6 +2731,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         dormirGPS();
         if (avisar) {
           mostrarEstado(t('locationNotCalibrated', 'El GPS no ha llegado a buena precisión (20 m o menos). Acércate a una ventana o sal a cielo abierto, o pulsa «Elegir en el mapa» para marcar el punto a mano.'), 'error');
+        }
+        if (!huboLecturaBuena && window.__manolitUbicacionCb) {
+          try { window.__manolitUbicacionCb.reject(new Error('sin-precision')); } catch (e) { }
+          window.__manolitUbicacionCb = null;
         }
       }, desdeBoton ? 45000 : 25000);
     };
@@ -2777,6 +2791,30 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // modo «elegir en el mapa». El GPS se enciende, se calibra, planta
       // tu punto como origen y se apaga. Tú decides el siguiente paso.
       despertarGPS(true);
+    });
+
+    // Puente para el chat (sep-2026): el chip «¿Calculo tu ruta con sombra
+    // desde aquí?» reutiliza EXACTAMENTE este flujo de GPS con siesta (alta
+    // precisión, filtro de 20 m, apagado inmediato), sin duplicar nada.
+    // Devuelve una promesa con el punto calibrado o rechaza con el motivo
+    // ('sin-geolocalizacion', 'denegado', 'sin-precision').
+    window.manolitUbicacionParaRuta = () => new Promise((resolve, reject) => {
+      if (!('geolocation' in navigator)) { reject(new Error('sin-geolocalizacion')); return; }
+      if (window.__manolitUbicacionCb) { // ya hay una petición en marcha
+        reject(new Error('ocupado'));
+        return;
+      }
+      const plazo = setTimeout(() => {
+        if (window.__manolitUbicacionCb) {
+          window.__manolitUbicacionCb = null;
+          reject(new Error('sin-precision'));
+        }
+      }, 52000);
+      window.__manolitUbicacionCb = {
+        resolve: (v) => { clearTimeout(plazo); resolve(v); },
+        reject: (e) => { clearTimeout(plazo); reject(e); },
+      };
+      btnUbicacion.click();
     });
 
     /* ---- Modo caminar: sigue tu posición en vivo mientras te mueves ---- */
@@ -6712,6 +6750,261 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
      (sep-2026) El botón "Guía por voz", su permiso y la voz neutral de la
      guía viven en el módulo js/a11y-guia.js, que adopta el botón
      #rsBtnGuiaVoz que nace con el panel. Nada que hacer aquí. */
+
+  /* ==================== CHAT → RUTA CON SOMBRA (sep-2026, pliego de Sandro) ====
+     Un chip pill dentro del chat («¿Calculo tu ruta con sombra desde aquí?»)
+     pide tu ubicación REUTILIZANDO el GPS fino con siesta del mapa (alta
+     precisión, filtro de 20 m y apagado inmediato: no se duplica lógica),
+     centra el mapa, dibuja una ruta de ejemplo hasta el punto de interés
+     más cercano (Overpass por el proxy /arboles ya existente, sin backend
+     nuevo) y despliega un campo «Ir desde mi ubicación actual hasta…» que
+     recalcula la ruta en cuanto confirmas el destino. El motor de rutas y
+     de sombras NO se toca: se entra por manejarBusqueda(), la misma puerta
+     que usa el panel de la izquierda. */
+  (function chatRutaSombra() {
+    try {
+      if (window.__chatRutaSombra) return;
+      window.__chatRutaSombra = true;
+
+      const ICONO_CAMINANTE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4.5" r="1.8"/><path d="M13 7.5 L10.5 12 L8 14.5 L6.5 20"/><path d="M13 7.5 L15.5 11.5 L18 13.5"/><path d="M10.5 12 L13.5 15.5 L12.5 20"/></svg>';
+
+      // Burbujas del chat con el mismo marcado que usa chat.js.
+      const burbujaChat = (texto, quien) => {
+        const cuerpo = document.getElementById('chatBody');
+        if (!cuerpo) return;
+        const div = document.createElement('div');
+        div.className = 'chat-msg ' + (quien === 'user' ? 'user' : 'mano');
+        div.textContent = texto;
+        cuerpo.appendChild(div);
+        cuerpo.scrollTop = cuerpo.scrollHeight;
+      };
+
+      // Caché local de las últimas 20 geocodificaciones del chat.
+      const CACHE_GEO_CHAT = 'manolito_cache_geo_chat';
+      const leerCacheGeo = () => cacheLocalObtener(CACHE_GEO_CHAT, 30 * 24 * 3600 * 1000) || [];
+      const guardarCacheGeo = (entrada) => {
+        const arr = leerCacheGeo().filter((e) => e.q !== entrada.q);
+        arr.unshift(entrada);
+        cacheLocalGuardar(CACHE_GEO_CHAT, arr.slice(0, 20));
+      };
+
+      // Punto de interés cercano para la ruta de ejemplo: nodos con nombre
+      // de OpenStreetMap en 450 m, el más cercano que no sea un banco o una
+      // papelera. Mismo proxy Overpass (/arboles) que ya usa la app.
+      const poiCercano = async (lat, lon) => {
+        const consulta = `[out:json][timeout:10];node(around:450,${lat.toFixed(5)},${lon.toFixed(5)})["name"][~"^(amenity|tourism|leisure|historic)$"~"."];out center 25;`;
+        const resp = await fetch('/arboles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: 'data=' + encodeURIComponent(consulta),
+        });
+        if (!resp.ok) return null;
+        const datos = await resp.json();
+        const elems = (datos && datos.elements) || [];
+        const aburridos = /^(bench|waste_basket|drinking_water|bicycle_parking|vending_machine|recycling|telephone|post_box)$/;
+        let mejor = null, mejorDist = Infinity;
+        for (const el of elems) {
+          if (!el || typeof el.lat !== 'number' || !el.tags || !el.tags.name) continue;
+          if (el.tags.amenity && aburridos.test(el.tags.amenity)) continue;
+          const d = turf.distance(turf.point([lon, lat]), turf.point([el.lon, el.lat]), { units: 'meters' });
+          if (d < mejorDist) { mejorDist = d; mejor = { lat: el.lat, lon: el.lon, nombre: el.tags.name }; }
+        }
+        return mejor;
+      };
+
+      let origenActual = null;    // {lat, lon} de tu punto calibrado
+      let ultimaSugerencia = null;
+      let geoAbort = null;
+      let geoDebounce = null;
+      let filaWrap = null, inputRuta = null, cajaSugerencia = null;
+
+      const ocultarSugerencia = () => {
+        ultimaSugerencia = null;
+        if (cajaSugerencia) cajaSugerencia.textContent = '';
+      };
+      const mostrarSugerencia = (destino) => {
+        if (!cajaSugerencia) return;
+        ultimaSugerencia = destino;
+        cajaSugerencia.textContent = '';
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        // Mismo pill que los chips del chat, sin tocar la hoja de estilos.
+        pill.style.cssText = 'font-size:0.7rem;border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 11px;cursor:pointer;color:var(--sky-deep);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        pill.textContent = destino.nombre.split(',')[0];
+        pill.addEventListener('click', () => confirmarDestino(destino));
+        cajaSugerencia.appendChild(pill);
+      };
+
+      // Vista previa del destino mientras escribes: debounce de 400 ms,
+      // AbortController para que una respuesta tardía nunca pise a la
+      // nueva, y caché local antes de llamar a Nominatim.
+      const previsualizarDestino = (texto) => {
+        if (geoDebounce) clearTimeout(geoDebounce);
+        geoDebounce = setTimeout(async () => {
+          const q = texto.trim();
+          if (q.length < 3) { ocultarSugerencia(); return; }
+          const enCache = leerCacheGeo().find((e) => e.q === q.toLowerCase());
+          if (enCache) { mostrarSugerencia(enCache); return; }
+          if (geoAbort) geoAbort.abort();
+          geoAbort = new AbortController();
+          try {
+            const url = new URL(CONFIG.nominatimUrl, window.location.origin);
+            url.searchParams.set('q', q);
+            url.searchParams.set('format', 'json');
+            url.searchParams.set('limit', '1');
+            url.searchParams.set('countrycodes', 'es');
+            const r = await fetch(url.toString(), { headers: { 'Accept-Language': 'es' }, signal: geoAbort.signal });
+            if (!r.ok) { ocultarSugerencia(); return; }
+            const datos = await r.json();
+            if (!datos || !datos.length) { ocultarSugerencia(); return; }
+            const entrada = { q: q.toLowerCase(), lat: parseFloat(datos[0].lat), lon: parseFloat(datos[0].lon), nombre: datos[0].display_name };
+            guardarCacheGeo(entrada);
+            mostrarSugerencia(entrada);
+          } catch (e) { /* abortada o sin red: sin sugerencia y sin ruido */ }
+        }, 400);
+      };
+
+      // Dibuja (o sustituye) la ruta: entra por manejarBusqueda(), que es
+      // exactamente la puerta que usa el botón «Buscar ruta» del panel.
+      const confirmarDestino = async (destino, opciones) => {
+        if (!destino) return;
+        // Origen fresco: por si el GPS se despertó y actualizó tu punto.
+        let o = origenActual;
+        try {
+          const src = map.getSource('puntos-manuales');
+          const datos = src && (src._data || (src.serialize && src.serialize().data));
+          const feat = datos && datos.features && datos.features.find((f) => f && f.geometry && f.geometry.type === 'Point');
+          if (feat) o = { lon: feat.geometry.coordinates[0], lat: feat.geometry.coordinates[1] };
+        } catch (e) { }
+        if (!o) {
+          burbujaChat(t('chatRouteNoOrigin', 'No tengo tu ubicación todavía. Pulsa primero el chip de la ruta.'));
+          return;
+        }
+        const nombreCorto = String(destino.nombre || '').split(',')[0] || t('chatRouteDestFallback', 'tu destino');
+        try {
+          await manejarBusqueda(
+            { lat: o.lat, lon: o.lon, nombre: t('myLocation', 'Mi ubicación') },
+            { lat: destino.lat, lon: destino.lon, nombre: destino.nombre }
+          );
+          // El panel de la izquierda refleja lo que se ve en el mapa.
+          try {
+            seleccionPorInput.set(inputOrigen, { lat: o.lat, lon: o.lon, nombre: t('myLocation', 'Mi ubicación'), texto: t('myLocation', 'Mi ubicación') });
+            inputOrigen.value = t('myLocation', 'Mi ubicación');
+            seleccionPorInput.set(inputDestino, { lat: destino.lat, lon: destino.lon, nombre: destino.nombre, texto: destino.nombre });
+            inputDestino.value = destino.nombre;
+          } catch (e) { }
+          if (opciones && opciones.ejemplo) {
+            burbujaChat(`${t('chatRouteExample', 'Te he dibujado una ruta de ejemplo hasta')} ${nombreCorto}. ${t('chatRouteExampleHint', 'La sombra va pintada en el mapa. Si prefieres otro sitio, escríbelo aquí abajo.')}`);
+          } else {
+            burbujaChat(`${t('chatRouteDone', 'Venga, ruta nueva hasta')} ${nombreCorto}. ${t('chatRouteSeeMap', 'La tienes pintada en el mapa.')}`);
+          }
+          ocultarSugerencia();
+          if (inputRuta) inputRuta.value = '';
+        } catch (e) {
+          burbujaChat(t('chatRouteFail', 'No he podido calcular esa ruta. Prueba con otro destino cercano.'));
+        }
+      };
+
+      // El campo «Ir desde mi ubicación actual hasta…», con el estilo del
+      // input del chat (misma clase chat-input-row, cero CSS nuevo).
+      const construirFilaRuta = () => {
+        if (filaWrap) return;
+        const qs = document.querySelector('#chatOverlay .quick-qs');
+        if (!qs || !qs.parentNode) return;
+        filaWrap = document.createElement('div');
+        filaWrap.id = 'rsChatRutaWrap';
+        filaWrap.style.display = 'none';
+        const fila = document.createElement('div');
+        fila.className = 'chat-input-row';
+        inputRuta = document.createElement('input');
+        inputRuta.type = 'text';
+        inputRuta.id = 'rsChatRutaInput';
+        inputRuta.placeholder = t('chatRouteDestPlaceholder', 'Ir desde mi ubicación actual hasta…');
+        inputRuta.setAttribute('aria-label', t('chatRouteDestPlaceholder', 'Ir desde mi ubicación actual hasta…'));
+        fila.appendChild(inputRuta);
+        cajaSugerencia = document.createElement('div');
+        cajaSugerencia.style.cssText = 'margin-top:6px;';
+        filaWrap.appendChild(fila);
+        filaWrap.appendChild(cajaSugerencia);
+        qs.parentNode.insertBefore(filaWrap, qs.nextSibling);
+
+        inputRuta.addEventListener('input', () => previsualizarDestino(inputRuta.value));
+        inputRuta.addEventListener('keydown', async (e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          const q = inputRuta.value.trim();
+          if (!q) return;
+          if (ultimaSugerencia && ultimaSugerencia.q === q.toLowerCase()) { confirmarDestino(ultimaSugerencia); return; }
+          try {
+            const destino = await geocodificar(q);
+            guardarCacheGeo({ q: q.toLowerCase(), lat: destino.lat, lon: destino.lon, nombre: destino.nombre });
+            confirmarDestino(destino);
+          } catch (err) {
+            burbujaChat(t('chatRouteNotFound', 'No encuentro ese destino tal cual. Prueba con calle y número o con el nombre del sitio.'));
+          }
+        });
+      };
+      const mostrarFilaRuta = () => {
+        construirFilaRuta();
+        if (filaWrap) filaWrap.style.display = '';
+        if (inputRuta) inputRuta.focus();
+      };
+
+      // El chip: click → GPS con siesta (el del mapa, reutilizado) → ruta
+      // de ejemplo al punto de interés más cercano → campo predictivo.
+      const alPulsarChipRuta = async () => {
+        const chip = document.getElementById('rsChipRutaChat');
+        if (chip) chip.disabled = true;
+        burbujaChat(t('chatRouteChip', '¿Calculo tu ruta con sombra desde aquí?'), 'user');
+        burbujaChat(t('chatRouteLocating', 'Buscando tu ubicación…'));
+        try {
+          // El mapa carga perezoso al acercarte a su sección: si el chip se
+          // pulsa un segundo antes de que termine de arrancar, el puente
+          // todavía no existe. Espera corta y amable en vez de fallar.
+          let esperaMapaMs = 0;
+          while (typeof window.manolitUbicacionParaRuta !== 'function' && esperaMapaMs < 20000) {
+            await new Promise((r) => setTimeout(r, 500));
+            esperaMapaMs += 500;
+          }
+          if (typeof window.manolitUbicacionParaRuta !== 'function') {
+            burbujaChat(t('chatRouteMapLoading', 'El mapa todavía se está cargando. Baja hasta él, deja que termine y vuelve a pulsarme.'));
+            return;
+          }
+          const pos = await window.manolitUbicacionParaRuta();
+          origenActual = { lat: pos.lat, lon: pos.lon };
+          let poi = null;
+          try { poi = await poiCercano(pos.lat, pos.lon); } catch (e) { }
+          mostrarFilaRuta();
+          if (poi) {
+            await confirmarDestino(poi, { ejemplo: true });
+          } else {
+            burbujaChat(t('chatRouteNoPoi', 'Te he centrado el mapa en tu ubicación. No veo un punto de interés cerca para el ejemplo, dime tú el destino aquí abajo.'));
+          }
+        } catch (err) {
+          const motivo = err && err.message;
+          if (motivo === 'sin-geolocalizacion') burbujaChat(t('chatRouteNoGeo', 'Este navegador no me deja saber dónde estás. Escribe el origen a mano en el panel de rutas y te lo preparo.'));
+          else if (motivo === 'denegado') burbujaChat(t('chatRouteDenied', 'Sin permiso de ubicación no puedo salir desde donde estás. Si cambias de idea, actívalo en el navegador y vuelve a pulsarme.'));
+          else if (motivo === 'ocupado') burbujaChat(t('chatRouteBusy', 'Ya estoy buscándote, dame unos segundos.'));
+          else burbujaChat(t('chatRouteNoGps', 'El GPS no consigue fijarte con buena precisión. Acércate a una ventana o sal a cielo abierto y púlsame de nuevo.'));
+        } finally {
+          if (chip) chip.disabled = false;
+        }
+      };
+
+      cuandoExista('#chatOverlay .quick-qs', (qs) => {
+        if (document.getElementById('rsChipRutaChat')) return;
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.id = 'rsChipRutaChat';
+        chip.style.cssText = 'display:inline-flex;align-items:center;gap:6px;';
+        chip.innerHTML = ICONO_CAMINANTE + '<span></span>';
+        chip.querySelector('span').textContent = t('chatRouteChip', '¿Calculo tu ruta con sombra desde aquí?');
+        chip.addEventListener('click', alPulsarChipRuta);
+        qs.appendChild(chip);
+      });
+    } catch (e) { /* aditivo: jamás rompe el chat ni el mapa */ }
+  })();
+
 })();
 
 /* ============================================================
@@ -8588,5 +8881,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       })();
     } catch (e) { /* aditivo: jamás rompe el chat */ }
   })();
+
 
 })();

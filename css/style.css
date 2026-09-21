@@ -1843,3 +1843,21 @@ body.mode-peque .im-lost-btn{
    más barato para la GPU. Al salir del modo peque la capa se quita. */
 #pequeFxCapa{ position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:590; }
 @media (prefers-reduced-motion: reduce){ #pequeFxCapa{ display:none; } }
+
+/* Zoom de letra yayo en la barra (sep-2026, orden de Sandro): el control
+   se mudó del hero a la última fila del topbar, fija y siempre a mano.
+   Sigue saliendo SOLO con el modo yayo (la regla vieja lo muestra) y
+   fuera de ese modo no ocupa nada. Fila propia a todo lo ancho, con una
+   línea fina arriba para que se lea como una bandeja aparte, y botones
+   un punto más pequeños que los del hero para que la fila quede fina. */
+.topbar > .yayo-zoom-controls{
+  flex:1 1 100%; margin:2px 0 0; padding-top:10px;
+  border-top:1px solid var(--line);
+}
+.topbar .yayo-zoom-btn{ width:52px; height:52px; font-size:1.25rem; }
+
+/* En móvil la fila del zoom va la última de la barra, debajo de las
+   teclas de modo: es lo primero que tiene la abuela al entrar. */
+@media (max-width: 700px){
+  .topbar > .yayo-zoom-controls{ order:7; }
+}

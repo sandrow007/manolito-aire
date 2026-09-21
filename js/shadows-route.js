@@ -2641,6 +2641,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const aplicarPosicionGPS = (pos, opciones) => {
       const volar = !!(opciones && opciones.volar);
       const silenciosa = !!(opciones && opciones.silenciosa);
+      // soloPintar (sep-2026, queja de Sandro del tirón): la lectura tosca
+      // planta el punto YA para que veas respuesta, pero no resuelve el
+      // puente del chat (para rutar hace falta la lectura calibrada).
+      const soloPintar = !!(opciones && opciones.soloPintar);
       const lat = pos.coords.latitude, lon = pos.coords.longitude;
       const precisionM = Math.round(pos.coords.accuracy || 0);
       const textoMiUbicacion = t('myLocation', 'Mi ubicación');
@@ -2686,7 +2690,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (volar) map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
       // Puente con el chat: si el chip «¿Calculo tu ruta desde aquí?» está
       // esperando una posición calibrada, se la entregamos aquí.
-      if (window.__manolitUbicacionCb) {
+      if (window.__manolitUbicacionCb && !soloPintar) {
         try { window.__manolitUbicacionCb.resolve({ lat, lon }); } catch (e) { }
         window.__manolitUbicacionCb = null;
       }
@@ -2699,13 +2703,28 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       gpsUltimoDespertarMs = Date.now();
       gpsAvisoPendiente = !!desdeBoton;
       let huboLecturaBuena = false;
+      let huboLecturaTosca = false;  // la primera lectura burda ya plantó el punto
+      let yaVolo = false;            // la cámara vuela una sola vez por despertar
       gpsWatchId = navigator.geolocation.watchPosition(
         (pos) => {
-          // Filtro de calibración: margen mayor de 20 m, lectura descartada.
+          // Filtro de calibración: margen mayor de 20 m, lectura descartada
+          // para rutar... pero YA NO en silencio (sep-2026, queja de Sandro
+          // del tirón): la primera lectura tosca (≤150 m) planta tu punto al
+          // instante, con su círculo de precisión, para que veas que el GPS
+          // responde. El puente del chat y el apagado fino siguen exigiendo
+          // la lectura calibrada de siempre (≤20 m).
           const acc = pos && pos.coords && isFinite(pos.coords.accuracy) ? pos.coords.accuracy : Infinity;
-          if (acc > 20) return;
+          if (acc > 20) {
+            if (!huboLecturaTosca && acc <= 150) {
+              huboLecturaTosca = true;
+              aplicarPosicionGPS(pos, { volar: !!desdeBoton && !yaVolo, silenciosa: !desdeBoton, soloPintar: true });
+              yaVolo = yaVolo || !!desdeBoton;
+            }
+            return;
+          }
           huboLecturaBuena = true;
-          aplicarPosicionGPS(pos, { volar: !!desdeBoton, silenciosa: !desdeBoton });
+          aplicarPosicionGPS(pos, { volar: !!desdeBoton && !yaVolo, silenciosa: !desdeBoton });
+          yaVolo = yaVolo || !!desdeBoton;
           if (acc <= 15) dormirGPS(); // calibrado de verdad: GPS a dormir YA
         },
         (err) => {
@@ -2722,7 +2741,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           // Lectura no disponible o tardía: se sigue esperando dentro del
           // plazo; el temporizador de abajo es quien decide el final.
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        // maximumAge 2 s (sep-2026, queja de Sandro del tirón): si el
+        // navegador tiene una lectura de hace un suspiro la entrega al
+        // instante y el filtro de 20 m sigue mandando. Antes, el 0 forzaba
+        // un arranque en frío de la radio cada vez.
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 }
       );
       // Plazo máximo con el GPS encendido: 45 s si lo pediste tú, 25 s si
       // despertó por movimiento. Cumplido el plazo, se apaga sí o sí.
@@ -2817,6 +2840,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       btnUbicacion.click();
     });
 
+    // Calentador del GPS (sep-2026, queja de Sandro del tirón): si el
+    // permiso YA estaba concedido de antes, una lectura silenciosa y de
+    // bajo consumo al cargar el mapa deja la radio y la caché listas y el
+    // botón responde al instante. Si el permiso no está concedido no se
+    // hace NADA: jamás un aviso de permiso sin que lo pidas tú.
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then((estado) => {
+          if (estado && estado.state === 'granted') {
+            try { navigator.geolocation.getCurrentPosition(() => { }, () => { }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }); } catch (e) { }
+          }
+        }).catch(() => { });
+      }
+    } catch (e) { }
+
     /* ---- Modo caminar: sigue tu posición en vivo mientras te mueves ---- */
     let watchId = null;
     let marcadorCaminando = null;
@@ -2857,6 +2895,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       let ultimaCamaraCaminata = null;
       let ultimaSincroCaminataMs = 0;
       let ultimaLecturaGpsMs = 0;
+      // Arranque inmediato (sep-2026, queja de Sandro del tirón): si ya
+      // conocemos tu punto (el GPS con siesta lo plantó antes), el
+      // marcador sale YA y la primera lectura en vivo lo afina. Antes el
+      // marcador no aparecía hasta la primera lectura y parecía colgado.
+      try {
+        const srcIni = map.getSource('puntos-manuales');
+        const datosIni = srcIni && (srcIni._data || (srcIni.serialize && srcIni.serialize().data));
+        const featIni = datosIni && datosIni.features && datosIni.features.find((f) => f && f.geometry && f.geometry.type === 'Point');
+        if (featIni) {
+          const lonIni = featIni.geometry.coordinates[0], latIni = featIni.geometry.coordinates[1];
+          marcadorCaminando.setLngLat([lonIni, latIni]);
+          marcadorCaminando.addTo(map);
+          ultimaCamaraCaminata = [lonIni, latIni];
+        }
+      } catch (e) { }
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           // Debounce GPS (sep-2026, ADITIVO): máximo 1 lectura procesada
@@ -6788,28 +6841,182 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         cacheLocalGuardar(CACHE_GEO_CHAT, arr.slice(0, 20));
       };
 
-      // Punto de interés cercano para la ruta de ejemplo: nodos con nombre
-      // de OpenStreetMap en 450 m, el más cercano que no sea un banco o una
-      // papelera. Mismo proxy Overpass (/arboles) que ya usa la app.
-      const poiCercano = async (lat, lon) => {
-        const consulta = `[out:json][timeout:10];node(around:450,${lat.toFixed(5)},${lon.toFixed(5)})["name"][~"^(amenity|tourism|leisure|historic)$"~"."];out center 25;`;
-        const resp = await fetch('/arboles', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-          body: 'data=' + encodeURIComponent(consulta),
-        });
-        if (!resp.ok) return null;
-        const datos = await resp.json();
-        const elems = (datos && datos.elements) || [];
-        const aburridos = /^(bench|waste_basket|drinking_water|bicycle_parking|vending_machine|recycling|telephone|post_box)$/;
-        let mejor = null, mejorDist = Infinity;
-        for (const el of elems) {
-          if (!el || typeof el.lat !== 'number' || !el.tags || !el.tags.name) continue;
-          if (el.tags.amenity && aburridos.test(el.tags.amenity)) continue;
-          const d = turf.distance(turf.point([lon, lat]), turf.point([el.lon, el.lat]), { units: 'meters' });
-          if (d < mejorDist) { mejorDist = d; mejor = { lat: el.lat, lon: el.lon, nombre: el.tags.name }; }
+      // Geocodificador MUNDIAL del chat (sep-2026, orden de Sandro): el
+      // buscador del panel sigue centrado en España y no se toca; el chat
+      // admite cualquier plaza o ciudad del mundo, sin filtro de país.
+      const geocodificarMundial = async (q) => {
+        const url = new URL(CONFIG.nominatimUrl, window.location.origin);
+        url.searchParams.set('q', q);
+        url.searchParams.set('format', 'json');
+        url.searchParams.set('limit', '1');
+        const r = await fetch(url.toString(), { headers: { 'Accept-Language': 'es' } });
+        if (!r.ok) throw new Error('sin-red');
+        const datos = await r.json();
+        if (!datos || !datos.length) throw new Error('no-encontrado');
+        return { lat: parseFloat(datos[0].lat), lon: parseFloat(datos[0].lon), nombre: datos[0].display_name };
+      };
+
+      // España a efectos del aviso de aire: península, Baleares y Canarias.
+      // El rectángulo de antes se tragaba Portugal entero (Lisboa caía
+      // dentro): ahora la península es un polígono que sigue la frontera.
+      const ESPANA_POLI = [
+        [-1.79, 43.37], [-0.5, 42.85], [0.9, 42.65], [2.0, 42.5], [3.17, 42.43],
+        [3.05, 41.85], [2.15, 41.35], [0.9, 40.75], [0.0, 40.0], [-0.35, 39.3],
+        [-0.55, 38.5], [-1.3, 37.6], [-2.15, 36.7], [-3.8, 36.72], [-4.8, 36.5],
+        [-5.4, 36.0], [-6.3, 36.45], [-7.35, 37.18],
+        [-7.4, 37.75], [-7.2, 38.2], [-7.05, 38.75], [-7.2, 39.05], [-7.0, 39.4],
+        [-7.3, 39.7], [-6.9, 40.0], [-7.0, 40.5], [-6.8, 41.0], [-6.5, 41.5],
+        [-6.2, 41.6], [-6.9, 41.95], [-7.6, 41.9], [-8.1, 41.85], [-8.35, 41.75],
+        [-8.87, 41.9], [-8.8, 42.5], [-9.29, 43.05], [-8.4, 43.4], [-7.4, 43.75],
+        [-6.2, 43.5], [-4.5, 43.4], [-2.9, 43.35]
+      ];
+      const puntoEnPoligono = (lon, lat, poli) => {
+        let dentro = false;
+        for (let i = 0, j = poli.length - 1; i < poli.length; j = i++) {
+          const xi = poli[i][0], yi = poli[i][1], xj = poli[j][0], yj = poli[j][1];
+          if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) dentro = !dentro;
         }
-        return mejor;
+        return dentro;
+      };
+      const estaEnEspana = (lat, lon) =>
+        (lat >= 27.5 && lat <= 29.5 && lon >= -18.3 && lon <= -13.3) || // Canarias
+        (lat >= 38.55 && lat <= 40.15 && lon >= 2.3 && lon <= 4.35) ||   // Baleares
+        puntoEnPoligono(lon, lat, ESPANA_POLI);
+
+      // Nivel de aire en palabras desde el índice europeo. Lo sirve el
+      // worker en /api/air-quality (Open-Meteo, cobertura mundial).
+      const nivelAirePalabra = (aqi) => {
+        if (aqi <= 20) return t('airLvlGood', 'bueno');
+        if (aqi <= 40) return t('airLvlFair', 'aceptable');
+        if (aqi <= 60) return t('airLvlModerate', 'moderado');
+        if (aqi <= 80) return t('airLvlPoor', 'malo');
+        if (aqi <= 100) return t('airLvlVeryPoor', 'muy malo');
+        return t('airLvlHazard', 'peligroso');
+      };
+      const consultarAirePunto = async (lat, lon) => {
+        try {
+          const url = new URL('/api/air-quality', window.location.origin);
+          url.searchParams.set('latitude', lat.toFixed(4));
+          url.searchParams.set('longitude', lon.toFixed(4));
+          url.searchParams.set('current', 'european_aqi');
+          url.searchParams.set('timezone', 'auto');
+          const r = await fetch(url.toString());
+          if (!r.ok) return null;
+          const d = await r.json();
+          const aqi = d && d.current && typeof d.current.european_aqi === 'number' ? d.current.european_aqi : null;
+          return aqi == null ? null : { aqi, nivel: nivelAirePalabra(aqi) };
+        } catch (e) { return null; }
+      };
+
+      // Calles por las que pasa la ruta pintada: tres puntos de la línea
+      // (inicio, mitad y final) con su nombre vía geocodificación inversa.
+      const callesDeLaRuta = async () => {
+        const nombres = [];
+        try {
+          const coords = rutaActual && rutaActual.geometry && rutaActual.geometry.coordinates;
+          if (!coords || coords.length < 2) return nombres;
+          const linea = turf.lineString(coords);
+          const largo = turf.length(linea, { units: 'kilometers' });
+          const puntos = [0, largo / 2, largo].map((d) => turf.along(linea, Math.min(d, largo), { units: 'kilometers' }).geometry.coordinates);
+          for (const par of puntos) {
+            const nombre = await geocodificarInverso(par[1], par[0]);
+            const calle = String(nombre || '').split(',')[0].trim();
+            if (calle && !/^\d/.test(calle) && !nombres.includes(calle)) nombres.push(calle);
+          }
+        } catch (e) { }
+        return nombres;
+      };
+
+      // Informe de aire para rutas fuera de España (sep-2026, orden de
+      // Sandro): la capa de aire del mapa es solo España, pero el chat
+      // informa en texto de cualquier ruta del mundo. Las sombras son
+      // mundiales y no llevan aviso. Si el país no tiene soporte de
+      // datos de aire, se dice con seriedad.
+      const informeAireRuta = async (origen, destino) => {
+        if (estaEnEspana(origen.lat, origen.lon) && estaEnEspana(destino.lat, destino.lon)) return;
+        const mitad = { lat: (origen.lat + destino.lat) / 2, lon: (origen.lon + destino.lon) / 2 };
+        const aire = await consultarAirePunto(mitad.lat, mitad.lon);
+        if (!aire) {
+          burbujaChat(t('chatAirUnavailable', 'Calidad del aire no disponible para este país.'));
+          return;
+        }
+        const calles = await callesDeLaRuta();
+        if (calles.length) {
+          const lista = calles.length === 1 ? calles[0] : `${calles.slice(0, -1).join(', ')} ${t('and', 'y')} ${calles[calles.length - 1]}`;
+          burbujaChat(`${t('chatRouteStreets', 'Vas a pasar por')} ${lista}, ${t('chatRouteStreetsAir', 'calles donde se estima un nivel de contaminación')} ${aire.nivel}.`);
+        } else {
+          burbujaChat(`${t('chatRouteAirOnly', 'En esta ruta se estima un nivel de contaminación')} ${aire.nivel}.`);
+        }
+      };
+
+      // El mapa carga perezoso al acercarte a su sección: espera corta y
+      // amable hasta que el puente exista, en vez de fallar.
+      const esperarMapaListo = async () => {
+        let esperaMs = 0;
+        while (typeof window.manolitUbicacionParaRuta !== 'function' && esperaMs < 20000) {
+          await new Promise((r) => setTimeout(r, 500));
+          esperaMs += 500;
+        }
+        return typeof window.manolitUbicacionParaRuta === 'function';
+      };
+
+      // «Ver un ejemplo» (sep-2026, orden de Sandro): ruta simulada con
+      // datos reales entre dos lugares del mundo. No toca tu GPS, el
+      // origen es simulado. La ruta se dibuja de verdad en el mapa y el
+      // informe de aire sigue las mismas reglas que una ruta real.
+      const EJEMPLOS_MUNDO = [
+        { origen: { lat: 41.7151, lon: 44.8271, nombre: 'Tiflis, la capital de Georgia' }, destino: { lat: 41.7015, lon: 44.8009, nombre: 'Café Gallery' } },
+        { origen: { lat: 48.8566, lon: 2.3522, nombre: 'París' }, destino: { lat: 48.8540, lon: 2.3325, nombre: 'Café de Flore' } },
+        { origen: { lat: 41.9028, lon: 12.4964, nombre: 'Roma' }, destino: { lat: 41.8992, lon: 12.4731, nombre: 'Piazza Navona' } },
+        { origen: { lat: 40.7580, lon: -73.9855, nombre: 'Nueva York' }, destino: { lat: 40.7812, lon: -73.9665, nombre: 'Central Park' } },
+        { origen: { lat: -34.6037, lon: -58.3816, nombre: 'Buenos Aires' }, destino: { lat: -34.6088, lon: -58.3780, nombre: 'Café Tortoni' } },
+        { origen: { lat: 35.6812, lon: 139.7671, nombre: 'Tokio' }, destino: { lat: 35.6595, lon: 139.7005, nombre: 'el cruce de Shibuya' } },
+        { origen: { lat: 19.4326, lon: -99.1332, nombre: 'Ciudad de México' }, destino: { lat: 19.3467, lon: -99.1617, nombre: 'Coyoacán' } },
+        { origen: { lat: 51.5074, lon: -0.1278, nombre: 'Londres' }, destino: { lat: 51.5117, lon: -0.1240, nombre: 'Covent Garden' } },
+      ];
+      let ultimoEjemplo = -1;
+      const verEjemploMundo = async () => {
+        const btn = document.getElementById('rsChatEjemploBtn');
+        if (btn) btn.disabled = true;
+        try {
+          let i = Math.floor(Math.random() * EJEMPLOS_MUNDO.length);
+          if (i === ultimoEjemplo) i = (i + 1) % EJEMPLOS_MUNDO.length;
+          ultimoEjemplo = i;
+          const ej = EJEMPLOS_MUNDO[i];
+          burbujaChat(t('chatExamplePrep', 'Preparo un ejemplo con datos reales, un momento.'));
+          if (!(await esperarMapaListo())) {
+            burbujaChat(t('chatRouteMapLoading', 'El mapa todavía se está cargando. Baja hasta él, deja que termine y vuelve a pulsarme.'));
+            return;
+          }
+          // Minutos a pie con el mismo criterio que la app: duración de
+          // OSRM y, si sale una velocidad imposible para un peatón,
+          // distancia a paso de caminante.
+          let minutos = null;
+          try {
+            const r = await fetch(`${CONFIG.osrmUrl}/foot/${ej.origen.lon},${ej.origen.lat};${ej.destino.lon},${ej.destino.lat}?overview=false`);
+            const d = await r.json();
+            if (d && d.routes && d.routes[0]) {
+              const km = d.routes[0].distance / 1000;
+              let min = d.routes[0].duration / 60;
+              if (min <= 0 || (km / (min / 60)) > 9) min = (km / CONFIG.velocidadCaminandoKmh) * 60;
+              minutos = Math.max(1, Math.round(min));
+            }
+          } catch (e) { }
+          await manejarBusqueda({ ...ej.origen }, { ...ej.destino });
+          try {
+            seleccionPorInput.set(inputOrigen, { lat: ej.origen.lat, lon: ej.origen.lon, nombre: ej.origen.nombre, texto: ej.origen.nombre });
+            inputOrigen.value = ej.origen.nombre;
+            seleccionPorInput.set(inputDestino, { lat: ej.destino.lat, lon: ej.destino.lon, nombre: ej.destino.nombre, texto: ej.destino.nombre });
+            inputDestino.value = ej.destino.nombre;
+          } catch (e) { }
+          const tiempoTxt = minutos != null ? `${minutos} ${t('chatExampleMin', 'minutos andando')}` : t('chatExampleNoTime', 'tiempo por estimar');
+          burbujaChat(`${t('chatExampleFrom', 'Desde')} ${ej.origen.nombre} ${t('chatExampleTo', 'hasta')} ${ej.destino.nombre}, ${tiempoTxt}.`);
+          await informeAireRuta(ej.origen, ej.destino);
+        } catch (e) {
+          burbujaChat(t('chatExampleFail', 'No he podido dibujar el ejemplo. Inténtalo otra vez.'));
+        } finally {
+          if (btn) btn.disabled = false;
+        }
       };
 
       let origenActual = null;    // {lat, lon} de tu punto calibrado
@@ -6852,7 +7059,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             url.searchParams.set('q', q);
             url.searchParams.set('format', 'json');
             url.searchParams.set('limit', '1');
-            url.searchParams.set('countrycodes', 'es');
+            // Sin filtro de país (sep-2026, orden de Sandro): el chat
+            // admite cualquier lugar del mundo. El panel sigue en España.
             const r = await fetch(url.toString(), { headers: { 'Accept-Language': 'es' }, signal: geoAbort.signal });
             if (!r.ok) { ocultarSugerencia(); return; }
             const datos = await r.json();
@@ -6866,8 +7074,28 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
       // Dibuja (o sustituye) la ruta: entra por manejarBusqueda(), que es
       // exactamente la puerta que usa el botón «Buscar ruta» del panel.
-      const confirmarDestino = async (destino, opciones) => {
+      // Orden del flujo (sep-2026, orden de Sandro): PRIMERO el destino
+      // y DESPUÉS el GPS. Aquí llegas con el destino ya elegido; ahora
+      // toca saber desde dónde sales.
+      const confirmarDestino = async (destino) => {
         if (!destino) return;
+        burbujaChat(t('chatRouteLocating', 'Buscando tu ubicación…'));
+        let pos;
+        try {
+          if (!(await esperarMapaListo())) {
+            burbujaChat(t('chatRouteMapLoading', 'El mapa todavía se está cargando. Baja hasta él, deja que termine y vuelve a pulsarme.'));
+            return;
+          }
+          pos = await window.manolitUbicacionParaRuta();
+        } catch (err) {
+          const motivo = err && err.message;
+          if (motivo === 'sin-geolocalizacion') burbujaChat(t('chatRouteNoGeo', 'Este navegador no me deja saber dónde estás. Escribe el origen a mano en el panel de rutas y te lo preparo.'));
+          else if (motivo === 'denegado') burbujaChat(t('chatRouteDenied', 'Sin permiso de ubicación no puedo salir desde donde estás. Si cambias de idea, actívalo en el navegador y vuelve a pulsarme.'));
+          else if (motivo === 'ocupado') burbujaChat(t('chatRouteBusy', 'Ya estoy buscándote, dame unos segundos.'));
+          else burbujaChat(t('chatRouteNoGps', 'El GPS no consigue fijarte con buena precisión. Acércate a una ventana o sal a cielo abierto y vuelve a pulsarme.'));
+          return;
+        }
+        origenActual = { lat: pos.lat, lon: pos.lon };
         // Origen fresco: por si el GPS se despertó y actualizó tu punto.
         let o = origenActual;
         try {
@@ -6876,10 +7104,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           const feat = datos && datos.features && datos.features.find((f) => f && f.geometry && f.geometry.type === 'Point');
           if (feat) o = { lon: feat.geometry.coordinates[0], lat: feat.geometry.coordinates[1] };
         } catch (e) { }
-        if (!o) {
-          burbujaChat(t('chatRouteNoOrigin', 'No tengo tu ubicación todavía. Pulsa primero el chip de la ruta.'));
-          return;
-        }
         const nombreCorto = String(destino.nombre || '').split(',')[0] || t('chatRouteDestFallback', 'tu destino');
         try {
           await manejarBusqueda(
@@ -6893,13 +7117,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             seleccionPorInput.set(inputDestino, { lat: destino.lat, lon: destino.lon, nombre: destino.nombre, texto: destino.nombre });
             inputDestino.value = destino.nombre;
           } catch (e) { }
-          if (opciones && opciones.ejemplo) {
-            burbujaChat(`${t('chatRouteExample', 'Te he dibujado una ruta de ejemplo hasta')} ${nombreCorto}. ${t('chatRouteExampleHint', 'La sombra va pintada en el mapa. Si prefieres otro sitio, escríbelo aquí abajo.')}`);
-          } else {
-            burbujaChat(`${t('chatRouteDone', 'Venga, ruta nueva hasta')} ${nombreCorto}. ${t('chatRouteSeeMap', 'La tienes pintada en el mapa.')}`);
-          }
+          burbujaChat(`${t('chatRouteDone', 'Ruta nueva hasta')} ${nombreCorto}. ${t('chatRouteSeeMap', 'La tienes pintada en el mapa.')}`);
           ocultarSugerencia();
           if (inputRuta) inputRuta.value = '';
+          // Fuera de España, informe de aire en texto (el mapa no pinta
+          // la capa de aire fuera, pero el chat sí informa).
+          await informeAireRuta(o, destino);
         } catch (e) {
           burbujaChat(t('chatRouteFail', 'No he podido calcular esa ruta. Prueba con otro destino cercano.'));
         }
@@ -6922,6 +7145,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         inputRuta.placeholder = t('chatRouteDestPlaceholder', 'Ir desde mi ubicación actual hasta…');
         inputRuta.setAttribute('aria-label', t('chatRouteDestPlaceholder', 'Ir desde mi ubicación actual hasta…'));
         fila.appendChild(inputRuta);
+        // «Ver un ejemplo» (sep-2026, orden de Sandro): ruta simulada por
+        // el mundo con datos reales, sin tocar tu GPS.
+        const btnEjemplo = document.createElement('button');
+        btnEjemplo.type = 'button';
+        btnEjemplo.id = 'rsChatEjemploBtn';
+        btnEjemplo.textContent = t('chatExampleBtn', 'Ver un ejemplo');
+        btnEjemplo.addEventListener('click', () => {
+          burbujaChat(t('chatExampleBtn', 'Ver un ejemplo'), 'user');
+          verEjemploMundo();
+        });
+        fila.appendChild(btnEjemplo);
         cajaSugerencia = document.createElement('div');
         cajaSugerencia.style.cssText = 'margin-top:6px;';
         filaWrap.appendChild(fila);
@@ -6936,7 +7170,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           if (!q) return;
           if (ultimaSugerencia && ultimaSugerencia.q === q.toLowerCase()) { confirmarDestino(ultimaSugerencia); return; }
           try {
-            const destino = await geocodificar(q);
+            const destino = await geocodificarMundial(q);
             guardarCacheGeo({ q: q.toLowerCase(), lat: destino.lat, lon: destino.lon, nombre: destino.nombre });
             confirmarDestino(destino);
           } catch (err) {
@@ -6950,45 +7184,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (inputRuta) inputRuta.focus();
       };
 
-      // El chip: click → GPS con siesta (el del mapa, reutilizado) → ruta
-      // de ejemplo al punto de interés más cercano → campo predictivo.
-      const alPulsarChipRuta = async () => {
-        const chip = document.getElementById('rsChipRutaChat');
-        if (chip) chip.disabled = true;
+      // El chip (sep-2026, orden de Sandro): click → te pide el DESTINO
+      // primero (cualquier lugar del mundo) y solo después, al confirmar,
+      // se enciende el GPS para salir desde donde estás. También ofrece
+      // «Ver un ejemplo», una ruta simulada por el mundo con datos reales.
+      const alPulsarChipRuta = () => {
         burbujaChat(t('chatRouteChip', '¿Calculo tu ruta con sombra desde aquí?'), 'user');
-        burbujaChat(t('chatRouteLocating', 'Buscando tu ubicación…'));
-        try {
-          // El mapa carga perezoso al acercarte a su sección: si el chip se
-          // pulsa un segundo antes de que termine de arrancar, el puente
-          // todavía no existe. Espera corta y amable en vez de fallar.
-          let esperaMapaMs = 0;
-          while (typeof window.manolitUbicacionParaRuta !== 'function' && esperaMapaMs < 20000) {
-            await new Promise((r) => setTimeout(r, 500));
-            esperaMapaMs += 500;
-          }
-          if (typeof window.manolitUbicacionParaRuta !== 'function') {
-            burbujaChat(t('chatRouteMapLoading', 'El mapa todavía se está cargando. Baja hasta él, deja que termine y vuelve a pulsarme.'));
-            return;
-          }
-          const pos = await window.manolitUbicacionParaRuta();
-          origenActual = { lat: pos.lat, lon: pos.lon };
-          let poi = null;
-          try { poi = await poiCercano(pos.lat, pos.lon); } catch (e) { }
-          mostrarFilaRuta();
-          if (poi) {
-            await confirmarDestino(poi, { ejemplo: true });
-          } else {
-            burbujaChat(t('chatRouteNoPoi', 'Te he centrado el mapa en tu ubicación. No veo un punto de interés cerca para el ejemplo, dime tú el destino aquí abajo.'));
-          }
-        } catch (err) {
-          const motivo = err && err.message;
-          if (motivo === 'sin-geolocalizacion') burbujaChat(t('chatRouteNoGeo', 'Este navegador no me deja saber dónde estás. Escribe el origen a mano en el panel de rutas y te lo preparo.'));
-          else if (motivo === 'denegado') burbujaChat(t('chatRouteDenied', 'Sin permiso de ubicación no puedo salir desde donde estás. Si cambias de idea, actívalo en el navegador y vuelve a pulsarme.'));
-          else if (motivo === 'ocupado') burbujaChat(t('chatRouteBusy', 'Ya estoy buscándote, dame unos segundos.'));
-          else burbujaChat(t('chatRouteNoGps', 'El GPS no consigue fijarte con buena precisión. Acércate a una ventana o sal a cielo abierto y púlsame de nuevo.'));
-        } finally {
-          if (chip) chip.disabled = false;
-        }
+        burbujaChat(t('chatRouteAskDest', 'Dime el destino, vale cualquier lugar del mundo. Después uso tu ubicación para trazar la ruta. Si prefieres ver cómo funciona, pulsa «Ver un ejemplo».'));
+        mostrarFilaRuta();
       };
 
       cuandoExista('#chatOverlay .quick-qs', (qs) => {

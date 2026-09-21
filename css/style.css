@@ -1800,3 +1800,46 @@ body.mode-peque .im-lost-btn{
 .rs-planetario-capas{ flex-direction:row; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:8px 18px; }
 .rs-planetario-capas .rs-layer-toggles{ flex-direction:column; align-items:center; gap:8px; }
 .rs-planetario-capas .rs-layer-toggles-lista{ justify-content:center; }
+
+/* ============================================================
+   MODOS EN LA BARRA, versión tecla (sep-2026, orden de Sandro)
+   El selector de modos vive arriba, nada más entrar, para que lo
+   veas antes que nada. Son las mismas tarjetas de siempre (mismo
+   HTML, mismo script) encogidas a teclas discretas con el número
+   de siempre encima. Elegante y sin inventar nada nuevo.
+   ============================================================ */
+.modes--compacta{ max-width:none; margin:0; padding:0; }
+.modes--compacta .mode-grid{ display:flex; gap:6px; }
+.modes--compacta .mode-card{
+  padding:4px 9px 5px; border-radius:9px; min-width:0; line-height:1.15;
+  box-shadow:0 2px 0 rgba(14,59,71,0.10);
+  transition:transform .12s ease, border-color .15s ease, background .15s ease;
+}
+.modes--compacta .mode-card:hover{ border-color: var(--accent); transform:translateY(-1px); }
+.modes--compacta .mode-card:active{ transform:translateY(1px); box-shadow:none; }
+.modes--compacta .mode-card.active{ box-shadow:none; }
+.modes--compacta .mode-mark{ font-size:0.5rem; margin-bottom:1px; padding:0 3px; }
+.modes--compacta .mode-title{ font-size:0.68rem; }
+.modes--compacta .mode-sub{ display:none; }
+
+/* En móvil la barra se ordena por filas y las teclas de modo ocupan
+   la suya propia, centradas, justo debajo del botón accesible. */
+@media (max-width: 700px){
+  .topbar .modes--compacta{ order:6; flex:1 1 100%; }
+  .topbar .modes--compacta .mode-grid{ justify-content:center; flex-wrap:wrap; }
+}
+
+/* La familia Manolit, tras el hero (sep-2026): estos enlaces vivían en
+   la barra de arriba y bajaron al hueco que dejaron los modos. Mismo
+   estilo de enlace de siempre, ahora centrados y con aire. */
+.family-zone{
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
+  gap:10px 22px; max-width:780px; margin:36px auto 0; padding:0 24px;
+}
+
+/* Capa de emojis del modo peque (sep-2026, orden de Sandro): cubre la
+   ventana entera, no la hero sola. Es fija, no se puede tocar (no tapa
+   clics) y solo lleva animaciones CSS de transform y opacity, que es lo
+   más barato para la GPU. Al salir del modo peque la capa se quita. */
+#pequeFxCapa{ position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:590; }
+@media (prefers-reduced-motion: reduce){ #pequeFxCapa{ display:none; } }

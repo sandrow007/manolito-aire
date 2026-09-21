@@ -133,7 +133,7 @@
 // VE al dar a Mi ubicacion y aguanta GPS lento de movil) y
 // js/microclima.js (respaldo directo a Open-Meteo si el worker aun no
 // tiene la ruta nueva).
-const VERSION = '2026-09-22-a' // -a 22-sep: modos arriba en teclas (familia baja tras el hero), panel científico con SO2 CO y UV, modo peque con emojis por toda la página
+const VERSION = '2026-09-22-b' // -b 22-sep: el zoom de letra yayo sube a la barra (última fila, solo con modo yayo) y deja libre el hero
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

@@ -7,7 +7,7 @@
 <meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad. Huella hídrica medida con telemetría real: 0,38 MB y ~2 ml de agua por visita. La publicidad programática del mundo gasta ~375 litros de agua cada segundo.">
 <meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas, islas de calor Sevilla, rutas por sombra, ola de calor, calor urbano, web sostenible, huella de agua, bajo consumo de datos, sin publicidad, civic tech Sevilla, código abierto, ahorro de agua, huella hídrica digital, consumo de agua de internet, publicidad programática consumo, web sin anuncios, internet sostenible, web ecológica">
 <meta name="theme-color" content="#1b2029">
-<script type="text/javascript" nonce="d1bc62a4e0ce401e80c1c527b69" src="//local.adguard.org?ts=1790019872280&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260921%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260921T200334Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D94351e726f89886066073d10235e6908aba5acaa38778f01873e49ec611210c5%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="d1bc62a4e0ce401e80c1c527b69" src="//local.adguard.org?ts=1790019872280&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="d1bc62a4e0ce401e80c1c527b69" src="//local.adguard.org?ts=1790021274547&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260921%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260921T202958Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Dde5fab4fc3010d67bc3235eaa8c89d1850674041ed3fed531971bacbed2bdb59%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="d1bc62a4e0ce401e80c1c527b69" src="//local.adguard.org?ts=1790021274547&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manolit∞ Aire. Calidad del aire y sombra solar en tiempo real">
 <meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro. Sin publicidad: telemetría real de 30 días: 0,38 MB y ~2 ml de agua por visita, mientras la publicidad programática gasta ~375 litros cada segundo.">
@@ -460,6 +460,16 @@
             aria-label="Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona"
             data-i18n="osmRefreshBtn" data-i18n-aria-label="osmRefreshTitle">↻ Act. mapa</button>
   </div>
+
+  <!-- Zoom de letra de abuela/abuelo ARRIBA (sep-2026, orden de Sandro):
+       antes esperaba en el hero, abajo, y quien lo necesita no lo veía.
+       Ahora vive como última fila de la barra, fija, a mano en cualquier
+       punto del paseo. Solo aparece con el modo yayo (la regla CSS de
+       siempre lo muestra) y fuera de él no ocupa ni un píxel. -->
+  <div class="yayo-zoom-controls" role="group" aria-label="Tamaño de la letra">
+    <button type="button" class="yayo-zoom-btn" id="fontDown" aria-label="Letra más pequeña">A−</button>
+    <button type="button" class="yayo-zoom-btn" id="fontUp" aria-label="Letra más grande">A+</button>
+  </div>
 </div>
 
 <!-- Contador vivo del agua publicitaria, junto al título del mapa (sep-2026).
@@ -749,11 +759,6 @@
 
   <br>
   <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
-
-  <div class="yayo-zoom-controls" role="group" aria-label="Tamaño de la letra">
-    <button type="button" class="yayo-zoom-btn" id="fontDown" aria-label="Letra más pequeña">A−</button>
-    <button type="button" class="yayo-zoom-btn" id="fontUp" aria-label="Letra más grande">A+</button>
-  </div>
 </div>
 
 <!-- Los enlaces de familia bajan aquí (sep-2026, orden de Sandro): antes

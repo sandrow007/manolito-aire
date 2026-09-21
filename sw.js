@@ -133,7 +133,7 @@
 // VE al dar a Mi ubicacion y aguanta GPS lento de movil) y
 // js/microclima.js (respaldo directo a Open-Meteo si el worker aun no
 // tiene la ruta nueva).
-const VERSION = '2026-09-19-l' // -l 19-sep: chip en el chat que calcula tu ruta con sombra desde aqui (GPS con siesta reutilizado + ruta de ejemplo al punto de interes cercano + input predictivo con debounce y cache local);
+const VERSION = '2026-09-22-a' // -a 22-sep: modos arriba en teclas (familia baja tras el hero), panel científico con SO2 CO y UV, modo peque con emojis por toda la página
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

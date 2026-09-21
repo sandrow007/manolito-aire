@@ -2605,60 +2605,178 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     let esperandoSoloDestino = false;
     let origenParaAutoRuta = null;
 
+    /* ============ GPS FINO CON SIESTA (sep-2026, pliego de Sandro) ============
+       1) PRIVACIDAD TOTAL: las coordenadas se procesan aquí, en el
+          navegador del usuario. Ninguna posición sale del móvil por
+          pedirla, ni se guarda historial en ningún sitio.
+       2) ALTA PRECISIÓN POR HARDWARE: enableHighAccuracy:true despierta el
+          chip GPS de verdad, timeout de 15 s y maximumAge:0 (prohibidas
+          las lecturas viejas de caché).
+       3) FILTRO DE CALIBRACIÓN: se descarta toda lectura con margen de
+          error mayor de 20 m (coords.accuracy). El marcador solo se planta
+          cuando el GPS devuelve alta fidelidad.
+       4) ENCENDIDO/APAGADO INTELIGENTE: en cuanto llega una lectura fina
+          (15 m o menos) se guarda la posición y el GPS se APAGA al momento
+          con clearWatch. Después duerme, y solo vuelve a encenderse unos
+          segundos si el acelerómetro del móvil (DeviceMotionEvent, sensor
+          de bajo consumo) nota movimiento físico real del usuario. */
+    let gpsWatchId = null;
+    let gpsDeadlineTimer = null;
+    let gpsAvisoPendiente = false;
+    let gpsYaColocado = false;
+    let gpsUltimoDespertarMs = 0;
+    let gpsRachaMovimiento = 0;
+    let gpsMuestraSaltador = 0;
+    let gpsDetectorArmado = false;
+    let gpsPermisoMovimientoPedido = false;
+
+    const dormirGPS = () => {
+      if (gpsWatchId != null) { try { navigator.geolocation.clearWatch(gpsWatchId); } catch (e) { } gpsWatchId = null; }
+      if (gpsDeadlineTimer) { clearTimeout(gpsDeadlineTimer); gpsDeadlineTimer = null; }
+    };
+
+    // Planta o actualiza tu punto con una lectura YA calibrada (≤20 m).
+    // volar: mueve la cámara (solo cuando lo pides tú con el botón).
+    // silenciosa: aviso corto, para las actualizaciones por movimiento.
+    const aplicarPosicionGPS = (pos, opciones) => {
+      const volar = !!(opciones && opciones.volar);
+      const silenciosa = !!(opciones && opciones.silenciosa);
+      const lat = pos.coords.latitude, lon = pos.coords.longitude;
+      const precisionM = Math.round(pos.coords.accuracy || 0);
+      const textoMiUbicacion = t('myLocation', 'Mi ubicación');
+      const primeraVez = !gpsYaColocado;
+      gpsYaColocado = true;
+
+      // Solo se actualiza el origen si sigue siendo «Mi ubicación»: jamás
+      // se pisa un origen elegido a mano en el mapa o escrito por ti.
+      const origenSigueSiendoGPS = primeraVez || inputOrigen.value === textoMiUbicacion;
+      if (origenSigueSiendoGPS) {
+        seleccionPorInput.set(inputOrigen, { lat, lon, nombre: textoMiUbicacion, texto: textoMiUbicacion });
+        inputOrigen.value = textoMiUbicacion;
+        origenParaAutoRuta = { lat, lon, nombre: textoMiUbicacion };
+        puntoOrigenPendiente = null;
+        // Tu punto se sustituye SIN borrar el destino si ya lo había.
+        const src = map.getSource('puntos-manuales');
+        if (src) {
+          let resto = [];
+          try {
+            const datos = src._data || (src.serialize && src.serialize().data);
+            const feats = datos && datos.features ? datos.features : [];
+            resto = feats.filter((f, i) => !(i === 0 && f && f.geometry && f.geometry.type === 'Point'));
+          } catch (e) { resto = []; }
+          src.setData(turf.featureCollection([turf.point([lon, lat]), ...resto]));
+        }
+      }
+
+      if (precisionM > 0) {
+        const circuloPrecision = turf.circle([lon, lat], precisionM / 1000, { units: 'kilometers', steps: 48 });
+        map.getSource('precision-ubicacion')?.setData(turf.featureCollection([circuloPrecision]));
+      } else {
+        map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
+      }
+
+      if (silenciosa) {
+        mostrarEstado(`${t('locationUpdated', 'Ubicación actualizada')} (±${precisionM} m).`, 'ok');
+      } else {
+        const notaPrecision = precisionM > 0
+          ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m. ${t('locationNote', 'Sin GPS real puede ser orientativa')})`
+          : '';
+        mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision}. ${t('chooseDestination', 'Toca un punto del mapa para poner el destino.')}`, 'ok');
+      }
+      if (volar) map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
+    };
+
+    const despertarGPS = (desdeBoton) => {
+      if (gpsWatchId != null) return; // ya está despierto
+      if (!('geolocation' in navigator)) return;
+      dormirGPS(); // limpia cualquier plazo anterior
+      gpsUltimoDespertarMs = Date.now();
+      gpsAvisoPendiente = !!desdeBoton;
+      let huboLecturaBuena = false;
+      gpsWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          // Filtro de calibración: margen mayor de 20 m, lectura descartada.
+          const acc = pos && pos.coords && isFinite(pos.coords.accuracy) ? pos.coords.accuracy : Infinity;
+          if (acc > 20) return;
+          huboLecturaBuena = true;
+          aplicarPosicionGPS(pos, { volar: !!desdeBoton, silenciosa: !desdeBoton });
+          if (acc <= 15) dormirGPS(); // calibrado de verdad: GPS a dormir YA
+        },
+        (err) => {
+          // Permiso denegado: se avisa (si lo pediste tú) y se apaga.
+          if (err && err.code === 1) {
+            const avisar = gpsAvisoPendiente;
+            dormirGPS();
+            if (avisar) mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error');
+          }
+          // Lectura no disponible o tardía: se sigue esperando dentro del
+          // plazo; el temporizador de abajo es quien decide el final.
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+      // Plazo máximo con el GPS encendido: 45 s si lo pediste tú, 25 s si
+      // despertó por movimiento. Cumplido el plazo, se apaga sí o sí.
+      gpsDeadlineTimer = setTimeout(() => {
+        const avisar = gpsAvisoPendiente && !huboLecturaBuena;
+        dormirGPS();
+        if (avisar) {
+          mostrarEstado(t('locationNotCalibrated', 'El GPS no ha llegado a buena precisión (20 m o menos). Acércate a una ventana o sal a cielo abierto, o pulsa «Elegir en el mapa» para marcar el punto a mano.'), 'error');
+        }
+      }, desdeBoton ? 45000 : 25000);
+    };
+
+    // Despertar por movimiento físico real: el acelerómetro consume
+    // poquísimo y está siempre disponible; en cambio la brújula gira
+    // también al mover el móvil en la mano sin desplazarte, por eso no
+    // se usa como señal de arranque.
+    const alMoverElMovil = (ev) => {
+      try {
+        if (gpsWatchId != null) return; // ya despierto
+        if (!gpsYaColocado) return;     // sin posición previa no hay nada que refrescar
+        if (document.hidden) return;
+        gpsMuestraSaltador = (gpsMuestraSaltador + 1) % 3;
+        if (gpsMuestraSaltador !== 0) return; // con 1 de cada 3 eventos basta
+        const a = ev.accelerationIncludingGravity || ev.acceleration;
+        if (!a) return;
+        const mag = Math.sqrt((a.x || 0) * (a.x || 0) + (a.y || 0) * (a.y || 0) + (a.z || 0) * (a.z || 0));
+        // Quieto o en reposo la magnitud ronda la gravedad (9.81); andar o
+        // ir en bici la aleja de forma clara y repetida.
+        if (Math.abs(mag - 9.81) > 1.4) gpsRachaMovimiento++; else gpsRachaMovimiento = 0;
+        const ahora = Date.now();
+        // 3 sacudidas seguidas y al menos 90 s desde el último despertar:
+        // así el GPS no se enciende por coger el móvil del bolsillo.
+        if (gpsRachaMovimiento >= 3 && ahora - gpsUltimoDespertarMs > 90000) {
+          gpsRachaMovimiento = 0;
+          despertarGPS(false);
+        }
+      } catch (e) { }
+    };
+    const armarDetectorMovimiento = () => {
+      if (gpsDetectorArmado) return;
+      gpsDetectorArmado = true;
+      window.addEventListener('devicemotion', alMoverElMovil, { passive: true });
+    };
+
     btnUbicacion.addEventListener('click', () => {
       if (!('geolocation' in navigator)) {
         mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
         return;
       }
-      mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicación…'));
-      // Primero lectura FINA y FRESCA del GPS (una sola vez: el chip se
-      // apaga al responder, la batería ni lo nota). maximumAge:0 prohíbe
-      // lecturas viejas de la caché: con caché el muñeco salía plantado
-      // donde estuviste hace un rato ("aparece por ahí"). Si la fina
-      // falla (interior, túnel), respaldo por red/wifi.
-      const pedirUbicacionPrecisa = (usarPosicion, alFallar) => {
-        navigator.geolocation.getCurrentPosition(
-          usarPosicion,
-          () => navigator.geolocation.getCurrentPosition(
-            usarPosicion,
-            alFallar,
-            { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
-          ),
-          { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-        );
-      };
-      pedirUbicacionPrecisa(
-        async (pos) => {
-          const lat = pos.coords.latitude, lon = pos.coords.longitude;
-          const precisionM = Math.round(pos.coords.accuracy || 0);
-
-          seleccionPorInput.set(inputOrigen, { lat, lon, nombre: t('myLocation', 'Mi ubicación'), texto: t('myLocation', 'Mi ubicación') });
-          inputOrigen.value = t('myLocation', 'Mi ubicación');
-
-          const puntoUbicacion = turf.point([lon, lat]);
-          map.getSource('puntos-manuales')?.setData(turf.featureCollection([puntoUbicacion]));
-          if (precisionM > 0) {
-            const circuloPrecision = turf.circle([lon, lat], precisionM / 1000, { units: 'kilometers', steps: 48 });
-            map.getSource('precision-ubicacion')?.setData(turf.featureCollection([circuloPrecision]));
-          } else {
-            map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
-          }
-
-          const notaPrecision = precisionM > 0
-            ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m. ${t('locationNote', 'Sin GPS real puede ser orientativa')})`
-            : '';
-          mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision}. ${t('chooseDestination', 'Toca un punto del mapa para poner el destino.')}`, 'ok');
-          map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
-
-          origenParaAutoRuta = { lat, lon, nombre: t('myLocation', 'Mi ubicación') };
-          puntoOrigenPendiente = null;
-          // Por orden directa de Sandro (sep-2026): NADA de armar solo el
-          // modo «elegir en el mapa». Tu ubicación queda puesta como origen
-          // y tú decides el siguiente paso, escribir el destino o pulsar tú
-          // mismo «Elegir en el mapa». Aquí no se activa nada solo.
-        },
-        () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error')
-      );
+      // iOS pide permiso para leer el acelerómetro dentro de un gesto del
+      // usuario: este clic lo es. Si lo niega, el GPS simplemente no se
+      // despierta solo por movimiento y todo lo demás sigue igual.
+      try {
+        if (!gpsPermisoMovimientoPedido && typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+          gpsPermisoMovimientoPedido = true;
+          DeviceMotionEvent.requestPermission().catch(() => { });
+        }
+      } catch (e) { }
+      armarDetectorMovimiento();
+      mostrarEstado(t('locationCalibrating', 'Calibrando el GPS, unos segundos…'));
+      // Por orden directa de Sandro (sep-2026): NADA de armar solo el
+      // modo «elegir en el mapa». El GPS se enciende, se calibra, planta
+      // tu punto como origen y se apaga. Tú decides el siguiente paso.
+      despertarGPS(true);
     });
 
     /* ---- Modo caminar: sigue tu posición en vivo mientras te mueves ---- */
@@ -5484,6 +5602,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         this._ondaRaf = null;
         this._mirando = 1; // 1 = derecha, -1 = izquierda (espejo)
         this._sentado = false;
+        this._descansando = false;      // siesta: llega tras 4 min explorando sin que le toquen
+        this._explorandoDesdeMs = 0;    // cuándo empezó a explorar (para echarse la siesta)
         this._saludando = false;
         this._explorando = false;
         this._caprichoTimer = null;
@@ -5519,6 +5639,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         this._ultimoMovMs = Date.now();
         clearTimeout(this._idleTimer);
         this._idleTimer = setTimeout(() => { this._moving = false; }, 900);
+        // Si se había echado la siesta, al moverte tú se despierta.
+        if (this._descansando) {
+          this._descansando = false;
+          this._sentado = false;
+          try { this._applyPose(); } catch (e) { }
+        }
         // Si estaba de capricho por el mapa, vuelve corriendo a tu punto y saluda.
         if (this._explorando) this._volverATuPunto();
       }
@@ -5674,6 +5800,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         this._el.addEventListener('click', (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
+          // Si estaba echando la siesta, al tocarlo se despierta y se levanta.
+          if (this._descansando) {
+            this._descansando = false;
+            this._sentado = false;
+            this._ultimoMovMs = Date.now();
+            try { this._applyPose(); } catch (e) { }
+          }
           // Si la temperatura lleva más de 15 min sin refrescarse, la pide
           // en segundo plano para la PRÓXIMA frase (esta habla ya, sin esperar).
           try {
@@ -5707,9 +5840,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           if (document.hidden) { this._tickTimer = setTimeout(paso, 500); return; }
           const now = Date.now();
           if (this._moving) this._ultimoMovMs = now;
-          else if (!this._reduced && !this._explorando && now - this._ultimoMovMs > 10000) {
+          else if (!this._reduced && !this._explorando && !this._descansando && now - this._ultimoMovMs > 10000) {
             // Llevas 10 s parado: Manolit se aburre y empieza su vida.
             this._explorando = true;
+            this._explorandoDesdeMs = now;
             this._capricho();
           }
           // Rendimiento (sep-2026, ADITIVO): si Manolit está quieto (no
@@ -5719,8 +5853,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           // Quieto: saltamos _applyPose y el tic baja a 4 Hz (la detección
           // de "10 s aburrido" sigue funcionando igual, con margen de sobra).
           // En cuanto hay actividad, el tic vuelve a 66 ms y se ve IDÉNTICO.
-          const enActividad = this._moving || this._explorando || this._saludando
-            || this._sentado || this._ondaRaf || this._reduced;
+          // Calor bis (sep-2026, queja de Sandro): «explorando» y «sentado»
+          // ya NO cuentan como actividad, porque entre capricho y capricho
+          // (y sentado) la pose no cambia y el tic a 15 fps solo repintaba
+          // el SVG sin parar. Tic rápido solo con movimiento real de pose.
+          const enActividad = this._moving || this._saludando
+            || this._ondaRaf || this._reduced;
           if (enActividad || !this._poseAplicadaAlgunaVez) {
             this._applyPose();
             this._poseAplicadaAlgunaVez = true;
@@ -5731,6 +5869,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       _capricho() {
         if (!this._explorando || this._moving) return;
+        // La siesta de Manolit (sep-2026, queja de Sandro del calor): tras
+        // 4 minutos explorando sin que nadie le toque, se sienta y se echa
+        // la siesta. Deja de animarse del todo (el tic baja a 4 Hz y la
+        // batería descansa) hasta que lo toques o te muevas de verdad.
+        if (this._explorandoDesdeMs && Date.now() - this._explorandoDesdeMs > 240000) {
+          this._explorando = false;
+          this._descansando = true;
+          this._sentado = true;
+          try { this._applyPose(); } catch (e) { }
+          return;
+        }
         const r = Math.random();
         if (r < 0.55) {
           // Paseíto por los alrededores de tu punto (sin salirse de cerca).
@@ -5745,8 +5894,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         } else if (r < 0.8) {
           // Se sienta un rato a descansar.
           this._sentado = true;
+          try { this._applyPose(); } catch (e) { } // la pose cambia aquí, no en el tic
           this._caprichoTimer = setTimeout(() => {
             this._sentado = false;
+            try { this._applyPose(); } catch (e) { }
             if (this._explorando && !this._moving) {
               this._caprichoTimer = setTimeout(() => this._capricho(), 1800 + Math.random() * 2200);
             }
@@ -5782,11 +5933,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           if (!this._explorando && !rapido) return; // interrumpido: manda _volverATuPunto
           let p = (t - t0) / duracion;
           if (p >= 1) p = 1;
-          const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; // ease in-out
-          this._onda = { x: sx + dx * e, y: sy + dy * e };
-          // Las piernas también avanzan con este paseíto.
-          this._distanceAccum += (distancia * (e - (frame._e || 0))) * (this.strideMeters / 26);
-          frame._e = e;
+          // 30 fps bastan para un muñeco de 46 px (calor, sep-2026): solo se
+          // escribe la pose una vez cada 33 ms; los fotogramas intermedios
+          // del navegador se saltan y el chip gráfico trabaja la mitad.
+          if (p === 1 || t - (frame._ultimaEscritura || 0) >= 33) {
+            frame._ultimaEscritura = t;
+            const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; // ease in-out
+            this._onda = { x: sx + dx * e, y: sy + dy * e };
+            // Las piernas también avanzan con este paseíto.
+            this._distanceAccum += (distancia * (e - (frame._e || 0))) * (this.strideMeters / 26);
+            frame._e = e;
+          }
           if (p < 1) this._ondaRaf = requestAnimationFrame(frame);
           else {
             this._ondaRaf = null;
@@ -5894,12 +6051,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           overflow:visible;
           pointer-events:auto;
           cursor:pointer;
-          filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
         `;
+        // Sombra (sep-2026, calor): antes era un filter drop-shadow CSS y el
+        // navegador recalculaba el desenfoque ENTERO en cada fotograma que
+        // el muñeco se movía (en móvil, GPU a tope). Ahora es una elipse
+        // con degradado pintada dentro del propio SVG: se dibuja una vez,
+        // se mueve con él gratis y se ve igual.
         wrap.innerHTML = `
           <div class="mw-onda" style="position:absolute;inset:0;overflow:visible;">
           <div class="mw-flip" style="width:100%;height:100%;transform-origin:50% 50%;">
           <svg viewBox="0 0 120 170" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+            <defs><radialGradient id="mwSombraSuelo" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(0,0,0,0.38)"/>
+              <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+            </radialGradient></defs>
+            <ellipse cx="60" cy="161" rx="30" ry="9" fill="url(#mwSombraSuelo)"/>
             <g class="mw-body" style="transform-origin:60px 90px;">
               <g class="leg leg-l" style="transform-origin:60px 118px;">
                 <line x1="60" y1="118" x2="45" y2="155" stroke="${colors.wine}" stroke-width="6" stroke-linecap="round"/>
@@ -8277,7 +8443,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             try {
               if (document.hidden) return; // pestaña oculta: no saludar (ahorro batería)
               if (!document.contains(yo._el)) { clearInterval(yo._olaTimer); return; }
-              if (yo._moving || yo._saludando || yo._explorando || yo._sentado || yo._reduced) return;
+              if (yo._moving || yo._saludando || yo._explorando || yo._sentado || yo._descansando || yo._reduced) return;
               yo._saluda();
             } catch (e) { }
           }, 14000);

@@ -133,7 +133,7 @@
 // VE al dar a Mi ubicacion y aguanta GPS lento de movil) y
 // js/microclima.js (respaldo directo a Open-Meteo si el worker aun no
 // tiene la ruta nueva).
-const VERSION = '2026-09-19-h' // -h 19-sep: Manolit visible con Mi ubicacion (CSS de MapLibre + position absolute) + paciencia con GPS lento + microclima con respaldo directo;
+const VERSION = '2026-09-19-k' // -k 19-sep: Manolit se echa la siesta a los 4 min sin que le toquen (fin del repintado eterno que calentaba el movil) + paseitos a 30 fps + sombra del muneco sin filtro CSS + tic rapido solo con pose en movimiento;
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

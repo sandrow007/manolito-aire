@@ -7,7 +7,7 @@
 <meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad. Huella hídrica medida con telemetría real: 0,38 MB y ~2 ml de agua por visita. La publicidad programática del mundo gasta ~375 litros de agua cada segundo.">
 <meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas, islas de calor Sevilla, rutas por sombra, ola de calor, calor urbano, web sostenible, huella de agua, bajo consumo de datos, sin publicidad, civic tech Sevilla, código abierto, ahorro de agua, huella hídrica digital, consumo de agua de internet, publicidad programática consumo, web sin anuncios, internet sostenible, web ecológica">
 <meta name="theme-color" content="#1b2029">
-<link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="d1bc62a4e0ce401e80c1c527b69" src="//local.adguard.org?ts=1790019872280&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260921%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260921T200334Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D94351e726f89886066073d10235e6908aba5acaa38778f01873e49ec611210c5%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="d1bc62a4e0ce401e80c1c527b69" src="//local.adguard.org?ts=1790019872280&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manolit∞ Aire. Calidad del aire y sombra solar en tiempo real">
 <meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro. Sin publicidad: telemetría real de 30 días: 0,38 MB y ~2 ml de agua por visita, mientras la publicidad programática gasta ~375 litros cada segundo.">
@@ -404,11 +404,36 @@
          empujando toda la página (shift de 0,19 medido). i18n.js lo adopta:
          traduce el texto y refleja el estado guardado. -->
     <button type="button" id="btn-accesibilidad" class="acc-mode-btn" aria-pressed="false">♿ Modo accesible</button>
-    <a class="family-link" href="about.html" data-i18n="aboutLink">¿Por qué existe esto?</a>
-    <a class="family-link" href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a>
-    <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
-    <a class="family-link" href="manolito-aire-comparativa.html" target="_self">Comparativa</a>
-    <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener">Que es Manolit∞ ©</a>
+
+    <!-- Modos de lectura ARRIBA (sep-2026, orden de Sandro): nada más entrar
+         eliges cómo te lo cuenta Manolit. Son las mismas tarjetas de siempre
+         (mismo id, mismas clases, mismo script) pero en versión tecla,
+         pequeñas, para vivir en la barra sin hacerse las dueñas. -->
+    <div class="modes modes--compacta">
+      <div class="modes-label visually-hidden" data-i18n="modesLabel">¿Cómo quieres que te lo cuente?</div>
+      <div class="mode-grid" id="modeGrid">
+        <div class="mode-card active" data-mode="ciudadano">
+          <span class="mode-mark">01</span>
+          <div class="mode-title" data-i18n="mode_ciudadano_title">Ciudadano</div>
+          <div class="mode-sub" data-i18n="mode_ciudadano_sub">Claro y directo</div>
+        </div>
+        <div class="mode-card" data-mode="cientifico">
+          <span class="mode-mark">02</span>
+          <div class="mode-title" data-i18n="mode_cientifico_title">Científico</div>
+          <div class="mode-sub" data-i18n="mode_cientifico_sub">Con los datos</div>
+        </div>
+        <div class="mode-card" data-mode="yayo">
+          <span class="mode-mark">03</span>
+          <div class="mode-title" data-i18n="mode_yayo_title">Abuela / Abuelo</div>
+          <div class="mode-sub" data-i18n="mode_yayo_sub">Letra grande, sin prisa</div>
+        </div>
+        <div class="mode-card" data-mode="peque">
+          <span class="mode-mark">04</span>
+          <div class="mode-title" data-i18n="mode_peque_title">Peque (5 años)</div>
+          <div class="mode-sub" data-i18n="mode_peque_sub">Con dibujitos</div>
+        </div>
+      </div>
+    </div>
 
     <div class="chip-toggle" id="paletteToggle" title="Elige la luz de tu paseo" role="group" aria-label="Elige la luz de tu paseo">
       <button data-palette="cosmos" class="active" aria-label="Noche de verano (ámbar farola)"></button>
@@ -714,6 +739,9 @@
       <tr><td>PM10</td><td id="sciPM10">-- µg/m³</td></tr>
       <tr><td>NO₂</td><td id="sciNO2">-- µg/m³</td></tr>
       <tr><td>O₃</td><td id="sciO3">-- µg/m³</td></tr>
+      <tr><td>SO₂</td><td id="sciSO2">-- µg/m³</td></tr>
+      <tr><td>CO</td><td id="sciCO">-- µg/m³</td></tr>
+      <tr><td>Índice UV</td><td id="sciUV">--</td></tr>
       <tr><td>ICA</td><td id="sciICA">--</td></tr>
     </table>
     <div class="sci-updated" id="sciUpdated">Actualizado: --</div>
@@ -728,31 +756,16 @@
   </div>
 </div>
 
-<div class="modes">
-  <div class="modes-label" data-i18n="modesLabel">¿Cómo quieres que te lo cuente?</div>
-  <div class="mode-grid" id="modeGrid">
-    <div class="mode-card active" data-mode="ciudadano">
-      <span class="mode-mark">01</span>
-      <div class="mode-title" data-i18n="mode_ciudadano_title">Ciudadano</div>
-      <div class="mode-sub" data-i18n="mode_ciudadano_sub">Claro y directo</div>
-    </div>
-    <div class="mode-card" data-mode="cientifico">
-      <span class="mode-mark">02</span>
-      <div class="mode-title" data-i18n="mode_cientifico_title">Científico</div>
-      <div class="mode-sub" data-i18n="mode_cientifico_sub">Con los datos</div>
-    </div>
-    <div class="mode-card" data-mode="yayo">
-      <span class="mode-mark">03</span>
-      <div class="mode-title" data-i18n="mode_yayo_title">Abuela / Abuelo</div>
-      <div class="mode-sub" data-i18n="mode_yayo_sub">Letra grande, sin prisa</div>
-    </div>
-    <div class="mode-card" data-mode="peque">
-      <span class="mode-mark">04</span>
-      <div class="mode-title" data-i18n="mode_peque_title">Peque (5 años)</div>
-      <div class="mode-sub" data-i18n="mode_peque_sub">Con dibujitos</div>
-    </div>
-  </div>
-</div>
+<!-- Los enlaces de familia bajan aquí (sep-2026, orden de Sandro): antes
+     vivían en la barra de arriba y ahora que los modos ocupan ese sitio,
+     ellos esperan tras el hero, centrados y con el mismo estilo de siempre. -->
+<nav class="family-zone" aria-label="La familia Manolit y por qué existe esto">
+  <a class="family-link" href="about.html" data-i18n="aboutLink">¿Por qué existe esto?</a>
+  <a class="family-link" href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a>
+  <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
+  <a class="family-link" href="manolito-aire-comparativa.html" target="_self">Comparativa</a>
+  <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener">Que es Manolit∞ ©</a>
+</nav>
 
 <div class="map-section">
   <div class="map-head">
@@ -1070,7 +1083,7 @@
 <script src="js/i18n.js" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
-<script src="js/cookie-banner.js" defer></script>
+
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
@@ -1332,35 +1345,48 @@
     window.actualizarModoPeque = renderPequeFace;
 
     window.actualizarPanelCientifico = function(datos) {
-      const { pm25, pm10, no2, o3, ica, hora } = datos;
+      const { pm25, pm10, no2, o3, ica, hora, so2, co, uv } = datos;
       const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
       setVal('sciPM25', pm25 + ' µg/m³');
       setVal('sciPM10', pm10 + ' µg/m³');
       setVal('sciNO2',  no2 + ' µg/m³');
       setVal('sciO3',   o3 + ' µg/m³');
+      // Datos extra del modo científico (sep-2026, orden de Sandro): solo se
+      // escriben si la llamada los trajo; si faltan, la fila enseña '--'.
+      if (so2 !== undefined) setVal('sciSO2', so2 + ' µg/m³');
+      if (co  !== undefined) setVal('sciCO',  co  + ' µg/m³');
+      if (uv  !== undefined) setVal('sciUV',  String(uv));
       setVal('sciICA',  ica);
       setVal('sciUpdated', 'Actualizado: ' + hora);
     };
 
-    // Efecto mágico del modo peque: emojis que suben flotando por el hero.
-    // app.js llama a syncModeFx(mode) cada vez que cambia el modo.
+    // Efecto mágico del modo peque (sep-2026, orden de Sandro): los emojis
+    // ya no se quedan solo en el hero, suben flotando por TODA la página.
+    // Es una única capa fija con animaciones CSS (transform y opacity, lo
+    // más barato que existe para la GPU): sin bucles JS, sin intervalos,
+    // la batería no lo nota. Al cambiar de modo la capa se retira entera.
     window.syncModeFx = function(mode) {
       const hero = document.querySelector('.hero');
-      if (!hero) return;
-      hero.querySelectorAll('.peque-sparkle').forEach(e => e.remove());
+      if (hero) hero.querySelectorAll('.peque-sparkle').forEach(e => e.remove());
+      const capaVieja = document.getElementById('pequeFxCapa');
+      if (capaVieja) capaVieja.remove();
       if (mode !== 'peque') return;
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const emojis = ['🎈', '⭐', '🫧', '🌈', '🦋', '☀️', '🍃'];
-      for (let i = 0; i < 10; i++) {
+      const capa = document.createElement('div');
+      capa.id = 'pequeFxCapa';
+      capa.setAttribute('aria-hidden', 'true');
+      for (let i = 0; i < 16; i++) {
         const s = document.createElement('span');
         s.className = 'peque-sparkle';
         s.textContent = emojis[i % emojis.length];
         s.style.left = (4 + Math.random() * 92) + '%';
-        s.style.animationDuration = (5 + Math.random() * 5) + 's';
+        s.style.animationDuration = (6 + Math.random() * 6) + 's';
         s.style.animationDelay = (Math.random() * 6) + 's';
         s.style.fontSize = (1.1 + Math.random() * 1.2) + 'rem';
-        hero.appendChild(s);
+        capa.appendChild(s);
       }
+      document.body.appendChild(capa);
     };
 
   })();

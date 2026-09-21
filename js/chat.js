@@ -63,7 +63,7 @@
   const MANOLITO_SYSTEM_CONTEXT = `[INSTRUCCIONES SISTEMA - CUMPLIR ESTRICTAMENTE]
 
 IDENTIDAD:
-Eres Manolit∞, asistente de "Manolit∞ Aire" (manolitoaire.com), web de calidad del aire y sombras 3D. Tu personalidad es cercana, natural y con cultura general amplia: hablas de cualquier tema con soltura (música, historia, filosofía, arte, actualidad...) igual que un amigo con curiosidad. Nunca fuerces la conversación de vuelta al clima si el usuario habla de otra cosa; sigue su hilo. Nunca fuerces una venta ni redirijas hacia "usa Manolit∞ para..." salvo que lo pidan. Si te hablan en español, a veces (no siempre) se te escapa alguna expresión andaluza, con gracia y sin abusar.
+Eres Manolit∞, asistente de "Manolit∞ Aire" (manolitoaire.com), web de calidad del aire y sombras 3D. Tu personalidad es seria, directa y profesional, con cultura general amplia: hablas de cualquier tema con soltura (música, historia, filosofía, arte, actualidad...). Nunca fuerces la conversación de vuelta al clima si el usuario habla de otra cosa; sigue su hilo. Nunca fuerces una venta ni redirijas hacia "usa Manolit∞ para..." salvo que lo pidan. Nada de introducciones largas, frases condescendientes ni rodeos: ve al grano desde la primera palabra.
 
 === CONOCIMIENTO DE LA WEB (ESTADO ACTUAL) ===
 - Calidad del aire en vivo (Open-Meteo/Copernicus CAMS): PM2.5, PM10, NO2, O3, histórico y pronóstico 48 h, modos ciudadano/científico/yayo/peque.
@@ -90,7 +90,7 @@ SALUD: información educativa y sentido común (protección, horarios, hidrataci
 1. DEDUCCIÓN ABSOLUTA: el usuario escribirá con errores e informalidad; deduce la intención y responde directo, jamás digas "no entiendo".
 2. CONOCIMIENTO UNIVERSAL: cualquier tema (historia, ciencia, cocina, música...), con profundidad si la piden.
 3. MULTI-IDIOMA: responde en el idioma de la pregunta (es, en, fr, de, it, pt, zh, ja, ru, ar...).
-4. TONO: cercano y claro, BREVEDAD ESTRICTA (2-4 frases cortas, máximo ~60 palabras) salvo que pidan más detalle.
+4. TONO: serio, directo y conciso, BREVEDAD ESTRICTA (2-4 frases cortas, máximo ~60 palabras) salvo que pidan más detalle.
 7. CREADOR Y FAMILIA (si preguntan): la creó Sandro, georgiano-español (sevillano, andaluz), cansado de la falta de soluciones ante el cambio climático. Es libre y gratis para siempre: nadie puede venderla ni ponerle suscripción. Hermanos: Manolit∞ Forestal (manolitoforestal.space, incendios forestales en tiempo real) e Islas de Calor Sevilla (islasdecalorsevilla.com, estrés térmico urbano).
 8. NO INVENTES datos concretos (cifras, fechas, nombres): si no lo sabes, dilo con naturalidad.
 5. CONTINUIDAD: nunca te quedes sin respuesta; da la mejor aproximación posible.
@@ -319,12 +319,76 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
     if (input) input.focus();
   }
 
+  /* ---- Aire internacional por chat (sep-2026, orden de Sandro) ----
+     La capa de aire del mapa es solo España y así se queda, pero el chat
+     responde de cualquier ciudad del mundo. Si la pregunta es del tipo
+     "calidad del aire en X" y X está fuera de España, se contesta aquí
+     en texto, sin llamar a la IA: geocodificar (mundo) → Open-Meteo →
+     nivel en palabras. Si el país no tiene soporte de datos, se dice
+     con seriedad. */
+  const AIRE_NIVELES = [[20, 'bueno'], [40, 'aceptable'], [60, 'moderado'], [80, 'malo'], [100, 'muy malo'], [Infinity, 'peligroso']];
+  function nivelAirePalabra(aqi) {
+    for (const [tope, palabra] of AIRE_NIVELES) if (aqi <= tope) return palabra;
+    return 'peligroso';
+  }
+  // Península como polígono que sigue la frontera (el rectángulo de antes
+  // se tragaba Portugal entero), más Baleares y Canarias.
+  const ESPANA_POLI = [
+    [-1.79, 43.37], [-0.5, 42.85], [0.9, 42.65], [2.0, 42.5], [3.17, 42.43],
+    [3.05, 41.85], [2.15, 41.35], [0.9, 40.75], [0.0, 40.0], [-0.35, 39.3],
+    [-0.55, 38.5], [-1.3, 37.6], [-2.15, 36.7], [-3.8, 36.72], [-4.8, 36.5],
+    [-5.4, 36.0], [-6.3, 36.45], [-7.35, 37.18],
+    [-7.4, 37.75], [-7.2, 38.2], [-7.05, 38.75], [-7.2, 39.05], [-7.0, 39.4],
+    [-7.3, 39.7], [-6.9, 40.0], [-7.0, 40.5], [-6.8, 41.0], [-6.5, 41.5],
+    [-6.2, 41.6], [-6.9, 41.95], [-7.6, 41.9], [-8.1, 41.85], [-8.35, 41.75],
+    [-8.87, 41.9], [-8.8, 42.5], [-9.29, 43.05], [-8.4, 43.4], [-7.4, 43.75],
+    [-6.2, 43.5], [-4.5, 43.4], [-2.9, 43.35]
+  ];
+  function puntoEnPoligono(lon, lat, poli) {
+    let dentro = false;
+    for (let i = 0, j = poli.length - 1; i < poli.length; j = i++) {
+      const xi = poli[i][0], yi = poli[i][1], xj = poli[j][0], yj = poli[j][1];
+      if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) dentro = !dentro;
+    }
+    return dentro;
+  }
+  function puntoEnEspana(lat, lon) {
+    return (lat >= 27.5 && lat <= 29.5 && lon >= -18.3 && lon <= -13.3) || // Canarias
+           (lat >= 38.55 && lat <= 40.15 && lon >= 2.3 && lon <= 4.35) ||   // Baleares
+           puntoEnPoligono(lon, lat, ESPANA_POLI);
+  }
+  async function intentarAireInternacional(pregunta) {
+    try {
+      const m = String(pregunta || '').match(/(?:aire|contaminaci[oó]n|poluci[oó]n)\b[^]*?\ben\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’\-\s]{2,40}?)\s*(?:hoy|mañana|ahora)?\s*[?.!¡]*\s*$/i);
+      if (!m) return null;
+      let ciudad = m[1].trim();
+      if (ciudad.length < 2) return null;
+      const geo = await fetch('/geo?q=' + encodeURIComponent(ciudad) + '&format=json&limit=1', { headers: { 'Accept-Language': 'es' } });
+      if (!geo.ok) return null;
+      const lugares = await geo.json();
+      if (!lugares || !lugares.length) return null;
+      const lat = parseFloat(lugares[0].lat), lon = parseFloat(lugares[0].lon);
+      if (puntoEnEspana(lat, lon)) return null; // dentro de España: camino de siempre, la capa del mapa ya lo cubre
+      ciudad = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
+      const r = await fetch(`/api/air-quality?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&current=european_aqi&timezone=auto`);
+      if (!r.ok) return 'Calidad del aire no disponible para este país.';
+      const d = await r.json();
+      const aqi = d && d.current && typeof d.current.european_aqi === 'number' ? d.current.european_aqi : null;
+      if (aqi == null) return 'Calidad del aire no disponible para este país.';
+      return `La calidad del aire en ${ciudad} indica un nivel ${nivelAirePalabra(aqi)}.`;
+    } catch (e) {
+      return null; // cualquier fallo: que responda la IA como siempre
+    }
+  }
+
   async function sendQuestion(question) {
     toggleInputState(true);
     addBubble(question, 'user');
     setChatStatus('Manolit∞ analizando contexto...');
 
     try {
+      const aireLocal = await intentarAireInternacional(question);
+      if (aireLocal) { addBubble(aireLocal, 'mano'); return; }
       const answer = await askManolito(question);
       addBubble(answer, 'mano');
     } catch (e) {
@@ -386,19 +450,9 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
     document.documentElement.style.setProperty('--chat-ink', v.ink);
   }
 
-  function initWelcomeMessage() {
-    const lang = getRobustLang();
-    const welcome = lang === 'en'
-      ? "Hola! Soy Manolit∞, asistente de manolitoaire.com. Pregúntame sobre sombras 3D, irradiación solar, calidad del aire, rutas bajo sombra... o cualquier otro tema. ¿En qué puedo ayudarte?"
-      : "¡Hola! Soy Manolit∞, asistente de manolitoaire.com. Pregúntame sobre sombras 3D, irradiación solar, calidad del aire, rutas bajo sombra... o sobre cualquier otro tema. ¿En qué puedo ayudarte?";
-
-    const body = document.getElementById('chatBody');
-    if (body && body.children.length === 0) {
-      addBubble(welcome, 'mano');
-    }
-  }
-
-  setTimeout(initWelcomeMessage, 500);
+  // Bienvenida larga eliminada (sep-2026, orden de Sandro): el chat es
+  // serio y directo. La única bienvenida es la frase corta del HTML
+  // (clave chatWelcome de i18n.js), sin segundas burbujas a los 500 ms.
 
   // Si tu HTML llama a estas funciones con onclick="askCustom()", etc.,
   // necesitan existir en window porque ahora viven dentro de una IIFE.

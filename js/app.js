@@ -246,7 +246,10 @@ function aqiFromPM25(pm){
 async function fetchCurrentCity(){
   const d = cityData[currentCity];
   try{
-    const consultaAire = `latitude=${d.lat}&longitude=${d.lon}&current=pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto`;
+    // Panel científico con más datos (sep-2026, orden de Sandro): se piden
+    // también SO₂, CO e índice UV. El Worker pasa la consulta tal cual a
+    // Open-Meteo, así que no hay que tocar nada más del camino.
+    const consultaAire = `latitude=${d.lat}&longitude=${d.lon}&current=pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,uv_index&timezone=auto`;
     let r = await fetch(`/api/air-quality?${consultaAire}`);
     // Respaldo directo (sep-2026, ADITIVO): si el proxy no consigue datos
     // (lo avisa con la cabecera X-Proxy-Aviso: sin-datos), el navegador
@@ -266,6 +269,9 @@ async function fetchCurrentCity(){
         pm10: (c.pm10 != null) ? c.pm10.toFixed(1) : '--',
         no2:  (c.nitrogen_dioxide != null) ? c.nitrogen_dioxide.toFixed(1) : '--',
         o3:   (c.ozone != null) ? c.ozone.toFixed(1) : '--',
+        so2:  (c.sulphur_dioxide != null) ? c.sulphur_dioxide.toFixed(1) : '--',
+        co:   (c.carbon_monoxide != null) ? c.carbon_monoxide.toFixed(1) : '--',
+        uv:   (c.uv_index != null) ? c.uv_index.toFixed(1) : '--',
         ica:  aqiFromPM25(c.pm2_5) ?? '--',
         hora
       });

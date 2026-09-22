@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sobre el Proyecto Ciudadano | Manolit∞ Aire</title>
-<link rel="canonical" href="https://manolitoaire.com/about">
+<script type="text/javascript" nonce="d1bc62a4e0ce401e80c1c527b69" src="//local.adguard.org?ts=1790057274030&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Fabout.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260922%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260922T073152Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Daf6fd707bc57090e4e4632c4b4b879a4de8e1ece59eea94e67c6def52f62af35%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527about.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="d1bc62a4e0ce401e80c1c527b69" src="//local.adguard.org?ts=1790057274030&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/about">
 <meta name="theme-color" content="#1b2029">
 <meta name="description" content="¿Qué es Manolit∞ Aire? Conoce el proyecto ciudadano de Sandro que monitoriza la calidad del aire en España y el mapa de sombras 3D sin anuncios ni registros.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,6 +22,70 @@
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit∞ Aire">
 <base target="_blank">
+<base target="_blank">
+<style>
+/* ============================================================
+   ABOUT · logo interactivo y secciones plegadas (sep-2026)
+   Solo se usa en esta página, por eso vive aquí y no en
+   style.css (que carga en todas). Todo va con las variables
+   del tema: el modo oscuro funciona igual que en el resto
+   de la web. La placa del logo queda clara SIEMPRE a
+   propósito, los colores del logo se pensaron sobre fondo
+   claro y tienen que leerse igual en los dos temas.
+   ============================================================ */
+.about-hero{ text-align:center; margin:10px 0 4px; }
+.about-hero h1{ margin-bottom:8px; }
+.about-sub{ color:var(--sky-mid); font-size:1.05rem; max-width:560px; margin:0 auto; }
+.about-logo-placa{ background:#FDFDFB; border:1px solid var(--line); border-radius:16px; padding:16px 10px; margin:6px 0 14px; }
+.about-logo-placa svg{ width:100%; max-width:560px; height:auto; display:block; margin:0 auto; }
+.parte{ cursor:pointer; transition:opacity .2s ease, filter .2s ease; }
+.parte:hover, .parte:focus{ filter:drop-shadow(0 0 3px rgba(0,0,0,0.3)); outline:none; }
+.parte.dim{ opacity:0.22; }
+.callout{ opacity:0; transition:opacity .35s ease; pointer-events:none; }
+.callout.visible{ opacity:1; }
+.callout line{ stroke-width:1.5; stroke:currentColor; }
+.callout circle{ fill:currentColor; }
+.callout[data-for="contorno"], .callout[data-for="infinito"]{ color:#7A0016; }
+.callout[data-for="sol"]{ color:#E6A100; }
+.callout[data-for="aire"]{ color:#007A87; }
+.callout-label{ font-family:var(--font-body); font-size:13px; font-weight:600; letter-spacing:0.04em; fill:currentColor; }
+.panel-logo{ background:var(--surface); border:1px solid var(--line); border-left:5px solid #999; border-radius:12px; padding:16px 18px; margin:0 0 24px; transition:border-color .25s ease; }
+.panel-logo h3{ margin:0 0 6px; font-size:1rem; color:var(--sky-deep); }
+.panel-logo p{ margin:0; font-size:0.95rem; }
+.panel-logo .hint{ font-style:italic; opacity:0.75; }
+.about-detalles{ margin-top:26px; display:flex; flex-direction:column; gap:10px; }
+.about-detalles details{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:0 18px; }
+.about-detalles details[open]{ padding-bottom:16px; }
+.about-detalles summary{ cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 0; font-family:var(--font-display); font-weight:600; font-size:1.05rem; color:var(--sky-deep); min-height:44px; }
+.about-detalles summary::-webkit-details-marker{ display:none; }
+.about-detalles summary::after{ content:"▸"; font-family:var(--font-mono); color:var(--accent-text); transition:transform .2s ease; flex:none; }
+.about-detalles details[open] summary::after{ transform:rotate(90deg); }
+.about-detalles details > h2:first-of-type{ margin-top:10px; }
+.symbol-explanation{ background:var(--accent-soft); border-left:5px solid var(--accent-text); padding:18px 20px; margin:22px 0; border-radius:10px; }
+.symbol-explanation strong{ display:block; color:var(--accent-text); margin-bottom:6px; font-size:1.02rem; }
+.symbol-explanation p{ margin:0; }
+.gallery{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:22px 0; }
+.element-card{ background:var(--surface); border:1px solid var(--line); padding:18px 20px; border-radius:12px; transition:border-color .25s ease, transform .25s ease; }
+.element-card:hover{ border-color:var(--accent); transform:translateY(-3px); }
+.element-card h4{ color:var(--sky-deep); margin:0 0 8px; font-size:1rem; }
+.element-card p{ margin:0; font-size:0.93rem; }
+.manifesto{ background:var(--mist); border-left:5px solid var(--sky-mid); padding:22px 24px; border-radius:12px; margin:22px 0; }
+.manifesto p{ font-style:italic; margin:0 0 12px; }
+.manifesto p:last-child{ margin:0; }
+.inspiration-box{ background:var(--accent-soft); border-left:5px solid var(--accent); padding:18px 22px; border-radius:12px; margin:22px 0; }
+.inspiration-box h4{ color:var(--accent-text); margin:0 0 8px; }
+.inspiration-box p{ margin:0; }
+.air-quality{ background:linear-gradient(135deg,#1f3340,#14202A); color:#fff; padding:24px; border-radius:14px; margin:26px 0; }
+.air-quality h3{ color:#fff; margin-top:0; }
+.air-quality p{ color:rgba(255,255,255,0.92); }
+.air-widget{ background:rgba(255,255,255,0.08); padding:16px 18px; border-radius:10px; margin-top:12px; }
+.air-widget p{ color:#fff; margin:0; }
+.cta-section{ background:linear-gradient(135deg,#14202A,#1f3340); color:#fff; padding:28px 24px; text-align:center; border-radius:14px; margin:26px 0; }
+.cta-section h3{ color:#fff; margin-top:0; }
+.cta-section p{ color:rgba(255,255,255,0.92); }
+.accent-text{ color:var(--accent-text); font-weight:600; }
+.footer-motto{ margin-top:10px; font-style:italic; color:var(--accent-text); }
+</style>
 <base target="_blank">
 </head>
 <body>
@@ -43,58 +107,143 @@
 </div>
 
 <div class="content">
-  <h1>¿Por qué existe Manolit∞ Aire?</h1>
+
+  <!-- Logo interactivo ARRIBA DEL TODO (sep-2026, orden de Sandro):
+       toca cada parte y el panel de abajo cuenta su porqué. -->
+  <div class="about-logo-placa">
+    <svg id="logoAnotado" viewBox="0 0 620 340" xmlns="http://www.w3.org/2000/svg" aria-label="Logo de Manolit∞ con sus cuatro partes">
+<g class="parte" data-key="contorno" tabindex="0" role="button" aria-label="Contorno del logo">
+              <path d="M 310,50 C 240,130 240,230 310,310 C 380,230 380,130 310,50 Z" fill="none" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
+            </g>
+            <g class="parte" data-key="sol" tabindex="0" role="button" aria-label="Círculo del sol">
+              <circle cx="310" cy="170" r="45" fill="none" stroke="#E6A100" stroke-width="2.5"/>
+            </g>
+            <g class="parte" data-key="aire" tabindex="0" role="button" aria-label="Ondas del aire y el agua">
+              <path d="M 270,185 Q 290,175 310,185 T 350,185" fill="none" stroke="#007A87" stroke-width="4" stroke-linecap="round"/>
+              <path d="M 275,195 Q 292.5,187 310,195 T 345,195" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
+            </g>
+            <g class="parte" data-key="infinito" tabindex="0" role="button" aria-label="Símbolo del infinito">
+              <path d="M 310,169 C 285,144 285,194 310,169 C 335,144 335,194 310,169 Z" fill="none" stroke="#7A0016" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+
+            <g class="callout" data-for="contorno">
+              <line x1="310" y1="55" x2="310" y2="20"/>
+              <line x1="310" y1="20" x2="205" y2="20"/>
+              <circle cx="310" cy="55" r="3"/>
+              <text x="200" y="16" text-anchor="end" class="callout-label" data-text-es="EL CONTORNO" data-text-ca="EL CONTORN" data-text-gl="O CONTORNO" data-text-eu="ERTZA" data-text-ka="კონტური">EL CONTORNO</text>
+            </g>
+            <g class="callout" data-for="sol">
+              <line x1="266" y1="170" x2="150" y2="170"/>
+              <circle cx="266" cy="170" r="3"/>
+              <text x="145" y="166" text-anchor="end" class="callout-label" data-text-es="EL SOL" data-text-ca="EL SOL" data-text-gl="O SOL" data-text-eu="EGUZKIa" data-text-ka="მზე">EL SOL</text>
+            </g>
+            <g class="callout" data-for="aire">
+              <line x1="310" y1="198" x2="310" y2="304"/>
+              <circle cx="310" cy="198" r="3"/>
+              <text x="310" y="320" text-anchor="middle" class="callout-label" data-text-es="AIRE Y AGUA" data-text-ca="AIRE I AIGUA" data-text-gl="AIRE E AUGA" data-text-eu="AIREA ETA URIA" data-text-ka="ჰაერი და წყალი">AIRE Y AGUA</text>
+            </g>
+            <g class="callout" data-for="infinito">
+              <line x1="333" y1="160" x2="465" y2="160"/>
+              <circle cx="333" cy="160" r="3"/>
+              <text x="470" y="164" text-anchor="start" class="callout-label" data-text-es="EL INFINITO" data-text-ca="L'INFINIT" data-text-gl="O INFINITO" data-text-eu="INFINITUA" data-text-ka="უსასრულობა">EL INFINITO</text>
+            </g>
+          </svg>
+  </div>
+<div class="panel-logo" id="panelLogo">
+          <h3 id="panelLogoTitulo" data-text-es="Toca una parte del logo" data-text-ca="Toca una part del logo" data-text-gl="Toca unha parte do logo" data-text-eu="Logotiparen atal bat ukitu" data-text-ka="აკი ლოგოს ნაწილი">Toca una parte del logo</h3>
+          <p id="panelLogoTexto" class="hint" data-text-es="El contorno, el sol, el aire y el agua, o el infinito — cada uno con su porqué." data-text-ca="El contorn, el sol, l'aire i l'aigua, o l'infinit — cadascun amb el seu per què." data-text-gl="O contorno, o sol, o aire e a auga, ou o infinito — cada un co seu por qué." data-text-eu="Kontorna, eguzki, airea eta uria, edo infinitua — bakoitza bere arrazoiarengatik." data-text-ka="კონტური, მზე, ჰაერი და წყალი, ან უსასრულობა — თითოეული თავის მიზეზით.">El contorno, el sol, el aire y el agua, o el infinito — cada uno con su porqué.</p>
+        </div>
+
+  <div class="about-hero">
+    <h1 data-text-es="Manolit∞" data-text-ca="Manolit∞" data-text-gl="Manolit∞" data-text-eu="Manolit∞" data-text-ka="მანოლიტ∞">Manolit∞</h1>
+    <p class="subtitle" data-text-es="No sonríe para venderte nada. Solo te dice cómo está el día, y cómo estamos de paso." data-text-ca="No somriu per vendre't res. Només et diu com està el dia, i com estem, de passada." data-text-gl="Non sorri para venderte nada. Só che dí como está o día, e como estamos, de paso." data-text-eu="Ez du irribarrea saltzen zenbaitea saltzeko. Soilik esan du nolakoa den eguna, eta nola gauden, bihar." data-text-ka="ის არ იღიმის რაც-რომ დაგიყიდო. მხოლოდ ეუბნება კი როგორი დღე აქვს, და როგორი ვართ.">No sonríe para venderte nada. Solo te dice cómo está el día, y cómo estamos de paso.</p>
+  </div>
   <p class="lead">
     Porque saber si el aire que respiras hoy es sano no debería costar dinero, ni un registro obligatorio, ni obligarte a esquivar pantallas antes de llegar al dato. Eso, para empezar. Pero si me preguntas por qué existe de verdad, la respuesta va mucho más allá de una simple utilidad digital. Tiene que ver con un descubrimiento personal que me cambió la perspectiva y con una convicción ética que considero urgente. La necesidad de replantearnos hacia dónde estamos empujando los recursos de nuestro planeta.
   </p>
 
-  <h2>La huella hídrica digital</h2>
-  <p>
-    Hace poco tiempo, al profundizar en el impacto real de internet, descubrí algo que me abrió los ojos y modificó por completo mi forma de entender el desarrollo de software. La huella hídrica digital. Tendemos a pensar en la tecnología como algo etéreo, una nube mágica que flota en el cielo sin tocar la tierra. Pero es física pura y termodinámica básica. Cada vez que una pantalla solicita un dato, un servidor real, en algún rincón del mundo, se calienta. Para que ese sistema no colapse, hace falta agua dulce para enfriarlo. Agua de verdad, medida en litros.
-  </p>
+  <!-- El resto de la página va en secciones CERRADAS (sep-2026, orden de
+       Sandro): así la portada del about queda corta y quien quiera
+       profundizar despliega solo lo que le interesa. -->
+  <div class="about-detalles">
 
-  <h2>El motor invisible que sí desangra la red</h2>
-  <p>
-    Últimamente escuchamos un discurso constante y casi alarmista sobre cómo la inteligencia artificial va a destruir nuestro entorno o consumir toda nuestra energía. Sin embargo, al mirar los datos fríos, la realidad se vuelve muy distinta. Prefiero mil veces una tecnología avanzada y útil, que aporta conocimiento y soluciones a la humanidad, antes que el verdadero motor invisible que está desangrando la infraestructura ecológica de la red. El abuso de la publicidad digital invasiva.
-  </p>
-  <p>
-    El problema no es el anuncio en sí. La comunicación comercial es lícita y comprensible. El conflicto ético y físico surge con el modelo actual, una maquinaria sobredimensionada que opera a espaldas del usuario. En los milisegundos que tarda en cargar una web convencional, cientos de servidores invisibles compiten en subastas automáticas para decidir qué campaña nos va a perseguir por internet. Es un engranaje insaciable que devora datos, satura dispositivos y quema recursos naturales a un ritmo insostenible. Nos encontramos ante una paradoja social incómoda. Se le pide al ciudadano un compromiso estricto con la sostenibilidad en su día a día, mientras colectivamente normalizamos una infraestructura digital cuya única función es el consumo masivo y redundante.
-  </p>
+    <details>
+      <summary data-text-es="La cara y el logo, sin adornos" data-text-ca="La cara i el logo, sense adornaments" data-text-gl="A cara e o logo, sen adornos" data-text-eu="Aurpegia eta logoa, apaindurik gabe" data-text-ka="სახე და ლოგო, ორნამენტის გარეშე">La cara y el logo, sin adornos</summary>
+<h2 data-text-es="Una cara seria, no una cara enfadada" data-text-ca="Una cara seria, no una cara enfadada" data-text-gl="Unha cara seria, non unha cara enfadada" data-text-eu="Aurpegi serio bat, ez aurpegi etsita bat" data-text-ka="სერიოზული სახე, არა გაბრაზებული სახე">Una cara seria, no una cara enfadada</h2>
+        <p data-text-es="Manolit no está de mal humor, aunque lo parezca. Tiene cara de pocos amigos porque no le queda otra: hay muchos números que calcular y ninguna gana de maquillarlos. No es que esté cabreado, es que nada de lo que hay ahí fuera ahora mismo es perfecto, y a él no le sale fingir que sí. Aquí no hay cara bonita para hacerte sentir mejor sin motivo. Hay datos, y una cara que va a juego con ellos." data-text-ca="Manolit no està de mal humor, encara que sembli. Té cara de pocs amics perquè no li queda altra: hi ha molts números que calcular i cap gana de maquillars-los. No és que estigui cabreada, és que res del que hi ha fora ara mateix és perfecte, i a ell no li surt fingir que sí. Aquí no hi ha cara bonica per fer-te sentir millor sense motiu. Hi ha dades, i una cara que va a joc amb elles." data-text-gl="Manolit non está de mal humor, aínda que o pareza. Ten cara de poucos amigos porque non lle queda outra: hai moitos números que calcular e ningunha gana de maquillados. Non é que esté cabreado, é que nada do que hai aí fora agora mesmo é perfecto, e a el non lle sae fingir que sí. Aquí non hai cara bonica para facerte sentir mellor sen motivo. Hai datos, e unha cara que vai a xogo con eles." data-text-eu="Manolitak ez dago bihots gogorean, nahiz eta dantza dezala. Aurpegi txikia du laguna bakak direla eta: zenbaki asko kalkulatu behar ditu eta batez ez. Ez da kabreaua, ez da bada kanpoan perfektua, eta ez ditu itxaropena irribarrea egin. Ez da ederki aurpegia zuri hobea sentiarazteko. Datuak eta aurpegi bat daude." data-text-ka="მანოლიტი არ არის ცუდ მაშინებაში, თუმცა ასე ჩანს. მას პატიოსანი მეგობრის სახე აქვს რადგან სხვა გზა არ აქვს: ბევრი რიცხვი უნდა გამოითვალოს და არ აქვს მათი განვლებაზე აზრი. არ არის რომ გაბრაზებული იყოს, უბრალოდ არაფერი აქ კარგი არ არის, და მას არ შემოდის ჩვენება, რომ კარგია. აქ კარგი სახე არ არის რომ უკეთესი იგრძნო. დანა და სახე დევს.">Manolit no está de mal humor, aunque lo parezca. Tiene cara de pocos amigos porque no le queda otra: hay muchos números que calcular y ninguna gana de maquillarlos. No es que esté cabreado, es que nada de lo que hay ahí fuera ahora mismo es perfecto, y a él no le sale fingir que sí. Aquí no hay cara bonita para hacerte sentir mejor sin motivo. Hay datos, y una cara que va a juego con ellos.</p>
+        <p data-text-es="Es la cara de quien ve cómo va el mundo y sabe que contarlo bien no basta para arreglarlo. Si algún día los números mejoran, puede que Manolit cambie de color, pero probablemente cueste porque el mundo, tal y como avanza, no lo pone fácil. Y ese cambio tampoco depende solo del clima: depende de ir hacia algo más humano, más ético, sin xenofobia ni fascismo ni racismo. Mientras eso no pase, mejor cara seria que sonrisa de anuncio. Sigue trabajando igual, te da la información que necesitas. Eso no cambia pase lo que pase." data-text-ca="És la cara de qui veu com va el món i sap que contar-ho bé no és prou per arreglar-ho. Si algun dia els números milloren, potser que Manolit canvie de color, però probablement costarà perquè el món, tal com avança, no ho posa fàcil. I aquest canvi tampoc depèn només del clima: depèn d'anar cap a quelcom més humà, més ètic, sense xenofòbia ni feixisme ni racisme. Mentre això no passi, millor cara seria que somriure d'anunci. Segueix treballant igual, te dóna la informació que necessites. Això no canvia passi el que passi." data-text-gl="É a cara de quen ve como vai o mundo e sabe que contalo ben non é dabondo para arreglalo. Se algún día os números melloran, pode que Manolit cambie de color, pero probablemente custará porque o mundo, tal e como avanza, non o pon fácil. E ese cambio tampouco depende só do clima: depende de ir cara a algo máis humano, máis ético, sen xenofobia nin fascismo nin racismo. Mentres iso non pase, mellor cara seria que sorriso de anuncio. Segue traballando igual, te dá a información que precisas. Iso non cambia pase o que pase." data-text-eu="Mundua nola doan ikusten duten batek, eta baina ez da nahikoa kontatua. Egun batean zenbakiak benetan hobetu badira, beharbada Manolit aldatuko da, baina seguruenik kostako, mundua bezala, ez du errazten. Eta aldaketa hori ere ez da klimatik bakarrik: datorren humanoago, etikoa, xenofobiarik gabe, faxismarik gabe, razzismarik gabe. Hori ez den bitartean, ageriko aurpegi hobea. Lanean jarraitu, behar duzun informazioa ematen. Hori ez da aldatzen ezer dela dela." data-text-ka="ეს არის ის კაცის სახე, ვინც ხედავს როგორ მიდის მსოფლიო და იცის რომ კარგად გამოკვეთილი არაა საკმარისი მის შესაკეთებლად. თუ რომელიმე დღე რიცხვები ნამდვილად უკეთ გახდება, შეიძლება მანოლიტი შეიცვალოს, მაგრამ სავარაუდოდ ძვირი შეჯდება, რადგან მსოფლიო, როგორც მიიწევს, არ აადვილებს. და ეს ცვლილება ასევე არ არის დამოკიდებული მხოლოდ კლიმატზე: ეს ასევე დამოკიდებულია რაღაც უფრო ადამიანური, უფრო ეთიკური, ქსენოფობიის გარეშე, ფაშიზმის გარეშე, რასიზმის გარეშე. სანამ ეს არ მოხდება, უკეთესი სერიოზული სახე, ვიდრე რეკლამის ღიმილი. ასე უგრძელესია, რა ინფორმაცია გჭირდება. ეს არ იცვლება, რაც არ უნდა მოხდეს.">Es la cara de quien ve cómo va el mundo y sabe que contarlo bien no basta para arreglarlo. Si algún día los números mejoran, puede que Manolit cambie de color, pero probablemente cueste porque el mundo, tal y como avanza, no lo pone fácil. Y ese cambio tampoco depende solo del clima: depende de ir hacia algo más humano, más ético, sin xenofobia ni fascismo ni racismo. Mientras eso no pase, mejor cara seria que sonrisa de anuncio. Sigue trabajando igual, te da la información que necesitas. Eso no cambia pase lo que pase.</p>
+        <p data-text-es="Nada muy sofisticado, la verdad: es el vecino que te avisa antes de salir a mediodía, no una mascota corporativa entrenada para hacerte sentir bien pase lo que pase." data-text-ca="Res molt sofisticat, la veritat: és el veïnat que te avisa abans de sortir al migdia, no una mascota corporativa entrenada per fer-te sentir bé passi el que passi." data-text-gl="Nada moi sofisticado, a verdade: é o veciño que te avisa antes de saír ao mediodía, non unha mascota corporativa entrenada para facerte sentir ben pase o que pase." data-text-eu="Ez da sofistikatu samarra: da auzoa aldean atera aurretik, ez korporatiboa maskotak entrenaturik egiteko." data-text-ka="არაფერი ხელოვნურ სტილი: ეს არის მეზობელი, რომელიც გაგაფრთხობდა თქვენთან შუადღეს დაშორებამდე, არა კორპორატიული ფიკ-ფიკი, რომელიც გაკეთდა თქვენთან კარგი.">Nada muy sofisticado, la verdad: es el vecino que te avisa antes de salir a mediodía, no una mascota corporativa entrenada para hacerte sentir bien pase lo que pase.</p>
 
-  <h2>Cero publicidad, por coherencia</h2>
-  <p>
-    Por eso Manolit∞ nace y se mantiene bajo una premisa firme. Cero publicidad. No se trata de una pose romántica ni de un eslogan de marketing, sino de coherencia técnica y matemática. Un anuncio moderno jamás llega solo. Viene acompañado de rastreadores, scripts de terceros y procesos ocultos que multiplican el peso de una web y, por extensión, el agua necesaria para procesarla. Es imposible diseñar buscando el mínimo impacto ambiental si al mismo tiempo se integra un motor publicitario que multiplica esa huella de carbono e hídrica por diez o por cien. Ambas visiones son incompatibles. He optado por el camino de la austeridad y la transparencia, sosteniendo este rincón gracias al apoyo voluntario de las personas que valoran el proyecto.
-  </p>
+        <div class="inspiration-box">
+          <h4 data-text-es="Un poco de inspiración: NO-DO de Sevilla" data-text-ca="Una mica d'inspiració: NO-DO de Sevilla" data-text-gl="Un pouco de inspiración: NO-DO de Sevilla" data-text-eu="Apur bat inspirazioa: NO-DO Sevillako" data-text-ka="ცოტა ინსპირაცია: NO-DO სევილიდან">Un poco de inspiración: NO-DO de Sevilla</h4>
+          <p data-text-es="Como aquel movimiento sevillano que documentaba la realidad de su barrio sin adornarla, Manolit∞ intenta lo mismo con el clima de tu calle: no decorar, solo contar lo que hay." data-text-ca="Com aquell moviment sevillà que documentava la realitat del seu barri sense adornar-la, Manolit∞ intenta el mateix amb el clima del teu carrer: no decorar, només contar el que hi ha." data-text-gl="Como aquel movimiento sevillano que documentaba a realidade do seu barrio sen adorná-la, Manolit∞ intenta o mesmo co clima da túa rúa: non decorar, só contar o que hai." data-text-eu="Sevillako mugimendu hura bere auzoa dokumentatu zuen apaintzerik gabe, Manolit∞ bera saiatzen da zure kaleak iritzia: ez apaindu, bakarrik zer dago kontatu." data-text-ka="როგორც იმ სევილიის მოძრაობამ, რომელიც თავისი უბნის რეალობას დოკუმენტირებს ზეწოლის გარეშე, მანოლიტი∞ ცდილობს იგივე თქვენი ქუჩის კლიმატი: არ აკი ემძღოლება, უბრალოდ თქვა რა არის.">Como aquel movimiento sevillano que documentaba la realidad de su barrio sin adornarla, Manolit∞ intenta lo mismo con el clima de tu calle: no decorar, solo contar lo que hay.</p>
+        </div>
 
-  <h2>La idea, que el dato del clima no cueste dinero</h2>
-  <p>
-    Entras, observas un círculo de color dinámico y en una sola frase comprendes si hoy puedes salir tranquilo a la calle o si 
-    es mejor proteger tu salud. Así de directo. El resto de la información técnica detallada está ahí para quien desee profundizar, 
-    pero nadie está obligado a ser un experto en meteorología para poder usar esta aplicación web.
-  </p>
+<h2 data-text-es="Lo que Manolit∞ es, sin adornos" data-text-ca="El que Manolit∞ és, sense adornaments" data-text-gl="O que Manolit∞ é, sen adornos" data-text-eu="Zer Manolit∞ da, adornorik gabe" data-text-ka="რა არის მანოლიტი∞, ორნამენტაციის გარეშე">Lo que Manolit∞ es, sin adornos</h2>
+        <div class="symbol-explanation">
+          <strong data-text-es="No es una charla sobre sostenibilidad" data-text-ca="No és una xerrada sobre sostenibilitat" data-text-gl="Non é unha charla sobre sostibilidade" data-text-eu="Ez da iraunkortasunarengintzako elkarrizketa" data-text-ka="არ არის მდგრადობის შესახებ ლექცია">No es una charla sobre sostenibilidad</strong>
+          <p data-text-es="No te va a sermonear. Te enseña los datos — sol, sombra, calor, aire — y ya decides tú qué hacer con ellos." data-text-ca="No te posaràs en predicador. T'ensenya les dades — sol, sombra, calor, aire — i ja decideix tu què fer-hi." data-text-gl="Non te vai a sermoneador. Te ensina os datos — sol, sombra, calor, aire — e xa decidiu ti qué facer con eles." data-text-eu="Ez zaizu predikadorea. Datuak erakusten dizu — eguzkia, itzala, bero, airea — eta zuk erabakiten duzu zer egin behar duzun." data-text-ka="ის არ გამოეხმოდება თქვენ კანის. ის გაჩვენებთ მონაცემები — მზე, ჩრდილი, სითბო, ჰაერი — და თქვენ გადაწყვიტოთ რა გააკეთოთ მათ.">No te va a sermonear. Te enseña los datos — sol, sombra, calor, aire — y ya decides tú qué hacer con ellos.</p>
+        </div>
+        <div class="symbol-explanation">
+          <strong data-text-es="Es un indicador, no un juguete" data-text-ca="És un indicador, no un joguet" data-text-gl="É un indicador, non un xoguete" data-text-eu="Adierazle bat da, ez joguina" data-text-ka="ეს არის მაჩვენებელი, არა খেলনা">Es un indicador, no un juguete</strong>
+          <p data-text-es="Cuando el aire esté peor, lo verás. Cuando mejore, también. No cambia de color para quedar bien, cambia lo que muestra porque cambian los datos." data-text-ca="Quan l'aire estigui pitjor, ho veuràs. Quan millori, també. No canvia de color per quedar bé, canvia el que mostra perquè canvien les dades." data-text-gl="Cando o aire esté peor, verao. Cando mellore, tamén. Non cambia de cor para quedar ben, cambia o que mostra porque cambian os datos." data-text-eu="Airea okerragoa bada, ikusiko duzu. Hobetu denean, bai. Ez da kolorea aldatzen ondo geratzeko, aldatzen da zer erakusten duena datu bihurtu behar delako." data-text-ka="როდესაც ჰაერი უაკეთ იქნება, ხედავთ. რომ უკეთესი, აგრეთვე. არ ცვლის რეფერენციას კარგი რომ მიიღო, ცვლის რას აჩვენებს რადგან მონაცემები ცვლილია.">Cuando el aire esté peor, lo verás. Cuando mejore, también. No cambia de color para quedar bien, cambia lo que muestra porque cambian los datos.</p>
+        </div>
+        <div class="symbol-explanation">
+          <strong data-text-es="Está hecho para usarse, no para posar" data-text-ca="Està fet per utilitzar-se, no per posar" data-text-gl="Está feito para usarse, non para posar" data-text-eu="Erabiltzerik eginda, ez posatzerik" data-text-ka="გაკეთებული გამოსაყენებლად, არა პოზირებისთვის">Está hecho para usarse, no para posar</strong>
+          <p data-text-es="No busca gustar. Busca que elijas una ruta con más sombra y menos calor, hoy, con lo que hay disponible ahora mismo." data-text-ca="No cerca agradar. Cerca que triiïs una ruta amb més sombra i menys calor, avui, amb el que hi ha disponible en aquest moment." data-text-gl="Non busca gustar. Busca que elijas una ruta con máis sombra e menos calor, hoxe, co que hai dispoñible agora mesmo." data-text-eu="Ez du gustatzen bilatu. Bilatu nahi duzu itzala gehiago duten eta bero gutxiago dituzten ibilbide bat, gaur, eskuragarri dago une honetan." data-text-ka="მას არ მოეწონება. ისრ ძებნა თქვენ აირჩიოთ ხელმეორე მეტი ჩრდილი და ნაკლებ სითბო, დღეს, რა მაქვს ხელმისაწვდომი ამ მომენტში.">No busca gustar. Busca que elijas una ruta con más sombra y menos calor, hoy, con lo que hay disponible ahora mismo.</p>
+        </div>
 
-  <h2>¿Quién ha desarrollado esta plataforma y por qué?</h2>
-  <p>
-    Manolit∞ Aire está desarrollado de forma independiente por una sola persona, <strong>Sandro</strong>, sin ninguna corporación detrás 
-    y sin ánimo de lucro. Este mapa interactivo es hermano de otros dos proyectos ciudadanos complementarios, <b>Manolit∞ Forestal</b> (que monitoriza incendios en tiempo real) 
-    e <b>Islas de Calor Sevilla</b> (dedicado al análisis del calor extremo y el sombreado urbano). Los tres comparten una misma misión. La información pública que protege la salud de las personas ante el <strong>cambio climático</strong> debe ser gratuita y fácil de entender.
-  </p>
+<h2 data-text-es="El manifiesto, si hace falta uno" data-text-ca="El manifest, si cal un" data-text-gl="O manifesto, se fai falta un" data-text-eu="Manifestua, behar bada bat" data-text-ka="მანიფესტი, თუ ერთი საჭიროა">El manifiesto, si hace falta uno</h2>
+        <div class="manifesto">
+          <p><strong data-text-es="Manolit∞ intenta ser honesto porque tampoco hay tanto margen para no serlo." data-text-ca="Manolit∞ intenta ser honest perquè tampoc hi ha tant marge per no ser-ho." data-text-gl="Manolit∞ intenta ser honrado porque tampouco hai tanto marxe para non ser-lo." data-text-eu="Manolit∞ zintzo izaten saiatzen da ez delako marjina handia izateik zaizela." data-text-ka="მანოლიტი∞ ცდილობს გამჭვირვალე იყოს რადგან არ არის ასე ბევრი გარკვევა.">Manolit∞ intenta ser honesto porque tampoco hay tanto margen para no serlo.</strong></p>
+          <p data-text-es="No es pesimismo, es solo no maquillar las cosas. Estamos en un momento raro para las ciudades y merece la pena replantearse cómo se camina por ellas." data-text-ca="No és pessimisme, és només no empollenar les coses. Estem en un moment estrany per a les ciutats i mereix la pena repensar com es camina per elles." data-text-gl="Non é pesimismo, é só non maquillar as cousas. Estamos nun momento estraño para as cidades e merece a pena replantearse como se camina por elas." data-text-eu="Ez da pessimismoa, bakarrik guztiak maquillatu gabe. Hiriak momentu bitxian gaude eta merezi du berriro pentsa nola ibili behar den." data-text-ka="არ არის პესიმიზმი, უბრალოდ არ შეჯამოთ რამეები. ჩვენ უცნაური მომენტი ვართ ქალაქებისთვის და ღირს იმის გადახედვა, როგორ ვიარებთ მათში.">No es pesimismo, es solo no maquillar las cosas. Estamos en un momento raro para las ciudades y merece la pena replantearse cómo se camina por ellas.</p>
+          <p data-text-es="Cada vez que evitas el sol de las tres de la tarde siguiendo la sombra que marca Manolit, no es magia ni \"lifestyle\": es geometría solar aplicada a que no te dé un chungo caminando a la parada del bus." data-text-ca="Cada vegada que evites el sol de les tres de la tarda seguint l'ombra que marca Manolit, no és màgia ni \"estil de vida\": és geometria solar aplicada a que no et doni un chungo caminant a la parada de l'autobús." data-text-gl="Cada vez que evitas o sol das tres da tarde seguindo a sombra que marca Manolit, non é maxia nin \"estilo de vida\": é xeometría solar aplicada a que non te dea un chungo camiñando á parada do autobús." data-text-eu="Behin eta berriro osasunta arraiatu eguzki da hirua arratsaldean jarraitu Manolith markatzen du itzala, ez da magia edo \"bizimodu\": solar xeometria aplikatua ez zaizela chungo bat uztea autobusa geratzean." data-text-ka="ყოველი დროს თავიდან 避けたწინ სამი საათის ოღ დაცულ მანოლიტი მიერ მოწმობილი ჩრდილი, ეს არ არის ჯადო ან "ცხოვრების სტილი": მზის გეომეტრია გამოყენებული რომ არ მოგემატებთ ბედი ავტობუსის გაჩერებამდე სიარულის დროს.">Cada vez que evitas el sol de las tres de la tarde siguiendo la sombra que marca Manolit, no es magia ni "lifestyle": es geometría solar aplicada a que no te dé un chungo caminando a la parada del bus.</p>
+        </div>
 
-  <h2>El origen de Manolit∞, sobrevivir al verano en Sevilla</h2>
-  <p>
-    Este viaje comenzó en las calles de Sevilla, una ciudad donde cruzar una avenida en pleno verano no es una anécdota, sino una gestión de la salud diaria. Cuando el entorno se vuelve extremo, la información clara y directa se convierte en un bien esencial. Cualquiera que resida o camine por 
-    <strong>Sevilla en verano</strong> sabe que es posible sufrir problemas graves por calor extremo al cruzar una avenida a pleno sol. 
-    En entornos urbanos densos, encontrar una <strong>sombra en la calle</strong> ya no es una cuestión de comodidad. Es un recurso básico de supervivencia, 
-    exactamente igual que el acceso al <strong>agua potable</strong> o a la <strong>electricidad</strong>. Esta web existe para ayudarte a trazar tu próximo <strong>refugio climático</strong>.
-  </p>
+<h2 data-text-es="Lo que cambia es el dato, no la cara" data-text-ca="El que canvia és la dada, no la cara" data-text-gl="O que cambia é o dato, non a cara" data-text-eu="Aldatzen dena emandea da, ez aurpegia" data-text-ka="რა იცვლება მონაცემი, არა სახე">Lo que cambia es el dato, no la cara</h2>
+        <p data-text-es="Manolit∞ tiene un logo fijo a propósito: el mismo contorno, el mismo sol, las mismas ondas, el mismo infinito — siempre igual, para que se le reconozca. Lo que sí cambia constantemente es lo que te cuenta: la sombra de las tres de la tarde no es la de las seis, y el aire de esta semana no es el de la que viene." data-text-ca="Manolit∞ té un logo fix a propòsit: el mateix contorn, el mateix sol, les mateixes ones, el mateix infinit — sempre igual, perquè es reconegui. El que sí canvia constantement és el que et conta: l'ombra de les tres de la tarda no és la de les sis, i l'aire d'aquesta setmana no és el de la que ve." data-text-gl="Manolit∞ ten un logo fixo a propósito: o mesmo contorno, o mesmo sol, as mesmas ondas, o mesmo infinito — sempre igual, para que se recoñeza. O que sí cambia constantemente é o que che conta: a sombra das tres da tarde non é a das seis, e o aire desta semana non é o da que ven." data-text-eu="Manolit∞-k logo finko bat du, asmoz: kontorno bera, eguzkia bera, olatu bera, infinitua bera — beti bera, atzemateko. Zer sí aldatzen dira etengabe zer kontatu: hirua arratsaldean itzala ez da seien itzala, eta astearen airea ez da datorren itzala." data-text-ka="მანოლიტი∞ აქვს ფიქსირებული ლოგო აზროვნებით: იგივე კონტური, იგივე მზე, იგივე ტალღა, იგივე უსასრულობა — ყოველთვის იგივე, მის ამოცნობისთვის. რა რეალურად იცვლება მუდმივად რა ეუბნებთ: სამი საათის ჩრდილი არ არის ექვსი, და ამ კვირის ჰაერი არ არის მომდევნო.">Manolit∞ tiene un logo fijo a propósito: el mismo contorno, el mismo sol, las mismas ondas, el mismo infinito — siempre igual, para que se le reconozca. Lo que sí cambia constantemente es lo que te cuenta: la sombra de las tres de la tarde no es la de las seis, y el aire de esta semana no es el de la que viene.</p>
+        <p data-text-es="Es un poco como ese vecino que siempre tiene la misma cara pero nunca te cuenta lo mismo dos días seguidos, porque el tiempo no se repite." data-text-ca="És una mica com aquell veïnat que sempre té la mateixa cara però mai et conta el mateix dos dies seguits, perquè el temps no es repeteix." data-text-gl="É un pouco como ese veciño que sempre ten a mesma cara pero nunca che conta o mesmo dous días seguidos, porque o tempo non se repite." data-text-eu="Da apur bat bere auzo bezala beti aurpegi bera baina inoiz ber gauza kontatzen ez du bi egun sekula, denbora ez delako errepikatu." data-text-ka="ეს ცოტა იყო ის მეზობელი რომელიც ყოველთვის ერთი და იგივე სახე აქვს, მაგრამ იმ ორი დღე ზედმიმდევრობით არ გეუბნებათ იგივე, რადგან დრო არ ხმარდება.">Es un poco como ese vecino que siempre tiene la misma cara pero nunca te cuenta lo mismo dos días seguidos, porque el tiempo no se repite.</p>
 
-  <h2>¿De dónde proceden los datos de Calidad del Aire?</h2>
+<h2 data-text-es="Y por último" data-text-ca="I finalment" data-text-gl="E por último" data-text-eu="Eta azkenengo" data-text-ka="და ბოლოს">Y por último</h2>
+        <p data-text-es="Manolit∞ no está enfadado. Está siendo simplemente serio, que no es lo mismo. En un mundo lleno de mascotas que sonríen pase lo que pase, una que no lo hace llama un poco la atención — y ya con eso cumple." data-text-ca="Manolit∞ no està enfadat. Està sent simplement seriós, que no és el mateix. En un món ple de mascotes que somriuen passi el que passi, una que no ho fa crida una mica l'atenció — i ja amb això compleix." data-text-gl="Manolit∞ non está enfadado. Está sendo simplemente serio, que non é o mesmo. En un mundo peno de mascotas que sorríen pase o que pase, unha que non o fai chama un pouco a atención — e xa con iso cumpre." data-text-eu="Manolit∞ ez dago etsita. Sinplean serio izaten ari da, ez da berbera. Munduan beteta maskotak irrirrika pasatzen diren, bat ez da egiten kontzen jakin — eta horrekin betetzen." data-text-ka="მანოლიტი∞ არ არის გაბრაზებული. უბრალოდ სერიოზულია, რაც არ არის იგივე. მსოფლიოში სავსე მასკებით რომელი ღიმის უგულებელი, რომელი არ ის გაითვალისწინებს ოდნავ — და უკვე იმ აკმაყოფილებს.">Manolit∞ no está enfadado. Está siendo simplemente serio, que no es lo mismo. En un mundo lleno de mascotas que sonríen pase lo que pase, una que no lo hace llama un poco la atención — y ya con eso cumple.</p>
+        <p style="font-style: italic; color: #C96A2B; margin-top: 30px;"><strong data-text-es="Manolit∞. La mascota que no te va a vender la moto." data-text-ca="Manolit∞. La mascota que no te va vendre la moto." data-text-gl="Manolit∞. A mascota que non che vai vender a moto." data-text-eu="Manolit∞. Ez zaitu motoa saltzera joango den maskota." data-text-ka="მანოლიტი∞. მასკა რომელი არ წაშორებთ მოტოციკლს.">Manolit∞. La mascota que no te va a vender la moto.</strong></p>
+
+    </details>
+
+    <details>
+      <summary data-text-es="Cómo funciona por dentro" data-text-ca="Com funciona per dins" data-text-gl="Como funciona por dentro" data-text-eu="Nola funtzionatzen du barruan" data-text-ka="როგორ მუშაობს შიგნით">Cómo funciona por dentro</summary>
+<h3 data-text-es="Tres cosas que hace, sin trucos" data-text-ca="Tres coses que fa, sense trucs" data-text-gl="Tres cousas que fai, sen trucos" data-text-eu="Hiru gauza egiten du, trikurik gabe" data-text-ka="სამი რამე რომელიც ის აკეთებს, მოტყუების გარეშე">Tres cosas que hace, sin trucos</h3>
+        <div class="gallery">
+          <div class="element-card">
+            <h4 data-text-es="Geometría urbana" data-text-ca="Geometria urbana" data-text-gl="Xeometría urbana" data-text-eu="Hiri-geometria" data-text-ka="ქალაქის გეომეტრია">Geometría urbana</h4>
+            <p data-text-es="Sabe dónde cae la sombra de cada edificio y cada árbol de tu ciudad, porque son datos de cartografía abierta, no una caja negra." data-text-ca="Sap on cau l'ombra de cada edifici i cada arbre de la teva ciutat, perquè són dades de cartografia oberta, no una caixa negra." data-text-gl="Sabe onde cae a sombra de cada edificio e cada árbore de túa cidade, porque son datos de cartografía aberta, non unha caixa negra." data-text-eu="Badaki nondik erortzen den hiri-eraikin bakoitzaren eta zuhaitzaren itzala, datu irekiak cartografia, ez kutxa beltza." data-text-ka="იცის სად ვარდება თითოეული შენობის და ხის ჩრდილი თქვენს ქალაქში, რადგან ისინი გახსნილი კარტოგრაფია მონაცემები, არა შავი ყუთი.">Sabe dónde cae la sombra de cada edificio y cada árbol de tu ciudad, porque son datos de cartografía abierta, no una caja negra.</p>
+          </div>
+          <div class="element-card">
+            <h4 data-text-es="Física solar" data-text-ca="Física solar" data-text-gl="Física solar" data-text-eu="Solar-fisika" data-text-ka="მზის ფიზიკა">Física solar</h4>
+            <p data-text-es="Calcula dónde va a estar el sol a cada hora. No es una predicción con margen de error: es trigonometría de toda la vida." data-text-ca="Calcula on estarà el sol a cada hora. No és una predicció amb marge d'error: és trigonometria de tota la vida." data-text-gl="Calcula onde vai estar o sol a cada hora. Non é una predición con marxe de erro: é trigonometría de toda a vida." data-text-eu="Kalkulatzen du nondik egongo den eguzki-horetan. Ez da asmaketa erroreak marginean: trigonometria buharra da." data-text-ka="გამოითვლის სად იქნება მზე ყოველ საათზე. ეს არ არის პროგნოზი შეცდომის ზღვრით: ეს არის ციფრისა და ბიჭის ტრიგონომეტრია.">Calcula dónde va a estar el sol a cada hora. No es una predicción con margen de error: es trigonometría de toda la vida.</p>
+          </div>
+          <div class="element-card">
+            <h4 data-text-es="Islas de calor" data-text-ca="Illes de calor" data-text-gl="Illas de calor" data-text-eu="Beroak-uharteak" data-text-ka="სითბოს კუნძულები">Islas de calor</h4>
+            <p data-text-es="Localiza qué zonas de la ciudad acumulan más calor, con datos públicos que cualquiera puede comprobar por su cuenta." data-text-ca="Localitza quines zones de la ciutat acumulen més calor, amb dades públiques que qualsevol pot comprovar per seu compte." data-text-gl="Localiza que zonas da cidade acumulan máis calor, con datos públicos que calquera pode comprobar por seu conta." data-text-eu="Hiriaren zein zonaldetan gehiago kalor metatzen duten lokalizatu, inor egiaztatu dezakeen datu publikoen bidez." data-text-ka="იპოვნის რომელი შহერის ზონები დაგროვდა სითბო, ხელმისაწვდომი მონაცემებით რომელიც ნებისმიერმა შეიძლება დამოუკიდებლად გადამოწმოს.">Localiza qué zonas de la ciudad acumulan más calor, con datos públicos que cualquiera puede comprobar por su cuenta.</p>
+          </div>
+        </div>
+        <p><span class="accent-text" data-text-es="Sin intermediarios, sin algoritmo decidiendo qué te conviene ver." data-text-ca="Sense intermediaris, sense algoritme decidint què et convé veure." data-text-gl="Sen intermediarios, sen algoritmo decidindo qué che convén ver." data-text-eu="Bitartekaririk gabe, algoritmoa ez duzu zer ikusiko duenta erabaki ez." data-text-ka="არა შუამავლობით, არა ალგორითმი რის დანახვა გჭირდებათ.">Sin intermediarios, sin algoritmo decidiendo qué te conviene ver.</span> <span data-text-es="Solo física, cartografía y datos abiertos, puestos en un mapa que se entiende sin manual." data-text-ca="Només física, cartografia i dades obertes, posades en un mapa que s'entén sense manual." data-text-gl="Só física, cartografía e datos abertos, postos nun mapa que se entiende sen manual." data-text-eu="Soilik fisika, cartografia eta datu irekiak, mapa batean jartzen dira eskulibururik gabe." data-text-ka="მხოლოდ ფიზიკა, კარტოგრაფია და ღია მონაცემები, რუკაზე დაყრილი რომელიც გასაგებია გაიდის გარეშე.">Solo física, cartografía y datos abiertos, puestos en un mapa que se entiende sin manual.</span></p>
+
+<div class="air-quality">
+          <h3 data-text-es="El aire también cuenta" data-text-ca="L'aire també compta" data-text-gl="O aire tamén conta" data-text-eu="Airea ere kontzen da" data-text-ka="ჰაერი ასევე დაითვლება">El aire también cuenta</h3>
+          <p data-text-es="La sombra no lo es todo: por dónde pasas también importa por lo que respiras. Por eso hay datos de calidad del aire en tiempo real, no solo de temperatura." data-text-ca="L'ombra no és tot: per on passes també importa pel que respires. Per això hi ha dades de qualitat de l'aire en temps real, no només de temperatura." data-text-gl="A sombra non é todo: por onde pasas tamén importa polo que respiras. Por eso hai datos de calidade do aire en tempo real, non só de temperatura." data-text-eu="Itzala ez da guztia: nondik pasatzen zara ere interesa duzun dena. Horregatik datu benetako entzun airearen kalitatearen, ez bakarrik tenperatura." data-text-ka="ჩრდილი ყველაფერი არ არის: სად დით ასევე მნიშვნელოვანი რას სუნთქავთ. ამიტომ ჰაერის ხარისხის მონაცემები ნამდვილ დროში, არა მხოლოდ ტემპერატურა.">La sombra no lo es todo: por dónde pasas también importa por lo que respiras. Por eso hay datos de calidad del aire en tiempo real, no solo de temperatura.</p>
+          <div class="air-widget">
+            <p><strong data-text-es="¿Para qué sirve esto?" data-text-ca="¿Per a què serveix això?" data-text-gl="¿Para qué serve isto?" data-text-eu="¿Zertarako balio du hau?" data-text-ka="რის ლოდ ღირს ეს?">¿Para qué sirve esto?</strong> <span data-text-es="Para que elegir ruta no sea solo \"qué calle tiene más sombra\", sino también \"qué calle se respira mejor\". Decisiones pequeñas que, si las toma bastante gente, suman." data-text-ca="Perquè triar ruta no sigui només \"quina carrer té més ombra\", sinó també \"quina carrer es respira millor\". Decisions petites que, si les pren bastant gent, sumen." data-text-gl="Para que elixir ruta non sexa só \"qué rúa ten máis sombra\", senón tamén \"qué rúa se respira millor\". Decisións pequenas que, se as toma bastante xente, suman." data-text-eu="Aukeratzea errutarako ez dala bakarrik \"zein kaleak itzal gehiago du\", baizik ere \"zein kaleak aira hobeto du\". Txikiak erabakiak, asko jendearen, gehitu." data-text-ka="რათა ხელმეორე არჩევა არ იყოს მხოლოდ „რომელ ქუჩას აქვს მეტი ჩრდილი", არამედ „რომელ ქუჩას უფრო კარგი ჩრდილი აქვს". მცირე გადაწყვეტილებები, თუ ბევრი ადამიანი მიიღებს, სჯამ.">Para que elegir ruta no sea solo "qué calle tiene más sombra", sino también "qué calle se respira mejor". Decisiones pequeñas que, si las toma bastante gente, suman.</span></p>
+          </div>
+        </div>
+
+<h2>¿De dónde proceden los datos de Calidad del Aire?</h2>
   <p>
     Los parámetros se obtienen de las estaciones oficiales de medición repartidas por toda España, las mismas redes públicas que gestionan los 
     gobiernos autonómicos y el Estado, combinadas con los modelos de predicción del programa meteorológico europeo <strong>Copernicus (CAMS)</strong> a través de <strong>Open-Meteo</strong>. No es una estimación inventada. Es información científica real y pública puesta a tu disposición de forma interactiva.
   </p>
 
-  <h2>¿Qué significa el círculo que respira? (el semáforo del aire)</h2>
+<h2>¿Qué significa el círculo que respira? (el semáforo del aire)</h2>
   <p>
     El círculo que se expande y contrae en la interfaz simula, literalmente, la respiración humana. Su tonalidad define el estado actual del 
     <strong>Índice de Calidad del Aire (ICA)</strong>.
@@ -113,26 +262,116 @@
     Alerta ambiental. Se recomienda permanecer en espacios interiores el mayor tiempo posible y suspender cualquier ejercicio físico en el exterior.
   </div>
 
-  <h2>¿Cómo funciona el mapa 3D de España y las sombras?</h2>
+<h2>¿Cómo funciona el mapa 3D de España y las sombras?</h2>
   <p>
     Cada nodo en el mapa interactivo representa una localización geográfica con una estación de medición real. Al pulsar sobre ella, se despliega el informe técnico. 
     Las transiciones de color entre ciudades son una interpolación matemática aproximada, no una medición exacta en cada metro cuadrado. Además, el sistema proyecta 
     las <strong>sombras 3D de los edificios</strong> utilizando los datos geométricos de <strong>OpenStreetMap</strong> cruzados con un algoritmo astronómico que calcula la radiación solar en tiempo real.
   </p>
 
-  <h2>Diferentes modos de lectura para la ciudadanía</h2>
+    </details>
+
+    <details>
+      <summary data-text-es="De Sevilla al mundo" data-text-ca="De Sevilla al món" data-text-gl="De Sevilla ao mundo" data-text-eu="Sevillatik mundura" data-text-ka="სევილიიდან მსოფლიოში">De Sevilla al mundo</summary>
+<h2>El origen de Manolit∞, sobrevivir al verano en Sevilla</h2>
+  <p>
+    Este viaje comenzó en las calles de Sevilla, una ciudad donde cruzar una avenida en pleno verano no es una anécdota, sino una gestión de la salud diaria. Cuando el entorno se vuelve extremo, la información clara y directa se convierte en un bien esencial. Cualquiera que resida o camine por 
+    <strong>Sevilla en verano</strong> sabe que es posible sufrir problemas graves por calor extremo al cruzar una avenida a pleno sol. 
+    En entornos urbanos densos, encontrar una <strong>sombra en la calle</strong> ya no es una cuestión de comodidad. Es un recurso básico de supervivencia, 
+    exactamente igual que el acceso al <strong>agua potable</strong> o a la <strong>electricidad</strong>. Esta web existe para ayudarte a trazar tu próximo <strong>refugio climático</strong>.
+  </p>
+
+<h2 data-text-es="No es solo cosa de Sevilla" data-text-ca="No és només cosa de Sevilla" data-text-gl="Non é só cousa de Sevilla" data-text-eu="Ez da Sevillako gauza bakarrik" data-text-ka="ეს არ არის მხოლოდ სევილიის საქმე">No es solo cosa de Sevilla</h2>
+        <p data-text-es="El código y los datos en los que se apoya Manolit∞ no son exclusivos de una ciudad. Se puede replicar en cualquier sitio, porque está construido sobre lo mismo en todas partes:" data-text-ca="El codi i les dades en què es recolza Manolit∞ no són exclusius d'una ciutat. Es pot replicar en qualsevol lloc, perquè està construït sobre el mateix a tot arreu:" data-text-gl="O código e os datos en que se apoia Manolit∞ non son exclusivos dunha cidade. Pode replicarse en calquera sitio, porque está construído sobre o mesmo en todas partes:" data-text-eu="Kodea eta Manolit∞ sustentzen duten datuak ez dira hiriburu bakarraren exklusiboak. Edozein lekuan errepikal daiteke, codigo da berdina leku guztietan:" data-text-ka="კოდი და მონაცემები, რომელზეც მანოლიტი∞ ეყრდნობა, არ არის ერთი ქალაქის ექსკლუზიური. ის შეიძლება იყოს რეპლიცირებული ნებისმიერი ადგილი, რადგან ის აშენებულია იმავე ყველგან:">El código y los datos en los que se apoya Manolit∞ no son exclusivos de una ciudad. Se puede replicar en cualquier sitio, porque está construido sobre lo mismo en todas partes:</p>
+        <div class="gallery">
+          <div class="element-card">
+            <h4 data-text-es="Código abierto" data-text-ca="Codi obert" data-text-gl="Código aberto" data-text-eu="Kode irekia" data-text-ka="გახსნილი კოდი">Código abierto</h4>
+            <p data-text-es="Cualquiera puede montar su propio Manolit local. No hay licencia que pedir ni puerta que tocar." data-text-ca="Qualsevol pot muntar el seu propi Manolit local. No hi ha llicència que demanar ni porta que tocar." data-text-gl="Calquera pode montar o seu propio Manolit local. Non hai licencia que pedir nin porta que tocar." data-text-eu="Inork bere Manolit lokala ezarri dezake. Baimena ez dago eskatzerik eta ateak ukitzera ez dago." data-text-ka="ნებისმიერი შეიძლება დააყენოს თავისი ლოკალური მანოლიტი. არ არის ლიცენზია რომ მთხოვოთ ან კარი რომ შეეხოთ.">Cualquiera puede montar su propio Manolit local. No hay licencia que pedir ni puerta que tocar.</p>
+          </div>
+          <div class="element-card">
+            <h4 data-text-es="Datos públicos" data-text-ca="Dades públiques" data-text-gl="Datos públicos" data-text-eu="Datu publikoak" data-text-ka="საჯარო მონაცემები">Datos públicos</h4>
+            <p data-text-es="Cartografía y clima de fuentes públicas y verificables — nada propietario escondido detrás." data-text-ca="Cartografia i clima de fonts públiques i verificables — res propietari amagat darrere." data-text-gl="Cartografía e clima de fontes públicas e verificables — nada propietario agachado detrás." data-text-eu="Cartografia eta klimara iturri publikoak eta egiaztagarri — ez dago propietaria ezkutua atzean." data-text-ka="კარტოგრაფია და კლიმა საჯარო და დამოწმებული წყაროებისგან — არაფერი საკუთრებული არ დაკრულია უკან.">Cartografía y clima de fuentes públicas y verificables — nada propietario escondido detrás.</p>
+          </div>
+          <div class="element-card">
+            <h4 data-text-es="Sin ánimo de lucro" data-text-ca="Sense ànim de lucre" data-text-gl="Sen ánimo de lucro" data-text-eu="Zenbaki irabazi gabe" data-text-ka="მოგების გარეშე">Sin ánimo de lucro</h4>
+            <p data-text-es="No hay suscripción ni anuncio esperando al final del mapa. Se sostiene con lo mínimo, a propósito." data-text-ca="No hi ha subscripció ni anunci esperant al final del mapa. Es sustenta amb el mínim, a propòsit." data-text-gl="Non hai subscrición nin anuncio agardando ao final do mapa. Sustentase co mínimo, a propósito." data-text-eu="Ez da harpidetzarik eta ez da publizitaterik maparen amaieran. Gutxienarekin jasaten da, asmoz." data-text-ka="არ არის გამოწერა და არ არის რეკლამა რუკის ბოლოს. იგი მხარდაჭერილია მინიმუმით, აზროვნებით.">No hay suscripción ni anuncio esperando al final del mapa. Se sostiene con lo mínimo, a propósito.</p>
+          </div>
+        </div>
+
+<h2>Diferentes modos de lectura para la ciudadanía</h2>
   <p>
     Porque las necesidades varían según el usuario. Un perfil técnico o científico busca métricas exactas en microgramos. Un adulto mayor precisa tipografías claras y mensajes directos. 
     Un niño requiere una interfaz visual simple para saber si puede salir al parque. Todos buscan responder a la misma pregunta, "¿es seguro salir hoy?", y todos merecen una respuesta adaptada.
   </p>
 
-  <h2>Manolit, el que te lo cuenta claro</h2>
+<h2>Manolit, el que te lo cuenta claro</h2>
   <p>
     Si persisten las dudas sobre el mapa o el entorno, el botón "Pregúntale a Manolit" activa un chat con inteligencia artificial. Puedes escribir tu consulta con lenguaje natural, 
     como si hablaras con un vecino, y el sistema te ofrecerá consejos de prevención ambiental de forma pausada y didáctica.
   </p>
 
-  <h2>Un grano de arena para cambiar las reglas</h2>
+    </details>
+
+    <details>
+      <summary data-text-es="Cero publicidad, por coherencia" data-text-ca="Zero publicitat, per coherència" data-text-gl="Cero publicidade, por coherencia" data-text-eu="Publizitaterik ez, koherentziaz" data-text-ka="რეკლამის გარეშე, თანმიმდევრულად">Cero publicidad, por coherencia</summary>
+<h2>La huella hídrica digital</h2>
+  <p>
+    Hace poco tiempo, al profundizar en el impacto real de internet, descubrí algo que me abrió los ojos y modificó por completo mi forma de entender el desarrollo de software. La huella hídrica digital. Tendemos a pensar en la tecnología como algo etéreo, una nube mágica que flota en el cielo sin tocar la tierra. Pero es física pura y termodinámica básica. Cada vez que una pantalla solicita un dato, un servidor real, en algún rincón del mundo, se calienta. Para que ese sistema no colapse, hace falta agua dulce para enfriarlo. Agua de verdad, medida en litros.
+  </p>
+
+<h2>El motor invisible que sí desangra la red</h2>
+  <p>
+    Últimamente escuchamos un discurso constante y casi alarmista sobre cómo la inteligencia artificial va a destruir nuestro entorno o consumir toda nuestra energía. Sin embargo, al mirar los datos fríos, la realidad se vuelve muy distinta. Prefiero mil veces una tecnología avanzada y útil, que aporta conocimiento y soluciones a la humanidad, antes que el verdadero motor invisible que está desangrando la infraestructura ecológica de la red. El abuso de la publicidad digital invasiva.
+  </p>
+  <p>
+    El problema no es el anuncio en sí. La comunicación comercial es lícita y comprensible. El conflicto ético y físico surge con el modelo actual, una maquinaria sobredimensionada que opera a espaldas del usuario. En los milisegundos que tarda en cargar una web convencional, cientos de servidores invisibles compiten en subastas automáticas para decidir qué campaña nos va a perseguir por internet. Es un engranaje insaciable que devora datos, satura dispositivos y quema recursos naturales a un ritmo insostenible. Nos encontramos ante una paradoja social incómoda. Se le pide al ciudadano un compromiso estricto con la sostenibilidad en su día a día, mientras colectivamente normalizamos una infraestructura digital cuya única función es el consumo masivo y redundante.
+  </p>
+
+<h2>Cero publicidad, por coherencia</h2>
+  <p>
+    Por eso Manolit∞ nace y se mantiene bajo una premisa firme. Cero publicidad. No se trata de una pose romántica ni de un eslogan de marketing, sino de coherencia técnica y matemática. Un anuncio moderno jamás llega solo. Viene acompañado de rastreadores, scripts de terceros y procesos ocultos que multiplican el peso de una web y, por extensión, el agua necesaria para procesarla. Es imposible diseñar buscando el mínimo impacto ambiental si al mismo tiempo se integra un motor publicitario que multiplica esa huella de carbono e hídrica por diez o por cien. Ambas visiones son incompatibles. He optado por el camino de la austeridad y la transparencia, sosteniendo este rincón gracias al apoyo voluntario de las personas que valoran el proyecto.
+  </p>
+
+<h2 data-text-es="La publicidad que nadie pidió" data-text-ca="La publicitat que ningú va demanar" data-text-gl="A publicidade que ninguén pediu" data-text-eu="Inork ez duen publizitaterik" data-text-ka="პუბლიკობა რაც ვერავისმა მოსთხოვა">La publicidad que nadie pidió</h2>
+        <p data-text-es="Ya que estamos con la honestidad: cada visita a Manolit∞ gasta, de media, un par de mililitros de agua — casi todo en la batería de tu móvil, casi nada en el servidor, porque no hay servidores propios, solo la red de Cloudflare funcionando con energía renovable." data-text-ca="Ja que estem amb l'honestedat: cada visita a Manolit∞ gasta, de mitjana, un parell de mililitres d'aigua — gairebé tot a la bateria del teu mòbil, gairebé res al servidor, perquè no hi ha servidors propis, només la xarxa de Cloudflare funcionant amb energia renovable." data-text-gl="Xa que estamos coa honestedat: cada visita a Manolit∞ gasta, de media, un par de mililitres de auga — case todo na batería do teu móbil, case nada no servidor, porque non hai servidores propios, só a rede de Cloudflare funcionando con enerxía renovable." data-text-eu="Ia estatu zarete honestadean: Manolit∞-ra bisitak gasta, batez beste, mililitro parea ura — ia guztia zure mugikorraren baterian, ia ezer ez zerbitzarian, ez delako zerbitzari propioak, soilik Cloudflareren sarea funtzionatzen energian." data-text-ka="რადგან სამართალი ვართ: მანოლიტი∞-სთან ყოველი ვიზიტი ხარჯავს, საშუალოდ, წყლის რამდენიმე მილილიტრი — თითქმის ყველაფერი თქვენი ფიჯიტის ზღვარზე, თითქმის არაფერი სერვერზე, რადგან არ არის საკუთარი სერვერები, მხოლოდ კლოუდფლეარის ქსელი ხელმისაწვდომი ენერგიაზე.">Ya que estamos con la honestidad: cada visita a Manolit∞ gasta, de media, un par de mililitros de agua — casi todo en la batería de tu móvil, casi nada en el servidor, porque no hay servidores propios, solo la red de Cloudflare funcionando con energía renovable.</p>
+        <p data-text-es="Una web equivalente cargada de anuncios y rastreadores puede llegar a gastar el doble, solo por ejecutar publicidad que nadie pidió: pujas en tiempo real, balizas que se repiten en cada scroll, scripts que no ves pero que tu batería sí nota." data-text-ca="Una web equivalent carregada d'anuncis i rastreadors pot arribar a gastar el doble, només per executar publicitat que ningú va demanar: ofertes en temps real, balisas que es repeteixen en cada scroll, scripts que no veus però que la teva bateria sí nota." data-text-gl="Unha web equivalente cargada de anuncios e rastreadores pode chegar a gastar o doble, só por executar publicidade que ninguén pediu: porxas en tempo real, balizas que se repiten en cada scroll, scripts que non ves pero que a tua batería sí nota." data-text-eu="Web baliokide bat iragarki eta jarrailari kargatuta bikoitzetik gehiago gastu dezake, bakarrik ez dagoen publizitatearen exekutatu, denbora errealean pujai, baliza ikusten dituzu ez kodeak baino zure baterian sí." data-text-ka="ეკვივალენტი ვებ-საიტი რომელიც დატვირთულია რეკლამებით და ტრეკერებით შეიძლება ორმაგი დახარჯოს, მხოლოდ რეკლამის შესრულების მიზნით, რომელიც ვერავისმა მოსთხოვა: ბიჯი რეალურ დროში, ბუი რომელიც ყოველ მოწოდებაში ხმარდება, სკრიპტები რომელიც არ ხედავთ მაგრამ თქვენი ზღვარი კი.">Una web equivalente cargada de anuncios y rastreadores puede llegar a gastar el doble, solo por ejecutar publicidad que nadie pidió: pujas en tiempo real, balizas que se repiten en cada scroll, scripts que no ves pero que tu batería sí nota.</p>
+        <p><span class="accent-text" data-text-es="Si hay que gastar agua en algo, que sea en calcular sombras y calidad del aire, no en anuncios." data-text-ca="Si cal gastar aigua en alguna cosa, que sigui en calcular ombres i qualitat de l'aire, no en anuncis." data-text-gl="Se hai que gastar auga en algo, que sexa en calcular sombras e calidade do aire, non en anuncios." data-text-eu="Ura gastatu behar den kasuan, itzalak kalkulatzen eta airearen kalitatea, ez publizitateean." data-text-ka="თუ წყალი უნდა დახარჯოთ რამე-რამეზე, თუ ეს არის ჩრდილის გამოთვლა და ჰაერის ხარისხი, არა რეკლამაში.">Si hay que gastar agua en algo, que sea en calcular sombras y calidad del aire, no en anuncios.</span></p>
+
+    </details>
+
+    <details>
+      <summary data-text-es="Quién lo hace y qué promete" data-text-ca="Qui ho fa i què promet" data-text-gl="Quen o fai e que promete" data-text-eu="Nork egiten du eta zer prometitzen du" data-text-ka="ვინ აკეთებს და რას ჰპირდება">Quién lo hace y qué promete</summary>
+<h2>¿Quién ha desarrollado esta plataforma y por qué?</h2>
+  <p>
+    Manolit∞ Aire está desarrollado de forma independiente por una sola persona, <strong>Sandro</strong>, sin ninguna corporación detrás 
+    y sin ánimo de lucro. Este mapa interactivo es hermano de otros dos proyectos ciudadanos complementarios, <b>Manolit∞ Forestal</b> (que monitoriza incendios en tiempo real) 
+    e <b>Islas de Calor Sevilla</b> (dedicado al análisis del calor extremo y el sombreado urbano). Los tres comparten una misma misión. La información pública que protege la salud de las personas ante el <strong>cambio climático</strong> debe ser gratuita y fácil de entender.
+  </p>
+
+<h2>La idea, que el dato del clima no cueste dinero</h2>
+  <p>
+    Entras, observas un círculo de color dinámico y en una sola frase comprendes si hoy puedes salir tranquilo a la calle o si 
+    es mejor proteger tu salud. Así de directo. El resto de la información técnica detallada está ahí para quien desee profundizar, 
+    pero nadie está obligado a ser un experto en meteorología para poder usar esta aplicación web.
+  </p>
+
+<h2 data-text-es="Por qué existe algo así" data-text-ca="Per què existeix quelcom així" data-text-gl="Por qué existe algo así" data-text-eu="Zergatik existitzen du halako zerbait" data-text-ka="რატომ არსებობს ეს">Por qué existe algo así</h2>
+        <p data-text-es="Un poco harto de:" data-text-ca="Una mica fart de:" data-text-gl="Un pouco farto de:" data-text-eu="Astaro bat:" data-text-ka="ცოტა დაღლილი:">Un poco harto de:</p>
+        <ul style="margin: 20px 0; padding-left: 30px;">
+          <li style="margin-bottom: 12px;"><strong data-text-es="Algoritmos que deciden por ti" data-text-ca="Algoritmes que decideixen per tu" data-text-gl="Algoritmos que deciden por ti" data-text-eu="Algoritmo zuri erabakitzen dutenak" data-text-ka="ალგორითმი რომელი გადაწყვეტენ თქვენთან">Algoritmos que deciden por ti</strong> <span data-text-es="sin que sepas muy bien por qué" data-text-ca="sense que sapigues gaire bé per què" data-text-gl="sen que sepas moi ben por qué" data-text-eu="ez duzu badakite zergatik behar dugula" data-text-ka="მხოლოდ არ იცით რატომ">sin que sepas muy bien por qué</span></li>
+          <li style="margin-bottom: 12px;"><strong data-text-es="Datos públicos" data-text-ca="Dades públiques" data-text-gl="Datos públicos" data-text-eu="Datu publikoak" data-text-ka="საჯარო მონაცემები">Datos públicos</strong> <span data-text-es="que acaban detrás de un muro de pago" data-text-ca="que acaben darrere d'un mur de pagament" data-text-gl="que acaban detrás dun muro de pago" data-text-eu="ordaindu muro baten atzean amaitu" data-text-ka="რომელიც მთავრდება გადახდის კედელს მიღმა">que acaban detrás de un muro de pago</span></li>
+          <li style="margin-bottom: 12px;"><strong data-text-es="Optimismo de cartón" data-text-ca="Optimisme de cartó" data-text-gl="Optimismo de cartón" data-text-eu="Kartoi optimismoa" data-text-ka="კარტონის ოპტიმიზმი">Optimismo de cartón</strong> <span data-text-es="que no se entera de lo que hay fuera" data-text-ca="que no es assabenta del que hi ha fora" data-text-gl="que non se entera de o que hai fora" data-text-eu="kanpoan dago zer duen entera ez dena" data-text-ka="რომელი არ ცნობს რა არის გარას">que no se entera de lo que hay fuera</span></li>
+          <li style="margin-bottom: 12px;"><strong data-text-es="Todo disfrazado de \"estilo de vida\"" data-text-ca="Tot disfressat de \"estil de vida\"" data-text-gl="Todo disfrazado de \"estilo de vida\"" data-text-eu="Guztia \"bizimodu estilo\" deiskatuta" data-text-ka="ყველაფერი მოწაკეს \"ცხოვრების სტილი\"">Todo disfrazado de "estilo de vida"</strong> <span data-text-es="para venderte algo" data-text-ca="per vendre't quelcom" data-text-gl="para vender che algo" data-text-eu="zuri zerbait saltzeko" data-text-ka="თქვენთან რაღაც სხვა რომ გამოყიდოთ">para venderte algo</span></li>
+        </ul>
+        <p style="margin-top: 30px;" data-text-es="Manolit∞ es, básicamente, la versión contraria de todo eso: datos abiertos, sin letra pequeña, y una cara que no cambia según lo que te quiera vender." data-text-ca="Manolit∞ és, bàsicament, la versió contrària de tot allò: dades obertes, sense lletra petita, i una cara que no canvia segons el que et vulgui vendre." data-text-gl="Manolit∞ é, basicamente, a versión contraria de todo eso: datos abertos, sen letra pequena, e unha cara que non cambia segundo o que che queira vender." data-text-eu="Manolit∞ da, basically, gauza osoen kontrakoa: datu irekiak, ez txikia letraren, eta ez aurpegia aldatzen zuri saldu nahi duen arren." data-text-ka="მანოლიტი∞ მეორე მხრივ არის ის, რაც უპირველესად ხელმოწერილია: გახსნილი მონაცემები, პატარა ასოების გარეშე, და სახე რომელი არ იცვლება რისი გამოყიდვა გინდა.">Manolit∞ es, básicamente, la versión contraria de todo eso: datos abiertos, sin letra pequeña, y una cara que no cambia según lo que te quiera vender.</p>
+
+<div class="cta-section">
+          <h3 style="color: white; margin-top: 0;" data-text-es="¿Y tú qué pintas aquí?" data-text-ca="¿I tu que hi pintas?" data-text-gl="¿E ti qué pintas aquí?" data-text-eu="Zu zer marrazten duzu hemen?" data-text-ka="რა პორტამ აქ?">¿Y tú qué pintas aquí?</h3>
+          <p data-text-es="Poca cosa, la verdad: usarlo si te sirve. Elegir la calle con sombra en vez de la que tiene sol directo. Nadie te lo va a aplaudir, pero funciona." data-text-ca="Poca cosa, la veritat: utilitzar-lo si t'és útil. Triar el carrer amb ombra en lloc del que té sol directe. Ningú te l'anirà aplaudint, però funciona." data-text-gl="Poca cousa, a verdade: usalo se che serve. Elixir a rúa con sombra en vez da que ten sol directo. Ninguén che lo vai aplaudir, pero funciona." data-text-eu="Gauza apaala, egia: erabili zaizu balio baduzu. Itzala duten kalean aukeratu zuzenean eguzkia duen batetik. Inor ez dizu osatzaile egingo, baño funtziona." data-text-ka="რა რამე, სიმართე: გამოიყენეთ თუ ეს თქვენთან აკეთებს. აირჩიეთ ჩრდილი მაქვს ქუჩა პირდაპირი მზე ქუჩის ნაცვლად. არავინ უკეთდებთ მას, მაგრამ თუ ეს სამუშაოა.">Poca cosa, la verdad: usarlo si te sirve. Elegir la calle con sombra en vez de la que tiene sol directo. Nadie te lo va a aplaudir, pero funciona.</p>
+          <p data-text-es="No hace falta creer en nada. Solo mirar el mapa antes de salir de casa." data-text-ca="No cal creure en res. Només mirar el mapa abans de sortir de casa." data-text-gl="Non fai falta crer en nada. Só mirar o mapa antes de saír de casa." data-text-eu="Ez du sinistu behar ezer. Bakarrik mapa hausnartu di atera aurretik etxea." data-text-ka="არ უნდა თავმჯდომარე რაიმე. უბრალოდ დაათვალიერეთ რუკა სახლიდან ამოსვლამდე.">No hace falta creer en nada. Solo mirar el mapa antes de salir de casa.</p>
+        </div>
+
+<h2>Un grano de arena para cambiar las reglas</h2>
   <p>
     Creo firmemente que Manolit∞ debe ir más allá de dar un dato de calidad del aire. Su propósito más profundo es sembrar un precedente, aportar un grano de arena para impulsar una reflexión colectiva y una futura legislación a nivel europeo o mundial. Necesitamos leyes que defiendan una publicidad limpia, honesta y equilibrada. Un ecosistema digital que respete los límites del planeta y la dignidad de quienes lo habitamos.
   </p>
@@ -140,15 +379,20 @@
     Al final, cuidar el aire que respiramos también implica limpiar el aire digital que consumimos.
   </p>
 
-  <h2>Lo que este software promete</h2>
+<h2>Lo que este software promete</h2>
   <p>
     Sin registros de usuarios. Sin cookies publicitarias. Sin muros de pago. Si en algún momento este proyecto traiciona estos principios de software libre y ciudadano, dejará de llamarse Manolit∞.
   </p>
+    </details>
+
+  </div>
 </div>
+
 
 <div class="footer">
   Manolit∞ Aire forma parte de la red de software ciudadano desarrollado por Sandro.
   <div class="footer-family">Manolit∞ Forestal · Islas de Calor Sevilla · Manolit∞ Aire</div>
+  <div class="footer-motto" data-text-es="No vende humo. Vende sombra." data-text-ca="No ven fum. Ven ombra." data-text-gl="Non vende fume. Vende sombra." data-text-eu="Ez du doka saldu. Itzala saldu." data-text-ka="არ აიტია კვამლი. ის ჩრდილი იყიდის.">No vende humo. Vende sombra.</div>
   <div style="margin-top:10px;">
     <a href="aviso-legal.html">Aviso legal</a> · <a href="privacidad.html">Privacidad</a> · <a href="cookies.html">Cookies</a>
   </div>
@@ -156,7 +400,6 @@
 
 <script src="js/i18n.js"></script>
 <script src="js/theme.js"></script>
-
 
 <script>
 /* Navegacion en la misma pestana: los enlaces internos dejan de abrir
@@ -181,6 +424,129 @@
     }
     a.target = '_self';
   }, true);
+})();
+</script>
+
+<script>
+/* ============================================================
+   ABOUT · idiomas del contenido + logo interactivo (sep-2026)
+   El contenido de esta página va con data-text-* (5 lenguas).
+   NO hay selector propio: se engancha al de la topbar, que ya
+   existe y gobierna i18n.js. Cuando i18n.js cambia el idioma
+   dispara el evento langChanged y aquí se retraduce todo. Al
+   cargar se lee manolito_lang, el mismo sitio donde i18n.js
+   guarda tu elección. EN u otro idioma sin traducción cae a ES,
+   como hacía esta página entera hasta hoy.
+   ============================================================ */
+(function () {
+  var LANGS = ['es', 'ca', 'gl', 'eu', 'ka'];
+  var langActual = 'es';
+  var parteActiva = null;
+
+  function aplicarLangAbout(lang) {
+    if (LANGS.indexOf(lang) === -1) lang = 'es';
+    langActual = lang;
+    document.querySelectorAll('[data-text-es]').forEach(function (el) {
+      var txt = el.getAttribute('data-text-' + lang) || el.getAttribute('data-text-es');
+      if (txt != null) el.textContent = txt;
+    });
+    if (parteActiva) activar(parteActiva);
+  }
+
+  document.addEventListener('langChanged', function (e) {
+    aplicarLangAbout(e.detail && e.detail.lang);
+  });
+
+  var significados = {
+        contorno: {
+          titulo_es: 'El contorno',
+          titulo_ca: 'El contorn',
+          titulo_gl: 'O contorno',
+          titulo_eu: 'Ertza',
+          titulo_ka: 'კონტური',
+          color: '#7A0016',
+          texto_es: 'Envuelve todo lo demás: una hoja, una gota, una llama — sin cerrarse del todo en una sola cosa. Si hay que quedarse con una lectura, es la de una gota en estado crítico, evaporándose, dentro de un ciclo que se repite una y otra vez. Manolit está para coger esos datos del ciclo y ponerlos delante de ti.',
+          texto_ca: 'Embolica tot el que hi ha darrere: una fulla, una gota, una flama — sense tancar-se del tot en una sola cosa. Si has de quedar-te amb una lectura, és la d\'una gota en estat crític, evaporant-se, dins d\'un cicle que es repeteix una i una altra vegada. Manolit està per agafar aquestes dades del cicle i posar-les davant teu.',
+          texto_gl: 'Envolve todo o demás: unha folla, unha gota, unha lama — sen pechar-se do todo nun só cousa. Se hai que quedar cunha lectura, é a dunha gota en estado crítico, evaporándose, dentro dun ciclo que se repite unha e outra vez. Manolit está para coller eses datos do ciclo e poñelos diante de ti.',
+          texto_eu: 'Envolva dena dagoena: hostoa, gotarra, flama — guztia itxi gabe. Lectura bat mantendu behar baduzu, gotaren kritiko egoera, lurruntzean, eta saila errepikatzen den zikloan. Manolit da zikloaren datu horiek bildu eta zuri aurrera.',
+          texto_ka: 'ყველაფერი ბეჭდი: ფოლიო, წვეთი, ფუმე — სრულად დახურული არ არის. თუ თქვენ უნდა დარჩეს ერთი ტიპი, ეს წვეთის კრიტიკული მდგომარეობა, აორთქლება, ციკლში რომელი განმეორდება. Manolit არის იმ სიკლის მონაცემი აყვანა და თქვენი წინ დაყენება.'
+        },
+        sol: {
+          titulo_es: 'El sol',
+          titulo_ca: 'El sol',
+          titulo_gl: 'O sol',
+          titulo_eu: 'Eguzkia',
+          titulo_ka: 'მზე',
+          color: '#E6A100',
+          texto_es: 'El dato del que sale casi todo lo demás: la sombra, la hora buena para caminar, pero también la evaporación, el ciclo del agua, el viento. Casi todo en la app depende, de una forma u otra, de dónde está el sol.',
+          texto_ca: 'La dada de la qual surt gairebé tot el demás: l\'ombra, l\'hora bona per caminar, però també l\'evaporació, el cicle de l\'aigua, el vent. Gairebé tot en l\'app depèn, d\'una manera o altra, de on està el sol.',
+          texto_gl: 'O dato do que sae case todo o demás: a sombra, a hora bona para camiñar, pero tamén a evaporación, o ciclo da auga, o vento. Case todo en a app depende, dunha forma ou doutra, de onde está o sol.',
+          texto_eu: 'Dena datorren emandea: itzala, biziena ibiltzeko, baño ere lurruntzea, uraren zikloa, airea. App batean ia dena, modu baten edo bestean, nondik dago eguzkia.',
+          texto_ka: 'მონაცემი რომელი დაბადა რაზე უმეტესი: ჩრდილი, კარგი დრო სიარულისთვის, მაგრამ აორთქლება, წყლის ციკლი, ქარი. თითქმის ყველაფერი აპლიკაციაში დამოკიდებულია, ერთ მხრივ ან მეორე, სად არის მზე.'
+        },
+        aire: {
+          titulo_es: 'El aire y el agua',
+          titulo_ca: 'L\'aire i l\'aigua',
+          titulo_gl: 'O aire e a auga',
+          titulo_eu: 'Airea eta uria',
+          titulo_ka: 'ჰაერი და წყალი',
+          color: '#007A87',
+          texto_es: 'Dos líneas que fluyen, no una boca sonriendo. En realidad son agua tanto como aire — lo que respiras y lo que se evapora, casi siempre las dos cosas a la vez.',
+          texto_ca: 'Dues línies que flueixen, no una boca somrient. En realitat són aigua tant com aire — el que respires i el que s\'evapora, gairebé sempre les dues coses a la vegada.',
+          texto_gl: 'Dúas liñas que flúen, non unha boca sorrindo. En realidade son auga tanto como aire — o que respiras e o que se evapora, case sempre as dúas cousas á vez.',
+          texto_eu: 'Bi lerroak fluxuan, ez boka irribarrez. Benetan ura eta airea bezain — zuri sumatzen dena eta lurruntzean, ia beti bi gauzak batera.',
+          texto_ka: 'ორი ხაზი რომელი იკრიბება, არა მოღიმარი პირი. სინამდვილეში წყალი იმდენი ჰაერი — რა სუნთქავთ და რა აორთქლება, თითქმის ყოველთვის ორივე ერთდროულად.'
+        },
+        infinito: {
+          titulo_es: 'El infinito del nombre',
+          titulo_ca: 'L\'infinit del nom',
+          titulo_gl: 'O infinito do nome',
+          titulo_eu: 'Izenaren infinitua',
+          titulo_ka: 'სახელის უსასრულობა',
+          color: '#7A0016',
+          texto_es: 'Escondido dentro de la propia cara. Significa que los datos no se acaban un día y ya está, siguen actualizándose sin parar. Pero también es más amplio que eso, es todo lo que Manolit∞ todavía puede llegar a ser, hacia dónde puede crecer esto.',
+          texto_ca: 'Amagat dins de la pròpia cara. Significa que les dades no s\'acaben un dia i ja està, segueixen actualitzant-se sense parar. Però també és més ampli que allò, és tot el que Manolit∞ encara pot arribar a ser, cap a on pot créixer allò.',
+          texto_gl: 'Agochado dentro da propia cara. Significa que os datos non se acaban un día e xa está, seguen actualizándose sen parar. Pero tamén é máis amplo que iso, é todo o que Manolit∞ ainda pode chegar a ser, cara onde pode crecer iso.',
+          texto_eu: 'Aurpegiaren barruan ezkutua. Adierazi nahi du datuak ez direla amaitzen egun batean, hartu eta gehienez eguneratzen dira. Baño ere zabalagoa da, Manolit∞-k izan dezakeen guztia, zeri karantzago handitu dezake.',
+          texto_ka: 'სახეში გადაფარული. ის ნიშნავს რომ მონაცემი არ მთავრდება ერთ დღეს, ისინი განაგრძებენ განახლებას. მაგრამ იგი უფრო ფართოა, მანოლიტი∞ რაც შეიძლება იყოს, სად შეიძლება ეს იზრდება.'
+        }
+      };
+
+
+      var partes = document.querySelectorAll('#logoAnotado .parte');
+      var callouts = document.querySelectorAll('#logoAnotado .callout');
+      var panel = document.getElementById('panelLogo');
+      var panelTitulo = document.getElementById('panelLogoTitulo');
+      var panelTexto = document.getElementById('panelLogoTexto');
+
+      function activar(key) {
+        var info = significados[key];
+        if (!info) return;
+        parteActiva = key;
+        partes.forEach(function (p) {
+          p.classList.toggle('dim', p.getAttribute('data-key') !== key);
+        });
+        callouts.forEach(function (c) {
+          c.classList.toggle('visible', c.getAttribute('data-for') === key);
+        });
+        panel.style.borderLeftColor = info.color;
+        panelTitulo.textContent = info['titulo_' + langActual] || info.titulo_es;
+        panelTexto.textContent = info['texto_' + langActual] || info.texto_es;
+        panelTexto.classList.remove('hint');
+      }
+
+      partes.forEach(function (p) {
+        p.addEventListener('click', function () { activar(p.getAttribute('data-key')); });
+        p.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            activar(p.getAttribute('data-key'));
+          }
+        });
+      });
+
+  // Idioma inicial al cargar, el mismo que i18n.js acaba de aplicar.
+  aplicarLangAbout(localStorage.getItem('manolito_lang') || document.documentElement.lang || 'es');
 })();
 </script>
 </body>

@@ -133,7 +133,8 @@
 // VE al dar a Mi ubicacion y aguanta GPS lento de movil) y
 // js/microclima.js (respaldo directo a Open-Meteo si el worker aun no
 // tiene la ruta nueva).
-const VERSION = '2026-09-22-d' // -c 22-sep: chat serio (2 botones, X fija de verdad), ruta del chat con destino primero y ejemplo mundial, aire internacional por chat (España como polígono, Portugal fuera), GPS sin tirón
+const VERSION = '2026-09-23-a' // -d 22-sep: about.html crece con la página de la cara de Manolit∞ que pasó Sandro: logo interactivo arriba del todo, descripción debajo y el resto en 5 secciones plegadas
+// 2026-09-23-a: about sin placa detrás del logo (flota sobre el fondo, claro u oscuro), colores del logo y del panel adaptados a cada tema, todos los guiones largos fuera de los textos. Solo cambia about.html
 // -d 22-sep: about.html crece con la página de la cara de Manolit∞ que pasó Sandro: logo interactivo arriba del todo, descripción debajo y el resto (contenido nuevo + el que ya había) en 5 secciones plegadas. Solo cambia about.html
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;

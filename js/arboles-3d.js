@@ -820,8 +820,17 @@
           rc.caido += avance;
           var z = rc.z - rc.caido * rc.s;
           if (z <= rc.suelo) {
-            // Llegó al suelo: se oculta, como en el HTML (visible=false)
-            escV.set(0.0001, 0.0001, 0.0001);
+            // Llegó al suelo: se oculta, como en el HTML (visible=false).
+            // OJO (sep-2026, FIX ABANICOS ROSAS GIGANTES): la escala de cada
+            // instancia es MERCATOR (~3e-8 por metro), no ~1 como en el HTML
+            // de órbita. "Ocultar" con 0.0001 era en realidad AGRANDAR el
+            // pompón unas 3000 veces (hebras de ~700 m cruzando la pantalla
+            // en abanicos rosas al agitar el móvil y despertar el GPS, que
+            // reinstancia y reinicia la caída junto a la cámara del paseo).
+            // Para esconderlo de verdad la escala debe ser mucho MENOR que
+            // la mercator: 1e-12 deja el pompón en micras (invisible y sin
+            // matriz degenerada, la GPU lo descarta gratis).
+            escV.set(1e-12, 1e-12, 1e-12);
             m4.compose(TMP_V3.set(rc.x, rc.y, rc.suelo), QUAT_UP, escV);
             rc.mesh.setMatrixAt(rc.idx, m4);
             rc.visible = false;

@@ -40,6 +40,13 @@
     var mes = hoy.getMonth() + 1; // 1 = enero … 12 = diciembre
     var dia = hoy.getDate();
 
+    // 0) Salud (sep-2026, orden de Sandro): CADA sábado la web se pone
+    //    en verde por la salud (guiño al Día de la Salud en Andalucía,
+    //    convertido en costumbre semanal). Va lo primero y manda sobre
+    //    el resto: si un sábado cae en otra fiesta, gana el sábado.
+    //    El domingo getDay() ya no da 6 y todo vuelve solo a la normalidad.
+    if (hoy.getDay() === 6) return 'salud';
+
     // 1) Semana Santa (variable): tiene prioridad sobre todo lo demás.
     var pascua = obtenerPascua(ano);
     var ramos = new Date(pascua);
@@ -61,4 +68,31 @@
   var ambiente = ambienteDeHoy();
   if (!ambiente) return; // día normal: ni un byte de cambio
   document.documentElement.setAttribute('data-ambiente', ambiente);
+
+  // Extras del modo salud (sep-2026, orden de Sandro). Clase global
+  // html.modo-salud que gobierna banner, sección y piel (el CSS la usa).
+  // El banner y la sección salen solos por CSS; aquí solo quedan dos
+  // toques que no se pueden hacer con CSS: el título de la pestaña y
+  // el subtítulo de la pantalla de entrada. Todo reversible: el domingo
+  // el script no llega hasta aquí y no se toca nada.
+  if (ambiente === 'salud') {
+    document.documentElement.classList.add('modo-salud');
+
+    var ponerTitulosSalud = function () {
+      // Pestaña del navegador.
+      document.title = 'Manolit∞ Aire · Sábado de la Salud';
+      // Pantalla de entrada, guiño de Manolito (el splash es siempre
+      // en castellano, así que este texto también).
+      var sub = document.querySelector('#manolitoSplash .sub-brand');
+      if (sub) sub.textContent = '+ Sábado de la Salud';
+    };
+
+    // ambientes.js carga en <head>, antes de que exista el <body>,
+    // así que esto espera a que el DOM esté listo.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ponerTitulosSalud);
+    } else {
+      ponerTitulosSalud();
+    }
+  }
 })();

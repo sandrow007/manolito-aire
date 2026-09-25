@@ -211,8 +211,10 @@ html.modo-salud .salud-banner a:focus-visible{
   outline:3px solid #FFFFFF; outline-offset:2px;
 }
 
-/* Sección reivindicativa de los sábados: tarjeta menta con borde
-   suave, sin peso extra (todo es CSS de variables ya cargadas). */
+/* Sección reivindicativa de los sábados: DESPLEGABLE ESTRICTO
+   (25-sep, orden de Sandro). Nace cerrada y solo el usuario la abre.
+   La animación es el truco de grid-template-rows 0fr → 1fr, lo más
+   barato que hay para la GPU, y respeta prefers-reduced-motion. */
 .salud-section{ display:none; }
 html.modo-salud .salud-section{
   display:block;
@@ -220,29 +222,110 @@ html.modo-salud .salud-section{
   margin:26px auto 8px;
   padding:0 20px;
 }
-html.modo-salud .salud-section .salud-card{
+html.modo-salud .salud-resumen-card{
+  list-style:none;
+  cursor:pointer;
   background:var(--mist);
   border:1px solid var(--border);
   border-radius:18px;
-  padding:26px 26px 30px;
+  padding:18px 22px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+}
+html.modo-salud .salud-resumen-card::-webkit-details-marker{ display:none; }
+/* Triángulo nativo (texto, no emoji) que gira al abrir. */
+html.modo-salud .salud-resumen-card::after{
+  content:"";
+  margin-left:auto;
+  width:0; height:0;
+  border-left:7px solid transparent;
+  border-right:7px solid transparent;
+  border-top:9px solid var(--accent-text);
+  transition:transform 0.3s ease;
+}
+html.modo-salud .salud-section[open] .salud-resumen-card{
+  border-radius:18px 18px 0 0;
+  border-bottom-color:transparent;
+}
+html.modo-salud .salud-section[open] .salud-resumen-card::after{
+  transform:rotate(180deg);
+}
+html.modo-salud .salud-resumen-card:focus-visible{
+  outline:3px solid var(--accent); outline-offset:2px;
 }
 html.modo-salud .salud-kicker{
   display:inline-block;
   font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase;
   color:#FFFFFF; background:var(--accent);
-  padding:4px 12px; border-radius:999px; margin-bottom:12px;
+  padding:4px 12px; border-radius:999px;
 }
-html.modo-salud .salud-section h2{
-  margin:0.2em 0 0.6em;
-  font-size:1.55rem; line-height:1.2;
+html.modo-salud .salud-resumen-titulo{
+  font-size:1.35rem; line-height:1.2; font-weight:700;
   color:var(--sky-deep);
+}
+/* Cuerpo animado: 0fr cerrado, 1fr abierto. Al cerrar también anima
+   porque el contenido sigue montado (details solo lo ocultaría si no
+   forzáramos display). */
+html.modo-salud .salud-contenido{
+  display:grid;
+  grid-template-rows:0fr;
+  transition:grid-template-rows 0.35s ease;
+}
+html.modo-salud .salud-section[open] .salud-contenido{
+  grid-template-rows:1fr;
+}
+html.modo-salud .salud-contenido-interno{
+  overflow:hidden;
+  background:var(--mist);
+  border:1px solid var(--border);
+  border-top:none;
+  border-radius:0 0 18px 18px;
+  padding:0 26px;
+}
+html.modo-salud .salud-section[open] .salud-contenido-interno{
+  padding:22px 26px 28px;
+  transition:padding 0.35s ease;
 }
 html.modo-salud .salud-section p{
   margin:0 0 0.9em;
   font-size:1rem; line-height:1.65;
   color:var(--ink);
 }
-html.modo-salud .salud-cierre{
-  font-weight:600; color:var(--accent-text);
-  margin-bottom:0;
+html.modo-salud .salud-section p:last-child{ margin-bottom:0; }
+@media (prefers-reduced-motion: reduce){
+  html.modo-salud .salud-contenido,
+  html.modo-salud .salud-contenido-interno,
+  html.modo-salud .salud-resumen-card::after{ transition:none; }
 }
+
+/* Sello oficial Manolit∞ (25-sep, orden de Sandro): colores por
+   variables. Los corporativos son los de siempre; mientras dura el
+   modo salud el sello se tiñe de verde, y al apagarse el modo (el
+   domingo a las 18:00) vuelve solo a los corporativos. La geometría
+   del SVG es la del archivo original, sin tocar. */
+.salud-section{
+  --sello-granate:#7A0016;
+  --sello-tinta:#26424B;
+  --sello-sol:#E6A100;
+  --sello-agua:#007A87;
+}
+html.modo-salud .salud-section{
+  --sello-granate:#0B6B44;
+  --sello-tinta:#064E3B;
+  --sello-sol:#E9A100;
+  --sello-agua:#0D9488;
+}
+html.modo-salud .salud-sello{
+  display:flex; justify-content:center;
+  margin:4px 0 18px;
+}
+html.modo-salud .salud-sello svg{
+  width:min(240px, 62vw);
+  height:auto;
+}
+.salud-section .s-granate{ stroke:var(--sello-granate); }
+.salud-section .s-sol{ stroke:var(--sello-sol); }
+.salud-section .s-agua{ stroke:var(--sello-agua); }
+.salud-section .s-tinta-fill{ fill:var(--sello-tinta); }

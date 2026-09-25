@@ -294,6 +294,50 @@ html.modo-salud .salud-section p{
   color:var(--ink);
 }
 html.modo-salud .salud-section p:last-child{ margin-bottom:0; }
+
+/* Aviso de precision (25-sep, orden de Sandro): nota humana dentro del
+   desplegable, marcada con filete lateral para que se lea como aviso
+   y no como parte del discurso. */
+html.modo-salud .salud-nota{
+  margin-top:6px;
+  padding:12px 16px;
+  font-size:0.92rem; line-height:1.6;
+  background:var(--accent-soft);
+  border-left:3px solid var(--accent);
+  border-radius:0 12px 12px 0;
+}
+/* Pie de recursos oficiales: fila discreta de pastillas-enlace. */
+html.modo-salud .salud-recursos{
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+  margin-top:20px; padding-top:16px;
+  border-top:1px solid var(--border);
+}
+html.modo-salud .salud-recursos-etiqueta{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--accent-text);
+  margin-right:auto;
+}
+html.modo-salud .salud-recurso{
+  display:inline-block;
+  font-size:0.85rem; font-weight:600;
+  color:var(--accent-text);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:8px 16px;
+  text-decoration:none;
+  background:var(--surface);
+  transition:background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+html.modo-salud .salud-recurso:hover{
+  background:var(--accent); color:#FFFFFF; border-color:var(--accent);
+}
+html.modo-salud .salud-recurso:focus-visible{
+  outline:3px solid var(--accent); outline-offset:2px;
+}
+@media (max-width:640px){
+  html.modo-salud .salud-recursos-etiqueta{ width:100%; margin-right:0; }
+}
 @media (prefers-reduced-motion: reduce){
   html.modo-salud .salud-contenido,
   html.modo-salud .salud-contenido-interno,
@@ -305,13 +349,13 @@ html.modo-salud .salud-section p:last-child{ margin-bottom:0; }
    modo salud el sello se tiñe de verde, y al apagarse el modo (el
    domingo a las 18:00) vuelve solo a los corporativos. La geometría
    del SVG es la del archivo original, sin tocar. */
-.salud-section{
+.salud-section, .sello-footer{
   --sello-granate:#7A0016;
   --sello-tinta:#26424B;
   --sello-sol:#E6A100;
   --sello-agua:#007A87;
 }
-html.modo-salud .salud-section{
+html.modo-salud .salud-section, html.modo-salud .sello-footer{
   --sello-granate:#0B6B44;
   --sello-tinta:#064E3B;
   --sello-sol:#E9A100;
@@ -325,7 +369,32 @@ html.modo-salud .salud-sello svg{
   width:min(240px, 62vw);
   height:auto;
 }
-.salud-section .s-granate{ stroke:var(--sello-granate); }
-.salud-section .s-sol{ stroke:var(--sello-sol); }
-.salud-section .s-agua{ stroke:var(--sello-agua); }
-.salud-section .s-tinta-fill{ fill:var(--sello-tinta); }
+.salud-section .s-granate, .sello-footer .s-granate{ stroke:var(--sello-granate); }
+.salud-section .s-sol, .sello-footer .s-sol{ stroke:var(--sello-sol); }
+.salud-section .s-agua, .sello-footer .s-agua{ stroke:var(--sello-agua); }
+.salud-section .s-tinta-fill, .sello-footer .s-tinta-fill{ fill:var(--sello-tinta); }
+
+/* Sello permanente del pie (25-sep, orden de Sandro): pequeño, en la
+   esquina inferior derecha, sin estridencias. No se quita el domingo.
+   Opacidad suave para integrarse, y al pasar el ratón o enfocar gana
+   presencia. Mismo sistema de variables que el sello del bloque. */
+.footer-oficial{
+  display:flex; justify-content:flex-start;
+  margin-top:26px;
+  /* Esquina inferior IZQUIERDA: la derecha es del boton del chat
+     (va fijo sobre la esquina) y el sello no debe pelearse con el. */
+}
+.sello-footer{
+  width:88px;
+  opacity:0.75;
+  transition:opacity 0.3s ease, transform 0.3s ease;
+}
+.sello-footer:hover{ opacity:1; transform:scale(1.04); }
+.sello-footer svg{ display:block; width:100%; height:auto; }
+@media (max-width:640px){
+  .footer-oficial{ justify-content:center; }
+  .sello-footer{ width:76px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .sello-footer{ transition:none; }
+}

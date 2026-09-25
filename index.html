@@ -826,6 +826,19 @@
       </div>
       <p data-i18n="saludP1">Aquí el calor no es una anécdota, es un runrún constante. Pasar de la sombra al sol en pleno agosto puede subirte la temperatura del cuerpo como si te cambiaran de estación en dos pasos. Eso no es postureo verde: es salud pública con nombre y apellido.</p>
       <p data-i18n="saludP2">Hasta Hércules (que fundó Sevilla, según cuentan) tenía sus límites. Semidiós sí, pero con sus recovecos, y sabía cuándo parar antes de que el sol se lo llevara por delante. Nosotros vamos por ahí: no esperamos al golpe de calor para reaccionar, preferimos adelantarnos. Cada árbol de tu calle es un botiquín gratis, medicina urbana que no cobra entrada y trabaja mientras tú ni te enteras.</p>
+      <!-- Aviso de precision y pie de recursos oficiales (25-sep-2026,
+           orden de Sandro). La nota recuerda que el simulador no es
+           exacto al 100% y que ante el sol manda el sentido comun;
+           abajo, dos accesos directos a portales de la Junta de
+           Andalucia por si hace falta consejo sanitario o una cita
+           en fin de semana. Textos en js/i18n.js (6 idiomas). Los
+           enlaces abren en pestaña nueva por el <base> de la pagina. -->
+      <p class="salud-nota" data-i18n="saludNota">Un apunte honesto. Manolito calcula las sombras con buenos datos, pero ningún simulador es perfecto y la proyección puede fallar. Un toldo nuevo, una obra o un árbol recién podado cambian la sombra real de una calle. La tecnología ayuda, y ante el sol lo primero es el sentido común. Hidrátate, busca la sombra de verdad y evita las horas centrales.</p>
+      <div class="salud-recursos">
+        <span class="salud-recursos-etiqueta" data-i18n="saludRecursos">Recursos oficiales</span>
+        <a class="salud-recurso" href="https://www.juntadeandalucia.es/organismos/presidenciasanidadyemergencias.html" rel="noopener" data-i18n="saludLinkSanidad">Consejería de Sanidad de la Junta</a>
+        <a class="salud-recurso" href="https://www.juntadeandalucia.es/organismos/presidenciasanidadyemergencias/servicios/salud-responde.html" rel="noopener" data-i18n="saludLinkResponde">Consultas y Gestión de Citas (Salud Responde)</a>
+      </div>
     </div>
   </div>
 </details>
@@ -1107,6 +1120,40 @@
       <a class="footer-red footer-red-sola" href="https://www.instagram.com/manolit_8" target="_blank" rel="noopener" aria-label="Instagram personal de Sandro">
         <span>@manolit_8</span>
       </a>
+    </div>
+  </div>
+
+  <!-- Sello oficial PERMANENTE (25-sep-2026, orden de Sandro). El bloque
+       de salud se retira solo el domingo a las 18:00, pero este sello se
+       queda en la esquina inferior del pie todo el año. Misma geometria
+       exacta del archivo original que paso Sandro (solo cambian los ids
+       internos para no repetirlos en el documento). Los colores salen de
+       las mismas variables --sello-* de ambientes.css: corporativos todo
+       el año y verdes solo mientras dura el modo salud. -->
+  <div class="footer-oficial">
+    <div class="sello-footer" role="img" aria-label="Sello oficial Manolit∞, simulador de sombras">
+        <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <defs>
+                    <path id="arcoSupPie" d="M 70, 200 A 130 130 0 0 1 330 200" />
+                    <path id="arcoInfPie" d="M 330, 200 A 130 130 0 0 1 70 200" />
+                  </defs>
+                  <circle class="s-granate" cx="200" cy="200" r="190" fill="none" stroke-width="6"/>
+                  <circle class="s-granate" cx="200" cy="200" r="180" fill="none" stroke-width="2"/>
+                  <circle class="s-granate" cx="200" cy="200" r="105" fill="none" stroke-width="2" stroke-dasharray="6 4"/>
+                  <text class="s-tinta-fill" font-family="monospace" font-size="18" font-weight="600" letter-spacing="3">
+                    <textPath href="#arcoSupPie" startOffset="50%" text-anchor="middle">MANOLIT∞</textPath>
+                  </text>
+                  <text class="s-tinta-fill" font-family="monospace" font-size="15" font-weight="600" letter-spacing="2">
+                    <textPath href="#arcoInfPie" startOffset="50%" text-anchor="middle">SIMULADOR DE SOMBRAS</textPath>
+                  </text>
+                  <g transform="translate(140, 104) scale(0.60)">
+                    <circle class="s-sol" cx="100" cy="150" r="45" fill="none" stroke-width="2.5"/>
+                    <path class="s-agua" d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke-width="4" stroke-linecap="round"/>
+                    <path class="s-agua" d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke-width="3" stroke-linecap="round"/>
+                    <path class="s-granate" d="M 100,149 C 75,124 75,174 100,149 C 125,124 125,174 100,149 Z" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path class="s-granate" d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke-width="5" stroke-linejoin="round"/>
+                  </g>
+                </svg>
     </div>
   </div>
 </div>

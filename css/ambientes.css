@@ -158,3 +158,91 @@
   --line:rgba(74,222,128,0.14); --surface:rgba(15,26,20,0.90);
   --border:rgba(74,222,128,0.18);
 }
+
+/* ---------- SALUD (cada sábado, sep-2026, orden de Sandro) ----------
+   Día de la Salud en Andalucía llevado a costumbre semanal. La web se
+   pone en verde fresco de menta y esmeralda, colores de parque con
+   agua y de sombra de árbol, que es de lo que va el día. Es distinto
+   del verde hoja del ambiente "ambiental" para que se note que esto
+   es otra cosa.
+   Además de la piel, el sábado enseña dos piezas que el resto de la
+   semana están ocultas: el banner superior (.salud-banner) y la
+   sección reivindicativa (.salud-section). Todo gobernado por la
+   clase html.modo-salud que pone js/ambientes.js. El domingo la clase
+   desaparece sola y aquí no ha pasado nada. */
+html.modo-salud{
+  --paper:#F1FBF6; --mist:#DDF4E8;
+  --ink:#07301C;   --sky-deep:#0B4F2E; --sky-mid:#15803D;
+  --accent:#10B981; --accent-soft:rgba(16,185,129,0.14);
+  --accent-2:#0D9488; --accent-text:#0B6B44;
+  --line:rgba(11,79,46,0.14); --surface:rgba(255,255,255,0.90);
+  --border:rgba(11,79,46,0.15);
+}
+html[data-theme="dark"].modo-salud{
+  --paper:#03120B; --mist:#082015;
+  --ink:#DEF7E9;   --sky-deep:#DEF7E9; --sky-mid:#34D399;
+  --accent:#34D399; --accent-soft:rgba(52,211,153,0.15);
+  --accent-2:#2DD4BF; --accent-text:#7CE7B2;
+  --line:rgba(52,211,153,0.15); --surface:rgba(8,32,21,0.90);
+  --border:rgba(52,211,153,0.20);
+}
+/* La pantalla de entrada también se entera: el subtítulo del eslogan
+   se tiñe de menta (el fondo del splash es oscuro siempre). */
+html.modo-salud #manolitoSplash .sub-brand{ color:#7CE7B2; }
+
+/* Banner superior de salud: solo existe en modo salud. Va en el flujo
+   normal, encima de la barra pegajosa, así no pisa ni desplaza nada
+   y al desplazarte se va con la página (nada fixed molestando). */
+.salud-banner{ display:none; }
+html.modo-salud .salud-banner{
+  display:block;
+  background:linear-gradient(90deg,#0B4F2E,#0D9488);
+  color:#ECFDF5;
+  text-align:center;
+  padding:10px 16px;
+  font-size:0.95rem;
+  line-height:1.45;
+}
+html.modo-salud .salud-banner a{
+  color:#FFFFFF; font-weight:600;
+  text-decoration:underline; text-underline-offset:3px;
+}
+html.modo-salud .salud-banner a:focus-visible{
+  outline:3px solid #FFFFFF; outline-offset:2px;
+}
+
+/* Sección reivindicativa de los sábados: tarjeta menta con borde
+   suave, sin peso extra (todo es CSS de variables ya cargadas). */
+.salud-section{ display:none; }
+html.modo-salud .salud-section{
+  display:block;
+  max-width:880px;
+  margin:26px auto 8px;
+  padding:0 20px;
+}
+html.modo-salud .salud-section .salud-card{
+  background:var(--mist);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:26px 26px 30px;
+}
+html.modo-salud .salud-kicker{
+  display:inline-block;
+  font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase;
+  color:#FFFFFF; background:var(--accent);
+  padding:4px 12px; border-radius:999px; margin-bottom:12px;
+}
+html.modo-salud .salud-section h2{
+  margin:0.2em 0 0.6em;
+  font-size:1.55rem; line-height:1.2;
+  color:var(--sky-deep);
+}
+html.modo-salud .salud-section p{
+  margin:0 0 0.9em;
+  font-size:1rem; line-height:1.65;
+  color:var(--ink);
+}
+html.modo-salud .salud-cierre{
+  font-weight:600; color:var(--accent-text);
+  margin-bottom:0;
+}

@@ -95,6 +95,14 @@
       // en castellano, así que este texto también).
       var sub = document.querySelector('#manolitoSplash .sub-brand');
       if (sub) sub.textContent = '+ Sábado de la Salud';
+
+      // Enlace del banner: lleva a la sección Y la abre (sigue siendo
+      // el usuario quien decide cerrarla, el bloque nunca nace abierto).
+      var enlace = document.querySelector('.salud-banner a[href="#defensa-sombras"]');
+      var bloque = document.getElementById('defensa-sombras');
+      if (enlace && bloque) {
+        enlace.addEventListener('click', function () { bloque.open = true; });
+      }
     };
 
     // ambientes.js carga en <head>, antes de que exista el <body>,

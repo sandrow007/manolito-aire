@@ -1,120 +1,1718 @@
-/* ============================================================
-   MANOLIT AIRE, js/ambientes.js (sep-2026, NUEVO)
-   Ambientes climatológicos automáticos: según la fecha de hoy,
-   pone data-ambiente="..." en <html> y css/ambientes.css cambia
-   la piel entera de la web. 100% local (sin red ni librerías),
-   sin consola sucia y sin tocar nada los demás días del año:
-   si no hay ambiente, este script no hace absolutamente nada.
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Manolit∞ Aire. Calidad del aire y sombra solar en tiempo real</title>
+<meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad. Huella hídrica medida con telemetría real: 0,38 MB y ~2 ml de agua por visita. La publicidad programática del mundo gasta ~375 litros de agua cada segundo.">
+<meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas, islas de calor Sevilla, rutas por sombra, ola de calor, calor urbano, web sostenible, huella de agua, bajo consumo de datos, sin publicidad, civic tech Sevilla, código abierto, ahorro de agua, huella hídrica digital, consumo de agua de internet, publicidad programática consumo, web sin anuncios, internet sostenible, web ecológica">
+<meta name="theme-color" content="#1b2029">
+<link rel="canonical" href="https://manolitoaire.com/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Manolit∞ Aire. Calidad del aire y sombra solar en tiempo real">
+<meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro. Sin publicidad: telemetría real de 30 días: 0,38 MB y ~2 ml de agua por visita, mientras la publicidad programática gasta ~375 litros cada segundo.">
+<meta property="og:image" content="https://manolitoaire.com/compartir.png">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Manolit∞ Aire",
+  "applicationCategory": "WeatherApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "inLanguage": "es",
+  "isAccessibleForFree": true,
+  "author": { "@type": "Person", "name": "Sandro" },
+  "keywords": "calidad del aire, sombra urbana, rutas frescas, islas de calor, Sevilla, web sostenible, sin publicidad, bajo consumo de datos, huella de agua",
+  "featureList": "Rutas peatonales optimizadas por sombra real; calidad del aire en vivo; islas de calor; irradiación solar por horas; árboles 3D por especie con fenología; sin registro; sin publicidad; huella hídrica medida con telemetría real: 0,38 MB y ~2 ml de agua por visita",
+  "description": "Calidad del aire en tiempo real, rutas con sombra 3D e histórico de irradiación solar hora a hora (NASA POWER) con atenuación umbra/penumbra. Web frugal sin publicidad: una visita gasta menos agua que una pregunta a una IA."
+}
+</script>
 
-   Calendario:
-   - Semana Santa (variable: Domingo de Ramos → Resurrección)
-   - 1 ene ........ Año Nuevo
-   - 26 mar ....... Día Mundial del Clima
-   - 22 abr ....... Día de la Tierra
-   - 23-24 jun .... San Juan (hogueras)
-   - resto de junio . Orgullo
-   - 31 oct ....... Halloween
-   - 24-31 dic .... Navidad
-   ============================================================ */
-(function () {
-  'use strict';
+<!-- SEO de sostenibilidad (sep-2026, orden de Sandro): la huella hídrica
+     por visita se calculó con los bytes REALES servidos (≈2-4 ml, menos
+     que una pregunta a un chatbot de IA). La web no lleva ni un píxel de
+     publicidad programática: las subastas de anuncios en tiempo real
+     gastan más agua y más energía que esta web entera. -->
+<meta name="author" content="Sandro">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:locale" content="es_ES">
+<meta name="twitter:title" content="Manolit∞ Aire: rutas frescas por la sombra real de Sevilla">
+<meta name="twitter:description" content="Sombra calle a calle en tiempo real, árboles por especie y aire en vivo. Sin registro, sin publicidad y con una huella de agua mínima.">
 
-  // Domingo de Resurrección por el algoritmo de Computus (calendario
-  // gregoriano): la Semana Santa cambia de fechas cada año y hay que
-  // calcularla, no vale una tabla fija.
-  function obtenerPascua(y) {
-    var a = y % 19, b = Math.floor(y / 100), c = y % 100;
-    var d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
-    var g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
-    var i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
-    var m = Math.floor((a + 11 * h + 22 * l) / 451);
-    var mes = Math.floor((h + l - 7 * m + 114) / 31);
-    var dia = ((h + l - 7 * m + 114) % 31) + 1;
-    return new Date(y, mes - 1, dia);
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://tiles.openfreemap.org">
+<!-- Solo esta CSS bloquea el render: es la que afecta al primer pintado -->
+<!-- Fuentes web FUERA (2026-09-13, brief "Mapa Eficiente y Elegante" de
+     Sandro: system fonts en vez de webfonts). Antes se cargaban Fraunces,
+     Karla e IBM Plex Mono de Google Fonts: 2 conexiones TLS y ~100 KB de
+     woff2 por visita. Y solo 4 selectores del CSS las usaban; el resto de
+     la web ya iba con la pila de sistema ('SF Pro Display','Segoe UI',
+     system-ui). Esos 4 selectores ya apuntan a var(--font-*) en style.css.
+     Beneficios: cero FOUT/CLS de fuentes (el shift de 0,22-0,53 que antes
+     se domaba con display=optional y precargas desaparece de raíz), menos
+     memoria, primer pintado más rápido y un dominio externo menos que
+     puede fallar en F12. -->
+
+<!-- Leaflet, MapLibre y Driver.css: no son necesarias para el primer pintado.
+     Se cargan sin bloquear con preload+onload y caen a <noscript> si JS está desactivado. -->
+<!-- EcoIndex (sep-2026): Leaflet y driver.js YA NO cargan de entrada.
+     El mapa 2D del aire esta al final de la pagina y el tutorial solo
+     sale una vez: app.js y tutorial.js cargan estas librerias bajo
+     demanda, justo cuando hacen falta. Ahorro: 4 peticiones y unos
+     60 KB en el primer pintado. -->
+</noscript>
+
+<!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
+<link rel="stylesheet" href="css/style.css">
+<!-- CSS oficial de MapLibre GL 4.7.1 (sep-2026): la página cargaba el JS
+     pero nunca su hoja de estilos. Sin ella los marcadores DOM (Manolit,
+     los pines de origen/destino, el punto de la caminata) pierden el
+     position:absolute y caen en flujo normal DEBAJO del canvas: existían
+     pero no se veían nunca. Con esta hoja vuelven a su sitio, y de regalo
+     los popups y la atribución quedan con su estilo correcto. -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<!-- Ambientes automáticos por fecha (sep-2026): Semana Santa, Día del
+     Clima, Orgullo, Halloween... Los días normales no cambian nada. -->
+<link rel="stylesheet" href="css/ambientes.css">
+<!-- Va SIN defer y en el <head>: es diminuto, no usa el DOM y así el
+     ambiente se aplica antes del primer pintado (sin destello de la
+     paleta normal al cargar un día señalado). -->
+<script src="js/ambientes.js"></script>
+
+<style>
+  #manolitoSplash{
+    --splash-sky-deep:#0E3B47; --splash-sky-mid:#17788A;
+    --splash-dawn:#FF6B1A; --splash-dawn-rgb:244, 166, 107; --splash-paper:#FBFAF7;
+    position:fixed; inset:0; width:100vw; height:100vh; z-index:99999;
+    overflow:hidden; background: radial-gradient(120% 140% at 50% 100%, var(--splash-sky-mid) 0%, var(--splash-sky-deep) 55%, #10202E 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:crosshair; transition: background 1.2s ease;
+  }
+  #manolitoSplash, #manolitoSplash *{ box-sizing:border-box; margin:0; padding:0; }
+  body.manolito-splash-activo{ overflow:hidden; }
+
+  #manolitoSplash .sky-glow{
+    position:absolute; inset:0;
+    background: radial-gradient(60% 50% at 50% 15%, rgba(var(--splash-dawn-rgb), 0.18), transparent 70%);
+    animation: splashSkyBreathe 6s ease-in-out infinite; transition: background 1.2s ease;
+  }
+  @keyframes splashSkyBreathe{ 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
+
+  #manolitoSplash .wind-field{ position:absolute; inset:0; width:100%; height:100%; overflow:hidden; pointer-events:none; opacity:0.8; }
+  #manolitoSplash .wind-line{
+    fill:none; stroke:var(--splash-dawn); stroke-linecap:round;
+    stroke-dasharray:80 400; animation: splashAeroBlow linear infinite; transition: stroke 1.2s ease;
+  }
+  #manolitoSplash .w-thin{ stroke-width:0.8; opacity:0.3; }
+  #manolitoSplash .w-mid{ stroke-width:1.5; opacity:0.5; }
+  #manolitoSplash .w-thick{ stroke-width:2.5; opacity:0.2; }
+  @keyframes splashAeroBlow{ 0%{ stroke-dashoffset:600; } 100%{ stroke-dashoffset:-200; } }
+
+  #manolitoSplash .w1{ animation-duration:8s; }
+  #manolitoSplash .w2{ animation-duration:12s; animation-delay:-3s; stroke-dasharray:120 500; }
+  #manolitoSplash .w3{ animation-duration:9s; animation-delay:-5s; stroke-dasharray:60 300; }
+  #manolitoSplash .w4{ animation-duration:15s; animation-delay:-1s; }
+  #manolitoSplash .w5{ animation-duration:11s; animation-delay:-7s; stroke-dasharray:150 450; }
+  #manolitoSplash .w6{ animation-duration:14s; animation-delay:-4s; }
+
+  #manolitoSplash .particle{
+    position:absolute; border-radius:50%; background:var(--splash-dawn);
+    animation: splashFloatUp linear infinite, splashQuantumFlicker 0.25s ease-in-out infinite alternate;
+    box-shadow: 0 0 5px rgba(var(--splash-dawn-rgb), 0.6); pointer-events:none; transition: background 1.2s ease;
+  }
+  @keyframes splashFloatUp{
+    0%{ transform:translateY(20px) translateX(0); opacity:0; }
+    20%{ opacity:0.6; } 80%{ opacity:0.1; }
+    100%{ transform:translateY(-100vh) translateX(40px); opacity:0; }
+  }
+  @keyframes splashQuantumFlicker{ 0%{ opacity:0.1; } 100%{ opacity:0.9; } }
+
+  #manolitoSplash .logo-wrap{ position:relative; z-index:2; text-align:center; pointer-events:none; }
+  #manolitoSplash #logo-container{
+    width:180px; height:180px; margin:0 auto 20px;
+    display:flex; align-items:center; justify-content:center;
+    transform-style:preserve-3d; transition: transform 0.1s ease-out;
+  }
+  #manolitoSplash #logo-svg{
+    width:100%; height:100%;
+    filter: drop-shadow(0 0 12px rgba(var(--splash-dawn-rgb), 0.4));
+    animation: splashLogoFloat 5s ease-in-out infinite;
+  }
+  @keyframes splashLogoFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
+
+  #manolitoSplash .brand{
+    font-family:'Fraunces', serif; font-weight:600; font-size:clamp(1.6rem, 5vw, 2.4rem);
+    color:var(--splash-paper); letter-spacing:-0.01em; margin-top:5px;
+  }
+  #manolitoSplash .brand span{ color:var(--splash-dawn); transition: color 1.2s ease; }
+  #manolitoSplash .sub-brand{
+    font-family:'Fraunces', serif; font-weight:500; font-size:1.1rem; color:var(--splash-paper); margin-top:4px; opacity:0.85;
+  }
+  #manolitoSplash .tagline{
+    font-family:'IBM Plex Mono', monospace; font-size:0.75rem; color:var(--splash-dawn);
+    margin-top:12px; letter-spacing:0.08em; opacity:0.8; transition: color 1.2s ease;
+  }
+  #manolitoSplash .sombra-msg{
+    font-family:'IBM Plex Mono', monospace; font-size:0.65rem; color: rgba(251,250,247,0.5);
+    margin-top:8px; letter-spacing:0.05em; animation: splashFadeIn 2s ease forwards; opacity:0;
+  }
+  #manolitoSplash .clima-tag{
+    font-family:'IBM Plex Mono', monospace; font-size:0.6rem; color: rgba(251,250,247,0.35);
+    margin-top:4px; letter-spacing:0.15em; text-transform:uppercase;
   }
 
-  function ambienteDeHoy() {
-    // OJO: "ahora" guarda la hora real y "hoy" se pone a las 00:00 más
-    // abajo. La regla de salud necesita la hora (el domingo corta a las
-    // 18:00), así que se mira "ahora", nunca "hoy".
-    var ahora = new Date();
-    var hoy = new Date(ahora);
-    hoy.setHours(0, 0, 0, 0);
-    var ano = hoy.getFullYear();
-    var mes = hoy.getMonth() + 1; // 1 = enero … 12 = diciembre
-    var dia = hoy.getDate();
+  #manolitoSplash .entry-btn{
+    position:absolute; bottom:35px; left:50%; transform:translateX(-50%); z-index:20;
+    font-family:'IBM Plex Mono', monospace; font-size:0.65rem; color: rgba(var(--splash-dawn-rgb), 0.4);
+    letter-spacing:0.3em; background:transparent; border:none; padding:15px 40px; cursor:pointer;
+    transition: color 0.3s ease, text-shadow 0.3s ease; animation: splashFadeIn 3s ease 1s forwards; opacity:0; outline:none;
+  }
+  #manolitoSplash .entry-btn:hover{ color:var(--splash-dawn); text-shadow: 0 0 12px rgba(var(--splash-dawn-rgb), 0.8); }
 
-    // 0) Salud (sep-2026, orden de Sandro): la web se pone en verde por
-    //    la salud TODO el sábado y el domingo hasta las 18:00. A esa
-    //    hora esta regla deja de cumplirse y la web vuelve sola a su
-    //    piel normal, sin tocar nada. Va lo primero y manda sobre el
-    //    resto: si el fin de semana cae en otra fiesta, gana la salud
-    //    (el domingo a las 18:00 esa fiesta recupera su turno).
-    //    ESTRENO (ventana única): esta primera vez arranca el viernes
-    //    25-sep-2026 y corre hasta el domingo 27 a las 18:00. Pasado
-    //    ese momento solo manda la regla semanal de arriba.
-    //    NO BORRAR (orden de Sandro): todo el modo salud (esta regla, el
-    //    banner, el desplegable y sus estilos) se queda comentado y
-    //    guardado en el repositorio aunque no se vea entre semana. Lo
-    //    reutilizaremos el año que viene o en otras secciones.
-    if (ahora >= new Date(2026, 8, 25) && ahora < new Date(2026, 8, 27, 18)) return 'salud';
-    if (ahora.getDay() === 6) return 'salud';
-    if (ahora.getDay() === 0 && ahora.getHours() < 18) return 'salud';
-
-    // 1) Semana Santa (variable): tiene prioridad sobre todo lo demás.
-    var pascua = obtenerPascua(ano);
-    var ramos = new Date(pascua);
-    ramos.setDate(pascua.getDate() - 7);
-    if (hoy >= ramos && hoy <= pascua) return 'semana-santa';
-
-    // 2) Fechas fijas. OJO al orden: San Juan va ANTES que Orgullo,
-    //    porque junio entero es Orgullo y se "comería" las hogueras.
-    if (mes === 1 && dia === 1) return 'anonuevo';
-    if (mes === 3 && dia === 26) return 'ambiental';  // Día Mundial del Clima
-    if (mes === 4 && dia === 22) return 'ambiental';  // Día de la Tierra
-    if (mes === 6 && (dia === 23 || dia === 24)) return 'sanjuan';
-    if (mes === 6) return 'orgullo';
-    if (mes === 10 && dia === 31) return 'halloween';
-    if (mes === 12 && dia >= 24) return 'navidad';
-    return '';
+  #manolitoSplash .sun-burst{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
+    width:100vw; height:100vh; pointer-events:none; z-index:10;
+  }
+  #manolitoSplash .sun-burst-core{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:450px; height:450px;
+    background: radial-gradient(circle, var(--splash-dawn) 0%, rgba(var(--splash-dawn-rgb), 0.5) 40%, transparent 70%);
+    border-radius:50%; filter:blur(15px); transition: background 1.2s ease;
+  }
+  #manolitoSplash.leaving .sun-burst{ animation: splashSolarExpand 2.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+  @keyframes splashSolarExpand{
+    0%{ transform:translate(-50%,-50%) scale(0); opacity:0; }
+    10%{ opacity:1; }
+    80%{ opacity:0.2; transform:translate(-50%,-50%) scale(2); }
+    100%{ transform:translate(-50%,-50%) scale(3); opacity:0; }
   }
 
-  var ambiente = ambienteDeHoy();
-  if (!ambiente) return; // día normal: ni un byte de cambio
-  document.documentElement.setAttribute('data-ambiente', ambiente);
+  #manolitoSplash .shadow-scene{
+    position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; height:65%; display:flex; justify-content:center; align-items:flex-end;
+    opacity:0; z-index:9; pointer-events:none;
+  }
+  #manolitoSplash.leaving .shadow-scene{ animation: splashShadowsRise 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+  @keyframes splashShadowsRise{
+    0%{ opacity:0; transform:translateX(-50%) translateY(40px) scale(0.98); filter:blur(5px); }
+    15%{ opacity:1; filter:blur(0); transform:translateX(-50%) translateY(0) scale(1); }
+    75%{ opacity:1; filter:blur(0); transform:translateX(-50%) translateY(-5px) scale(1.02); }
+    100%{ opacity:0; transform:translateX(-50%) translateY(-20px) scale(1.05); filter:blur(8px); }
+  }
 
-  // Extras del modo salud (sep-2026, orden de Sandro). Clase global
-  // html.modo-salud que gobierna banner, sección y piel (el CSS la usa).
-  // El banner y la sección salen solos por CSS; aquí solo quedan dos
-  // toques que no se pueden hacer con CSS: el título de la pestaña y
-  // el subtítulo de la pantalla de entrada. Todo reversible: el domingo
-  // el script no llega hasta aquí y no se toca nada.
-  if (ambiente === 'salud') {
-    document.documentElement.classList.add('modo-salud');
+  #manolitoSplash.leaving .logo-wrap,
+  #manolitoSplash.leaving .wind-field,
+  #manolitoSplash.leaving .particle,
+  #manolitoSplash.leaving .entry-btn{ opacity:0; transition: opacity 0.4s ease-out; }
 
-    var ponerTitulosSalud = function () {
-      // Pestaña del navegador.
-      document.title = 'Manolit∞ Aire · Sábado de la Salud';
-      // Pantalla de entrada, guiño de Manolito (el splash es siempre
-      // en castellano, así que este texto también).
-      var sub = document.querySelector('#manolitoSplash .sub-brand');
-      if (sub) sub.textContent = '+ Sábado de la Salud';
+  #manolitoSplash.leaving{ animation: splashFadeToBlack 2.4s ease-out forwards; }
+  @keyframes splashFadeToBlack{
+    0%,80%{ background: radial-gradient(120% 140% at 50% 100%, var(--splash-sky-mid) 0%, var(--splash-sky-deep) 55%, #10202E 100%); }
+    100%{ background:#010203; }
+  }
+  @keyframes splashFadeIn{ to{ opacity:1; } }
 
-      // Enlace del banner: lleva a la sección Y la abre (sigue siendo
-      // el usuario quien decide cerrarla, el bloque nunca nace abierto).
-      var enlace = document.querySelector('.salud-banner a[href="#defensa-sombras"]');
-      var bloque = document.getElementById('defensa-sombras');
-      if (enlace && bloque) {
-        enlace.addEventListener('click', function () { bloque.open = true; });
+  @media (prefers-reduced-motion: reduce){
+    #manolitoSplash, #manolitoSplash *{ animation:none !important; transition:none !important; }
+  }
+</style>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Manolit 3D">
+<base target="_blank">
+<base target="_blank">
+<base target="_blank">
+<base target="_blank">
+</head>
+<body>
+
+<a href="#main-content" class="skip-link" data-i18n="skipToContent">Saltar al contenido principal</a>
+
+<div id="manolitoSplash">
+  <div class="sky-glow"></div>
+  <svg class="wind-field" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid slice">
+    <path class="wind-line w-mid w1" d="M -100,120 C 150,280 350,20 600,180 S 850,80 1100,140" />
+    <path class="wind-line w-thin w2" d="M 1100,220 C 800,80 600,320 350,150 S 100,280 -100,180" />
+    <path class="wind-line w-thick w3" d="M -100,180 C 200,350 450,-20 750,220 S 950,50 1100,160" />
+    <path class="wind-line w-thin w4" d="M 1100,100 C 900,20 650,300 400,180 S 150,320 -100,220" />
+    <path class="wind-line w-mid w5" d="M -100,280 C 250,150 400,380 650,200 S 900,300 1100,250" />
+    <path class="wind-line w-thin w6" d="M 1100,280 C 850,380 700,100 450,250 S 200,100 -100,150" />
+  </svg>
+
+  <div id="particles"></div>
+
+  <div class="logo-wrap">
+    <div id="logo-container">
+      <svg id="logo-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="100" cy="150" r="45" fill="#E6A100" />
+        <path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#007A87" stroke-width="4" stroke-linecap="round"/>
+        <path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
+        <path d="M 100,150 C 75,125 75,175 100,150 C 125,125 125,175 100,150 Z" fill="none" stroke="#7A0016" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke="#7A0016" stroke-width="8" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="brand"><span>Manolit∞</span> Aire</div>
+    <div class="sub-brand">+ Sombras 3D</div>
+    <div class="tagline">Respira ∞ Camina ∞ Refúgiate ∞ Mapea ∞</div>
+    <div class="sombra-msg">∞ ∞ ∞ ∞ ∞ ∞ ∞</div>
+    <div class="clima-tag" id="climaTag"></div>
+  </div>
+
+  <button class="entry-btn" id="entryBtn"></button>
+
+  <div class="sun-burst">
+    <div class="sun-burst-core"></div>
+  </div>
+
+  <!-- Shadowmap Realista Sevilla -->
+  <div class="shadow-scene">
+    <svg viewBox="0 0 1400 400" width="100%" height="100%" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <linearGradient id="splashShadowGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#020304"/>
+          <stop offset="100%" stop-color="#05080A"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="360" width="1400" height="40" fill="url(#splashShadowGrad)" />
+      <g transform="translate(250, 0)" fill="url(#splashShadowGrad)">
+        <path d="M -50,360 L -50,280 L 10,250 L 70,280 L 70,360 Z" />
+        <path d="M 10,250 L 10,220 L 15,220 L 15,250 Z" />
+        <path d="M -120,360 L -120,300 L -50,300 L -50,360 Z" />
+        <path d="M 70,360 L 70,310 L 140,310 L 140,360 Z" />
+        <rect x="75" y="150" width="28" height="210" />
+        <rect x="79" y="110" width="20" height="40" />
+        <rect x="83" y="90" width="12" height="20" />
+        <rect x="87" y="75" width="4" height="15" />
+        <circle cx="89" cy="72" r="2.5" />
+      </g>
+      <g transform="translate(500, 220)" fill="url(#splashShadowGrad)">
+        <path d="M 0,140 L 0,60 L 5,60 L 8,40 L 32,40 L 35,60 L 40,60 L 40,140 Z" />
+        <rect x="12" y="20" width="16" height="20" />
+        <rect x="16" y="10" width="8" height="10" />
+        <polygon points="14,10 26,10 20,0" />
+      </g>
+      <g transform="translate(1000, 80)" fill="url(#splashShadowGrad)">
+        <polygon points="0,280 35,0 55,0 40,280" />
+        <rect x="-250" y="275" width="450" height="8" />
+        <line x1="38" y1="30" x2="-200" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="39" y1="60" x2="-150" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="39" y1="90" x2="-100" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="40" y1="120" x2="-50" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="40" y1="150" x2="0" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="41" y1="180" x2="50" y2="275" stroke="#020304" stroke-width="1.5" />
+        <line x1="41" y1="210" x2="100" y2="275" stroke="#020304" stroke-width="1.5" />
+      </g>
+      <g transform="translate(750, 50)" fill="url(#splashShadowGrad)">
+        <path d="M 10,310 L 15,20 C 15,5 35,5 35,20 L 40,310 Z" />
+      </g>
+      <path d="M 0,360 L 0,330 L 40,330 L 50,310 L 90,310 L 90,360 Z" fill="url(#splashShadowGrad)"/>
+      <path d="M 100,360 L 100,340 L 140,320 L 180,340 L 180,360 Z" fill="url(#splashShadowGrad)"/>
+      <path d="M 400,360 L 400,320 L 430,320 L 430,290 L 470,290 L 470,360 Z" fill="url(#splashShadowGrad)"/>
+      <path d="M 600,360 L 600,310 L 650,310 L 650,330 L 710,330 L 710,360 Z" fill="url(#splashShadowGrad)"/>
+      <path d="M 850,360 L 850,300 L 880,300 L 880,320 L 930,320 L 930,360 Z" fill="url(#splashShadowGrad)"/>
+      <path d="M 1250,360 L 1250,330 L 1300,310 L 1350,330 L 1350,360 Z" fill="url(#splashShadowGrad)"/>
+      <circle cx="210" cy="350" r="15" fill="url(#splashShadowGrad)" />
+      <circle cx="230" cy="345" r="20" fill="url(#splashShadowGrad)" />
+      <circle cx="560" cy="355" r="12" fill="url(#splashShadowGrad)" />
+      <circle cx="580" cy="348" r="18" fill="url(#splashShadowGrad)" />
+      <circle cx="950" cy="350" r="16" fill="url(#splashShadowGrad)" />
+      <circle cx="970" cy="345" r="22" fill="url(#splashShadowGrad)" />
+    </svg>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const overlay = document.getElementById('manolitoSplash');
+    if (!overlay) return;
+    document.body.classList.add('manolito-splash-activo');
+
+    const field = document.getElementById('particles');
+    for (let i = 0; i < 28; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = 1.5 + Math.random() * 2.5;
+      p.style.width = size + 'px';
+      p.style.height = size + 'px';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.bottom = '-10px';
+      p.style.animationDuration = (5 + Math.random() * 7) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
+      p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
+      field.appendChild(p);
+    }
+
+    const logoContainer = document.getElementById('logo-container');
+    function tiltLogo(e) {
+      const x = e.clientX / window.innerWidth - 0.5;
+      const y = e.clientY / window.innerHeight - 0.5;
+      logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
+    }
+    document.addEventListener('mousemove', tiltLogo);
+
+    // NUEVO: El tutorial SOLO arranca si ambas condiciones físicas se cumplen
+    function evaluarArranqueTutorial() {
+      const cookiesAceptadas = localStorage.getItem('manolito_cookies_choice') === 'accepted';
+      const splashDestruido = document.getElementById('manolitoSplash') === null;
+      
+      if (cookiesAceptadas && splashDestruido && typeof window.iniciarTutorialManolito === 'function') {
+        window.iniciarTutorialManolito();
       }
+    }
+
+    // Escucha el evento del banner por si el usuario acepta las cookies DESPUÉS de que el splash desaparezca
+    document.addEventListener('cookiesAceptadas', evaluarArranqueTutorial);
+
+    let isLeaving = false;
+    function executeTransition() {
+      if (isLeaving) return;
+      isLeaving = true;
+      overlay.classList.add('leaving');
+      document.removeEventListener('mousemove', tiltLogo);
+      
+      setTimeout(() => {
+        overlay.remove();
+        document.body.classList.remove('manolito-splash-activo');
+        
+        // Evalúa el arranque justo en el instante en que el DOM elimina la portada
+        evaluarArranqueTutorial();
+      }, 2400); 
+    }
+
+    document.getElementById('entryBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      executeTransition();
+    });
+
+    overlay.addEventListener('dblclick', executeTransition);
+    const autoBoot = setTimeout(executeTransition, 7400);
+  })();
+</script>
+
+<!-- Banner del modo salud (sep-2026, orden de Sandro): cada sábado la web
+     se pone en verde por la salud. Este banner vive oculto por CSS todos
+     los días y solo js/ambientes.js, al detectar sábado, pone la clase
+     html.modo-salud que lo enseña. El domingo desaparece solo. -->
+<div class="salud-banner" role="note" aria-label="Fin de semana de la salud">
+  <span data-i18n="saludBannerTexto">En esta tierra, cuidar nuestro entorno es cuidar nuestro cuerpo.</span>
+  <a href="#defensa-sombras" data-i18n="saludBannerCta">Descubre por qué defendemos la salud ambiental y cada rincón de sombra.</a>
+</div>
+
+<div class="topbar">
+  <!-- El texto estático DEBE coincidir con el de i18n (clave tagline):
+     antes traía "MAPA NACIONAL · DATOS EN VIVO" y al segundo se cambiaba
+     por el doble de largo → la barra se re-envolvía y empujaba la página
+     (CLS 0,22-0,53 medido). Ahora nace ya con el texto final. -->
+<a href="index.html" class="wordmark"><span class="wordmark-name">Manolit∞ Aire</span><span data-i18n="tagline">El aire y la sombra de tu calle, en vivo</span></a>
+  <div class="topbar-right">
+    <!-- Modo accesible: nace con el HTML (2026-09-12, CLS). Antes lo
+         inyectaba i18n.js al segundo de cargar y la barra se re-envolvía,
+         empujando toda la página (shift de 0,19 medido). i18n.js lo adopta:
+         traduce el texto y refleja el estado guardado. -->
+    <button type="button" id="btn-accesibilidad" class="acc-mode-btn" aria-pressed="false">♿ Modo accesible</button>
+
+    <!-- Modos de lectura ARRIBA (sep-2026, orden de Sandro): nada más entrar
+         eliges cómo te lo cuenta Manolit. Son las mismas tarjetas de siempre
+         (mismo id, mismas clases, mismo script) pero en versión tecla,
+         pequeñas, para vivir en la barra sin hacerse las dueñas. -->
+    <div class="modes modes--compacta">
+      <div class="modes-label visually-hidden" data-i18n="modesLabel">¿Cómo quieres que te lo cuente?</div>
+      <div class="mode-grid" id="modeGrid">
+        <div class="mode-card active" data-mode="ciudadano">
+          <span class="mode-mark">01</span>
+          <div class="mode-title" data-i18n="mode_ciudadano_title">Ciudadano</div>
+          <div class="mode-sub" data-i18n="mode_ciudadano_sub">Claro y directo</div>
+        </div>
+        <div class="mode-card" data-mode="cientifico">
+          <span class="mode-mark">02</span>
+          <div class="mode-title" data-i18n="mode_cientifico_title">Científico</div>
+          <div class="mode-sub" data-i18n="mode_cientifico_sub">Con los datos</div>
+        </div>
+        <div class="mode-card" data-mode="yayo">
+          <span class="mode-mark">03</span>
+          <div class="mode-title" data-i18n="mode_yayo_title">Abuela / Abuelo</div>
+          <div class="mode-sub" data-i18n="mode_yayo_sub">Letra grande, sin prisa</div>
+        </div>
+        <div class="mode-card" data-mode="peque">
+          <span class="mode-mark">04</span>
+          <div class="mode-title" data-i18n="mode_peque_title">Peque (5 años)</div>
+          <div class="mode-sub" data-i18n="mode_peque_sub">Con dibujitos</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chip-toggle" id="paletteToggle" title="Elige la luz de tu paseo" role="group" aria-label="Elige la luz de tu paseo">
+      <button data-palette="cosmos" class="active" aria-label="Noche de verano (ámbar farola)"></button>
+      <button data-palette="amanecer" aria-label="Pleno julio (mandarina)"></button>
+      <button data-palette="salvia" aria-label="Alameda sombreada (verde)"></button>
+      <button data-palette="lavanda" aria-label="Jacarandá de mayo (violeta)"></button>
+      <button data-palette="coral" aria-label="Flamenco de feria (coral)"></button>
+    </div>
+    <button class="icon-btn" id="themeToggle" title="Modo claro/oscuro" aria-label="Modo claro/oscuro">☾</button>
+    <div class="chip-toggle notranslate" id="langToggle" translate="no" role="group" aria-label="Idioma">
+      <button data-lang="es" class="active">ES</button>
+      <button data-lang="ca">CA</button>
+      <button data-lang="eu">EU</button>
+      <button data-lang="gl">GL</button>
+      <button data-lang="en">EN</button>
+      <button data-lang="ka">KA</button>
+    </div>
+    <!-- Botón mini "Act. mapa": nace AQUÍ, con el primer pintado (si lo
+         inyecta el JS tarde, la barra crece y empuja toda la página = CLS).
+         shadows-route.js lo adopta y le da la lógica; el texto corto y
+         nowrap evitan que la traducción re-envuelva la barra. -->
+    <button type="button" id="rsBtnActualizarOSM" class="notranslate" translate="no"
+            title="Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona"
+            aria-label="Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona"
+            data-i18n="osmRefreshBtn" data-i18n-aria-label="osmRefreshTitle">↻ Act. mapa</button>
+  </div>
+
+  <!-- Zoom de letra de abuela/abuelo ARRIBA (sep-2026, orden de Sandro):
+       antes esperaba en el hero, abajo, y quien lo necesita no lo veía.
+       Ahora vive como última fila de la barra, fija, a mano en cualquier
+       punto del paseo. Solo aparece con el modo yayo (la regla CSS de
+       siempre lo muestra) y fuera de él no ocupa ni un píxel. -->
+  <div class="yayo-zoom-controls" role="group" aria-label="Tamaño de la letra">
+    <button type="button" class="yayo-zoom-btn" id="fontDown" aria-label="Letra más pequeña">A−</button>
+    <button type="button" class="yayo-zoom-btn" id="fontUp" aria-label="Letra más grande">A+</button>
+  </div>
+</div>
+
+<!-- Contador vivo del agua publicitaria, junto al título del mapa (sep-2026).
+     Coste: UNA escritura de texto por segundo (nada de animaciones, ni canvas,
+     ni requestAnimationFrame); el color cambia por escalones con clases CSS.
+     Pausado si la pestaña queda oculta y limpio al salir: batería ~0. -->
+<style>
+  .agua-vivo-head{
+    margin:2px 0 0; font-size:0.72rem; line-height:1.45; opacity:0.85;
+    font-family:inherit;
+  }
+  .agua-vivo-head .avh-num{
+    font-family:'IBM Plex Mono',monospace; font-size:0.95rem;
+    color:#E8A33D; font-variant-numeric:tabular-nums; margin:0 2px;
+  }
+  .agua-vivo-head .avh-num.avh-2{ color:#FF6B1A; }
+  .agua-vivo-head .avh-num.avh-3{ color:#F04A17; }
+  .agua-vivo-head .avh-num.avh-4{ color:#E11D2E; font-weight:700; }
+  .agua-vivo-head .avh-calc{
+    display:block; font-size:0.62rem; opacity:0.6; letter-spacing:0.01em;
+  }
+  @media (min-width:640px){
+    .agua-vivo-head{ text-align:right; margin-top:0; }
+    .map-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  }
+</style>
+<div class="map-section" id="main-content" tabindex="-1">
+  <div class="map-head">
+    <div class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</div>
+    <p class="agua-vivo-head" id="aguaVivoHead" role="status" aria-live="off">
+      <span data-i18n="aguaVivoLabel">Anuncios gastando agua a nivel mundial:</span>
+      <strong class="avh-num" id="aguaVivoNum">0 L</strong>
+      <span class="avh-calc" data-i18n="aguaVivoCalc">300.000M de impresiones al día × ~1 MB × 0,06 kWh/GB × 1,8 L/kWh ≈ 375 L/s</span>
+    </p>
+  </div>
+
+<div class="rs-form">
+  <div class="rs-field">
+    <label for="rsOrigen" class="visually-hidden" data-i18n="origin">Origen</label>
+    <input type="text" id="rsOrigen" name="origen" placeholder="Punto de origen" data-i18n-placeholder="originPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasOrigen" aria-autocomplete="list">
+    <ul class="rs-sugerencias" id="rsSugerenciasOrigen" role="listbox" data-i18n-aria-label="origin" aria-label="Origen"></ul>
+  </div>
+  <div class="rs-field">
+    <label for="rsDestino" class="visually-hidden" data-i18n="destiny">Destino</label>
+    <input type="text" id="rsDestino" name="destino" placeholder="Punto de destino" data-i18n-placeholder="destinationPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasDestino" aria-autocomplete="list">
+    <ul class="rs-sugerencias" id="rsSugerenciasDestino" role="listbox" data-i18n-aria-label="destiny" aria-label="Destino"></ul>
+  </div>
+  <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar ruta</button>
+</div>
+    <div id="rsStatus" class="chat-status" style="margin:8px 0 14px;" role="status" aria-live="polite" aria-atomic="true"></div>
+    <!-- Resumen accesible de la ruta: el mapa es un canvas y un lector de
+         pantalla no puede verlo; esta región role="status" lleva siempre el
+         mismo dato en texto (distancia, duración, % sombra y posición del
+         sol). La rellena shadows-route.js con los mismos datos del cálculo. -->
+    <div id="rsLiveSummary" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Indicaciones paso a paso accesibles: la misma información que se ve
+         en el mapa, en texto ordenado, con lectura por voz (TTS del propio
+         navegador, sin servicios externos). Pensado para personas ciegas o
+         con baja visión, y útil para cualquiera. -->
+    <section id="rsPasosSection" class="rs-pasos" aria-labelledby="rsPasosTitulo" hidden>
+      <div class="rs-pasos-cabecera">
+        <h3 id="rsPasosTitulo" data-i18n="stepsTitle">Indicaciones paso a paso</h3>
+        <button id="rsBtnEscucharPasos" type="button" class="rs-btn-escuchar" aria-pressed="false" data-i18n="stepsListen">Escuchar indicaciones</button>
+      </div>
+      <ol id="rsListaPasos" class="rs-lista-pasos"></ol>
+    </section>
+
+<div class="map-wrap">
+  <div id="shadowRouteMap">
+  </div>
+</div>
+
+<!-- Las casillas de capas ya no van sueltas aquí (sep-2026, orden de
+     Sandro): viven dentro del widget de posición solar, más abajo,
+     junto a los botones de mapa base (Mapa oscuro, Mapa IGN, Catastro
+     3D). Nada flota encima del mapa. -->
+
+<div class="rs-planetario" id="rsPlanetario" data-cielo="dia">
+  <!-- Capas del mapa integradas en el widget de posición solar (sep-2026,
+       orden de Sandro): las casillas de siempre y, debajo, los botones
+       de mapa base que shadows-route.js trae aquí (Mapa oscuro, Mapa
+       IGN y Catastro 3D). Todo en una fila elegante que se apila en
+       móvil, sin cambiar el tamaño de la cúpula. -->
+  <div class="rs-planetario-capas" id="rsPlanetarioCapas">
+    <div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
+      <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas">▾ Capas</button>
+      <div class="rs-layer-toggles-lista" id="rsListaCapas">
+      <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
+      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
+           es lo que más calienta el móvil; ahora solo arranca si el usuario
+           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
+           pero la CPU está en reposo hasta que tú decidas. -->
+      <label><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
+      <label><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
+      <label><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
+      <label><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
+      <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
+           Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
+      <label><input type="checkbox" id="rsToggleMicroclima"> <span>Microclima · estimado</span></label>
+      </div>
+    </div>
+    <div class="rs-capas-mapas" id="rsCapasMapas"></div>
+  </div>
+
+<!-- ¿No hay 3D en tu zona? (sep-2026, ADITIVO): cómo colaborar en
+     OpenStreetMap para que tu barrio salga en Manolit∞. Va PLEGADO: se
+     despliega solo al pulsar el título (details/summary nativo, sin JS). -->
+<section class="map-section" id="rsColaboraOSM">
+<details>
+  <summary id="rsColaboraTitle" class="map-title" style="font-size:1.15rem;cursor:pointer;list-style:none;user-select:none;">
+    ¿No hay 3D en tu zona? <span style="font-size:0.8rem;font-weight:400;opacity:0.75;">pulsa y te cuento cómo arreglarlo en 5 minutos ▾</span> 
+
+  </summary>
+  <div class="sci-panel" style="display:block;padding:14px 16px;line-height:1.55;margin-top:10px;">
+    <p style="margin:0 0 10px;">
+      Manolit∞ dibuja los edificios y los árboles con los datos de
+      <strong>OpenStreetMap (OSM)</strong>, el mapa libre que hacemos entre
+      todos. Si tu calle sale vacía, <strong>puedes pintarla tú en 5
+      minutos</strong> y le haces sombra a todo el barrio:
+    </p>
+    <ol style="margin:0 0 10px;padding-left:1.3em;">
+      <li style="margin-bottom:6px;">
+        Entra en <a href="https://www.openstreetmap.org" rel="noopener">openstreetmap.org</a>,
+        crea una cuenta gratis y pulsa <strong>Editar</strong>.
+      </li>
+      <li style="margin-bottom:6px;">
+        <strong>Árboles:</strong>
+        <ul style="margin:4px 0 0;padding-left:1.2em;">
+          <li><em>Árbol suelto</em> → dibuja un <strong>punto</strong> y ponle la etiqueta
+            <code>natural=tree</code>. Si sabes la especie, mejor:
+            <code>species=Naranjo amargo</code> o <code>genus=Citrus</code>
+            (también vale <code>wikipedia=es:Naranjo</code>). Así sale con su
+            copa, su color y su fruta de verdad.</li>
+          <li><em>Calle con hilera de árboles</em> → dibuja <strong>una sola
+            línea</strong> por la acera con <code>natural=tree_row</code>.
+            No pongas árbol por árbol: Manolit∞ los coloca solos, uno cada
+            ~9&nbsp;m, siguiendo tu línea.</li>
+        </ul>
+      </li>
+      <li style="margin-bottom:6px;">
+        <strong>Edificios:</strong> dibuja el contorno y pon
+        <code>building=yes</code>. Si sabes las plantas, añade
+        <code>building:levels=4</code>. Con eso la sombra sale a la altura
+        real y no “por defecto”.
+      </li>
+      <li>Guarda los cambios… y listo.</li>
+    </ol>
+    <p style="margin:0;">
+      <strong>¿Cuándo sale en Manolit∞?</strong> No te preocupes: el mapa se
+      actualiza solo <strong>cada semana</strong>, así que tu aporte aparece
+      aunque no lo veas al momento. Y si pasa la semana y no sale, o te urge
+      para algo, <a href="https://github.com/sandrow007/manolito-aire/issues" rel="noopener">escríbeme desde aquí</a>
+      y te meto la actualización a mano. 🌳
+    </p>
+  </div>
+</details>
+</section>
+  <!-- Bloque sol: la cúpula y su hora van al final del widget,
+       como una sola pieza (sep-2026, orden de Sandro). -->
+  <div class="rs-planetario-sol">
+  <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
+    <defs>
+      <radialGradient id="rsGradTierra" cx="35%" cy="30%" r="85%">
+        <stop offset="0%" stop-color="#bfe6ff"/>
+        <stop offset="45%" stop-color="#3a8fd6"/>
+        <stop offset="100%" stop-color="#0c2f63"/>
+      </radialGradient>
+      <radialGradient id="rsGradSol" cx="40%" cy="35%" r="85%">
+        <stop offset="0%" stop-color="#fffbe6"/>
+        <stop offset="55%" stop-color="#ffd76a"/>
+        <stop offset="100%" stop-color="#ff9a1f"/>
+      </radialGradient>
+      <radialGradient id="rsGradLuna" cx="38%" cy="32%" r="90%">
+        <stop offset="0%" stop-color="#ffffff"/>
+        <stop offset="60%" stop-color="#cfd8e3"/>
+        <stop offset="100%" stop-color="#8b98a9"/>
+      </radialGradient>
+    </defs>
+    <circle class="rs-planetario-cielo" cx="80" cy="80" r="74"/>
+    <!-- Las estrellas ya no son puntitos blancos fijos: las genera
+         planetario.js como luces cuánticas que titilan (grupo
+         #rsEstrellasCuanticas, insertado aquí encima del cielo). -->
+    <circle cx="80" cy="80" r="74" fill="none" stroke="var(--line)" stroke-width="1"/>
+    <circle cx="80" cy="80" r="60" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="1 3" opacity="0.8"/>
+    <circle cx="80" cy="80" r="46" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="2 3"/>
+    <text x="80" y="15" text-anchor="middle" class="rs-sol-cardinal">N</text>
+    <text x="147" y="84" text-anchor="middle" class="rs-sol-cardinal">E</text>
+    <text x="80" y="153" text-anchor="middle" class="rs-sol-cardinal">S</text>
+    <text x="13" y="84" text-anchor="middle" class="rs-sol-cardinal">O</text>
+    <g id="rsLunaOrbe"><circle r="5" fill="url(#rsGradLuna)"/></g>
+    <g id="rsTierraOrbe" transform="translate(80 80)">
+      <circle r="11" fill="url(#rsGradTierra)"/>
+      <g class="rs-tierra-giro">
+        <ellipse cx="-3.5" cy="-2" rx="4" ry="2.6" fill="#3fa060" opacity="0.55"/>
+        <ellipse cx="3.5" cy="3" rx="3" ry="2" fill="#3fa060" opacity="0.45"/>
+      </g>
+      <circle r="11" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+    </g>
+    <g id="rsSolOrbe"><circle r="8" fill="url(#rsGradSol)"/></g>
+  </svg>
+  <div class="rs-planetario-lado">
+    <div class="rs-planetario-info" id="rsPlanetarioInfo">--</div>
+  </div>
+  </div>
+  <!-- Botón de acceso a la herramienta de Renderizado LiDAR (nube de puntos 3D).
+       Es un enlace externo de la familia Manolit∞, con estilo de botón para que
+       no se vea la URL y quede integrado con el diseño de la página.
+       Orden lógico del widget (sep-2026, orden de Sandro): 1) planetario
+       1) las capas del mapa, 2) el planetario, 3) este acceso LiDAR. -->
+  <a class="rs-btn-lidar" href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+      <polyline points="3.29 7 12 12 20.71 7"/>
+      <line x1="12" y1="22" x2="12" y2="12"/>
+    </svg>
+    <span>Renderizado LiDAR</span>
+  </a>
+
+</div>
+
+<section id="rsAqiPanel" style="margin-top:16px;" aria-labelledby="rsAqiTitle">
+  <h2 id="rsAqiTitle" class="visually-hidden" data-i18n="aqiTitle">Calidad del aire en el punto de origen</h2>
+  <div id="rsAqiContent" style="display:none;">
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;">
+      <span id="rsAqiValue" style="font-family:var(--font-display);font-weight:700;font-size:2rem;color:var(--sky-deep);">--</span>
+      <span id="rsAqiCategory" style="font-family:var(--font-mono);font-size:0.72rem;padding:3px 9px;border-radius:999px;"></span>
+    </div>
+    <dl style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0;">
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">PM2.5</dt><dd style="margin:0;"><span id="rsPm25">--</span></dd></div>
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">PM10</dt><dd style="margin:0;"><span id="rsPm10">--</span></dd></div>
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">O₃</dt><dd style="margin:0;"><span id="rsO3">--</span></dd></div>
+      <div class="sci-panel" style="display:block;padding:8px 12px;"><dt style="font-size:0.65rem;color:var(--sky-mid);">NO₂</dt><dd style="margin:0;"><span id="rsNo2">--</span></dd></div>
+    </dl>
+  </div>
+</section>
+</div>
+
+<div class="hero">
+  <div class="city-picker" id="cityPickerContainer">
+    <button class="city-dropdown-btn" id="cityDropdownBtn" aria-haspopup="listbox" aria-expanded="false">Sevilla</button>
+    <ul class="city-dropdown-list" id="cityDropdownList" role="listbox" aria-label="Ciudad">
+      <li data-value="sevilla" class="selected">Sevilla</li>
+      <li data-value="madrid">Madrid</li>
+      <li data-value="barcelona">Barcelona</li>
+      <li data-value="valencia">Valencia</li>
+      <li data-value="laspalmas">Las Palmas de Gran Canaria</li>
+      <li data-value="palma">Palma de Mallorca</li>
+      <li data-value="ceuta">Ceuta</li>
+      <li data-value="melilla">Melilla</li>
+      <li data-value="pamplona">Pamplona</li>
+      <li data-value="santiago">Santiago de Compostela</li>
+      <li data-value="zaragoza">Zaragoza</li>
+      <li data-value="malaga">Málaga</li>
+      <li data-value="eivissa">Eivissa</li>
+      <li data-value="menorca">Menorca</li>
+      <li data-value="badajoz">Badajoz</li>
+    </ul>
+  </div>
+
+  <div class="orb-wrap">
+    <div class="orb-ring"></div>
+    <div class="orb"><div class="orb-face" id="orbFace">bien</div></div>
+    <div class="peque-character" id="pequeCharacter">
+      <div class="peque-cloud" id="pequeCloudSvg"></div>
+      <div class="peque-message" id="pequeMessage">El aire está contento!</div>
+    </div>
+  </div>
+
+  <div class="human-line" id="humanLine">Cargando el aire de tu ciudad…</div>
+  <div class="sub-line" id="subLine">Un momento.</div>
+  <div class="tech-readout" id="techReadout"></div>
+
+  <div class="sci-panel" id="sciPanel">
+    <table>
+      <tr><td>PM2.5</td><td id="sciPM25">-- µg/m³</td></tr>
+      <tr><td>PM10</td><td id="sciPM10">-- µg/m³</td></tr>
+      <tr><td>NO₂</td><td id="sciNO2">-- µg/m³</td></tr>
+      <tr><td>O₃</td><td id="sciO3">-- µg/m³</td></tr>
+      <tr><td>SO₂</td><td id="sciSO2">-- µg/m³</td></tr>
+      <tr><td>CO</td><td id="sciCO">-- µg/m³</td></tr>
+      <tr><td>Índice UV</td><td id="sciUV">--</td></tr>
+      <tr><td>ICA</td><td id="sciICA">--</td></tr>
+    </table>
+    <div class="sci-updated" id="sciUpdated">Actualizado: --</div>
+  </div>
+
+  <br>
+  <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
+</div>
+
+<!-- Los enlaces de familia bajan aquí (sep-2026, orden de Sandro): antes
+     vivían en la barra de arriba y ahora que los modos ocupan ese sitio,
+     ellos esperan tras el hero, centrados y con el mismo estilo de siempre. -->
+<nav class="family-zone" aria-label="La familia Manolit y por qué existe esto">
+  <a class="family-link" href="about.html" data-i18n="aboutLink">¿Por qué existe esto?</a>
+  <a class="family-link" href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a>
+  <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
+  <a class="family-link" href="manolito-aire-comparativa.html" target="_self">Comparativa</a>
+  <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener">Que es Manolit∞ ©</a>
+</nav>
+
+<!-- Sección reivindicativa de los sábados (sep-2026, orden de Sandro):
+     "en defensa de las sombras por la salud". Igual que el banner, solo
+     se ve cuando js/ambientes.js pone html.modo-salud (cada sábado).
+     DESPLEGABLE ESTRICTO (25-sep, orden de Sandro): nace CERRADO y solo
+     el usuario lo abre pulsando el resumen; otro clic y se cierra del
+     todo. La animación de apertura/cierre es CSS puro (grid rows). -->
+<details class="salud-section" id="defensa-sombras" aria-labelledby="saludH2">
+  <summary class="salud-resumen-card">
+    <span class="salud-kicker" data-i18n="saludKicker">Fin de semana de la salud</span>
+    <span class="salud-resumen-titulo" id="saludH2" data-i18n="saludH2">En defensa de las sombras: Salud Ambiental Urbana.</span>
+  </summary>
+  <div class="salud-contenido">
+    <div class="salud-contenido-interno salud-card">
+      <!-- Sello oficial "SIMULADOR DE SOMBRAS · MANOLIT∞" (25-sep-2026,
+           orden de Sandro). Geometría EXACTA del archivo original, solo
+           los colores pasan a variables: corporativos por defecto y
+           verdes mientras dure el modo salud (ambientes.css). No existe
+           como archivo .svg suelto, va solo incrustado aquí. -->
+      <div class="salud-sello" role="img" aria-label="Sello oficial Manolit∞, simulador de sombras">
+        <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <path id="arcoSup" d="M 70, 200 A 130 130 0 0 1 330 200" />
+            <path id="arcoInf" d="M 330, 200 A 130 130 0 0 1 70 200" />
+          </defs>
+          <circle class="s-granate" cx="200" cy="200" r="190" fill="none" stroke-width="6"/>
+          <circle class="s-granate" cx="200" cy="200" r="180" fill="none" stroke-width="2"/>
+          <circle class="s-granate" cx="200" cy="200" r="105" fill="none" stroke-width="2" stroke-dasharray="6 4"/>
+          <text class="s-tinta-fill" font-family="monospace" font-size="18" font-weight="600" letter-spacing="3">
+            <textPath href="#arcoSup" startOffset="50%" text-anchor="middle">MANOLIT∞</textPath>
+          </text>
+          <text class="s-tinta-fill" font-family="monospace" font-size="15" font-weight="600" letter-spacing="2">
+            <textPath href="#arcoInf" startOffset="50%" text-anchor="middle">SIMULADOR DE SOMBRAS</textPath>
+          </text>
+          <g transform="translate(140, 104) scale(0.60)">
+            <circle class="s-sol" cx="100" cy="150" r="45" fill="none" stroke-width="2.5"/>
+            <path class="s-agua" d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke-width="4" stroke-linecap="round"/>
+            <path class="s-agua" d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke-width="3" stroke-linecap="round"/>
+            <path class="s-granate" d="M 100,149 C 75,124 75,174 100,149 C 125,124 125,174 100,149 Z" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="s-granate" d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke-width="5" stroke-linejoin="round"/>
+          </g>
+        </svg>
+      </div>
+      <!-- Stickers de salud (26-sep-2026, archivo SVG que paso Sandro):
+           seis iconos circulares (sol, sombra, salud, agua, temp. y
+           prevencion) con los colores de marca. Geometria verbatim del
+           archivo, solo se quito el metadata c2pa (firma, no dibujo). -->
+      <div class="salud-stickers" role="img" aria-label="Iconos de salud ambiental: sol, sombra, salud, agua, temperatura y prevención">
+        <svg width="100%" viewBox="0 0 680 220" xmlns="http://www.w3.org/2000/svg">
+        <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Ejemplos de stickers SVG relacionados con salud para Manolit Aire</title>
+        <desc style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Seis iconos circulares estilo sticker: sol, sombra/árbol, corazón, gota de agua, termómetro y escudo, en los colores de marca de Manolit.</desc>
+        <g transform="translate(35,20)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+        <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <circle cx="45" cy="45" r="16" fill="#E6A100" style="fill:rgb(230, 161, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <g stroke="#E6A100" stroke-width="3" stroke-linecap="round" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+        <line x1="45" y1="10" x2="45" y2="18" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <line x1="45" y1="72" x2="45" y2="80" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <line x1="10" y1="45" x2="18" y2="45" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <line x1="72" y1="45" x2="80" y2="45" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <line x1="20" y1="20" x2="26" y2="26" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <line x1="64" y1="64" x2="70" y2="70" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <line x1="70" y1="20" x2="64" y2="26" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <line x1="26" y1="64" x2="20" y2="70" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        </g>
+        <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">sol</text>
+        </g>
+        <g transform="translate(145,20)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+        <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <path d="M45 22 C30 22 20 34 20 48 C20 58 28 65 38 66 L38 76 L52 76 L52 66 C62 65 70 58 70 48 C70 34 60 22 45 22 Z" fill="#007A87" style="fill:rgb(0, 122, 135);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <rect x="42" y="66" width="6" height="12" fill="#5a4632" style="fill:rgb(90, 70, 50);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">sombra</text>
+        </g>
+        <g transform="translate(255,20)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+        <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <path d="M45 68 C25 52 16 40 16 28 C16 18 24 12 32 12 C38 12 43 15 45 20 C47 15 52 12 58 12 C66 12 74 18 74 28 C74 40 65 52 45 68 Z" fill="#7A0016" transform="translate(-2,2) scale(0.72) translate(20,10)" style="fill:rgb(122, 0, 22);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <line x1="45" y1="35" x2="45" y2="55" stroke="#0d1a15" stroke-width="3" style="fill:rgb(0, 0, 0);stroke:rgb(13, 26, 21);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <line x1="35" y1="45" x2="55" y2="45" stroke="#0d1a15" stroke-width="3" style="fill:rgb(0, 0, 0);stroke:rgb(13, 26, 21);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">salud</text>
+        </g>
+        <g transform="translate(365,20)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+        <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <path d="M45 18 C45 18 26 42 26 56 C26 67 34.6 76 45 76 C55.4 76 64 67 64 56 C64 42 45 18 45 18 Z" fill="#007A87" style="fill:rgb(0, 122, 135);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <ellipse cx="38" cy="52" rx="4" ry="6" fill="#0d1a15" opacity="0.25" style="fill:rgb(13, 26, 21);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.25;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">agua</text>
+        </g>
+        <g transform="translate(475,20)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+        <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <rect x="40" y="18" width="10" height="42" rx="5" fill="#3a2a1a" style="fill:rgb(58, 42, 26);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <circle cx="45" cy="66" r="12" fill="#7A0016" style="fill:rgb(122, 0, 22);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <rect x="41" y="30" width="8" height="34" fill="#7A0016" style="fill:rgb(122, 0, 22);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">temp.</text>
+        </g>
+        <g transform="translate(585,20)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+        <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <path d="M45 16 L70 26 L70 46 C70 62 59 72 45 78 C31 72 20 62 20 46 L20 26 Z" fill="#E6A100" style="fill:rgb(230, 161, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <path d="M38 45 L44 51 L54 37" stroke="#0d1a15" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:rgb(13, 26, 21);color:rgb(11, 11, 11);stroke-width:3.5px;stroke-linecap:round;stroke-linejoin:round;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+        <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">prevención</text>
+        </g>
+        </svg>
+      </div>
+      <p data-i18n="saludP1">Cruzar de la acera del sol a la de la sombra en pleno verano andaluz puede suponer diez grados de diferencia en tu cuerpo. Eso no es una anécdota, es salud ambiental. El asfalto y el hormigón retienen el calor y transforman nuestras calles en trampas térmicas que agreden al organismo.</p>
+      <p data-i18n="saludP2">Ni siquiera Hércules, fundador mítico de Sevilla, era invencible. Era un semidiós y, como humano, tenía fragilidades físicas que debía proteger antes de caer. Nosotros no buscamos soluciones médicas tardías; buscamos prevención ambiental. Cada árbol y cada sombra es medicina urbana que modifica el clima de la calle para proteger a nuestra gente.</p>
+      <!-- Aviso de precision y pie de recursos oficiales (25-sep-2026,
+           orden de Sandro). La nota recuerda que el simulador no es
+           exacto al 100% y que ante el sol manda el sentido comun;
+           abajo, dos accesos directos a portales de la Junta de
+           Andalucia por si hace falta consejo sanitario o una cita
+           en fin de semana. Textos en js/i18n.js (6 idiomas). Los
+           enlaces abren en pestaña nueva por el <base> de la pagina. -->
+      <div class="salud-recursos">
+        <span class="salud-recursos-etiqueta" data-i18n="saludRecursos">Recursos oficiales</span>
+        <a class="salud-recurso" href="https://www.juntadeandalucia.es/organismos/presidenciasanidadyemergencias.html" rel="noopener" data-i18n="saludLinkSanidad">Consejería de Sanidad de la Junta</a>
+        <a class="salud-recurso" href="https://www.juntadeandalucia.es/organismos/presidenciasanidadyemergencias/servicios/salud-responde.html" rel="noopener" data-i18n="saludLinkResponde">Consultas y Gestión de Citas (Salud Responde)</a>
+      </div>
+      <p class="salud-nota" data-i18n="saludNota">Aviso de Manolito: Recuerda que este simulador es una herramienta digital para ayudarte a planificar, pero no es 100% preciso y las sombras reales de la calle pueden variar. Por eso la salud ambiental depende también de tu sentido común: ante la duda, busca siempre el refugio fresco.</p>
+    </div>
+  </div>
+</details>
+
+<div class="map-section">
+  <div class="map-head">
+    <div class="map-title" data-i18n="mapTitle">El aire de España, ahora mismo</div>
+    <div class="chip-toggle" id="regionJump">
+      <button data-r="peninsula" class="active" data-i18n="region_peninsula">Península</button>
+      <button data-r="canarias" data-i18n="region_canarias">Canarias</button>
+      <button data-r="baleares" data-i18n="region_baleares">Baleares</button>
+      <button data-r="ceutamelilla" data-i18n="region_ceutamelilla">Ceuta / Melilla</button>
+    </div>
+  </div>
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="legend">
+      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-good)"></span> <span data-i18n="legendGood">Buena</span></div>
+      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-mid)"></span> <span data-i18n="legendMid">Moderada</span></div>
+      <div class="legend-row"><span class="legend-dot" style="background:var(--breath-bad)"></span> <span data-i18n="legendBad">Mala</span></div>
+      <div class="legend-note" data-i18n="legendNote">Los puntos son estaciones reales. El color entre ciudades es estimado, no medido.</div>
+    </div>
+  </div>
+  <div class="status-line" id="statusLine">Cargando datos en vivo…</div>
+</div>
+
+<div class="forecast-section">
+  <div class="map-head">
+    <div class="map-title">Evolución del aire · <span id="forecastCityName">Sevilla</span></div>
+  </div>
+  <div class="chart-card">
+    <div id="airChart"></div>
+    <div class="chart-legend">
+      <span><i class="dot-hist"></i> Últimas 48h (dato real)</span>
+      <span><i class="dot-fore"></i> Próximas 48h (pronóstico Copernicus/CAMS)</span>
+    </div>
+  </div>
+
+  <div class="quantum-card">
+    <div class="quantum-head">
+      <span class="quantum-badge">Manolit∞ Cuántico</span>
+      <span class="quantum-sub">pronóstico simulado para los próximos 5 días, contado sin humo</span>
+    </div>
+    <div id="quantumBars" class="quantum-bars"></div>
+
+    <div class="week-label"></div>
+    <div id="quantumWeek" class="quantum-week"></div>
+
+    <p class="quantum-disclaimer">
+      Esto NO es una predicción meteorológica oficial. Es una simulación matemática
+      (formalismo cuántico simulado por software, sin hardware cuántico real) que calcula
+      probabilidades a partir del pronóstico real de arriba. Para decisiones de salud,
+      guíate por el dato del gráfico y por fuentes oficiales, no por este número.
+    </p>
+  </div>
+</div>
+<div class="map-section" id="ecoAgua" style="border:1px solid rgba(14,59,71,0.18); background:linear-gradient(135deg, rgba(23,120,138,0.08), rgba(255,107,26,0.06));">
+  <div class="map-head">
+    <div class="map-title" data-i18n="aguaTitulo">El agua que no se ve</div>
+  </div>
+  <p style="margin:4px 0 10px; line-height:1.6;"><span data-i18n="aguaP1">Esto ya no es una estimación: la telemetría real de los últimos 30 días dice </span><strong data-i18n="aguaS1">176.444 peticiones, 1,80 GB movidos y 4.819 visitas</strong><span data-i18n="aguaP2">. O sea, </span><strong data-i18n="aguaS2">0,38 MB y unos 2 mililitros de agua por visita</strong><span data-i18n="aguaP3">, medidos. Mientras tanto, la publicidad programática del mundo gasta </span><strong data-i18n="aguaS3">unos 375 litros cada segundo</strong><span data-i18n="aguaP4"> en subastas de anuncios que nadie pidió: al año, miles de piscinas olímpicas.</span></p>
+  <div id="ecoAguaVivo" role="status" aria-live="off"
+       style="font-variant-numeric:tabular-nums; font-weight:700; color:var(--sky-deep,#0E3B47); background:var(--surface, rgba(255,255,255,0.65)); border-radius:12px; padding:10px 14px; margin-bottom:10px;">
+    Desde que abriste esta página, los anuncios del mundo llevan gastados 0 litros de agua. Tu visita aquí: ~2 ml, medidos.
+  </div>
+  <a href="manolito-aire-comparativa.html#agua" target="_self" data-i18n="aguaLink" style="font-weight:700; color:var(--accent,#FF6B1A);">
+    Ver las cuentas completas, con los supuestos a la vista →
+  </a>
+</div>
+
+<script>
+// Contador del agua de la publicidad (sep-2026): 300.000 millones de
+// impresiones/día x ~1 MB de subastas por impresión, 0,06 kWh/GB y
+// 1,8 L/kWh -> ~375 L/s. Local, sin peticiones, pausado si la pestaña
+// queda oculta y limpio al salir.
+// Sincronizado con la comparativa: el arranque vive en sessionStorage
+// (clave manolito_agua_inicio), así el conteo sigue al cambiar de página
+// dentro de la misma pestaña y vuelve a cero solo al cerrarla. También
+// se cuenta la visita (manolito_agua_visitas) para el cálculo de tu agua.
+(function () {
+  var el = document.getElementById('ecoAguaVivo');
+  if (!el) return;
+  var inicio;
+  try {
+    inicio = Number(sessionStorage.getItem('manolito_agua_inicio')) || 0;
+    if (!inicio) { inicio = Date.now(); sessionStorage.setItem('manolito_agua_inicio', String(inicio)); }
+    sessionStorage.setItem('manolito_agua_visitas', String((Number(sessionStorage.getItem('manolito_agua_visitas')) || 0) + 1));
+  } catch (e) { inicio = Date.now(); }
+  // Traducible (sep-2026): la frase sale de la plantilla aguaVivoTpl del
+  // idioma activo y el numero se formatea con su locale. Se refresca al
+  // cambiar de idioma y una vez al terminar de cargar el DOM.
+  var LOCALES = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+  var TPL_ES = 'Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados {n} litros de agua. Tu visita aquí: ~2 ml, medidos.';
+  var tpl = TPL_ES, locale = 'es-ES';
+  function refrescarIdioma() {
+    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'es') || 'es';
+    locale = LOCALES[lang] || 'es-ES';
+    var m = (typeof window.getMessages === 'function' ? window.getMessages() : null) || {};
+    tpl = m.aguaVivoTpl || TPL_ES;
+  }
+  refrescarIdioma();
+  document.addEventListener('DOMContentLoaded', refrescarIdioma);
+  document.addEventListener('langChanged', refrescarIdioma);
+  var id = setInterval(function () {
+    if (document.hidden) return;
+    var litros = Math.round((Date.now() - inicio) / 1000 * 375);
+    el.textContent = tpl.replace('{n}', litros.toLocaleString(locale));
+  }, 250);
+  window.addEventListener('pagehide', function () { clearInterval(id); });
+})();
+</script>
+
+<script>
+// Contador de cabecera (sep-2026): mismo dato (~375 L/s) pero pensado para
+// no gastar NADA: setInterval de 1 s (no RAF), una sola escritura de texto,
+// color por escalones con clases (sin transiciones por frame), pausado con
+// la pestaña oculta y clearInterval al salir.
+(function () {
+  var num = document.getElementById('aguaVivoNum');
+  if (!num) return;
+  var inicio;
+  try {
+    inicio = Number(sessionStorage.getItem('manolito_agua_inicio')) || 0;
+    if (!inicio) { inicio = Date.now(); sessionStorage.setItem('manolito_agua_inicio', String(inicio)); }
+  } catch (e) { inicio = Date.now(); }
+  // El numero se formatea con el locale del idioma activo (sep-2026).
+  var LOCALES = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+  var locale = 'es-ES';
+  function refrescarIdioma() {
+    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'es') || 'es';
+    locale = LOCALES[lang] || 'es-ES';
+  }
+  refrescarIdioma();
+  document.addEventListener('DOMContentLoaded', refrescarIdioma);
+  document.addEventListener('langChanged', refrescarIdioma);
+  var escalon = 0;
+  var id = setInterval(function () {
+    if (document.hidden) return;
+    var litros = Math.round((Date.now() - inicio) / 1000 * 375);
+    num.textContent = litros.toLocaleString(locale) + ' L';
+    var e = litros < 1500 ? 0 : litros < 15000 ? 1 : litros < 100000 ? 2 : 3;
+    if (e !== escalon) {
+      escalon = e;
+      num.className = 'avh-num' + (e ? ' avh-' + (e + 1) : '');
+    }
+  }, 1000);
+  window.addEventListener('pagehide', function () { clearInterval(id); });
+})();
+</script>
+
+<!-- Preguntas frecuentes: con details/summary, sin JavaScript, bateria cero -->
+<section class="faq" id="faq" aria-labelledby="faqTitulo">
+  <h2 id="faqTitulo" data-i18n="faqTitle">Preguntas frecuentes</h2>
+  <p class="faq-intro" data-i18n="faqIntro">Las que me hacéis de verdad, contestadas sin rodeos.</p>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ1">¿Esto es gratis de verdad?</summary>
+    <p data-i18n="faqA1">Sí. Y lo seguirá siendo. No hay registro, no hay truco y no hay una versión de pago escondida. Entras, miras el aire y te vas.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ2">¿Por qué no hay anuncios?</summary>
+    <p data-i18n="faqA2">Porque los anuncios de hoy no son carteles. Son subastas que gastan agua y batería a tus espaldas cada vez que cargas una página. Aquí no entran. El proyecto se sostiene con el apoyo voluntario de la gente en Ko-fi.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ3">¿De dónde salen los datos del aire?</summary>
+    <p data-i18n="faqA3">De las estaciones oficiales repartidas por España y de los modelos europeos de Copernicus, servidos por Open-Meteo. Datos públicos y científicos, nada inventado.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ4">¿Lo de las sombras es real?</summary>
+    <p data-i18n="faqA4">Sí. Se calcula con los edificios de OpenStreetMap y la posición del sol en cada minuto. Si el mapa dice sombra, es que un edificio de verdad te la está dando.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ5">¿Me estáis espiando?</summary>
+    <p data-i18n="faqA5">No. No hay rastreadores ni cookies de terceros. Tus ajustes se guardan en tu propio navegador y de ahí no salen.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ6">¿Hay app para el móvil?</summary>
+    <p data-i18n="faqA6">No hace falta. La web funciona en el navegador de cualquier móvil sin instalar nada y sin ocupar memoria. Si la guardas en la pantalla de inicio, se abre como una app.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ7">¿Quién hace esto?</summary>
+    <p data-i18n="faqA7">Una persona, Sandro, desde Sevilla. Sin empresa detrás y sin ánimo de lucro. Con datos abiertos y con la ayuda de quien apoya el proyecto.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ8">¿Puedo usarlo en mi ciudad?</summary>
+    <p data-i18n="faqA8">Si está en España, sí. Las estaciones y los edificios cubren todo el país. Fuera de España el aire funciona en muchos sitios, pero las sombras dependen de lo bien mapeada que esté la zona en OpenStreetMap.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ9">¿Cómo puedo ayudar?</summary>
+    <p data-i18n="faqA9">Usándolo y contándolo. Y si te apetece, apoyando en Ko-fi para pagar los servidores. También puedes mejorar el mapa de tu barrio en OpenStreetMap, que es gratis y ayuda a todo el mundo.</p>
+  </details>
+</section>
+
+<div class="footer">
+  <p>Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.</p>
+  <p class="footer-eco">Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.</p>
+  <div class="footer-family" data-i18n="footerFamily">Manolit∞ Forestal · Islas de Calor Sevilla · Manolit∞ Aire</div>
+  <div class="footer-ign" style="margin-top:8px; font-size:0.75rem; opacity:0.7;">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
+  <div style="margin-top:10px;">
+    <a href="aviso-legal.html" data-i18n="legalNotice">Aviso legal</a> · 
+    <a href="privacidad.html" data-i18n="privacy">Privacidad</a> · 
+    <a href="cookies.html" data-i18n="cookies">Cookies</a>
+  </div>
+
+  <!-- Sincronizar / Exportar datos: tus ajustes (tema, paleta, idioma,
+       modo accesible, ciudad...) viajan en un archivo JSON entre tus
+       dispositivos. Sin cuentas, sin servidores: el archivo lo genera
+       y lo lee tu propio navegador. -->
+  <div class="footer-sync">
+    <button type="button" id="btnSyncExport" class="footer-sync-toggle" data-i18n="syncLink"
+            aria-expanded="false" aria-controls="syncPanel">Sincronizar / Exportar datos</button>
+    <div id="syncPanel" class="sync-panel" hidden>
+      <p class="sync-hint" data-i18n="syncHint">Guarda tus ajustes en un archivo y recupéralos en otro dispositivo. Sin cuentas ni servidores.</p>
+      <div class="sync-panel-btns">
+        <button type="button" id="btnSyncExportar" data-i18n="syncExportBtn">Exportar mis datos</button>
+        <button type="button" id="btnSyncImportar" data-i18n="syncImportBtn">Importar datos</button>
+      </div>
+      <input type="file" id="syncFileInput" accept="application/json,.json" hidden>
+    </div>
+  </div>
+
+  <!-- Cierre del pie: a los lados del boton de Ko-fi, sin nuevo apartado -->
+  <div class="footer-final">
+    <div class="footer-sello">
+      <svg width="320" height="130" viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Sello de eficiencia: manolitoaire.com tiene calificación A+ en Website Carbon Rating">
+        <defs>
+          <linearGradient id="scaleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#22C55E"/>
+            <stop offset="35%" stop-color="#A3D977"/>
+            <stop offset="55%" stop-color="#F2C94C"/>
+            <stop offset="75%" stop-color="#F2994A"/>
+            <stop offset="100%" stop-color="#EB5757"/>
+          </linearGradient>
+          <radialGradient id="haloGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#22C55E" stop-opacity="0.35"/>
+            <stop offset="60%" stop-color="#22C55E" stop-opacity="0.12"/>
+            <stop offset="100%" stop-color="#22C55E" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect x="1" y="1" width="318" height="128" rx="10" fill="#FFFFFF" stroke="#E4E7E0" stroke-width="1"/>
+        <circle cx="54" cy="64" r="46" fill="url(#haloGrad)"/>
+        <circle cx="54" cy="64" r="30" fill="#EFFBF3" stroke="#22A55A" stroke-width="1.5"/>
+        <text x="54" y="74" text-anchor="middle" font-size="28" font-weight="700" fill="#199A4C">A+</text>
+        <text x="112" y="30" font-size="11" font-weight="600" fill="#1F2A20">manolitoaire.com</text>
+        <text x="112" y="43" font-size="9" fill="#8A9488">Website Carbon Rating</text>
+        <rect x="112" y="52" width="186" height="7" rx="3.5" fill="url(#scaleGrad)"/>
+        <circle cx="126" cy="55.5" r="5.5" fill="#FFFFFF" stroke="#199A4C" stroke-width="2"/>
+        <text x="112" y="74" font-size="9.5" fill="#5B6653">0,015 g CO₂ / visita · más limpio que el 99%</text>
+        <text x="112" y="87" font-size="9.5" fill="#5B6653">102,7 KB · hosting 100% renovable</text>
+        <text x="16" y="116" font-size="7.5" fill="#A9B3AC">Medido con Website Carbon Calculator (1ClickImpact) · 16/09/2026</text>
+      </svg>
+    </div>
+    <div class="footer-donacion">
+      <p class="donacion-mensaje">
+        Manolit∞ siempre sera gratis.<br>
+        Los servidores, por desgracia, no lo son...
+      </p>
+      <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer">
+        Apoyar en Ko‑fi
+      </a>
+    </div>
+    <div class="footer-redes">
+      <a class="footer-red" href="https://www.tiktok.com/@manolitoinfinitum8" target="_blank" rel="noopener" aria-label="TikTok de Manolit">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+        <span>@manolitoinfinitum8</span>
+      </a>
+      <a class="footer-red" href="https://www.instagram.com/manolitoinfinitum8" target="_blank" rel="noopener" aria-label="Instagram de Manolit">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.35 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.35-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 0 1-1.38-.9 3.72 3.72 0 0 1-.9-1.38c-.16-.42-.35-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.35 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.13 1.38A5.88 5.88 0 0 0 .63 4.14C.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13a5.88 5.88 0 0 0 2.13 1.38c.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.88 5.88 0 0 0 2.13-1.38 5.88 5.88 0 0 0 1.38-2.13c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.88 5.88 0 0 0-1.38-2.13A5.88 5.88 0 0 0 19.86.63C19.1.33 18.22.13 16.95.07 15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 18.16 12 6.16 6.16 0 0 0 12 5.84zM12 16a4 4 0 1 1 4-4 4 4 0 0 1-4 4zm7.85-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg>
+        <span>@manolitoinfinitum8</span>
+      </a>
+      <a class="footer-red footer-red-sola" href="https://www.instagram.com/manolit_8" target="_blank" rel="noopener" aria-label="Instagram personal de Sandro">
+        <span>@manolit_8</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sello oficial PERMANENTE (25-sep-2026, orden de Sandro). El bloque
+       de salud se retira solo el domingo a las 18:00, pero este sello se
+       queda en la esquina inferior del pie todo el año. Misma geometria
+       exacta del archivo original que paso Sandro (solo cambian los ids
+       internos para no repetirlos en el documento). Los colores salen de
+       las mismas variables --sello-* de ambientes.css: corporativos todo
+       el año y verdes solo mientras dura el modo salud. -->
+  <div class="footer-oficial">
+    <div class="sello-footer" role="img" aria-label="Sello oficial Manolit∞, simulador de sombras">
+        <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <defs>
+                    <path id="arcoSupPie" d="M 70, 200 A 130 130 0 0 1 330 200" />
+                    <path id="arcoInfPie" d="M 330, 200 A 130 130 0 0 1 70 200" />
+                  </defs>
+                  <circle class="s-granate" cx="200" cy="200" r="190" fill="none" stroke-width="6"/>
+                  <circle class="s-granate" cx="200" cy="200" r="180" fill="none" stroke-width="2"/>
+                  <circle class="s-granate" cx="200" cy="200" r="105" fill="none" stroke-width="2" stroke-dasharray="6 4"/>
+                  <text class="s-tinta-fill" font-family="monospace" font-size="18" font-weight="600" letter-spacing="3">
+                    <textPath href="#arcoSupPie" startOffset="50%" text-anchor="middle">MANOLIT∞</textPath>
+                  </text>
+                  <text class="s-tinta-fill" font-family="monospace" font-size="15" font-weight="600" letter-spacing="2">
+                    <textPath href="#arcoInfPie" startOffset="50%" text-anchor="middle">SIMULADOR DE SOMBRAS</textPath>
+                  </text>
+                  <g transform="translate(140, 104) scale(0.60)">
+                    <circle class="s-sol" cx="100" cy="150" r="45" fill="none" stroke-width="2.5"/>
+                    <path class="s-agua" d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke-width="4" stroke-linecap="round"/>
+                    <path class="s-agua" d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke-width="3" stroke-linecap="round"/>
+                    <path class="s-granate" d="M 100,149 C 75,124 75,174 100,149 C 125,124 125,174 100,149 Z" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path class="s-granate" d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke-width="5" stroke-linejoin="round"/>
+                  </g>
+                </svg>
+    </div>
+  </div>
+</div>
+
+<button class="chat-fab" onclick="openChat()" aria-label="Pregúntale a Manolit∞" title="Pregúntale a Manolit∞">
+  <span class="chat-fab-ring"><span class="chat-fab-core">M∞</span></span>
+</button>
+
+<div class="chat-overlay" id="chatOverlay">
+  <div class="chat-panel" role="dialog" aria-modal="false" data-i18n-aria-label="chatDialogLabel" aria-label="Chat con Manolit">
+    <div class="chat-head">
+      <div class="chat-title"><span class="chat-logo"><i>M∞</i></span> <span data-i18n="chatTitle">Manolit∞ te lo explica</span></div>
+      <button class="icon-btn" onclick="closeChat()" data-i18n-aria-label="chatClose" aria-label="Cerrar chat">✕</button>
+    </div>
+    <div class="chat-msg mano" data-i18n="chatWelcome">Tranquilo/a, vamos con calma. Dime qué no entiendes, o elige una pregunta.</div>
+    <div id="chatBody"></div>
+    <!-- Botones de inicio (sep-2026, orden de Sandro): solo estos dos,
+         uno al lado del otro en horizontal compacto. El chip de la ruta
+         con sombra que añade shadows-route.js ocupa la fila entera
+         debajo. Las respuestas rápidas viejas siguen en i18n.js por si
+         algún día vuelven, no estorban. -->
+    <div class="quick-qs">
+      <button data-quick="q1" onclick="askQuick('q1')" data-i18n="quick_q1">¿En qué puedo ayudarte?</button>
+      <button data-quick="q3" onclick="askQuick('q3')" data-i18n="quick_q3">¿Puedo salir a hacer deporte hoy?</button>
+    </div>
+    <div class="chat-input-row">
+      <label for="chatInputField" class="visually-hidden" data-i18n="chatPlaceholder">Escribe tu pregunta aquí...</label>
+      <input type="text" id="chatInputField" name="pregunta" data-i18n-placeholder="chatPlaceholder" placeholder="Escribe tu pregunta aquí...">
+      <button onclick="askCustom()" data-i18n="chatSend">Enviar</button>
+    </div>
+    <div class="chat-status" id="chatStatus"></div>
+  </div>
+</div>
+
+<!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
+<script src="js/theme.js" defer></script>
+<script src="js/i18n.js" defer></script>
+<!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
+     y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
+<script src="js/cookie-banner.js" defer></script>
+<script src="js/chat.js" defer></script>
+<script src="js/app.js" defer></script>
+<script src="js/air-forecast.js" defer></script>
+<script src="js/planetario.js" defer></script>
+<script src="js/tutorial.js" defer></script>
+<!-- Los árboles viven integrados dentro de shadows-route.js (motor único de sombras) -->
+
+<script>
+  (function () {
+    const objetivo = document.getElementById('shadowRouteMap');
+    if (!objetivo) return;
+
+    let cargado = false;
+    function cargarMapaSombras() {
+      if (cargado) return;
+      cargado = true;
+
+      function cargarScript(src) {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      // Rendimiento (sep-2026): MapLibre, Turf y SunCalc son librerías independientes
+      // se cargan EN PARALELO y el mapa de sombras arranca mucho antes
+      // (antes iban en cadena: cada una esperaba a que terminara la anterior).
+      // La guía A11Y (voz e indicaciones para personas ciegas) es un módulo
+      // propio y diminuto: carga en paralelo y shadows-route le delega.
+      Promise.all([
+        cargarScript('js/a11y-guia.js'),
+        cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
+        cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
+        cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
+      ])
+        .then(() => cargarScript('js/shadows-route.js'))
+        .then(() => cargarScript('js/arboles-3d.js'))
+        .then(() => cargarScript('js/irradiacion-solar.js'))
+        .then(() => cargarScript('js/microclima.js'))
+        .then(() => cargarScript('js/rendimiento-movil.js'))
+        .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
+    }
+
+    if ('IntersectionObserver' in window) {
+      const observador = new IntersectionObserver((entradas) => {
+        entradas.forEach((entrada) => {
+          if (entrada.isIntersecting) {
+            cargarMapaSombras();
+            observador.disconnect();
+          }
+        });
+      }, { rootMargin: '600px 0px' }); 
+      observador.observe(objetivo);
+    } else {
+      cargarMapaSombras();
+    }
+  })();
+</script>
+
+<script>
+  (function() {
+    const body = document.body;
+    const modeCards = document.querySelectorAll('.mode-card[data-mode]');
+
+    function setMode(mode) {
+      body.classList.remove('mode-cientifico', 'mode-yayo', 'mode-peque');
+      if (mode !== 'ciudadano') body.classList.add('mode-' + mode);
+
+      modeCards.forEach(c => c.classList.remove('active'));
+      const activeCard = document.querySelector(`.mode-card[data-mode="${mode}"]`);
+      if (activeCard) activeCard.classList.add('active');
+    }
+
+    modeCards.forEach(card => {
+      // Teclado: las tarjetas son divs, así que les damos foco y activación
+      // con Enter/Espacio para que funcionen sin ratón.
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-pressed', card.classList.contains('active') ? 'true' : 'false');
+      card.addEventListener('click', () => setMode(card.getAttribute('data-mode')));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setMode(card.getAttribute('data-mode'));
+        }
+      });
+    });
+
+    // aria-pressed debe seguir al estado visual .active
+    const observarModos = new MutationObserver(() => {
+      modeCards.forEach(c => c.setAttribute('aria-pressed', c.classList.contains('active') ? 'true' : 'false'));
+    });
+    modeCards.forEach(c => observarModos.observe(c, { attributes: true, attributeFilter: ['class'] }));
+
+    function getRobustLang() {
+      if (typeof currentLang !== 'undefined' && currentLang) return currentLang;
+      const htmlLang = document.documentElement.getAttribute('lang');
+      if (htmlLang) return htmlLang.split('-')[0];
+      try {
+        const storedLang = localStorage.getItem('manolito_lang') || localStorage.getItem('lang');
+        if (storedLang) return storedLang.split('-')[0];
+      } catch (e) {}
+      return 'es';
+    }
+
+    function renderPequeFace(estado) {
+      const cloudDiv = document.getElementById('pequeCloudSvg');
+      const msgEl = document.getElementById('pequeMessage');
+      const humanEl = document.getElementById('humanLine');
+      const subEl = document.getElementById('subLine');
+
+      if (!cloudDiv || !msgEl) return;
+
+      const cloudBase = `<circle cx="50" cy="50" r="32" fill="#fff" stroke="#888" stroke-width="2"/>
+                         <circle cx="28" cy="48" r="22" fill="#fff" stroke="#888" stroke-width="2"/>
+                         <circle cx="72" cy="48" r="22" fill="#fff" stroke="#888" stroke-width="2"/>`;
+
+      const isWinking = Math.random() > 0.7;
+      const eyes = (isWinking && estado === 'buena')
+        ? `<line x1="34" y1="46" x2="40" y2="46" stroke="#333" stroke-width="2" stroke-linecap="round"/>
+           <circle cx="63" cy="46" r="6" fill="#333"/>`
+        : `<circle cx="37" cy="46" r="6" fill="#333"/>
+           <circle cx="63" cy="46" r="6" fill="#333"/>`;
+
+      const variacionesIdiomas = {
+        es: {
+          buena: [
+            { msg: '¡El aire está contento!', humano: '¡Hoy puedes jugar fuera todo el día!', sub: 'Cielo despejado.' },
+            { msg: '¡Qué aire tan limpio hoy!', humano: '¡Corre, salta y juega todo lo que quieras!', sub: 'Un día perfecto para el parque.' },
+            { msg: 'El aire está de fiesta hoy.', humano: '¡A la calle, que hoy se respira genial!', sub: 'Sin nubes de polvo por ningún lado.' },
+            { msg: 'El cielo está feliz hoy.', humano: 'Buen día para la bici o el balón en el parque.', sub: 'Aire fresquito y limpio.' }
+          ],
+          moderada: [
+            { msg: 'El aire está más o menos…', humano: 'Puedes salir, pero mejor sin correr mucho.', sub: 'Calidad aceptable.' },
+            { msg: 'El aire hoy está un poco tímido.', humano: 'Se puede jugar fuera, con calma y sin agobiarse.', sub: 'Ni bien ni mal del todo.' },
+            { msg: 'El aire está regulero hoy.', humano: 'Mejor juegos tranquilos al aire libre hoy.', sub: 'Nada grave, solo un poco flojo.' }
+          ],
+          mala: [
+            { msg: 'El aire necesita mimos…', humano: 'Hoy mejor nos quedamos dentro a pintar.', sub: 'Demasiadas partículas en la calle.' },
+            { msg: 'El aire está un poco enfadado hoy.', humano: 'Toca jugar dentro de casa un rato, ¿construimos algo?', sub: 'Mejor esperar a que se calme.' },
+            { msg: 'Hoy el cielo está cansado.', humano: 'Vamos a dibujar o leer un cuento dentro de casa.', sub: 'El aire de fuera necesita descansar.' }
+          ]
+        },
+        en: {
+          buena: [
+            { msg: 'The air is happy!', humano: 'You can play outside all day today!', sub: 'Clear skies.' },
+            { msg: 'Such clean air today!', humano: 'Run, jump and play as much as you want!', sub: 'A perfect day for the park.' },
+            { msg: 'The air is partying today.', humano: 'Go outside, breathing is great today!', sub: 'No dust clouds anywhere.' },
+            { msg: 'The sky is happy today.', humano: 'Good day for biking or playing ball in the park.', sub: 'Fresh and clean air.' }
+          ],
+          moderada: [
+            { msg: 'The air is so-so...', humano: 'You can go out, but better not run too much.', sub: 'Acceptable quality.' },
+            { msg: 'The air is a bit shy today.', humano: 'You can play outside, take it easy and don\'t stress.', sub: 'Neither entirely good nor bad.' },
+            { msg: 'The air is mediocre today.', humano: 'Better stick to quiet outdoor games today.', sub: 'Nothing serious, just a bit weak.' }
+          ],
+          mala: [
+            { msg: 'The air needs a hug...', humano: 'Better stay inside and paint today.', sub: 'Too many particles outside.' },
+            { msg: 'The air is a bit angry today.', humano: 'Time to play indoors for a while, shall we build something?', sub: 'Better wait for it to calm down.' },
+            { msg: 'The sky is tired today.', humano: 'Let\'s draw or read a story indoors.', sub: 'The outside air needs to rest.' }
+          ]
+        },
+        ca: {
+          buena: [
+            { msg: 'L\'aire està content!', humano: 'Avui pots jugar a fora tot el dia!', sub: 'Cel clar.' },
+            { msg: 'Quin aire més net avui!', humano: 'Corre, salta i juga tot el que vulguis!', sub: 'Un dia perfecte per al parc.' },
+            { msg: 'L\'aire està de festa avui.', humano: 'Al carrer, que avui s\'respira genial!', sub: 'Sense núvols de pols enlloc.' },
+            { msg: 'El cel està feliç avui.', humano: 'Bon dia per a la bici o la pilota al parc.', sub: 'Aire fresquet i net.' }
+          ],
+          moderada: [
+            { msg: 'L\'aire està més o menys…', humano: 'Pots sortir, però millor sense córrer gaire.', sub: 'Qualitat acceptable.' },
+            { msg: 'L\'aire avui està una mica tímid.', humano: 'Es pot jugar a fora, amb calma i sense atabalar-se.', sub: 'Ni bé ni malament del tot.' },
+            { msg: 'L\'aire està regular avui.', humano: 'Millor jocs tranquils a l\'aire lliure avui.', sub: 'Res greu, només una mica fluix.' }
+          ],
+          mala: [
+            { msg: 'L\'aire necessita mimos…', humano: 'Avui millor ens quedem a dins a pintar.', sub: 'Massa partícules al carrer.' },
+            { msg: 'L\'aire està una mica enfadat avui.', humano: 'Toca jugar dins de casa una estona, construïm alguna cosa?', sub: 'Millor esperar que es calmi.' },
+            { msg: 'Avui el cel està cansat.', humano: 'Anem a dibuixar o llegir un conte dins de casa.', sub: 'L\'aire de fora necessita descansar.' }
+          ]
+        },
+        gl: {
+          buena: [
+            { msg: 'O aire está contento!', humano: 'Hoxe podes xogar fóra todo o día!', sub: 'Ceo despexado.' },
+            { msg: 'Que aire tan limpo hoxe!', humano: 'Corre, salta e xoga todo o que queiras!', sub: 'Un día perfecto para o parque.' },
+            { msg: 'O aire está de festa hoxe.', humano: 'Á rúa, que hoxe respírase xenial!', sub: 'Sen nubes de po por ningures.' },
+            { msg: 'O ceo está feliz hoxe.', humano: 'Bo día para a bici ou o balón no parque.', sub: 'Aire fresquiño e limpo.' }
+          ],
+          moderada: [
+            { msg: 'O aire está máis ou menos…', humano: 'Podes saír, pero mellor sen correr moito.', sub: 'Calidade aceptable.' },
+            { msg: 'O aire hoxe está un pouco tímido.', humano: 'Pódese xogar fóra, con calma e sen agobiarse.', sub: 'Nin ben nin mal de todo.' },
+            { msg: 'O aire está regular hoxe.', humano: 'Mellor xogos tranquilos ao aire libre hoxe.', sub: 'Nada grave, só un pouco frouxo.' }
+          ],
+          mala: [
+            { msg: 'O aire necesita mimos…', humano: 'Hoxe mellor quedamos dentro a pintar.', sub: 'Demasiadas partículas na rúa.' },
+            { msg: 'O aire está un pouco enfadado hoxe.', humano: 'Toca xogar dentro de casa un cacho, construímos algo?', sub: 'Mellor esperar a que se calme.' },
+            { msg: 'Hoxe o ceo está canso.', humano: 'Imos debuxar ou ler un conto dentro de casa.', sub: 'O aire de fóra necesita descansar.' }
+          ]
+        },
+        eu: {
+          buena: [
+            { msg: 'Airea pozik dago!', humano: 'Gaur egun osoan zehar kanpoan jolastu dezakezu!', sub: 'Zeru garbia.' },
+            { msg: 'Zein aire garbia gaur!', humano: 'Korrika egin, salto egin eta jolastu nahi duzun guztia!', sub: 'Egun ezin hobea parkerako.' },
+            { msg: 'Airea festan dago gaur.', humano: 'Kalera, gaur primeran arnasten da eta!', sub: 'Ez dago hauts-hodeirik inon.' },
+            { msg: 'Zerua zoriontsu dago gaur.', humano: 'Egun ona parkean bizikletan edo baloiarekin jolasteko.', sub: 'Aire fresko eta garbia.' }
+          ],
+          moderada: [
+            { msg: 'Airea hala-hola dago…', humano: 'Atera zaitezke, baina hobe korrika asko egin gabe.', sub: 'Kalitate onargarria.' },
+            { msg: 'Airea apur bat lotsati dago gaur.', humano: 'Kanpoan jolastu daiteke, lasai eta estutu gabe.', sub: 'Ez ondo ezta gaizki ere.' },
+            { msg: 'Airea kaskar dago gaur.', humano: 'Hobe aire zabaleko jolas lasaiak gaur.', sub: 'Ez da ezer larria, pixka bat ahula besterik ez.' }
+          ],
+          mala: [
+            { msg: 'Aireak mimoak behar ditu…', humano: 'Gaur hobe barruan geratzea margotzen.', sub: 'Partikula gehiegi kalean.' },
+            { msg: 'Airea apur bat haserre dago gaur.', humano: 'Etxe barruan jolasteko unea da, zerbait eraikiko dugu?', sub: 'Hobe lasaitu arte itxarotea.' },
+            { msg: 'Gaur zerua nekatuta dago.', humano: 'Etxe barruan marraztera edo ipuin bat irakurtzera goaz.', sub: 'Kanpoko aireak atsedena behar du.' }
+          ]
+        }
+      };
+
+      const lang = getRobustLang();
+      const idiomaSeleccionado = variacionesIdiomas[lang] ? variacionesIdiomas[lang] : variacionesIdiomas['es'];
+      const estadoData = idiomaSeleccionado[estado] || idiomaSeleccionado.mala; 
+      const seleccion = estadoData[Math.floor(Math.random() * estadoData.length)];
+
+      let svg = '';
+
+      if (estado === 'buena') {
+        svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                 ${cloudBase}
+                 ${eyes}
+                 <path d="M32 62 Q50 80 68 62" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
+               </svg>`;
+      } else if (estado === 'moderada') {
+        svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                 ${cloudBase}
+                 ${eyes}
+                 <line x1="32" y1="64" x2="68" y2="64" stroke="#333" stroke-width="3" stroke-linecap="round"/>
+               </svg>`;
+      } else {
+        svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                 ${cloudBase}
+                 ${eyes}
+                 <path d="M32 66 Q50 52 68 66" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
+                 <rect x="30" y="56" width="40" height="14" rx="4" fill="#ddd" stroke="#666" stroke-width="2"/>
+                 <line x1="30" y1="61" x2="70" y2="61" stroke="#666" stroke-width="2"/>
+                 <line x1="28" y1="59" x2="18" y2="55" stroke="#666" stroke-width="2"/>
+                 <line x1="72" y1="59" x2="82" y2="55" stroke="#666" stroke-width="2"/>
+               </svg>`;
+      }
+
+      msgEl.textContent = seleccion.msg;
+      if (humanEl) humanEl.textContent = seleccion.humano;
+      if (subEl) subEl.textContent = seleccion.sub; 
+      
+      cloudDiv.innerHTML = svg;
+    }
+    
+    window.actualizarModoPeque = renderPequeFace;
+
+    window.actualizarPanelCientifico = function(datos) {
+      const { pm25, pm10, no2, o3, ica, hora, so2, co, uv } = datos;
+      const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      setVal('sciPM25', pm25 + ' µg/m³');
+      setVal('sciPM10', pm10 + ' µg/m³');
+      setVal('sciNO2',  no2 + ' µg/m³');
+      setVal('sciO3',   o3 + ' µg/m³');
+      // Datos extra del modo científico (sep-2026, orden de Sandro): solo se
+      // escriben si la llamada los trajo; si faltan, la fila enseña '--'.
+      if (so2 !== undefined) setVal('sciSO2', so2 + ' µg/m³');
+      if (co  !== undefined) setVal('sciCO',  co  + ' µg/m³');
+      if (uv  !== undefined) setVal('sciUV',  String(uv));
+      setVal('sciICA',  ica);
+      setVal('sciUpdated', 'Actualizado: ' + hora);
     };
 
-    // ambientes.js carga en <head>, antes de que exista el <body>,
-    // así que esto espera a que el DOM esté listo.
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', ponerTitulosSalud);
-    } else {
-      ponerTitulosSalud();
-    }
+    // Efecto mágico del modo peque (sep-2026, orden de Sandro): los emojis
+    // ya no se quedan solo en el hero, suben flotando por TODA la página.
+    // Es una única capa fija con animaciones CSS (transform y opacity, lo
+    // más barato que existe para la GPU): sin bucles JS, sin intervalos,
+    // la batería no lo nota. Al cambiar de modo la capa se retira entera.
+    window.syncModeFx = function(mode) {
+      const hero = document.querySelector('.hero');
+      if (hero) hero.querySelectorAll('.peque-sparkle').forEach(e => e.remove());
+      const capaVieja = document.getElementById('pequeFxCapa');
+      if (capaVieja) capaVieja.remove();
+      if (mode !== 'peque') return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      // Lista ampliada (23-sep-2026, orden de Sandro): unicornio, la flamenca
+      // y toda la caja de juguetes. Con el pool grande, 16 spans no alcanzan
+      // para ver la variedad, subimos a 24. Sigue siendo animación CSS pura.
+      const emojis = [
+        '🦄', '💃', '🪼', '🦚', '🐧', '🐥', '🐛', '🦗', '🦇', '🐤',
+        '🧑‍🚒', '🧑‍🚀', '🦹‍♀️', '🦸‍♂️', '🧚', '🧜‍♂️', '🧜‍♀️', '🧙‍♂️', '🧙‍♀️', '🧝‍♂️',
+        '🧝', '🧏', '🧏‍♀️', '✌️', '🫶', '👨‍👩‍👧‍👦', '🧑🏼‍🧑🏽‍🧒🏻', '🔬', '🧬', '📽️',
+        '📡', '💡', '📐', '📏', '🍇', '🍒', '🫒', '🪾', '🥦', '☘️',
+        '🍀', '✈️', '🪂', '🚁', '🛸', '⛵', '🌍', '🌎', '🌏', '🗺️',
+        '🏝️', '🏜️', '🏘️', '🏡', '⛪', '🕍', '🕌', '🗽', '⛲', '🗼',
+        '🗾', '🫧', '🌦️', '🌝', '🌚', '⭐', '☄️', '☂️', '🌊', '💧',
+        '☮️', '♾️', '♒', '➕', '➖', '✖️', '➗', '🟰',
+        '🎈', '🌈', '🦋', '☀️', '🍃'
+      ];
+      const capa = document.createElement('div');
+      capa.id = 'pequeFxCapa';
+      capa.setAttribute('aria-hidden', 'true');
+      for (let i = 0; i < 24; i++) {
+        const s = document.createElement('span');
+        s.className = 'peque-sparkle';
+        s.textContent = emojis[i % emojis.length];
+        s.style.left = (4 + Math.random() * 92) + '%';
+        s.style.animationDuration = (6 + Math.random() * 6) + 's';
+        s.style.animationDelay = (Math.random() * 6) + 's';
+        s.style.fontSize = (1.1 + Math.random() * 1.2) + 'rem';
+        capa.appendChild(s);
+      }
+      document.body.appendChild(capa);
+    };
+
+  })();
+
+  (function() {
+    const btn = document.getElementById('cityDropdownBtn');
+    const list = document.getElementById('cityDropdownList');
+    const items = list.querySelectorAll('li');
+    const forecastCityName = document.getElementById('forecastCityName');
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      list.classList.toggle('open');
+      btn.setAttribute('aria-expanded', list.classList.contains('open') ? 'true' : 'false');
+    });
+
+    items.forEach(item => {
+      // Las opciones de ciudad también se eligen solo con teclado.
+      item.setAttribute('role', 'option');
+      item.setAttribute('tabindex', '0');
+      item.setAttribute('aria-selected', item.classList.contains('selected') ? 'true' : 'false');
+      item.addEventListener('click', () => {
+        const value = item.getAttribute('data-value');
+        const text = item.textContent;
+        btn.firstChild.textContent = text;
+        items.forEach(i => { i.classList.remove('selected'); i.setAttribute('aria-selected', 'false'); });
+        item.classList.add('selected');
+        item.setAttribute('aria-selected', 'true');
+        list.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+
+        if (typeof window.setCurrentCity === 'function') {
+          window.setCurrentCity(value);
+        }
+        if (forecastCityName) forecastCityName.textContent = text;
+      });
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          item.click();
+        }
+      });
+    });
+
+    document.addEventListener('click', () => { list.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); });
+  })();
+</script>
+<script>
+/* ============================================================
+   SINCRONIZAR / EXPORTAR DATOS (sep-2026)
+   Exporta los ajustes locales (claves "manolito*" de
+   localStorage, sin cachés) a un JSON descargable y los
+   recupera en otro dispositivo. Sin cuentas ni servidores:
+   el archivo lo genera y lo lee el propio navegador.
+   ============================================================ */
+(function(){
+  'use strict';
+  var PREFIJO = 'manolito';
+  var esCache = function(k){ return k.indexOf('manolito_cache') === 0; };
+  var toggle = document.getElementById('btnSyncExport');
+  var panel = document.getElementById('syncPanel');
+  if (!toggle || !panel) return;
+  toggle.addEventListener('click', function(){
+    var abierto = panel.hidden;
+    panel.hidden = !abierto;
+    toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+  });
+  var btnExp = document.getElementById('btnSyncExportar');
+  var btnImp = document.getElementById('btnSyncImportar');
+  var input = document.getElementById('syncFileInput');
+
+  if (btnExp) btnExp.addEventListener('click', function(){
+    var ajustes = {};
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(PREFIJO) === 0 && !esCache(k)) ajustes[k] = localStorage.getItem(k);
+      }
+    } catch (e) { /* sin almacenamiento: se exporta el paquete vacío */ }
+    var paquete = { app: 'manolito-aire', version: 1, fecha: new Date().toISOString(), ajustes: ajustes };
+    var blob = new Blob([JSON.stringify(paquete, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'manolito-aire-datos.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+  if (btnImp && input) {
+    btnImp.addEventListener('click', function(){ input.click(); });
+    input.addEventListener('change', function(){
+      var f = input.files && input.files[0];
+      input.value = '';
+      if (!f) return;
+      var lector = new FileReader();
+      lector.onload = function(){
+        try {
+          var paquete = JSON.parse(String(lector.result));
+          if (!paquete || paquete.app !== 'manolito-aire' || !paquete.ajustes || typeof paquete.ajustes !== 'object') {
+            throw new Error('formato no válido');
+          }
+          Object.keys(paquete.ajustes).forEach(function(k){
+            if (k.indexOf(PREFIJO) === 0 && !esCache(k)) {
+              try { localStorage.setItem(k, String(paquete.ajustes[k])); } catch (e) { /* clave concreta sin espacio: se salta */ }
+            }
+          });
+          location.reload();
+        } catch (e) {
+          var msg = (window.getMessages && window.getMessages().syncImportError)
+            || 'Ese archivo no es una copia de Manolit∞ Aire. No se ha importado nada.';
+          window.alert(msg);
+        }
+      };
+      lector.readAsText(f);
+    });
   }
 })();
+</script>
+
+<script>
+/* Navegacion en la misma pestana: los enlaces internos dejan de abrir
+   pestanas nuevas (la etiqueta base del head queda anulada por script).
+   Los enlaces externos (Ko-fi, redes, fuentes) siguen abriendo pestana
+   nueva con rel noopener. */
+(function () {
+  var b = document.querySelector('base');
+  if (b) b.setAttribute('target', '_self');
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    var h = a.getAttribute('href') || '';
+    if (/^https?:\/\//i.test(h)) {
+      try {
+        if (new URL(h, location.href).host !== location.host) {
+          a.target = '_blank';
+          a.rel = 'noopener';
+          return;
+        }
+      } catch (err) {}
+    }
+    a.target = '_self';
+  }, true);
+})();
+</script>
+</body>
+</html>

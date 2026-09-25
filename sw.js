@@ -143,7 +143,8 @@
 // VE al dar a Mi ubicacion y aguanta GPS lento de movil) y
 // js/microclima.js (respaldo directo a Open-Meteo si el worker aun no
 // tiene la ruta nueva).
-const VERSION = '2026-09-25-c' // -c 25-sep: el bloque de salud es un desplegable manual estricto (cerrado por defecto, clic abre y clic cierra), lleva el sello oficial SVG con su geometría intacta y sus colores salen de variables CSS (verdes en modo salud, corporativos el resto del año)
+const VERSION = '2026-09-25-d' // -d 25-sep: el desplegable de salud cierra con nota de precision (el simulador puede fallar, manda el sentido comun) y pie de recursos oficiales (Consejeria y Salud Responde); el sello oficial se queda permanente en la esquina del pie, en corporativos y en verde solo los fines de semana de salud
+// -c 25-sep: el bloque de salud es un desplegable manual estricto (cerrado por defecto, clic abre y clic cierra), lleva el sello oficial SVG con su geometría intacta y sus colores salen de variables CSS (verdes en modo salud, corporativos el resto del año) // -c 25-sep: el bloque de salud es un desplegable manual estricto (cerrado por defecto, clic abre y clic cierra), lleva el sello oficial SVG con su geometría intacta y sus colores salen de variables CSS (verdes en modo salud, corporativos el resto del año)
 // -e 23-sep: arboles-3d.js arregla los abanicos rosas gigantes que salían al agitar el móvil de noche (los pompones de albizia que ya habían caído se "ocultaban" con una escala 3000 veces mayor que la normal en vez de hacerse invisibles)
 // 2026-09-23-b: los pompones caídos de la albizia se esconden de verdad (escala 1e-12, no 0.0001), se acabaron los abanicos rosas al despertar el GPS en otoño e invierno. Solo cambia js/arboles-3d.js
 // 2026-09-23-a: about sin placa detrás del logo (flota sobre el fondo, claro u oscuro), colores del logo y del panel adaptados a cada tema, todos los guiones largos fuera de los textos. Solo cambia about.html

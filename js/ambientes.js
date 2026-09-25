@@ -34,18 +34,28 @@
   }
 
   function ambienteDeHoy() {
-    var hoy = new Date();
+    // OJO: "ahora" guarda la hora real y "hoy" se pone a las 00:00 más
+    // abajo. La regla de salud necesita la hora (el domingo corta a las
+    // 18:00), así que se mira "ahora", nunca "hoy".
+    var ahora = new Date();
+    var hoy = new Date(ahora);
     hoy.setHours(0, 0, 0, 0);
     var ano = hoy.getFullYear();
     var mes = hoy.getMonth() + 1; // 1 = enero … 12 = diciembre
     var dia = hoy.getDate();
 
-    // 0) Salud (sep-2026, orden de Sandro): CADA sábado la web se pone
-    //    en verde por la salud (guiño al Día de la Salud en Andalucía,
-    //    convertido en costumbre semanal). Va lo primero y manda sobre
-    //    el resto: si un sábado cae en otra fiesta, gana el sábado.
-    //    El domingo getDay() ya no da 6 y todo vuelve solo a la normalidad.
-    if (hoy.getDay() === 6) return 'salud';
+    // 0) Salud (sep-2026, orden de Sandro): la web se pone en verde por
+    //    la salud TODO el sábado y el domingo hasta las 18:00. A esa
+    //    hora esta regla deja de cumplirse y la web vuelve sola a su
+    //    piel normal, sin tocar nada. Va lo primero y manda sobre el
+    //    resto: si el fin de semana cae en otra fiesta, gana la salud
+    //    (el domingo a las 18:00 esa fiesta recupera su turno).
+    //    ESTRENO (ventana única): esta primera vez arranca el viernes
+    //    25-sep-2026 y corre hasta el domingo 27 a las 18:00. Pasado
+    //    ese momento solo manda la regla semanal de arriba.
+    if (ahora >= new Date(2026, 8, 25) && ahora < new Date(2026, 8, 27, 18)) return 'salud';
+    if (ahora.getDay() === 6) return 'salud';
+    if (ahora.getDay() === 0 && ahora.getHours() < 18) return 'salud';
 
     // 1) Semana Santa (variable): tiene prioridad sobre todo lo demás.
     var pascua = obtenerPascua(ano);

@@ -295,6 +295,16 @@ html.modo-salud .salud-section p{
 }
 html.modo-salud .salud-section p:last-child{ margin-bottom:0; }
 
+/* Stickers de salud (26-sep, archivo de Sandro): fila de iconos,
+   centrados y sin pasarse de ancho. */
+html.modo-salud .salud-stickers{
+  display:flex; justify-content:center;
+  margin:2px 0 16px;
+}
+html.modo-salud .salud-stickers svg{
+  width:min(560px, 100%); height:auto; display:block;
+}
+
 /* Aviso de precision (25-sep, orden de Sandro): nota humana dentro del
    desplegable, marcada con filete lateral para que se lea como aviso
    y no como parte del discurso. */

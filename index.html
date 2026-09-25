@@ -784,15 +784,51 @@
 
 <!-- Sección reivindicativa de los sábados (sep-2026, orden de Sandro):
      "en defensa de las sombras por la salud". Igual que el banner, solo
-     se ve cuando js/ambientes.js pone html.modo-salud (cada sábado). -->
-<section class="salud-section" id="defensa-sombras" aria-labelledby="saludH2">
-  <div class="salud-card">
+     se ve cuando js/ambientes.js pone html.modo-salud (cada sábado).
+     DESPLEGABLE ESTRICTO (25-sep, orden de Sandro): nace CERRADO y solo
+     el usuario lo abre pulsando el resumen; otro clic y se cierra del
+     todo. La animación de apertura/cierre es CSS puro (grid rows). -->
+<details class="salud-section" id="defensa-sombras" aria-labelledby="saludH2">
+  <summary class="salud-resumen-card">
     <span class="salud-kicker" data-i18n="saludKicker">Fin de semana de la salud</span>
-    <h2 id="saludH2" data-i18n="saludH2">La sombra también cuida</h2>
-    <p data-i18n="saludP1">Aquí el calor no es una anécdota, es un runrún constante. Pasar de la sombra al sol en pleno agosto puede subirte la temperatura del cuerpo como si te cambiaran de estación en dos pasos. Eso no es postureo verde: es salud pública con nombre y apellido.</p>
-    <p data-i18n="saludP2">Hasta Hércules (que fundó Sevilla, según cuentan) tenía sus límites. Semidiós sí, pero con sus recovecos, y sabía cuándo parar antes de que el sol se lo llevara por delante. Nosotros vamos por ahí: no esperamos al golpe de calor para reaccionar, preferimos adelantarnos. Cada árbol de tu calle es un botiquín gratis, medicina urbana que no cobra entrada y trabaja mientras tú ni te enteras.</p>
+    <span class="salud-resumen-titulo" id="saludH2" data-i18n="saludH2">La sombra también cuida</span>
+  </summary>
+  <div class="salud-contenido">
+    <div class="salud-contenido-interno salud-card">
+      <!-- Sello oficial "SIMULADOR DE SOMBRAS · MANOLIT∞" (25-sep-2026,
+           orden de Sandro). Geometría EXACTA del archivo original, solo
+           los colores pasan a variables: corporativos por defecto y
+           verdes mientras dure el modo salud (ambientes.css). No existe
+           como archivo .svg suelto, va solo incrustado aquí. -->
+      <div class="salud-sello" role="img" aria-label="Sello oficial Manolit∞, simulador de sombras">
+        <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <path id="arcoSup" d="M 70, 200 A 130 130 0 0 1 330 200" />
+            <path id="arcoInf" d="M 330, 200 A 130 130 0 0 1 70 200" />
+          </defs>
+          <circle class="s-granate" cx="200" cy="200" r="190" fill="none" stroke-width="6"/>
+          <circle class="s-granate" cx="200" cy="200" r="180" fill="none" stroke-width="2"/>
+          <circle class="s-granate" cx="200" cy="200" r="105" fill="none" stroke-width="2" stroke-dasharray="6 4"/>
+          <text class="s-tinta-fill" font-family="monospace" font-size="18" font-weight="600" letter-spacing="3">
+            <textPath href="#arcoSup" startOffset="50%" text-anchor="middle">MANOLIT∞</textPath>
+          </text>
+          <text class="s-tinta-fill" font-family="monospace" font-size="15" font-weight="600" letter-spacing="2">
+            <textPath href="#arcoInf" startOffset="50%" text-anchor="middle">SIMULADOR DE SOMBRAS</textPath>
+          </text>
+          <g transform="translate(140, 104) scale(0.60)">
+            <circle class="s-sol" cx="100" cy="150" r="45" fill="none" stroke-width="2.5"/>
+            <path class="s-agua" d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke-width="4" stroke-linecap="round"/>
+            <path class="s-agua" d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke-width="3" stroke-linecap="round"/>
+            <path class="s-granate" d="M 100,149 C 75,124 75,174 100,149 C 125,124 125,174 100,149 Z" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="s-granate" d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke-width="5" stroke-linejoin="round"/>
+          </g>
+        </svg>
+      </div>
+      <p data-i18n="saludP1">Aquí el calor no es una anécdota, es un runrún constante. Pasar de la sombra al sol en pleno agosto puede subirte la temperatura del cuerpo como si te cambiaran de estación en dos pasos. Eso no es postureo verde: es salud pública con nombre y apellido.</p>
+      <p data-i18n="saludP2">Hasta Hércules (que fundó Sevilla, según cuentan) tenía sus límites. Semidiós sí, pero con sus recovecos, y sabía cuándo parar antes de que el sol se lo llevara por delante. Nosotros vamos por ahí: no esperamos al golpe de calor para reaccionar, preferimos adelantarnos. Cada árbol de tu calle es un botiquín gratis, medicina urbana que no cobra entrada y trabaja mientras tú ni te enteras.</p>
+    </div>
   </div>
-</section>
+</details>
 
 <div class="map-section">
   <div class="map-head">

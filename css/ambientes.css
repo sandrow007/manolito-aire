@@ -213,8 +213,10 @@ html.modo-salud .salud-banner a:focus-visible{
 
 /* Sección reivindicativa de los sábados: DESPLEGABLE ESTRICTO
    (25-sep, orden de Sandro). Nace cerrada y solo el usuario la abre.
-   La animación es el truco de grid-template-rows 0fr → 1fr, lo más
-   barato que hay para la GPU, y respeta prefers-reduced-motion. */
+   La animación es max-height 0 → tope, barato para la GPU y respeta
+   prefers-reduced-motion. (Antes era grid-template-rows 0fr → 1fr,
+   pero Chrome lo congela al cerrar un details: ver nota de 26-sep
+   en .salud-contenido.) */
 .salud-section{ display:none; }
 html.modo-salud .salud-section{
   display:block;
@@ -265,16 +267,20 @@ html.modo-salud .salud-resumen-titulo{
   font-size:1.35rem; line-height:1.2; font-weight:700;
   color:var(--sky-deep);
 }
-/* Cuerpo animado: 0fr cerrado, 1fr abierto. Al cerrar también anima
-   porque el contenido sigue montado (details solo lo ocultaría si no
-   forzáramos display). */
+/* Cuerpo animado con max-height (26-sep, bug real cazado en pruebas):
+   ni grid-template-rows ni max-height con transicion en el estado base
+   funcionan al CERRAR un details en Chrome: la animacion se congela y
+   el bloque se quedaba desplegado en pantalla con el triangulo en
+   "cerrado". Solucion sin una linea de JS: la transicion vive solo en
+   el estado [open], asi la apertura se despliega suave y el cierre es
+   instantaneo y limpio, imposible de atascar. */
 html.modo-salud .salud-contenido{
-  display:grid;
-  grid-template-rows:0fr;
-  transition:grid-template-rows 0.35s ease;
+  max-height:0;
+  overflow:hidden;
 }
 html.modo-salud .salud-section[open] .salud-contenido{
-  grid-template-rows:1fr;
+  max-height:4000px;
+  transition:max-height 0.6s ease;
 }
 html.modo-salud .salud-contenido-interno{
   overflow:hidden;
@@ -442,10 +448,47 @@ html.modo-salud .salud-recurso:focus-visible{
 /* Recursos por gama (26-sep, orden de Sandro): lista vertical de las 4
    instituciones (OSMAN, OSCC, Observatorio Europeo, ClimaHealth), cada
    fila entera es el enlace, con insignia-monograma SVG propia que
-   hereda el verde del modo salud via currentColor. Las pastillas de
+   hereda el verde del modo salud via currentColor. Y va PLEGADA: es un
+   sub-desplegable que solo se abre al pulsar "Recursos oficiales",
+   mismo truco de grid que el desplegable grande. Las pastillas de
    antes (.salud-recurso) quedan arriba en reserva, sin uso. */
-html.modo-salud .salud-recursos{ flex-direction:column; align-items:stretch; gap:12px; }
-html.modo-salud .salud-recursos .salud-recursos-etiqueta{ margin-right:0; }
+html.modo-salud .salud-recursos{ display:block; }
+html.modo-salud .salud-recursos-desplegable{ margin-bottom:10px; }
+html.modo-salud .salud-recursos-resumen{
+  list-style:none; cursor:pointer;
+  display:flex; align-items:center;
+  padding:6px 4px;
+  border-radius:8px;
+}
+html.modo-salud .salud-recursos-resumen::-webkit-details-marker{ display:none; }
+/* Triángulo nativo (texto, no emoji) que gira al abrir, igual que el
+   del desplegable grande pero un punto más discreto. */
+html.modo-salud .salud-recursos-resumen::after{
+  content:"";
+  margin-left:auto;
+  width:0; height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+  border-top:8px solid var(--accent-text);
+  transition:transform 0.3s ease;
+}
+html.modo-salud .salud-recursos-desplegable[open] .salud-recursos-resumen::after{
+  transform:rotate(180deg);
+}
+html.modo-salud .salud-recursos-resumen:focus-visible{
+  outline:3px solid var(--accent); outline-offset:2px;
+}
+/* Cuerpo animado con max-height (mismo patron que el desplegable
+   grande: transicion solo en [open]; cierre instantaneo, sin atascos). */
+html.modo-salud .recursos-envoltura{
+  max-height:0; overflow:hidden;
+}
+html.modo-salud .salud-recursos-desplegable[open] .recursos-envoltura{
+  max-height:1400px;
+  transition:max-height 0.45s ease;
+}
+html.modo-salud .recursos-envoltura-interna{ overflow:hidden; }
+html.modo-salud .salud-recursos-lista{ margin-top:6px; }
 html.modo-salud .salud-recursos-lista{
   list-style:none; margin:0; padding:0;
   display:flex; flex-direction:column; gap:10px;
@@ -496,7 +539,9 @@ html.modo-salud .recurso-uso{
   html.modo-salud .recurso-insignia{ flex-basis:42px; width:42px; height:42px; }
 }
 @media (prefers-reduced-motion: reduce){
-  html.modo-salud .recurso-oficial{ transition:none; }
+  html.modo-salud .recurso-oficial,
+  html.modo-salud .recursos-envoltura,
+  html.modo-salud .salud-recursos-resumen::after{ transition:none; }
 }
 @media (prefers-reduced-motion: reduce){
   html.modo-salud .salud-contenido,

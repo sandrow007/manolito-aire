@@ -1,605 +1,242 @@
 /* ============================================================
-   MANOLIT AIRE, css/ambientes.css (sep-2026, NUEVO)
-   Ambientes climatológicos automáticos: los días señalados la
-   web cambia de piel ENTERA (fondos, tintas y acentos) según la
-   fecha. js/ambientes.js pone el atributo data-ambiente en
-   <html> y este archivo hace el resto. Fuera de esas fechas no
-   se aplica NADA: la paleta del usuario y el modo oscuro siguen
-   mandando como siempre.
+   MANOLIT AIRE, js/ambientes.js (sep-2026, NUEVO)
+   Ambientes climatológicos automáticos: según la fecha de hoy,
+   pone data-ambiente="..." en <html> y css/ambientes.css cambia
+   la piel entera de la web. 100% local (sin red ni librerías),
+   sin consola sucia y sin tocar nada los demás días del año:
+   si no hay ambiente, este script no hace absolutamente nada.
 
-   Cómo funciona la prioridad: estas reglas tienen la misma
-   especificidad que [data-palette] y [data-theme] de style.css,
-   pero este archivo se carga DESPUÉS, así que en empate gana el
-   ambiente. Los colores de estado del aire (--breath-*) NO se
-   tocan: son datos, no decoración.
+   Calendario:
+   - Semana Santa (variable: Domingo de Ramos → Resurrección)
+   - 1 ene ........ Año Nuevo
+   - 26 mar ....... Día Mundial del Clima
+   - 22 abr ....... Día de la Tierra
+   - 23-24 jun .... San Juan (hogueras)
+   - resto de junio . Orgullo
+   - 31 oct ....... Halloween
+   - 24-31 dic .... Navidad
    ============================================================ */
+(function () {
+  'use strict';
 
-/* ---------- SEMANA SANTA (Domingo de Ramos → Resurrección) ----------
-   Morado penitente de túnicas y dorado de cera de vela. */
-[data-ambiente="semana-santa"]{
-  --paper:#FBF6FF; --mist:#F1E6FB;
-  --ink:#2A0A45;   --sky-deep:#3B0764; --sky-mid:#6B21A8;
-  --accent:#7E22CE; --accent-soft:rgba(126,34,206,0.14);
-  --accent-2:#B8860B; --accent-text:#6B21A8;
-  --line:rgba(59,7,100,0.14); --surface:rgba(255,253,255,0.90);
-  --border:rgba(59,7,100,0.16);
-}
-[data-theme="dark"][data-ambiente="semana-santa"]{
-  --paper:#0D0318; --mist:#1A0930;
-  --ink:#F3E8FF;   --sky-deep:#F3E8FF; --sky-mid:#C084FC;
-  --accent:#C9A227; --accent-soft:rgba(201,162,39,0.16);
-  --accent-2:#C084FC; --accent-text:#E9C46A;
-  --line:rgba(192,132,252,0.16); --surface:rgba(26,9,48,0.90);
-  --border:rgba(192,132,252,0.20);
-}
-
-/* ---------- AÑO NUEVO (1 de enero) ----------
-   Champaña y medianoche: dorado sobre noche azulada. */
-[data-ambiente="anonuevo"]{
-  --paper:#FFFBEF; --mist:#F5EBD3;
-  --ink:#1C1A12;   --sky-deep:#574208; --sky-mid:#8C6D1F;
-  --accent:#D4A017; --accent-soft:rgba(212,160,23,0.16);
-  --accent-2:#1E3A5F; --accent-text:#7A5A00;
-  --line:rgba(87,66,8,0.16); --surface:rgba(255,252,240,0.90);
-  --border:rgba(87,66,8,0.16);
-}
-[data-theme="dark"][data-ambiente="anonuevo"]{
-  --paper:#07060F; --mist:#101022;
-  --ink:#F5EEDC;   --sky-deep:#F5EEDC; --sky-mid:#E9C46A;
-  --accent:#FFD166; --accent-soft:rgba(255,209,102,0.16);
-  --accent-2:#7DF9FF; --accent-text:#FFD166;
-  --line:rgba(255,209,102,0.16); --surface:rgba(16,16,34,0.90);
-  --border:rgba(255,209,102,0.20);
-}
-
-/* ---------- DÍA DEL CLIMA (26 mar) y DÍA DE LA TIERRA (22 abr) ----------
-   Verde ecológico de hoja nueva. */
-[data-ambiente="ambiental"]{
-  --paper:#F2FBF3; --mist:#DFF2E2;
-  --ink:#0F2A17;   --sky-deep:#14532D; --sky-mid:#15803D;
-  --accent:#16A34A; --accent-soft:rgba(22,163,74,0.15);
-  --accent-2:#0E7490; --accent-text:#0D6B32;
-  --line:rgba(20,83,45,0.14); --surface:rgba(255,255,255,0.88);
-  --border:rgba(20,83,45,0.15);
-}
-[data-theme="dark"][data-ambiente="ambiental"]{
-  --paper:#03130A; --mist:#072015;
-  --ink:#DDF7E4;   --sky-deep:#DDF7E4; --sky-mid:#4ADE80;
-  --accent:#4ADE80; --accent-soft:rgba(74,222,128,0.15);
-  --accent-2:#2DD4BF; --accent-text:#7CE7A2;
-  --line:rgba(74,222,128,0.15); --surface:rgba(7,32,21,0.90);
-  --border:rgba(74,222,128,0.20);
-}
-
-/* ---------- ORGULLO (todo junio, salvo 23-24 que es San Juan) ----------
-   Base limpia y el arcoíris donde se ve: la marca y la barra
-   superior. Un degradado no puede ser un "color" en CSS, así que
-   el arcoíris va en fondos y bordes, nunca como --accent. */
-[data-ambiente="orgullo"]{
-  --paper:#FFFFFF; --mist:#F4F6FB;
-  --ink:#1E293B;   --sky-deep:#0F172A; --sky-mid:#475569;
-  --accent:#7B2FFF; --accent-soft:rgba(123,47,255,0.14);
-  --accent-2:#E63E5F; --accent-text:#6A1FE0;
-  --line:rgba(30,41,59,0.12); --surface:rgba(255,255,255,0.90);
-  --border:rgba(30,41,59,0.14);
-}
-[data-theme="dark"][data-ambiente="orgullo"]{
-  --paper:#0B0D1A; --mist:#141830;
-  --ink:#F1F5F9;   --sky-deep:#F1F5F9; --sky-mid:#94A3B8;
-  --accent:#B28CFF; --accent-soft:rgba(178,140,255,0.15);
-  --accent-2:#FF8FA8; --accent-text:#C9AEFF;
-  --line:rgba(148,163,184,0.16); --surface:rgba(20,24,48,0.90);
-  --border:rgba(148,163,184,0.20);
-}
-[data-ambiente="orgullo"] .topbar{
-  border-bottom:3px solid transparent;
-  border-image:linear-gradient(90deg,#E40303,#FF8C00,#FFED00,#008026,#24408E,#732982) 1;
-}
-[data-ambiente="orgullo"] .wordmark .wordmark-name{
-  background:linear-gradient(110deg,#E40303 0%,#FF8C00 20%,#D4B800 40%,#008026 60%,#24408E 80%,#732982 100%);
-  background-size:300% 100%;
-  -webkit-background-clip:text; background-clip:text;
-  -webkit-text-fill-color:transparent; color:transparent;
-}
-
-/* ---------- SAN JUAN (23-24 de junio) ----------
-   Noche de hogueras: brasa naranja y mar nocturno. */
-[data-ambiente="sanjuan"]{
-  --paper:#FFF7EC; --mist:#FBE8CE;
-  --ink:#2A1305;   --sky-deep:#3B1A04; --sky-mid:#9A3412;
-  --accent:#EA580C; --accent-soft:rgba(234,88,12,0.16);
-  --accent-2:#0369A1; --accent-text:#B34408;
-  --line:rgba(59,26,4,0.14); --surface:rgba(255,251,244,0.90);
-  --border:rgba(59,26,4,0.16);
-}
-[data-theme="dark"][data-ambiente="sanjuan"]{
-  --paper:#0A0503; --mist:#170B05;
-  --ink:#FFEEDD;   --sky-deep:#FFEEDD; --sky-mid:#FB923C;
-  --accent:#FB923C; --accent-soft:rgba(251,146,60,0.16);
-  --accent-2:#38BDF8; --accent-text:#FFB86B;
-  --line:rgba(251,146,60,0.16); --surface:rgba(23,11,5,0.90);
-  --border:rgba(251,146,60,0.20);
-}
-
-/* ---------- HALLOWEEN (31 de octubre) ----------
-   Negro calabaza con un toque de morado brujería. */
-[data-ambiente="halloween"]{
-  --paper:#FFF8F0; --mist:#F7E8D8;
-  --ink:#1C0E04;   --sky-deep:#26130A; --sky-mid:#7C2D12;
-  --accent:#EA580C; --accent-soft:rgba(234,88,12,0.15);
-  --accent-2:#6B21A8; --accent-text:#B34408;
-  --line:rgba(38,19,10,0.14); --surface:rgba(255,252,247,0.90);
-  --border:rgba(38,19,10,0.16);
-}
-[data-theme="dark"][data-ambiente="halloween"]{
-  --paper:#0C0A08; --mist:#171310;
-  --ink:#F8FAFC;   --sky-deep:#F8FAFC; --sky-mid:#FB923C;
-  --accent:#FB923C; --accent-soft:rgba(251,146,60,0.16);
-  --accent-2:#A855F7; --accent-text:#FFB86B;
-  --line:rgba(251,146,60,0.14); --surface:rgba(23,19,16,0.92);
-  --border:rgba(251,146,60,0.20);
-}
-
-/* ---------- NAVIDAD (24-31 de diciembre) ----------
-   Rojo de lazo, verde pino y dorado de belén. */
-[data-ambiente="navidad"]{
-  --paper:#FDF9F4; --mist:#F3EAE0;
-  --ink:#1F2937;   --sky-deep:#7F1D1D; --sky-mid:#166534;
-  --accent:#C41E3A; --accent-soft:rgba(196,30,58,0.14);
-  --accent-2:#166534; --accent-text:#A3122C;
-  --line:rgba(127,29,29,0.14); --surface:rgba(255,255,255,0.90);
-  --border:rgba(127,29,29,0.16);
-}
-[data-theme="dark"][data-ambiente="navidad"]{
-  --paper:#080D0A; --mist:#0F1A14;
-  --ink:#F1F5F0;   --sky-deep:#F1F5F0; --sky-mid:#4ADE80;
-  --accent:#EF4444; --accent-soft:rgba(239,68,68,0.16);
-  --accent-2:#E9C46A; --accent-text:#FF8A8A;
-  --line:rgba(74,222,128,0.14); --surface:rgba(15,26,20,0.90);
-  --border:rgba(74,222,128,0.18);
-}
-
-/* ---------- SALUD (cada sábado, sep-2026, orden de Sandro) ----------
-   Día de la Salud en Andalucía llevado a costumbre semanal. La web se
-   pone en verde fresco de menta y esmeralda, colores de parque con
-   agua y de sombra de árbol, que es de lo que va el día. Es distinto
-   del verde hoja del ambiente "ambiental" para que se note que esto
-   es otra cosa.
-   Además de la piel, el sábado enseña dos piezas que el resto de la
-   semana están ocultas: el banner superior (.salud-banner) y la
-   sección reivindicativa (.salud-section). Todo gobernado por la
-   clase html.modo-salud que pone js/ambientes.js. El domingo la clase
-   desaparece sola y aquí no ha pasado nada. */
-html.modo-salud{
-  --paper:#F1FBF6; --mist:#DDF4E8;
-  --ink:#07301C;   --sky-deep:#0B4F2E; --sky-mid:#15803D;
-  --accent:#10B981; --accent-soft:rgba(16,185,129,0.14);
-  --accent-2:#0D9488; --accent-text:#0B6B44;
-  --line:rgba(11,79,46,0.14); --surface:rgba(255,255,255,0.90);
-  --border:rgba(11,79,46,0.15);
-}
-html[data-theme="dark"].modo-salud{
-  --paper:#03120B; --mist:#082015;
-  --ink:#DEF7E9;   --sky-deep:#DEF7E9; --sky-mid:#34D399;
-  --accent:#34D399; --accent-soft:rgba(52,211,153,0.15);
-  --accent-2:#2DD4BF; --accent-text:#7CE7B2;
-  --line:rgba(52,211,153,0.15); --surface:rgba(8,32,21,0.90);
-  --border:rgba(52,211,153,0.20);
-}
-/* La pantalla de entrada también se entera: el subtítulo del eslogan
-   se tiñe de menta (el fondo del splash es oscuro siempre). */
-html.modo-salud #manolitoSplash .sub-brand{ color:#7CE7B2; }
-
-/* Banner superior de salud: solo existe en modo salud. Va en el flujo
-   normal, encima de la barra pegajosa, así no pisa ni desplaza nada
-   y al desplazarte se va con la página (nada fixed molestando). */
-.salud-banner{ display:none; }
-html.modo-salud .salud-banner{
-  display:block;
-  background:linear-gradient(90deg,#0B4F2E,#0D9488);
-  color:#ECFDF5;
-  text-align:center;
-  padding:10px 16px;
-  font-size:0.95rem;
-  line-height:1.45;
-}
-html.modo-salud .salud-banner a{
-  color:#FFFFFF; font-weight:600;
-  text-decoration:underline; text-underline-offset:3px;
-}
-html.modo-salud .salud-banner a:focus-visible{
-  outline:3px solid #FFFFFF; outline-offset:2px;
-}
-
-/* Sección reivindicativa de los sábados: DESPLEGABLE ESTRICTO
-   (25-sep, orden de Sandro). Nace cerrada y solo el usuario la abre.
-   La animación es max-height 0 → tope, barato para la GPU y respeta
-   prefers-reduced-motion. (Antes era grid-template-rows 0fr → 1fr,
-   pero Chrome lo congela al cerrar un details: ver nota de 26-sep
-   en .salud-contenido.) */
-.salud-section{ display:none; }
-html.modo-salud .salud-section{
-  display:block;
-  max-width:880px;
-  margin:26px auto 8px;
-  padding:0 20px;
-}
-html.modo-salud .salud-resumen-card{
-  list-style:none;
-  cursor:pointer;
-  background:var(--mist);
-  border:1px solid var(--border);
-  border-radius:18px;
-  padding:18px 22px;
-  display:flex;
-  align-items:center;
-  gap:14px;
-  flex-wrap:wrap;
-}
-html.modo-salud .salud-resumen-card::-webkit-details-marker{ display:none; }
-/* Triángulo nativo (texto, no emoji) que gira al abrir. */
-html.modo-salud .salud-resumen-card::after{
-  content:"";
-  margin-left:auto;
-  width:0; height:0;
-  border-left:7px solid transparent;
-  border-right:7px solid transparent;
-  border-top:9px solid var(--accent-text);
-  transition:transform 0.3s ease;
-}
-html.modo-salud .salud-section[open] .salud-resumen-card{
-  border-radius:18px 18px 0 0;
-  border-bottom-color:transparent;
-}
-html.modo-salud .salud-section[open] .salud-resumen-card::after{
-  transform:rotate(180deg);
-}
-html.modo-salud .salud-resumen-card:focus-visible{
-  outline:3px solid var(--accent); outline-offset:2px;
-}
-html.modo-salud .salud-kicker{
-  display:inline-block;
-  font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase;
-  color:#FFFFFF; background:var(--accent);
-  padding:4px 12px; border-radius:999px;
-}
-html.modo-salud .salud-resumen-titulo{
-  font-size:1.35rem; line-height:1.2; font-weight:700;
-  color:var(--sky-deep);
-}
-/* Cuerpo animado con max-height (26-sep, bug real cazado en pruebas):
-   ni grid-template-rows ni max-height con transicion en el estado base
-   funcionan al CERRAR un details en Chrome: la animacion se congela y
-   el bloque se quedaba desplegado en pantalla con el triangulo en
-   "cerrado". Solucion sin una linea de JS: la transicion vive solo en
-   el estado [open], asi la apertura se despliega suave y el cierre es
-   instantaneo y limpio, imposible de atascar. */
-html.modo-salud .salud-contenido{
-  max-height:0;
-  overflow:hidden;
-}
-html.modo-salud .salud-section[open] .salud-contenido{
-  max-height:4000px;
-  transition:max-height 0.6s ease;
-}
-html.modo-salud .salud-contenido-interno{
-  overflow:hidden;
-  background:var(--mist);
-  border:1px solid var(--border);
-  border-top:none;
-  border-radius:0 0 18px 18px;
-  padding:0 26px;
-}
-html.modo-salud .salud-section[open] .salud-contenido-interno{
-  padding:22px 26px 28px;
-  transition:padding 0.35s ease;
-}
-html.modo-salud .salud-section p{
-  margin:0 0 0.9em;
-  font-size:1rem; line-height:1.65;
-  color:var(--ink);
-}
-html.modo-salud .salud-section p:last-child{ margin-bottom:0; }
-
-/* Stickers de salud INTERACTIVOS (26-sep, orden de Sandro): cada icono
-   es un boton. Hover = tooltip rapido (solo donde hay raton), clic =
-   panel fijo bajo la fila, reclic o Esc = cerrar. Todo CSS salvo el
-   abrir/cerrar, que vive en js/ambientes.js. */
-html.modo-salud .salud-stickers{
-  display:flex; justify-content:center; flex-wrap:wrap;
-  gap:16px 20px;
-  margin:2px 0 6px;
-}
-html.modo-salud .salud-stickers .sticker{
-  position:relative;
-  width:84px; padding:0; margin:0;
-  border:none; background:none; cursor:pointer;
-  transition:transform 0.25s ease;
-}
-html.modo-salud .salud-stickers .sticker svg{
-  display:block; width:100%; height:auto;
-}
-/* Estado inicial = 6 iconos limpios, sin texto debajo (orden de Sandro,
-   26-sep): las etiquetas internas del SVG se ocultan siempre. El SVG
-   sigue verbatim en el codigo; esto solo lo oculta en pantalla. El texto
-   llega por tooltip (hover) o por panel fijo (clic). */
-html.modo-salud .salud-stickers .sticker svg text{
-  display:none;
-}
-html.modo-salud .salud-stickers .sticker:hover,
-html.modo-salud .salud-stickers .sticker.activo{
-  transform:translateY(-3px) scale(1.05);
-}
-html.modo-salud .salud-stickers .sticker:focus-visible{
-  outline:3px solid var(--accent); outline-offset:3px; border-radius:14px;
-}
-/* Tooltip de lectura veloz: solo en dispositivos con hover real. */
-html.modo-salud .sticker-tip{ display:none; }
-@media (hover:hover){
-  html.modo-salud .sticker-tip{
-    display:block;
-    position:absolute; bottom:calc(100% + 12px); left:50%;
-    transform:translateX(-50%) translateY(4px);
-    width:230px; padding:12px 14px;
-    background:var(--ink); color:var(--paper);
-    border-radius:12px;
-    font-size:0.8rem; line-height:1.5; text-align:left;
-    opacity:0; visibility:hidden; pointer-events:none;
-    transition:opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
-    z-index:40;
-    box-shadow:0 8px 24px rgba(3,20,12,0.28);
+  // Domingo de Resurrección por el algoritmo de Computus (calendario
+  // gregoriano): la Semana Santa cambia de fechas cada año y hay que
+  // calcularla, no vale una tabla fija.
+  function obtenerPascua(y) {
+    var a = y % 19, b = Math.floor(y / 100), c = y % 100;
+    var d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+    var g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    var i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+    var m = Math.floor((a + 11 * h + 22 * l) / 451);
+    var mes = Math.floor((h + l - 7 * m + 114) / 31);
+    var dia = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, mes - 1, dia);
   }
-  html.modo-salud .sticker-tip strong{
-    display:block; margin-bottom:4px; font-size:0.82rem;
-  }
-  html.modo-salud .sticker-tip::after{
-    content:""; position:absolute; top:100%; left:50%;
-    transform:translateX(-50%);
-    border:7px solid transparent; border-top-color:var(--ink);
-  }
-  html.modo-salud .sticker:hover .sticker-tip,
-  html.modo-salud .sticker:focus-visible .sticker-tip{
-    opacity:1; visibility:visible;
-    transform:translateX(-50%) translateY(0);
-  }
-  /* Extremos de la fila: el tooltip se ancla hacia dentro para no
-     salirse de la tarjeta. */
-  html.modo-salud .sticker:first-child .sticker-tip{
-    left:0; transform:translateX(0) translateY(4px);
-  }
-  html.modo-salud .sticker:first-child .sticker-tip::after{ left:36px; }
-  html.modo-salud .sticker:first-child:hover .sticker-tip,
-  html.modo-salud .sticker:first-child:focus-visible .sticker-tip{
-    transform:translateX(0) translateY(0);
-  }
-  html.modo-salud .sticker:last-child .sticker-tip{
-    left:auto; right:0; transform:translateX(0) translateY(4px);
-  }
-  html.modo-salud .sticker:last-child .sticker-tip::after{ left:auto; right:30px; }
-  html.modo-salud .sticker:last-child:hover .sticker-tip,
-  html.modo-salud .sticker:last-child:focus-visible .sticker-tip{
-    transform:translateX(0) translateY(0);
-  }
-}
-/* Panel fijo de lectura con calma: uno por fila, contenido del sticker
-   pulsado. Oculto por defecto (atributo hidden). */
-html.modo-salud .sticker-panel{
-  max-width:640px; margin:16px auto 4px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-left:3px solid var(--accent);
-  border-radius:14px; padding:14px 18px;
-}
-html.modo-salud .sticker-panel-titulo{
-  display:block; margin-bottom:6px;
-  color:var(--sky-deep); font-size:1rem;
-}
-html.modo-salud .sticker-panel-texto{
-  margin:0; font-size:0.95rem; line-height:1.6; color:var(--ink);
-}
-@media (prefers-reduced-motion: reduce){
-  html.modo-salud .salud-stickers .sticker,
-  html.modo-salud .sticker-tip{ transition:none; }
-}
 
-/* Aviso de precision (25-sep, orden de Sandro): nota humana dentro del
-   desplegable, marcada con filete lateral para que se lea como aviso
-   y no como parte del discurso. */
-html.modo-salud .salud-nota{
-  margin-top:6px;
-  padding:12px 16px;
-  font-size:0.92rem; line-height:1.6;
-  background:var(--accent-soft);
-  border-left:3px solid var(--accent);
-  border-radius:0 12px 12px 0;
-}
-/* Pie de recursos oficiales: fila discreta de pastillas-enlace. */
-html.modo-salud .salud-recursos{
-  display:flex; flex-wrap:wrap; align-items:center; gap:10px;
-  margin-top:20px; padding-top:16px;
-  border-top:1px solid var(--border);
-}
-html.modo-salud .salud-recursos-etiqueta{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase;
-  color:var(--accent-text);
-  margin-right:auto;
-}
-html.modo-salud .salud-recurso{
-  display:inline-block;
-  font-size:0.85rem; font-weight:600;
-  color:var(--accent-text);
-  border:1px solid var(--border);
-  border-radius:999px;
-  padding:8px 16px;
-  text-decoration:none;
-  background:var(--surface);
-  transition:background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
-}
-html.modo-salud .salud-recurso:hover{
-  background:var(--accent); color:#FFFFFF; border-color:var(--accent);
-}
-html.modo-salud .salud-recurso:focus-visible{
-  outline:3px solid var(--accent); outline-offset:2px;
-}
-@media (max-width:640px){
-  html.modo-salud .salud-recursos-etiqueta{ width:100%; margin-right:0; }
-}
-/* Recursos por gama (26-sep, orden de Sandro): lista vertical de las 4
-   instituciones (OSMAN, OSCC, Observatorio Europeo, ClimaHealth), cada
-   fila entera es el enlace, con insignia-monograma SVG propia que
-   hereda el verde del modo salud via currentColor. Y va PLEGADA: es un
-   sub-desplegable que solo se abre al pulsar "Recursos oficiales",
-   mismo truco de grid que el desplegable grande. Las pastillas de
-   antes (.salud-recurso) quedan arriba en reserva, sin uso. */
-html.modo-salud .salud-recursos{ display:block; }
-html.modo-salud .salud-recursos-desplegable{ margin-bottom:10px; }
-html.modo-salud .salud-recursos-resumen{
-  list-style:none; cursor:pointer;
-  display:flex; align-items:center;
-  padding:6px 4px;
-  border-radius:8px;
-}
-html.modo-salud .salud-recursos-resumen::-webkit-details-marker{ display:none; }
-/* Triángulo nativo (texto, no emoji) que gira al abrir, igual que el
-   del desplegable grande pero un punto más discreto. */
-html.modo-salud .salud-recursos-resumen::after{
-  content:"";
-  margin-left:auto;
-  width:0; height:0;
-  border-left:6px solid transparent;
-  border-right:6px solid transparent;
-  border-top:8px solid var(--accent-text);
-  transition:transform 0.3s ease;
-}
-html.modo-salud .salud-recursos-desplegable[open] .salud-recursos-resumen::after{
-  transform:rotate(180deg);
-}
-html.modo-salud .salud-recursos-resumen:focus-visible{
-  outline:3px solid var(--accent); outline-offset:2px;
-}
-/* Cuerpo animado con max-height (mismo patron que el desplegable
-   grande: transicion solo en [open]; cierre instantaneo, sin atascos). */
-html.modo-salud .recursos-envoltura{
-  max-height:0; overflow:hidden;
-}
-html.modo-salud .salud-recursos-desplegable[open] .recursos-envoltura{
-  max-height:1400px;
-  transition:max-height 0.45s ease;
-}
-html.modo-salud .recursos-envoltura-interna{ overflow:hidden; }
-html.modo-salud .salud-recursos-lista{ margin-top:6px; }
-html.modo-salud .salud-recursos-lista{
-  list-style:none; margin:0; padding:0;
-  display:flex; flex-direction:column; gap:10px;
-}
-html.modo-salud .recurso-oficial{
-  display:flex; align-items:center; gap:14px;
-  padding:12px 14px;
-  border:1px solid var(--border); border-radius:14px;
-  background:var(--surface);
-  text-decoration:none; color:var(--ink);
-  transition:border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
-}
-html.modo-salud .recurso-oficial:hover{
-  border-color:var(--accent); background:var(--accent-soft);
-  transform:translateY(-2px);
-}
-html.modo-salud .recurso-oficial:focus-visible{
-  outline:3px solid var(--accent); outline-offset:2px;
-}
-html.modo-salud .recurso-insignia{
-  flex:0 0 48px; width:48px; height:48px;
-  color:var(--accent-text);
-}
-html.modo-salud .recurso-insignia svg{ display:block; width:100%; height:100%; }
-html.modo-salud .ins-anillo{ fill:none; stroke:currentColor; stroke-width:2.4; }
-html.modo-salud .ins-anillo-fino{ fill:none; stroke:currentColor; stroke-width:1; stroke-dasharray:2 3; opacity:0.8; }
-html.modo-salud .ins-siglas{
-  fill:currentColor;
-  font-family:'IBM Plex Mono', monospace; font-weight:600;
-  font-size:11px; letter-spacing:0.06em; text-anchor:middle;
-}
-html.modo-salud .ins-siglas-mini{ font-size:8.2px; }
-html.modo-salud .ins-siglas-grande{ font-size:15px; }
-html.modo-salud .recurso-texto{ display:flex; flex-direction:column; gap:2px; min-width:0; }
-html.modo-salud .recurso-gama{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:0.64rem; letter-spacing:0.12em; text-transform:uppercase;
-  color:var(--accent-text);
-}
-html.modo-salud .recurso-nombre{
-  font-size:0.92rem; line-height:1.35; color:var(--ink);
-}
-html.modo-salud .recurso-uso{
-  font-size:0.78rem; line-height:1.45; color:var(--ink); opacity:0.75;
-}
-@media (max-width:640px){
-  html.modo-salud .recurso-oficial{ gap:10px; padding:10px 12px; }
-  html.modo-salud .recurso-insignia{ flex-basis:42px; width:42px; height:42px; }
-}
-@media (prefers-reduced-motion: reduce){
-  html.modo-salud .recurso-oficial,
-  html.modo-salud .recursos-envoltura,
-  html.modo-salud .salud-recursos-resumen::after{ transition:none; }
-}
-@media (prefers-reduced-motion: reduce){
-  html.modo-salud .salud-contenido,
-  html.modo-salud .salud-contenido-interno,
-  html.modo-salud .salud-resumen-card::after{ transition:none; }
-}
+  function ambienteDeHoy() {
+    // OJO: "ahora" guarda la hora real y "hoy" se pone a las 00:00 más
+    // abajo. La regla de salud necesita la hora (el domingo corta a las
+    // 18:00), así que se mira "ahora", nunca "hoy".
+    var ahora = new Date();
+    var hoy = new Date(ahora);
+    hoy.setHours(0, 0, 0, 0);
+    var ano = hoy.getFullYear();
+    var mes = hoy.getMonth() + 1; // 1 = enero … 12 = diciembre
+    var dia = hoy.getDate();
 
-/* Sello oficial Manolit∞ (25-sep, orden de Sandro): colores por
-   variables. Los corporativos son los de siempre; mientras dura el
-   modo salud el sello se tiñe de verde, y al apagarse el modo (el
-   domingo a las 18:00) vuelve solo a los corporativos. La geometría
-   del SVG es la del archivo original, sin tocar. */
-.salud-section, .sello-footer{
-  --sello-granate:#7A0016;
-  --sello-tinta:#26424B;
-  --sello-sol:#E6A100;
-  --sello-agua:#007A87;
-}
-html.modo-salud .salud-section, html.modo-salud .sello-footer{
-  --sello-granate:#0B6B44;
-  --sello-tinta:#064E3B;
-  --sello-sol:#E9A100;
-  --sello-agua:#0D9488;
-}
-html.modo-salud .salud-sello{
-  display:flex; justify-content:center;
-  margin:4px 0 18px;
-}
-html.modo-salud .salud-sello svg{
-  width:min(240px, 62vw);
-  height:auto;
-}
-.salud-section .s-granate, .sello-footer .s-granate{ stroke:var(--sello-granate); }
-.salud-section .s-sol, .sello-footer .s-sol{ stroke:var(--sello-sol); }
-.salud-section .s-agua, .sello-footer .s-agua{ stroke:var(--sello-agua); }
-.salud-section .s-tinta-fill, .sello-footer .s-tinta-fill{ fill:var(--sello-tinta); }
+    // 0) Salud (sep-2026, orden de Sandro): la web se pone en verde por
+    //    la salud TODO el sábado y el domingo hasta las 18:00. A esa
+    //    hora esta regla deja de cumplirse y la web vuelve sola a su
+    //    piel normal, sin tocar nada. Va lo primero y manda sobre el
+    //    resto: si el fin de semana cae en otra fiesta, gana la salud
+    //    (el domingo a las 18:00 esa fiesta recupera su turno).
+    //    ESTRENO (ventana única): esta primera vez arranca el viernes
+    //    25-sep-2026 y corre hasta el domingo 27 a las 18:00. Pasado
+    //    ese momento solo manda la regla semanal de arriba.
+    //    NO BORRAR (orden de Sandro): todo el modo salud (esta regla, el
+    //    banner, el desplegable y sus estilos) se queda comentado y
+    //    guardado en el repositorio aunque no se vea entre semana. Lo
+    //    reutilizaremos el año que viene o en otras secciones.
+    if (ahora >= new Date(2026, 8, 25) && ahora < new Date(2026, 8, 27, 18)) return 'salud';
+    if (ahora.getDay() === 6) return 'salud';
+    if (ahora.getDay() === 0 && ahora.getHours() < 18) return 'salud';
 
-/* Sello permanente del pie (25-sep, orden de Sandro): pequeño, en la
-   esquina inferior derecha, sin estridencias. No se quita el domingo.
-   Opacidad suave para integrarse, y al pasar el ratón o enfocar gana
-   presencia. Mismo sistema de variables que el sello del bloque. */
-.footer-oficial{
-  display:flex; justify-content:flex-start;
-  margin-top:26px;
-  /* Esquina inferior IZQUIERDA: la derecha es del boton del chat
-     (va fijo sobre la esquina) y el sello no debe pelearse con el. */
-}
-.sello-footer{
-  width:88px;
-  opacity:0.75;
-  transition:opacity 0.3s ease, transform 0.3s ease;
-}
-.sello-footer:hover{ opacity:1; transform:scale(1.04); }
-.sello-footer svg{ display:block; width:100%; height:auto; }
-@media (max-width:640px){
-  .footer-oficial{ justify-content:center; }
-  .sello-footer{ width:76px; }
-}
-@media (prefers-reduced-motion: reduce){
-  .sello-footer{ transition:none; }
-}
+    // 1) Semana Santa (variable): tiene prioridad sobre todo lo demás.
+    var pascua = obtenerPascua(ano);
+    var ramos = new Date(pascua);
+    ramos.setDate(pascua.getDate() - 7);
+    if (hoy >= ramos && hoy <= pascua) return 'semana-santa';
+
+    // 2) Fechas fijas. OJO al orden: San Juan va ANTES que Orgullo,
+    //    porque junio entero es Orgullo y se "comería" las hogueras.
+    if (mes === 1 && dia === 1) return 'anonuevo';
+    if (mes === 3 && dia === 26) return 'ambiental';  // Día Mundial del Clima
+    if (mes === 4 && dia === 22) return 'ambiental';  // Día de la Tierra
+    if (mes === 6 && (dia === 23 || dia === 24)) return 'sanjuan';
+    if (mes === 6) return 'orgullo';
+    if (mes === 10 && dia === 31) return 'halloween';
+    if (mes === 12 && dia >= 24) return 'navidad';
+    return '';
+  }
+
+  var ambiente = ambienteDeHoy();
+  if (!ambiente) return; // día normal: ni un byte de cambio
+  document.documentElement.setAttribute('data-ambiente', ambiente);
+
+  // Extras del modo salud (sep-2026, orden de Sandro). Clase global
+  // html.modo-salud que gobierna banner, sección y piel (el CSS la usa).
+  // El banner y la sección salen solos por CSS; aquí solo quedan dos
+  // toques que no se pueden hacer con CSS: el título de la pestaña y
+  // el subtítulo de la pantalla de entrada. Todo reversible: el domingo
+  // el script no llega hasta aquí y no se toca nada.
+  if (ambiente === 'salud') {
+    document.documentElement.classList.add('modo-salud');
+
+    var ponerTitulosSalud = function () {
+      // Pestaña del navegador.
+      document.title = 'Manolit∞ Aire · Sábado de la Salud';
+      // Pantalla de entrada, guiño de Manolito (el splash es siempre
+      // en castellano, así que este texto también).
+      var sub = document.querySelector('#manolitoSplash .sub-brand');
+      if (sub) sub.textContent = '+ Sábado de la Salud';
+
+      // Enlace del banner: lleva a la sección Y la abre (sigue siendo
+      // el usuario quien decide cerrarla, el bloque nunca nace abierto).
+      // Abrir pasa por el acordeon animado de abajo (clic sintetico en
+      // el summary); si ya esta abierto no se toca, nunca lo cierra.
+      var enlace = document.querySelector('.salud-banner a[href="#defensa-sombras"]');
+      var bloque = document.getElementById('defensa-sombras');
+      if (enlace && bloque) {
+        enlace.addEventListener('click', function () {
+          if (bloque.open) return;
+          var resumenBloque = bloque.querySelector('summary');
+          if (resumenBloque) resumenBloque.click(); else bloque.open = true;
+        });
+      }
+
+      // Acordeones con animacion fiable en los dos sentidos (26-sep-2026,
+      // bug real cazado en pruebas): Chrome no anima bien los <details>.
+      // Al cerrar, el contenido deja de renderizarse y la transicion se
+      // congela (el bloque se quedaba abierto en pantalla con el
+      // triangulo ya en "cerrado"); al abrir, el contenido entra en
+      // layout un frame tarde y la animacion arrancaba sobre un bloque
+      // vacio. Asi que el clic lo gobernamos aqui: animamos max-height
+      // con pixeles medidos tras dos frames (contenido ya pintado) y
+      // solo tocamos el atributo open cuando la animacion termina.
+      // Con movimiento reducido, abre/cierra directo sin animar.
+      var movimientoReducido = false;
+      try { movimientoReducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { }
+      [
+        { det: document.getElementById('defensa-sombras'), cuerpo: document.querySelector('#defensa-sombras .salud-contenido') },
+        { det: document.querySelector('.salud-recursos-desplegable'), cuerpo: document.querySelector('.recursos-envoltura') }
+      ].forEach(function (ac) {
+        if (!ac.det || !ac.cuerpo) return;
+        var resumen = ac.det.querySelector('summary');
+        if (!resumen) return;
+        resumen.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          if (movimientoReducido) { ac.det.open = !ac.det.open; return; }
+          if (ac.animando) return;
+          ac.animando = true;
+          var cuerpo = ac.cuerpo;
+          var abriendo = !ac.det.open;
+          var soltar = function () {
+            if (ac.det.open && !abriendo) ac.det.open = false; // cierre: ya plegado, se marca cerrado
+            cuerpo.style.maxHeight = ''; // gobierna la regla CSS
+            ac.animando = false;
+          };
+          var fin = function (e) {
+            if (e && e.propertyName && e.propertyName !== 'max-height') return;
+            cuerpo.removeEventListener('transitionend', fin);
+            soltar();
+          };
+          cuerpo.addEventListener('transitionend', fin);
+          // Red de seguridad por si transitionend no llega jamas.
+          setTimeout(function () { if (ac.animando) soltar(); }, 950);
+          if (abriendo) {
+            ac.det.open = true;              // el contenido entra en layout
+            cuerpo.style.maxHeight = '0px';  // pero plegado
+            // Dos frames: el primero renderiza el contenido, el segundo
+            // ya puede medirlo de verdad para animar hasta su altura.
+            requestAnimationFrame(function () {
+              requestAnimationFrame(function () {
+                var interno = cuerpo.firstElementChild;
+                var alto = interno ? Math.ceil(interno.getBoundingClientRect().height) : cuerpo.scrollHeight;
+                cuerpo.style.maxHeight = alto + 'px';
+              });
+            });
+          } else {
+            cuerpo.style.maxHeight = Math.ceil(cuerpo.getBoundingClientRect().height) + 'px';
+            void cuerpo.offsetHeight; // fuerza el reflow
+            cuerpo.style.maxHeight = '0px';
+          }
+        });
+      });
+
+      // Frase de cierre del chat en fin de semana de salud (26-sep-2026,
+      // orden de Sandro): burbuja extra de Manolito justo tras la
+      // bienvenida, SOLO en modo salud. Lleva data-i18n, así que cambia
+      // de idioma con el resto de la web. El lunes no se crea.
+      var bienvenida = document.querySelector('.chat-msg.mano[data-i18n="chatWelcome"]');
+      if (bienvenida && !document.querySelector('[data-i18n="saludChat"]')) {
+        var burbuja = document.createElement('div');
+        burbuja.className = 'chat-msg mano';
+        burbuja.setAttribute('data-i18n', 'saludChat');
+        try {
+          if (typeof translations !== 'undefined' && translations[currentLang] && translations[currentLang].saludChat) {
+            burbuja.textContent = translations[currentLang].saludChat;
+          } else {
+            burbuja.textContent = '¡Por cierto! Recuerda que estamos en el fin de semana de la salud ambiental. El entorno influye en tu cuerpo: si sales a la calle, busca la acera de la sombra y refréscate, que la calle quema.';
+          }
+        } catch (e) {
+          burbuja.textContent = '¡Por cierto! Recuerda que estamos en el fin de semana de la salud ambiental. El entorno influye en tu cuerpo: si sales a la calle, busca la acera de la sombra y refréscate, que la calle quema.';
+        }
+        bienvenida.parentNode.insertBefore(burbuja, bienvenida.nextSibling);
+      }
+
+      // Stickers interactivos de salud (26-sep-2026, orden de Sandro):
+      // clic abre el panel fijo con el texto del icono (en el idioma
+      // activo, leido de su propio tooltip ya traducido), reclic cierra,
+      // otro sticker cambia el contenido, Esc cierra. El hover es CSS
+      // puro y no pasa por aqui. Todo solo existe en modo salud.
+      var panelSticker = document.getElementById('saludStickerPanel');
+      var botonesSticker = document.querySelectorAll('.salud-stickers .sticker');
+      if (panelSticker && botonesSticker.length) {
+        botonesSticker.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var yaAbierto = btn.getAttribute('aria-expanded') === 'true';
+            botonesSticker.forEach(function (b) {
+              b.setAttribute('aria-expanded', 'false');
+              b.classList.remove('activo');
+            });
+            if (yaAbierto) { panelSticker.hidden = true; return; }
+            var tit = btn.querySelector('.sticker-tip strong');
+            var txt = btn.querySelector('.sticker-tip > span');
+            panelSticker.querySelector('.sticker-panel-titulo').textContent = tit ? tit.textContent : '';
+            panelSticker.querySelector('.sticker-panel-texto').textContent = txt ? txt.textContent : '';
+            panelSticker.hidden = false;
+            btn.setAttribute('aria-expanded', 'true');
+            btn.classList.add('activo');
+          });
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !panelSticker.hidden) {
+            panelSticker.hidden = true;
+            botonesSticker.forEach(function (b) {
+              b.setAttribute('aria-expanded', 'false');
+              b.classList.remove('activo');
+            });
+          }
+        });
+      }
+    };
+
+    // ambientes.js carga en <head>, antes de que exista el <body>,
+    // así que esto espera a que el DOM esté listo.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ponerTitulosSalud);
+    } else {
+      ponerTitulosSalud();
+    }
+  }
+})();

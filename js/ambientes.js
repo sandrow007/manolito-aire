@@ -128,6 +128,42 @@
         }
         bienvenida.parentNode.insertBefore(burbuja, bienvenida.nextSibling);
       }
+
+      // Stickers interactivos de salud (26-sep-2026, orden de Sandro):
+      // clic abre el panel fijo con el texto del icono (en el idioma
+      // activo, leido de su propio tooltip ya traducido), reclic cierra,
+      // otro sticker cambia el contenido, Esc cierra. El hover es CSS
+      // puro y no pasa por aqui. Todo solo existe en modo salud.
+      var panelSticker = document.getElementById('saludStickerPanel');
+      var botonesSticker = document.querySelectorAll('.salud-stickers .sticker');
+      if (panelSticker && botonesSticker.length) {
+        botonesSticker.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var yaAbierto = btn.getAttribute('aria-expanded') === 'true';
+            botonesSticker.forEach(function (b) {
+              b.setAttribute('aria-expanded', 'false');
+              b.classList.remove('activo');
+            });
+            if (yaAbierto) { panelSticker.hidden = true; return; }
+            var tit = btn.querySelector('.sticker-tip strong');
+            var txt = btn.querySelector('.sticker-tip > span');
+            panelSticker.querySelector('.sticker-panel-titulo').textContent = tit ? tit.textContent : '';
+            panelSticker.querySelector('.sticker-panel-texto').textContent = txt ? txt.textContent : '';
+            panelSticker.hidden = false;
+            btn.setAttribute('aria-expanded', 'true');
+            btn.classList.add('activo');
+          });
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !panelSticker.hidden) {
+            panelSticker.hidden = true;
+            botonesSticker.forEach(function (b) {
+              b.setAttribute('aria-expanded', 'false');
+              b.classList.remove('activo');
+            });
+          }
+        });
+      }
     };
 
     // ambientes.js carga en <head>, antes de que exista el <body>,

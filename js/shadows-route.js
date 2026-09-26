@@ -2647,6 +2647,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const soloPintar = !!(opciones && opciones.soloPintar);
       const lat = pos.coords.latitude, lon = pos.coords.longitude;
       const precisionM = Math.round(pos.coords.accuracy || 0);
+      // Memoria viva de tu posición (26-sep, orden de Sandro): cada
+      // lectura plantada actualiza el punto global que el chat hereda
+      // al instante, sin volver a encender el GPS por su cuenta.
+      try { window.__manolitUltimaPos = { lat, lon, precisionM, ts: Date.now() }; } catch (e) { }
       const textoMiUbicacion = t('myLocation', 'Mi ubicación');
       const primeraVez = !gpsYaColocado;
       gpsYaColocado = true;
@@ -2823,6 +2827,26 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // ('sin-geolocalizacion', 'denegado', 'sin-precision').
     window.manolitUbicacionParaRuta = () => new Promise((resolve, reject) => {
       if (!('geolocation' in navigator)) { reject(new Error('sin-geolocalizacion')); return; }
+      // Herencia directa (26-sep, orden de Sandro): si la web YA sabe
+      // dónde estás, el chat usa esa misma posición al instante y no
+      // vuelve a buscar desde cero. Fuentes, en este orden:
+      // 1) la última lectura GPS plantada por el mapa;
+      // 2) tu punto ya pintado en el mapa (origen GPS o marcado a mano).
+      // Solo si no hay ninguna posición conocida se enciende el GPS.
+      try {
+        const mem = window.__manolitUltimaPos;
+        if (mem && isFinite(mem.lat) && isFinite(mem.lon)) {
+          resolve({ lat: mem.lat, lon: mem.lon });
+          return;
+        }
+        const srcConocido = map.getSource('puntos-manuales');
+        const datosConocidos = srcConocido && (srcConocido._data || (srcConocido.serialize && srcConocido.serialize().data));
+        const puntoConocido = datosConocidos && datosConocidos.features && datosConocidos.features.find((f) => f && f.geometry && f.geometry.type === 'Point');
+        if (puntoConocido) {
+          resolve({ lat: puntoConocido.geometry.coordinates[1], lon: puntoConocido.geometry.coordinates[0] });
+          return;
+        }
+      } catch (e) { }
       if (window.__manolitUbicacionCb) { // ya hay una petición en marcha
         reject(new Error('ocupado'));
         return;
@@ -7204,6 +7228,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         chip.querySelector('span').textContent = t('chatRouteChip', '¿Calculo tu ruta con sombra desde aquí?');
         chip.addEventListener('click', alPulsarChipRuta);
         qs.appendChild(chip);
+      });
+
+      // Retraducción del chat de rutas (26-sep, orden de Sandro): estos
+      // textos se crean a mano con t() en el idioma de ese momento y se
+      // quedaban congelados si cambiabas de idioma con el chat abierto.
+      // Ahora escuchan langChanged (lo emite i18n.js) y se vuelven a
+      // pedir en el idioma activo: en castellano, castellano.
+      document.addEventListener('langChanged', () => {
+        try {
+          const chipTxt = document.querySelector('#rsChipRutaChat span');
+          if (chipTxt) chipTxt.textContent = t('chatRouteChip', '¿Calculo tu ruta con sombra desde aquí?');
+          if (inputRuta) {
+            inputRuta.placeholder = t('chatRouteDestPlaceholder', 'Ir desde mi ubicación actual hasta…');
+            inputRuta.setAttribute('aria-label', t('chatRouteDestPlaceholder', 'Ir desde mi ubicación actual hasta…'));
+          }
+          const btnEj = document.getElementById('rsChatEjemploBtn');
+          if (btnEj) btnEj.textContent = t('chatExampleBtn', 'Ver un ejemplo');
+        } catch (e) { }
       });
     } catch (e) { /* aditivo: jamás rompe el chat ni el mapa */ }
   })();

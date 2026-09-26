@@ -295,14 +295,98 @@ html.modo-salud .salud-section p{
 }
 html.modo-salud .salud-section p:last-child{ margin-bottom:0; }
 
-/* Stickers de salud (26-sep, archivo de Sandro): fila de iconos,
-   centrados y sin pasarse de ancho. */
+/* Stickers de salud INTERACTIVOS (26-sep, orden de Sandro): cada icono
+   es un boton. Hover = tooltip rapido (solo donde hay raton), clic =
+   panel fijo bajo la fila, reclic o Esc = cerrar. Todo CSS salvo el
+   abrir/cerrar, que vive en js/ambientes.js. */
 html.modo-salud .salud-stickers{
-  display:flex; justify-content:center;
-  margin:2px 0 16px;
+  display:flex; justify-content:center; flex-wrap:wrap;
+  gap:16px 20px;
+  margin:2px 0 6px;
 }
-html.modo-salud .salud-stickers svg{
-  width:min(560px, 100%); height:auto; display:block;
+html.modo-salud .salud-stickers .sticker{
+  position:relative;
+  width:84px; padding:0; margin:0;
+  border:none; background:none; cursor:pointer;
+  transition:transform 0.25s ease;
+}
+html.modo-salud .salud-stickers .sticker svg{
+  display:block; width:100%; height:auto;
+}
+html.modo-salud .salud-stickers .sticker:hover,
+html.modo-salud .salud-stickers .sticker.activo{
+  transform:translateY(-3px) scale(1.05);
+}
+html.modo-salud .salud-stickers .sticker:focus-visible{
+  outline:3px solid var(--accent); outline-offset:3px; border-radius:14px;
+}
+/* Tooltip de lectura veloz: solo en dispositivos con hover real. */
+html.modo-salud .sticker-tip{ display:none; }
+@media (hover:hover){
+  html.modo-salud .sticker-tip{
+    display:block;
+    position:absolute; bottom:calc(100% + 12px); left:50%;
+    transform:translateX(-50%) translateY(4px);
+    width:230px; padding:12px 14px;
+    background:var(--ink); color:var(--paper);
+    border-radius:12px;
+    font-size:0.8rem; line-height:1.5; text-align:left;
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    z-index:40;
+    box-shadow:0 8px 24px rgba(3,20,12,0.28);
+  }
+  html.modo-salud .sticker-tip strong{
+    display:block; margin-bottom:4px; font-size:0.82rem;
+  }
+  html.modo-salud .sticker-tip::after{
+    content:""; position:absolute; top:100%; left:50%;
+    transform:translateX(-50%);
+    border:7px solid transparent; border-top-color:var(--ink);
+  }
+  html.modo-salud .sticker:hover .sticker-tip,
+  html.modo-salud .sticker:focus-visible .sticker-tip{
+    opacity:1; visibility:visible;
+    transform:translateX(-50%) translateY(0);
+  }
+  /* Extremos de la fila: el tooltip se ancla hacia dentro para no
+     salirse de la tarjeta. */
+  html.modo-salud .sticker:first-child .sticker-tip{
+    left:0; transform:translateX(0) translateY(4px);
+  }
+  html.modo-salud .sticker:first-child .sticker-tip::after{ left:36px; }
+  html.modo-salud .sticker:first-child:hover .sticker-tip,
+  html.modo-salud .sticker:first-child:focus-visible .sticker-tip{
+    transform:translateX(0) translateY(0);
+  }
+  html.modo-salud .sticker:last-child .sticker-tip{
+    left:auto; right:0; transform:translateX(0) translateY(4px);
+  }
+  html.modo-salud .sticker:last-child .sticker-tip::after{ left:auto; right:30px; }
+  html.modo-salud .sticker:last-child:hover .sticker-tip,
+  html.modo-salud .sticker:last-child:focus-visible .sticker-tip{
+    transform:translateX(0) translateY(0);
+  }
+}
+/* Panel fijo de lectura con calma: uno por fila, contenido del sticker
+   pulsado. Oculto por defecto (atributo hidden). */
+html.modo-salud .sticker-panel{
+  max-width:640px; margin:16px auto 4px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:14px; padding:14px 18px;
+}
+html.modo-salud .sticker-panel-titulo{
+  display:block; margin-bottom:6px;
+  color:var(--sky-deep); font-size:1rem;
+}
+html.modo-salud .sticker-panel-texto{
+  margin:0; font-size:0.95rem; line-height:1.6; color:var(--ink);
+}
+@media (prefers-reduced-motion: reduce){
+  html.modo-salud .salud-stickers .sticker,
+  html.modo-salud .sticker-tip{ transition:none; }
 }
 
 /* Aviso de precision (25-sep, orden de Sandro): nota humana dentro del

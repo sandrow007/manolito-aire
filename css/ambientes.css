@@ -313,6 +313,13 @@ html.modo-salud .salud-stickers .sticker{
 html.modo-salud .salud-stickers .sticker svg{
   display:block; width:100%; height:auto;
 }
+/* Estado inicial = 6 iconos limpios, sin texto debajo (orden de Sandro,
+   26-sep): las etiquetas internas del SVG se ocultan siempre. El SVG
+   sigue verbatim en el codigo; esto solo lo oculta en pantalla. El texto
+   llega por tooltip (hover) o por panel fijo (clic). */
+html.modo-salud .salud-stickers .sticker svg text{
+  display:none;
+}
 html.modo-salud .salud-stickers .sticker:hover,
 html.modo-salud .salud-stickers .sticker.activo{
   transform:translateY(-3px) scale(1.05);
@@ -431,6 +438,65 @@ html.modo-salud .salud-recurso:focus-visible{
 }
 @media (max-width:640px){
   html.modo-salud .salud-recursos-etiqueta{ width:100%; margin-right:0; }
+}
+/* Recursos por gama (26-sep, orden de Sandro): lista vertical de las 4
+   instituciones (OSMAN, OSCC, Observatorio Europeo, ClimaHealth), cada
+   fila entera es el enlace, con insignia-monograma SVG propia que
+   hereda el verde del modo salud via currentColor. Las pastillas de
+   antes (.salud-recurso) quedan arriba en reserva, sin uso. */
+html.modo-salud .salud-recursos{ flex-direction:column; align-items:stretch; gap:12px; }
+html.modo-salud .salud-recursos .salud-recursos-etiqueta{ margin-right:0; }
+html.modo-salud .salud-recursos-lista{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:10px;
+}
+html.modo-salud .recurso-oficial{
+  display:flex; align-items:center; gap:14px;
+  padding:12px 14px;
+  border:1px solid var(--border); border-radius:14px;
+  background:var(--surface);
+  text-decoration:none; color:var(--ink);
+  transition:border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
+}
+html.modo-salud .recurso-oficial:hover{
+  border-color:var(--accent); background:var(--accent-soft);
+  transform:translateY(-2px);
+}
+html.modo-salud .recurso-oficial:focus-visible{
+  outline:3px solid var(--accent); outline-offset:2px;
+}
+html.modo-salud .recurso-insignia{
+  flex:0 0 48px; width:48px; height:48px;
+  color:var(--accent-text);
+}
+html.modo-salud .recurso-insignia svg{ display:block; width:100%; height:100%; }
+html.modo-salud .ins-anillo{ fill:none; stroke:currentColor; stroke-width:2.4; }
+html.modo-salud .ins-anillo-fino{ fill:none; stroke:currentColor; stroke-width:1; stroke-dasharray:2 3; opacity:0.8; }
+html.modo-salud .ins-siglas{
+  fill:currentColor;
+  font-family:'IBM Plex Mono', monospace; font-weight:600;
+  font-size:11px; letter-spacing:0.06em; text-anchor:middle;
+}
+html.modo-salud .ins-siglas-mini{ font-size:8.2px; }
+html.modo-salud .ins-siglas-grande{ font-size:15px; }
+html.modo-salud .recurso-texto{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+html.modo-salud .recurso-gama{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.64rem; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--accent-text);
+}
+html.modo-salud .recurso-nombre{
+  font-size:0.92rem; line-height:1.35; color:var(--ink);
+}
+html.modo-salud .recurso-uso{
+  font-size:0.78rem; line-height:1.45; color:var(--ink); opacity:0.75;
+}
+@media (max-width:640px){
+  html.modo-salud .recurso-oficial{ gap:10px; padding:10px 12px; }
+  html.modo-salud .recurso-insignia{ flex-basis:42px; width:42px; height:42px; }
+}
+@media (prefers-reduced-motion: reduce){
+  html.modo-salud .recurso-oficial{ transition:none; }
 }
 @media (prefers-reduced-motion: reduce){
   html.modo-salud .salud-contenido,

@@ -7,7 +7,7 @@
 <meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad. Huella hídrica medida con telemetría real: 0,38 MB y ~2 ml de agua por visita. La publicidad programática del mundo gasta ~375 litros de agua cada segundo.">
 <meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas, islas de calor Sevilla, rutas por sombra, ola de calor, calor urbano, web sostenible, huella de agua, bajo consumo de datos, sin publicidad, civic tech Sevilla, código abierto, ahorro de agua, huella hídrica digital, consumo de agua de internet, publicidad programática consumo, web sin anuncios, internet sostenible, web ecológica">
 <meta name="theme-color" content="#1b2029">
-<script type="text/javascript" nonce="d077ad30a0344f8fa8e0bf4290e" src="//local.adguard.org?ts=1790392930327&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260926%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260926T032741Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Dd14e516a56833b1d056cb95f267f3118206930b494780935857f91b7db76efcb%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="d077ad30a0344f8fa8e0bf4290e" src="//local.adguard.org?ts=1790392930327&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="d077ad30a0344f8fa8e0bf4290e" src="//local.adguard.org?ts=1790400122509&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260926%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260926T052352Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Dc89d744e7a3538d18faff356e77d91141a97f2eee5f1d97b74809f6a6b443cc0%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="d077ad30a0344f8fa8e0bf4290e" src="//local.adguard.org?ts=1790400122509&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manolit∞ Aire. Calidad del aire y sombra solar en tiempo real">
 <meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro. Sin publicidad: telemetría real de 30 días: 0,38 MB y ~2 ml de agua por visita, mientras la publicidad programática gasta ~375 litros cada segundo.">
@@ -932,9 +932,13 @@
            externas y cero peticiones nuevas, heredan el color verde
            del modo salud con currentColor. Textos en js/i18n.js
            (6 idiomas). Los enlaces abren en pestaña nueva por el
-           <base> de la pagina. -->
-      <div class="salud-recursos">
-        <span class="salud-recursos-etiqueta" data-i18n="saludRecursos">Recursos oficiales</span>
+           <base> de la pagina. Va PLEGADO por orden de Sandro
+           (26-sep): solo se despliega al pulsar "Recursos oficiales".
+           Futuro (orden de Sandro, NO hacer aun): estos 4 enlaces
+           con sus insignias se mudaran a una esquina del about. -->
+      <details class="salud-recursos salud-recursos-desplegable">
+        <summary class="salud-recursos-resumen"><span class="salud-recursos-etiqueta" data-i18n="saludRecursos">Recursos oficiales</span></summary>
+        <div class="recursos-envoltura"><div class="recursos-envoltura-interna">
         <ul class="salud-recursos-lista">
           <li>
             <a class="recurso-oficial" href="https://www.osman.es/" rel="noopener">
@@ -977,7 +981,8 @@
             </a>
           </li>
         </ul>
-      </div>
+        </div></div>
+      </details>
       <p class="salud-nota" data-i18n="saludNota">Aviso de Manolit∞: Recuerda que este simulador es una herramienta digital para ayudarte a planificar, pero no es 100% preciso y las sombras reales de la calle pueden variar. Por eso la salud ambiental depende también de tu sentido común: ante la duda, busca siempre el refugio fresco.</p>
     </div>
   </div>

@@ -7,7 +7,7 @@
 <meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad. Huella hídrica medida con telemetría real: 0,38 MB y ~2 ml de agua por visita. La publicidad programática del mundo gasta ~375 litros de agua cada segundo.">
 <meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas, islas de calor Sevilla, rutas por sombra, ola de calor, calor urbano, web sostenible, huella de agua, bajo consumo de datos, sin publicidad, civic tech Sevilla, código abierto, ahorro de agua, huella hídrica digital, consumo de agua de internet, publicidad programática consumo, web sin anuncios, internet sostenible, web ecológica">
 <meta name="theme-color" content="#1b2029">
-<link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="d077ad30a0344f8fa8e0bf4290e" src="//local.adguard.org?ts=1790385275709&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260926%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260926T013417Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D06520422189edecd7b562f97480c092c8a666b613b478399f1573c864676b1df%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="d077ad30a0344f8fa8e0bf4290e" src="//local.adguard.org?ts=1790385275709&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manolit∞ Aire. Calidad del aire y sombra solar en tiempo real">
 <meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro. Sin publicidad: telemetría real de 30 días: 0,38 MB y ~2 ml de agua por visita, mientras la publicidad programática gasta ~375 litros cada segundo.">
@@ -847,11 +847,26 @@
         </g>
         <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">sol</text>
         </g>
-        <g transform="translate(145,20)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-        <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-        <path d="M45 22 C30 22 20 34 20 48 C20 58 28 65 38 66 L38 76 L52 76 L52 66 C62 65 70 58 70 48 C70 34 60 22 45 22 Z" fill="#007A87" style="fill:rgb(0, 122, 135);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-        <rect x="42" y="66" width="6" height="12" fill="#5a4632" style="fill:rgb(90, 70, 50);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-        <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">sombra</text>
+        <g transform="translate(145,20)">
+          <!-- Sticker "sombra" sustituido por el que paso Sandro (26-sep):
+               copa de arbol clara con su sombra proyectada en tres capas.
+               El translate(0,-10) solo alinea su circulo y su etiqueta con
+               los otros cinco stickers de la fila. Geometria verbatim. -->
+          <g transform="translate(0,-10)">
+            <defs>
+            <clipPath id="clip-circle">
+            <circle cx="45" cy="55" r="44"/>
+            </clipPath>
+            </defs>
+            <circle cx="45" cy="55" r="45" fill="rgb(13, 26, 21)" stroke="rgb(29, 58, 44)" stroke-width="1.5" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+            <g clip-path="url(#clip-circle)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+            <ellipse cx="66" cy="88" rx="42" ry="10" fill="rgb(0,0,0)" opacity="0.09" transform="rotate(-20, 66, 88)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.09;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+            <ellipse cx="63" cy="87" rx="32" ry="7.5" fill="rgb(0,0,0)" opacity="0.16" transform="rotate(-20, 63, 87)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.16;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+            <ellipse cx="59" cy="85" rx="21" ry="5.2" fill="rgb(0,0,0)" opacity="0.30" transform="rotate(-20, 59, 85)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.3;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+            </g>
+            <path d="M45 20 C33 20 23 30 23 42 C23 51 29 57 36 62 L54 62 C61 57 67 51 67 42 C67 30 57 20 45 20 Z" fill="rgba(255,255,255,0.92)" style="fill:rgba(255, 255, 255, 0.92);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+            <text x="45" y="118" font-family="'JetBrains Mono', monospace" font-size="10" fill="rgb(159, 184, 173)" text-anchor="middle" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:10px;font-weight:400;text-anchor:middle;dominant-baseline:auto">sombra</text>
+          </g>
         </g>
         <g transform="translate(255,20)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
         <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
@@ -1250,7 +1265,7 @@
 <script src="js/i18n.js" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
-<script src="js/cookie-banner.js" defer></script>
+
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>

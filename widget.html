@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manolit∞ Aire - widget</title>
+<!--
+  widget.html - Mapa de rutas con sombra de Manolit∞ Aire, pensado para ir incrustado en otras webs.
+  Mismo motor que la web principal (shadows-route.js): sombras de edificios por barrido del perimetro,
+  indice espacial, Dijkstra termico sobre la red peatonal de OSM, capa de nubes y porcentaje de sombra o de sol.
+  v2 (27-sep-2026): mismo aspecto que la web principal, buscador de direcciones y boton de mi ubicacion.
+  Sin dependencias de pago. Las peticiones salen al mismo origen (worker proxy), sin claves aqui.
+
+  Parametros de arranque en la URL (todos opcionales):
+    ?lat=37.3891&lng=-5.9845&zoom=16   vista inicial
+    &modo=sombra|sol                   criterio de la ruta (sombra por defecto)
+-->
+<script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790550816281&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Fwidget.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260927%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260927T233125Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D411e1b9824db49b8e6a301998164003eae438a6614ba5c845211ff65a37a0425%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527widget.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790550816281&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+:root {
+  --naranja: #E6A100;
+  --verde: #2E9E5B;
+  --panel: rgba(15, 23, 42, .92);
+  --borde: rgba(230, 161, 0, .25);
+  --texto: #e2e8f0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0b1526; color: var(--texto); overflow: hidden; }
+#map { position: fixed; inset: 0; }
+
+/* Cabecera solo cuando el widget se abre suelto, no incrustado */
+#cabecera { position: absolute; top: 0; left: 0; right: 0; z-index: 20; display: flex; align-items: baseline; gap: 10px; padding: 10px 14px; background: linear-gradient(180deg, rgba(11,21,38,.95), rgba(11,21,38,0)); }
+body.embed #cabecera { display: none; }
+.cab-marca { font-family: Consolas, 'Courier New', monospace; font-weight: 700; font-size: 17px; color: #fff; }
+.cab-inf { color: var(--naranja); }
+.cab-sub { font-size: 12px; color: #94a3b8; }
+.cab-link { margin-left: auto; font-size: 12px; color: var(--naranja); text-decoration: none; border: 1px solid var(--borde); padding: 4px 10px; border-radius: 999px; background: rgba(15,23,42,.85); }
+.cab-link:hover { background: rgba(230,161,0,.15); }
+
+/* Panel de busqueda, igual que el panel de la web principal */
+#panel { position: absolute; top: 12px; left: 12px; z-index: 15; width: min(300px, calc(100vw - 24px)); background: var(--panel); border: 1px solid var(--borde); border-radius: 14px; padding: 10px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 8px 24px rgba(2,6,23,.45); display: flex; flex-direction: column; gap: 8px; }
+body:not(.embed) #panel { top: 58px; }
+.campo { position: relative; display: block; }
+.campo::before { content: ''; position: absolute; left: 10px; top: 50%; width: 12px; height: 12px; transform: translateY(-50%); background-size: contain; background-repeat: no-repeat; background-position: center; }
+.campo-origen::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Ccircle cx='6' cy='6' r='5' fill='%232E9E5B'/%3E%3C/svg%3E"); }
+.campo-destino::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23E6A100' d='M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z'/%3E%3C/svg%3E"); }
+.campo input { width: 100%; background: #0b1526; border: 1px solid rgba(148,163,184,.25); color: var(--texto); border-radius: 10px; padding: 9px 10px 9px 30px; font-size: 16px; outline: none; }
+.campo input:focus { border-color: var(--naranja); }
+.campo input::placeholder { color: #64748b; }
+.panel-botones { display: flex; gap: 8px; }
+#btnRuta { flex: 1; background: var(--naranja); color: #1a1005; font-weight: 700; font-size: 14px; border: none; border-radius: 10px; padding: 9px 12px; cursor: pointer; }
+#btnRuta:hover { background: #f2b526; }
+#btnGps { width: 38px; flex: none; border: 1px solid rgba(148,163,184,.3); background: #0b1526; color: #e2e8f0; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#btnGps:hover { border-color: var(--naranja); color: var(--naranja); }
+
+/* Chips de modo */
+#chips { position: absolute; top: 12px; right: 12px; z-index: 15; display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--borde); border-radius: 999px; padding: 4px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+body:not(.embed) #chips { top: 58px; }
+#chips button { border: none; background: transparent; color: #cbd5e1; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+#chips button.activo { background: var(--naranja); color: #1a1005; }
+
+/* Controles de zoom y atribucion acordes al tema oscuro */
+.maplibregl-ctrl-top-right { top: 58px; right: 12px; }
+body:not(.embed) .maplibregl-ctrl-top-right { top: 104px; }
+.maplibregl-ctrl-group { background: #0f172a !important; border: 1px solid var(--borde); border-radius: 10px !important; overflow: hidden; box-shadow: 0 4px 14px rgba(2,6,23,.5) !important; }
+.maplibregl-ctrl-group button { background: transparent !important; width: 34px !important; height: 34px !important; }
+.maplibregl-ctrl-group button span { filter: invert(1); }
+.maplibregl-ctrl-group button:hover { background: rgba(230,161,0,.18) !important; }
+.maplibregl-ctrl-group button + button { border-top: 1px solid rgba(148,163,184,.18) !important; }
+.maplibregl-ctrl-attrib { background: rgba(15,23,42,.75) !important; }
+.maplibregl-ctrl-attrib a { color: #cbd5e1 !important; }
+.maplibregl-ctrl-attrib-button { filter: invert(1); }
+
+/* Insignia de porcentaje sano */
+#badge { position: absolute; left: 12px; bottom: 34px; z-index: 15; background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 8px 12px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: baseline; gap: 6px; }
+#badge[hidden] { display: none; }
+#badgeNum { font-family: Consolas, monospace; font-weight: 700; font-size: 18px; color: var(--naranja); }
+#badgeTxt { font-size: 12px; color: #cbd5e1; }
+
+/* Mensajes de estado */
+#estado { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 15; background: var(--panel); border: 1px solid rgba(148,163,184,.2); border-radius: 999px; padding: 6px 14px; font-size: 12px; color: #cbd5e1; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: calc(100vw - 24px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#estado.visible { opacity: 1; }
+
+/* Logo esquina, siempre visible, abre la web completa */
+#logo { position: absolute; right: 12px; bottom: 12px; z-index: 15; font-family: Consolas, monospace; font-weight: 700; font-size: 13px; color: #fff; text-decoration: none; background: var(--panel); border: 1px solid var(--borde); padding: 6px 10px; border-radius: 10px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#logo span { color: var(--naranja); }
+
+@media (max-width: 480px) {
+  #panel { width: min(250px, calc(100vw - 24px)); }
+  #chips button { font-size: 11.5px; padding: 5px 9px; }
+}
+</style>
+<base target="_blank">
+</head>
+<body>
+<div id="map"></div>
+
+<header id="cabecera">
+  <div class="cab-marca">Manolit<span class="cab-inf">∞</span> Aire</div>
+  <div class="cab-sub">rutas con sombra</div>
+  <a class="cab-link" href="anade-manolito.html">Añádelo a tu web</a>
+</header>
+
+<div id="panel" role="search">
+  <label class="campo campo-origen">
+    <input id="inOrigen" type="text" placeholder="Punto de origen" autocomplete="off" enterkeyhint="search">
+  </label>
+  <label class="campo campo-destino">
+    <input id="inDestino" type="text" placeholder="Punto de destino" autocomplete="off" enterkeyhint="search">
+  </label>
+  <div class="panel-botones">
+    <button id="btnRuta" type="button">Buscar ruta</button>
+    <button id="btnGps" type="button" title="Usar mi ubicación" aria-label="Usar mi ubicación">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="chips">
+  <button id="btnSombra" type="button" class="activo" aria-pressed="true">Sombra</button>
+  <button id="btnSol" type="button" aria-pressed="false">Sol</button>
+  <button id="btnNubes" type="button" aria-pressed="false" title="Capa de nubes">Nubes</button>
+</div>
+
+<div id="badge" hidden><span id="badgeNum"></span><span id="badgeTxt"></span></div>
+<div id="estado" role="status"></div>
+<a id="logo" href="https://manolitoaire.com" target="_blank" rel="noopener">Manolit<span>∞</span></a>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js"></script>
+<script>
+(function () {
+'use strict';
+
+var params = new URLSearchParams(window.location.search);
+var embed = false;
+try { embed = window.self !== window.top; } catch (e) { embed = true; }
+if (embed) document.body.classList.add('embed');
+
+var CONFIG = {
+  styleUrl: 'https://tiles.openfreemap.org/styles/liberty',
+  overpassUrl: '/arboles',
+  osrmUrl: '/ruta',
+  climaUrl: '/clima',
+  geoUrl: '/geo',
+  geoReversoUrl: '/geo-reverso',
+  tilesNubes: '/tiles/nubes/{z}/{x}/{y}.png',
+  redMargenM: 500,
+  factorPenalizacion: 0.7,
+  alturaPorDefectoM: 15,
+  alturaPorPlantaM: 3.2,
+  alturaArbolM: 6,
+  radioCopaArbolM: 4,
+  maxArboles: 1500
+};
+
+function $(id) { return document.getElementById(id); }
+function estado(txt) {
+  var el = $('estado');
+  el.textContent = txt || '';
+  el.classList.toggle('visible', !!txt);
+}
+
+/* ========= Motor de sombras y rutas, portado de shadows-route.js ========= */
+
+function MinHeap() { this.items = []; this.prios = []; }
+MinHeap.prototype.push = function (item, prio) {
+  this.items.push(item); this.prios.push(prio);
+  var i = this.items.length - 1;
+  while (i > 0) {
+    var padre = (i - 1) >> 1;
+    if (this.prios[padre] <= this.prios[i]) break;
+    this.intercambiar(i, padre); i = padre;
+  }
+};
+MinHeap.prototype.pop = function () {
+  var top = this.items[0];
+  var ultimoItem = this.items.pop();
+  var ultimaPrio = this.prios.pop();
+  if (this.items.length > 0) {
+    this.items[0] = ultimoItem; this.prios[0] = ultimaPrio;
+    var i = 0;
+    for (;;) {
+      var izq = 2 * i + 1, der = izq + 1, menor = i;
+      if (izq < this.items.length && this.prios[izq] < this.prios[menor]) menor = izq;
+      if (der < this.items.length && this.prios[der] < this.prios[menor]) menor = der;
+      if (menor === i) break;
+      this.intercambiar(i, menor); i = menor;
+    }
+  }
+  return top;
+};
+MinHeap.prototype.intercambiar = function (a, b) {
+  var ti = this.items[a]; this.items[a] = this.items[b]; this.items[b] = ti;
+  var tp = this.prios[a]; this.prios[a] = this.prios[b]; this.prios[b] = tp;
+};
+MinHeap.prototype.estaVacio = function () { return this.items.length === 0; };
+
+function alturaDeEdificio(tags) {
+  if (tags) {
+    if (tags.height) {
+      var h = parseFloat(tags.height);
+      if (isFinite(h) && h > 0) return h;
+    }
+    if (tags['building:levels']) {
+      var n = parseInt(tags['building:levels'], 10);
+      if (isFinite(n) && n > 0) return n * CONFIG.alturaPorPlantaM;
+    }
+  }
+  return CONFIG.alturaPorDefectoM;
+}
+
+function calcularVolumenSombra(edificio, posSol) {
+  var altura = edificio.altura;
+  if (!altura || altura <= 0) return null;
+  var alturaSol = posSol.altitude;
+  if (alturaSol <= 0.008) return null;
+  var longitudSombra = altura / Math.tan(alturaSol);
+  if (longitudSombra < 1) return null;
+  var azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;
+  var bearingSombra = (azimutGrados + 180) % 360;
+  var coords = edificio.anillo.slice();
+  if (coords.length < 4) return null;
+  if (coords[0][0] === coords[coords.length - 1][0] && coords[0][1] === coords[coords.length - 1][1]) coords.pop();
+  var n = coords.length;
+  var cosLat = Math.cos((coords[0][1] * Math.PI) / 180);
+  var mx = (longitudSombra * Math.sin((bearingSombra * Math.PI) / 180)) / (111320 * cosLat);
+  var my = (longitudSombra * Math.cos((bearingSombra * Math.PI) / 180)) / 110540;
+  var desplazados = [];
+  for (var i = 0; i < n; i++) desplazados.push([coords[i][0] + mx, coords[i][1] + my]);
+  var ptsEstaticos = [];
+  var ptsDesplazados = [];
+  for (i = 0; i < n; i++) {
+    var p1 = coords[i];
+    var p2 = coords[(i + 1) % n];
+    var d1 = desplazados[i];
+    var d2 = desplazados[(i + 1) % n];
+    var ex = p2[0] - p1[0], ey = p2[1] - p1[1];
+    var cross = ex * my - ey * mx;
+    ptsEstaticos.push(p1);
+    if (cross > 0) {
+      var dx1 = d1[0] - p1[0], dy1 = d1[1] - p1[1];
+      var dd1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+      if (dd1 > 1e-10) ptsDesplazados.push([p1[0] + (dx1 / dd1) * 1e-7, p1[1] + (dy1 / dd1) * 1e-7]);
+      ptsDesplazados.push(d1);
+      var dx2 = d2[0] - p2[0], dy2 = d2[1] - p2[1];
+      var dd2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+      if (dd2 > 1e-10) ptsDesplazados.push([p2[0] + (dx2 / dd2) * 1e-7, p2[1] + (dy2 / dd2) * 1e-7]);
+    }
+  }
+  var anilloPoligono = ptsEstaticos.concat(ptsDesplazados);
+  anilloPoligono.push(anilloPoligono[0].slice());
+  try {
+    var poligono = turf.polygon([anilloPoligono]);
+    var sombraFinal = poligono;
+    if (edificio.patios && edificio.patios.length > 0) {
+      var patiosSol = [];
+      for (var pi = 0; pi < edificio.patios.length; pi++) {
+        var patio = edificio.patios[pi];
+        try {
+          var patioPoli = turf.polygon([patio]);
+          var patioRetraido = turf.transformTranslate(patioPoli, longitudSombra * 0.99, bearingSombra, { units: 'meters' });
+          var zonaSol = turf.intersect(patioPoli, patioRetraido);
+          if (zonaSol && zonaSol.geometry) patiosSol.push(zonaSol.geometry.coordinates);
+        } catch (e) { /* patio que falla, fuera */ }
+      }
+      if (patiosSol.length > 0) {
+        var coordsFinales = [anilloPoligono];
+        for (var pj = 0; pj < patiosSol.length; pj++) {
+          for (var pk = 0; pk < patiosSol[pj].length; pk++) coordsFinales.push(patiosSol[pj][pk]);
+        }
+        sombraFinal = turf.polygon(coordsFinales);
+      }
+    }
+    return sombraFinal;
+  } catch (e) {
+    try {
+      var todosPuntos = coords.concat(desplazados);
+      var hull = turf.convex(turf.featureCollection(todosPuntos.map(function (p) { return turf.point(p); })));
+      return hull || null;
+    } catch (e2) { return null; }
+  }
+}
+
+function crearIndiceSombras(listaSombras) {
+  var CELDA_GRADOS;
+  var muestra = listaSombras.slice(0, 50);
+  var anchoTotal = 0;
+  for (var i = 0; i < muestra.length; i++) {
+    var b = turf.bbox(muestra[i]);
+    anchoTotal += Math.max(b[2] - b[0], 0.0001);
+  }
+  var anchoMedio = muestra.length > 0 ? anchoTotal / muestra.length : 0.001;
+  CELDA_GRADOS = Math.max(0.0006, Math.min(0.004, anchoMedio * 1.5));
+  var celdas = new Map();
+  var globales = [];
+  for (i = 0; i < listaSombras.length; i++) {
+    var sombra = listaSombras[i];
+    var bbox = turf.bbox(sombra);
+    sombra.properties = sombra.properties || {};
+    sombra.properties._bbox = bbox;
+    var minCX = Math.floor(bbox[0] / CELDA_GRADOS);
+    var maxCX = Math.floor(bbox[2] / CELDA_GRADOS);
+    var minCY = Math.floor(bbox[1] / CELDA_GRADOS);
+    var maxCY = Math.floor(bbox[3] / CELDA_GRADOS);
+    var numCeldas = (maxCX - minCX + 1) * (maxCY - minCY + 1);
+    if (numCeldas > 64) { globales.push(sombra); continue; }
+    for (var cx = minCX; cx <= maxCX; cx++) {
+      for (var cy = minCY; cy <= maxCY; cy++) {
+        var clave = cx + ',' + cy;
+        var celda = celdas.get(clave);
+        if (!celda) { celda = []; celdas.set(clave, celda); }
+        celda.push(sombra);
+      }
+    }
+  }
+  return {
+    consultar: function (lon, lat) {
+      var clave = Math.floor(lon / CELDA_GRADOS) + ',' + Math.floor(lat / CELDA_GRADOS);
+      var candidatos = celdas.get(clave);
+      var punto = null;
+      if (candidatos) {
+        for (var i = 0; i < candidatos.length; i++) {
+          var bb = candidatos[i].properties._bbox;
+          if (lon < bb[0] || lon > bb[2] || lat < bb[1] || lat > bb[3]) continue;
+          if (!punto) punto = turf.point([lon, lat]);
+          if (turf.booleanPointInPolygon(punto, candidatos[i])) return true;
+        }
+      }
+      for (i = 0; i < globales.length; i++) {
+        var bb2 = globales[i].properties._bbox;
+        if (lon < bb2[0] || lon > bb2[2] || lat < bb2[1] || lat > bb2[3]) continue;
+        if (!punto) punto = turf.point([lon, lat]);
+        if (turf.booleanPointInPolygon(punto, globales[i])) return true;
+      }
+      return false;
+    }
+  };
+}
+
+function coordKey(lon, lat) { return lon.toFixed(6) + ',' + lat.toFixed(6); }
+
+function construirGrafoDesdeGeojson(geojson) {
+  var nodos = new Map();
+  var listaCoords = [];
+  function nodo(lon, lat) {
+    var clave = coordKey(lon, lat);
+    var n = nodos.get(clave);
+    if (!n) {
+      n = { lon: lon, lat: lat, aristas: [] };
+      nodos.set(clave, n);
+      listaCoords.push([lon, lat]);
+    }
+    return n;
+  }
+  geojson.features.forEach(function (f) {
+    if (!f.geometry) return;
+    var lineas = f.geometry.type === 'LineString' ? [f.geometry.coordinates]
+      : f.geometry.type === 'MultiLineString' ? f.geometry.coordinates : null;
+    if (!lineas) return;
+    lineas.forEach(function (linea) {
+      for (var i = 0; i < linea.length - 1; i++) {
+        var a = nodo(linea[i][0], linea[i][1]);
+        var b = nodo(linea[i + 1][0], linea[i + 1][1]);
+        var longitudM = turf.distance(turf.point(linea[i]), turf.point(linea[i + 1]), { units: 'kilometers' }) * 1000;
+        if (longitudM < 0.5) continue;
+        a.aristas.push({ nodo: b, longitudM: longitudM, puntoMedio: [(linea[i][0] + linea[i + 1][0]) / 2, (linea[i][1] + linea[i + 1][1]) / 2] });
+        b.aristas.push({ nodo: a, longitudM: longitudM, puntoMedio: [(linea[i][0] + linea[i + 1][0]) / 2, (linea[i][1] + linea[i + 1][1]) / 2] });
+      }
+    });
+  });
+  return { nodos: nodos, listaCoords: listaCoords };
+}
+
+function encontrarNodoCercano(grafo, lon, lat) {
+  var mejor = null, mejorDist = Infinity;
+  for (var i = 0; i < grafo.listaCoords.length; i++) {
+    var c = grafo.listaCoords[i];
+    var dx = (c[0] - lon) * 111320 * Math.cos(lat * Math.PI / 180);
+    var dy = (c[1] - lat) * 110540;
+    var d = dx * dx + dy * dy;
+    if (d < mejorDist) { mejorDist = d; mejor = c; }
+  }
+  if (!mejor) return null;
+  return grafo.nodos.get(coordKey(mejor[0], mejor[1]));
+}
+
+function dijkstraTermico(grafo, origen, destino, penalizacionPorArista) {
+  var dist = new Map();
+  var prev = new Map();
+  var visitado = new Set();
+  var heap = new MinHeap();
+  var key = function (n) { return coordKey(n.lon, n.lat); };
+  dist.set(key(origen), 0);
+  heap.push(origen, 0);
+  while (!heap.estaVacio()) {
+    var actual = heap.pop();
+    var claveActual = key(actual);
+    if (visitado.has(claveActual)) continue;
+    visitado.add(claveActual);
+    if (actual === destino) break;
+    for (var i = 0; i < actual.aristas.length; i++) {
+      var arista = actual.aristas[i];
+      var vecino = arista.nodo;
+      var claveVecino = key(vecino);
+      if (visitado.has(claveVecino)) continue;
+      var penal = penalizacionPorArista ? (penalizacionPorArista.get(arista) || 0) : 0;
+      var coste = arista.longitudM * (1 + penal);
+      var nuevo = dist.get(claveActual) + coste;
+      if (nuevo < (dist.has(claveVecino) ? dist.get(claveVecino) : Infinity)) {
+        dist.set(claveVecino, nuevo);
+        prev.set(claveVecino, actual);
+        heap.push(vecino, nuevo);
+      }
+    }
+  }
+  if (!prev.has(key(destino)) && origen !== destino) return null;
+  var camino = [];
+  var nodo = destino;
+  while (nodo) {
+    camino.unshift([nodo.lon, nodo.lat]);
+    nodo = prev.get(key(nodo));
+  }
+  return camino;
+}
+
+/* ========= Estado ========= */
+
+var modo = params.get('modo') === 'sol' ? 'sol' : 'sombra';
+var nubesOn = false;
+var nubosidad = 0;
+var indiceSombras = null;
+var redCache = {};
+var grafo = null;
+var alturasCache = new Map();
+var penalizacionCache = new Map();
+var puntoOrigen = null;
+var puntoDestino = null;
+var lineaPendiente = null;
+var ultimaFirma = null;
+var capaEdificiosId = null;
+
+function firmaActual() {
+  if (!puntoOrigen || !puntoDestino) return null;
+  return puntoOrigen.lat + ',' + puntoOrigen.lon + '|' + puntoDestino.lat + ',' + puntoDestino.lon + '|' + modo;
+}
+
+function penalizacionTermica(puntoMedio) {
+  var clave = coordKey(puntoMedio[0], puntoMedio[1]);
+  if (penalizacionCache.has(clave)) return penalizacionCache.get(clave);
+  var penal = 0;
+  if (indiceSombras) {
+    var enSombra = indiceSombras.consultar(puntoMedio[0], puntoMedio[1]);
+    var posSol = SunCalc.getPosition(new Date(), puntoMedio[1], puntoMedio[0]);
+    var solar = CONFIG.factorPenalizacion * Math.max(0, Math.sin(posSol.altitude)) * (1 - nubosidad * 0.85);
+    if (modo === 'sol' ? enSombra : !enSombra) penal = solar;
+  }
+  penalizacionCache.set(clave, penal);
+  return penal;
+}
+
+function calcularPenalizaciones() {
+  penalizacionCache.clear();
+  var mapa = new Map();
+  if (!grafo) return mapa;
+  grafo.nodos.forEach(function (n) {
+    n.aristas.forEach(function (a) {
+      if (!mapa.has(a)) mapa.set(a, penalizacionTermica(a.puntoMedio));
+    });
+  });
+  return mapa;
+}
+
+/* ========= Datos: red peatonal, arboles y sombras ========= */
+
+function bboxKey(bounds, margenM) {
+  var c = bounds.getCenter();
+  var dLat = margenM / 110540;
+  var dLon = margenM / (111320 * Math.cos(c.lat * Math.PI / 180));
+  return [bounds.getWest() - dLon, bounds.getSouth() - dLat, bounds.getEast() + dLon, bounds.getNorth() + dLat]
+    .map(function (v) { return v.toFixed(4); }).join(',');
+}
+
+function cargarRedYSombras(bounds) {
+  var clave = bboxKey(bounds, CONFIG.redMargenM);
+  if (redCache[clave]) return redCache[clave];
+  var partes = clave.split(',');
+  var bbox = partes[1] + ',' + partes[0] + ',' + partes[3] + ',' + partes[2];
+  var query = '[out:json][timeout:25];('
+    + 'way["highway"~"footway|pedestrian|path|living_street|steps|residential|tertiary|secondary|primary"](' + bbox + ');'
+    + 'node["natural"="tree"](' + bbox + ');'
+    + ');out body;>;out skel qt;';
+  var promesa = fetch(CONFIG.overpassUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'data=' + encodeURIComponent(query)
+  }).then(function (r) {
+    if (!r.ok) throw new Error('red ' + r.status);
+    return r.json();
+  }).then(function (datos) {
+    var nodosOsm = new Map();
+    var red = { type: 'FeatureCollection', features: [] };
+    var arboles = [];
+    (datos.elements || []).forEach(function (el) {
+      if (el.type === 'node') {
+        nodosOsm.set(el.id, [el.lon, el.lat]);
+        if (el.tags && el.tags.natural === 'tree') arboles.push([el.lon, el.lat]);
+      }
+    });
+    (datos.elements || []).forEach(function (el) {
+      if (el.type !== 'way' || !el.nodes) return;
+      var coords = [];
+      el.nodes.forEach(function (id) { var c = nodosOsm.get(id); if (c) coords.push(c); });
+      if (coords.length >= 2) red.features.push(turf.lineString(coords));
+    });
+    if (arboles.length > CONFIG.maxArboles) arboles = arboles.slice(0, CONFIG.maxArboles);
+    return { red: red, arboles: arboles };
+  }).catch(function () {
+    return { red: { type: 'FeatureCollection', features: [] }, arboles: [] };
+  });
+  redCache[clave] = promesa;
+  return promesa;
+}
+
+function sombrasDeArboles(arboles, posSol) {
+  if (posSol.altitude <= 0.008) return [];
+  var sombras = [];
+  var longitud = CONFIG.alturaArbolM / Math.tan(posSol.altitude);
+  if (longitud < 1) return [];
+  var azimutGrados = (posSol.azimuth * 180) / Math.PI + 180;
+  var bearing = (azimutGrados + 180) % 360;
+  for (var i = 0; i < arboles.length; i++) {
+    try {
+      var copa = turf.circle(arboles[i], CONFIG.radioCopaArbolM, { units: 'meters', steps: 8 });
+      var desplazada = turf.transformTranslate(copa, longitud, bearing, { units: 'meters' });
+      var union = turf.union(copa, desplazada);
+      if (union) sombras.push(union);
+    } catch (e) { /* arbol que falla, fuera */ }
+  }
+  return sombras;
+}
+
+function recolectarEdificios() {
+  var edificios = [];
+  if (!capaEdificiosId) return edificios;
+  var features = map.queryRenderedFeatures({ layers: [capaEdificiosId] });
+  var vistos = new Set();
+  features.forEach(function (f) {
+    if (!f.geometry || (f.geometry.type !== 'Polygon' && f.geometry.type !== 'MultiPolygon')) return;
+    var id = f.id !== undefined ? f.id : JSON.stringify(f.geometry.coordinates[0][0]);
+    if (vistos.has(id)) return;
+    vistos.add(id);
+    var anillos = f.geometry.type === 'Polygon' ? f.geometry.coordinates : f.geometry.coordinates[0];
+    if (!anillos || !anillos.length) return;
+    edificios.push({
+      anillo: anillos[0],
+      patios: anillos.slice(1),
+      altura: alturaDeEdificio(f.properties || {})
+    });
+  });
+  return edificios;
+}
+
+function recalcularSombras() {
+  var centro = map.getCenter();
+  var posSol = SunCalc.getPosition(new Date(), centro.lat, centro.lng);
+  var edificios = recolectarEdificios();
+  var sombras = [];
+  alturasCache.clear();
+  edificios.forEach(function (ed) {
+    var s = calcularVolumenSombra(ed, posSol);
+    if (s) sombras.push(s);
+  });
+  var clave = bboxKey(map.getBounds(), CONFIG.redMargenM);
+  var promesa = redCache[clave];
+  var arboles = promesa && promesa._arboles ? promesa._arboles : [];
+  sombras = sombras.concat(sombrasDeArboles(arboles, posSol));
+  indiceSombras = sombras.length ? crearIndiceSombras(sombras) : null;
+  pintarSombras(sombras);
+}
+
+function pintarSombras(sombras) {
+  var src = map.getSource('sombras');
+  if (!src) return;
+  src.setData({ type: 'FeatureCollection', features: sombras });
+}
+
+/* ========= Ruta y porcentaje ========= */
+
+function coberturaSombra(linea) {
+  if (!indiceSombras) return 0;
+  var chunks = turf.lineChunk(linea, 0.015, { units: 'kilometers' });
+  var enSombra = 0;
+  chunks.features.forEach(function (ch) {
+    var coords = ch.geometry.coordinates;
+    var medio = coords[Math.floor(coords.length / 2)];
+    if (indiceSombras.consultar(medio[0], medio[1])) enSombra++;
+  });
+  return chunks.features.length ? enSombra / chunks.features.length : 0;
+}
+
+function fuente(id) { return map.getSource(id); }
+
+function pintarRuta(linea) {
+  var cobertura = coberturaSombra(linea);
+  var pct = Math.round((modo === 'sol' ? 1 - cobertura : cobertura) * 100);
+  $('badgeNum').textContent = pct + '%';
+  $('badgeTxt').textContent = modo === 'sol' ? 'de la ruta con sol' : 'de la ruta por sombra';
+  $('badge').hidden = false;
+  if (!fuente('ruta')) { lineaPendiente = linea; return; }
+  lineaPendiente = null;
+  fuente('ruta').setData(linea);
+  var favorecida = turf.lineChunk(linea, 0.015, { units: 'kilometers' });
+  var trozos = [];
+  favorecida.features.forEach(function (ch) {
+    var coords = ch.geometry.coordinates;
+    var medio = coords[Math.floor(coords.length / 2)];
+    var enSombra = indiceSombras ? indiceSombras.consultar(medio[0], medio[1]) : false;
+    if (modo === 'sol' ? !enSombra : enSombra) trozos.push(ch);
+  });
+  fuente('ruta-favorecida').setData({ type: 'FeatureCollection', features: trozos });
+  var bounds = turf.bbox(linea);
+  map.fitBounds(bounds, { padding: 70, duration: 800 });
+}
+
+function rutaDirectaOsrm(origen, destino) {
+  var coords = origen.lon + ',' + origen.lat + ';' + destino.lon + ',' + destino.lat;
+  return fetch(CONFIG.osrmUrl + '/foot/' + coords + '?overview=full&geometries=geojson')
+    .then(function (r) { if (!r.ok) throw new Error('osrm ' + r.status); return r.json(); })
+    .then(function (datos) {
+      var geometria = datos && datos.routes && datos.routes[0] && datos.routes[0].geometry;
+      if (!geometria || !geometria.coordinates || geometria.coordinates.length < 2) throw new Error('sin ruta');
+      return turf.lineString(geometria.coordinates);
+    });
+}
+
+function calcularRuta(origen, destino) {
+  ultimaFirma = firmaActual();
+  estado('Calculando ruta…');
+  var bounds = map.getBounds();
+  return cargarRedYSombras(bounds).then(function (datos) {
+    var clave = bboxKey(bounds, CONFIG.redMargenM);
+    redCache[clave]._arboles = datos.arboles;
+    grafo = construirGrafoDesdeGeojson(datos.red);
+    recalcularSombras();
+    var nodoOrigen = encontrarNodoCercano(grafo, origen.lon, origen.lat);
+    var nodoDestino = encontrarNodoCercano(grafo, destino.lon, destino.lat);
+    if (!nodoOrigen || !nodoDestino) throw new Error('sin red');
+    var penalizaciones = calcularPenalizaciones();
+    var camino = dijkstraTermico(grafo, nodoOrigen, nodoDestino, penalizaciones);
+    if (!camino || camino.length < 2) throw new Error('sin camino');
+    var coords = [[origen.lon, origen.lat]].concat(camino).concat([[destino.lon, destino.lat]]);
+    estado('');
+    pintarRuta(turf.lineString(coords));
+  }).catch(function () {
+    return rutaDirectaOsrm(origen, destino).then(function (linea) {
+      estado('');
+      pintarRuta(linea);
+    }).catch(function () {
+      estado('No se pudo calcular la ruta');
+    });
+  });
+}
+
+/* ========= Buscador de direcciones (mismo formato que la web principal) ========= */
+
+function consultarNominatim(texto) {
+  var url = new URL(CONFIG.geoUrl, window.location.origin);
+  url.searchParams.set('q', texto);
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('limit', '1');
+  var ctrl = new AbortController();
+  var temporizador = setTimeout(function () { ctrl.abort(); }, 10000);
+  return fetch(url.toString(), { signal: ctrl.signal })
+    .then(function (r) { clearTimeout(temporizador); if (!r.ok) throw new Error('geo ' + r.status); return r.json(); })
+    .catch(function (e) { clearTimeout(temporizador); throw e; });
+}
+
+function geocodificar(direccionTexto) {
+  var texto = (direccionTexto || '').trim();
+  if (!texto) return Promise.resolve(null);
+  var sinNumero = texto.replace(/\s+\d+\s*$/, '');
+  var variantes = [texto, texto + ', España'];
+  if (sinNumero !== texto) {
+    variantes.push(sinNumero);
+    variantes.push(sinNumero + ', España');
+  }
+  var cadena = Promise.resolve(null);
+  variantes.forEach(function (variante) {
+    cadena = cadena.then(function (previo) {
+      if (previo) return previo;
+      return new Promise(function (res) { setTimeout(res, 350); })
+        .then(function () { return consultarNominatim(variante); })
+        .then(function (datos) {
+          if (Array.isArray(datos) && datos.length > 0) {
+            return { lat: parseFloat(datos[0].lat), lon: parseFloat(datos[0].lon), nombre: datos[0].display_name };
+          }
+          return null;
+        })
+        .catch(function () { return null; });
+    });
+  });
+  return cadena;
+}
+
+function geocodificarInverso(lat, lon) {
+  var url = new URL(CONFIG.geoReversoUrl, window.location.origin);
+  url.searchParams.set('lat', lat);
+  url.searchParams.set('lon', lon);
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('zoom', '18');
+  return fetch(url.toString())
+    .then(function (r) { if (!r.ok) throw new Error('rev ' + r.status); return r.json(); })
+    .then(function (datos) { return datos && datos.display_name ? datos.display_name : null; })
+    .catch(function () { return null; });
+}
+
+function nombreCorto(nombre) {
+  return (nombre || '').split(',').slice(0, 2).join(',').trim();
+}
+
+/* ========= Puntos de origen y destino ========= */
+
+function pintarPuntos() {
+  if (!fuente('puntos')) return;
+  var features = [];
+  if (puntoOrigen) features.push(turf.point([puntoOrigen.lon, puntoOrigen.lat], { tipo: 'origen' }));
+  if (puntoDestino) features.push(turf.point([puntoDestino.lon, puntoDestino.lat], { tipo: 'destino' }));
+  fuente('puntos').setData({ type: 'FeatureCollection', features: features });
+}
+
+function setPunto(cual, punto, texto) {
+  if (cual === 'origen') puntoOrigen = punto; else puntoDestino = punto;
+  var input = $(cual === 'origen' ? 'inOrigen' : 'inDestino');
+  if (texto) input.value = texto;
+  input.dataset.resuelto = '1';
+  pintarPuntos();
+  if (puntoOrigen && puntoDestino) {
+    calcularRuta(puntoOrigen, puntoDestino);
+  } else {
+    map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15.5), duration: 900 });
+  }
+}
+
+function limpiarTodo() {
+  puntoOrigen = null;
+  puntoDestino = null;
+  ultimaFirma = null;
+  var io = $('inOrigen'), idest = $('inDestino');
+  io.value = ''; idest.value = '';
+  delete io.dataset.resuelto; delete idest.dataset.resuelto;
+  ['ruta', 'ruta-favorecida', 'puntos'].forEach(function (id) {
+    if (fuente(id)) fuente(id).setData({ type: 'FeatureCollection', features: [] });
+  });
+  $('badge').hidden = true;
+}
+
+function ponerPuntoDesdeMapa(cual, p) {
+  setPunto(cual, p, null);
+  geocodificarInverso(p.lat, p.lon).then(function (nombre) {
+    if (!nombre) return;
+    var input = $(cual === 'origen' ? 'inOrigen' : 'inDestino');
+    input.value = nombreCorto(nombre);
+    input.dataset.resuelto = '1';
+  });
+}
+
+function buscarCampo(cual) {
+  var input = $(cual === 'origen' ? 'inOrigen' : 'inDestino');
+  var texto = input.value.trim();
+  if (!texto) return Promise.resolve(false);
+  estado('Buscando dirección…');
+  return geocodificar(texto).then(function (r) {
+    estado('');
+    if (!r) { estado('Sin resultados para esa dirección'); return false; }
+    setPunto(cual, { lat: r.lat, lon: r.lon }, nombreCorto(r.nombre));
+    return true;
+  });
+}
+
+function necesitaGeocode(id) {
+  var el = $(id);
+  return !!el.value.trim() && !el.dataset.resuelto;
+}
+
+/* ========= Nubes ========= */
+
+function cargarNubosidad() {
+  var c = map.getCenter();
+  var url = new URL(CONFIG.climaUrl, window.location.origin);
+  url.searchParams.set('lat', c.lat);
+  url.searchParams.set('lon', c.lng);
+  return fetch(url.toString())
+    .then(function (r) { if (!r.ok) throw new Error('clima ' + r.status); return r.json(); })
+    .then(function (datos) {
+      if (datos && datos.clouds && typeof datos.clouds.all === 'number') {
+        nubosidad = Math.max(0, Math.min(1, datos.clouds.all / 100));
+      }
+    })
+    .catch(function () { /* sin nubosidad, se asume cielo despejado */ });
+}
+
+function toggleNubes() {
+  nubesOn = !nubesOn;
+  $('btnNubes').classList.toggle('activo', nubesOn);
+  $('btnNubes').setAttribute('aria-pressed', String(nubesOn));
+  if (map.getLayer('capa-nubes')) map.setLayoutProperty('capa-nubes', 'visibility', nubesOn ? 'visible' : 'none');
+}
+
+/* ========= Mapa ========= */
+
+var map = new maplibregl.Map({
+  container: 'map',
+  style: CONFIG.styleUrl,
+  center: [parseFloat(params.get('lng')) || -5.9845, parseFloat(params.get('lat')) || 37.3891],
+  zoom: parseFloat(params.get('zoom')) || 16,
+  cooperativeGestures: embed,
+  attributionControl: { compact: true }
+});
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+map.on('error', function () { /* errores de teslas sueltas, fuera */ });
+
+function capas() {
+  if (!fuente('sombras')) map.addSource('sombras', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  if (!fuente('ruta')) map.addSource('ruta', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  if (!fuente('ruta-favorecida')) map.addSource('ruta-favorecida', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  if (!fuente('puntos')) map.addSource('puntos', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  if (!fuente('nubes')) {
+    map.addSource('nubes', { type: 'raster', tiles: [CONFIG.tilesNubes], tileSize: 256, attribution: 'Nubes © OpenWeatherMap' });
+  }
+  var antes = capaEdificiosId || undefined;
+  if (!map.getLayer('capa-nubes')) {
+    map.addLayer({
+      id: 'capa-nubes', type: 'raster', source: 'nubes',
+      paint: { 'raster-opacity': 0.55 },
+      layout: { visibility: 'none' },
+      maxzoom: 12
+    }, antes);
+  }
+  if (!map.getLayer('capa-sombras')) {
+    map.addLayer({
+      id: 'capa-sombras', type: 'fill', source: 'sombras',
+      paint: { 'fill-color': 'rgba(15,23,42,0.4)', 'fill-outline-color': 'rgba(15,23,42,0.15)' }
+    }, antes);
+  }
+  if (!map.getLayer('capa-ruta')) {
+    map.addLayer({
+      id: 'capa-ruta', type: 'line', source: 'ruta',
+      paint: { 'line-color': '#E6A100', 'line-width': 4, 'line-opacity': 0.9 },
+      layout: { 'line-cap': 'round', 'line-join': 'round' }
+    });
+  }
+  if (!map.getLayer('capa-ruta-favorecida')) {
+    map.addLayer({
+      id: 'capa-ruta-favorecida', type: 'line', source: 'ruta-favorecida',
+      paint: { 'line-color': '#2E9E5B', 'line-width': 4, 'line-opacity': 0.95 },
+      layout: { 'line-cap': 'round', 'line-join': 'round' }
+    });
+  }
+  if (!map.getLayer('capa-puntos')) {
+    map.addLayer({
+      id: 'capa-puntos', type: 'circle', source: 'puntos',
+      paint: {
+        'circle-radius': 7,
+        'circle-color': ['match', ['get', 'tipo'], 'origen', '#2E9E5B', '#E6A100'],
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2
+      }
+    });
+  }
+}
+
+function alCargarEstilo() {
+  var capasEstilo = map.getStyle().layers || [];
+  capaEdificiosId = null;
+  for (var i = 0; i < capasEstilo.length; i++) {
+    if (capasEstilo[i].type === 'fill-extrusion' && /building/i.test(capasEstilo[i].id)) {
+      capaEdificiosId = capasEstilo[i].id;
+      break;
+    }
+  }
+  capas();
+  recalcularSombras();
+  pintarPuntos();
+  if (lineaPendiente) {
+    var lp = lineaPendiente;
+    lineaPendiente = null;
+    pintarRuta(lp);
+  }
+}
+
+map.on('load', function () {
+  alCargarEstilo();
+  cargarNubosidad().then(function () { recalcularSombras(); });
+});
+map.on('styledata', function () {
+  if (!fuente('ruta')) alCargarEstilo();
+});
+
+map.on('moveend', function () {
+  if (document.hidden) return;
+  recalcularSombras();
+});
+
+setInterval(function () {
+  if (document.hidden) return;
+  recalcularSombras();
+}, 60000);
+
+/* ========= Eventos de interfaz ========= */
+
+map.on('click', function (e) {
+  var lonlat = { lon: e.lngLat.lng, lat: e.lngLat.lat };
+  if (!puntoOrigen) {
+    ponerPuntoDesdeMapa('origen', lonlat);
+  } else if (!puntoDestino) {
+    ponerPuntoDesdeMapa('destino', lonlat);
+  } else {
+    limpiarTodo();
+    ponerPuntoDesdeMapa('origen', lonlat);
+  }
+});
+
+$('inOrigen').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); buscarCampo('origen'); }
+});
+$('inDestino').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); buscarCampo('destino'); }
+});
+$('inOrigen').addEventListener('input', function () { delete this.dataset.resuelto; });
+$('inDestino').addEventListener('input', function () { delete this.dataset.resuelto; });
+
+$('btnRuta').addEventListener('click', function () {
+  estado('');
+  var cadena = Promise.resolve();
+  if (necesitaGeocode('inOrigen')) cadena = cadena.then(function () { return buscarCampo('origen'); });
+  if (necesitaGeocode('inDestino')) cadena = cadena.then(function () { return buscarCampo('destino'); });
+  cadena.then(function () {
+    if (puntoOrigen && puntoDestino) {
+      if (firmaActual() !== ultimaFirma) calcularRuta(puntoOrigen, puntoDestino);
+    } else if (!puntoOrigen) {
+      estado('Falta el punto de origen');
+    } else {
+      estado('Falta el punto de destino');
+    }
+  });
+});
+
+$('btnGps').addEventListener('click', function () {
+  if (!navigator.geolocation) { estado('Tu navegador no tiene geolocalización'); return; }
+  estado('Buscando tu ubicación…');
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    estado('');
+    var p = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+    setPunto('origen', p, 'Mi ubicación');
+    geocodificarInverso(p.lat, p.lon).then(function (nombre) {
+      if (nombre) $('inOrigen').value = nombreCorto(nombre);
+    });
+  }, function () {
+    estado('No se pudo obtener tu ubicación');
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+});
+
+function setModo(nuevo) {
+  if (modo === nuevo) return;
+  modo = nuevo;
+  $('btnSombra').classList.toggle('activo', modo === 'sombra');
+  $('btnSol').classList.toggle('activo', modo === 'sol');
+  $('btnSombra').setAttribute('aria-pressed', String(modo === 'sombra'));
+  $('btnSol').setAttribute('aria-pressed', String(modo === 'sol'));
+  if (puntoOrigen && puntoDestino) calcularRuta(puntoOrigen, puntoDestino);
+}
+
+$('btnSombra').addEventListener('click', function () { setModo('sombra'); });
+$('btnSol').addEventListener('click', function () { setModo('sol'); });
+$('btnNubes').addEventListener('click', toggleNubes);
+
+if (modo === 'sol') {
+  $('btnSombra').classList.remove('activo');
+  $('btnSol').classList.add('activo');
+  $('btnSombra').setAttribute('aria-pressed', 'false');
+  $('btnSol').setAttribute('aria-pressed', 'true');
+}
+
+estado('Toca el mapa o escribe una dirección');
+setTimeout(function () { if (!puntoOrigen) estado(''); }, 7000);
+
+})();
+</script>
+</body>
+</html>

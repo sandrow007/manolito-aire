@@ -1,15 +1,27 @@
- <!doctype html>
+<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Añade Manolit∞ a tu web</title>
+<meta name="description" content="Incrusta el mapa de rutas con sombra de Manolit∞ Aire en tu página. Eliges el lugar, copias el código y listo. Gratis y sin registro.">
+<script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790554318529&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Fanade-manolito.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260928%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260928T010416Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Da6d1bebcebd7060b13d673c78c4f1f393cf6633f1c4bacb75a7e336167768a74%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527anade-manolito.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790554318529&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/anade-manolito.html">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Manolit∞ Aire", "item": "https://manolitoaire.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Añade Manolit∞ a tu web" }
+  ]
+}
+</script>
 <!--
   anade-manolito.html - Generador del codigo para incrustar el widget de Manolit∞ Aire.
   v2 (27-sep-2026): nada de latitud, longitud ni zoom a mano. Se busca el lugar, se mueve
   el mapa hasta dejarlo como se quiere ver y el codigo se genera solo. Vista previa en vivo.
 -->
-<script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790550816281&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Fanade-manolito.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260927%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260927T233150Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D2a954a0ca993c65ddee02e9cabc32f31bf56ab18007c745476c0ea9ce660b386%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527anade-manolito.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790550816281&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
 :root {
   --naranja: #E6A100;
@@ -106,7 +118,7 @@ h1 { font-size: 24px; color: #fff; margin-bottom: 8px; }
     <textarea id="snippet" readonly rows="4"></textarea>
     <button id="btnCopiar" type="button">Copiar código</button>
     <div id="aviso"></div>
-    <p class="ayuda">Pégalo en el HTML de tu web donde quieras que aparezca el mapa. Si usas un gestor como WordPress, Wix o similar, busca el bloque de HTML o de código incrustado.</p>
+    <p class="ayuda">Pégalo en el HTML de tu web donde quieras que aparezca el mapa. Si usas un gestor como WordPress, Wix o similar, busca el bloque de HTML o de código incrustado. Debajo del mapa va un enlace a Manolit∞ Aire, déjalo puesto para que más gente lo encuentre.</p>
   </section>
 </main>
 
@@ -139,11 +151,14 @@ function parametros() {
 }
 
 function snippet() {
+  // El enlace de texto bajo el iframe es parte del codigo (28-sep, SEO):
+  // cada web que incrusta el mapa enlaza a manolitoaire.com.
   return '<iframe src="https://manolitoaire.com/widget.html?' + parametros() + '"'
     + ' width="100%" height="420"'
     + ' style="border:0;border-radius:12px"'
     + ' loading="lazy" allow="geolocation"'
-    + ' title="Mapa de rutas con sombra de Manolit∞ Aire"></iframe>';
+    + ' title="Mapa de rutas con sombra de Manolit∞ Aire"></iframe>\n'
+    + '<a href="https://manolitoaire.com/">Mapa de sombras y aire: Manolit∞ Aire</a>';
 }
 
 var temporizadorPreview = null;

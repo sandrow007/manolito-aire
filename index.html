@@ -7,7 +7,9 @@
 <meta name="description" content="Calidad del aire de España en tiempo real, rutas con sombra 3D, histórico de irradiación solar hora a hora con datos reales de la NASA y atenuación umbra/penumbra de edificios y árboles. Gratis, sin registro y sin publicidad. Huella hídrica medida con telemetría real: 0,38 MB y ~2 ml de agua por visita. La publicidad programática del mundo gasta ~375 litros de agua cada segundo.">
 <meta name="keywords" content="calidad del aire, sombra solar, irradiación solar, NASA POWER, mapa sombras Sevilla, árboles urbanos, rutas frescas, islas de calor Sevilla, rutas por sombra, ola de calor, calor urbano, web sostenible, huella de agua, bajo consumo de datos, sin publicidad, civic tech Sevilla, código abierto, ahorro de agua, huella hídrica digital, consumo de agua de internet, publicidad programática consumo, web sin anuncios, internet sostenible, web ecológica">
 <meta name="theme-color" content="#1b2029">
-<script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790550816281&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260927%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260927T234002Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D8c54240bb9a24718a4fd94ee74ff5031eb92649a7c98249fea8eed0551f16133%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790550816281&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
+<!-- Verificación del sitio en Bing Webmaster Tools (28-sep-2026, Sandro) -->
+<meta name="msvalidate.01" content="BB80160D0DDA8E571A69649E11438153" />
+<script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790550816281&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260928%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260928T000031Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D78bbd80a53aeda63f3d9e3201cfc554612e3c18a5b6aefe7d685c76330ce5fa6%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790550816281&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manolit∞ Aire. Calidad del aire y sombra solar en tiempo real">
 <meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro. Sin publicidad: telemetría real de 30 días: 0,38 MB y ~2 ml de agua por visita, mientras la publicidad programática gasta ~375 litros cada segundo.">
@@ -1378,8 +1380,12 @@
       // (antes iban en cadena: cada una esperaba a que terminara la anterior).
       // La guía A11Y (voz e indicaciones para personas ciegas) es un módulo
       // propio y diminuto: carga en paralelo y shadows-route le delega.
+      // js/co2.js (27-sep): modulo propio y diminuto, la encuesta de CO2
+      // evitado que aparece tras calcular una ruta. Carga en paralelo con
+      // las librerias y shadows-route lo llama cuando enseña la distancia.
       Promise.all([
         cargarScript('js/a11y-guia.js'),
+        cargarScript('js/co2.js'),
         cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),

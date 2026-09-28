@@ -4676,6 +4676,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);
+        // CO2 evitado (27-sep): encuesta puntual tras enseñar la ruta.
+        // Vive en js/co2.js, no guarda nada y se reinicia con cada ruta.
+        if (window.ManolitCO2) window.ManolitCO2.mostrar(ruta.distanciaKm);
         if (window.ManolitA11y) {
           window.ManolitA11y.setResumen(resumenRuta);
           window.ManolitA11y.renderizarPasos(ruta.pasos || [], ruta.pasosGuiados || []);
@@ -4683,6 +4686,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       } else {
         mostrarEstado(t('routeFallback', 'No se pudo calcular la ruta por calles (servidor de rutas ocupado), mostrando línea directa.'), 'error');
         mostrarBadgeSombra(null);
+        if (window.ManolitCO2) window.ManolitCO2.ocultar();
         if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
       }
 
@@ -4696,6 +4700,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     } catch (err) {
       console.debug(err);
       if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
+      if (window.ManolitCO2) window.ManolitCO2.ocultar();
       mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
     } finally {
       ponerCargando(false);

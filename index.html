@@ -13,7 +13,7 @@
 <meta name="msvalidate.01" content="BB80160D0DDA8E571A69649E11438153" />
 <!-- Hueco para la meta de verificacion de Google Search Console (la aporta Sandro):
      <meta name="google-site-verification" content="..." /> -->
-<script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790566914824&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260928%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260928T034322Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D04c300c492e2e6bcd7d4637cfbcb98aa38fd7d7e1716dbaf370a1a685ade0011%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790566914824&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790782912911&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260930%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260930T162702Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Dfc4aa734bad655044784b1aba2b4f7ea6a301031c4d46bf20ccd109464238a5e%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790782912911&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://manolitoaire.com/">
 <meta property="og:title" content="Rutas con sombra y aire en tiempo real | Manolit∞ Aire">
@@ -117,13 +117,22 @@
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
 <link rel="stylesheet" href="css/style.css">
+<!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
+     librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <!-- CSS oficial de MapLibre GL 4.7.1 (sep-2026): la página cargaba el JS
      pero nunca su hoja de estilos. Sin ella los marcadores DOM (Manolit,
      los pines de origen/destino, el punto de la caminata) pierden el
      position:absolute y caen en flujo normal DEBAJO del canvas: existían
      pero no se veían nunca. Con esta hoja vuelven a su sitio, y de regalo
      los popups y la atribución quedan con su estilo correcto. -->
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<!-- 28-sep-2026 (arreglo carga en frio): esta hoja ya NO bloquea el primer
+     pintado. El mapa arranca diferido por diseño, asi que su CSS puede
+     llegar en paralelo; si unpkg va lento o una red lo corta, la pagina se
+     abre igual y el mapa se viste cuando la hoja llegue. -->
+<link rel="preload" as="style" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"></noscript>
 <!-- Ambientes automáticos por fecha (sep-2026): Semana Santa, Día del
      Clima, Orgullo, Halloween... Los días normales no cambian nada. -->
 <link rel="stylesheet" href="css/ambientes.css">
@@ -770,8 +779,9 @@
 
 <div class="hero">
   <!-- h1 unico con la busqueda principal y la marca sin simbolo (28-sep, SEO).
-       Visible pero discreto para no tocar el diseño del hero. -->
-  <h1 style="font-size:15px;font-weight:600;color:var(--sky-mid,#9fb3c8);text-align:center;margin:0 0 10px;">Manolito Aire. Rutas con sombra y calidad del aire en tiempo real</h1>
+       Visible pero discreto para no tocar el diseño del hero.
+       Traducido a los 6 idiomas (clave heroH1 en js/i18n.js). -->
+  <h1 data-i18n="heroH1" style="font-size:15px;font-weight:600;color:var(--sky-mid,#9fb3c8);text-align:center;margin:0 0 10px;">Manolito Aire. Rutas con sombra y calidad del aire en tiempo real</h1>
   <div class="city-picker" id="cityPickerContainer">
     <button class="city-dropdown-btn" id="cityDropdownBtn" aria-haspopup="listbox" aria-expanded="false">Sevilla</button>
     <ul class="city-dropdown-list" id="cityDropdownList" role="listbox" aria-label="Ciudad">
@@ -833,10 +843,9 @@
   <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
   <a class="family-link" href="manolito-aire-comparativa.html" target="_self">Comparativa</a>
   <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener">Que es Manolit∞ ©</a>
-  <!-- Entrada al generador del widget embebible (27-sep). Sin data-i18n de
-       momento: va en español en todos los idiomas hasta que Sandro decida
-       si quiere traducirla tambien. -->
-  <a class="family-link" href="anade-manolito.html" target="_self">Añade Manolit∞ a tu web</a>
+  <!-- Entrada al generador del widget embebible (27-sep). Traducida a los
+       6 idiomas el 28-sep (clave anadeLink en js/i18n.js). -->
+  <a class="family-link" href="anade-manolito.html" target="_self" data-i18n="anadeLink">Añade Manolit∞ a tu web</a>
 </nav>
 
 <!-- Sección reivindicativa de los sábados (sep-2026, orden de Sandro):
@@ -1253,7 +1262,10 @@
   <div style="margin-top:10px;">
     <a href="aviso-legal.html" data-i18n="legalNotice">Aviso legal</a> · 
     <a href="privacidad.html" data-i18n="privacy">Privacidad</a> · 
-    <a href="cookies.html" data-i18n="cookies">Cookies</a>
+    <a href="cookies.html" data-i18n="cookies">Cookies</a> ·
+    <!-- Enlace visible al codigo fuente (28-sep-2026): el proyecto es AGPL y
+         el repo es publico; ademas lo piden los revisores de AlternativeTo. -->
+    <a href="https://github.com/sandrow007/manolito-aire" target="_blank" rel="noopener" data-i18n="footerGithub">Código abierto</a>
   </div>
 
   <!-- Sincronizar / Exportar datos: tus ajustes (tema, paleta, idioma,

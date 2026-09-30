@@ -502,7 +502,7 @@
       btnCerrar.type = 'button';
       btnCerrar.id = 'irrCerrar';
       btnCerrar.textContent = '×';
-      btnCerrar.setAttribute('aria-label', 'Cerrar');
+      btnCerrar.setAttribute('aria-label', t('closeLbl', 'Cerrar'));
       cabecera.append(tituloCabecera, btnCerrar);
 
       const ahora = new Date();

@@ -93,12 +93,15 @@
     document.documentElement.classList.add('modo-salud');
 
     var ponerTitulosSalud = function () {
-      // Pestaña del navegador.
-      document.title = 'Manolit∞ Aire · Sábado de la Salud';
-      // Pantalla de entrada, guiño de Manolito (el splash es siempre
-      // en castellano, así que este texto también).
+      // Pestaña del navegador y subtitulo de la pantalla de entrada.
+      // 01-oct-2026: traducidos como el resto de la web (antes iban fijos
+      // en castellano). Se lee el diccionario de i18n.js si ya esta
+      // cargado y se cae al castellano si no.
+      var msgSalud = null;
+      try { if (typeof window.getMessages === 'function') msgSalud = window.getMessages(); } catch (e) { }
+      document.title = (msgSalud && msgSalud.saludSaturdayTitle) || 'Manolit∞ Aire · Sábado de la Salud';
       var sub = document.querySelector('#manolitoSplash .sub-brand');
-      if (sub) sub.textContent = '+ Sábado de la Salud';
+      if (sub) sub.textContent = (msgSalud && msgSalud.saludSaturdaySub) || '+ Sábado de la Salud';
 
       // Enlace del banner: lleva a la sección Y la abre (sigue siendo
       // el usuario quien decide cerrarla, el bloque nunca nace abierto).
@@ -238,5 +241,9 @@
     } else {
       ponerTitulosSalud();
     }
+    // 01-oct-2026: al cambiar de idioma, applyTranslations repone el title
+    // y el sub-brand genericos; este evento llega despues, asi que aqui
+    // volvemos a poner la version del Sabado de la Salud en el idioma nuevo.
+    document.addEventListener('langChanged', ponerTitulosSalud);
   }
 })();

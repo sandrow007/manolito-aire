@@ -13,7 +13,7 @@
 <meta name="msvalidate.01" content="BB80160D0DDA8E571A69649E11438153" />
 <!-- Hueco para la meta de verificacion de Google Search Console (la aporta Sandro):
      <meta name="google-site-verification" content="..." /> -->
-<script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790782912911&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260930%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260930T162702Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Dfc4aa734bad655044784b1aba2b4f7ea6a301031c4d46bf20ccd109464238a5e%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790782912911&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790788312181&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260930%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260930T181129Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D17d88b772a8c3c0efdb9d4dac3ad685d3d70f727b1c48a7400cc4c80b7d64dcb%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790788312181&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://manolitoaire.com/">
 <meta property="og:title" content="Rutas con sombra y aire en tiempo real | Manolit∞ Aire">
@@ -316,8 +316,8 @@
       </svg>
     </div>
     <div class="brand"><span>Manolit∞</span> Aire</div>
-    <div class="sub-brand">+ Sombras 3D</div>
-    <div class="tagline">Respira ∞ Camina ∞ Refúgiate ∞ Mapea ∞</div>
+    <div class="sub-brand" data-i18n="subBrand">+ Sombras 3D</div>
+    <div class="tagline" data-i18n="splashTagline">Respira ∞ Camina ∞ Refúgiate ∞ Mapea ∞</div>
     <div class="sombra-msg">∞ ∞ ∞ ∞ ∞ ∞ ∞</div>
     <div class="clima-tag" id="climaTag"></div>
   </div>
@@ -472,7 +472,7 @@
          inyectaba i18n.js al segundo de cargar y la barra se re-envolvía,
          empujando toda la página (shift de 0,19 medido). i18n.js lo adopta:
          traduce el texto y refleja el estado guardado. -->
-    <button type="button" id="btn-accesibilidad" class="acc-mode-btn" aria-pressed="false">♿ Modo accesible</button>
+    <button type="button" id="btn-accesibilidad" class="acc-mode-btn" aria-pressed="false" data-i18n="accBtn">♿ Modo accesible</button>
 
     <!-- Modos de lectura ARRIBA (sep-2026, orden de Sandro): nada más entrar
          eliges cómo te lo cuenta Manolit. Son las mismas tarjetas de siempre
@@ -625,7 +625,7 @@
        móvil, sin cambiar el tamaño de la cúpula. -->
   <div class="rs-planetario-capas" id="rsPlanetarioCapas">
     <div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
-      <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas">▾ Capas</button>
+      <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas" data-i18n="capasBtn">▾ Capas</button>
       <div class="rs-layer-toggles-lista" id="rsListaCapas">
       <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
       <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
@@ -638,7 +638,7 @@
       <label><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
       <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
            Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
-      <label><input type="checkbox" id="rsToggleMicroclima"> <span>Microclima · estimado</span></label>
+      <label><input type="checkbox" id="rsToggleMicroclima"> <span data-i18n="layerMicroclimate">Microclima · estimado</span></label>
       </div>
     </div>
     <div class="rs-capas-mapas" id="rsCapasMapas"></div>
@@ -650,22 +650,22 @@
 <section class="map-section" id="rsColaboraOSM">
 <details>
   <summary id="rsColaboraTitle" class="map-title" style="font-size:1.15rem;cursor:pointer;list-style:none;user-select:none;">
-    ¿No hay 3D en tu zona? <span style="font-size:0.8rem;font-weight:400;opacity:0.75;">pulsa y te cuento cómo arreglarlo en 5 minutos ▾</span> 
+    <span data-i18n="colaboraTit">¿No hay 3D en tu zona?</span> <span data-i18n="colaboraHint" style="font-size:0.8rem;font-weight:400;opacity:0.75;">pulsa y te cuento cómo arreglarlo en 5 minutos ▾</span> 
 
   </summary>
   <div class="sci-panel" style="display:block;padding:14px 16px;line-height:1.55;margin-top:10px;">
-    <p style="margin:0 0 10px;">
+    <p style="margin:0 0 10px;" data-i18n-html="osmIntro">
       Manolit∞ dibuja los edificios y los árboles con los datos de
       <strong>OpenStreetMap (OSM)</strong>, el mapa libre que hacemos entre
       todos. Si tu calle sale vacía, <strong>puedes pintarla tú en 5
       minutos</strong> y le haces sombra a todo el barrio:
     </p>
     <ol style="margin:0 0 10px;padding-left:1.3em;">
-      <li style="margin-bottom:6px;">
+      <li style="margin-bottom:6px;" data-i18n-html="osmPaso1">
         Entra en <a href="https://www.openstreetmap.org" rel="noopener">openstreetmap.org</a>,
         crea una cuenta gratis y pulsa <strong>Editar</strong>.
       </li>
-      <li style="margin-bottom:6px;">
+      <li style="margin-bottom:6px;" data-i18n-html="osmPaso2">
         <strong>Árboles:</strong>
         <ul style="margin:4px 0 0;padding-left:1.2em;">
           <li><em>Árbol suelto</em> → dibuja un <strong>punto</strong> y ponle la etiqueta
@@ -679,15 +679,15 @@
             ~9&nbsp;m, siguiendo tu línea.</li>
         </ul>
       </li>
-      <li style="margin-bottom:6px;">
+      <li style="margin-bottom:6px;" data-i18n-html="osmPaso3">
         <strong>Edificios:</strong> dibuja el contorno y pon
         <code>building=yes</code>. Si sabes las plantas, añade
         <code>building:levels=4</code>. Con eso la sombra sale a la altura
         real y no “por defecto”.
       </li>
-      <li>Guarda los cambios… y listo.</li>
+      <li data-i18n="osmPaso4">Guarda los cambios… y listo.</li>
     </ol>
-    <p style="margin:0;">
+    <p style="margin:0;" data-i18n-html="osmCuando">
       <strong>¿Cuándo sale en Manolit∞?</strong> No te preocupes: el mapa se
       actualiza solo <strong>cada semana</strong>, así que tu aporte aparece
       aunque no lo veas al momento. Y si pasa la semana y no sale, o te urge
@@ -755,7 +755,7 @@
       <polyline points="3.29 7 12 12 20.71 7"/>
       <line x1="12" y1="22" x2="12" y2="12"/>
     </svg>
-    <span>Renderizado LiDAR</span>
+    <span data-i18n="lidarBtn">Renderizado LiDAR</span>
   </a>
 
 </div>
@@ -805,15 +805,15 @@
 
   <div class="orb-wrap">
     <div class="orb-ring"></div>
-    <div class="orb"><div class="orb-face" id="orbFace">bien</div></div>
+    <div class="orb"><div class="orb-face" id="orbFace" data-i18n="orb_good">bien</div></div>
     <div class="peque-character" id="pequeCharacter">
       <div class="peque-cloud" id="pequeCloudSvg"></div>
-      <div class="peque-message" id="pequeMessage">El aire está contento!</div>
+      <div class="peque-message" id="pequeMessage" data-i18n="pequeInit">El aire está contento!</div>
     </div>
   </div>
 
-  <div class="human-line" id="humanLine">Cargando el aire de tu ciudad…</div>
-  <div class="sub-line" id="subLine">Un momento.</div>
+  <div class="human-line" id="humanLine" data-i18n="heroLoading">Cargando el aire de tu ciudad…</div>
+  <div class="sub-line" id="subLine" data-i18n="heroMoment">Un momento.</div>
   <div class="tech-readout" id="techReadout"></div>
 
   <div class="sci-panel" id="sciPanel">
@@ -824,10 +824,10 @@
       <tr><td>O₃</td><td id="sciO3">-- µg/m³</td></tr>
       <tr><td>SO₂</td><td id="sciSO2">-- µg/m³</td></tr>
       <tr><td>CO</td><td id="sciCO">-- µg/m³</td></tr>
-      <tr><td>Índice UV</td><td id="sciUV">--</td></tr>
+      <tr><td data-i18n="uvLabel">Índice UV</td><td id="sciUV">--</td></tr>
       <tr><td>ICA</td><td id="sciICA">--</td></tr>
     </table>
-    <div class="sci-updated" id="sciUpdated">Actualizado: --</div>
+    <div class="sci-updated" id="sciUpdated" data-i18n="updatedPlaceholder">Actualizado: --</div>
   </div>
 
   <br>
@@ -841,8 +841,8 @@
   <a class="family-link" href="about.html" data-i18n="aboutLink">¿Por qué existe esto?</a>
   <a class="family-link" href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a>
   <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
-  <a class="family-link" href="manolito-aire-comparativa.html" target="_self">Comparativa</a>
-  <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener">Que es Manolit∞ ©</a>
+  <a class="family-link" href="manolito-aire-comparativa.html" target="_self" data-i18n="comparativaLink">Comparativa</a>
+  <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener" data-i18n="queEsLink">Que es Manolit∞ ©</a>
   <!-- Entrada al generador del widget embebible (27-sep). Traducida a los
        6 idiomas el 28-sep (clave anadeLink en js/i18n.js). -->
   <a class="family-link" href="anade-manolito.html" target="_self" data-i18n="anadeLink">Añade Manolit∞ a tu web</a>
@@ -897,7 +897,7 @@
            geometria de cada icono es verbatim de los archivos de Sandro
            (la "sombra" es la segunda version que paso, con su translate
            interior intacto). Textos en js/i18n.js (6 idiomas). -->
-      <div class="salud-stickers" role="group" aria-label="Iconos de salud ambiental: sol, sombra, salud, agua, temperatura y prevención">
+      <div class="salud-stickers" role="group" aria-label="Iconos de salud ambiental: sol, sombra, salud, agua, temperatura y prevención" data-i18n-aria-label="saludIcoGroup">
         <button type="button" class="sticker" data-sticker="sol" aria-expanded="false" aria-controls="saludStickerPanel" aria-label="Cuándo el sol se convierte en un problema" data-i18n-aria-label="saludSolTit">
           <svg viewBox="0 0 90 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
@@ -912,7 +912,7 @@
             <line x1="70" y1="20" x2="64" y2="26" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             <line x1="26" y1="64" x2="20" y2="70" style="fill:rgb(0, 0, 0);stroke:rgb(230, 161, 0);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             </g>
-            <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">sol</text>
+            <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto" data-i18n="saludIcoSol">sol</text>
           </svg>
           <span class="sticker-tip" aria-hidden="true"><strong data-i18n="saludSolTit">Cuándo el sol se convierte en un problema</strong><span data-i18n="saludSolTxt">Entre las 12h y las 17h el sol no solo calienta, acumula radiación sobre el asfalto, las fachadas y tu cuerpo sin que lo notes. No se trata de evitarlo, sino de saber moverse por la ciudad en las horas en las que trabaja a tu favor y no en tu contra.</span></span>
         </button>
@@ -931,7 +931,7 @@
             <ellipse cx="59" cy="85" rx="21" ry="5.2" fill="rgb(0,0,0)" opacity="0.30" transform="rotate(-20, 59, 85)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.3;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             </g>
             <path d="M45 20 C33 20 23 30 23 42 C23 51 29 57 36 62 L54 62 C61 57 67 51 67 42 C67 30 57 20 45 20 Z" fill="rgba(255,255,255,0.92)" style="fill:rgba(255, 255, 255, 0.92);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-            <text x="45" y="118" font-family="'JetBrains Mono', monospace" font-size="10" fill="rgb(159, 184, 173)" text-anchor="middle" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:10px;font-weight:400;text-anchor:middle;dominant-baseline:auto">sombra</text>
+            <text x="45" y="118" font-family="'JetBrains Mono', monospace" font-size="10" fill="rgb(159, 184, 173)" text-anchor="middle" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:10px;font-weight:400;text-anchor:middle;dominant-baseline:auto" data-i18n="saludIcoSombra">sombra</text>
             </g>
 
           </svg>
@@ -943,7 +943,7 @@
             <path d="M45 68 C25 52 16 40 16 28 C16 18 24 12 32 12 C38 12 43 15 45 20 C47 15 52 12 58 12 C66 12 74 18 74 28 C74 40 65 52 45 68 Z" fill="#7A0016" transform="translate(-2,2) scale(0.72) translate(20,10)" style="fill:rgb(122, 0, 22);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             <line x1="45" y1="35" x2="45" y2="55" stroke="#0d1a15" stroke-width="3" style="fill:rgb(0, 0, 0);stroke:rgb(13, 26, 21);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             <line x1="35" y1="45" x2="55" y2="45" stroke="#0d1a15" stroke-width="3" style="fill:rgb(0, 0, 0);stroke:rgb(13, 26, 21);color:rgb(11, 11, 11);stroke-width:3px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-            <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">salud</text>
+            <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto" data-i18n="saludIcoSalud">salud</text>
 
           </svg>
           <span class="sticker-tip" aria-hidden="true"><strong data-i18n="saludCuerpoTit">Tu cuerpo frente al calor urbano</strong><span data-i18n="saludCuerpoTxt">El calor extremo no avisa igual en todas las personas. Los niños, los mayores y quienes trabajan al aire libre lo notan antes y peor. Conocer cómo responde tu entorno, la temperatura de tu barrio, la brisa disponible, la sombra cercana, es la primera forma de cuidarte sin necesitar nada más que información.</span></span>
@@ -953,7 +953,7 @@
             <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             <path d="M45 18 C45 18 26 42 26 56 C26 67 34.6 76 45 76 C55.4 76 64 67 64 56 C64 42 45 18 45 18 Z" fill="#007A87" style="fill:rgb(0, 122, 135);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             <ellipse cx="38" cy="52" rx="4" ry="6" fill="#0d1a15" opacity="0.25" style="fill:rgb(13, 26, 21);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.25;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-            <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">agua</text>
+            <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto" data-i18n="saludIcoAgua">agua</text>
 
           </svg>
           <span class="sticker-tip" aria-hidden="true"><strong data-i18n="saludAguaTit">Agua: lo que el cuerpo no puede negociar</strong><span data-i18n="saludAguaTxt">Con calor el cuerpo pierde agua más rápido de lo que percibimos. No esperes a tener sed. Beber antes, en pequeñas cantidades y de forma constante durante las horas de mayor calor, es lo que realmente marca la diferencia. El acceso a agua fresca en espacios públicos también es salud.</span></span>
@@ -964,7 +964,7 @@
             <rect x="40" y="18" width="10" height="42" rx="5" fill="#3a2a1a" style="fill:rgb(58, 42, 26);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             <circle cx="45" cy="66" r="12" fill="#7A0016" style="fill:rgb(122, 0, 22);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             <rect x="41" y="30" width="8" height="34" fill="#7A0016" style="fill:rgb(122, 0, 22);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-            <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">temp.</text>
+            <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto" data-i18n="saludIcoTemp">temp.</text>
 
           </svg>
           <span class="sticker-tip" aria-hidden="true"><strong data-i18n="saludTempTit">No todas las calles tienen la misma temperatura</strong><span data-i18n="saludTempTxt">A dos manzanas de distancia puede haber una diferencia de 5°C según el tipo de suelo, la presencia de árboles o el ancho de la calle. Las islas de calor no son un concepto abstracto, son el barrio donde vives. Entender cómo se distribuye el calor en tu entorno cambia cómo te mueves y cuándo.</span></span>
@@ -974,7 +974,7 @@
             <circle cx="45" cy="45" r="45" style="fill:rgb(13, 26, 21);stroke:rgb(29, 58, 44);color:rgb(11, 11, 11);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             <path d="M45 16 L70 26 L70 46 C70 62 59 72 45 78 C31 72 20 62 20 46 L20 26 Z" fill="#E6A100" style="fill:rgb(230, 161, 0);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
             <path d="M38 45 L44 51 L54 37" stroke="#0d1a15" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:rgb(13, 26, 21);color:rgb(11, 11, 11);stroke-width:3.5px;stroke-linecap:round;stroke-linejoin:round;opacity:1;font-family:anthropic-sans, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-            <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">prevención</text>
+            <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto" data-i18n="saludIcoPrev">prevención</text>
 
           </svg>
           <span class="sticker-tip" aria-hidden="true"><strong data-i18n="saludPrevTit">Prepararse antes de que llegue la ola</strong><span data-i18n="saludPrevTxt">Las olas de calor no son emergencias imprevisibles, tienen un patrón y se anuncian. Conocer los puntos de tu barrio donde el calor se concentra, identificar refugios frescos cercanos y saber qué vecinos necesitan más atención en esos días es, sencillamente, lo más efectivo que existe.</span></span>
@@ -1076,32 +1076,32 @@
       <div class="legend-note" data-i18n="legendNote">Los puntos son estaciones reales. El color entre ciudades es estimado, no medido.</div>
     </div>
   </div>
-  <div class="status-line" id="statusLine">Cargando datos en vivo…</div>
+  <div class="status-line" id="statusLine" data-i18n="statusLoading">Cargando datos en vivo…</div>
 </div>
 
 <div class="forecast-section">
   <div class="map-head">
-    <div class="map-title">Evolución del aire · <span id="forecastCityName">Sevilla</span></div>
+    <div class="map-title"><span data-i18n="evolAire">Evolución del aire</span> · <span id="forecastCityName">Sevilla</span></div>
   </div>
   <div class="chart-card">
     <div id="airChart"></div>
     <div class="chart-legend">
-      <span><i class="dot-hist"></i> Últimas 48h (dato real)</span>
-      <span><i class="dot-fore"></i> Próximas 48h (pronóstico Copernicus/CAMS)</span>
+      <span><i class="dot-hist"></i> <span data-i18n="legendHist">Últimas 48h (dato real)</span></span>
+      <span><i class="dot-fore"></i> <span data-i18n="legendFore">Próximas 48h (pronóstico Copernicus/CAMS)</span></span>
     </div>
   </div>
 
   <div class="quantum-card">
     <div class="quantum-head">
-      <span class="quantum-badge">Manolit∞ Cuántico</span>
-      <span class="quantum-sub">pronóstico simulado para los próximos 5 días, contado sin humo</span>
+      <span class="quantum-badge" data-i18n="quantumBadge">Manolit∞ Cuántico</span>
+      <span class="quantum-sub" data-i18n="quantumSub">pronóstico simulado para los próximos 5 días, contado sin humo</span>
     </div>
     <div id="quantumBars" class="quantum-bars"></div>
 
     <div class="week-label"></div>
     <div id="quantumWeek" class="quantum-week"></div>
 
-    <p class="quantum-disclaimer">
+    <p class="quantum-disclaimer" data-i18n="quantumDisclaimer">
       Esto NO es una predicción meteorológica oficial. Es una simulación matemática
       (formalismo cuántico simulado por software, sin hardware cuántico real) que calcula
       probabilidades a partir del pronóstico real de arriba. Para decisiones de salud,
@@ -1255,10 +1255,10 @@
 </section>
 
 <div class="footer">
-  <p>Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.</p>
-  <p class="footer-eco">Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.</p>
+  <p data-i18n="footerFamiliaTxt">Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.</p>
+  <p class="footer-eco" data-i18n="footerEcoTxt">Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.</p>
   <div class="footer-family" data-i18n="footerFamily">Manolit∞ Forestal · Islas de Calor Sevilla · Manolit∞ Aire</div>
-  <div class="footer-ign" style="margin-top:8px; font-size:0.75rem; opacity:0.7;">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
+  <div class="footer-ign" style="margin-top:8px; font-size:0.75rem; opacity:0.7;" data-i18n="footerIgnTxt">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
   <div style="margin-top:10px;">
     <a href="aviso-legal.html" data-i18n="legalNotice">Aviso legal</a> · 
     <a href="privacidad.html" data-i18n="privacy">Privacidad</a> · 
@@ -1311,17 +1311,17 @@
         <text x="112" y="43" font-size="9" fill="#8A9488">Website Carbon Rating</text>
         <rect x="112" y="52" width="186" height="7" rx="3.5" fill="url(#scaleGrad)"/>
         <circle cx="126" cy="55.5" r="5.5" fill="#FFFFFF" stroke="#199A4C" stroke-width="2"/>
-        <text x="112" y="74" font-size="9.5" fill="#5B6653">0,015 g CO₂ / visita · más limpio que el 99%</text>
-        <text x="112" y="87" font-size="9.5" fill="#5B6653">102,7 KB · hosting 100% renovable</text>
-        <text x="16" y="116" font-size="7.5" fill="#A9B3AC">Medido con Website Carbon Calculator (1ClickImpact) · 16/09/2026</text>
+        <text x="112" y="74" font-size="9.5" fill="#5B6653" data-i18n="svgCarbon1">0,015 g CO₂ / visita · más limpio que el 99%</text>
+        <text x="112" y="87" font-size="9.5" fill="#5B6653" data-i18n="svgCarbon2">102,7 KB · hosting 100% renovable</text>
+        <text x="16" y="116" font-size="7.5" fill="#A9B3AC" data-i18n="svgCarbon3">Medido con Website Carbon Calculator (1ClickImpact) · 16/09/2026</text>
       </svg>
     </div>
     <div class="footer-donacion">
-      <p class="donacion-mensaje">
+      <p class="donacion-mensaje" data-i18n-html="donacionTxt">
         Manolit∞ siempre sera gratis.<br>
         Los servidores, por desgracia, no lo son...
       </p>
-      <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer">
+      <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer" data-i18n="kofiBtn">
         Apoyar en Ko‑fi
       </a>
     </div>
@@ -1645,6 +1645,25 @@
             { msg: 'Airea apur bat haserre dago gaur.', humano: 'Etxe barruan jolasteko unea da, zerbait eraikiko dugu?', sub: 'Hobe lasaitu arte itxarotea.' },
             { msg: 'Gaur zerua nekatuta dago.', humano: 'Etxe barruan marraztera edo ipuin bat irakurtzera goaz.', sub: 'Kanpoko aireak atsedena behar du.' }
           ]
+        },
+        // 01-oct-2026: faltaba el georgiano (ka), el sexto idioma de la web.
+        ka: {
+          buena: [
+            { msg: 'ჰაერი მხიარულია!', humano: 'დღეს მთელი დღე გარეთ შეგიძლია ითამაშო!', sub: 'ცა მოწმენდილია.' },
+            { msg: 'რა სუფთა ჰაერია დღეს!', humano: 'ირბინე, იხტუნე და ითამაშე რამდენიც გინდა!', sub: 'სრულყოფილი დღე პარკისთვის.' },
+            { msg: 'ჰაერი დღეს ზეიმობს.', humano: 'გარეთ წადი, დღეს მშვედნირად სუნთქავს!', sub: 'მტვრის ღრუბლები არსად ჩანს.' },
+            { msg: 'ცა დღეს ბედნიერია.', humano: 'კარგი დღეა ველოსიპედისთვის ან ბურთით თამაშისთვის პარკში.', sub: 'გრილი და სუფთა ჰაერი.' }
+          ],
+          moderada: [
+            { msg: 'ჰაერი ჰორა-ბარაა…', humano: 'გასვლა შეიძლება, მაგრამ უკეთესია ბევრი არ ირბინო.', sub: 'ხარისხი მისაღებია.' },
+            { msg: 'ჰაერი დღეს ცოტა მორცხვია.', humano: 'გარეთ თამაში შეიძლება, მშვიდად და დაუღლელად.', sub: 'არც კარგია და არც ცუდი.' },
+            { msg: 'ჰაერი დღეს ასე-ასეა.', humano: 'უმჯობესია მშვიდი თამაშები გარეთ დღეს.', sub: 'არაფერი სერიოზული, ოდნავ სუსტი.' }
+          ],
+          mala: [
+            { msg: 'ჰაერს ფერება სჭირდება…', humano: 'დღეს უმჯობესია შინ დარჩე და დახატო.', sub: 'ქუჩაში ზედმეტად ბევრი მტვერია.' },
+            { msg: 'ჰაერი დღეს ცოტა გაბრაზებულია.', humano: 'სახლში თამაშის დროა, რამეს ავაშენებთ?', sub: 'უმჯობესია დაველოდოთ, სანამ გაშვებულდება.' },
+            { msg: 'ცა დღეს დაღლილია.', humano: 'შინ დავხატოთ ან ზღაპარს წავიკითხავთ.', sub: 'გარე ჰაერს დასვენება სჭირდება.' }
+          ]
         }
       };
 
@@ -1701,7 +1720,7 @@
       if (co  !== undefined) setVal('sciCO',  co  + ' µg/m³');
       if (uv  !== undefined) setVal('sciUV',  String(uv));
       setVal('sciICA',  ica);
-      setVal('sciUpdated', 'Actualizado: ' + hora);
+      setVal('sciUpdated', ((typeof translations !== 'undefined' && translations[currentLang] && translations[currentLang].updatedPrefix) || 'Actualizado: ') + hora);
     };
 
     // Efecto mágico del modo peque (sep-2026, orden de Sandro): los emojis

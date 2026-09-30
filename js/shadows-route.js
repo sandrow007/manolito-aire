@@ -2256,7 +2256,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     cerrar.id = 'rsShadowBadgeCerrar';
     cerrar.type = 'button';
     cerrar.textContent = '×';
-    cerrar.setAttribute('aria-label', 'Cerrar');
+    cerrar.setAttribute('aria-label', t('closeLbl', 'Cerrar'));
     cerrar.addEventListener('click', () => badge.classList.remove('rs-visible'));
     badge.append(texto, cerrar);
     contenedorMapa.appendChild(badge);
@@ -2298,7 +2298,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   function formatoHora(fecha) {
-    return fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const localesRs = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+    const langRs = (typeof currentLang !== 'undefined' && localesRs[currentLang]) ? currentLang : 'es';
+    return fecha.toLocaleTimeString(localesRs[langRs], { hour: '2-digit', minute: '2-digit' });
   }
 
   function actualizarEtiquetaTiempo(contexto) {
@@ -3321,7 +3323,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         btnActualizarOSM.textContent = t('osmRefreshed', '✓ Actualizado');
         mostrarEstado(t('osmRefreshed', 'Mapa y datos de OpenStreetMap actualizados en esta zona.'), 'ok');
       } catch (e) {
-        btnActualizarOSM.textContent = '✕ Error';
+        btnActualizarOSM.textContent = t('osmBtnError', '✕ Error');
         mostrarEstado(t('osmRefreshError', 'No se ha podido actualizar ahora mismo. Inténtalo en un minuto.'), 'error');
       } finally {
         setTimeout(() => {
@@ -3346,7 +3348,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnPlegarControles.type = 'button';
     btnPlegarControles.id = 'rsBtnPlegarControles';
     btnPlegarControles.textContent = '≡';
-    btnPlegarControles.setAttribute('aria-label', 'Mostrar u ocultar los botones del mapa');
+    btnPlegarControles.setAttribute('aria-label', t('mapButtonsToggle', 'Mostrar u ocultar los botones del mapa'));
     btnPlegarControles.setAttribute('aria-expanded', 'true');
     btnPlegarControles.addEventListener('click', () => {
       const plegado = panelMapa.classList.toggle('rs-plegado');
@@ -3438,7 +3440,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btnPlegar = document.createElement('button');
     btnPlegar.id = 'rsPlegarBtn';
     btnPlegar.type = 'button';
-    btnPlegar.setAttribute('aria-label', 'Mostrar u ocultar el panel de posición solar');
+    btnPlegar.setAttribute('aria-label', t('sunPanelToggle', 'Mostrar u ocultar el panel de posición solar'));
     btnPlegar.innerHTML = '<svg width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     btnPlegar.addEventListener('click', async () => {
       const estabaCerrado = panel.classList.contains('rs-cerrado');
@@ -3657,7 +3659,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnIGN.id = 'rsBtnMapaIGN';
     btnIGN.textContent = 'Mapa IGN';
     btnIGN.setAttribute('aria-pressed', 'false');
-    btnIGN.title = 'Cartografía del Instituto Geográfico Nacional (CC BY 4.0 scne.es)';
+    btnIGN.title = t('ignMapTitle', 'Cartografía del Instituto Geográfico Nacional (CC BY 4.0 scne.es)');
     btnIGN.addEventListener('click', () => {
       ignActivo = !ignActivo;
       if (ignActivo) {
@@ -3727,7 +3729,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnCatastro.id = 'rsBtnCatastro';
     btnCatastro.textContent = 'Catastro 3D';
     btnCatastro.setAttribute('aria-pressed', 'false');
-    btnCatastro.title = 'Densidad de alturas oficial del Catastro de España (gratis, sin registro)';
+    btnCatastro.title = t('catastroTitle', 'Densidad de alturas oficial del Catastro de España (gratis, sin registro)');
     btnCatastro.addEventListener('click', () => {
       catastroActivo = !catastroActivo;
       if (catastroActivo) {
@@ -4759,6 +4761,25 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
     const btnReset = document.getElementById('rsBtnReset');
     if (btnReset) btnReset.textContent = t('resetBtn', 'Reiniciar');
+
+    // 01-oct-2026: la guia por voz, el enlace de sincronizacion del pie y
+    // los seis botones naranjas de camara tambien se retraducen en caliente.
+    const btnVoz = document.getElementById('rsBtnGuiaVoz');
+    if (btnVoz) {
+      const vozOn = btnVoz.getAttribute('aria-pressed') === 'true';
+      btnVoz.textContent = (vozOn ? '🔊 ' : '🔇 ') + t('voiceGuide', 'Guía por voz');
+    }
+    const enlaceSync = document.getElementById('rsLinkSync');
+    if (enlaceSync) enlaceSync.textContent = t('syncData', 'Sincronizar / Exportar datos');
+    const grupoCam = document.getElementById('rsCamCtl');
+    if (grupoCam) grupoCam.setAttribute('aria-label', t('camGroupLabel', 'Zoom e inclinación del mapa'));
+    [['rsCamZoomIn', 'camZoomIn', 'Acercar'], ['rsCamZoomOut', 'camZoomOut', 'Alejar'],
+     ['rsCamPitchUp', 'camPitchUp', 'Mirar hacia arriba'], ['rsCamPitchDown', 'camPitchDown', 'Mirar hacia abajo'],
+     ['rsCamBrujula', 'camBrujula', 'Brújula, volver al norte y nivelar la vista'], ['rsCamFull', 'camFull', 'Pantalla completa']
+    ].forEach(([id, clave, fallback]) => {
+      const b = document.getElementById(id);
+      if (b) { const txt = t(clave, fallback); b.title = txt; b.setAttribute('aria-label', txt); }
+    });
   });
 
   /* ============================================================
@@ -5817,7 +5838,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             return;
           }
           const frase = new SpeechSynthesisUtterance(this._elegirFraseEstacional());
-          frase.lang = 'es-ES';
+          // 01-oct-2026: la voz habla en el idioma elegido, no siempre es-ES.
+          const vocesRs = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+          frase.lang = vocesRs[(typeof currentLang !== 'undefined' && vocesRs[currentLang]) ? currentLang : 'es'];
 
           // VOZ SIN GÉNERO: ningún navegador ofrece hoy una voz española
           // declarada "neutral" (comprobado en la lista Readium Speech, la

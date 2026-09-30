@@ -18,6 +18,20 @@
       también en el aviso legal.
    ============================================================ */
 
+/* 01-oct-2026: helper de traduccion local, mismo patron que el resto de
+   modulos. Lee el diccionario de i18n.js y cae al texto español si la
+   clave no existe o i18n aun no ha cargado. */
+function tAir(clave, fallback) {
+	try {
+		const fn = window.getMessages;
+		if (typeof fn === 'function') {
+			const msg = fn();
+			if (msg && msg[clave] != null) return msg[clave];
+		}
+	} catch (e) { /* seguimos con el fallback */ }
+	return fallback;
+}
+
 async function fetchAirSeries(lat, lon) {
 	// Caché local de 15 min por zona (~1 km): mover el slider o reabrir la
 	// página no repite la llamada mientras el dato siga fresco (ahorro de red/batería).
@@ -76,7 +90,7 @@ function drawAirChart(times, values, nowIndex) {
 	const n = clean.length;
 	// Guarda: con menos de 2 puntos no hay línea que dibujar (evita NaN en el SVG).
 	if (n < 2) {
-		el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet"><text class="chart-axis-label" x="${padL}" y="${h/2}">Cargando datos del aire…</text></svg>`;
+		el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet"><text class="chart-axis-label" x="${padL}" y="${h/2}">${tAir('airChartLoadingData', 'Cargando datos del aire…')}</text></svg>`;
 		return;
 	}
 	nowIndex = Math.max(0, Math.min(n - 1, nowIndex));
@@ -98,10 +112,10 @@ function drawAirChart(times, values, nowIndex) {
 
 	el.innerHTML = `
     <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img"
-         aria-label="Gráfica del aire: línea continua pasado reciente, línea discontinua previsión">
+         aria-label="${tAir('airChartAriaLabel', 'Gráfica del aire: línea continua pasado reciente, línea discontinua previsión')}">
       ${yTicksHtml}
       <line class="chart-now-line" x1="${nowX}" y1="${padT}" x2="${nowX}" y2="${h-padB}" />
-      <text class="chart-axis-label" x="${nowX+3}" y="${padT+8}">ahora</text>
+      <text class="chart-axis-label" x="${nowX+3}" y="${padT+8}">${tAir('airChartNow', 'ahora')}</text>
       <polyline class="chart-line-hist" points="${histPts}" />
       <polyline class="chart-line-fore" points="${forePts}" />
       <g class="chart-cursor" style="display:none">
@@ -126,11 +140,13 @@ function drawAirChart(times, values, nowIndex) {
 
 	const fmtNum = n => n.toFixed(1).replace('.', ',');
 	const colorDelAire = v => v <= 12 ? 'var(--breath-good)' : v <= 35 ? 'var(--breath-mid)' : 'var(--breath-bad)';
-	const textoDelAire = v => v <= 12 ? 'aire bueno' : v <= 35 ? 'aire moderado' : 'aire malo';
+	const textoDelAire = v => v <= 12 ? tAir('airGood', 'aire bueno') : v <= 35 ? tAir('airMid', 'aire moderado') : tAir('airBad', 'aire malo');
 	const fmtHora = t => {
 		const d = new Date(t);
 		if (isNaN(d)) return '';
-		const dia = d.toLocaleDateString('es-ES', {
+		const localesAir = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+		const langAir = (typeof currentLang !== 'undefined' && localesAir[currentLang]) ? currentLang : 'es';
+		const dia = d.toLocaleDateString(localesAir[langAir], {
 			weekday: 'short'
 		});
 		return `${dia} ${String(d.getHours()).padStart(2, '0')}:00`;
@@ -255,22 +271,22 @@ function renderQuantumBars(result) {
 	if (!el || !result) return;
 	const fmt = n => n.toFixed(1).replace('.', ',');
 	const rows = [{
-			label: 'Buena',
+			label: tAir('legendGood', 'Buena'),
 			pct: result.good,
 			color: 'var(--breath-good)',
-			desc: 'probabilidad de aire bueno'
+			desc: tAir('qProbGood', 'probabilidad de aire bueno')
 		},
 		{
-			label: 'Moderada',
+			label: tAir('legendMid', 'Moderada'),
 			pct: result.mid,
 			color: 'var(--breath-mid)',
-			desc: 'probabilidad de aire moderado'
+			desc: tAir('qProbMid', 'probabilidad de aire moderado')
 		},
 		{
-			label: 'Mala',
+			label: tAir('legendBad', 'Mala'),
 			pct: result.bad,
 			color: 'var(--breath-bad)',
-			desc: 'probabilidad de aire malo'
+			desc: tAir('qProbBad', 'probabilidad de aire malo')
 		},
 	];
 
@@ -297,7 +313,10 @@ function renderQuantumBars(result) {
 		stats.className = 'quantum-stats';
 		el.after(stats);
 	}
-	stats.textContent = `PM2.5 próximas 24 h: media ${fmt(result.stats.mean)} µg/m³ · pico ${fmt(result.stats.max)} · mínimo ${fmt(result.stats.min)}`;
+	stats.textContent = tAir('airStatsTpl', 'PM2.5 próximas 24 h: media {m} µg/m³ · pico {p} · mínimo {n}')
+		.split('{m}').join(fmt(result.stats.mean))
+		.split('{p}').join(fmt(result.stats.max))
+		.split('{n}').join(fmt(result.stats.min));
 
 	// Detalle al tocar/pasar por cada barra (región viva para lectores de pantalla).
 	let detail = card.querySelector('.quantum-detail');
@@ -309,8 +328,13 @@ function renderQuantumBars(result) {
 		stats.after(detail);
 	}
 	const textos = rows.map(r =>
-		`${r.label}: ${fmt(r.pct)} %. ${r.desc} en las próximas 24 h. ` +
-		`PM2.5 medio previsto ${fmt(result.stats.mean)} µg/m³ (entre ${fmt(result.stats.min)} y ${fmt(result.stats.max)}).`
+		tAir('qDetailTpl', '{l}: {p} %. {d} en las próximas 24 h. PM2.5 medio previsto {m} µg/m³ (entre {a} y {b}).')
+			.split('{l}').join(r.label)
+			.split('{p}').join(fmt(r.pct))
+			.split('{d}').join(r.desc)
+			.split('{m}').join(fmt(result.stats.mean))
+			.split('{a}').join(fmt(result.stats.min))
+			.split('{b}').join(fmt(result.stats.max))
 	);
 	const mostrar = (i) => {
 		detail.textContent = textos[i];
@@ -357,7 +381,7 @@ async function loadForecastForCity() {
 
 	const chartEl = document.getElementById('airChart');
 	const barsEl = document.getElementById('quantumBars');
-	if (chartEl) chartEl.innerHTML = '<p style="color:var(--sky-mid); font-size:0.85rem;">Cargando histórico y pronóstico…</p>';
+	if (chartEl) chartEl.innerHTML = '<p style="color:var(--sky-mid); font-size:0.85rem;">' + tAir('airChartLoading', 'Cargando histórico y pronóstico…') + '</p>';
 
 	try {
 		const {
@@ -370,7 +394,7 @@ async function loadForecastForCity() {
 		const result = quantumAirModel(futureValues.length ? futureValues : values);
 		renderQuantumBars(result);
 	} catch (e) {
-		const msg = '<p style="color:var(--sky-mid); font-size:0.85rem;">No se pudo cargar el histórico ahora mismo (la API está saturada por las 500+ peticiones del mapa). Prueba a recargar en unos segundos.</p>';
+		const msg = '<p style="color:var(--sky-mid); font-size:0.85rem;">' + tAir('airChartError', 'No se pudo cargar el histórico ahora mismo (la API está saturada por las 500+ peticiones del mapa). Prueba a recargar en unos segundos.') + '</p>';
 		if (chartEl) chartEl.innerHTML = msg;
 		if (barsEl) barsEl.innerHTML = msg;
 	}

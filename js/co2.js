@@ -24,11 +24,25 @@
    - Autobús urbano: 97 por pasajero. BEIS/DEFRA,
      "average local bus", 0.0965 kg CO2e por pasajero-km.
 
-   Textos visibles solo en español de momento (27-sep): cuando
-   Sandro quiera traducirlos se llevan a js/i18n.js con su clave.
+   Textos en los 6 idiomas del sitio desde el 28-sep (js/i18n.js),
+   con el mismo enganche que shadows-route.js (window.getMessages)
+   y retraduccion en caliente al cambiar de idioma (langChanged).
    ============================================================ */
 window.ManolitCO2 = (function () {
   'use strict';
+
+  /* Traduccion: enganche directo al diccionario de js/i18n.js,
+     igual que hace shadows-route.js, con el español de respaldo. */
+  function t(clave, fallback) {
+    try {
+      var fn = window.getMessages;
+      if (typeof fn === 'function') {
+        var msg = fn();
+        if (msg && msg[clave] != null) return msg[clave];
+      }
+    } catch (e) { /* seguimos con el respaldo */ }
+    return fallback;
+  }
 
   var FACTORES_G_KM = {
     pie: 0,
@@ -39,14 +53,20 @@ window.ManolitCO2 = (function () {
   };
 
   var OPCIONES = [
-    { id: 'pie', texto: 'A pie (sin Manolito)' },
-    { id: 'bici', texto: 'Bicicleta' },
-    { id: 'coche', texto: 'Coche' },
-    { id: 'moto', texto: 'Moto' },
-    { id: 'autobus', texto: 'Autobús' }
+    { id: 'pie', clave: 'co2OpPie', texto: 'A pie (sin Manolito)' },
+    { id: 'bici', clave: 'co2OpBici', texto: 'Bicicleta' },
+    { id: 'coche', clave: 'co2OpCoche', texto: 'Coche' },
+    { id: 'moto', clave: 'co2OpMoto', texto: 'Moto' },
+    { id: 'autobus', clave: 'co2OpAutobus', texto: 'Autobús' }
   ];
 
-  var NOMBRE_MEDIO = {
+  var MEDIO_CLAVE = {
+    coche: 'co2MedioCoche',
+    moto: 'co2MedioMoto',
+    autobus: 'co2MedioAutobus'
+  };
+
+  var MEDIO_DEFECTO = {
     coche: 'en coche',
     moto: 'en moto',
     autobus: 'en autobús'
@@ -54,6 +74,7 @@ window.ManolitCO2 = (function () {
 
   var distanciaMetrosActual = 0;
   var caja = null;
+  var medioSeleccionado = null;
 
   function calcularGramos(distanciaMetros, medio) {
     var factor = FACTORES_G_KM[medio];
@@ -89,13 +110,15 @@ window.ManolitCO2 = (function () {
   function textoResultado(medio) {
     var gramos = calcularGramos(distanciaMetrosActual, medio);
     if (medio === 'pie') {
-      return 'Andando habrías emitido lo mismo, 0 g de CO2. La diferencia es que con Manolito vas por la fresca.';
+      return t('co2ResPie', 'Andando habrías emitido lo mismo, 0 g de CO2. La diferencia es que con Manolito vas por la fresca.');
     }
     if (medio === 'bici') {
-      return 'En bici habrías emitido lo mismo, 0 g de CO2. La diferencia es la fresca del camino.';
+      return t('co2ResBici', 'En bici habrías emitido lo mismo, 0 g de CO2. La diferencia es la fresca del camino.');
     }
-    return 'Con esta ruta a pie has evitado emitir aproximadamente '
-      + formatear(gramos) + ' de CO2 frente a ir ' + NOMBRE_MEDIO[medio] + '.';
+    var plantilla = t('co2ResTpl', 'Con esta ruta a pie has evitado emitir aproximadamente {c} de CO2 frente a ir {m}.');
+    return plantilla
+      .split('{c}').join(formatear(gramos))
+      .split('{m}').join(t(MEDIO_CLAVE[medio], MEDIO_DEFECTO[medio]));
   }
 
   function pintar() {
@@ -104,7 +127,7 @@ window.ManolitCO2 = (function () {
 
     var pregunta = document.createElement('p');
     pregunta.className = 'co2-pregunta';
-    pregunta.textContent = 'Si no hubieras usado esta ruta fresca a pie, ¿cómo habrías hecho el trayecto?';
+    pregunta.textContent = t('co2Pregunta', 'Si no hubieras usado esta ruta fresca a pie, ¿cómo habrías hecho el trayecto?');
     caja.appendChild(pregunta);
 
     var grupo = document.createElement('div');
@@ -121,9 +144,11 @@ window.ManolitCO2 = (function () {
       var boton = document.createElement('button');
       boton.type = 'button';
       boton.className = 'co2-opcion';
-      boton.textContent = op.texto;
-      boton.setAttribute('aria-pressed', 'false');
+      boton.textContent = t(op.clave, op.texto);
+      boton.setAttribute('aria-pressed', String(medioSeleccionado === op.id));
+      if (medioSeleccionado === op.id) boton.classList.add('activa');
       boton.addEventListener('click', function () {
+        medioSeleccionado = op.id;
         grupo.querySelectorAll('.co2-opcion').forEach(function (b) {
           b.classList.remove('activa');
           b.setAttribute('aria-pressed', 'false');
@@ -136,12 +161,17 @@ window.ManolitCO2 = (function () {
       grupo.appendChild(boton);
     });
 
+    if (medioSeleccionado) {
+      resultado.textContent = textoResultado(medioSeleccionado);
+      resultado.hidden = false;
+    }
+
     caja.appendChild(grupo);
     caja.appendChild(resultado);
 
     var nota = document.createElement('p');
     nota.className = 'co2-nota';
-    nota.textContent = 'Esta pregunta es solo para ti. Tu respuesta no se guarda ni sale de tu navegador.';
+    nota.textContent = t('co2Nota', 'Esta pregunta es solo para ti. Tu respuesta no se guarda ni sale de tu navegador.');
     caja.appendChild(nota);
   }
 
@@ -150,6 +180,7 @@ window.ManolitCO2 = (function () {
     var km = parseFloat(distanciaKm);
     if (!isFinite(km) || km <= 0) { ocultar(); return; }
     distanciaMetrosActual = km * 1000;
+    medioSeleccionado = null; // ruta nueva, encuesta nueva: nada queda guardado
     inyectarEstilos();
     if (!caja) {
       caja = document.createElement('div');
@@ -171,7 +202,14 @@ window.ManolitCO2 = (function () {
       caja = null;
     }
     distanciaMetrosActual = 0;
+    medioSeleccionado = null;
   }
+
+  /* Al cambiar de idioma la encuesta se retraduce en caliente,
+     conservando la opcion pulsada (solo vive en esta pantalla). */
+  document.addEventListener('langChanged', function () {
+    if (caja) pintar();
+  });
 
   return {
     mostrar: mostrar,

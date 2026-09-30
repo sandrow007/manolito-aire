@@ -6777,13 +6777,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           try {
             const paquete = JSON.parse(String(lector.result));
             const r = importarDatos(paquete);
-            estado.textContent = 'Sincronizado: ' + r.ajustes + ' ajustes y ' + r.puntos +
-              ' puntos. Recarga con Ctrl+Mayús+R para verlo todo aplicado.';
+            estado.textContent = t('syncDoneTpl', 'Sincronizado: {a} ajustes y {b} puntos. Recarga con Ctrl+Mayús+R para verlo todo aplicado.')
+              .split('{a}').join(r.ajustes).split('{b}').join(r.puntos);
           } catch (e) {
-            estado.textContent = 'Ese archivo no es una copia válida de Manolit∞ Aire.';
+            estado.textContent = t('syncImportError', 'Ese archivo no es una copia válida de Manolit∞ Aire.');
           }
         };
-        lector.onerror = () => { estado.textContent = 'No se pudo leer el archivo.'; };
+        lector.onerror = () => { estado.textContent = t('syncReadError', 'No se pudo leer el archivo.'); };
         lector.readAsText(f);
       });
     }
@@ -7828,7 +7828,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (capaVisible) {
           // Feedback de carga: la consulta a Overpass puede tardar unos
           // segundos; sin aviso parece que el botón "no hace nada".
-          btn.textContent = 'Cargando árboles…';
+          btn.textContent = t('treesLoading', 'Cargando árboles…');
           try {
             await cargarArbolesDeLaVista();
             recalcularSombrasArboles();

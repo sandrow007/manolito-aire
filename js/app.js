@@ -912,7 +912,14 @@ function initMap(){
       .catch(() => { /* la tanda entera queda en gris, sin ruido en consola */ })
       .finally(() => {
         cargados += grupo.length;
-        if (statusLine) statusLine.textContent = `Cargados ${cargados}/${stations.length} puntos en vivo.`;
+        if (statusLine) {
+          // 01-oct-2026: la frase viaja por i18n (statusLoadedTpl) para que
+          // cambie con el idioma igual que el resto de la web.
+          const langS = (typeof currentLang !== 'undefined') ? currentLang : 'es';
+          const dictS = (typeof translations !== 'undefined') ? (translations[langS] || translations.es) : null;
+          const tpl = (dictS && dictS.statusLoadedTpl) || 'Cargados {a}/{b} puntos en vivo.';
+          statusLine.textContent = tpl.split('{a}').join(cargados).split('{b}').join(stations.length);
+        }
       });
   }));
 

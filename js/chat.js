@@ -50,6 +50,21 @@
     return 'en';
   }
 
+  function getI18nMessages() {
+    try {
+      if (typeof window.getMessages === 'function') {
+        return window.getMessages(getRobustLang()) || null;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function tChat(key, fallbackEs, fallbackEn) {
+    const msgs = getI18nMessages();
+    if (msgs && msgs[key]) return msgs[key];
+    return getRobustLang() === 'en' ? (fallbackEn || fallbackEs) : fallbackEs;
+  }
+
   function parseMarkdownToHTML(text) {
     let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
@@ -102,7 +117,11 @@ SALUD: información educativa y sentido común (protección, horarios, hidrataci
     const uiLang = getRobustLang();
 
     if (typeof cookiesAccepted === 'function' && !cookiesAccepted()) {
-      return "Conexión bloqueada. Acepta las cookies para interactuar con la IA.";
+      return tChat(
+        'chatCookiesBlocked',
+        'Conexión bloqueada. Acepta las cookies para interactuar con la IA.',
+        'Connection blocked. Accept cookies to interact with AI.'
+      );
     }
 
     let historyText = "";
@@ -224,9 +243,11 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
 
     if (!finalAnswer) {
       console.debug("Errores acumulados:", errors);
-      finalAnswer = `⚠️ Ahora mismo no puedo conectar con el servidor de Manolit∞.
-
-Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de abajo tienen respuesta inmediata.`;
+      finalAnswer = tChat(
+        'chatServerUnavailable',
+        '⚠️ Ahora mismo no puedo conectar con el servidor de Manolit∞.\n\nInténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de abajo tienen respuesta inmediata.',
+        '⚠️ I can’t connect to the Manolit∞ server right now.\n\nTry again in a few seconds. Meanwhile, the quick questions below still work instantly.'
+      );
       chatHistory.pop();
     }
 
@@ -326,10 +347,19 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
      en texto, sin llamar a la IA: geocodificar (mundo) → Open-Meteo →
      nivel en palabras. Si el país no tiene soporte de datos, se dice
      con seriedad. */
-  const AIRE_NIVELES = [[20, 'bueno'], [40, 'aceptable'], [60, 'moderado'], [80, 'malo'], [100, 'muy malo'], [Infinity, 'peligroso']];
+  const AIRE_NIVELES = [
+    [20, 'airLvlGood', 'bueno', 'good'],
+    [40, 'airLvlFair', 'aceptable', 'fair'],
+    [60, 'airLvlModerate', 'moderado', 'moderate'],
+    [80, 'airLvlPoor', 'malo', 'poor'],
+    [100, 'airLvlVeryPoor', 'muy malo', 'very poor'],
+    [Infinity, 'airLvlHazard', 'peligroso', 'hazardous']
+  ];
   function nivelAirePalabra(aqi) {
-    for (const [tope, palabra] of AIRE_NIVELES) if (aqi <= tope) return palabra;
-    return 'peligroso';
+    for (const [tope, key, fallbackEs, fallbackEn] of AIRE_NIVELES) {
+      if (aqi <= tope) return tChat(key, fallbackEs, fallbackEn);
+    }
+    return tChat('airLvlHazard', 'peligroso', 'hazardous');
   }
   // Península como polígono que sigue la frontera (el rectángulo de antes
   // se tragaba Portugal entero), más Baleares y Canarias.
@@ -359,7 +389,7 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
   }
   async function intentarAireInternacional(pregunta) {
     try {
-      const m = String(pregunta || '').match(/(?:aire|contaminaci[oó]n|poluci[oó]n)\b[^]*?\ben\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’\-\s]{2,40}?)\s*(?:hoy|mañana|ahora)?\s*[?.!¡]*\s*$/i);
+      const m = String(pregunta || '').match(/(?:air(?:\s+quality)?|aire|contaminaci[oó]n|pollution|poluci[oó]n)\b[^]*?\b(?:in|en)\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’\-\s]{2,40}?)\s*(?:today|tomorrow|now|hoy|mañana|ahora)?\s*[?.!¡]*\s*$/i);
       if (!m) return null;
       let ciudad = m[1].trim();
       if (ciudad.length < 2) return null;
@@ -371,11 +401,13 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
       if (puntoEnEspana(lat, lon)) return null; // dentro de España: camino de siempre, la capa del mapa ya lo cubre
       ciudad = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
       const r = await fetch(`/api/air-quality?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&current=european_aqi&timezone=auto`);
-      if (!r.ok) return 'Calidad del aire no disponible para este país.';
+      if (!r.ok) return tChat('chatAirUnavailable', 'Calidad del aire no disponible para este país.', 'Air quality not available for this country.');
       const d = await r.json();
       const aqi = d && d.current && typeof d.current.european_aqi === 'number' ? d.current.european_aqi : null;
-      if (aqi == null) return 'Calidad del aire no disponible para este país.';
-      return `La calidad del aire en ${ciudad} indica un nivel ${nivelAirePalabra(aqi)}.`;
+      if (aqi == null) return tChat('chatAirUnavailable', 'Calidad del aire no disponible para este país.', 'Air quality not available for this country.');
+      return getRobustLang() === 'en'
+        ? `Air quality in ${ciudad} is ${nivelAirePalabra(aqi)}.`
+        : `La calidad del aire en ${ciudad} indica un nivel ${nivelAirePalabra(aqi)}.`;
     } catch (e) {
       return null; // cualquier fallo: que responda la IA como siempre
     }
@@ -384,7 +416,7 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
   async function sendQuestion(question) {
     toggleInputState(true);
     addBubble(question, 'user');
-    setChatStatus('Manolit∞ analizando contexto...');
+    setChatStatus(tChat('chatAnalyzing', 'Manolit∞ analizando contexto...', 'Manolit∞ is analyzing context...'));
 
     try {
       const aireLocal = await intentarAireInternacional(question);
@@ -392,7 +424,7 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
       const answer = await askManolito(question);
       addBubble(answer, 'mano');
     } catch (e) {
-      addBubble("Error inesperado. Reinténtalo en un momento.", 'mano');
+      addBubble(tChat('chatUnexpectedError', 'Error inesperado. Reinténtalo en un momento.', 'Unexpected error. Please try again in a moment.'), 'mano');
       console.debug("Error crítico:", e);
     } finally {
       setChatStatus('');

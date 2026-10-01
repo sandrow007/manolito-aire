@@ -296,7 +296,7 @@ const translations = {
 		syncExportBtn: "Exportar mis datos",
 		syncImportBtn: "Importar datos",
 		syncImportError: "Ese archivo no es una copia de Manolit∞ Aire. No se ha importado nada.",
-		// FAQ (preguntas frecuentes)
+		// FAQ (frequently asked questions)
 		faqTitle: "Preguntas frecuentes",
 		faqIntro: "Las que me hacéis de verdad, contestadas sin rodeos.",
 		faqQ1: "¿Esto es gratis de verdad?",
@@ -736,7 +736,7 @@ const translations = {
 		syncExportBtn: "Exportar les meves dades",
 		syncImportBtn: "Importar dades",
 		syncImportError: "Aquest fitxer no és una còpia de Manolit∞ Aire. No s'hi ha importat res.",
-		// FAQ (preguntas frecuentes)
+		// FAQ (frequently asked questions)
 		faqTitle: "Preguntes freqüents",
 		faqIntro: "Les que em feu de veritat, contestades sense voltes.",
 		faqQ1: "Això és gratis de veritat?",
@@ -1169,7 +1169,7 @@ const translations = {
 		syncExportBtn: "Esportatu nire datuak",
 		syncImportBtn: "Inportatu datuak",
 		syncImportError: "Fitxategi hori ez da Manolit∞ Aire-ren kopia. Ez da ezer inportatu.",
-		// FAQ (preguntas frecuentes)
+		// FAQ (frequently asked questions)
 		faqTitle: "Maiz egiten diren galderak",
 		faqIntro: "Benetan egiten dizkidazuenak, ingurubariorik gabe erantzunda.",
 		faqQ1: "Hau doakoa da benetan?",
@@ -1603,7 +1603,7 @@ const translations = {
 		syncExportBtn: "Exportar os meus datos",
 		syncImportBtn: "Importar datos",
 		syncImportError: "Ese ficheiro non é unha copia de Manolit∞ Aire. Non se importou nada.",
-		// FAQ (preguntas frecuentes)
+		// FAQ (frequently asked questions)
 		faqTitle: "Preguntas frecuentes",
 		faqIntro: "As que me facedes de verdade, contestadas sen rodeos.",
 		faqQ1: "Isto é de balde de verdade?",
@@ -2036,7 +2036,7 @@ const translations = {
 		syncExportBtn: "Export my data",
 		syncImportBtn: "Import data",
 		syncImportError: "That file is not a Manolit∞ Aire backup. Nothing was imported.",
-		// FAQ (preguntas frecuentes)
+		// FAQ (frequently asked questions)
 		faqTitle: "Frequently asked questions",
 		faqIntro: "The ones people really ask me, answered straight.",
 		faqQ1: "Is this actually free?",
@@ -2467,7 +2467,7 @@ const translations = {
 		syncExportBtn: "ჩემი მონაცემების ექსპორტი",
 		syncImportBtn: "მონაცემების იმპორტი",
 		syncImportError: "ეს ფაილი არ არის Manolit∞ Aire-ის ასლი. არაფერი იმპორტირებულა.",
-		// FAQ (preguntas frecuentes)
+		// FAQ (frequently asked questions)
 		faqTitle: "ხშირად დასმული კითხვები",
 		faqIntro: "რასაც ნამდვილად მკითხავთ, პირდაპირ გიპასუხებთ.",
 		faqQ1: "ეს ნამდვილად უფასოა?",
@@ -2627,16 +2627,16 @@ const translations = {
 	}
 };
 
-let currentLang = localStorage.getItem('manolito_lang') || 'es';
+let currentLang = localStorage.getItem('manolito_lang') || 'en';
 
 function getMessages() {
-	return translations[currentLang] || translations.es;
+	return translations[currentLang] || translations.en;
 }
 
-let dict = translations[currentLang] || translations.es;
+let dict = translations[currentLang] || translations.en;
 
 function applyTranslations() {
-	dict = translations[currentLang] || translations.es;
+	dict = translations[currentLang] || translations.en;
 	document.querySelectorAll('[data-i18n]').forEach(el => {
 		const key = el.getAttribute('data-i18n');
 		if (dict[key]) el.textContent = dict[key];

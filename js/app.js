@@ -176,7 +176,7 @@ window.setCurrentCity = function(city) {
 function renderHero(){
   const d = cityData[currentCity];
   const state = stateFromPM25(currentPM25);
-  const lang = (typeof currentLang !== 'undefined') ? currentLang : 'es';
+  const lang = (typeof currentLang !== 'undefined') ? currentLang : 'en';
   const [line1, line2] = getHeroMessages(lang)[currentMode][state](d.name);
   const humanLineEl = document.getElementById('humanLine');
   const subLineEl = document.getElementById('subLine');
@@ -186,7 +186,7 @@ function renderHero(){
   if (subLineEl) subLineEl.textContent = line2;
   const dictIca = (typeof translations !== 'undefined') ? (translations[lang] || translations.es) : null;
   const icaTxt = dictIca ? (state==='good'?dictIca.aqiGood:state==='mid'?dictIca.aqiModerate:dictIca.aqiBad)
-                         : (state==='good'?'Buena':state==='mid'?'Moderada':'Mala');
+                         : (state==='good'?'Good':state==='mid'?'Moderate':'Poor');
   if (techEl) techEl.textContent = `PM2.5 ${currentPM25} µg/m³ · ICA: ${icaTxt}`;
   const dict = (typeof translations !== 'undefined') ? (translations[lang] || translations.es) : null;
   if (orbFaceEl) orbFaceEl.textContent = dict ? dict[`orb_${state}`] : state;

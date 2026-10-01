@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -21,7 +21,7 @@
   "applicationCategory": "WeatherApplication",
   "operatingSystem": "Web",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-  "inLanguage": "es",
+  "inLanguage": ["en", "es", "ca", "eu", "gl", "ka"],
   "isAccessibleForFree": true,
   "author": { "@type": "Person", "name": "Sandro" },
   "keywords": "calidad del aire, sombra urbana, rutas frescas, islas de calor, Sevilla, web sostenible, sin publicidad, bajo consumo de datos, huella de agua",
@@ -452,13 +452,13 @@
       <button data-palette="lavanda" aria-label="Jacarandá de mayo (violeta)"></button>
       <button data-palette="coral" aria-label="Flamenco de feria (coral)"></button>
     </div>
-    <button class="icon-btn" id="themeToggle" title="Modo claro/oscuro" aria-label="Modo claro/oscuro">☾</button>
-    <div class="chip-toggle notranslate" id="langToggle" translate="no" role="group" aria-label="Idioma">
-      <button data-lang="es" class="active">ES</button>
+    <button class="icon-btn" id="themeToggle" title="Light/dark mode" aria-label="Light/dark mode">☾</button>
+    <div class="chip-toggle notranslate" id="langToggle" translate="no" role="group" aria-label="Language">
+      <button data-lang="es">ES</button>
       <button data-lang="ca">CA</button>
       <button data-lang="eu">EU</button>
       <button data-lang="gl">GL</button>
-      <button data-lang="en">EN</button>
+      <button data-lang="en" class="active">EN</button>
       <button data-lang="ka">KA</button>
     </div>
     <!-- Botón mini "Act. mapa": nace AQUÍ, con el primer pintado (si lo
@@ -1006,7 +1006,7 @@
   var TPL_ES = 'Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados {n} litros de agua. Tu visita aquí: ~2 ml, medidos.';
   var tpl = TPL_ES, locale = 'es-ES';
   function refrescarIdioma() {
-    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'es') || 'es';
+    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'en') || 'en';
     locale = LOCALES[lang] || 'es-ES';
     var m = (typeof window.getMessages === 'function' ? window.getMessages() : null) || {};
     tpl = m.aguaVivoTpl || TPL_ES;
@@ -1040,7 +1040,7 @@
   var LOCALES = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
   var locale = 'es-ES';
   function refrescarIdioma() {
-    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'es') || 'es';
+    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'en') || 'en';
     locale = LOCALES[lang] || 'es-ES';
   }
   refrescarIdioma();
@@ -1371,7 +1371,7 @@
         const storedLang = localStorage.getItem('manolito_lang') || localStorage.getItem('lang');
         if (storedLang) return storedLang.split('-')[0];
       } catch (e) {}
-      return 'es';
+      return 'en';
     }
 
     function renderPequeFace(estado) {
@@ -1487,7 +1487,7 @@
       };
 
       const lang = getRobustLang();
-      const idiomaSeleccionado = variacionesIdiomas[lang] ? variacionesIdiomas[lang] : variacionesIdiomas['es'];
+      const idiomaSeleccionado = variacionesIdiomas[lang] ? variacionesIdiomas[lang] : variacionesIdiomas['en'];
       const estadoData = idiomaSeleccionado[estado] || idiomaSeleccionado.mala; 
       const seleccion = estadoData[Math.floor(Math.random() * estadoData.length)];
 

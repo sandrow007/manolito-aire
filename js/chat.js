@@ -47,7 +47,7 @@
       const storedLang = localStorage.getItem('manolito_lang') || localStorage.getItem('lang');
       if (storedLang) return storedLang.split('-')[0];
     } catch (e) {}
-    return 'es';
+    return 'en';
   }
 
   function parseMarkdownToHTML(text) {

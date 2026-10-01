@@ -179,7 +179,7 @@
         try {
           if (vozNavegadorDisponible()) {
             const saludo = new SpeechSynthesisUtterance(t('voiceGranted', 'Voz activada. Manolit te acompaña.'));
-            saludo.lang = (document.documentElement.lang || 'es').slice(0, 5);
+            saludo.lang = (document.documentElement.lang || 'en').slice(0, 5);
             window.speechSynthesis.speak(saludo);
           }
         } catch (e) { /* si no puede hablar ahora, hablará en la guía */ }
@@ -239,7 +239,7 @@
         window.speechSynthesis.cancel();
       }
       const frase = new SpeechSynthesisUtterance(texto);
-      frase.lang = (document.documentElement.lang || 'es').slice(0, 5);
+      frase.lang = (document.documentElement.lang || 'en').slice(0, 5);
       frase.rate = 1;
       // La guía usa la misma voz neutral de Manolit si está disponible.
       try {
@@ -362,7 +362,7 @@
       btn.textContent = t('stepsStop', 'Detener lectura');
       btn.setAttribute('aria-pressed', 'true');
     }
-    const idioma = (document.documentElement.lang || 'es').slice(0, 5);
+    const idioma = (document.documentElement.lang || 'en').slice(0, 5);
     const textos = [];
     if (resumenRuta) textos.push(resumenRuta);
     textos.push(...pasosActuales);

@@ -625,32 +625,29 @@
        móvil, sin cambiar el tamaño de la cúpula. -->
   <div class="rs-planetario-capas" id="rsPlanetarioCapas">
     <div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
+      <div class="rs-capas-cabecera">
       <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas" data-i18n="capasBtn">Capas</button>
+      <button id="rsBtnCerrarCapas" type="button" data-i18n-aria-label="closeCapasAria" aria-label="Cerrar el panel de capas"></button>
+      </div>
       <div class="rs-layer-toggles-lista" id="rsListaCapas">
-      <!-- Panel unificado (01-oct-2026, orden de Sandro): un solo panel con
-           dos grupos. Todos los ids y casillas son los de siempre, solo
-           cambia la presentación. Las filas nuevas vacías (rsMonte*) son
-           puntos de anclaje: shadows-route.js monta ahí los botones de
-           Árboles e Irradiación solar, que antes vivían en la barra de
-           acciones. Los interruptores son las mismas casillas reales de
-           siempre, vestidas de interruptor solo con CSS. -->
-      <p class="rs-capa-grupo-tit" data-i18n="groupContent">Contenido del mapa</p>
-      <p class="rs-capa-sub-tit" data-i18n="groupEntorno">Entorno</p>
+      <!-- Panel de capas (06-oct-2026, orden de Sandro): botón flotante con
+           panel desplegable. Sin JavaScript el panel se queda aquí, visible
+           en la cuadrícula de siempre. Cuando shadows-route.js arranca,
+           TRASLADA este bloque dentro del mapa y lo convierte en popover
+           (bottom sheet en móvil) que se abre y se cierra desde el botón
+           flotante. Todos los ids y casillas son los de siempre: solo
+           cambia la presentación. Las filas vacías (rsMonte*) son puntos
+           de anclaje para los botones de Árboles e Irradiación solar.
+           «Sol y sombra» no existe como capa propia (era el nombre del
+           grupo de ayer) y Catastro 3D vive dentro de Mapa base, como
+           siempre. Nubes se queda en Entorno y clima aunque el brief no
+           la nombrara: quitarla habría sido tocar una capa. -->
+      <p class="rs-capa-grupo-tit" data-i18n="groupBaseInfra">Base e infraestructura</p>
+      <div class="rs-capas-mapas" id="rsCapasMapas"></div>
       <label class="rs-capa-fila rs-ico-edificios"><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
+      <label class="rs-capa-fila rs-ico-ruta"><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
+      <p class="rs-capa-grupo-tit" data-i18n="groupEntornoClima">Entorno y clima</p>
       <div class="rs-capa-fila rs-capa-fila-btn rs-ico-arboles" id="rsMonteArboles"></div>
-      <p class="rs-capa-sub-tit" data-i18n="groupSolSombra">Sol y sombra</p>
-      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
-           es lo que más calienta el móvil; ahora solo arranca si el usuario
-           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
-           pero la CPU está en reposo hasta que tú decidas. -->
-      <label class="rs-capa-fila rs-ico-sombras"><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
-      <label class="rs-capa-fila rs-ico-sol"><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
-      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-irradiacion" id="rsMonteIrradiacion"></div>
-      <p class="rs-capa-sub-tit" data-i18n="groupClimaAire">Clima y aire</p>
-      <label class="rs-capa-fila rs-ico-nubes"><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
-      <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
-           Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
-      <label class="rs-capa-fila rs-ico-microclima"><input type="checkbox" id="rsToggleMicroclima"> <span data-i18n="layerMicroclimate">Microclima</span> <em class="rs-capa-tag" data-i18n="microTag">Estimado</em></label>
       <!-- Calidad del aire (01-oct-2026, orden directa de Sandro): capa SOLO
            para España, porque fuera no tenemos fuente de datos fiable. La fila
            nace OCULTA (hidden) y shadows-route.js la enseña solo cuando tu
@@ -659,10 +656,18 @@
            Ceuta y Melilla). Si sales de España con la capa encendida, se
            apaga y se oculta sola con un aviso. -->
       <label class="rs-capa-fila rs-ico-aire" id="rsCapaAireFila" hidden><input type="checkbox" id="rsToggleAire"> <span data-i18n="layerAirQuality">Calidad del aire</span></label>
-      <p class="rs-capa-sub-tit" data-i18n="groupRecorrido">Recorrido</p>
-      <label class="rs-capa-fila rs-ico-ruta"><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
-      <p class="rs-capa-grupo-tit" data-i18n="groupBase">Mapa base</p>
-      <div class="rs-capas-mapas" id="rsCapasMapas"></div>
+      <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
+           Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
+      <label class="rs-capa-fila rs-ico-microclima"><input type="checkbox" id="rsToggleMicroclima"> <span data-i18n="layerMicroclimate">Microclima</span> <em class="rs-capa-tag" data-i18n="microTag">Estimado</em></label>
+      <label class="rs-capa-fila rs-ico-nubes"><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
+      <p class="rs-capa-grupo-tit" data-i18n="groupIluminacionSol">Iluminación y sol</p>
+      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
+           es lo que más calienta el móvil; ahora solo arranca si el usuario
+           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
+           pero la CPU está en reposo hasta que tú decidas. -->
+      <label class="rs-capa-fila rs-ico-sombras"><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
+      <label class="rs-capa-fila rs-ico-sol"><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-irradiacion" id="rsMonteIrradiacion"></div>
       </div>
     </div>
   </div>

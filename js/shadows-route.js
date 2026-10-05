@@ -2540,7 +2540,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     try { vozInicialOn = localStorage.getItem('manolito_guia_voz') === '1'; } catch (e) { }
     btnGuiaVoz.setAttribute('aria-pressed', vozInicialOn ? 'true' : 'false');
     if (vozInicialOn) btnGuiaVoz.classList.add('rs-activo');
-    btnGuiaVoz.textContent = (vozInicialOn ? '🔊 ' : '🔇 ') + t('voiceGuide', 'Guía por voz');
+    // 01-oct-2026: sin emoji de altavoz. El icono lo pone el CSS y el
+    // estado se lee en el color de acento (aria-pressed), no en un dibujo.
+    btnGuiaVoz.textContent = t('voiceGuide', 'Guía por voz');
 
     const btnPaseo = document.createElement('button');
     btnPaseo.type = 'button';
@@ -3363,7 +3365,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     // El botón de actualizar OSM ya NO va en el panel: vive fijo arriba a
     // la derecha, muy pequeño, para que la botonera quepa en una línea.
-    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnGuiaVoz, btnPaseo, btnReiniciar, btnArboles, btnIrradiacion);
+    // 01-oct-2026 (rediseño del mapa, orden de Sandro): Árboles e
+    // Irradiación ya NO son acciones de la barra, son capas y viven en el
+    // panel unificado (anclajes #rsMonteArboles / #rsMonteIrradiacion del
+    // index). Mismo botón, mismo id, mismo handler: solo cambia el sitio.
+    // Si una página no trae los anclajes, caen a la barra como antes.
+    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnGuiaVoz, btnPaseo, btnReiniciar);
+    const monteArboles = document.getElementById('rsMonteArboles');
+    const monteIrradiacion = document.getElementById('rsMonteIrradiacion');
+    if (monteArboles) monteArboles.appendChild(btnArboles); else panelMapa.appendChild(btnArboles);
+    if (monteIrradiacion) monteIrradiacion.appendChild(btnIrradiacion); else panelMapa.appendChild(btnIrradiacion);
     // (sep-2026, orden de Sandro) «Mi ubicación» sale de la barra de arriba:
     // el botón SIGUE en el DOM porque el mini-Manolit de la pila de cámara
     // (rsCamUbicacion) le delega su click, pero ya no ocupa hueco en el banner.
@@ -3844,7 +3855,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const cont = btnPlegarCapas.closest('.rs-layer-toggles');
       if (!cont) return;
       const plegado = cont.classList.toggle('rs-plegado');
-      btnPlegarCapas.textContent = plegado ? '▸ Capas' : '▾ Capas';
+      // El cheurón lo dibuja el CSS; aquí solo va el texto limpio (y
+      // traducido: antes se escribía "▾ Capas" fijo y se perdía el idioma).
+      btnPlegarCapas.textContent = t('capasBtn', 'Capas');
       btnPlegarCapas.setAttribute('aria-expanded', plegado ? 'false' : 'true');
     });
   }
@@ -5014,8 +5027,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // los seis botones naranjas de camara tambien se retraducen en caliente.
     const btnVoz = document.getElementById('rsBtnGuiaVoz');
     if (btnVoz) {
-      const vozOn = btnVoz.getAttribute('aria-pressed') === 'true';
-      btnVoz.textContent = (vozOn ? '🔊 ' : '🔇 ') + t('voiceGuide', 'Guía por voz');
+      btnVoz.textContent = t('voiceGuide', 'Guía por voz');
     }
     const enlaceSync = document.getElementById('rsLinkSync');
     if (enlaceSync) enlaceSync.textContent = t('syncData', 'Sincronizar / Exportar datos');

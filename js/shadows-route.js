@@ -944,6 +944,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     inyectarSolVisual();
     inyectarBadgeSombra();
     conectarTogglesDeCapas();
+    // Capa de calidad del aire SOLO España (01-oct-2026, orden de Sandro)
+    instalarCapaAireEspana();
     // Velo de sombra macro de las nubes + primera consulta de nubosidad real
     inyectarSombraNubes();
     refrescarNubosidad(true);
@@ -2653,6 +2655,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // lectura plantada actualiza el punto global que el chat hereda
       // al instante, sin volver a encender el GPS por su cuenta.
       try { window.__manolitUltimaPos = { lat, lon, precisionM, ts: Date.now() }; } catch (e) { }
+      // Aviso suelto (01-oct-2026): la capa de aire de España lo escucha
+      // para enseñar u ocultar su casilla sin encender el GPS por su cuenta.
+      try { document.dispatchEvent(new CustomEvent('manolitUbicacionNueva')); } catch (e) { }
       const textoMiUbicacion = t('myLocation', 'Mi ubicación');
       const primeraVez = !gpsYaColocado;
       gpsYaColocado = true;
@@ -3842,6 +3847,249 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       btnPlegarCapas.textContent = plegado ? '▸ Capas' : '▾ Capas';
       btnPlegarCapas.setAttribute('aria-expanded', plegado ? 'false' : 'true');
     });
+  }
+
+  /* ---------------- Capa de calidad del aire, SOLO España ----------------
+     (01-oct-2026, orden directa de Sandro)
+
+     La casilla «Calidad del aire» vive en index.html (#rsCapaAireFila) y
+     nace con hidden. Aquí solo decidimos CUÁNDO se enseña y qué pinta:
+
+     - Se enseña únicamente si tu ubicación GPS (window.__manolitUltimaPos),
+       el punto que hayas tocado en el mapa (fuente puntos-manuales) o el
+       centro del mapa caen dentro de territorio español. España se mide con
+       un polígono que sigue la frontera peninsular (el rectángulo de antes
+       se tragaba Portugal entero) más las cajas de Baleares, Canarias,
+       Ceuta y Melilla.
+     - Fuera de España la casilla se oculta. Si estaba encendida, se apaga
+       sola, se vacía la capa y se avisa con una frase en el estado.
+     - Los datos salen de /api/air-quality (Open-Meteo vía nuestro worker),
+       pedidos por CELDAS de 0,5° en una sola petición por tanda, con caché
+       de 10 minutos: mover el mapa no vuelve a pedir lo que ya tienes.
+       Máximo 40 celdas nuevas por refresco, para que el móvil no se entere.
+     - Misma paleta que el mapa grande de la portada (stateColor de app.js):
+       verde si PM2.5 ≤ 12, ámbar hasta 35, rojo por encima.
+     ============================================================ */
+
+  const AIRE_ES = {
+    fuenteId: 'aire-es',
+    capaId: 'capa-aire-es',
+    celdaGrados: 0.5,
+    maxCeldasPorRefresco: 40,
+    cacheMs: 10 * 60 * 1000,
+    colores: { good: '#00B98A', mid: '#FFB800', bad: '#E63E5F', unknown: '#9AA5AC' },
+  };
+
+  // Polígono de la península siguiendo la frontera (mismo criterio que usa
+  // el chat para el informe de aire) + cajas insulares y plazas.
+  const ESPANA_POLI_CAPA = [
+    [-1.79, 43.37], [-0.5, 42.85], [0.9, 42.65], [2.0, 42.5], [3.17, 42.43],
+    [3.05, 41.85], [2.15, 41.35], [0.9, 40.75], [0.0, 40.0], [-0.35, 39.3],
+    [-0.55, 38.5], [-1.3, 37.6], [-2.15, 36.7], [-3.8, 36.72], [-4.8, 36.5],
+    [-5.4, 36.0], [-6.3, 36.45], [-7.35, 37.18],
+    [-7.4, 37.75], [-7.2, 38.2], [-7.05, 38.75], [-7.2, 39.05], [-7.0, 39.4],
+    [-7.3, 39.7], [-6.9, 40.0], [-7.0, 40.5], [-6.8, 41.0], [-6.5, 41.5],
+    [-6.2, 41.6], [-6.9, 41.95], [-7.6, 41.9], [-8.1, 41.85], [-8.35, 41.75],
+    [-8.87, 41.9], [-8.8, 42.5], [-9.29, 43.05], [-8.4, 43.4], [-7.4, 43.75],
+    [-6.2, 43.5], [-4.5, 43.4], [-2.9, 43.35]
+  ];
+  function puntoEnPoligonoCapa(lon, lat, poli) {
+    let dentro = false;
+    for (let i = 0, j = poli.length - 1; i < poli.length; j = i++) {
+      const xi = poli[i][0], yi = poli[i][1], xj = poli[j][0], yj = poli[j][1];
+      if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) dentro = !dentro;
+    }
+    return dentro;
+  }
+  function estaEnEspanaCapa(lat, lon) {
+    if (!isFinite(lat) || !isFinite(lon)) return false;
+    if (lat >= 27.5 && lat <= 29.5 && lon >= -18.3 && lon <= -13.3) return true; // Canarias
+    if (lat >= 38.55 && lat <= 40.15 && lon >= 2.3 && lon <= 4.35) return true;  // Baleares
+    if (lat >= 35.75 && lat <= 36.0 && lon >= -5.45 && lon <= -5.25) return true; // Ceuta
+    if (lat >= 35.1 && lat <= 35.4 && lon >= -3.05 && lon <= -2.85) return true;  // Melilla
+    return puntoEnPoligonoCapa(lon, lat, ESPANA_POLI_CAPA);
+  }
+
+  // ¿Hay algo español a la vista? Tu GPS, tu punto elegido o el centro.
+  function hayEspaEnVista() {
+    try {
+      const pos = window.__manolitUltimaPos;
+      if (pos && isFinite(pos.lat) && isFinite(pos.lon) && (Date.now() - pos.ts) < 10 * 60 * 1000) {
+        if (estaEnEspanaCapa(pos.lat, pos.lon)) return true;
+      }
+    } catch (e) { }
+    try {
+      const src = map.getSource('puntos-manuales');
+      const datos = src && (src._data || (src.serialize && src.serialize().data));
+      const feats = (datos && datos.features) || [];
+      for (const f of feats) {
+        if (f && f.geometry && f.geometry.type === 'Point') {
+          const c = f.geometry.coordinates;
+          if (estaEnEspanaCapa(c[1], c[0])) return true;
+        }
+      }
+    } catch (e) { }
+    try {
+      const c = map.getCenter();
+      if (estaEnEspanaCapa(c.lat, c.lng)) return true;
+    } catch (e) { }
+    return false;
+  }
+
+  const aireCache = new Map(); // "lat,lon" (celda 0,5°) -> { ts, feature }
+
+  function asegurarFuenteAire() {
+    if (map.getSource(AIRE_ES.fuenteId)) return;
+    map.addSource(AIRE_ES.fuenteId, { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: AIRE_ES.capaId,
+      type: 'circle',
+      source: AIRE_ES.fuenteId,
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 4, 10, 8, 15, 12],
+        'circle-color': ['match', ['get', 'estado'], 'good', AIRE_ES.colores.good, 'mid', AIRE_ES.colores.mid, 'bad', AIRE_ES.colores.bad, AIRE_ES.colores.unknown],
+        'circle-opacity': 0.85,
+        'circle-stroke-width': 1.5,
+        'circle-stroke-color': '#FBFAF7',
+      },
+    });
+    // Popup con el detalle al tocar un punto: mismo estilo que los marcadores.
+    map.on('click', AIRE_ES.capaId, (ev) => {
+      try {
+        const f = ev.features && ev.features[0];
+        if (!f) return;
+        const p = f.properties || {};
+        const fmt = (v) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(1) : '·';
+        new maplibregl.Popup({ closeButton: true, maxWidth: '260px' })
+          .setLngLat(f.geometry.coordinates)
+          .setHTML(
+            `<div class="popup-human">${t('layerAirQuality', 'Calidad del aire')}</div>` +
+            `<div class="popup-tech">PM2.5 ${fmt(p.pm25)} µg/m³ · NO2 ${fmt(p.no2)} µg/m³</div>` +
+            `<span class="popup-tag">${t('airLayerLive', 'Estimación en vivo · Open-Meteo')}</span>`
+          )
+          .addTo(map);
+      } catch (e) { /* el popup nunca rompe el mapa */ }
+    });
+    map.on('mouseenter', AIRE_ES.capaId, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', AIRE_ES.capaId, () => { map.getCanvas().style.cursor = ''; });
+  }
+
+  function estadoDesdePM25(v) {
+    if (typeof v !== 'number' || !isFinite(v)) return 'unknown';
+    if (v <= 12) return 'good';
+    if (v <= 35) return 'mid';
+    return 'bad';
+  }
+
+  function repintarAireDesdeCache() {
+    const src = map.getSource(AIRE_ES.fuenteId);
+    if (!src) return;
+    const feats = [];
+    aireCache.forEach((entrada, clave) => {
+      if (Date.now() - entrada.ts < AIRE_ES.cacheMs * 6) feats.push(entrada.feature);
+      else aireCache.delete(clave); // purga de lo muy viejo, la memoria manda
+    });
+    src.setData(turf.featureCollection(feats));
+  }
+
+  async function refrescarAireEnVista() {
+    const toggle = document.getElementById('rsToggleAire');
+    if (!toggle || !toggle.checked) return;
+    if (!hayEspaEnVista()) return;
+    asegurarFuenteAire();
+    // Celdas de 0,5° que tocan la vista actual Y son España. Se piden solo
+    // las que faltan en caché o están caducadas, más cerca del centro primero.
+    const b = map.getBounds();
+    const centro = map.getCenter();
+    const candidatas = [];
+    const paso = AIRE_ES.celdaGrados;
+    for (let lat = Math.floor(b.getSouth() / paso) * paso; lat <= b.getNorth(); lat += paso) {
+      for (let lon = Math.floor(b.getWest() / paso) * paso; lon <= b.getEast(); lon += paso) {
+        const clat = lat + paso / 2, clon = lon + paso / 2;
+        if (!estaEnEspanaCapa(clat, clon)) continue;
+        const clave = clat.toFixed(2) + ',' + clon.toFixed(2);
+        const entrada = aireCache.get(clave);
+        if (entrada && Date.now() - entrada.ts < AIRE_ES.cacheMs) continue;
+        const d2 = (clat - centro.lat) * (clat - centro.lat) + (clon - centro.lng) * (clon - centro.lng);
+        candidatas.push({ clave, lat: clat, lon: clon, d2 });
+      }
+    }
+    candidatas.sort((a, z) => a.d2 - z.d2);
+    const lote = candidatas.slice(0, AIRE_ES.maxCeldasPorRefresco);
+    if (!lote.length) { repintarAireDesdeCache(); return; }
+    const consulta = 'latitude=' + lote.map(c => c.lat.toFixed(3)).join(',') +
+      '&longitude=' + lote.map(c => c.lon.toFixed(3)).join(',') +
+      '&current=pm2_5,nitrogen_dioxide&timezone=auto';
+    try {
+      let r = await fetch('/api/air-quality?' + consulta);
+      // Respaldo directo (mismo criterio que app.js): si el worker responde
+      // neutro, Open-Meteo admite CORS y contesta sin pasar por el proxy.
+      if (r.headers.get('X-Proxy-Aviso') === 'sin-datos') {
+        r = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?' + consulta);
+      }
+      if (!r.ok) return;
+      const data = await r.json();
+      const lista = Array.isArray(data) ? data : (data && data.current ? [data] : []);
+      lista.forEach((item, j) => {
+        const celda = lote[j];
+        if (!celda) return;
+        const pm25 = item && item.current && typeof item.current.pm2_5 === 'number' ? item.current.pm2_5 : null;
+        const no2 = item && item.current && typeof item.current.nitrogen_dioxide === 'number' ? item.current.nitrogen_dioxide : null;
+        aireCache.set(celda.clave, {
+          ts: Date.now(),
+          feature: turf.point([celda.lon, celda.lat], { pm25, no2, estado: estadoDesdePM25(pm25) }),
+        });
+      });
+      repintarAireDesdeCache();
+    } catch (e) { /* sin red o API ocupada: se queda lo que haya en caché */ }
+  }
+
+  function instalarCapaAireEspana() {
+    if (window.__capaAireEsLista) return;
+    window.__capaAireEsLista = true;
+    const fila = document.getElementById('rsCapaAireFila');
+    const toggle = document.getElementById('rsToggleAire');
+    if (!fila || !toggle) return;
+
+    const aplicarVisibilidad = () => {
+      const enEspaña = hayEspaEnVista();
+      fila.hidden = !enEspaña;
+      if (!enEspaña && toggle.checked) {
+        // Regla de Sandro: fuera de España la capa se apaga y se avisa.
+        toggle.checked = false;
+        if (map.getLayer(AIRE_ES.capaId)) {
+          map.setLayoutProperty(AIRE_ES.capaId, 'visibility', 'none');
+        }
+        map.getSource(AIRE_ES.fuenteId)?.setData(turf.featureCollection([]));
+        mostrarEstado(t('airLayerOffSpain', 'Capa de aire apagada, fuera de España no tenemos fuente fiable.'));
+      }
+    };
+
+    toggle.addEventListener('change', () => {
+      if (toggle.checked) {
+        asegurarFuenteAire();
+        map.setLayoutProperty(AIRE_ES.capaId, 'visibility', 'visible');
+        refrescarAireEnVista();
+      } else if (map.getLayer(AIRE_ES.capaId)) {
+        map.setLayoutProperty(AIRE_ES.capaId, 'visibility', 'none');
+      }
+    });
+
+    // Re-evaluar al mover el mapa (con pausa de 400 ms), al tocar un punto
+    // y cuando llega una posición GPS nueva (evento manolitUbicacionNueva).
+    let debounceAire = null;
+    const reevaluar = () => {
+      if (debounceAire) clearTimeout(debounceAire);
+      debounceAire = setTimeout(() => {
+        aplicarVisibilidad();
+        refrescarAireEnVista();
+      }, 400);
+    };
+    map.on('moveend', reevaluar);
+    map.on('click', reevaluar);
+    document.addEventListener('manolitUbicacionNueva', reevaluar);
+    aplicarVisibilidad();
   }
 
   /* ---------------- Red: fetch con timeout + reintentos ---------------- */
@@ -6549,16 +6797,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         fab.innerHTML = '';
         fab.appendChild(figura);
 
-        // Burbuja «¡Pregúntame!» (con traducción si el i18n la tiene;
-        // si la clave no existe, no tocamos nada raro: texto fijo en español)
-        let textoBurbuja = '¡Pregúntame!';
-        try {
-          const candidato = window.i18n && window.i18n.t ? window.i18n.t('askMe') : null;
-          if (candidato && candidato !== 'askMe') textoBurbuja = candidato;
-        } catch (e) { /* i18n aún no listo: español */ }
+        // Burbuja «¡Pregúntame!» (01-oct-2026, orden directa de Sandro,
+        // tarea 3): antes buscaba window.i18n.t, un objeto que i18n.js NO
+        // expone (i18n.js cuelga window.translations + window.getMessages),
+        // así que la burbuja salía SIEMPRE en español fuera cual fuese el
+        // idioma, y tampoco se repintaba al cambiar. Ahora sale del
+        // diccionario de verdad con t() (la clave askMe existe en los 6
+        // idiomas) y escucha langChanged para repintarse al vuelo.
         const burbuja = document.createElement('span');
         burbuja.className = 'manolit-chat-bubble';
-        burbuja.textContent = textoBurbuja;
+        burbuja.textContent = t('askMe', '¡Pregúntame!');
+        document.addEventListener('langChanged', () => {
+          burbuja.textContent = t('askMe', '¡Pregúntame!');
+        });
         fab.appendChild(burbuja);
         fab.addEventListener('click', () => { burbuja.style.display = 'none'; }, { once: true });
       } catch (e) { /* si algo falla, el FAB original sigue funcionando */ }

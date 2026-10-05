@@ -179,7 +179,7 @@
         try {
           if (vozNavegadorDisponible()) {
             const saludo = new SpeechSynthesisUtterance(t('voiceGranted', 'Voz activada. Manolit te acompaña.'));
-            saludo.lang = (document.documentElement.lang || 'en').slice(0, 5);
+            saludo.lang = (document.documentElement.lang || 'es').slice(0, 5);
             window.speechSynthesis.speak(saludo);
           }
         } catch (e) { /* si no puede hablar ahora, hablará en la guía */ }
@@ -239,7 +239,7 @@
         window.speechSynthesis.cancel();
       }
       const frase = new SpeechSynthesisUtterance(texto);
-      frase.lang = (document.documentElement.lang || 'en').slice(0, 5);
+      frase.lang = (document.documentElement.lang || 'es').slice(0, 5);
       frase.rate = 1;
       // La guía usa la misma voz neutral de Manolit si está disponible.
       try {
@@ -362,7 +362,7 @@
       btn.textContent = t('stepsStop', 'Detener lectura');
       btn.setAttribute('aria-pressed', 'true');
     }
-    const idioma = (document.documentElement.lang || 'en').slice(0, 5);
+    const idioma = (document.documentElement.lang || 'es').slice(0, 5);
     const textos = [];
     if (resumenRuta) textos.push(resumenRuta);
     textos.push(...pasosActuales);
@@ -457,7 +457,9 @@
       const on = vozQuerida();
       btn.classList.toggle('rs-activo', on);
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      btn.textContent = (on ? '🔊 ' : '🔇 ') + t('voiceGuide', 'Guía por voz');
+      // 01-oct-2026: sin emoji de altavoz; el icono y el estado los da el
+      // CSS del rediseño del mapa (speaker propio + acento cuando suena).
+      btn.textContent = t('voiceGuide', 'Guía por voz');
       btn.title = on
         ? 'Guía por voz ACTIVADA. Manolit te dice cada paso en voz alta al caminar'
         : 'Guía por voz desactivada. Actívala si quieres que Manolit te diga los pasos en voz alta';

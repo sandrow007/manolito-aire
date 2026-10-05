@@ -3852,6 +3852,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // vista sin perder el estado de los checkboxes.
     const btnPlegarCapas = document.getElementById('rsBtnPlegarCapas');
     btnPlegarCapas?.addEventListener('click', () => {
+      // 06-oct: con el panel en modo popover, el botón de la cabecera
+      // actúa como cierre (delega en la X, que es la única vía de cierre
+      // con foco bien devuelto). El plegado viejo solo sigue aplicando
+      // si el modo popover no llegara a activarse.
+      if (document.body.classList.contains('rs-capas-pop')) {
+        document.getElementById('rsBtnCerrarCapas')?.click();
+        return;
+      }
       const cont = btnPlegarCapas.closest('.rs-layer-toggles');
       if (!cont) return;
       const plegado = cont.classList.toggle('rs-plegado');
@@ -3860,6 +3868,94 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       btnPlegarCapas.textContent = t('capasBtn', 'Capas');
       btnPlegarCapas.setAttribute('aria-expanded', plegado ? 'false' : 'true');
     });
+
+    /* ------------ Botón flotante de capas con panel desplegable ------------
+       (06-oct-2026, orden de Sandro)
+
+       Solo presentación: la lógica de capas, los ids y el estado global
+       no se tocan. El panel se traslada dentro del mapa y se gobierna
+       con un botón flotante; sin JavaScript se queda visible en la
+       cuadrícula de siempre. Se cierra con la X, con Escape, volviendo
+       a pulsar el botón o con pointerdown fuera (los clics dentro del
+       panel y del botón no cierran). Al abrir, el foco va al primer
+       control; Tab y Shift+Tab no salen del panel hasta cerrarlo; al
+       cerrar, el foco vuelve al botón flotante. */
+    const contCapas = document.getElementById('rsPlanetarioCapas');
+    const wrapMapaCapas = mapEl.parentElement;
+    if (contCapas && wrapMapaCapas) {
+      const btnCapasFlot = document.createElement('button');
+      btnCapasFlot.type = 'button';
+      btnCapasFlot.id = 'rsBtnCapasFlotante';
+      btnCapasFlot.setAttribute('aria-label', t('capasTriggerAria', 'Capas del mapa'));
+      btnCapasFlot.setAttribute('aria-expanded', 'false');
+      btnCapasFlot.setAttribute('aria-controls', 'rsPlanetarioCapas');
+      wrapMapaCapas.appendChild(btnCapasFlot);
+      wrapMapaCapas.appendChild(contCapas);
+      document.body.classList.add('rs-capas-pop');
+      contCapas.classList.add('rs-capas-cerrada');
+      btnPlegarCapas?.setAttribute('aria-expanded', 'false');
+
+      const btnCerrarCapas = document.getElementById('rsBtnCerrarCapas');
+      const panelCapasAbierto = () => !contCapas.classList.contains('rs-capas-cerrada');
+      const capasEnfocables = () => Array.from(
+        contCapas.querySelectorAll('button, input, a[href], select, textarea, [tabindex]:not([tabindex="-1"])')
+      ).filter((el) => !el.disabled && el.getClientRects().length > 0);
+
+      function abrirPanelCapas() {
+        contCapas.classList.remove('rs-capas-cerrada');
+        btnCapasFlot.setAttribute('aria-expanded', 'true');
+        btnPlegarCapas?.setAttribute('aria-expanded', 'true');
+        const primero = capasEnfocables()[0];
+        if (primero) primero.focus({ preventScroll: true });
+      }
+      function cerrarPanelCapas(devolverFoco) {
+        contCapas.classList.add('rs-capas-cerrada');
+        btnCapasFlot.setAttribute('aria-expanded', 'false');
+        btnPlegarCapas?.setAttribute('aria-expanded', 'false');
+        if (devolverFoco) btnCapasFlot.focus({ preventScroll: true });
+      }
+
+      btnCapasFlot.addEventListener('click', () => {
+        if (panelCapasAbierto()) cerrarPanelCapas(true); else abrirPanelCapas();
+      });
+      btnCerrarCapas?.addEventListener('click', () => cerrarPanelCapas(true));
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && panelCapasAbierto()) cerrarPanelCapas(true);
+      });
+      document.addEventListener('pointerdown', (e) => {
+        if (!panelCapasAbierto()) return;
+        if (contCapas.contains(e.target) || btnCapasFlot.contains(e.target)) return;
+        cerrarPanelCapas(false);
+      }, true);
+
+      contCapas.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+        const items = capasEnfocables();
+        if (!items.length) return;
+        const primero = items[0];
+        const ultimo = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === primero) {
+          e.preventDefault();
+          ultimo.focus();
+        } else if (!e.shiftKey && document.activeElement === ultimo) {
+          e.preventDefault();
+          primero.focus();
+        }
+      });
+    }
+
+    /* El alto del mapa ya no es fijo (100dvh, 06-oct): el canvas se
+       reajusta cuando cambia el contenedor (rotación de pantalla, barra
+       del navegador móvil, pliegues de la cabecera), no solo con
+       window.resize. Va con rAF para no machacar el hilo en móvil. */
+    if (typeof ResizeObserver !== 'undefined' && mapEl) {
+      let rsResizeRaf = 0;
+      new ResizeObserver(() => {
+        cancelAnimationFrame(rsResizeRaf);
+        rsResizeRaf = requestAnimationFrame(() => { try { map.resize(); } catch (e) { /* mapa a medio crear */ } });
+      }).observe(mapEl);
+    }
   }
 
   /* ---------------- Capa de calidad del aire, SOLO España ----------------

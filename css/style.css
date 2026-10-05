@@ -2305,6 +2305,7 @@ body.mode-peque .im-lost-btn{
 #main-content #rsCamCtl button{
   width:40px; height:40px; border-radius:0;
   font-size:0 !important; font-weight:400;
+  display:flex; align-items:center; justify-content:center; padding:0 !important;
   color:var(--mui-ico) !important; background:rgba(22,26,32,0.94) !important;
   border:1px solid var(--mui-line) !important; border-top-width:0 !important;
   box-shadow:none !important;
@@ -2319,7 +2320,7 @@ body.mode-peque .im-lost-btn{
 #main-content #rsCamBrujula::after, #main-content #rsCamUbicacion::after,
 #main-content #rsCamFull::after{ display:none; }
 #main-content #rsCamBrujula svg{ width:18px !important; height:18px !important; }
-#main-content #rsCamUbicacion svg{ width:16px !important; height:22px !important; }
+#main-content #rsCamUbicacion svg{ width:22px !important; height:33px !important; }
 /* Radios por grupo: zoom (1-2), inclinación y norte (3-5), localizar y
    pantalla completa (6-7). */
 #main-content #rsCamZoomIn{ border-radius:10px 10px 0 0 !important; }
@@ -2516,11 +2517,12 @@ body.mode-peque .im-lost-btn{
 #main-content .rs-planetario{ grid-auto-flow:dense; }
 #main-content .rs-planetario > #rsColaboraOSM{ grid-column:1 / -1; justify-self:center; }
 #main-content .rs-planetario > a.rs-btn-lidar{ grid-column:1 / -1; justify-self:center; }
-/* Con el panel ya en modo popover, la columna vuelve a centrarse. */
+/* Con el panel ya en modo popover, la cuadrícula vuelve a la fila
+   centrada de siempre (la de antes del rediseño). */
 body.rs-capas-pop #main-content .rs-planetario{
-  display:flex; flex-direction:column; align-items:center; gap:14px;
+  display:flex; flex-direction:row; flex-wrap:wrap;
+  justify-content:center; align-items:center; gap:14px 22px;
 }
-body.rs-capas-pop #main-content .rs-planetario-sol{ width:min(360px, 100%); }
 
 /* ---------- El botón flotante ----------
    Escritorio: lateral derecho, apilado sobre la columna de zoom con
@@ -2674,3 +2676,18 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
   body.rs-capas-pop #main-content .rs-planetario-capas,
   #main-content #rsBtnCapasFlotante{ transition:none !important; }
 }
+
+/* ============================================================
+   REPARACIONES URGENTES (06-oct-2026, tarde, orden directa de Sandro)
+   ============================================================ */
+
+/* ---------- 3. PLANETARIO RESTAURADO ----------
+   La cúpula de posición solar queda EXACTAMENTE como estaba antes del
+   rediseño: sin tarjeta, sin borde, sin fondo ni sombra de caja, con su
+   sombra flotante original y los datos en el tamaño y color de siempre. */
+#main-content .rs-planetario-sol{
+  background:transparent; border:none; border-radius:0; box-shadow:none;
+  padding:0; display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+#main-content .rs-planetario svg{ filter:drop-shadow(0 6px 18px rgba(14,59,71,0.18)); }
+#main-content .rs-planetario-info{ font-size:0.62rem; color:var(--sky-mid); letter-spacing:0.02em; }

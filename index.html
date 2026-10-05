@@ -13,7 +13,7 @@
 <meta name="msvalidate.01" content="BB80160D0DDA8E571A69649E11438153" />
 <!-- Hueco para la meta de verificacion de Google Search Console (la aporta Sandro):
      <meta name="google-site-verification" content="..." /> -->
-<script type="text/javascript" nonce="821471a1130e4eab8ee5c829ab6" src="//local.adguard.org?ts=1791189506734&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20261005%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20261005T084929Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D46ada8ecb2735800d21c6e79906a8faff090693b00c47e0903f4850b13242541%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="821471a1130e4eab8ee5c829ab6" src="//local.adguard.org?ts=1791189506734&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
+<link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://manolitoaire.com/">
 <meta property="og:title" content="Rutas con sombra y aire en tiempo real | Manolit∞ Aire">
@@ -625,20 +625,32 @@
        móvil, sin cambiar el tamaño de la cúpula. -->
   <div class="rs-planetario-capas" id="rsPlanetarioCapas">
     <div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
-      <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas" data-i18n="capasBtn">▾ Capas</button>
+      <button id="rsBtnPlegarCapas" type="button" aria-expanded="true" aria-controls="rsListaCapas" data-i18n="capasBtn">Capas</button>
       <div class="rs-layer-toggles-lista" id="rsListaCapas">
-      <label><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
+      <!-- Panel unificado (01-oct-2026, orden de Sandro): un solo panel con
+           dos grupos. Todos los ids y casillas son los de siempre, solo
+           cambia la presentación. Las filas nuevas vacías (rsMonte*) son
+           puntos de anclaje: shadows-route.js monta ahí los botones de
+           Árboles e Irradiación solar, que antes vivían en la barra de
+           acciones. Los interruptores son las mismas casillas reales de
+           siempre, vestidas de interruptor solo con CSS. -->
+      <p class="rs-capa-grupo-tit" data-i18n="groupContent">Contenido del mapa</p>
+      <p class="rs-capa-sub-tit" data-i18n="groupEntorno">Entorno</p>
+      <label class="rs-capa-fila rs-ico-edificios"><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-arboles" id="rsMonteArboles"></div>
+      <p class="rs-capa-sub-tit" data-i18n="groupSolSombra">Sol y sombra</p>
       <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
            es lo que más calienta el móvil; ahora solo arranca si el usuario
            lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
            pero la CPU está en reposo hasta que tú decidas. -->
-      <label><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
-      <label><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
-      <label><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
-      <label><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
+      <label class="rs-capa-fila rs-ico-sombras"><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
+      <label class="rs-capa-fila rs-ico-sol"><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-irradiacion" id="rsMonteIrradiacion"></div>
+      <p class="rs-capa-sub-tit" data-i18n="groupClimaAire">Clima y aire</p>
+      <label class="rs-capa-fila rs-ico-nubes"><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
       <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
            Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
-      <label><input type="checkbox" id="rsToggleMicroclima"> <span data-i18n="layerMicroclimate">Microclima · estimado</span></label>
+      <label class="rs-capa-fila rs-ico-microclima"><input type="checkbox" id="rsToggleMicroclima"> <span data-i18n="layerMicroclimate">Microclima</span> <em class="rs-capa-tag" data-i18n="microTag">Estimado</em></label>
       <!-- Calidad del aire (01-oct-2026, orden directa de Sandro): capa SOLO
            para España, porque fuera no tenemos fuente de datos fiable. La fila
            nace OCULTA (hidden) y shadows-route.js la enseña solo cuando tu
@@ -646,10 +658,13 @@
            territorio español (polígono de la península + Baleares, Canarias,
            Ceuta y Melilla). Si sales de España con la capa encendida, se
            apaga y se oculta sola con un aviso. -->
-      <label id="rsCapaAireFila" hidden><input type="checkbox" id="rsToggleAire"> <span data-i18n="layerAirQuality">Calidad del aire</span></label>
+      <label class="rs-capa-fila rs-ico-aire" id="rsCapaAireFila" hidden><input type="checkbox" id="rsToggleAire"> <span data-i18n="layerAirQuality">Calidad del aire</span></label>
+      <p class="rs-capa-sub-tit" data-i18n="groupRecorrido">Recorrido</p>
+      <label class="rs-capa-fila rs-ico-ruta"><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
+      <p class="rs-capa-grupo-tit" data-i18n="groupBase">Mapa base</p>
+      <div class="rs-capas-mapas" id="rsCapasMapas"></div>
       </div>
     </div>
-    <div class="rs-capas-mapas" id="rsCapasMapas"></div>
   </div>
 
 <!-- ¿No hay 3D en tu zona? (sep-2026, ADITIVO): cómo colaborar en
@@ -708,6 +723,7 @@
   <!-- Bloque sol: la cúpula y su hora van al final del widget,
        como una sola pieza (sep-2026, orden de Sandro). -->
   <div class="rs-planetario-sol">
+  <p class="rs-sol-card-tit" data-i18n="sunPosition">Posición solar</p>
   <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
     <defs>
       <radialGradient id="rsGradTierra" cx="35%" cy="30%" r="85%">
@@ -758,7 +774,7 @@
        Orden lógico del widget (sep-2026, orden de Sandro): 1) planetario
        1) las capas del mapa, 2) el planetario, 3) este acceso LiDAR. -->
   <a class="rs-btn-lidar" href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
       <polyline points="3.29 7 12 12 20.71 7"/>
       <line x1="12" y1="22" x2="12" y2="12"/>
@@ -1476,7 +1492,7 @@
 <script src="js/i18n.js" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
-
+<script src="js/cookie-banner.js" defer></script>
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>

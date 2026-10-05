@@ -296,7 +296,7 @@ const translations = {
 		syncExportBtn: "Exportar mis datos",
 		syncImportBtn: "Importar datos",
 		syncImportError: "Ese archivo no es una copia de Manolit∞ Aire. No se ha importado nada.",
-		// FAQ (frequently asked questions)
+		// FAQ (preguntas frecuentes)
 		faqTitle: "Preguntas frecuentes",
 		faqIntro: "Las que me hacéis de verdad, contestadas sin rodeos.",
 		faqQ1: "¿Esto es gratis de verdad?",
@@ -460,6 +460,12 @@ const translations = {
 		askMe: "¡Pregúntame!",
 		mapLayers: "Capas de mapa",
 		familyZoneAria: "La familia Manolit y por qué existe esto",
+		layerAirQuality: "Calidad del aire",
+		airLayerLive: "Estimación en vivo · Open-Meteo",
+		airLayerOffSpain: "Capa de aire apagada, fuera de España no tenemos fuente fiable.",
+		saludBannerFinTpl: "El verde es temporal, el {f} la web vuelve a su piel de siempre.",
+		escudosTitulo: "Escudos que nos cuidan",
+		escudosPorque: "Cuatro observatorios públicos de salud ambiental, de tu tierra al planeta. Publican los datos y los umbrales de calor en los que se apoya esta web, y su trabajo nos protege a todos.",
 	},
 	ca: {
 		saludBannerTexto: "En aquesta terra, cuidar el nostre entorn és cuidar el nostre cos.",
@@ -736,7 +742,7 @@ const translations = {
 		syncExportBtn: "Exportar les meves dades",
 		syncImportBtn: "Importar dades",
 		syncImportError: "Aquest fitxer no és una còpia de Manolit∞ Aire. No s'hi ha importat res.",
-		// FAQ (frequently asked questions)
+		// FAQ (preguntas frecuentes)
 		faqTitle: "Preguntes freqüents",
 		faqIntro: "Les que em feu de veritat, contestades sense voltes.",
 		faqQ1: "Això és gratis de veritat?",
@@ -893,6 +899,12 @@ const translations = {
 		askMe: "Pregunta'm!",
 		mapLayers: "Capes de mapa",
 		familyZoneAria: "La família Manolit i per què existeix això",
+		layerAirQuality: "Qualitat de l'aire",
+		airLayerLive: "Estimació en viu · Open-Meteo",
+		airLayerOffSpain: "Capa d'aire apagada, fora d'Espanya no tenim font fiable.",
+		saludBannerFinTpl: "El verd és temporal, el {f} el web torna a la seva pell de sempre.",
+		escudosTitulo: "Escuts que ens cuiden",
+		escudosPorque: "Quatre observatoris públics de salut ambiental, de la teva terra al planeta. Publiquen les dades i els llindars de calor en què es recolza aquest web, i la seva feina ens protegeix a tots.",
 	},
 	eu: {
 		saludBannerTexto: "Lur honetan, gure ingurumena zaintzea gure gorputza zaintzea da.",
@@ -1169,7 +1181,7 @@ const translations = {
 		syncExportBtn: "Esportatu nire datuak",
 		syncImportBtn: "Inportatu datuak",
 		syncImportError: "Fitxategi hori ez da Manolit∞ Aire-ren kopia. Ez da ezer inportatu.",
-		// FAQ (frequently asked questions)
+		// FAQ (preguntas frecuentes)
 		faqTitle: "Maiz egiten diren galderak",
 		faqIntro: "Benetan egiten dizkidazuenak, ingurubariorik gabe erantzunda.",
 		faqQ1: "Hau doakoa da benetan?",
@@ -1326,6 +1338,12 @@ const translations = {
 		askMe: "Galdetu!",
 		mapLayers: "Mapa-geruzak",
 		familyZoneAria: "Manolit familia eta zergatik existitzen den",
+		layerAirQuality: "Airearen kalitatea",
+		airLayerLive: "Zuzeneko estimazioa · Open-Meteo",
+		airLayerOffSpain: "Aire geruza itzalita, Espainiatik kanpo ez dugu iturri fidagarririk.",
+		saludBannerFinTpl: "Berdea aldiberekoa da, {f} webguneak bere itxura ohikoa berreskuratzen du.",
+		escudosTitulo: "Zaintzen gaituzten babeslekuak",
+		escudosPorque: "Osasun ambientalaren lau behatoki publiko, zure herritik planetara. Webgune honek oinarri hartzen dituen datuak eta bero-atalaseak argitaratzen dituzte, eta haien lanak guztiok babesten gaitu.",
 	},
 	gl: {
 		saludBannerTexto: "Nesta terra, coidar o noso contorno é coidar o noso corpo.",
@@ -1603,7 +1621,7 @@ const translations = {
 		syncExportBtn: "Exportar os meus datos",
 		syncImportBtn: "Importar datos",
 		syncImportError: "Ese ficheiro non é unha copia de Manolit∞ Aire. Non se importou nada.",
-		// FAQ (frequently asked questions)
+		// FAQ (preguntas frecuentes)
 		faqTitle: "Preguntas frecuentes",
 		faqIntro: "As que me facedes de verdade, contestadas sen rodeos.",
 		faqQ1: "Isto é de balde de verdade?",
@@ -1760,6 +1778,12 @@ const translations = {
 		askMe: "Pregúntame!",
 		mapLayers: "Capas de mapa",
 		familyZoneAria: "A familia Manolit e por que existe isto",
+		layerAirQuality: "Calidade do aire",
+		airLayerLive: "Estimación en vivo · Open-Meteo",
+		airLayerOffSpain: "Capa de aire apagada, fóra de España non temos fonte fiable.",
+		saludBannerFinTpl: "O verde é temporal, o {f} a web volve á súa pel de sempre.",
+		escudosTitulo: "Escudos que nos coidan",
+		escudosPorque: "Catro observatorios públicos de saúde ambiental, da túa terra ao planeta. Publican os datos e os limiares de calor nos que se apoia esta web, e o seu traballo protéxenos a todos.",
 	},
 	en: {
 		saludBannerTexto: "In this land, caring for our surroundings is caring for our body.",
@@ -2036,7 +2060,7 @@ const translations = {
 		syncExportBtn: "Export my data",
 		syncImportBtn: "Import data",
 		syncImportError: "That file is not a Manolit∞ Aire backup. Nothing was imported.",
-		// FAQ (frequently asked questions)
+		// FAQ (preguntas frecuentes)
 		faqTitle: "Frequently asked questions",
 		faqIntro: "The ones people really ask me, answered straight.",
 		faqQ1: "Is this actually free?",
@@ -2193,6 +2217,12 @@ const translations = {
 		askMe: "Ask me!",
 		mapLayers: "Map layers",
 		familyZoneAria: "The Manolit family and why this exists",
+		layerAirQuality: "Air quality",
+		airLayerLive: "Live estimate · Open-Meteo",
+		airLayerOffSpain: "Air layer turned off, we have no reliable source outside Spain.",
+		saludBannerFinTpl: "The green is temporary, on {f} the web returns to its usual look.",
+		escudosTitulo: "Shields that look after us",
+		escudosPorque: "Four public environmental health observatories, from your homeland to the planet. They publish the data and heat thresholds this website relies on, and their work protects us all.",
 	},
 	ka: {
 		saludBannerTexto: "ამ მიწაზე ჩვენი გარემოს ზრუნვა ჩვენი სხეულის ზრუნვაა.",
@@ -2467,7 +2497,7 @@ const translations = {
 		syncExportBtn: "ჩემი მონაცემების ექსპორტი",
 		syncImportBtn: "მონაცემების იმპორტი",
 		syncImportError: "ეს ფაილი არ არის Manolit∞ Aire-ის ასლი. არაფერი იმპორტირებულა.",
-		// FAQ (frequently asked questions)
+		// FAQ (preguntas frecuentes)
 		faqTitle: "ხშირად დასმული კითხვები",
 		faqIntro: "რასაც ნამდვილად მკითხავთ, პირდაპირ გიპასუხებთ.",
 		faqQ1: "ეს ნამდვილად უფასოა?",
@@ -2624,19 +2654,25 @@ const translations = {
 		askMe: "შეკითხე!",
 		mapLayers: "რუკის ფენები",
 		familyZoneAria: "Manolit-ის ოჯახი და რატომ არსებობს ეს",
+		layerAirQuality: "ჰაერის ხარისხი",
+		airLayerLive: "ცოცხალი შეფასება · Open-Meteo",
+		airLayerOffSpain: "ჰაერის ფენა გამოირთო, ესპანეთის გარეთ სანდო წყარო არ გვაქვს.",
+		saludBannerFinTpl: "მწვანე დროებითია, {f} ვებგვერდი თავის ჩვეულ იერს დაუბრუნდება.",
+		escudosTitulo: "ფარები, რომლებიც გვიცავენ",
+		escudosPorque: "გარემოს ჯანმრთელობის ოთხი საჯარო ობსერვატორია, შენი მხრიდან პლანეტამდე. ისინი აქვეყნებენ მონაცემებსა და სიცხის ზღურბლებს, რომლებზეც ეს ვებგვერდი ეყრდნობა, და მათი მუშაობა ყველას გვიცავს.",
 	}
 };
 
-let currentLang = localStorage.getItem('manolito_lang') || 'en';
+let currentLang = localStorage.getItem('manolito_lang') || 'es';
 
 function getMessages() {
-	return translations[currentLang] || translations.en;
+	return translations[currentLang] || translations.es;
 }
 
-let dict = translations[currentLang] || translations.en;
+let dict = translations[currentLang] || translations.es;
 
 function applyTranslations() {
-	dict = translations[currentLang] || translations.en;
+	dict = translations[currentLang] || translations.es;
 	document.querySelectorAll('[data-i18n]').forEach(el => {
 		const key = el.getAttribute('data-i18n');
 		if (dict[key]) el.textContent = dict[key];
@@ -2776,3 +2812,389 @@ window.translations = translations;
 window.getMessages = getMessages;
 window.applyTranslations = applyTranslations;
 window.setLang = setLang;
+// 01-oct-2026: varios scripts ya lo pedían con guarda (los contadores del
+// agua de index.html, el aviso de fin del modo salud) y nadie lo colgaba,
+// así que siempre caían al castellano. Ahora existe de verdad.
+window.getCurrentLang = function () { return currentLang; };
+
+/* ============================================================
+   BOTÓN MÁGICO DE TRADUCCIÓN (01-oct-2026, orden directa de Sandro)
+   "Dejad de traducir a mano elemento a elemento: que la página
+   entera se traduzca sola, sin excepciones, sin romper lo que
+   ya funciona."
+
+   Cómo cubre TODO, en tres pisos, de más seguro a más automático:
+
+   1) data-i18n (lo de siempre, INTACTO): applyTranslations sigue
+      haciendo su trabajo arriba. Aquí no se toca.
+
+   2) BARREDOR POR DICCIONARIO: se construye un índice inverso
+      (texto español -> clave) a partir de translations.es y se
+      recorre la página con un TreeWalker. Cualquier texto visible
+      que exista en el diccionario se cambia por su traducción,
+      aunque nadie le puso data-i18n. Solo coincidencias EXACTAS:
+      nunca inventa, nunca adivina.
+
+   3) TRADUCCIÓN AUTOMÁTICA (MT) de último recurso: lo que no está
+      en el diccionario (frases nuevas que alguien meta mañana en
+      el HTML sin avisar) se manda, una a una y sin prisa, a la
+      ruta /traduce del worker (MyMemory, gratis, sin clave, UE).
+      Cada frase se traduce UNA vez por idioma y se guarda en
+      localStorage para siempre. Si el servicio falla o se acaba la
+      cuota, la frase se queda en español y la consola no se entera.
+
+   Reglas que no se saltan nada:
+   - No toca scripts, estilos, código, ni lo que escribe la persona
+     en el chat. No toca la marca: nada que lleve "Manolit" pasa por
+     la MT. Las páginas legales (aviso, privacidad, cookies) no se
+     traducen por máquina: un texto legal traducido a lo bruto es
+     peor que uno claro en español.
+   - En español no barre: solo devuelve a su texto original lo que
+     hubiera traducido antes (cambiar de inglés a español restaura).
+   - MutationObserver con espera de 300 ms: lo que aparezca después
+     (globos del chat, paneles que se inyectan, el mapa) se traduce
+     al llegar, sin bucles ni calentar el móvil. Nuestras propias
+     escrituras no re-disparan traducciones porque el texto ya no
+     coincide con el español del índice.
+   ============================================================ */
+(function () {
+	if (window.__manolitBotonMagico) return;
+	window.__manolitBotonMagico = true;
+
+	function normaliza(s) {
+		return String(s).replace(/\s+/g, ' ').trim();
+	}
+
+	// Índice inverso perezoso: texto español normalizado -> clave.
+	// Se saltan las plantillas con {huecos} (no coinciden tal cual) y
+	// los valores con HTML (esos los traduce data-i18n-html).
+	let indiceEs = null;
+	function construirIndice() {
+		if (indiceEs) return indiceEs;
+		indiceEs = new Map();
+		Object.keys(translations.es).forEach(k => {
+			if (/Tpl$/.test(k)) return;
+			const v = translations.es[k];
+			if (typeof v !== 'string') return;
+			if (v.indexOf('<') !== -1) return;
+			const n = normaliza(v);
+			if (n.length < 3) return;
+			if (!/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(n)) return;
+			if (!indiceEs.has(n)) indiceEs.set(n, k);
+		});
+		return indiceEs;
+	}
+
+	// Memoria de lo traducido: WeakMap para la clave, Set para poder
+	// repintar al cambiar de idioma (el WeakMap no se puede recorrer).
+	const nodoClave = new WeakMap();   // nodo de texto -> clave
+	const nodosVivos = new Set();      // nodos traducidos y conectados
+	const attrClaves = new WeakMap();  // elemento -> { atributo: clave }
+	const attrsVivos = new Set();      // elementos con atributos traducidos
+	let escribiendo = false;           // candado frente a nuestro propio observador
+
+	const SALTAR_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, CODE: 1, PRE: 1, TEXTAREA: 1, IFRAME: 1, CANVAS: 1, KBD: 1, SAMP: 1 };
+	function saltarContenedor(el) {
+		for (let p = el; p && p.nodeType === 1; p = p.parentElement) {
+			if (SALTAR_TAGS[p.tagName]) return true;
+			if (p.isContentEditable) return true;
+			if (p.getAttribute && p.getAttribute('translate') === 'no') return true;
+			if (p.hasAttribute && (p.hasAttribute('data-i18n') || p.hasAttribute('data-i18n-html'))) return true;
+			if (p.id === 'langToggle') return true; // cada idioma, en su idioma
+			if (p.classList && p.classList.contains('chat-msg') && p.classList.contains('user')) return true;
+		}
+		return false;
+	}
+
+	function ponerTextoNodo(nodo, dest) {
+		const v = nodo.nodeValue;
+		if (normaliza(v) === normaliza(dest)) return;
+		const cabeza = /^\s*/.exec(v)[0], cola = /\s*$/.exec(v)[0];
+		escribiendo = true;
+		nodo.nodeValue = cabeza + dest + cola;
+		escribiendo = false;
+	}
+
+	function traducirNodo(nodo) {
+		let clave = nodoClave.get(nodo);
+		if (!clave && currentLang === 'es') return; // en español no hay nada que buscar
+		const d = translations[currentLang] || translations.es;
+		if (!clave) {
+			const n = normaliza(nodo.nodeValue);
+			if (n.length < 3) return;
+			clave = construirIndice().get(n);
+			if (!clave) { ofrecerMTNodo(nodo, n); return; }
+			nodoClave.set(nodo, clave);
+			nodosVivos.add(nodo);
+		}
+		const dest = d[clave];
+		if (typeof dest !== 'string' || !dest) return;
+		ponerTextoNodo(nodo, dest);
+	}
+
+	function traducirAtributo(el, attr) {
+		const actual = el.getAttribute(attr);
+		if (actual == null || actual === '') return;
+		let mapa = attrClaves.get(el);
+		let clave = mapa && mapa[attr];
+		if (!clave && currentLang === 'es') return;
+		const d = translations[currentLang] || translations.es;
+		if (!clave) {
+			const n = normaliza(actual);
+			if (n.length < 3) return;
+			clave = construirIndice().get(n);
+			if (!clave) { ofrecerMTAtributo(el, attr, n); return; }
+			if (!mapa) { mapa = {}; attrClaves.set(el, mapa); }
+			mapa[attr] = clave;
+			attrsVivos.add(el);
+		}
+		const dest = d[clave];
+		if (typeof dest !== 'string' || !dest) return;
+		if (actual !== dest) {
+			escribiendo = true;
+			el.setAttribute(attr, dest);
+			escribiendo = false;
+		}
+	}
+
+	const ATTRS = ['title', 'aria-label', 'placeholder', 'alt'];
+	function barrer(raiz) {
+		if (!raiz || currentLang === 'es') return;
+		try {
+			const walker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT, {
+				acceptNode(n) {
+					if (!n.nodeValue || !/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
+					const p = n.parentElement;
+					if (!p || saltarContenedor(p)) return NodeFilter.FILTER_REJECT;
+					return NodeFilter.FILTER_ACCEPT;
+				}
+			});
+			const lista = [];
+			while (walker.nextNode()) lista.push(walker.currentNode);
+			lista.forEach(traducirNodo);
+			if (raiz.nodeType !== 1 || !raiz.querySelectorAll) return;
+			const candidatos = Array.from(raiz.querySelectorAll('[title],[aria-label],[placeholder],[alt]'));
+			if (ATTRS.some(a => raiz.hasAttribute(a))) candidatos.unshift(raiz);
+			candidatos.forEach(el => {
+				if (saltarContenedor(el)) return;
+				if (el.hasAttribute('data-i18n-placeholder') || el.hasAttribute('data-i18n-aria-label')) return;
+				ATTRS.forEach(a => traducirAtributo(el, a));
+				if (el.tagName === 'INPUT') {
+					const tipo = (el.getAttribute('type') || 'text').toLowerCase();
+					if (tipo === 'button' || tipo === 'submit') traducirAtributo(el, 'value');
+				}
+			});
+		} catch (e) { /* el barrido jamás rompe la página */ }
+	}
+
+	// Al cambiar de idioma (también al volver a español): todo lo que
+	// se tradujo por diccionario se repinta con la clave que guardamos.
+	function repintarGuardados() {
+		const d = translations[currentLang] || translations.es;
+		nodosVivos.forEach(nodo => {
+			if (!nodo.isConnected) { nodosVivos.delete(nodo); return; }
+			const clave = nodoClave.get(nodo);
+			const dest = clave && d[clave];
+			if (typeof dest === 'string' && dest) ponerTextoNodo(nodo, dest);
+		});
+		attrsVivos.forEach(el => {
+			if (!el.isConnected) { attrsVivos.delete(el); return; }
+			const mapa = attrClaves.get(el);
+			if (!mapa) return;
+			Object.keys(mapa).forEach(attr => {
+				const dest = d[mapa[attr]];
+				if (typeof dest === 'string' && dest && el.getAttribute(attr) !== dest) {
+					escribiendo = true;
+					el.setAttribute(attr, dest);
+					escribiendo = false;
+				}
+			});
+		});
+	}
+
+	/* ---------------- Tercer piso: traducción automática ----------------
+	   Cola tranquila: una petición cada 320 ms, en pausa si la pestaña
+	   está oculta, y con caché por idioma+frase en localStorage para no
+	   pedir dos veces lo mismo en la vida. La marca y las páginas
+	   legales quedan fuera. */
+	const MT_IDIOMAS = { ca: 'ca', eu: 'eu', gl: 'gl', en: 'en', ka: 'ka' };
+	const mtItems = new Set();          // { original, aplicar, restaurar, conectado }
+	const mtPendientes = new Map();     // texto español -> [items esperando]
+	const mtNodosReg = new WeakSet();   // nodos ya apuntados a la MT
+	const mtAttrsReg = new WeakMap();   // elemento -> Set de atributos apuntados
+	let mtTimer = null;
+	let mtFallosSeguidos = 0;
+	let mtSilenciado = false;           // 3 fallos seguidos: paramos en silencio
+	const esPaginaLegal = /(aviso-legal|privacidad|cookies|cookie)/i.test(location.pathname);
+
+	function mtCacheKey(lang, texto) {
+		let h = 5381;
+		for (let i = 0; i < texto.length; i++) h = ((h << 5) + h + texto.charCodeAt(i)) >>> 0;
+		return 'manolito_trad_' + lang + '_' + h.toString(36) + '_' + texto.length;
+	}
+	function mtCacheLeer(lang, texto) {
+		try { return localStorage.getItem(mtCacheKey(lang, texto)); } catch (e) { return null; }
+	}
+	function mtCacheGuardar(lang, texto, trad) {
+		try { localStorage.setItem(mtCacheKey(lang, texto), trad); } catch (e) { /* sin espacio: va sin caché */ }
+	}
+
+	function esTraducibleMT(n) {
+		if (!n || n.length < 3 || n.length > 280) return false;
+		if (!/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(n)) return false;
+		if (/manolit/i.test(n)) return false;              // la marca no se toca
+		if (/^(https?:|www\.|#|\/)/i.test(n)) return false; // URLs y anclas
+		if (/^[\d\s.,:;%€$+\-–—/()'"¿?¡!]+$/.test(n)) return false; // sin letras reales
+		return true;
+	}
+
+	function encolarMT(item) {
+		if (currentLang === 'es' || !MT_IDIOMAS[currentLang]) return;
+		if (mtSilenciado || esPaginaLegal) return;
+		if (!esTraducibleMT(item.original)) return;
+		const enCache = mtCacheLeer(currentLang, item.original);
+		if (enCache) { item.aplicar(enCache, currentLang); return; }
+		mtItems.add(item);
+		const lista = mtPendientes.get(item.original) || [];
+		lista.push(item);
+		mtPendientes.set(item.original, lista);
+		if (!mtTimer) mtTimer = setInterval(mtPaso, 320);
+	}
+
+	function mtPaso() {
+		if (document.hidden) return; // pestaña oculta: ni una petición
+		if (mtSilenciado) { clearInterval(mtTimer); mtTimer = null; return; }
+		const primero = mtPendientes.keys().next();
+		if (primero.done) { clearInterval(mtTimer); mtTimer = null; return; }
+		const texto = primero.value;
+		const items = mtPendientes.get(texto) || [];
+		mtPendientes.delete(texto);
+		const lang = currentLang;
+		fetch('/traduce?q=' + encodeURIComponent(texto) + '&a=' + MT_IDIOMAS[lang])
+			.then(r => (r && r.ok ? r.json() : null))
+			.then(d => {
+				if (d && d.ok && typeof d.texto === 'string' && d.texto.trim()) {
+					mtFallosSeguidos = 0;
+					mtCacheGuardar(lang, texto, d.texto);
+					items.forEach(i => { if (i.conectado()) i.aplicar(d.texto, lang); });
+				} else {
+					mtFallosSeguidos++;
+					if (mtFallosSeguidos >= 3) mtSilenciado = true;
+				}
+			})
+			.catch(() => {
+				mtFallosSeguidos++;
+				if (mtFallosSeguidos >= 3) mtSilenciado = true;
+			});
+	}
+
+	function ofrecerMTNodo(nodo, n) {
+		if (currentLang === 'es' || mtNodosReg.has(nodo)) return;
+		mtNodosReg.add(nodo);
+		const v = nodo.nodeValue;
+		const cabeza = /^\s*/.exec(v)[0], cola = /\s*$/.exec(v)[0];
+		encolarMT({
+			original: n,
+			conectado: () => nodo.isConnected,
+			aplicar: (txt, lang) => {
+				if (lang !== currentLang) return;
+				escribiendo = true;
+				nodo.nodeValue = cabeza + txt + cola;
+				escribiendo = false;
+			},
+			restaurar: () => {
+				escribiendo = true;
+				nodo.nodeValue = cabeza + n + cola;
+				escribiendo = false;
+			}
+		});
+	}
+
+	function ofrecerMTAtributo(el, attr, n) {
+		if (currentLang === 'es') return;
+		let reg = mtAttrsReg.get(el);
+		if (reg && reg.has(attr)) return;
+		if (!reg) { reg = new Set(); mtAttrsReg.set(el, reg); }
+		reg.add(attr);
+		encolarMT({
+			original: n,
+			conectado: () => el.isConnected,
+			aplicar: (txt, lang) => {
+				if (lang !== currentLang) return;
+				escribiendo = true;
+				el.setAttribute(attr, txt);
+				escribiendo = false;
+			},
+			restaurar: () => {
+				escribiendo = true;
+				el.setAttribute(attr, n);
+				escribiendo = false;
+			}
+		});
+	}
+
+	// Cambio de idioma con la MT en marcha: lo traducido por máquina se
+	// restaura (español), se aplica desde caché o se vuelve a encolar.
+	function repintarMT() {
+		mtItems.forEach(item => {
+			if (!item.conectado()) { mtItems.delete(item); return; }
+			if (currentLang === 'es') { item.restaurar(); return; }
+			const enCache = mtCacheLeer(currentLang, item.original);
+			if (enCache) item.aplicar(enCache, currentLang);
+			else encolarMT(item);
+		});
+	}
+
+	// Lo que se inyecta después (chat, paneles, mapa) pasa por aquí.
+	let barridoPendiente = null;
+	function alMutar(muts) {
+		if (escribiendo || currentLang === 'es') return;
+		if (barridoPendiente) clearTimeout(barridoPendiente);
+		const raices = new Set();
+		muts.forEach(m => {
+			if (m.type === 'characterData') {
+				if (m.target && m.target.parentElement) raices.add(m.target);
+			} else {
+				m.addedNodes.forEach(n => raices.add(n));
+			}
+		});
+		barridoPendiente = setTimeout(() => {
+			barridoPendiente = null;
+			raices.forEach(r => {
+				try {
+					if (!r.isConnected) return;
+					if (r.nodeType === 3) {
+						if (r.parentElement && !saltarContenedor(r.parentElement)) traducirNodo(r);
+					} else if (r.nodeType === 1 && !saltarContenedor(r)) {
+						barrer(r);
+					}
+				} catch (e) { /* mutación rara: se ignora */ }
+			});
+		}, 300);
+	}
+
+	document.addEventListener('langChanged', () => {
+		repintarGuardados();
+		repintarMT();
+		if (currentLang !== 'es') {
+			// Dos pasadas tardías por si algún módulo repinta después que
+			// nosotros (el observador de mutaciones también las caza).
+			setTimeout(() => barrer(document.body), 80);
+			setTimeout(() => barrer(document.body), 700);
+		}
+	});
+
+	document.addEventListener('DOMContentLoaded', () => {
+		try {
+			construirIndice();
+			if (currentLang !== 'es') {
+				barrer(document.body);
+				setTimeout(() => barrer(document.body), 900);
+				setTimeout(() => barrer(document.body), 2600);
+			}
+			new MutationObserver(alMutar).observe(document.body, {
+				childList: true, subtree: true, characterData: true
+			});
+		} catch (e) { /* el botón mágico jamás tira la página */ }
+	});
+})();

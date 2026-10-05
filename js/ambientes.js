@@ -19,6 +19,48 @@
 (function () {
   'use strict';
 
+  /* ---------------- VENTANAS DEL MODO SALUD (01-oct-2026) ----------------
+     LEY NUEVA, orden directa de Sandro tras el susto del verde que seguía
+     puesto el viernes siguiente sin avisar:
+
+     1) PROHIBIDAS las reglas recurrentes ("todos los sábados", "cada
+        domingo"...). Eso es lo que reactivó el tema verde solo, una y
+        otra vez, sin que nadie lo pidiera.
+     2) El modo salud solo se enciende dentro de VENTANAS CERRADAS escritas
+        aquí abajo, cada una con su fecha de inicio y su fecha y hora de
+        FIN. Al llegar el fin, la condición deja de cumplirse y la web
+        vuelve sola a su piel de siempre, sin tocar nada.
+     3) AVISO PREVIO SIEMPRE: ninguna ventana existe sin orden expresa de
+        Sandro, así que él sabe de cada ventana antes de que se active.
+        Además, una semana antes de cada ventana este script deja un aviso
+        en la consola (F12) por si lo abre, y mientras la ventana está
+        activa el banner verde enseña el día y la hora exacta en que
+        termina.
+     4) Para repetir el evento en otra fecha se añade otra línea al array,
+        nunca se resucita una regla semanal.
+
+     La ventana de estreno (vie 25-sep-2026 → dom 27-sep-2026 18:00) ya
+     pasó y se queda aquí comentada como memoria. NO BORRAR (orden de
+     Sandro): todo el modo salud se guarda para reutilizarlo. */
+  var VENTANAS_SALUD = [
+    // { desde: new Date(2026, 8, 25), hasta: new Date(2026, 8, 27, 18, 0) }, // estreno, ya pasó
+  ];
+
+  function ventanaSaludActiva(ahora) {
+    for (var v = 0; v < VENTANAS_SALUD.length; v++) {
+      if (ahora >= VENTANAS_SALUD[v].desde && ahora < VENTANAS_SALUD[v].hasta) return VENTANAS_SALUD[v];
+    }
+    return null;
+  }
+
+  function ventanaSaludProxima(ahora) {
+    var semana = 7 * 24 * 3600 * 1000;
+    for (var v = 0; v < VENTANAS_SALUD.length; v++) {
+      if (ahora < VENTANAS_SALUD[v].desde && (VENTANAS_SALUD[v].desde - ahora) <= semana) return VENTANAS_SALUD[v];
+    }
+    return null;
+  }
+
   // Domingo de Resurrección por el algoritmo de Computus (calendario
   // gregoriano): la Semana Santa cambia de fechas cada año y hay que
   // calcularla, no vale una tabla fija.
@@ -44,22 +86,14 @@
     var mes = hoy.getMonth() + 1; // 1 = enero … 12 = diciembre
     var dia = hoy.getDate();
 
-    // 0) Salud (sep-2026, orden de Sandro): la web se pone en verde por
-    //    la salud TODO el sábado y el domingo hasta las 18:00. A esa
-    //    hora esta regla deja de cumplirse y la web vuelve sola a su
-    //    piel normal, sin tocar nada. Va lo primero y manda sobre el
-    //    resto: si el fin de semana cae en otra fiesta, gana la salud
-    //    (el domingo a las 18:00 esa fiesta recupera su turno).
-    //    ESTRENO (ventana única): esta primera vez arranca el viernes
-    //    25-sep-2026 y corre hasta el domingo 27 a las 18:00. Pasado
-    //    ese momento solo manda la regla semanal de arriba.
-    //    NO BORRAR (orden de Sandro): todo el modo salud (esta regla, el
-    //    banner, el desplegable y sus estilos) se queda comentado y
-    //    guardado en el repositorio aunque no se vea entre semana. Lo
-    //    reutilizaremos el año que viene o en otras secciones.
-    if (ahora >= new Date(2026, 8, 25) && ahora < new Date(2026, 8, 27, 18)) return 'salud';
-    if (ahora.getDay() === 6) return 'salud';
-    if (ahora.getDay() === 0 && ahora.getHours() < 18) return 'salud';
+    // 0) Salud (sep-2026, orden de Sandro; REGLA BLINDADA el 01-oct-2026):
+    //    solo manda la lista VENTANAS_SALUD de arriba, ventanas cerradas
+    //    con fin escrito. La antigua regla semanal (sábado entero y
+    //    domingo hasta las 18:00) se eliminó por orden directa: era la
+    //    que volvía a poner la web en verde cada fin de semana sin
+    //    avisar. Va lo primero y manda sobre el resto: si la ventana
+    //    pisa otra fiesta, gana la salud mientras dure la ventana.
+    if (ventanaSaludActiva(ahora)) return 'salud';
 
     // 1) Semana Santa (variable): tiene prioridad sobre todo lo demás.
     var pascua = obtenerPascua(ano);
@@ -80,6 +114,22 @@
   }
 
   var ambiente = ambienteDeHoy();
+
+  // Aviso previo en consola (01-oct-2026, ley nueva de Sandro): una semana
+  // antes de cada ventana de salud queda escrito aquí cuándo empieza y
+  // cuándo acaba, y mientras dura, a qué hora vuelve la piel normal.
+  // console.info no ensucia: no es warning ni error, el F12 sigue limpio.
+  try {
+    var ahoraAviso = new Date();
+    var ventanaViva = ventanaSaludActiva(ahoraAviso);
+    var ventanaQueViene = ventanaSaludProxima(ahoraAviso);
+    if (ventanaViva) {
+      console.info('[ambientes] Tema de salud ACTIVO. Termina: ' + ventanaViva.hasta.toLocaleString('es-ES') + '. A esa hora la web vuelve sola a su piel de siempre.');
+    } else if (ventanaQueViene) {
+      console.info('[ambientes] Tema de salud PROGRAMADO. Empieza: ' + ventanaQueViene.desde.toLocaleString('es-ES') + ', termina: ' + ventanaQueViene.hasta.toLocaleString('es-ES') + '.');
+    }
+  } catch (e) { }
+
   if (!ambiente) return; // día normal: ni un byte de cambio
   document.documentElement.setAttribute('data-ambiente', ambiente);
 
@@ -102,6 +152,31 @@
       document.title = (msgSalud && msgSalud.saludSaturdayTitle) || 'Manolit∞ Aire · Sábado de la Salud';
       var sub = document.querySelector('#manolitoSplash .sub-brand');
       if (sub) sub.textContent = (msgSalud && msgSalud.saludSaturdaySub) || '+ Sábado de la Salud';
+
+      // Aviso de reversión visible (01-oct-2026, ley nueva de Sandro):
+      // mientras el verde está activo, el propio banner dice el día y la
+      // hora exacta en que la web vuelve a su piel. Nadie vuelve a
+      // encontrarse un tema puesto "porque sí" y sin fecha de fin.
+      var ventana = ventanaSaludActiva(new Date());
+      if (ventana) {
+        var banner = document.querySelector('.salud-banner');
+        if (banner) {
+          var finEl = banner.querySelector('.salud-banner-fin');
+          if (!finEl) {
+            finEl = document.createElement('span');
+            finEl.className = 'salud-banner-fin';
+            banner.appendChild(finEl);
+          }
+          var LOCALES_SALUD = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+          var langSalud = 'es';
+          try { if (typeof window.getCurrentLang === 'function') langSalud = window.getCurrentLang() || 'es'; } catch (e) { }
+          var fechaFin = ventana.hasta.toLocaleString(LOCALES_SALUD[langSalud] || 'es-ES', {
+            weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
+          });
+          var tplFin = (msgSalud && msgSalud.saludBannerFinTpl) || 'El verde es temporal, el {f} la web vuelve a su piel de siempre.';
+          finEl.textContent = tplFin.split('{f}').join(fechaFin);
+        }
+      }
 
       // Enlace del banner: lleva a la sección Y la abre (sigue siendo
       // el usuario quien decide cerrarla, el bloque nunca nace abierto).

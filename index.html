@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -13,7 +13,7 @@
 <meta name="msvalidate.01" content="BB80160D0DDA8E571A69649E11438153" />
 <!-- Hueco para la meta de verificacion de Google Search Console (la aporta Sandro):
      <meta name="google-site-verification" content="..." /> -->
-<script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790794644542&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20260930%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20260930T190116Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D45b8ea144d9199a01c5a37fce3da152ff3d02091349ef01fa5ada4034f1b72d5%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="fa33d274e55044198a9676f8645" src="//local.adguard.org?ts=1790794644542&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="821471a1130e4eab8ee5c829ab6" src="//local.adguard.org?ts=1791189506734&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20261005%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20261005T084929Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D46ada8ecb2735800d21c6e79906a8faff090693b00c47e0903f4850b13242541%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="821471a1130e4eab8ee5c829ab6" src="//local.adguard.org?ts=1791189506734&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://manolitoaire.com/">
 <meta property="og:title" content="Rutas con sombra y aire en tiempo real | Manolit∞ Aire">
@@ -31,7 +31,7 @@
   "applicationCategory": "WeatherApplication",
   "operatingSystem": "Web",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-  "inLanguage": ["en", "es", "ca", "eu", "gl", "ka"],
+  "inLanguage": "es",
   "isAccessibleForFree": true,
   "author": { "@type": "Person", "name": "Sandro" },
   "codeRepository": "https://github.com/sandrow007/manolito-aire",
@@ -511,13 +511,13 @@
       <button data-palette="lavanda" aria-label="Jacarandá de mayo (violeta)"></button>
       <button data-palette="coral" aria-label="Flamenco de feria (coral)"></button>
     </div>
-    <button class="icon-btn" id="themeToggle" title="Light/dark mode" aria-label="Light/dark mode">☾</button>
-    <div class="chip-toggle notranslate" id="langToggle" translate="no" role="group" aria-label="Language">
-      <button data-lang="es">ES</button>
+    <button class="icon-btn" id="themeToggle" title="Modo claro/oscuro" aria-label="Modo claro/oscuro">☾</button>
+    <div class="chip-toggle notranslate" id="langToggle" translate="no" role="group" aria-label="Idioma">
+      <button data-lang="es" class="active">ES</button>
       <button data-lang="ca">CA</button>
       <button data-lang="eu">EU</button>
       <button data-lang="gl">GL</button>
-      <button data-lang="en" class="active">EN</button>
+      <button data-lang="en">EN</button>
       <button data-lang="ka">KA</button>
     </div>
     <!-- Botón mini "Act. mapa": nace AQUÍ, con el primer pintado (si lo
@@ -639,6 +639,14 @@
       <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
            Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
       <label><input type="checkbox" id="rsToggleMicroclima"> <span data-i18n="layerMicroclimate">Microclima · estimado</span></label>
+      <!-- Calidad del aire (01-oct-2026, orden directa de Sandro): capa SOLO
+           para España, porque fuera no tenemos fuente de datos fiable. La fila
+           nace OCULTA (hidden) y shadows-route.js la enseña solo cuando tu
+           ubicación, el punto elegido o el centro del mapa caen dentro de
+           territorio español (polígono de la península + Baleares, Canarias,
+           Ceuta y Melilla). Si sales de España con la capa encendida, se
+           apaga y se oculta sola con un aviso. -->
+      <label id="rsCapaAireFila" hidden><input type="checkbox" id="rsToggleAire"> <span data-i18n="layerAirQuality">Calidad del aire</span></label>
       </div>
     </div>
     <div class="rs-capas-mapas" id="rsCapasMapas"></div>
@@ -1148,7 +1156,7 @@
   var TPL_ES = 'Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados {n} litros de agua. Tu visita aquí: ~2 ml, medidos.';
   var tpl = TPL_ES, locale = 'es-ES';
   function refrescarIdioma() {
-    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'en') || 'en';
+    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'es') || 'es';
     locale = LOCALES[lang] || 'es-ES';
     var m = (typeof window.getMessages === 'function' ? window.getMessages() : null) || {};
     tpl = m.aguaVivoTpl || TPL_ES;
@@ -1182,7 +1190,7 @@
   var LOCALES = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
   var locale = 'es-ES';
   function refrescarIdioma() {
-    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'en') || 'en';
+    var lang = (typeof window.getCurrentLang === 'function' ? window.getCurrentLang() : 'es') || 'es';
     locale = LOCALES[lang] || 'es-ES';
   }
   refrescarIdioma();
@@ -1374,6 +1382,51 @@
     </div>
   </div>
 
+  <!-- Escudos de salud ambiental (01-oct-2026, orden directa de Sandro):
+       las cuatro insignias SVG dibujadas para el fin de semana de la salud
+       se habian quedado aparcadas en un comentario de la seccion de salud
+       y estuvieron a punto de perderse. RECUPERADAS PARA SIEMPRE: viven
+       aqui, junto al sello oficial del pie, visibles todo el año y con su
+       explicacion. Son las fuentes publicas oficiales que esta web
+       consulta y enlaza, ordenadas de lo cercano a lo global. No son
+       socios ni patrocinadores, son los observatorios publicos que
+       publican los datos y los umbrales de riesgo por calor. El bloque
+       comentado original de la seccion de salud se queda intacto. -->
+  <div class="escudos-pie" id="escudosSalud">
+    <p class="escudos-titulo" data-i18n="escudosTitulo">Escudos que nos cuidan</p>
+    <p class="escudos-porque" data-i18n="escudosPorque">Cuatro observatorios públicos de salud ambiental, de tu tierra al planeta. Publican los datos y los umbrales de calor en los que se apoya esta web, y su trabajo nos protege a todos.</p>
+    <div class="escudos-fila">
+      <a class="escudo" href="https://www.osman.es/" rel="noopener">
+        <span class="escudo-insignia" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" class="esc-anillo"/><circle cx="24" cy="24" r="16.5" class="esc-anillo-fino"/><text x="24" y="28" class="esc-siglas esc-siglas-mini">OSMAN</text></svg></span>
+        <span class="escudo-texto">
+          <span class="escudo-gama" data-i18n="saludGamaRegional">Gama Regional (Andalucía)</span>
+          <strong class="escudo-nombre" data-i18n="saludLinkOsman">OSMAN - Observatorio de Salud y Medio Ambiente de Andalucía</strong>
+        </span>
+      </a>
+      <a class="escudo" href="https://www.sanidad.gob.es/areas/sanidadAmbiental/observatorioSaludCambioClimatico/home.htm" rel="noopener">
+        <span class="escudo-insignia" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" class="esc-anillo"/><circle cx="24" cy="24" r="16.5" class="esc-anillo-fino"/><text x="24" y="28" class="esc-siglas">OSCC</text></svg></span>
+        <span class="escudo-texto">
+          <span class="escudo-gama" data-i18n="saludGamaNacional">Gama Nacional (España)</span>
+          <strong class="escudo-nombre" data-i18n="saludLinkOscc">OSCC - Observatorio de Salud y Cambio Climático</strong>
+        </span>
+      </a>
+      <a class="escudo" href="https://climate-adapt.eea.europa.eu/en/observatory" rel="noopener">
+        <span class="escudo-insignia" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" class="esc-anillo"/><circle cx="24" cy="24" r="16.5" class="esc-anillo-fino"/><text x="24" y="29" class="esc-siglas esc-siglas-grande">UE</text></svg></span>
+        <span class="escudo-texto">
+          <span class="escudo-gama" data-i18n="saludGamaEuropea">Gama Europea (UE)</span>
+          <strong class="escudo-nombre" data-i18n="saludLinkEuropeo">Observatorio Europeo del Clima y la Salud</strong>
+        </span>
+      </a>
+      <a class="escudo" href="https://climahealth.info/" rel="noopener">
+        <span class="escudo-insignia" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" class="esc-anillo"/><circle cx="24" cy="24" r="16.5" class="esc-anillo-fino"/><text x="24" y="22" class="esc-siglas esc-siglas-mini">OMS</text><text x="24" y="33" class="esc-siglas esc-siglas-mini">OMM</text></svg></span>
+        <span class="escudo-texto">
+          <span class="escudo-gama" data-i18n="saludGamaGlobal">Gama Global (ONU)</span>
+          <strong class="escudo-nombre" data-i18n="saludLinkClimahealth">ClimaHealth</strong>
+        </span>
+      </a>
+    </div>
+  </div>
+
   <!-- Insignia de AlternativeTo (28-sep-2026, orden de Sandro): al final del
        todo del pie, centrada y discreta, con carga diferida para no pesar.
        El alt lleva la marca bien escrita, Manolit∞ con su simbolo. -->
@@ -1533,7 +1586,7 @@
         const storedLang = localStorage.getItem('manolito_lang') || localStorage.getItem('lang');
         if (storedLang) return storedLang.split('-')[0];
       } catch (e) {}
-      return 'en';
+      return 'es';
     }
 
     function renderPequeFace(estado) {
@@ -1668,7 +1721,7 @@
       };
 
       const lang = getRobustLang();
-      const idiomaSeleccionado = variacionesIdiomas[lang] ? variacionesIdiomas[lang] : variacionesIdiomas['en'];
+      const idiomaSeleccionado = variacionesIdiomas[lang] ? variacionesIdiomas[lang] : variacionesIdiomas['es'];
       const estadoData = idiomaSeleccionado[estado] || idiomaSeleccionado.mala; 
       const seleccion = estadoData[Math.floor(Math.random() * estadoData.length)];
 

@@ -556,6 +556,52 @@ export default {
       }
     }
 
+    // --- Traducción automática (MyMemory) para el "botón mágico" ---------
+    // GET /traduce?q=texto&a=en -> { ok:true, texto:"..." } o { ok:false }.
+    // Último recurso del i18n del cliente: solo llega aquí lo que no está
+    // en el diccionario. MyMemory es gratis, sin clave y con servidores en
+    // la UE. Si falla, se agota la cuota o tarda más de 6 s, devolvemos
+    // 200 con ok:false: el texto se queda en español y F12 no se entera.
+    if (url.pathname === '/traduce') {
+      const neutra = () => new Response(JSON.stringify({ ok: false, texto: '' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+      });
+      try {
+        const q = (url.searchParams.get('q') || '').slice(0, 400);
+        const a = url.searchParams.get('a') || '';
+        if (!q.trim() || !/^(ca|eu|gl|en|ka)$/.test(a)) return neutra();
+        const destino = 'https://api.mymemory.translated.net/get?q=' +
+          encodeURIComponent(q) + '&langpair=es|' + a;
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 6000);
+        let r;
+        try {
+          r = await fetch(destino, {
+            headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+            signal: ctl.signal,
+          });
+        } finally {
+          clearTimeout(timer);
+        }
+        if (!r.ok) return neutra();
+        const d = await r.json();
+        const estado = Number(d && d.responseStatus);
+        const txt = d && d.responseData && typeof d.responseData.translatedText === 'string'
+          ? d.responseData.translatedText.trim() : '';
+        if (!txt || (estado && estado !== 200)) return neutra();
+        // Cuando se acaba la cuota diaria, MyMemory mete el aviso DENTRO
+        // del translatedText en mayúsculas: eso no es una traducción.
+        if (/QUOTA|LIMIT|INVALID|MYMEMORY WARNING|EMAIL/i.test(txt)) return neutra();
+        return new Response(JSON.stringify({ ok: true, texto: txt }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return neutra();
+      }
+    }
+
     return env.ASSETS.fetch(request);
   }
 };

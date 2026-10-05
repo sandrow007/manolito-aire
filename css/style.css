@@ -1971,3 +1971,523 @@ body.mode-peque .im-lost-btn{
   color:#FFFFFF !important;
   filter:none !important;
 }
+
+/* ============================================================
+   SISTEMA DE DISEÑO DEL MAPA (01-oct-2026, orden directa de Sandro)
+   "Cliente impecable, sobrio y coherente, que no parezca generado
+   por IA. Una sola fuente de verdad." Alcance: SOLO la interfaz del
+   mapa (barra de acciones, botonera de cámara, panel de capas, tarjeta
+   solar, badge y atribución). Nada de lógica, ids ni handlers tocados.
+
+   Tokens: superficie neutra oscura en los dos temas (la zona del mapa
+   es una consola estable), un único acento (el naranja de siempre,
+   #FF6B1A) reservado a estados activos y a la acción principal,
+   cuadrícula de 4/8 px, radios 12 (paneles) y 8 (controles), borde
+   fino, sombra mínima, tipografía de la app (sans para UI, mono solo
+   para datos), sentence case, transiciones de 150-200 ms.
+   Contrastes medidos sobre la superficie #161A20: texto 14,4:1,
+   texto suave 6,9:1, iconos 11,3:1, acento 6,1:1. Todo AA o más.
+   ============================================================ */
+#main-content{
+  --mui-bg:#161A20;
+  --mui-bg-2:#1C2129;
+  --mui-line:rgba(255,255,255,0.09);
+  --mui-line-2:rgba(255,255,255,0.14);
+  --mui-text:#E6E9EE;
+  --mui-soft:#9BA3AD;
+  --mui-soft-2:#8B949E;
+  --mui-ico:#C9D1D9;
+  --mui-accent:#FF6B1A;
+  --mui-accent-text:#FFB37A;
+  --mui-accent-tint:rgba(255,107,26,0.13);
+  --mui-r-panel:12px;
+  --mui-r-ctl:8px;
+  --mui-h:36px;        /* altura de control (escritorio) */
+  --mui-shadow:0 1px 2px rgba(0,0,0,0.24), 0 6px 20px rgba(0,0,0,0.22);
+  --mui-t:0.16s ease;
+}
+@media (pointer:coarse){
+  #main-content{ --mui-h:44px; }  /* objetivo táctil mínimo 44 px */
+}
+
+/* ---- foco visible, una sola vez para todo el mapa ---- */
+#main-content button:focus-visible,
+#main-content input:focus-visible,
+#main-content a:focus-visible{
+  outline:2px solid var(--mui-accent); outline-offset:2px;
+}
+
+/* ---- iconos del set propio: máscara + currentColor (un solo trazo
+   1,5 px, viewBox 24, extremos redondos). El color lo da el estado. ---- */
+#main-content .rs-mui-ico,
+.rs-capa-fila::before,
+.rs-capa-fila-btn::before,
+#rsMapControls button::before,
+#rsMapStyleToggle button::before,
+#rsCamCtl button::after{
+  content:''; flex:0 0 auto; background:currentColor;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  -webkit-mask-position:center; mask-position:center;
+  -webkit-mask-size:contain; mask-size:contain;
+}
+
+/* ==================== PANEL DE CAPAS UNIFICADO ==================== */
+/* La tarjeta: una sola superficie para capas y mapas base. */
+#main-content .rs-layer-toggles{
+  display:block; margin:0; font-size:13px; font-weight:400;
+  background:var(--mui-bg); border:1px solid var(--mui-line);
+  border-radius:var(--mui-r-panel); box-shadow:var(--mui-shadow);
+  overflow:hidden; color:var(--mui-text);
+}
+/* Cabecera del panel: el propio botón de plegar hace de cabecera. */
+#main-content #rsBtnPlegarCapas{
+  display:flex; align-items:center; gap:10px; width:100%;
+  min-height:44px; padding:10px 12px; margin:0;
+  font-size:13px; font-weight:600; letter-spacing:0; text-transform:none;
+  color:var(--mui-text); background:transparent;
+  border:none; border-bottom:1px solid var(--mui-line); border-radius:0;
+  cursor:pointer; transition:background var(--mui-t);
+}
+#main-content #rsBtnPlegarCapas:hover{ background:rgba(255,255,255,0.05); border-color:var(--mui-line); }
+#main-content #rsBtnPlegarCapas::before{
+  content:''; width:18px; height:18px; flex:0 0 auto; background:var(--mui-soft);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3 9 4.5-9 4.5-9-4.5L12 3z'/%3E%3Cpath d='m3.5 12.2 8.5 4.3 8.5-4.3'/%3E%3Cpath d='m3.5 16.4 8.5 4.3 8.5-4.3'/%3E%3C/svg%3E") no-repeat center/contain;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3 9 4.5-9 4.5-9-4.5L12 3z'/%3E%3Cpath d='m3.5 12.2 8.5 4.3 8.5-4.3'/%3E%3Cpath d='m3.5 16.4 8.5 4.3 8.5-4.3'/%3E%3C/svg%3E") no-repeat center/contain;
+}
+/* El cheurón al final, gira al plegar. */
+#main-content #rsBtnPlegarCapas::after{
+  content:''; width:16px; height:16px; margin-left:auto; flex:0 0 auto;
+  background:var(--mui-soft); transition:transform var(--mui-t);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6.5 9.5 5.5 5.5 5.5-5.5'/%3E%3C/svg%3E") no-repeat center/contain;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6.5 9.5 5.5 5.5 5.5-5.5'/%3E%3C/svg%3E") no-repeat center/contain;
+}
+#main-content .rs-layer-toggles.rs-plegado #rsBtnPlegarCapas{ border-bottom-color:transparent; }
+#main-content .rs-layer-toggles.rs-plegado #rsBtnPlegarCapas::after{ transform:rotate(-90deg); }
+#main-content .rs-layer-toggles-lista{ display:block; padding:2px 6px 8px; }
+
+/* Títulos de grupo: un solo tamaño, dos niveles de tono. */
+#main-content .rs-capa-grupo-tit{
+  margin:12px 6px 4px; padding-top:12px; border-top:1px solid var(--mui-line);
+  font-size:12px; font-weight:600; letter-spacing:0.01em; color:var(--mui-soft);
+}
+#main-content .rs-capa-grupo-tit:first-child{ margin-top:6px; padding-top:0; border-top:none; }
+#main-content .rs-capa-sub-tit{
+  margin:8px 6px 2px; font-size:12px; font-weight:600; color:var(--mui-soft-2);
+}
+
+/* ---- filas de capa: icono izquierda, etiqueta izquierda, interruptor
+   a la derecha. Todas a la misma altura y con el mismo ritmo. ---- */
+#main-content .rs-layer-toggles label.rs-capa-fila{
+  display:flex; align-items:center; gap:10px; min-height:var(--mui-h);
+  padding:4px 10px; margin:0; border-radius:var(--mui-r-ctl);
+  font-size:13px; font-weight:400; color:var(--mui-text);
+  cursor:pointer; transition:background var(--mui-t), color var(--mui-t);
+}
+#main-content .rs-layer-toggles label.rs-capa-fila:hover{ background:rgba(255,255,255,0.05); }
+#main-content .rs-layer-toggles label.rs-capa-fila > span{ order:1; flex:0 1 auto; }
+#main-content .rs-capa-tag{
+  order:1; font-style:normal; font-size:12px; font-weight:600;
+  color:var(--mui-soft); border:1px solid var(--mui-line-2);
+  border-radius:999px; padding:1px 8px;
+}
+/* El icono de cada fila (máscara, hereda el color del estado). */
+#main-content .rs-capa-fila::before,
+#main-content .rs-capa-fila-btn::before{ width:18px; height:18px; color:var(--mui-soft); }
+#main-content .rs-capa-fila:has(input:checked)::before{ color:var(--mui-accent); }
+/* La fila oculta de calidad del aire manda sobre el display:flex. */
+#main-content .rs-layer-toggles label.rs-capa-fila[hidden]{ display:none; }
+
+/* El interruptor: la misma casilla real de siempre, vestida. */
+#main-content .rs-layer-toggles input[type="checkbox"]{
+  appearance:none; -webkit-appearance:none;
+  order:2; margin:0 0 0 auto; flex:0 0 auto;
+  width:36px; height:22px; border-radius:999px;
+  background-color:#2A3039; border:1px solid var(--mui-line-2);
+  background-image:radial-gradient(circle 7px, #C9D1D9 97%, transparent);
+  background-repeat:no-repeat; background-position:3px 50%;
+  cursor:pointer;
+  transition:background-color var(--mui-t), background-position var(--mui-t), border-color var(--mui-t);
+}
+#main-content .rs-layer-toggles input[type="checkbox"]:checked{
+  background-color:var(--mui-accent); border-color:var(--mui-accent);
+  background-image:radial-gradient(circle 7px, #1A0E04 97%, transparent);
+  background-position:19px 50%;
+}
+
+/* Filas que montan un botón (Árboles, Irradiación solar): el botón
+   llena la fila y lleva el mismo interruptor dibujado con ::after,
+   leyendo aria-pressed o la clase rs-activo de siempre. */
+#main-content .rs-capa-fila-btn{ position:relative; display:flex; }
+#main-content .rs-capa-fila-btn::before{
+  position:absolute; left:10px; top:50%; transform:translateY(-50%);
+  pointer-events:none;
+}
+#main-content .rs-capa-fila-btn:has(button[aria-pressed="true"])::before,
+#main-content .rs-capa-fila-btn:has(button.rs-activo)::before{ color:var(--mui-accent); }
+#main-content .rs-capa-fila-btn button{
+  width:100%; display:flex; align-items:center; gap:10px;
+  min-height:var(--mui-h); padding:4px 10px 4px 38px;
+  background:transparent; border:none; border-radius:var(--mui-r-ctl);
+  font-family:inherit; font-size:13px; font-weight:400; letter-spacing:0;
+  text-transform:none; text-align:left; color:var(--mui-text);
+  cursor:pointer; box-shadow:none; transition:background var(--mui-t);
+}
+#main-content .rs-capa-fila-btn button:hover{ background:rgba(255,255,255,0.05); }
+#main-content .rs-capa-fila-btn button::after{
+  content:''; margin-left:auto; flex:0 0 auto;
+  width:36px; height:22px; border-radius:999px;
+  background-color:#2A3039; border:1px solid var(--mui-line-2);
+  background-image:radial-gradient(circle 7px, #C9D1D9 97%, transparent);
+  background-repeat:no-repeat; background-position:3px 50%;
+  transition:background-color var(--mui-t), background-position var(--mui-t), border-color var(--mui-t);
+}
+#main-content .rs-capa-fila-btn button[aria-pressed="true"]::after,
+#main-content .rs-capa-fila-btn button.rs-activo::after{
+  background-color:var(--mui-accent); border-color:var(--mui-accent);
+  background-image:radial-gradient(circle 7px, #1A0E04 97%, transparent);
+  background-position:19px 50%;
+}
+
+/* ---- iconos del set, por fila ---- */
+#main-content .rs-ico-edificios::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v16'/%3E%3Cpath d='M12 21v-9.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V21'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v16'/%3E%3Cpath d='M12 21v-9.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V21'/%3E%3C/svg%3E");
+}
+#main-content .rs-ico-arboles::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8.5' r='5.5'/%3E%3Cpath d='M12 14v7'/%3E%3Cpath d='M12 10.5 10 8.5'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8.5' r='5.5'/%3E%3Cpath d='M12 14v7'/%3E%3Cpath d='M12 10.5 10 8.5'/%3E%3C/svg%3E");
+}
+#main-content .rs-ico-sombras::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h11v11H4z'/%3E%3Cpath d='m15 15 5-2.5v-6L15 9'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h11v11H4z'/%3E%3Cpath d='m15 15 5-2.5v-6L15 9'/%3E%3C/svg%3E");
+}
+#main-content .rs-ico-sol::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+}
+#main-content .rs-ico-irradiacion::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20.5 5.6 12h12.8L20 20.5z'/%3E%3Cpath d='M12 12v8.5M7.9 16.2h8.2'/%3E%3Cpath d='M12 3v2.5M6.5 5.5 7.7 7M17.5 5.5 16.3 7'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20.5 5.6 12h12.8L20 20.5z'/%3E%3Cpath d='M12 12v8.5M7.9 16.2h8.2'/%3E%3Cpath d='M12 3v2.5M6.5 5.5 7.7 7M17.5 5.5 16.3 7'/%3E%3C/svg%3E");
+}
+#main-content .rs-ico-nubes::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 18.5a4 4 0 1 1 .4-7.98A5.5 5.5 0 0 1 18.2 12 3.5 3.5 0 0 1 17.5 18.5z'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 18.5a4 4 0 1 1 .4-7.98A5.5 5.5 0 0 1 18.2 12 3.5 3.5 0 0 1 17.5 18.5z'/%3E%3C/svg%3E");
+}
+#main-content .rs-ico-microclima::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13.6V5a2 2 0 1 1 4 0v8.6a4.5 4.5 0 1 1-4 0z'/%3E%3Cpath d='M12 9.5v4'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13.6V5a2 2 0 1 1 4 0v8.6a4.5 4.5 0 1 1-4 0z'/%3E%3Cpath d='M12 9.5v4'/%3E%3C/svg%3E");
+}
+#main-content .rs-ico-aire::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h8.5a2.75 2.75 0 1 0-2.6-3.6'/%3E%3Cpath d='M3 12.5h13.5a2.75 2.75 0 1 1-2.6 3.6'/%3E%3Cpath d='M3 17h6'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8h8.5a2.75 2.75 0 1 0-2.6-3.6'/%3E%3Cpath d='M3 12.5h13.5a2.75 2.75 0 1 1-2.6 3.6'/%3E%3Cpath d='M3 17h6'/%3E%3C/svg%3E");
+}
+#main-content .rs-ico-ruta::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='19' r='2.2'/%3E%3Ccircle cx='18' cy='5' r='2.2'/%3E%3Cpath d='M6.3 16.7c2.8-2.2-.6-4.2 2.3-6.4 2.8-2.2 6.2-1.2 7-3.6' stroke-dasharray='3 2.4'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='19' r='2.2'/%3E%3Ccircle cx='18' cy='5' r='2.2'/%3E%3Cpath d='M6.3 16.7c2.8-2.2-.6-4.2 2.3-6.4 2.8-2.2 6.2-1.2 7-3.6' stroke-dasharray='3 2.4'/%3E%3C/svg%3E");
+}
+
+/* ---- Mapa base: tarjetas del mismo tamaño en cuadrícula regular.
+   Los tres son modificadores de la MISMA base vectorial (filtro oscuro,
+   WMS del IGN, WMS de Catastro): por eso pueden combinarse y aquí se
+   presentan como lo que son, opciones de cartografía de fondo. ---- */
+#main-content .rs-capas-mapas{ padding:2px 2px 4px; }
+#main-content #rsMapStyleToggle{
+  display:grid !important; grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:8px; align-items:stretch;
+}
+/* El antiguo botón maestro "Capas de mapa" ya no hace falta: el panel
+   unificado lo absorbe. El JS que lo crea sigue intacto, solo no se ve. */
+#main-content #rsBtnCapasMapa{ display:none !important; }
+#main-content #rsMapStyleToggle.rs-colapsado .rs-capa-hija{ display:flex !important; }
+#main-content #rsMapStyleToggle button{
+  display:flex !important; flex-direction:column; align-items:center;
+  justify-content:center; gap:6px; min-height:64px; padding:8px 6px;
+  font-size:13px; font-weight:400; letter-spacing:0; text-transform:none;
+  color:var(--mui-text); background:var(--mui-bg-2) !important;
+  border:1px solid var(--mui-line) !important; border-radius:var(--mui-r-ctl);
+  box-shadow:none; cursor:pointer; text-align:center;
+  transition:border-color var(--mui-t), background-color var(--mui-t), color var(--mui-t);
+}
+#main-content #rsMapStyleToggle button:hover{
+  border-color:var(--mui-line-2) !important; background:#222834 !important;
+}
+#main-content #rsMapStyleToggle button[aria-pressed="true"]{
+  background:var(--mui-accent-tint) !important;
+  border-color:var(--mui-accent) !important;
+  color:var(--mui-accent-text);
+}
+#main-content #rsMapStyleToggle button::before{ width:20px; height:20px; color:var(--mui-ico); }
+#main-content #rsMapStyleToggle button[aria-pressed="true"]::before{ color:var(--mui-accent); }
+#main-content #rsBtnMapaOscuro::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z'/%3E%3C/svg%3E");
+}
+#main-content #rsBtnMapaIGN::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4.5 3.5 6.3v13.4L9 18l6 1.7 5.5-1.8V4.5L15 6.2 9 4.5z'/%3E%3Cpath d='M9 4.5V18M15 6.2v13.4'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4.5 3.5 6.3v13.4L9 18l6 1.7 5.5-1.8V4.5L15 6.2 9 4.5z'/%3E%3Cpath d='M9 4.5V18M15 6.2v13.4'/%3E%3C/svg%3E");
+}
+#main-content #rsBtnCatastro::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v16'/%3E%3Cpath d='M12 21v-9.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V21'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v16'/%3E%3Cpath d='M12 21v-9.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V21'/%3E%3C/svg%3E");
+}
+
+/* ==================== BARRA DE ACCIONES (flotante, arriba a la
+   izquierda del mapa) ==================== */
+/* Una sola cápsula oscura con las acciones. El naranja solo aparece
+   cuando una acción está activa. */
+#main-content #rsMapControls{
+  gap:2px !important; padding:4px; max-width:calc(100% - 24px);
+  background:rgba(22,26,32,0.94); border:1px solid var(--mui-line);
+  border-radius:var(--mui-r-panel); box-shadow:var(--mui-shadow);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+}
+#main-content #rsMapControls button{
+  display:inline-flex; align-items:center; gap:7px;
+  min-height:var(--mui-h); padding:4px 10px !important;
+  font-size:13px !important; font-weight:400; letter-spacing:0 !important;
+  text-transform:none !important; line-height:1.2;
+  color:var(--mui-ico) !important; background:transparent !important;
+  border:1px solid transparent !important; border-radius:var(--mui-r-ctl) !important;
+  box-shadow:none !important; backdrop-filter:none; -webkit-backdrop-filter:none;
+  transition:background var(--mui-t), color var(--mui-t), border-color var(--mui-t);
+}
+#main-content #rsMapControls button:hover{
+  background:rgba(255,255,255,0.06) !important; border-color:transparent !important;
+  color:var(--mui-text) !important;
+}
+#main-content #rsMapControls button.rs-activo{
+  background:var(--mui-accent-tint) !important;
+  border-color:transparent !important;
+  color:var(--mui-accent-text) !important; box-shadow:none !important;
+}
+#main-content #rsMapControls button::before{ width:16px; height:16px; color:var(--mui-soft); }
+#main-content #rsMapControls button:hover::before{ color:var(--mui-text); }
+#main-content #rsMapControls button.rs-activo::before{ color:var(--mui-accent); }
+/* El botón de plegar la barra: sin glifos ≡/☰, cheurón propio. */
+#main-content #rsBtnPlegarControles{ font-size:0 !important; padding:4px 8px !important; }
+#main-content #rsBtnPlegarControles::before{
+  width:16px; height:16px; transition:transform var(--mui-t);
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14.5 6.5-5.5 5.5 5.5 5.5'/%3E%3C/svg%3E") !important;
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14.5 6.5-5.5 5.5 5.5 5.5'/%3E%3C/svg%3E") !important;
+}
+#main-content #rsMapControls.rs-plegado #rsBtnPlegarControles::before{ transform:rotate(180deg); }
+#main-content #rsBtnPickMap::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-6.5-4.9-6.5-10.4a6.5 6.5 0 1 1 13 0C18.5 16.1 12 21 12 21z'/%3E%3Ccircle cx='12' cy='10.4' r='2.3'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-6.5-4.9-6.5-10.4a6.5 6.5 0 1 1 13 0C18.5 16.1 12 21 12 21z'/%3E%3Ccircle cx='12' cy='10.4' r='2.3'/%3E%3C/svg%3E");
+}
+#main-content #rsBtnMyLocation::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4.5'/%3E%3Cpath d='M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4.5'/%3E%3Cpath d='M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3'/%3E%3C/svg%3E");
+}
+#main-content #rsBtnWalk::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.2' cy='4.6' r='1.6'/%3E%3Cpath d='M9.5 20l2-4.8-1.6-2.4.9-3.8 2.9 1.7 2.2.7'/%3E%3Cpath d='M10.8 9.2 8.6 12l-2 .7'/%3E%3Cpath d='m13 10.8.9 3.7 2.6 4.7'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.2' cy='4.6' r='1.6'/%3E%3Cpath d='M9.5 20l2-4.8-1.6-2.4.9-3.8 2.9 1.7 2.2.7'/%3E%3Cpath d='M10.8 9.2 8.6 12l-2 .7'/%3E%3Cpath d='m13 10.8.9 3.7 2.6 4.7'/%3E%3C/svg%3E");
+}
+#main-content #rsBtnGuiaVoz::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9.5v5h3.2L11.5 18V6L7.2 9.5z'/%3E%3Cpath d='M14.5 9.2a4.2 4.2 0 0 1 0 5.6M17 6.8a7.6 7.6 0 0 1 0 10.4'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9.5v5h3.2L11.5 18V6L7.2 9.5z'/%3E%3Cpath d='M14.5 9.2a4.2 4.2 0 0 1 0 5.6M17 6.8a7.6 7.6 0 0 1 0 10.4'/%3E%3C/svg%3E");
+}
+#main-content #rsBtnPaseo::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'/%3E%3Cpath d='M3.3 7l8.7 5 8.7-5M12 22V12'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'/%3E%3Cpath d='M3.3 7l8.7 5 8.7-5M12 22V12'/%3E%3C/svg%3E");
+}
+#main-content #rsBtnReset::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 8.9'/%3E%3Cpath d='M4.5 4.2v4.7h4.7'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 8.9'/%3E%3Cpath d='M4.5 4.2v4.7h4.7'/%3E%3C/svg%3E");
+}
+
+/* ==================== BOTONERA DE CÁMARA (derecha del mapa) ============
+   Adiós a los cuadrados naranjas macizos: tres grupos discretos unidos
+   (zoom / inclinación y norte / localizar y pantalla completa), mismos
+   40 px, iconos del set. Los glifos de texto (+, -, flechas) se ocultan
+   y los sustituye el icono; el HTML y el JS no se tocan. */
+#main-content #rsCamCtl{ gap:0; }
+#main-content #rsCamCtl button{
+  width:40px; height:40px; border-radius:0;
+  font-size:0 !important; font-weight:400;
+  color:var(--mui-ico) !important; background:rgba(22,26,32,0.94) !important;
+  border:1px solid var(--mui-line) !important; border-top-width:0 !important;
+  box-shadow:none !important;
+  transition:background var(--mui-t), color var(--mui-t);
+}
+#main-content #rsCamCtl button:first-child{ border-top-width:1px !important; border-radius:10px 10px 0 0; }
+#main-content #rsCamCtl button:hover{ background:#232A34 !important; filter:none !important; color:var(--mui-text) !important; }
+#main-content #rsCamCtl button:active{ transform:none !important; }
+#main-content #rsCamCtl button::after{ width:18px; height:18px; margin:auto; }
+/* Los tres iconos que ya eran SVG dentro del botón (brújula, logo
+   Manolit, pantalla completa) no llevan ::after de máscara. */
+#main-content #rsCamBrujula::after, #main-content #rsCamUbicacion::after,
+#main-content #rsCamFull::after{ display:none; }
+#main-content #rsCamBrujula svg{ width:18px !important; height:18px !important; }
+#main-content #rsCamUbicacion svg{ width:16px !important; height:22px !important; }
+/* Radios por grupo: zoom (1-2), inclinación y norte (3-5), localizar y
+   pantalla completa (6-7). */
+#main-content #rsCamZoomIn{ border-radius:10px 10px 0 0 !important; }
+#main-content #rsCamZoomOut{ border-radius:0 0 10px 10px !important; }
+#main-content #rsCamPitchUp{ margin-top:10px; border-top-width:1px !important; border-radius:10px 10px 0 0 !important; }
+#main-content #rsCamBrujula{ border-radius:0 0 10px 10px !important; }
+#main-content #rsCamUbicacion{ margin-top:10px; border-top-width:1px !important; border-radius:10px 10px 0 0 !important; }
+#main-content #rsCamFull{ border-radius:0 0 10px 10px !important; }
+/* Los iconos de zoom e inclinación se dibujan con máscara. */
+#main-content #rsCamZoomIn::after{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='m21 21-4.8-4.8M11 8.5v5M8.5 11h5'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='m21 21-4.8-4.8M11 8.5v5M8.5 11h5'/%3E%3C/svg%3E");
+}
+#main-content #rsCamZoomOut::after{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='m21 21-4.8-4.8M8.5 11h5'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='m21 21-4.8-4.8M8.5 11h5'/%3E%3C/svg%3E");
+}
+#main-content #rsCamPitchUp::after{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 14.5 6-6 6 6'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 14.5 6-6 6 6'/%3E%3C/svg%3E");
+}
+#main-content #rsCamPitchDown::after{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9.5 6 6 6-6'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9.5 6 6 6-6'/%3E%3C/svg%3E");
+}
+/* Pantalla completa: el fondo SVG viejo (trazo 2,4 oscuro, ilegible en
+   la consola oscura) se cambia por el icono del set en los dos estados. */
+#main-content #rsCamCtl button.manolito-fs-btn,
+#main-content [data-theme="dark"] #rsCamCtl button.manolito-fs-btn,
+#main-content .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9D1D9' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3.5H5.5a2 2 0 0 0-2 2V8M16 3.5h2.5a2 2 0 0 1 2 2V8M8 20.5H5.5a2 2 0 0 1-2-2V16M16 20.5h2.5a2 2 0 0 0 2-2V16'/%3E%3C/svg%3E") !important;
+  background-size:18px 18px !important;
+}
+#main-content #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
+#main-content #rsCamCtl button.manolito-fs-btn[aria-pressed="true"],
+#main-content [data-theme="dark"] #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
+#main-content [data-theme="dark"] #rsCamCtl button.manolito-fs-btn[aria-pressed="true"],
+#main-content .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
+#main-content .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn[aria-pressed="true"]{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF6B1A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3.5v3a2 2 0 0 1-2 2H3.5M20.5 8h-3a2 2 0 0 1-2-2v-3M3.5 16h3a2 2 0 0 1 2 2v3M16 20.5v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E") !important;
+}
+/* El pulso de la brújula ya tiene su animación propia; se queda. */
+@media (max-width:480px){
+  #main-content #rsCamCtl button{ width:44px; height:44px; }
+}
+
+/* ==================== TARJETA DE POSICIÓN SOLAR (la del slider de
+   hora, flotante dentro del mapa) ==================== */
+/* Misma familia que el panel de capas: misma superficie, radio, borde
+   y cabecera. Fuera el degradado naranja de fondo. */
+#main-content #rsTimeControls{
+  background:rgba(22,26,32,0.94) !important; border:1px solid var(--mui-line) !important;
+  border-radius:var(--mui-r-panel) !important; box-shadow:var(--mui-shadow) !important;
+  padding:10px 12px; color:var(--mui-text);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+}
+#main-content #rsTimeControls .rs-eyebrow{
+  font-size:12px !important; font-weight:600; letter-spacing:0.01em !important;
+  text-transform:none !important; color:var(--mui-soft) !important;
+}
+#main-content #rsPlegarBtn{ color:var(--mui-soft) !important; opacity:1 !important; }
+#main-content #rsPlegarBtn:hover{ color:var(--mui-text) !important; }
+#main-content #rsTimeLabel{ color:var(--mui-text); font-size:13px; font-weight:600; }
+#main-content #rsGoldenBadge{
+  font-size:12px; font-weight:600; letter-spacing:0;
+  color:var(--mui-accent-text); background:var(--mui-accent-tint);
+  border:1px solid rgba(255,107,26,0.4);
+}
+#main-content #rsTimeControls .rs-divisor{ background:var(--mui-line); }
+#main-content #rsTimeControls button{
+  font-size:13px !important; font-weight:400; letter-spacing:0 !important;
+  text-transform:none !important; padding:8px 10px; border-radius:var(--mui-r-ctl);
+  background:var(--mui-bg-2) !important; border:1px solid var(--mui-line) !important;
+  color:var(--mui-ico) !important; transition:border-color var(--mui-t), color var(--mui-t), background var(--mui-t);
+}
+#main-content #rsTimeControls button:hover{
+  background:#232A34 !important; border-color:var(--mui-line-2) !important;
+  color:var(--mui-text) !important;
+}
+#main-content #rsTimeControls button.rs-btn-capturar{ color:var(--mui-soft) !important; }
+#main-content #rsTimeSlider::-webkit-slider-runnable-track{ background:rgba(255,255,255,0.18) !important; }
+#main-content #rsTimeSlider::-moz-range-track{ background:rgba(255,255,255,0.18) !important; }
+#main-content #rsTimeSlider::-webkit-slider-thumb{
+  background:var(--mui-accent); border-color:#161A20 !important;
+}
+#main-content #rsTimeSlider::-moz-range-thumb{
+  background:var(--mui-accent); border-color:#161A20 !important;
+}
+
+/* ==================== COLUMNA SOL + LIDAR Y COMPOSICIÓN BAJO EL MAPA ====
+   El panel de capas y la tarjeta solar comparten sistema. Todo alineado
+   al ancho del mapa, nada centrado flotando. */
+#main-content .rs-planetario{
+  display:grid; grid-template-columns:minmax(0,1fr) 232px;
+  gap:12px; align-items:stretch; justify-content:stretch;
+  width:100%; margin:12px 0 4px; text-align:left;
+}
+#main-content .rs-planetario-capas{
+  grid-row:1 / span 2; margin:0; padding:0; border:none; max-width:none;
+  align-items:stretch; text-align:left;
+}
+#main-content .rs-planetario-sol{
+  background:var(--mui-bg); border:1px solid var(--mui-line);
+  border-radius:var(--mui-r-panel); box-shadow:var(--mui-shadow);
+  padding:12px; display:flex; flex-direction:column; align-items:center; gap:4px;
+}
+#main-content .rs-sol-card-tit{
+  align-self:flex-start; margin:0 0 4px; font-size:12px; font-weight:600;
+  letter-spacing:0.01em; color:var(--mui-soft);
+}
+#main-content .rs-planetario svg{ filter:none; }
+#main-content .rs-planetario-info{ font-size:12px; color:var(--mui-soft); letter-spacing:0; }
+#main-content a.rs-btn-lidar{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  min-height:var(--mui-h); padding:8px 12px;
+  background:var(--mui-bg-2) !important; border:1px solid var(--mui-line) !important;
+  border-radius:var(--mui-r-ctl) !important; box-shadow:none !important;
+  color:var(--mui-text) !important; font-size:13px; font-weight:600;
+  text-decoration:none; transition:border-color var(--mui-t), background var(--mui-t);
+}
+#main-content a.rs-btn-lidar:hover{
+  background:#232A34 !important; border-color:var(--mui-line-2) !important; filter:none !important;
+}
+#main-content a.rs-btn-lidar svg{ width:18px; height:18px; }
+
+/* ==================== PIEZAS SUELTAS DEL MAPA ==================== */
+/* Badge de sombra de la ruta y atribución: la misma consola. */
+#main-content #rsShadowBadge{
+  background:rgba(22,26,32,0.94) !important; border:1px solid var(--mui-line);
+  border-radius:var(--mui-r-ctl); color:var(--mui-text);
+}
+#main-content #rsShadowBadgeCerrar{ color:var(--mui-soft) !important; }
+#main-content .maplibregl-ctrl-attrib{
+  background:rgba(22,26,32,0.85) !important; color:var(--mui-soft-2);
+  border-radius:6px 0 0 0;
+}
+#main-content .maplibregl-ctrl-attrib a{ color:var(--mui-soft); }
+/* El joystick del paseo sigue la misma superficie. */
+#main-content #rsJoystick{
+  background:rgba(22,26,32,0.72) !important; border-color:var(--mui-line-2) !important;
+}
+
+/* ==================== MÓVIL: el panel como hoja inferior del mapa ==== */
+@media (max-width:900px){
+  #main-content .rs-planetario{ grid-template-columns:1fr; gap:12px; }
+  #main-content .rs-planetario-capas{ grid-row:auto; }
+}
+@media (max-width:640px){
+  /* Hoja pegada al borde inferior del mapa, ancho completo, con scroll
+     propio para no comerse la pantalla. */
+  #main-content .rs-planetario{ margin-top:8px; }
+  #main-content .rs-layer-toggles-lista{
+    max-height:46vh; overflow-y:auto; overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  /* En pantalla estrecha los mapas base van a una tarjeta por fila para
+     que el dedo acierte siempre (44 px mínimo). */
+  #main-content #rsMapStyleToggle{ grid-template-columns:1fr; }
+  #main-content #rsMapStyleToggle button{
+    flex-direction:row; min-height:var(--mui-h); justify-content:flex-start;
+    padding:8px 12px; text-align:left;
+  }
+}
+
+/* ==================== MOVIMIENTO EDUCADO ==================== */
+@media (prefers-reduced-motion: reduce){
+  #main-content .rs-layer-toggles input[type="checkbox"],
+  #main-content .rs-capa-fila-btn button::after,
+  #main-content #rsBtnPlegarCapas::after,
+  #main-content #rsBtnPlegarControles::before{ transition:none !important; }
+}

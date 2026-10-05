@@ -5293,13 +5293,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // al norte, cuerpo del color del texto del tema. Gira con el mapa.
     btnCamBrujula.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2l4.5 10-4.5 10-4.5-10z" fill="currentColor"/><path d="M12 2l4.5 10h-9z" fill="#FBFAF7"/></svg>';
     // Mi ubicación JUNTO a los zooms, la inclinación y la N (orden de
-    // Sandro, sep-2026): el logo Manolit en miniatura (bucle infinito,
-    // sol dorado y corazón, los colores de la marca), no una diana
-    // genérica. Al pulsarlo hace EXACTAMENTE lo mismo que el botón
-    // «Mi ubicación» del panel: misma petición de GPS fina y fresca,
-    // mismo círculo de precisión y mismo muñeco, sin duplicar lógica.
+    // Sandro, sep-2026). El icono es el LOGO OFICIAL de Manolit∞, con la
+    // geometría exacta del splash (06-oct-2026, orden directa): gota
+    // granate, sol dorado y las DOS ondas teal (agua y aire). Para que
+    // las dos ondas se distingan en tamaño pequeño el trazo va engrosado
+    // y la segunda onda un poco más separada, misma curva y colores.
     const btnCamUbi = hacerBotonCam('rsCamUbicacion', '', t('myLocation', 'Mi ubicación'));
-    btnCamUbi.innerHTML = '<svg viewBox="0 0 120 170" aria-hidden="true"><path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z" fill="none" stroke="#7A0016" stroke-width="10" stroke-linejoin="round"/><circle cx="60" cy="63" r="25" fill="#E6A100"/><path d="M 41,68 Q 50.5,60.5 60,68 T 79,68" fill="none" stroke="#007A87" stroke-width="5" stroke-linecap="round"/><path d="M 60,56 C 47,42 47,68 60,56 C 73,42 73,68 60,56 Z" fill="none" stroke="#7A0016" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    btnCamUbi.innerHTML = '<svg viewBox="0 0 200 300" aria-hidden="true"><circle cx="100" cy="150" r="45" fill="#E6A100"/><path d="M 60,163 Q 80,153 100,163 T 140,163" fill="none" stroke="#007A87" stroke-width="7" stroke-linecap="round"/><path d="M 65,183 Q 82.5,175 100,183 T 135,183" fill="none" stroke="#007A87" stroke-width="6" stroke-linecap="round"/><path d="M 100,150 C 75,125 75,175 100,150 C 125,125 125,175 100,150 Z" fill="none" stroke="#7A0016" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke="#7A0016" stroke-width="14" stroke-linejoin="round"/></svg>';
     btnCamUbi.addEventListener('click', () => {
       const original = document.getElementById('rsBtnMyLocation');
       if (original) { original.click(); return; }

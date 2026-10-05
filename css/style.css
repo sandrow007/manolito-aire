@@ -1885,3 +1885,89 @@ body.mode-peque .im-lost-btn{
 .quick-qs{ display:grid; grid-template-columns:1fr 1fr; }
 .quick-qs button{ text-align:center; }
 .quick-qs #rsChipRutaChat{ grid-column:1 / -1; justify-content:center; }
+
+/* ============================================================
+   MODO OSCURO LEGIBLE (01-oct-2026, orden directa de Sandro)
+   "Cualquier texto de la web, en cualquier idioma y en cualquier
+   sección, tiene que leerse perfectamente en modo oscuro igual que
+   en modo claro." Mínimo AA de contraste, sin excepciones.
+   Todo lo de abajo es aditivo y pisa solo lo que fallaba.
+   ============================================================ */
+
+/* 1) Las variables --text y --text-soft nunca existieron de verdad:
+   quien las usaba caía al gris oscuro del fallback (#333, #444, #666),
+   tinta oscura sobre fondo noche (el globo del modo peque, el panel
+   científico, sus fechas...). Nacen ahora definidas en los dos temas.
+   En oscuro, #B9C6DE sobre el fondo #03050F da más de 11:1 (AAA). */
+:root{
+  --text:#333333;
+  --text-soft:#666666;
+}
+[data-theme="dark"]{
+  --text:#E8F0FF;
+  --text-soft:#B9C6DE;
+}
+
+/* 2) Fuera TODA sombra de texto en modo oscuro. El desdoblado rojo/azul
+   que se veía en la frase del modo peque (un text-shadow decorativo que
+   llega de fuera de esta hoja) queda anulado por decreto para cualquier
+   texto: limpio y nítido, como en claro. Canvas y SVG se respetan. */
+[data-theme="dark"] :not(canvas):not(svg):not(svg *){
+  text-shadow:none !important;
+}
+
+/* 3) La palabra del orbe (BUENA / GOOD...) iba en blanco sobre el color
+   vivo del estado: 2,5:1 sobre el menta del tema claro y 1,3:1 sobre el
+   turquesa del oscuro, ilegible. Y no hay un único color de tinta que
+   pase AA a la vez sobre menta, ámbar y flamenco. Solución: chapa oscura
+   translúcida detrás del texto blanco. Medido con los seis colores de
+   estado (tres claros y tres oscuros): entre 5,6:1 y 11,4:1, todo AA. */
+.orb-face{
+  background:rgba(3,5,15,0.55);
+  color:#FFFFFF;
+  padding:3px 10px;
+  border-radius:999px;
+}
+
+/* 4) El botón «escuchar» de las indicaciones paso a paso, cuando está
+   activo (aria-pressed), ponía texto blanco sobre --accent-text: en
+   oscuro esa variable es un color CLARO por diseño (cian, melocotón,
+   menta...), así que quedaba blanco sobre casi blanco (1,4:1 en cosmos
+   oscuro; ni en claro se libraba cosmos, con 3,1:1). Ahora: en claro,
+   acento oscurecido al 75% con blanco (mínimo 5,1:1 en las cinco
+   paletas); en oscuro, acento neón con tinta noche (mínimo 7,8:1).
+   El modo accesible (negro sobre blanco) sigue ganando porque su regla
+   tiene más especificidad. */
+.rs-btn-escuchar[aria-pressed="true"]{
+  background:color-mix(in srgb, var(--accent-text) 75%, #000000) !important;
+  color:#FFFFFF !important;
+}
+[data-theme="dark"] .rs-btn-escuchar[aria-pressed="true"]{
+  background:var(--accent-text) !important;
+  color:#03050F !important;
+}
+
+/* 5) El botón LiDAR en oscuro: la regla vieja le cambiaba el fondo a
+   --sky-mid (turquesa apagado #4FBFB5) pero dejaba el texto en blanco
+   fijo: blanco sobre turquesa = 2,2:1, ilegible. El fondo turquesa se
+   queda (es la firma de la noche de verano), la tinta pasa a noche:
+   9,2:1. En claro no se toca: blanco sobre petróleo ya daba 12,1:1. */
+[data-theme="dark"] .rs-btn-lidar{
+  color:#03050F !important;
+}
+
+/* 6) El CTA «Buscar ruta» ya era correcto en casi todas las paletas
+   (tinta oscura sobre mandarina/menta/ámbar, blanco sobre jacarandá),
+   menos en coral: ni la tinta oscura (4,2:1) ni el blanco (4,5:1 justo
+   por debajo) llegaban a AA sobre el acento coral. Solo para esa
+   paleta, el fondo se oscurece al 78% y el texto pasa a blanco:
+   6,1:1 en claro y en oscuro. Las demás paletas no se tocan. */
+[data-palette="coral"] #rsBuscarBtn{
+  background:color-mix(in srgb, var(--accent) 78%, #000000) !important;
+  color:#FFFFFF !important;
+}
+[data-palette="coral"] #rsBuscarBtn:hover{
+  background:color-mix(in srgb, var(--accent) 70%, #000000) !important;
+  color:#FFFFFF !important;
+  filter:none !important;
+}

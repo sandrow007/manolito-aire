@@ -210,6 +210,16 @@ html.modo-salud .salud-banner a{
 html.modo-salud .salud-banner a:focus-visible{
   outline:3px solid #FFFFFF; outline-offset:2px;
 }
+/* Aviso de reversión (01-oct-2026, ley nueva de Sandro): línea pequeña
+   dentro del propio banner que dice el día y la hora exacta en que el
+   verde termina y la web vuelve a su piel. Lo escribe ambientes.js con
+   la fecha de fin de la ventana activa. */
+html.modo-salud .salud-banner-fin{
+  display:block;
+  margin-top:4px;
+  font-size:0.78rem;
+  opacity:0.85;
+}
 
 /* Sección reivindicativa de los sábados: DESPLEGABLE ESTRICTO
    (25-sep, orden de Sandro). Nace cerrada y solo el usuario la abre.
@@ -450,10 +460,13 @@ html.modo-salud .salud-recurso:focus-visible{
    fila entera es el enlace, con insignia-monograma SVG propia que
    hereda el verde del modo salud via currentColor. Y va PLEGADA: es un
    sub-desplegable que solo se abre al pulsar "Recursos oficiales",
-   mismo truco de grid que el desplegable grande. Las pastillas de
-   antes (.salud-recurso) quedan arriba en reserva, sin uso. */
-html.modo-salud .salud-recursos{ display:block; }
-html.modo-salud .salud-recursos-desplegable{ margin-bottom:10px; }
+   mismo truco de grid que el desplegable grande.
+   (26-sep, vuelta atras por orden de Sandro: las pastillas de antes,
+   .salud-recurso, VUELVEN a usarse con una unica pastilla, OSMAN. El
+   sub-desplegable de las 4 gamas queda aparcado comentado en el index,
+   guardado para el about. Por eso el display:block se limita a la
+   clase del sub-desplegable y no toca la fila flex de las pastillas.) */
+html.modo-salud .salud-recursos-desplegable{ display:block; margin-bottom:10px; }
 html.modo-salud .salud-recursos-resumen{
   list-style:none; cursor:pointer;
   display:flex; align-items:center;
@@ -602,4 +615,90 @@ html.modo-salud .salud-sello svg{
 }
 @media (prefers-reduced-motion: reduce){
   .sello-footer{ transition:none; }
+}
+
+/* ============================================================
+   ESCUDOS DE SALUD AMBIENTAL DEL PIE (01-oct-2026, orden de Sandro)
+   Las cuatro insignias del fin de semana de la salud, rescatadas del
+   comentario donde casi se pierden. Viven siempre junto al sello del
+   pie, con la misma geometría SVG con la que nacieron (anillos y
+   siglas) y la tinta granate corporativa; en modo salud se tiñen de
+   verde como el sello. Fila flexible que se apila en móvil.
+   ============================================================ */
+.escudos-pie{
+  margin-top:22px;
+  text-align:center;
+}
+.escudos-titulo{
+  margin:0 0 4px;
+  font-size:0.85rem;
+  font-weight:700;
+  color:#7A0016;
+}
+.escudos-porque{
+  margin:0 auto 12px;
+  max-width:560px;
+  font-size:0.75rem;
+  line-height:1.5;
+  opacity:0.75;
+}
+.escudos-fila{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px 18px;
+}
+.escudo{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  max-width:250px;
+  text-align:left;
+  color:inherit;
+  text-decoration:none;
+  opacity:0.8;
+  transition:opacity 0.25s ease;
+}
+.escudo:hover, .escudo:focus-visible{ opacity:1; }
+.escudo-insignia{
+  flex:0 0 40px;
+  width:40px;
+  height:40px;
+  color:#7A0016;
+}
+.escudo-insignia svg{ display:block; width:100%; height:100%; }
+.esc-anillo{ fill:none; stroke:currentColor; stroke-width:2.4; }
+.esc-anillo-fino{ fill:none; stroke:currentColor; stroke-width:1; stroke-dasharray:2 3; opacity:0.8; }
+.esc-siglas{
+  fill:currentColor;
+  font-family:'IBM Plex Mono', monospace;
+  font-weight:600;
+  font-size:11px;
+  letter-spacing:0.06em;
+  text-anchor:middle;
+}
+.esc-siglas-mini{ font-size:8.2px; }
+.esc-siglas-grande{ font-size:15px; }
+.escudo-gama{
+  display:block;
+  font-size:0.62rem;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  opacity:0.65;
+}
+.escudo-nombre{
+  display:block;
+  font-size:0.7rem;
+  line-height:1.3;
+  font-weight:600;
+}
+/* En modo salud, la misma mudanza de tinta que tiene el sello. */
+html.modo-salud .escudos-titulo,
+html.modo-salud .escudo-insignia{ color:#0B6B44; }
+@media (max-width:640px){
+  .escudos-fila{ gap:8px 12px; }
+  .escudo{ max-width:46%; }
+}
+@media (prefers-reduced-motion: reduce){
+  .escudo{ transition:none; }
 }

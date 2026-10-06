@@ -7637,6 +7637,367 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     } catch (e) { /* aditivo: jamás rompe el chat ni el mapa */ }
   })();
 
+  /* ============================================================
+     MODO SOL + «ATRAPA EL SOL» (06-oct-2026, orden directa de
+     Sandro). Todo es aditivo: no toca la lógica de capas ni de
+     rutas. Al activar la casilla «Modo sol» (junto a la de
+     invierno, mismo sitio y misma mecánica):
+       1. Manolit cambia de expresión: gafas de sol para el
+          caminante del mapa y para el muñeco del botón de chat,
+          y un bote de 1 s que con prefers-reduced-motion no se
+          anima (la expresión se queda igualmente).
+       2. Suelta su consejo en la burbuja del panel: usa el UV
+          real (primero nuestro worker /prevision, que ya
+          devuelve uv_index; respaldo directo a Open-Meteo con
+          la función obtenerUV del módulo). Si la red falla no se
+          bloquea nada: sale un consejo genérico de sol suave.
+       3. Si la voz YA tiene permiso, lo lee con la voz neutral
+          de siempre. Nunca pedimos el permiso nosotros.
+       4. Se monta «Atrapa el Sol» en el panel del modo sol con
+          iniciarJuegoSol(); al cerrar el panel se llama al
+          destruir() que devuelve y todo queda limpio (intervalos
+          parados, DOM quitado, puntos solo en memoria).
+     Los dos módulos (js/modo-sol.js y js/juego-sol.js) se cargan
+     con import() perezoso la primera vez que se activa el modo:
+     quien nunca lo toca no descarga ni ejecuta nada.
+     ============================================================ */
+  (function () {
+    try {
+      /* ---- estilos propios, una sola vez ---- */
+      if (!document.getElementById('rsModoSolEstilos')) {
+        const estilo = document.createElement('style');
+        estilo.id = 'rsModoSolEstilos';
+        estilo.textContent = `
+          .rs-toggle-sol.rs-sol-activo{color:#d98a00;font-weight:600;}
+          .rs-icono-msol{display:inline-flex;align-items:center;}
+          .rs-icono-msol svg{width:16px;height:23px;display:block;}
+          .rs-msol-panel{margin-top:10px;padding:12px;border:1px solid var(--mui-line,rgba(255,255,255,0.09));border-radius:12px;background:var(--mui-bg-2,#1C2129);color:var(--mui-text,#E6E9EE);display:flex;flex-direction:column;gap:10px;}
+          .rs-msol-cab{display:flex;align-items:center;gap:10px;}
+          .rs-msol-mascota{width:34px;height:48px;flex:none;}
+          .rs-msol-mascota svg{display:block;width:100%;height:100%;overflow:visible;}
+          .rs-msol-tit{margin:0;flex:1;font-size:1rem;font-weight:700;}
+          .rs-msol-x{flex:none;width:44px;height:44px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:none;border-radius:8px;color:var(--mui-ico,#C9D1D9);cursor:pointer;touch-action:manipulation;}
+          .rs-msol-x svg{width:20px;height:20px;display:block;}
+          .rs-msol-x:focus-visible{outline:2px solid var(--mui-accent,#FF6B1A);outline-offset:2px;}
+          @media (hover:hover) and (pointer:fine){.rs-msol-x:hover{background:rgba(255,255,255,0.06);}}
+          .rs-msol-burbuja{margin:0;padding:8px 12px;border-radius:14px 14px 14px 4px;background:rgba(2,4,6,0.92);color:#fff;border:1px solid rgba(230,161,0,0.55);font-size:0.92rem;}
+          @keyframes rsMsolBote{0%{transform:translateY(0);}30%{transform:translateY(-8px);}55%{transform:translateY(0);}75%{transform:translateY(-4px);}100%{transform:translateY(0);}}
+          body.rs-modo-sol-activo .rs-msol-mascota svg,
+          body.rs-modo-sol-activo .manolit-walker .mw-body{animation:rsMsolBote 1s ease-out 1;}
+          /* Balanceo suave en reposo de la mascota del panel:
+             brazos en contrafase con las piernas (brazo izquierdo
+             va con pierna derecha), solo transform, pausado al
+             ocultarse la pestaña. */
+          @keyframes rsMsolPierna{0%,100%{transform:rotate(7deg);}50%{transform:rotate(-7deg);}}
+          @keyframes rsMsolBrazo{0%,100%{transform:rotate(-8deg);}50%{transform:rotate(8deg);}}
+          .rs-msol-mascota .msol-pierna-izq{animation:rsMsolPierna 1.6s ease-in-out infinite;}
+          .rs-msol-mascota .msol-pierna-der{animation:rsMsolPierna 1.6s ease-in-out -0.8s infinite;}
+          .rs-msol-mascota .msol-brazo-izq{animation:rsMsolBrazo 1.6s ease-in-out -0.8s infinite;}
+          .rs-msol-mascota .msol-brazo-der{animation:rsMsolBrazo 1.6s ease-in-out infinite;}
+          body.rs-msol-pausa .rs-msol-mascota svg *{animation-play-state:paused;}
+          @media (prefers-reduced-motion: reduce){
+            body.rs-modo-sol-activo .rs-msol-mascota svg,
+            body.rs-modo-sol-activo .manolit-walker .mw-body,
+            .rs-msol-mascota .msol-pierna-izq, .rs-msol-mascota .msol-pierna-der,
+            .rs-msol-mascota .msol-brazo-izq, .rs-msol-mascota .msol-brazo-der{animation:none;}
+          }
+        `;
+        document.head.appendChild(estilo);
+      }
+
+      /* ---- la mascota oficial con gafas (misma figura del
+         caminante y del chat: gota granate, sol dorado, dos
+         ondas teal e infinito granate) ---- */
+      const MASCOTA_SOL = `
+        <svg viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <g>
+            <g class="msol-pierna-izq" style="transform-origin:60px 118px;">
+              <line x1="60" y1="118" x2="45" y2="155" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <ellipse cx="42" cy="158" rx="7" ry="4" fill="#7A0016"/>
+            </g>
+            <g class="msol-pierna-der" style="transform-origin:60px 118px;">
+              <line x1="60" y1="118" x2="75" y2="155" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <ellipse cx="78" cy="158" rx="7" ry="4" fill="#7A0016"/>
+            </g>
+            <g class="msol-brazo-izq" style="transform-origin:26px 76px;">
+              <line x1="26" y1="76" x2="6" y2="104" stroke="#7A0016" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="5" cy="106" r="4.5" fill="#E6A100" stroke="#7A0016" stroke-width="2.5"/>
+            </g>
+            <g class="msol-brazo-der" style="transform-origin:94px 76px;">
+              <line x1="94" y1="76" x2="114" y2="104" stroke="#7A0016" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="115" cy="106" r="4.5" fill="#E6A100" stroke="#7A0016" stroke-width="2.5"/>
+            </g>
+            <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
+                  fill="rgba(2,4,6,0.35)" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
+            <circle cx="60" cy="63" r="26" fill="#E6A100"/>
+            <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 43,75 Q 51.5,69.5 60,75 T 77,75" fill="none" stroke="#007A87" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z"
+                  fill="none" stroke="#7A0016" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <g class="rs-gafas-sol">
+              <rect x="36" y="54" width="21" height="15" rx="6" fill="#20242B"/>
+              <rect x="63" y="54" width="21" height="15" rx="6" fill="#20242B"/>
+              <path d="M 57,58 Q 60,55 63,58" fill="none" stroke="#20242B" stroke-width="2.4"/>
+              <path d="M 36,58 L 28,54 M 84,58 L 92,54" fill="none" stroke="#20242B" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M 41,60 L 46,57.5 M 68,60 L 73,57.5" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round"/>
+            </g>
+          </g>
+        </svg>`;
+
+      /* ---- carga perezosa de los dos módulos ---- */
+      function urlJsModoSol(nombre) {
+        try {
+          const s = document.querySelector('script[src*="shadows-route"]');
+          if (s && s.src) return s.src.slice(0, s.src.lastIndexOf('/') + 1) + nombre;
+        } catch (e) { }
+        return 'js/' + nombre;
+      }
+      let msolModP = null;
+      let msolJuegoP = null;
+      function cargarModoSol() {
+        if (!msolModP) msolModP = import(urlJsModoSol('modo-sol.js'));
+        return msolModP;
+      }
+      function cargarJuegoSol() {
+        if (!msolJuegoP) msolJuegoP = import(urlJsModoSol('juego-sol.js'));
+        return msolJuegoP;
+      }
+
+      /* ---- UV actual: primero nuestro worker (/prevision ya
+         pide uv_index a Open-Meteo y lo sirve cacheado); si el
+         worker viejo no lo tiene o falla, respaldo directo con
+         obtenerUV(). Si todo falla, null: consejo genérico. ---- */
+      async function uvActualModoSol(lat, lon) {
+        try {
+          const r = await fetch('/prevision?lat=' + lat.toFixed(3) + '&lon=' + lon.toFixed(3));
+          if (r && r.ok) {
+            const d = await r.json();
+            const v = Number(d && d.current && d.current.uv_index);
+            if (Number.isFinite(v)) return v;
+          }
+        } catch (e) { /* plan B abajo */ }
+        try {
+          const mod = await cargarModoSol();
+          return await mod.obtenerUV(lat, lon);
+        } catch (e) { return null; }
+      }
+
+      /* ---- voz: solo si YA está activa (permiso concedido);
+         nunca pedimos el permiso desde aquí. Misma voz neutral
+         de Manolit que la guía por voz. ---- */
+      function hablarModoSol(texto) {
+        try {
+          if (!('speechSynthesis' in window)) return;
+          if (!(window.ManolitA11y && window.ManolitA11y.vozPermitida && window.ManolitA11y.vozPermitida())) return;
+          if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
+          const frase = new SpeechSynthesisUtterance(texto);
+          const vocesRs = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+          frase.lang = vocesRs[(typeof currentLang !== 'undefined' && vocesRs[currentLang]) ? currentLang : 'es'];
+          try {
+            const voces = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+            const elegida = (window.ManolitWalker && window.ManolitWalker._vozMasNeutra) ? window.ManolitWalker._vozMasNeutra(voces) : null;
+            if (elegida && elegida.voz) frase.voice = elegida.voz;
+            frase.pitch = elegida && elegida.genero === 'f' ? 0.88
+              : elegida && elegida.genero === 'm' ? 1.18 : 1.04;
+          } catch (eVoz) { /* voz por defecto del sistema */ }
+          window.speechSynthesis.speak(frase);
+        } catch (e) { /* sin voz: queda el texto escrito */ }
+      }
+
+      /* ---- gafas de sol sobre las mascotas ya pintadas
+         (caminante del mapa y muñeco del chat). Se añaden como
+         un <g> nuevo dentro del SVG de siempre y se quitan al
+         apagar el modo. Si alguna mascota aún no existe, no pasa
+         nada: el panel lleva la suya propia. ---- */
+      const GAFAS_SOL_CLASE = 'rs-gafas-sol-auto';
+      function ponerGafasSol() {
+        try {
+          document.querySelectorAll('.manolit-walker svg, .chat-fab .manolit-walker-chat svg').forEach((svg) => {
+            if (svg.querySelector('.' + GAFAS_SOL_CLASE)) return;
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('class', GAFAS_SOL_CLASE);
+            g.innerHTML = '<rect x="36" y="54" width="21" height="15" rx="6" fill="#20242B"/>' +
+              '<rect x="63" y="54" width="21" height="15" rx="6" fill="#20242B"/>' +
+              '<path d="M 57,58 Q 60,55 63,58" fill="none" stroke="#20242B" stroke-width="2.4"/>' +
+              '<path d="M 36,58 L 28,54 M 84,58 L 92,54" fill="none" stroke="#20242B" stroke-width="2.4" stroke-linecap="round"/>' +
+              '<path d="M 41,60 L 46,57.5 M 68,60 L 73,57.5" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round"/>';
+            svg.appendChild(g);
+          });
+        } catch (e) { }
+      }
+      function quitarGafasSol() {
+        try { document.querySelectorAll('.' + GAFAS_SOL_CLASE).forEach((g) => { try { g.remove(); } catch (e) { } }); } catch (e) { }
+      }
+
+      /* ---- panel del modo sol (dentro del formulario de ruta,
+         debajo de las casillas; en flujo normal, sin tapar el
+         mapa ni pelearse con los controles) ---- */
+      let msolPanel = null;
+      let msolJuego = null;
+      let msolCaja = null;
+      let msolEtiqueta = null;
+
+      function asegurarPanelModoSol() {
+        if (msolPanel && document.contains(msolPanel)) return;
+        const form = document.querySelector('.rs-form');
+        if (!form) { msolPanel = null; return; }
+        const p = document.createElement('div');
+        p.id = 'rsPanelModoSol';
+        p.className = 'rs-msol-panel';
+        p.setAttribute('role', 'region');
+        p.setAttribute('aria-label', t('sunMode', 'Modo sol'));
+        p.innerHTML =
+          '<div class="rs-msol-cab">' +
+          '<span class="rs-msol-mascota" aria-hidden="true">' + MASCOTA_SOL + '</span>' +
+          '<p class="rs-msol-tit"></p>' +
+          '<button type="button" id="rsBtnCerrarModoSol" class="rs-msol-x">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6 L18 18 M18 6 L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+          '</button>' +
+          '</div>' +
+          '<p class="rs-msol-burbuja" aria-live="polite"></p>' +
+          '<div id="rsJuegoSol" class="rs-msol-juego"></div>';
+        form.appendChild(p);
+        const tit = p.querySelector('.rs-msol-tit');
+        if (tit) tit.textContent = t('sunGameTitle', 'Atrapa el Sol');
+        const x = p.querySelector('#rsBtnCerrarModoSol');
+        if (x) {
+          x.setAttribute('aria-label', t('closeSunPanelAria', 'Cerrar el panel del modo sol'));
+          x.addEventListener('click', () => { desactivarModoSol(true); });
+        }
+        msolPanel = p;
+      }
+
+      function ponerBurbujaModoSol(texto) {
+        const b = msolPanel && msolPanel.querySelector('.rs-msol-burbuja');
+        if (!b) return;
+        // Doble escritura: fuerza a los lectores de pantalla a
+        // anunciar aunque el texto coincida con el anterior.
+        b.textContent = '';
+        b.textContent = texto;
+      }
+
+      async function activarModoSol() {
+        try {
+          const mod = await cargarModoSol();
+          if (!msolCaja || !msolCaja.checked) return; // apagado mientras cargaba
+          let lat = 37.389;
+          let lon = -5.984;
+          try {
+            const c = map.getCenter();
+            if (c && isFinite(c.lat) && isFinite(c.lng)) { lat = c.lat; lon = c.lng; }
+          } catch (e) { }
+          const uv = await uvActualModoSol(lat, lon);
+          if (!msolCaja || !msolCaja.checked) return;
+          const texto = mod.consejoUV(uv);
+          asegurarPanelModoSol();
+          if (!msolPanel) return;
+          ponerBurbujaModoSol(texto);
+          hablarModoSol(texto);
+          document.body.classList.add('rs-modo-sol-activo');
+          ponerGafasSol();
+          const cont = msolPanel.querySelector('#rsJuegoSol');
+          if (cont) {
+            if (msolJuego && msolJuego.destruir) { try { msolJuego.destruir(); } catch (e) { } msolJuego = null; }
+            const mj = await cargarJuegoSol();
+            if (!msolCaja || !msolCaja.checked || !document.contains(cont)) return;
+            msolJuego = mj.iniciarJuegoSol(cont, { decir: (txt) => ponerBurbujaModoSol(txt) });
+          }
+        } catch (e) {
+          console.debug('[Modo sol] no se pudo activar:', e && e.message);
+        }
+      }
+
+      function desactivarModoSol(aviso) {
+        // Si el foco estaba dentro del panel (jugando con teclado
+        // o en la X), no lo tiramos al vacío: vuelve a la casilla.
+        const focoDentro = !!(msolPanel && msolPanel.contains(document.activeElement));
+        if (msolJuego && msolJuego.destruir) { try { msolJuego.destruir(); } catch (e) { } }
+        msolJuego = null;
+        if (msolPanel) { try { msolPanel.remove(); } catch (e) { } msolPanel = null; }
+        document.body.classList.remove('rs-modo-sol-activo');
+        quitarGafasSol();
+        if (msolCaja && msolCaja.checked) msolCaja.checked = false;
+        if (msolEtiqueta) msolEtiqueta.classList.remove('rs-sol-activo');
+        if (focoDentro && msolCaja) { try { msolCaja.focus(); } catch (e) { } }
+        if (aviso) {
+          try { mostrarEstado(t('sunModeOff', 'Modo sol desactivado. Manolit vuelve a la sombrita.'), 'ok'); } catch (e) { }
+        }
+      }
+
+      /* ---- la casilla, junto a «Modo invierno: ruta por el
+         sol», con la misma mecánica y la misma familia visual ---- */
+      function inyectarToggleModoSol(intentos = 0) {
+        const form = document.querySelector('.rs-form');
+        if (!form) {
+          if (intentos < 40) setTimeout(() => inyectarToggleModoSol(intentos + 1), 250);
+          return;
+        }
+        if (document.getElementById('rsToggleModoSol')) return;
+
+        const etiqueta = document.createElement('label');
+        etiqueta.className = 'rs-toggle-invierno rs-toggle-sol';
+        const caja = document.createElement('input');
+        caja.type = 'checkbox';
+        caja.id = 'rsToggleModoSol';
+        const icono = document.createElement('span');
+        icono.className = 'rs-icono-msol';
+        icono.setAttribute('aria-hidden', 'true');
+        icono.innerHTML = `
+          <svg viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <g>
+              <path d="M 34,72 L 22,88" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <path d="M 86,72 L 98,88" stroke="#7A0016" stroke-width="6" stroke-linecap="round"/>
+              <path d="M 60,18 C 22,58 22,108 60,132 C 98,108 98,58 60,18 Z"
+                    fill="rgba(2,4,6,0.35)" stroke="#7A0016" stroke-width="7" stroke-linejoin="round"/>
+              <circle cx="60" cy="63" r="26" fill="#E6A100"/>
+              <path d="M 40,68 Q 50,61 60,68 T 80,68" fill="none" stroke="#007A87" stroke-width="4.5" stroke-linecap="round"/>
+              <path d="M 43,76 Q 51.5,70 60,76 T 77,76" fill="none" stroke="#007A87" stroke-width="3.5" stroke-linecap="round"/>
+              <path d="M 60,58 C 45,42 45,72 60,58 C 75,42 75,72 60,58 Z"
+                    fill="none" stroke="#7A0016" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+          </svg>`;
+        const texto = document.createElement('span');
+        texto.textContent = t('sunMode', 'Modo sol');
+        etiqueta.append(caja, icono, texto);
+        form.appendChild(etiqueta);
+        msolCaja = caja;
+        msolEtiqueta = etiqueta;
+
+        caja.addEventListener('change', () => {
+          etiqueta.classList.toggle('rs-sol-activo', caja.checked);
+          if (caja.checked) {
+            try { mostrarEstado(t('sunModeOn', 'Modo sol activado. Manolit se pasa al sol y te deja sus consejos y un juego.'), 'ok'); } catch (e) { }
+            activarModoSol();
+          } else {
+            desactivarModoSol(true);
+          }
+        });
+
+        document.addEventListener('langChanged', () => {
+          texto.textContent = t('sunMode', 'Modo sol');
+          if (msolPanel) {
+            msolPanel.setAttribute('aria-label', t('sunMode', 'Modo sol'));
+            const tit = msolPanel.querySelector('.rs-msol-tit');
+            if (tit) tit.textContent = t('sunGameTitle', 'Atrapa el Sol');
+            const x = msolPanel.querySelector('#rsBtnCerrarModoSol');
+            if (x) x.setAttribute('aria-label', t('closeSunPanelAria', 'Cerrar el panel del modo sol'));
+          }
+        });
+      }
+      inyectarToggleModoSol();
+
+      /* ---- pausa de las animaciones del modo sol cuando la
+         pestaña se oculta (batería): una clase en body y el CSS
+         hace el resto. El juego lleva su propia pausa interna
+         con reloj por hora real. ---- */
+      try {
+        document.addEventListener('visibilitychange', () => {
+          try { document.body.classList.toggle('rs-msol-pausa', !!document.hidden); } catch (e) { }
+        });
+      } catch (e) { }
+    } catch (e) { /* aditivo: jamás rompe lo que ya funciona */ }
+  })();
+
 })();
 
 /* ============================================================

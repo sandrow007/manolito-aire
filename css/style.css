@@ -2691,3 +2691,15 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
 }
 #main-content .rs-planetario svg{ filter:drop-shadow(0 6px 18px rgba(14,59,71,0.18)); }
 #main-content .rs-planetario-info{ font-size:0.62rem; color:var(--sky-mid); letter-spacing:0.02em; }
+
+/* --- Entrada al juego «Atrapa a Manolit∞» (07-oct-2026, orden de Sandro).
+   El botón vive dentro de .peque-character, que ya es display:none fuera
+   del modo peque: la entrada solo existe en la sección de niños. --- */
+.peque-juego-btn{ margin-top:12px; min-height:44px; padding:10px 18px; border-radius:14px;
+  border:2px solid #7A0016; background:#E6A100; color:#2A1A05; font-weight:700;
+  font-size:1rem; cursor:pointer; }
+.peque-juego-btn:focus-visible{ outline:3px solid #007A87; outline-offset:2px; }
+/* El contenedor del panel del juego va en flujo normal (no flota, no tapa).
+   Solo ocupa sitio cuando hay juego montado, y solo en modo peque. */
+.juego-manolit-cont:empty{ display:none; }
+body:not(.mode-peque) .juego-manolit-cont{ display:none; }

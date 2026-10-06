@@ -176,7 +176,7 @@ window.setCurrentCity = function(city) {
 function renderHero(){
   const d = cityData[currentCity];
   const state = stateFromPM25(currentPM25);
-  const lang = (typeof currentLang !== 'undefined') ? currentLang : 'en';
+  const lang = (typeof currentLang !== 'undefined') ? currentLang : 'es';
   const [line1, line2] = getHeroMessages(lang)[currentMode][state](d.name);
   const humanLineEl = document.getElementById('humanLine');
   const subLineEl = document.getElementById('subLine');
@@ -186,7 +186,7 @@ function renderHero(){
   if (subLineEl) subLineEl.textContent = line2;
   const dictIca = (typeof translations !== 'undefined') ? (translations[lang] || translations.es) : null;
   const icaTxt = dictIca ? (state==='good'?dictIca.aqiGood:state==='mid'?dictIca.aqiModerate:dictIca.aqiBad)
-                         : (state==='good'?'Good':state==='mid'?'Moderate':'Poor');
+                         : (state==='good'?'Buena':state==='mid'?'Moderada':'Mala');
   if (techEl) techEl.textContent = `PM2.5 ${currentPM25} µg/m³ · ICA: ${icaTxt}`;
   const dict = (typeof translations !== 'undefined') ? (translations[lang] || translations.es) : null;
   if (orbFaceEl) orbFaceEl.textContent = dict ? dict[`orb_${state}`] : state;
@@ -1002,3 +1002,70 @@ document.addEventListener('DOMContentLoaded', () => {
   } else if ('requestIdleCallback' in window) requestIdleCallback(iniciarMapa, { timeout: 2500 });
   else window.addEventListener('load', () => setTimeout(iniciarMapa, 100));
 });
+
+/* ============================================================
+   ENTRADA AL JUEGO «ATRAPA A MANOLIT∞» (07-oct-2026, orden
+   directa de Sandro). Vive SOLO en la sección de niños: el botón
+   está dentro de .peque-character, que la CSS mantiene oculto
+   fuera del modo peque. El juego y el diploma se cargan perezosos
+   como módulos ES (sin 404: la base se deriva de la propia URL de
+   este script) y todo se destruye al cerrar el panel. Aditivo.
+   ============================================================ */
+(function () {
+  const arrancar = () => {
+    const btn = document.getElementById('btnJuegoManolit');
+    const cont = document.getElementById('juegoManolitCont');
+    if (!btn || !cont) return;
+    let juego = null;
+    let promesaModulo = null;
+    const urlJs = () => {
+      const s = document.querySelector('script[src*="app.js"]');
+      if (s && s.src) return s.src.slice(0, s.src.lastIndexOf('/') + 1);
+      return 'js/';
+    };
+    const t = (k, fb) => {
+      try {
+        const lang = (typeof window.getCurrentLang === 'function' && window.getCurrentLang()) || 'es';
+        const pack = window.translations && (window.translations[lang] || window.translations.es);
+        return (pack && pack[k]) || (window.translations && window.translations.es && window.translations.es[k]) || fb;
+      } catch (e) { return fb; }
+    };
+    const decir = (txt) => {
+      try {
+        if (window.ManolitA11y && typeof window.ManolitA11y.vozPermitida === 'function' && window.ManolitA11y.vozPermitida()) {
+          const u = new SpeechSynthesisUtterance(txt);
+          u.lang = document.documentElement.lang || 'es';
+          window.speechSynthesis.speak(u);
+        }
+      } catch (e) { /* la voz nunca rompe el juego */ }
+    };
+    btn.addEventListener('click', async () => {
+      if (juego) return;
+      try {
+        promesaModulo = promesaModulo || import(urlJs() + 'juego-manolito.js');
+        const modulo = await promesaModulo;
+        if (juego) return; // doble clic mientras cargaba
+        juego = modulo.iniciarJuegoManolit(cont, {
+          t, decir,
+          cargarCertificado: () => import(urlJs() + 'certificado-manolito.js'),
+          onCerrar: () => { juego = null; cont.innerHTML = ''; btn.focus(); }
+        });
+      } catch (e) {
+        juego = null;
+        promesaModulo = null; // sin red para el módulo: se reintenta al pulsar
+      }
+    });
+    // Si se cambia de modo con el juego abierto, se destruye entero:
+    // juego oculto que sigue gastando batería, prohibido.
+    const vigilanteModo = new MutationObserver(() => {
+      if (juego && !document.body.classList.contains('mode-peque')) {
+        juego.destruir();
+        juego = null;
+        cont.innerHTML = '';
+      }
+    });
+    vigilanteModo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);
+  else arrancar();
+})();

@@ -286,7 +286,6 @@
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
-<base target="_blank">
 </head>
 <body>
 
@@ -837,8 +836,19 @@
     <div class="peque-character" id="pequeCharacter">
       <div class="peque-cloud" id="pequeCloudSvg"></div>
       <div class="peque-message" id="pequeMessage" data-i18n="pequeInit">El aire está contento!</div>
+      <!-- Entrada al juego «Atrapa a Manolit∞» (07-oct-2026, orden de
+           Sandro). Vive SOLO aquí, en la sección de niños: la CSS de
+           .peque-character lo mantiene oculto fuera del modo peque.
+           El juego se carga perezoso desde js/app.js al pulsar. -->
+      <button type="button" class="peque-juego-btn" id="btnJuegoManolit" data-i18n="gameIntroBtn">Juega con Manolit∞</button>
     </div>
   </div>
+
+  <!-- Aquí se monta el panel del juego «Atrapa a Manolit∞» (07-oct-2026,
+       orden de Sandro). Va FUERA del orb-wrap (que tiene 200px fijos) y
+       en flujo normal: empuja el contenido hacia abajo, nunca flota ni
+       tapa nada. Solo existe contenido con el modo peque activo. -->
+  <div class="juego-manolit-cont" id="juegoManolitCont"></div>
 
   <div class="human-line" id="humanLine" data-i18n="heroLoading">Cargando el aire de tu ciudad…</div>
   <div class="sub-line" id="subLine" data-i18n="heroMoment">Un momento.</div>

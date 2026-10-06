@@ -2703,3 +2703,230 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
    Solo ocupa sitio cuando hay juego montado, y solo en modo peque. */
 .juego-manolit-cont:empty{ display:none; }
 body:not(.mode-peque) .juego-manolit-cont{ display:none; }
+
+/* ============================================================
+   MODO PEQUE — REDISEÑO VISUAL (07-oct-2026, orden de Sandro)
+   Jerarquía vertical clara de arriba abajo: ciudad, nube, titular,
+   explicación, calidad del aire y botones de acción. Nada flota
+   sobre nada. Sección aditiva: pisa solo lo que el rediseño cambia.
+   ============================================================ */
+
+/* La nube se queda sola dentro del orb-wrap: al sacar el titular y el
+   botón, la caja ya no se desborda ni se sube encima del selector de
+   ciudad. Altura más justa para que el conjunto respire. */
+body.mode-peque .orb-wrap{ height:150px; margin-bottom:6px; }
+
+/* El titular vive en flujo normal y a todo el ancho útil del hero (ya
+   no encerrado en los 200px del orb-wrap): tarjeta que abraza el texto
+   hasta 560px, borde dorado de marca y tinta legible. Idealmente una
+   línea en móvil, dos como mucho. Fuera del modo peque no existe. */
+.peque-message{ display:none; }
+body.mode-peque .peque-message{
+  display:block; box-sizing:border-box;
+  width:fit-content; max-width:560px; margin:6px auto 0;
+  font-size:clamp(1.25rem, 4.4vw, 1.65rem); line-height:1.28;
+  padding:12px 22px; border-radius:22px;
+  background:var(--surface, #fff); border:2px solid #E6A100;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  color:var(--text, #26424B); font-weight:700;
+}
+
+/* La explicación respira bajo el titular, mismo ancho de lectura. */
+body.mode-peque .human-line{ max-width:560px; margin-top:14px; }
+
+/* La calidad del aire se lee de un vistazo: chip sólido con buen
+   contraste, nada de letra pequeña perdida. El hero centra el chip
+   con su text-align. */
+body.mode-peque .sub-line{
+  display:inline-block; font-size:1.02rem; font-weight:600;
+  color:var(--sky-deep); background:var(--mist);
+  padding:6px 16px; border-radius:999px; margin:6px auto 4px;
+}
+
+/* Botones de acción juntos y en flujo, grandes y fáciles de tocar
+   (52px de alto, por encima del mínimo de 44). En móvil van apilados;
+   con 560px o más, uno al lado del otro. Fuera del modo peque el
+   bloque solo lleva el botón de ayuda, centrado como siempre. */
+.peque-actions{ display:flex; flex-direction:column; align-items:center; gap:12px; margin-top:20px; }
+.peque-actions .im-lost-btn{ margin-top:0; }
+@media (min-width:560px){
+  body.mode-peque .peque-actions{ flex-direction:row; justify-content:center; gap:16px; }
+}
+
+/* El botón del juego solo existe en modo peque y destaca como acción
+   principal (dorado de marca) sin pisar nada. */
+.peque-juego-btn{ display:none; }
+body.mode-peque .peque-juego-btn{
+  display:inline-block; margin-top:0; min-height:52px; padding:12px 26px;
+  font-size:1.1rem; border-radius:16px;
+  transition:transform 0.2s cubic-bezier(0.4,0,0.2,1), background-color 0.2s;
+}
+body.mode-peque .peque-juego-btn:hover{ background:#F2B01E; transform:translateY(-2px); }
+body.mode-peque .peque-juego-btn:active{ transform:translateY(1px); }
+
+/* El chat de ayuda es la acción secundaria en modo peque: contorno
+   teal para que no compita con el dorado del juego. */
+body.mode-peque .im-lost-btn{
+  background:var(--surface, #fff); color:#007A87; border:2px solid #007A87;
+  font-weight:700; font-size:1.05rem; min-height:52px; padding:12px 24px;
+  border-radius:16px; box-shadow:none;
+}
+body.mode-peque .im-lost-btn:hover{ background:#007A87; color:#fff; transform:translateY(-2px); box-shadow:0 6px 14px rgba(0,122,135,0.25); }
+body.mode-peque .im-lost-btn:active{ transform:translateY(1px); box-shadow:none; }
+[data-theme="dark"] body.mode-peque .im-lost-btn{ color:#7FD8E4; border-color:#7FD8E4; }
+[data-theme="dark"] body.mode-peque .im-lost-btn:hover{ background:#007A87; color:#fff; border-color:#007A87; }
+
+/* Decoración intencionada: dos piezas del lenguaje Manolit∞ (sol dorado
+   y nube pequeña teal) quietas en las esquinas superiores del hero,
+   donde nunca hay contenido. La capa ahora es absoluta dentro del hero
+   y detrás de todo. Solo se pintan en pantallas anchas; con menos de
+   1024px no hay margen lateral garantizado y no aparecen. Animación
+   solo de transform, pausada con la pestaña oculta. */
+#pequeFxCapa{ position:absolute; inset:0; z-index:0; }
+#pequeFxCapa .peque-deco{ position:absolute; width:48px; height:48px; opacity:0.5; pointer-events:none; animation:pequeDecoFlota 7s ease-in-out infinite alternate; }
+#pequeFxCapa .peque-deco svg{ display:block; width:100%; height:100%; }
+#pequeFxCapa .peque-deco-sol{ left:16px; top:12px; }
+#pequeFxCapa .peque-deco-nube{ right:16px; top:56px; width:60px; height:45px; animation-duration:9s; }
+@keyframes pequeDecoFlota{ from{ transform:translateY(-6px) rotate(-3deg); } to{ transform:translateY(8px) rotate(3deg); } }
+.peque-fx-pausa .peque-deco{ animation-play-state:paused; }
+@media (max-width:1023px){ #pequeFxCapa{ display:none; } }
+
+/* Movimiento reducido de verdad: la nube no flota y el titular no
+   salta. Las reglas antiguas quedaban pisadas por otras posteriores;
+   al ir esta sección la última de la hoja, aquí manda esto. */
+@media (prefers-reduced-motion: reduce){
+  body.mode-peque .peque-cloud{ animation:none; }
+  body.mode-peque .peque-message{ animation:none; }
+  #pequeFxCapa{ display:none; }
+}
+
+/* --- Arreglo encontrado probando el modo peque (07-oct-2026):
+   el contain-intrinsic-size de las secciones diferidas recordaba un
+   ANCHO de 900px. Mientras la sección estaba fuera de pantalla, ese
+   ancho fantasma inflaba la rejilla del widget solar y la página
+   entera desbordaba a la derecha en móviles y en horizontal (scroll
+   lateral real en producción hasta que el usuario bajaba y la sección
+   se pintaba de verdad). El ancho de recuerdo pasa a 320px (cabe en
+   cualquier móvil) y la altura sigue en 900px, que era su misión:
+   estabilizar la barra de scroll. Medido tras el cambio: scrollWidth
+   igual al viewport en 360, 390, 768, 1024, 1440 y en horizontal. */
+.forecast-section, .map-section, .explain, .content{
+  contain-intrinsic-size: auto 320px auto 900px;
+}
+
+/* ============================================================
+   PANEL DE CAPAS — CONTROL SEGMENTADO, SCROLLBAR Y Z-INDEX
+   (07-oct-2026, tarde, orden directa de Sandro)
+
+   1) «Capas de mapa» deja de ser una caja con tarjetas y acordeón:
+      es un control segmentado plano de dos botones, [Mapa claro]
+      [Mapa IGN]. Activo en naranja, inactivo en gris, cambio de
+      capa inmediato. Sin cajas decorativas ni flecha (el JS ya no
+      crea el botón maestro: sus reglas viejas quedan inertes).
+   2) Catastro 3D sale del grupo de mapas base y pasa a fila-toggle
+      individual (#rsMonteCatastro), con interruptor a la derecha
+      como el resto de controles (icono propio de parcelas).
+   3) Scrollbar del panel: fina (5px), discreta, sin flechas ni
+      botones, semitransparente sobre el fondo oscuro y un poco
+      más clara al pasar el ratón.
+   4) Z-index: los marcadores del mapa (el Manolit que camina
+      llevaba z-index:999 en línea) quedan SIEMPRE por debajo del
+      panel y de los controles fijos. Nada flota encima de los
+      botones del panel.
+   Al ir esta sección la última de la hoja, gana a las reglas
+   anteriores con la misma especificidad.
+   ============================================================ */
+
+/* ---- 1) Control segmentado de mapa base ---- */
+#main-content #rsMapStyleToggle{
+  display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important;
+  gap:4px !important; align-items:stretch !important;
+  width:100%; /* el contenedor (.rs-capas-mapas) es flex: sin esto el
+                 segmentado encogía a su contenido y no llenaba la fila */
+  padding:2px 4px 6px; background:transparent; border:none; box-shadow:none;
+}
+#main-content #rsMapStyleToggle button{
+  flex:1 1 0; min-width:0; min-height:44px;
+  display:flex !important; flex-direction:row !important;
+  align-items:center; justify-content:center; gap:8px;
+  padding:8px 10px !important; margin:0;
+  font-family:inherit; font-size:13px !important; font-weight:600 !important;
+  letter-spacing:0 !important; text-transform:none !important; line-height:1.2;
+  white-space:nowrap;
+  color:var(--mui-soft) !important; background:transparent !important;
+  border:none !important; border-radius:10px !important; box-shadow:none !important;
+  cursor:pointer; text-align:center; backdrop-filter:none; -webkit-backdrop-filter:none;
+  transition:background var(--mui-t), color var(--mui-t);
+}
+#main-content #rsMapStyleToggle button:hover{
+  background:rgba(255,255,255,0.06) !important; color:var(--mui-text) !important;
+}
+#main-content #rsMapStyleToggle button[aria-pressed="true"],
+#main-content #rsMapStyleToggle button[aria-pressed="true"]:hover{
+  background:var(--mui-accent) !important; color:#1A0E04 !important;
+}
+#main-content #rsMapStyleToggle button:focus-visible{
+  outline:2px solid var(--mui-accent-text); outline-offset:2px;
+}
+#main-content #rsMapStyleToggle button::before{ width:16px; height:16px; color:currentColor; }
+/* El segmento claro lleva sol (antes heredaba la luna del viejo
+   «Mapa oscuro», que ya no existe como botón). */
+#main-content #rsBtnMapaOscuro::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+}
+@media (hover:none){
+  #main-content #rsMapStyleToggle button:hover{ background:transparent !important; color:var(--mui-soft) !important; }
+  #main-content #rsMapStyleToggle button[aria-pressed="true"]:hover{ background:var(--mui-accent) !important; color:#1A0E04 !important; }
+}
+
+/* El icono del segmento activo hereda el color del texto del botón.
+   Sin esto, una regla antigua lo pintaba naranja (pensada para cuando
+   el activo era un botón fantasma con fondo oscuro) y el sol se
+   volvía invisible sobre el relleno naranja: naranja sobre naranja. */
+#main-content #rsMapStyleToggle button[aria-pressed="true"]::before{ color:inherit; }
+
+/* ---- 2) Catastro 3D como fila-toggle: icono de parcelas ---- */
+#main-content .rs-ico-catastro::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h7v7H4z'/%3E%3Cpath d='M13 4h7v7h-7z'/%3E%3Cpath d='M4 13h7v7H4z'/%3E%3Cpath d='M13 13h7v7h-7z' stroke-dasharray='2.5 2'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h7v7H4z'/%3E%3Cpath d='M13 4h7v7h-7z'/%3E%3Cpath d='M4 13h7v7H4z'/%3E%3Cpath d='M13 13h7v7h-7z' stroke-dasharray='2.5 2'/%3E%3C/svg%3E");
+}
+
+/* ---- 3) Scrollbar fina y discreta del panel de capas ---- */
+#main-content .rs-layer-toggles-lista{
+  scrollbar-width:thin; /* Firefox: la más fina que permite */
+  scrollbar-color:rgba(230,233,238,0.26) transparent;
+}
+#main-content .rs-layer-toggles-lista::-webkit-scrollbar{ width:5px; height:5px; }
+#main-content .rs-layer-toggles-lista::-webkit-scrollbar-track{ background:transparent; }
+#main-content .rs-layer-toggles-lista::-webkit-scrollbar-thumb{
+  background:rgba(230,233,238,0.22); border-radius:999px;
+}
+#main-content .rs-layer-toggles-lista::-webkit-scrollbar-thumb:hover{
+  background:rgba(230,233,238,0.42);
+}
+#main-content .rs-layer-toggles-lista::-webkit-scrollbar-button{ display:none; width:0; height:0; }
+
+/* ---- 4) Nada flota por encima del panel ni de sus botones ----
+   El Manolit que camina pone z-index:999 en línea a su marcador;
+   esta regla (con !important, que gana al estilo en línea) deja
+   TODOS los marcadores del mapa bajo los controles fijos (5-7) y
+   muy por debajo del panel de capas (1110). No afecta a su clic:
+   donde no hay control encima, el marcador sigue respondiendo. */
+.map-wrap .maplibregl-marker{ z-index:4 !important; }
+
+/* ---- 5) El botón del chat no tapa la hoja de capas en móvil ----
+   .map-wrap crea su propio contexto de apilado (isolation:isolate), así
+   que el FAB del chat (position:fixed, z-index:1200 en body) pinta
+   SIEMPRE por encima de la hoja de capas, y su muñeco de Manolit con la
+   burbuja «¡Pregúntame!» caía justo encima de los botones del
+   segmentado. Mientras la hoja está abierta, el FAB se retira con una
+   transición suave y deja de ser enfocable; al cerrar la hoja vuelve
+   solo. Solo en móvil (la hoja es bottom sheet a todo lo ancho); en
+   escritorio el popover de 290px nunca coincide con el FAB. */
+@media (max-width:639.98px){
+  .chat-fab{ transition:transform .18s ease, opacity .18s ease, visibility .18s ease; }
+  body.rs-capas-pop:has(.rs-planetario-capas:not(.rs-capas-cerrada)) .chat-fab{
+    opacity:0; visibility:hidden; pointer-events:none;
+  }
+}

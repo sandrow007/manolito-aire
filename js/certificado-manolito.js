@@ -5,6 +5,19 @@
    servidor: el nombre solo vive en la memoria de la página y se
    olvida al cerrarla.
 
+   Revisión 07-oct-2026 (segunda orden de Sandro):
+     - El diploma sale en el idioma elegido en la plataforma
+       (es, ca, eu, gl, en, ka), con respaldo limpio al español.
+     - Número de credencial aleatorio MJ-XXXX-XXXX en cada diploma
+       (crypto.getRandomValues; único dentro de la sesión).
+     - Firma de Manolit∞ en la parte inferior, sobre una línea fina,
+       con la etiqueta traducida. Geometría y colores exactamente
+       los del archivo original de Sandro, en su estado final (sin
+       la animación de trazo, que en el PDF saldría a medias).
+     - Banda holográfica decorativa (granate/dorado/teal con
+       brillos suaves), estática en SVG y PDF. Es solo símbolo de
+       juego: no es un elemento de seguridad real.
+
    Dos formatos:
      - SVG vectorial (descarga directa, calidad infinita).
      - PDF de una página A4 apaisado. El PDF se construye a mano
@@ -24,6 +37,126 @@ const PAPEL = '#FBFAF7';
 function escXml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+/* ---------------- textos del diploma, los 6 idiomas ---------------- */
+export const TEXTOS_CERT = {
+  es: {
+    titulo: 'Diploma del juego de Manolit∞',
+    certifica: 'Manolit∞ certifica que',
+    anonimo: 'un peque con mucha cabeza',
+    cuerpo1: (s) => `ha jugado a «Atrapa a Manolit∞» y ha conseguido ${s} de 6 sellos de protección del calor,`,
+    cuerpo2: (p) => `con ${p} puntos y toda la gracia del mundo.`,
+    completo: 'Y con los 6 sellos completos gana también el sello de Simulador de Sombras.',
+    kicker: 'SELLOS DE PROTECCIÓN CONSEGUIDOS',
+    sellos: { sol: 'sol', sombra: 'sombra', salud: 'salud', agua: 'agua', temp: 'temp.', prevencion: 'prevención' },
+    final1: 'SIMULADOR', final2: 'DE SOMBRAS',
+    dia: 'Día', credencial: 'Credencial', firma: 'Firma',
+    disc1: 'Diploma de juego, sin validez oficial ni acreditación.',
+    disc2: 'Hecho en tu propio dispositivo. Tu nombre no sale de aquí. manolitoaire.com'
+  },
+  ca: {
+    titulo: 'Diploma del joc de Manolit∞',
+    certifica: 'En Manolit∞ certifica que',
+    anonimo: 'un infant amb molta traça',
+    cuerpo1: (s) => `ha jugat a «Atrapa en Manolit∞» i ha aconseguit ${s} de 6 segells de protecció de la calor,`,
+    cuerpo2: (p) => `amb ${p} punts i tota la gràcia del món.`,
+    completo: 'I amb els 6 segells complets guanya també el segell de Simulador d\'Ombres.',
+    kicker: 'SEGELLS DE PROTECCIÓ ACONSEGUITS',
+    sellos: { sol: 'sol', sombra: 'ombra', salud: 'salut', agua: 'aigua', temp: 'temp.', prevencion: 'prevenció' },
+    final1: 'SIMULADOR', final2: 'D\'OMBRES',
+    dia: 'Dia', credencial: 'Credencial', firma: 'Signatura',
+    disc1: 'Diploma de joc, sense validesa oficial ni acreditació.',
+    disc2: 'Fet al teu propi dispositiu. El teu nom no surt d\'aquí. manolitoaire.com'
+  },
+  eu: {
+    titulo: 'Manolit∞ jokoaren diploma',
+    certifica: 'Manolit∞-ek ziurtatzen du',
+    anonimo: 'buru argi duen txiki bat',
+    cuerpo1: (s) => `«Harrapatu Manolit∞» jokuan jolastu du eta beroaren 6 babes zigiluetik ${s} lortu ditu,`,
+    cuerpo2: (p) => `${p} puntu eta munduko grazia guztiarekin.`,
+    completo: 'Eta 6 zigiluak osatuta, Itzal Simulatzailearen zigilua ere irabazten du.',
+    kicker: 'LORTUTAKO BABES ZIGILUAK',
+    sellos: { sol: 'eguzkia', sombra: 'itzala', salud: 'osasuna', agua: 'ura', temp: 'tenp.', prevencion: 'prebentzioa' },
+    final1: 'ITZAL', final2: 'SIMULATZAILEA',
+    dia: 'Eguna', credencial: 'Kredentziala', firma: 'Sinadura',
+    disc1: 'Jolaserako diploma, balio ofizialik edo akreditaziorik gabe.',
+    disc2: 'Zure gailuan bertan egina. Zure izena ez da hemendik ateratzen. manolitoaire.com'
+  },
+  gl: {
+    titulo: 'Diploma do xogo de Manolit∞',
+    certifica: 'Manolit∞ certifica que',
+    anonimo: 'un pequeno con moita cabeza',
+    cuerpo1: (s) => `xogou a «Atrapa a Manolit∞» e conseguiu ${s} de 6 selos de protección da calor,`,
+    cuerpo2: (p) => `con ${p} puntos e toda a graza do mundo.`,
+    completo: 'E cos 6 selos completos gaña tamén o selo de Simulador de Sombras.',
+    kicker: 'SELOS DE PROTECCIÓN CONSEGUIDOS',
+    sellos: { sol: 'sol', sombra: 'sombra', salud: 'saúde', agua: 'auga', temp: 'temp.', prevencion: 'prevención' },
+    final1: 'SIMULADOR', final2: 'DE SOMBRAS',
+    dia: 'Día', credencial: 'Credencial', firma: 'Sinatura',
+    disc1: 'Diploma de xogo, sen validez oficial nin acreditación.',
+    disc2: 'Feito no teu propio dispositivo. O teu nome non sae de aquí. manolitoaire.com'
+  },
+  en: {
+    titulo: 'Manolit∞ Game Diploma',
+    certifica: 'Manolit∞ certifies that',
+    anonimo: 'a kid with a clever head',
+    cuerpo1: (s) => `has played «Catch Manolit∞» and earned ${s} of 6 heat protection seals,`,
+    cuerpo2: (p) => `with ${p} points and all the grace in the world.`,
+    completo: 'And with all 6 seals they also earn the Shadow Simulator seal.',
+    kicker: 'PROTECTION SEALS EARNED',
+    sellos: { sol: 'sun', sombra: 'shade', salud: 'health', agua: 'water', temp: 'temp.', prevencion: 'prevention' },
+    final1: 'SHADOW', final2: 'SIMULATOR',
+    dia: 'Date', credencial: 'Credential', firma: 'Signature',
+    disc1: 'A play diploma, with no official validity or accreditation.',
+    disc2: 'Made on your own device. Your name never leaves it. manolitoaire.com'
+  },
+  ka: {
+    titulo: 'მანოლიტ∞-ის თამაშის დიპლომი',
+    certifica: 'მანოლიტ∞ ადასტურებს, რომ',
+    anonimo: 'ჭკვიანი ბავშვი',
+    cuerpo1: (s) => `ითამაშა «დაიჭირე მანოლიტ∞» და მოიპოვა სითბოსგან დაცვის 6 ბეჭდიდან ${s},`,
+    cuerpo2: (p) => `${p} ქულით და მსოფლიოს ყველა მოხურებით.`,
+    completo: 'და ყველა 6 ბეჭდით აგრეთვე იგებს ჩრდილების სიმულატორის ბეჭედს.',
+    kicker: 'მოპოვებული დაცვის ბეჭდები',
+    sellos: { sol: 'მზე', sombra: 'ჩრდილი', salud: 'ჯანმრთელობა', agua: 'წყალი', temp: 'ტემპ.', prevencion: 'პრევენცია' },
+    final1: 'ჩრდილების', final2: 'სიმულატორი',
+    dia: 'თარიღი', credencial: 'ნომერი', firma: 'ხელმოწერა',
+    disc1: 'სათამაშო დიპლომი, ოფიციალური ძალისა და აკრედიტაციის გარეშე.',
+    disc2: 'შექმნილია შენს მოწყობილობაში. შენი სახელი აქედან არ გადის. manolitoaire.com'
+  }
+};
+
+function textosCertDe(lang) {
+  const base = TEXTOS_CERT.es;
+  const pack = TEXTOS_CERT[lang] || base;
+  return new Proxy(pack, {
+    get(obj, clave) {
+      if (clave in obj) return obj[clave];
+      return base[clave];
+    }
+  });
+}
+
+/* ============================================================
+   Número de credencial aleatorio, formato MJ-XXXX-XXXX.
+   Sale de crypto.getRandomValues (con respaldo a Math.random si
+   el navegador no lo tuviera). El Set lo hace único dentro de la
+   sesión; sin almacenamiento no se puede garantizar unicidad
+   eterna entre dispositivos, y así se dice en la entrega.
+   ============================================================ */
+const credencialesUsadas = new Set();
+export function nuevaCredencial() {
+  let c = '';
+  do {
+    const b = new Uint8Array(4);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(b);
+    else for (let i = 0; i < 4; i++) b[i] = Math.floor(Math.random() * 256);
+    const hex = Array.from(b, x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+    c = 'MJ-' + hex.slice(0, 4) + '-' + hex.slice(4, 8);
+  } while (credencialesUsadas.has(c));
+  credencialesUsadas.add(c);
+  return c;
 }
 
 /* ---- Sello oficial Manolit∞ (geometría exacta del que ya vive
@@ -104,7 +237,7 @@ function miniSello(id, nombre, cx, cy, conseguido) {
 }
 
 /* ---- Sello final: solo se estampa si están los 6 ---- */
-function selloFinal(cx, cy, conseguido) {
+function selloFinal(cx, cy, conseguido, tc) {
   const op = conseguido ? '1' : '0.28';
   return `
   <g opacity="${op}">
@@ -113,32 +246,152 @@ function selloFinal(cx, cy, conseguido) {
     <path d="M ${cx} ${cy - 34} C ${cx - 26} ${cy - 6} ${cx - 26} ${cy + 26} ${cx} ${cy + 42} C ${cx + 26} ${cy + 26} ${cx + 26} ${cy - 6} ${cx} ${cy - 34} Z" fill="none" stroke="${GRANATE}" stroke-width="4" stroke-linejoin="round"/>
     <path d="M ${cx} ${cy - 6} C ${cx - 11} ${cy - 17} ${cx - 11} ${cy + 5} ${cx} ${cy - 6} C ${cx + 11} ${cy - 17} ${cx + 11} ${cy + 5} ${cx} ${cy - 6} Z" fill="none" stroke="${GRANATE}" stroke-width="2.5" stroke-linecap="round"/>
     <path d="M ${cx - 22} ${cy + 8} Q ${cx - 11} ${cy + 2} ${cx} ${cy + 8} T ${cx + 22} ${cy + 8}" fill="none" stroke="${TEAL}" stroke-width="3" stroke-linecap="round"/>
-    <text x="${cx}" y="${cy + 72}" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="${GRANATE}">SIMULADOR</text>
-    <text x="${cx}" y="${cy + 87}" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="${GRANATE}">DE SOMBRAS</text>
+    <text x="${cx}" y="${cy + 72}" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="${GRANATE}">${escXml(tc.final1)}</text>
+    <text x="${cx}" y="${cy + 87}" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="${GRANATE}">${escXml(tc.final2)}</text>
+  </g>`;
+}
+
+/* ---- Banda holográfica decorativa (como la de las tarjetas).
+   Degradado iridiscente entre los colores de marca con brillos
+   suaves. Es símbolo de juego, no elemento de seguridad real.
+   El rect con clase jm-holo-anim solo se mueve en la vista previa
+   de la página (el CSS vive allí): en el archivo descargado y en
+   el PDF la banda es completamente estática. ---- */
+function bandaHolo() {
+  return `
+  <defs>
+    <linearGradient id="certHolo" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="${GRANATE}"/>
+      <stop offset="0.22" stop-color="${DORADO}"/>
+      <stop offset="0.5" stop-color="${TEAL}"/>
+      <stop offset="0.78" stop-color="${DORADO}"/>
+      <stop offset="1" stop-color="${GRANATE}"/>
+    </linearGradient>
+    <linearGradient id="certHoloBrillo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="0.65" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="certHoloLineas" width="3" height="37" patternUnits="userSpaceOnUse">
+      <rect width="1" height="37" fill="#FFFFFF" opacity="0.08"/>
+    </pattern>
+    <clipPath id="certHoloClip"><rect x="60" y="615" width="1003" height="37" rx="9"/></clipPath>
+  </defs>
+  <rect x="60" y="615" width="1003" height="37" rx="9" fill="url(#certHolo)" opacity="0.92"/>
+  <rect x="60" y="615" width="1003" height="37" rx="9" fill="url(#certHoloLineas)"/>
+  <rect x="60" y="615" width="1003" height="37" rx="9" fill="url(#certHoloBrillo)"/>
+  <g clip-path="url(#certHoloClip)">
+    <g class="jm-holo-anim"><rect x="60" y="615" width="150" height="37" fill="#FFFFFF" opacity="0.28" transform="skewX(-18)"/></g>
+  </g>
+  <rect x="60" y="615" width="1003" height="37" rx="9" fill="none" stroke="${GRANATE}" stroke-width="1.5" opacity="0.5"/>`;
+}
+
+/* ---- Firma de Manolit∞. Geometría y colores copiados tal cual
+   del archivo original de Sandro (viewBox 0 0 1000 400): la
+   palabra "Manolit" y el trazo de la 't' que muta hacia el
+   infinito, con su sombra térmica azul. Se integra en su estado
+   final, sin la animación de trazo (si se animara, el PDF la
+   rasterizaría a medio dibujar). La cuadrícula cartográfica del
+   original era el fondo de la página de firma, no parte de la
+   firma, y no se incluye. ---- */
+function firmaSVG(x, y, escala) {
+  return `
+  <defs>
+    <filter id="certFirmaBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+  </defs>
+  <g transform="translate(${x}, ${y}) scale(${escala})">
+    <g fill="none" stroke="#3b82f6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.25" transform="translate(6, 10)" filter="url(#certFirmaBlur)">
+      <path d="M 150 230
+        C 150 150, 200 120, 210 200
+        C 210 250, 220 250, 220 200
+        C 220 150, 270 120, 280 200
+        C 280 250, 290 250, 300 230
+        C 320 200, 290 200, 290 230
+        C 290 260, 340 260, 340 230
+        C 340 200, 340 250, 360 230
+        C 360 190, 380 190, 380 220
+        C 380 250, 390 250, 390 220
+        C 390 190, 420 190, 420 220
+        C 420 250, 430 250, 440 230
+        C 460 200, 430 200, 430 230
+        C 430 260, 480 260, 480 230
+        C 480 200, 460 210, 490 200
+        C 510 100, 540 80, 530 150
+        C 520 250, 540 250, 550 230
+        C 560 190, 570 190, 570 230
+        C 570 250, 580 250, 590 230
+        C 600 120, 610 120, 610 160
+        C 610 250, 630 250, 640 230" />
+      <path d="M 560 170
+        C 620 160, 680 120, 740 120
+        C 820 120, 850 180, 800 240
+        C 750 300, 680 120, 600 120
+        C 520 120, 490 180, 540 240
+        C 590 300, 680 200, 780 200
+        C 850 200, 920 220, 950 180" />
+    </g>
+    <g fill="none" stroke="#111827" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 150 230
+        C 150 150, 200 120, 210 200
+        C 210 250, 220 250, 220 200
+        C 220 150, 270 120, 280 200
+        C 280 250, 290 250, 300 230
+        C 320 200, 290 200, 290 230
+        C 290 260, 340 260, 340 230
+        C 340 200, 340 250, 360 230
+        C 360 190, 380 190, 380 220
+        C 380 250, 390 250, 390 220
+        C 390 190, 420 190, 420 220
+        C 420 250, 430 250, 440 230
+        C 460 200, 430 200, 430 230
+        C 430 260, 480 260, 480 230
+        C 480 200, 460 210, 490 200
+        C 510 100, 540 80, 530 150
+        C 520 250, 540 250, 550 230
+        C 560 190, 570 190, 570 230
+        C 570 250, 580 250, 590 230
+        C 600 120, 610 120, 610 160
+        C 610 250, 630 250, 640 230" />
+      <path d="M 560 170
+        C 620 160, 680 120, 740 120
+        C 820 120, 850 180, 800 240
+        C 750 300, 680 120, 600 120
+        C 520 120, 490 180, 540 240
+        C 590 300, 680 200, 780 200
+        C 850 200, 920 220, 950 180" />
+    </g>
+    <circle cx="576" cy="160" r="4.5" fill="#3b82f6" filter="url(#certFirmaBlur)"/>
+    <circle cx="570" cy="150" r="4.5" fill="#111827"/>
   </g>`;
 }
 
 /* ============================================================
-   construirCertificadoSVG({ nombre, puntos, sellos, fecha })
+   construirCertificadoSVG({ nombre, puntos, sellos, fecha, lang,
+   credencial })
    - nombre: string (ya recortado) o '' si el niño no quiso ponerlo
    - puntos: número entero
    - sellos: array de ids conseguidos, p. ej. ['sol','sombra',...]
    - fecha: string ya formateada por el llamador (locale del niño)
+   - lang: idioma de la plataforma ('es','ca','eu','gl','en','ka');
+           cualquier otra cosa cae al español sin romperse
+   - credencial: string MJ-XXXX-XXXX (si falta se genera una)
    Devuelve el SVG como string (A4 apaisado, 1123x794).
    ============================================================ */
-export function construirCertificadoSVG({ nombre = '', puntos = 0, sellos = [], fecha = '' } = {}) {
-  const SELLOS = [
-    ['sol', 'sol'], ['sombra', 'sombra'], ['salud', 'salud'],
-    ['agua', 'agua'], ['temp', 'temp.'], ['prevencion', 'prevención']
-  ];
-  const completo = SELLOS.every(([id]) => sellos.includes(id));
-  const quien = nombre ? escXml(nombre) : 'un peque con mucha cabeza';
+export function construirCertificadoSVG({ nombre = '', puntos = 0, sellos = [], fecha = '', lang = 'es', credencial = '' } = {}) {
+  const tc = textosCertDe(lang);
+  const SELLOS = ['sol', 'sombra', 'salud', 'agua', 'temp', 'prevencion'];
+  const completo = SELLOS.every(id => sellos.includes(id));
+  const quien = nombre ? escXml(nombre) : escXml(tc.anonimo);
+  const cred = credencial || nuevaCredencial();
 
   let fila = '';
-  SELLOS.forEach(([id, nom], i) => {
-    fila += miniSello(id, nom, 236 + i * 130, 528, sellos.includes(id));
+  SELLOS.forEach((id, i) => {
+    fila += miniSello(id, tc.sellos[id] || id, 236 + i * 130, 505, sellos.includes(id));
   });
-  const final = selloFinal(236 + 6 * 130 + 10, 528, completo);
+  const final = selloFinal(236 + 6 * 130 + 10, 505, completo, tc);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1123" height="794" viewBox="0 0 1123 794" font-family="'Segoe UI', system-ui, sans-serif">
   <rect width="1123" height="794" fill="${PAPEL}"/>
@@ -146,26 +399,32 @@ export function construirCertificadoSVG({ nombre = '', puntos = 0, sellos = [], 
   <rect x="30" y="30" width="1063" height="734" fill="none" stroke="${GRANATE}" stroke-width="1.5" stroke-dasharray="8 5"/>
 
   <text x="610" y="96" text-anchor="middle" font-family="monospace" font-size="22" letter-spacing="6" fill="${GRANATE}">MANOLIT∞ AIRE</text>
-  <text x="610" y="150" text-anchor="middle" font-size="44" font-weight="800" fill="${TINTA}">Diploma del juego de Manolit∞</text>
+  <text x="610" y="150" text-anchor="middle" font-size="44" font-weight="800" fill="${TINTA}">${escXml(tc.titulo)}</text>
 
-  <text x="610" y="205" text-anchor="middle" font-size="22" fill="${TINTA}">Manolit∞ certifica que</text>
+  <text x="610" y="205" text-anchor="middle" font-size="22" fill="${TINTA}">${escXml(tc.certifica)}</text>
   <text x="610" y="252" text-anchor="middle" font-size="34" font-weight="700" fill="${GRANATE}">${quien}</text>
   <line x1="360" y1="268" x2="860" y2="268" stroke="${DORADO}" stroke-width="3"/>
 
-  <text x="610" y="310" text-anchor="middle" font-size="20" fill="${TINTA}">ha jugado a «Atrapa a Manolit∞» y ha conseguido ${sellos.length} de 6 sellos de protección del calor,</text>
-  <text x="610" y="340" text-anchor="middle" font-size="20" fill="${TINTA}">con ${puntos} puntos y toda la gracia del mundo.</text>
-  ${completo ? `<text x="610" y="382" text-anchor="middle" font-size="22" font-weight="700" fill="${GRANATE}">Y con los 6 sellos completos gana también el sello de Simulador de Sombras.</text>` : ''}
+  <text x="610" y="310" text-anchor="middle" font-size="20" fill="${TINTA}">${escXml(tc.cuerpo1(sellos.length))}</text>
+  <text x="610" y="340" text-anchor="middle" font-size="20" fill="${TINTA}">${escXml(tc.cuerpo2(puntos))}</text>
+  ${completo ? `<text x="610" y="382" text-anchor="middle" font-size="22" font-weight="700" fill="${GRANATE}">${escXml(tc.completo)}</text>` : ''}
 
   ${selloOficial(44, 64, 0.47)}
 
-  <text x="610" y="452" text-anchor="middle" font-family="monospace" font-size="16" letter-spacing="3" fill="${TEAL}">SELLOS DE PROTECCIÓN CONSEGUIDOS</text>
+  <text x="610" y="430" text-anchor="middle" font-family="monospace" font-size="16" letter-spacing="3" fill="${TEAL}">${escXml(tc.kicker)}</text>
   ${fila}
   ${final}
 
-  <text x="92" y="724" font-family="monospace" font-size="16" fill="${TINTA}">Día ${escXml(fecha)}</text>
-  <text x="1031" y="700" text-anchor="end" font-family="monospace" font-size="12" fill="${TINTA}">Diploma de juego, sin validez oficial ni acreditación.</text>
-  <text x="1031" y="720" text-anchor="end" font-family="monospace" font-size="12" fill="${TINTA}">Hecho en tu propio dispositivo. Tu nombre no sale de aquí.</text>
-  <text x="1031" y="740" text-anchor="end" font-family="monospace" font-size="12" fill="${TINTA}">manolitoaire.com</text>
+  ${bandaHolo()}
+
+  <text x="92" y="690" font-family="monospace" font-size="16" fill="${TINTA}">${escXml(tc.dia)} · ${escXml(fecha)}</text>
+  <text x="92" y="712" font-family="monospace" font-size="14" fill="${TEAL}">${escXml(tc.credencial)} · ${escXml(cred)}</text>
+  <text x="92" y="742" font-family="monospace" font-size="11" fill="${TINTA}">${escXml(tc.disc1)}</text>
+  <text x="92" y="757" font-family="monospace" font-size="11" fill="${TINTA}">${escXml(tc.disc2)}</text>
+
+  ${firmaSVG(828, 656, 0.19)}
+  <line x1="828" y1="736" x2="1048" y2="736" stroke="${TINTA}" stroke-width="1.5"/>
+  <text x="938" y="752" text-anchor="middle" font-family="monospace" font-size="13" fill="${TINTA}">${escXml(tc.firma)}</text>
 </svg>`;
 }
 

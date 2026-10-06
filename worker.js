@@ -390,7 +390,7 @@ export default {
         }
         const om = 'https://api.open-meteo.com/v1/forecast' +
           `?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}` +
-          '&current=temperature_2m,cloudcover,relative_humidity_2m' +
+          '&current=temperature_2m,cloudcover,relative_humidity_2m,uv_index' +
           '&hourly=temperature_2m,cloudcover,relative_humidity_2m' +
           '&past_days=1&forecast_days=2&timezone=auto&timeformat=unixtime';
         const r = await fetch(om, {

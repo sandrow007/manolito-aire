@@ -3621,24 +3621,43 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'rsBtnMapaOscuro';
-    btn.textContent = t('darkMapOn', 'Mapa oscuro');
-    // La etiqueta del botón refleja el estado del mapa. El mapa NACE
-    // claro siempre (sep-2026, orden de Sandro): el tema oscuro de la web
-    // ya no lo invierte automáticamente; solo lo oscurece este botón.
-    const sincronizarEtiquetaMapa = () => {
-      const efectivoOscuro = mapaOscuro;
-      btn.textContent = efectivoOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
-      btn.setAttribute('aria-pressed', efectivoOscuro ? 'true' : 'false');
+    // 07-oct-2026 (orden directa de Sandro): los mapas base dejan de ser
+    // tarjetas dentro de una caja con acordeón y pasan a un CONTROL
+    // SEGMENTADO plano de dos botones: [Mapa claro] [Mapa IGN]. Uno
+    // activo en naranja, el otro en gris, y el cambio es inmediato.
+    // Este botón conserva su id histórico (rsBtnMapaOscuro) pero ahora es
+    // el segmento CLARO: la base vectorial de siempre, sin filtro oscuro
+    // ni WMS del IGN. El filtro oscuro (mapaOscuro) sigue existiendo en
+    // código por compatibilidad, pero ya no tiene botón propio: elegir
+    // cualquiera de los dos segmentos lo apaga.
+    btn.textContent = t('darkMapOff', 'Mapa claro');
+    // El estado del IGN se declara aquí arriba para que el pintado inicial
+    // de los segmentos no caiga en la zona muerta del let (TDZ).
+    let ignActivo = false;
+    const sincronizarSegmentos = () => {
+      btn.textContent = t('darkMapOff', 'Mapa claro');
+      btn.setAttribute('aria-pressed', ignActivo ? 'false' : 'true');
+      const bI = document.getElementById('rsBtnMapaIGN');
+      if (bI) bI.setAttribute('aria-pressed', ignActivo ? 'true' : 'false');
     };
-    new MutationObserver(() => { sincronizarEtiquetaMapa(); aplicarEstiloNubes(); })
+    const apagarMapaOscuroSiHaceFalta = () => {
+      if (!mapaOscuro) return;
+      mapaOscuro = false;
+      contenedorMapa.classList.remove('rs-mapa-oscuro-activo');
+      aplicarEstiloNubes(); // las nubes vuelven a su brillo de mapa claro
+    };
+    new MutationObserver(() => { sincronizarSegmentos(); aplicarEstiloNubes(); })
       .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     btn.addEventListener('click', () => {
-      mapaOscuro = !mapaOscuro;
-      contenedorMapa.classList.toggle('rs-mapa-oscuro-activo', mapaOscuro);
-      sincronizarEtiquetaMapa();
-      aplicarEstiloNubes(); // las nubes cambian de brillo para seguir viéndose
+      // Segmento CLARO: base vectorial limpia. Apaga el WMS del IGN si
+      // estaba encendido y también el filtro oscuro (claro es claro).
+      apagarMapaOscuroSiHaceFalta();
+      if (ignActivo) {
+        ignActivo = false;
+        try { if (map.getLayer(IGN_CAPA)) map.setLayoutProperty(IGN_CAPA, 'visibility', 'none'); } catch (e) {}
+      }
+      sincronizarSegmentos();
     });
-    sincronizarEtiquetaMapa();
     wrap.appendChild(btn);
 
     /* --- Capa base IGN (WMS público del Instituto Geográfico Nacional) ---
@@ -3647,7 +3666,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
        sombras, como cartografía de fondo alternativa. */
     const IGN_SRC = 'ign-wms-base';
     const IGN_CAPA = 'ign-wms-base-capa';
-    let ignActivo = false;
+    // (ignActivo se declara junto al segmento claro, unas líneas más arriba,
+    // para que el pintado inicial no caiga en la zona muerta del let)
     const asegurarCapaIGN = () => {
       try {
         if (!map.getSource(IGN_SRC)) {
@@ -3677,18 +3697,22 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnIGN.setAttribute('aria-pressed', 'false');
     btnIGN.title = t('ignMapTitle', 'Cartografía del Instituto Geográfico Nacional (CC BY 4.0 scne.es)');
     btnIGN.addEventListener('click', () => {
-      ignActivo = !ignActivo;
-      if (ignActivo) {
+      // Segmento IGN (07-oct): enciende la cartografía del IGN y apaga el
+      // filtro oscuro (invertir el WMS dejaría los colores imposibles).
+      // Si ya está activo no hace nada: comportamiento radio, como pide
+      // el control segmentado. El estilo sale del aria-pressed por CSS.
+      if (!ignActivo) {
+        ignActivo = true;
         asegurarCapaIGN();
         try { if (map.getLayer(IGN_CAPA)) map.setLayoutProperty(IGN_CAPA, 'visibility', 'visible'); } catch (e) {}
-      } else {
-        try { if (map.getLayer(IGN_CAPA)) map.setLayoutProperty(IGN_CAPA, 'visibility', 'none'); } catch (e) {}
+        apagarMapaOscuroSiHaceFalta();
       }
-      btnIGN.setAttribute('aria-pressed', ignActivo ? 'true' : 'false');
-      btnIGN.style.background = ignActivo ? 'var(--accent-soft, rgba(255,107,26,0.16))' : '';
-      btnIGN.style.borderColor = ignActivo ? 'var(--accent, #FF6B1A)' : '';
+      sincronizarSegmentos();
     });
     wrap.appendChild(btnIGN);
+    // Pintado inicial del segmentado: claro activo, IGN apagado (el mapa
+    // nace claro siempre, sep-2026, orden de Sandro).
+    sincronizarSegmentos();
 
     /* --- Catastro de España: densidad de alturas (fucsia/verde) ---
        100% gratis y sin API key: raster WMS oficial INSPIRE de la Sede
@@ -3761,19 +3785,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         }
       }
       btnCatastro.setAttribute('aria-pressed', catastroActivo ? 'true' : 'false');
-      btnCatastro.style.background = catastroActivo ? 'var(--accent-soft, rgba(255,107,26,0.16))' : '';
-      btnCatastro.style.borderColor = catastroActivo ? 'var(--accent, #FF6B1A)' : '';
     });
-    wrap.appendChild(btnCatastro);
-    // El wrap pasa a apilar los dos botones en vertical
-    wrap.style.display = 'flex';
-    wrap.style.flexDirection = 'column';
-    wrap.style.gap = '6px';
-    wrap.style.alignItems = 'flex-end';
-    // Capas de mapa DENTRO del widget de posición solar (sep-2026, orden
-    // de Sandro): Mapa oscuro, Mapa IGN y Catastro 3D ya no flotan
-    // encima del mapa; viven en el planetario, junto a las casillas de
-    // capas. Si el widget no estuviera en el HTML, se quedan donde estaban.
+    // Catastro 3D ya NO va con los mapas base (07-oct-2026, orden directa
+    // de Sandro): es una capa combinable y vive en su propia fila-toggle
+    // del grupo «Base e infraestructura», igual que Árboles e Intensidad
+    // solar. El interruptor de la fila se pinta solo leyendo aria-pressed.
+    (document.getElementById('rsMonteCatastro') || wrap).appendChild(btnCatastro);
+    // El control segmentado [Mapa claro | Mapa IGN] DENTRO del widget de
+    // posición solar (sep-2026, orden de Sandro): ya no flota encima del
+    // mapa; vive en el planetario, junto a las casillas de capas. Si el
+    // widget no estuviera en el HTML, se quedan donde estaba. La forma
+    // (fila plana de dos botones) la pone el CSS, no estilos en línea.
     (document.getElementById('rsCapasMapas') || contenedorMapa).appendChild(wrap);
   }
 
@@ -5095,11 +5117,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (btnPaseo) btnPaseo.textContent = paseoActivo ? t('virtualWalkStop', 'Salir del paseo') : t('virtualWalkStart', 'Paseo virtual 3D');
 
     const btnDark = document.getElementById('rsBtnMapaOscuro');
-    if (btnDark){
-      const webOscura = document.documentElement.getAttribute('data-theme') === 'dark';
-      const efectivoOscuro = webOscura ? !mapaOscuro : mapaOscuro;
-      btnDark.textContent = efectivoOscuro ? t('darkMapOff', 'Mapa claro') : t('darkMapOn', 'Mapa oscuro');
-    }
+    // 07-oct: el id histórico rsBtnMapaOscuro es ahora el segmento «Mapa
+    // claro» del control de mapa base. Su etiqueta es fija y aquí solo se
+    // retraduce; el estado activo lo marcan los aria-pressed del segmentado.
+    if (btnDark) btnDark.textContent = t('darkMapOff', 'Mapa claro');
     const eyebrow = document.getElementById('rsEyebrowSol');
     if (eyebrow) eyebrow.textContent = t('sunPosition', 'Posición solar');
     const btnCapturar = document.getElementById('rsBtnCapturar');
@@ -9236,6 +9257,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // (Este archivo tiene varios IIFE independientes: este bloque es
   // autosuficiente y no usa helpers de otros módulos.)
   (function mejoraCapasPlegables() {
+    // 07-oct-2026 (orden directa de Sandro): la caja contenedora y la
+    // flecha del acordeón «Capas de mapa» se ELIMINAN por completo. Los
+    // mapas base son ahora un control segmentado plano [Mapa claro |
+    // Mapa IGN] sin cajas decorativas. Este bloque queda desactivado:
+    // el botón maestro ya no se crea y nada recibe la clase rs-capa-hija.
+    return;
     try {
       const tt = (typeof t === 'function') ? t : function (k, f) { return f; };
       const mejorar = function (grupo) {

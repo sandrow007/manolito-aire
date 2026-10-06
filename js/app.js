@@ -1023,12 +1023,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (s && s.src) return s.src.slice(0, s.src.lastIndexOf('/') + 1);
       return 'js/';
     };
-    const t = (k, fb) => {
+    // El juego lleva dentro todo su corpus en los 6 idiomas; aquí
+    // solo necesita saber cuál está activo. El cambio de idioma en
+    // caliente le llega por el evento langChanged de i18n.js.
+    const getLang = () => {
       try {
-        const lang = (typeof window.getCurrentLang === 'function' && window.getCurrentLang()) || 'es';
-        const pack = window.translations && (window.translations[lang] || window.translations.es);
-        return (pack && pack[k]) || (window.translations && window.translations.es && window.translations.es[k]) || fb;
-      } catch (e) { return fb; }
+        return (typeof window.getCurrentLang === 'function' && window.getCurrentLang()) || 'es';
+      } catch (e) { return 'es'; }
     };
     const decir = (txt) => {
       try {
@@ -1046,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const modulo = await promesaModulo;
         if (juego) return; // doble clic mientras cargaba
         juego = modulo.iniciarJuegoManolit(cont, {
-          t, decir,
+          getLang, decir,
           cargarCertificado: () => import(urlJs() + 'certificado-manolito.js'),
           onCerrar: () => { juego = null; cont.innerHTML = ''; btn.focus(); }
         });

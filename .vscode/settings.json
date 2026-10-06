@@ -5,5 +5,7 @@
     "deepseek.maxTokens": 8100,
     "deepseek-copilot.experimental.stabilizeToolList": true,
     "liveServer.settings.port": 5501,
-    "github.copilot.chat.localIndex.enabled": true
+    "github.copilot.chat.localIndex.enabled": true,
+    "gitlens.currentLine.enabled": true,
+    "gitlens.hovers.currentLine.over": "line"
 }

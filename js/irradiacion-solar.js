@@ -648,7 +648,7 @@
     // Retraducir toda la capa cuando cambie el idioma (evento de i18n.js)
     document.addEventListener('langChanged', () => {
       const btn = document.getElementById('rsBtnIrradiacion');
-      if (btn) btn.textContent = t('irrLayerBtn', 'Irradiación Solar');
+      if (btn) btn.textContent = t('irrLayerBtn', 'Intensidad solar');
       if (panelEl) {
         const labels = panelEl.querySelectorAll('label');
         const textos = ['irrPanelTitle', 'irrYear', 'irrMonth', 'irrDay', 'irrHour'];
@@ -674,7 +674,7 @@
       if (!btn || btn.dataset.listo === '1') return false;
       btn.dataset.listo = '1';
       delete btn.dataset.cargando;
-      btn.textContent = t('irrLayerBtn', 'Irradiación Solar');
+      btn.textContent = t('irrLayerBtn', 'Intensidad solar');
       btn.addEventListener('click', () => {
         capaActiva = !capaActiva;
         btn.classList.toggle('rs-activo', capaActiva);

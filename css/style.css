@@ -2995,8 +2995,16 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
   border-radius:var(--mui-r-panel); box-shadow:var(--mui-shadow);
   display:flex; flex-direction:column; gap:8px;
   font-family:inherit; color:var(--mui-text);
+  /* 08-oct-2026 (orden de Sandro): apertura fluida, nada de aparecer
+     de golpe. Nace plegado y .rs-panel-viaje-abierto lo despliega. */
+  opacity:0; transform:translateY(-6px);
+  transition:opacity 0.26s ease, transform 0.26s ease;
 }
+#main-content .rs-panel-viaje.rs-panel-viaje-abierto{ opacity:1; transform:none; }
 #main-content .rs-panel-viaje[hidden]{ display:none; }
+/* El resultado del widget solar se oculta de verdad cuando toca
+   (capa Sombras apagada o de noche), aunque otro estilo lo pise. */
+#main-content .rs-planetario-info[hidden]{ display:none !important; }
 #main-content .rs-panel-viaje-tit{
   margin:0; font-size:13px; font-weight:600; letter-spacing:0.01em;
 }

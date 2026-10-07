@@ -2939,6 +2939,179 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
           mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h7v7H4z'/%3E%3Cpath d='M13 4h7v7h-7z'/%3E%3Cpath d='M4 13h7v7H4z'/%3E%3Cpath d='M13 13h7v7h-7z' stroke-dasharray='2.5 2'/%3E%3C/svg%3E");
 }
 
+/* ==========================================================================
+   07-oct-2026 (orden de Sandro): tres retoques VISUALES y aditivos.
+
+   A) Los dos «cuadraditos» de antes (el plegador de la botonera, que hace
+      de desglose, y el flotante de capas) se visten como los botones del
+      resto de la UI: mismo radio de control, misma altura táctil y el
+      acento teal cuando están activos. Solo pinta, no toca lógica ni ids.
+   B) Icono nuevo para la fila «Planificar viaje».
+   C) Panelito del planificador de viaje (rsPanelViaje), en flujo normal
+      bajo el bloque de capas y apilado en móvil.
+   ========================================================================== */
+
+/* ---- A) Desglose y capas, ya como botones coherentes ---- */
+#main-content #rsBtnPlegarControles,
+#main-content #rsBtnCapasFlotante{
+  min-width:var(--mui-h); height:var(--mui-h);
+  border-radius:var(--mui-r-ctl);
+  border:1px solid var(--mui-line-2);
+  background:var(--mui-bg); color:var(--mui-ico);
+  box-shadow:var(--mui-shadow);
+  transition:background var(--mui-t), border-color var(--mui-t), color var(--mui-t);
+}
+#main-content #rsBtnPlegarControles::before,
+#main-content #rsBtnCapasFlotante::before{ color:var(--mui-soft); }
+@media (hover:hover) and (pointer:fine){
+  #main-content #rsBtnPlegarControles:hover,
+  #main-content #rsBtnCapasFlotante:hover{ background:#232A34; border-color:var(--mui-line); }
+  #main-content #rsBtnPlegarControles:hover::before,
+  #main-content #rsBtnCapasFlotante:hover::before{ color:var(--mui-text); }
+}
+#main-content #rsBtnCapasFlotante[aria-expanded="true"],
+#main-content #rsMapControls:not(.rs-plegado) #rsBtnPlegarControles{
+  background:var(--mui-accent-tint); border-color:var(--mui-accent);
+}
+#main-content #rsBtnCapasFlotante[aria-expanded="true"]::before,
+#main-content #rsMapControls:not(.rs-plegado) #rsBtnPlegarControles::before{
+  color:var(--mui-accent-text);
+}
+#main-content #rsBtnPlegarControles:focus-visible,
+#main-content #rsBtnCapasFlotante:focus-visible{
+  outline:2px solid var(--mui-accent-text); outline-offset:2px;
+}
+
+/* ---- B) Icono de la fila «Planificar viaje»: coche con ruta ---- */
+#main-content .rs-ico-viaje::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 16.5 6.4 11a2 2 0 0 1 2-1.5h7.2a2 2 0 0 1 2 1.5L19 16.5'/%3E%3Cpath d='M4 16.5h16v3h-2.2M4 19.5h2.2'/%3E%3Ccircle cx='8' cy='19' r='1.6'/%3E%3Ccircle cx='16' cy='19' r='1.6'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 16.5 6.4 11a2 2 0 0 1 2-1.5h7.2a2 2 0 0 1 2 1.5L19 16.5'/%3E%3Cpath d='M4 16.5h16v3h-2.2M4 19.5h2.2'/%3E%3Ccircle cx='8' cy='19' r='1.6'/%3E%3Ccircle cx='16' cy='19' r='1.6'/%3E%3C/svg%3E");
+}
+
+/* ---- C) Panelito del planificador de viaje ---- */
+#main-content .rs-panel-viaje{
+  margin:10px 0 0; padding:12px 14px;
+  background:var(--mui-bg); border:1px solid var(--mui-line-2);
+  border-radius:var(--mui-r-panel); box-shadow:var(--mui-shadow);
+  display:flex; flex-direction:column; gap:8px;
+  font-family:inherit; color:var(--mui-text);
+}
+#main-content .rs-panel-viaje[hidden]{ display:none; }
+#main-content .rs-panel-viaje-tit{
+  margin:0; font-size:13px; font-weight:600; letter-spacing:0.01em;
+}
+#main-content .rs-panel-viaje input[type="text"]{
+  width:100%; box-sizing:border-box;
+  min-height:var(--mui-h); padding:6px 10px;
+  font:inherit; font-size:13px; color:var(--mui-text);
+  background:transparent; border:1px solid var(--mui-line-2);
+  border-radius:var(--mui-r-ctl);
+}
+#main-content .rs-panel-viaje input[type="text"]:focus-visible{
+  outline:2px solid var(--mui-accent-text); outline-offset:1px;
+}
+#main-content .rs-panel-viaje-botones{ display:flex; gap:8px; flex-wrap:wrap; }
+#main-content .rs-panel-viaje-botones button{
+  min-height:var(--mui-h); padding:4px 14px;
+  font:inherit; font-size:13px; font-weight:600;
+  border-radius:var(--mui-r-ctl); cursor:pointer;
+  border:1px solid var(--mui-line-2);
+  background:transparent; color:var(--mui-text);
+  transition:background var(--mui-t), border-color var(--mui-t), color var(--mui-t);
+}
+#main-content .rs-panel-viaje-botones .rs-panel-viaje-calcular{
+  background:var(--mui-accent); border-color:var(--mui-accent);
+  color:var(--mui-accent-text, #1A0E04);
+}
+#main-content .rs-panel-viaje-botones button:hover{ filter:brightness(1.08); }
+#main-content .rs-panel-viaje-botones button:focus-visible{
+  outline:2px solid var(--mui-accent-text); outline-offset:2px;
+}
+#main-content .rs-panel-viaje-estado{
+  margin:0; font-size:12.5px; line-height:1.45; color:var(--mui-soft);
+}
+#main-content .rs-panel-viaje-estado:empty{ display:none; }
+
+/* ==========================================================================
+   07-oct-2026 v2 (orden de Sandro): los tres mapas base (claro, IGN y
+   oscuro) dejan de ser pastillas segmentadas y pasan a ser FILAS con
+   interruptor a la derecha, exactamente como Árboles, Catastro 3D o
+   Buscar aparcamiento. Mismo alto táctil, icono a la izquierda e
+   interruptor teal leyendo aria-pressed. Solo pinta: los ids, los
+   handlers y el comportamiento radio (un mapa activo siempre) no se
+   tocan. Gana a las reglas antiguas por especificidad (tres ids).
+   ========================================================================== */
+#main-content #rsCapasMapas #rsMapStyleToggle{
+  display:flex !important; flex-direction:column !important; flex-wrap:nowrap !important;
+  gap:2px !important; align-items:stretch !important;
+  width:100%; padding:0; background:transparent; border:none; box-shadow:none;
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button{
+  position:relative; flex:0 0 auto; width:100%;
+  display:flex !important; flex-direction:row !important;
+  align-items:center; justify-content:flex-start; gap:10px;
+  min-height:var(--mui-h); padding:4px 10px 4px 38px !important; margin:0;
+  font-family:inherit; font-size:13px !important; font-weight:400 !important;
+  letter-spacing:0 !important; text-transform:none !important; line-height:1.2;
+  white-space:nowrap; text-align:left;
+  color:var(--mui-text) !important; background:transparent !important;
+  border:none !important; border-radius:var(--mui-r-ctl) !important; box-shadow:none !important;
+  cursor:pointer; backdrop-filter:none; -webkit-backdrop-filter:none;
+  transition:background var(--mui-t);
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button::before{
+  position:absolute; left:10px; top:50%; transform:translateY(-50%);
+  width:18px !important; height:18px !important;
+  color:var(--mui-soft) !important; pointer-events:none;
+}
+/* El interruptor de la derecha, idéntico al de las demás filas. */
+#main-content #rsCapasMapas #rsMapStyleToggle button::after{
+  content:''; margin-left:auto; flex:0 0 auto;
+  width:36px; height:22px; border-radius:999px;
+  background-color:#2A3039; border:1px solid var(--mui-line-2);
+  background-image:radial-gradient(circle 7px, #C9D1D9 97%, transparent);
+  background-repeat:no-repeat; background-position:3px 50%;
+  transition:background-color var(--mui-t), background-position var(--mui-t), border-color var(--mui-t);
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button:hover{
+  background:rgba(255,255,255,0.05) !important; color:var(--mui-text) !important;
+}
+/* Activo = interruptor teal e icono de acento, SIN pastilla naranja. */
+#main-content #rsCapasMapas #rsMapStyleToggle button[aria-pressed="true"],
+#main-content #rsCapasMapas #rsMapStyleToggle button[aria-pressed="true"]:hover{
+  background:transparent !important; color:var(--mui-text) !important;
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button[aria-pressed="true"]::before{
+  color:var(--mui-accent) !important;
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button[aria-pressed="true"]::after{
+  background-color:var(--mui-accent); border-color:var(--mui-accent);
+  background-image:radial-gradient(circle 7px, #1A0E04 97%, transparent);
+  background-position:19px 50%;
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button:focus-visible{
+  outline:2px solid var(--mui-accent-text); outline-offset:2px;
+}
+/* El segmento «Mapa oscuro» no tenía icono propio: luna, como manda la
+   fila (sol para claro, mapa para IGN). */
+#main-content #rsCapasMapas #rsBtnMapaOsc::before{
+  content:'';
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13.5A8 8 0 1 1 10.5 4a6.5 6.5 0 0 0 9.5 9.5z'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13.5A8 8 0 1 1 10.5 4a6.5 6.5 0 0 0 9.5 9.5z'/%3E%3C/svg%3E");
+  background:currentColor;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  -webkit-mask-position:center; mask-position:center;
+  -webkit-mask-size:contain; mask-size:contain;
+}
+
+/* ---- 2b) Aparcamientos como fila-toggle: icono de plaza de parking ----
+   (07-oct-2026, orden de Sandro: misma mecánica visual que Catastro 3D,
+   solo se añade, no se toca nada de lo demás). */
+#main-content .rs-ico-parking::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M9.5 17v-10h3.25a2.75 2.75 0 0 1 0 5.5H9.5'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M9.5 17v-10h3.25a2.75 2.75 0 0 1 0 5.5H9.5'/%3E%3C/svg%3E");
+}
+
 /* ---- 3) Scrollbar fina y discreta del panel de capas ---- */
 #main-content .rs-layer-toggles-lista{
   scrollbar-width:thin; /* Firefox: la más fina que permite */

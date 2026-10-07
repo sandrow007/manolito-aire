@@ -3636,9 +3636,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     let ignActivo = false;
     const sincronizarSegmentos = () => {
       btn.textContent = t('darkMapOff', 'Mapa claro');
-      btn.setAttribute('aria-pressed', ignActivo ? 'false' : 'true');
+      btn.setAttribute('aria-pressed', (!ignActivo && !mapaOscuro) ? 'true' : 'false');
       const bI = document.getElementById('rsBtnMapaIGN');
       if (bI) bI.setAttribute('aria-pressed', ignActivo ? 'true' : 'false');
+      const bO = document.getElementById('rsBtnMapaOsc');
+      if (bO) bO.setAttribute('aria-pressed', mapaOscuro ? 'true' : 'false');
     };
     const apagarMapaOscuroSiHaceFalta = () => {
       if (!mapaOscuro) return;
@@ -3710,6 +3712,30 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       sincronizarSegmentos();
     });
     wrap.appendChild(btnIGN);
+
+    /* Segmento OSCURO (07-oct, orden directa de Sandro): la capa oscura
+       del mapa vuelve a tener botón propio. Es el tercer segmento del
+       control: [Mapa claro] [Mapa IGN] [Mapa oscuro]. Enciende el filtro
+       oscuro sobre la base vectorial y apaga el WMS del IGN (invertir el
+       WMS dejaría los colores imposibles). Nada se quita: se añade. */
+    const btnOsc = document.createElement('button');
+    btnOsc.type = 'button';
+    btnOsc.id = 'rsBtnMapaOsc';
+    btnOsc.textContent = t('darkMapOn', 'Mapa oscuro');
+    btnOsc.setAttribute('aria-pressed', 'false');
+    btnOsc.addEventListener('click', () => {
+      if (ignActivo) {
+        ignActivo = false;
+        try { if (map.getLayer(IGN_CAPA)) map.setLayoutProperty(IGN_CAPA, 'visibility', 'none'); } catch (e) {}
+      }
+      if (!mapaOscuro) {
+        mapaOscuro = true;
+        contenedorMapa.classList.add('rs-mapa-oscuro-activo');
+        aplicarEstiloNubes(); // las nubes cambian de brillo para seguir viéndose
+      }
+      sincronizarSegmentos();
+    });
+    wrap.appendChild(btnOsc);
     // Pintado inicial del segmentado: claro activo, IGN apagado (el mapa
     // nace claro siempre, sep-2026, orden de Sandro).
     sincronizarSegmentos();
@@ -5121,6 +5147,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // claro» del control de mapa base. Su etiqueta es fija y aquí solo se
     // retraduce; el estado activo lo marcan los aria-pressed del segmentado.
     if (btnDark) btnDark.textContent = t('darkMapOff', 'Mapa claro');
+    const btnOsc2 = document.getElementById('rsBtnMapaOsc');
+    if (btnOsc2) btnOsc2.textContent = t('darkMapOn', 'Mapa oscuro');
     const eyebrow = document.getElementById('rsEyebrowSol');
     if (eyebrow) eyebrow.textContent = t('sunPosition', 'Posición solar');
     const btnCapturar = document.getElementById('rsBtnCapturar');

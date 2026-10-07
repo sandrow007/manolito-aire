@@ -512,6 +512,8 @@
       type: 'FeatureCollection',
       features: [{ type: 'Feature', geometry: geometry, properties: {} }],
     });
+    // Reaplicar el estilo fino sobre las capas recién creadas del viaje.
+    afinarLineasRuta();
     // Que el viaje SE VEA: encuadre de la ruta completa antes de la llegada.
     try {
       var bounds = new maplibregl.LngLatBounds(geometry.coordinates[0], geometry.coordinates[0]);
@@ -670,16 +672,33 @@
     viaje.estado.setAttribute('role', 'status');
     viaje.panel.appendChild(viaje.estado);
 
-    // El panel vive justo debajo del bloque de capas, en flujo normal.
-    var ancla = document.getElementById('rsPlanetarioCapas');
-    if (ancla && ancla.parentNode) ancla.parentNode.insertBefore(viaje.panel, ancla.nextSibling);
+    // 08-oct-2026 (orden directa de Sandro): el panel vive junto al MAPA,
+    // en la zona de mapas y viajes, nunca en medio del planetario. Así el
+    // orden clásico queda intacto: mapa y sus controles arriba, el
+    // planetario entero abajo del todo y el acceso LiDAR debajo de él.
+    var mapaWrap = document.querySelector('.map-wrap');
+    if (mapaWrap && mapaWrap.parentNode) mapaWrap.parentNode.insertBefore(viaje.panel, mapaWrap.nextSibling);
     else document.getElementById('main-content')?.appendChild(viaje.panel);
 
+    // Apertura con animación (08-oct): en vez de hidden seco, el panel
+    // baja suave con opacidad y desplazamiento (CSS .rs-panel-viaje-abierto).
     viaje.btn.addEventListener('click', function () {
-      var abierto = viaje.panel.hasAttribute('hidden');
-      if (abierto) viaje.panel.removeAttribute('hidden');
-      else viaje.panel.setAttribute('hidden', '');
-      viaje.btn.setAttribute('aria-pressed', abierto ? 'true' : 'false');
+      var abierto = !viaje.panel.hasAttribute('hidden');
+      if (!abierto) {
+        viaje.panel.removeAttribute('hidden');
+        // Forzar reflow para que la transición arranque desde cerrado.
+        void viaje.panel.offsetHeight;
+        viaje.panel.classList.add('rs-panel-viaje-abierto');
+        viaje.btn.setAttribute('aria-pressed', 'true');
+      } else {
+        viaje.panel.classList.remove('rs-panel-viaje-abierto');
+        viaje.btn.setAttribute('aria-pressed', 'false');
+        setTimeout(function () {
+          if (!viaje.panel.classList.contains('rs-panel-viaje-abierto')) {
+            viaje.panel.setAttribute('hidden', '');
+          }
+        }, 280);
+      }
     });
 
     viaje.inputDestino.addEventListener('keydown', function (e) {
@@ -735,12 +754,61 @@
   document.addEventListener('manolito:idioma-cambiado', refrescarTextos);
 
   /* ---------------- Arranque: espera al mapa con reintentos suaves -------- */
+  /* ================================================================
+     BLOQUE 3 · Restyle fino de las líneas de ruta (08-oct-2026, orden
+     directa de Sandro: "la visualización de los trazados es tosca").
+     No se toca shadows-route.js: se ajustan los paint de las capas ya
+     creadas con setPaintProperty, con guardas por si aún no existen.
+     Qué cambia: grosores que ESCALAN con el zoom (antes fijos, por eso
+     a zoom bajo la línea era un chorro), opacidades más suaves y un
+     line-blur fino que hace de anti-aliasing en los bordes.
+     ================================================================ */
+  function afinarLineasRuta(intentos) {
+    if (!map) return;
+    if (typeof intentos !== 'number') intentos = 0;
+    // Con el motor de sombras activo el estilo anda ocupado recalculando
+    // justo cuando se traza el viaje: si no está listo, se reintenta en
+    // el próximo idle en vez de rendirse en silencio.
+    if (!estiloListo()) {
+      if (intentos < 10) map.once('idle', function () { afinarLineasRuta(intentos + 1); });
+      return;
+    }
+    var ajustes = [
+      // Ruta a pie (las pinta shadows-route.js)
+      ['capa-ruta-outline', { 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 9], 'line-opacity': 0.55 }],
+      ['capa-ruta-glow', { 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 7, 16, 14], 'line-opacity': 0.22, 'line-blur': 6 }],
+      ['capa-ruta', { 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2.5, 16, 5.5], 'line-opacity': 0.95, 'line-blur': 0.4 }],
+      ['capa-ruta-sombra-outline', { 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 9], 'line-opacity': 0.6 }],
+      ['capa-ruta-sombra', { 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2.5, 16, 5.5], 'line-opacity': 0.9, 'line-blur': 0.4 }],
+      // Viaje largo en coche (las pinta este módulo, bloque 2)
+      ['capa-viaje-outline', { 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 3, 10, 6, 15, 9], 'line-opacity': 0.55 }],
+      ['capa-viaje', { 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 1.8, 10, 3.5, 15, 5.5], 'line-opacity': 0.95, 'line-blur': 0.4 }],
+    ];
+    var algunaFalta = false;
+    ajustes.forEach(function (par) {
+      var id = par[0], props = par[1];
+      if (!map.getLayer(id)) { algunaFalta = true; return; }
+      Object.keys(props).forEach(function (prop) {
+        try { map.setPaintProperty(id, prop, props[prop]); } catch (e) { /* capa rehaciéndose */ }
+      });
+    });
+    // Las capas de la ruta a pie nacen cuando arranca el motor de sombras
+    // y las del viaje al trazar; si alguna falta se reintenta unas pocas
+    // veces (tope 10, nunca un bucle infinito) y además se reaplica el
+    // estilo cada vez que se traza un viaje nuevo.
+    if (algunaFalta && intentos < 10) {
+      map.once('idle', function () { afinarLineasRuta(intentos + 1); });
+    }
+  }
+
   (function arrancar(intentos) {
     try {
       if (window.manolitAireMap) {
         map = window.manolitAireMap;
         crearBotones();
         crearPanel();
+        if (estiloListo()) afinarLineasRuta();
+        else map.once('idle', afinarLineasRuta);
       } else if (intentos < 90) {
         setTimeout(function () { arrancar(intentos + 1); }, 500);
       }

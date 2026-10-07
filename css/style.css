@@ -2764,6 +2764,29 @@ body.mode-peque .peque-juego-btn{
 body.mode-peque .peque-juego-btn:hover{ background:#F2B01E; transform:translateY(-2px); }
 body.mode-peque .peque-juego-btn:active{ transform:translateY(1px); }
 
+/* El mismo juego en modo ciudadano (07-oct-2026, NUEVA ORDEN punto 4):
+   botón propio con contenido adulto, visible solo cuando el modo activo
+   es ciudadano (sin clase de modo, o con mode-ciudadano tras applyMode).
+   En peque, científico y yayo no aparece: los modos no se mezclan.
+   Mismo tamaño táctil que el de peques (52px, por encima de 44). */
+.ciudadano-juego-btn{ display:none; }
+body:not(.mode-peque):not(.mode-cientifico):not(.mode-yayo) .ciudadano-juego-btn{
+  display:inline-block; margin-top:0; min-height:52px; padding:12px 26px;
+  font-size:1.05rem; border-radius:16px; border:0; cursor:pointer;
+  font-weight:700; color:#FBFAF7; background:#007A87;
+  transition:transform 0.2s cubic-bezier(0.4,0,0.2,1), background-color 0.2s;
+}
+body:not(.mode-peque):not(.mode-cientifico):not(.mode-yayo) .ciudadano-juego-btn:hover{ background:#00919F; transform:translateY(-2px); }
+body:not(.mode-peque):not(.mode-cientifico):not(.mode-yayo) .ciudadano-juego-btn:active{ transform:translateY(1px); }
+.ciudadano-juego-btn:focus-visible{ outline:3px solid #7A0016; outline-offset:2px; }
+/* El contenedor del juego también vive en modo ciudadano: la regla
+   antigua lo escondía fuera de peque. Con panel montado (no vacío) y
+   modo ciudadano activo, se enseña. En científico y yayo sigue oculto. */
+body:not(.mode-peque):not(.mode-cientifico):not(.mode-yayo) .juego-manolit-cont:not(:empty){ display:block; }
+@media (min-width:560px){
+  body:not(.mode-peque):not(.mode-cientifico):not(.mode-yayo) .peque-actions{ flex-direction:row; justify-content:center; gap:16px; }
+}
+
 /* El chat de ayuda es la acción secundaria en modo peque: contorno
    teal para que no compita con el dorado del juego. */
 body.mode-peque .im-lost-btn{
@@ -2783,13 +2806,37 @@ body.mode-peque .im-lost-btn:active{ transform:translateY(1px); box-shadow:none;
    1024px no hay margen lateral garantizado y no aparecen. Animación
    solo de transform, pausada con la pestaña oculta. */
 #pequeFxCapa{ position:absolute; inset:0; z-index:0; }
-#pequeFxCapa .peque-deco{ position:absolute; width:48px; height:48px; opacity:0.5; pointer-events:none; animation:pequeDecoFlota 7s ease-in-out infinite alternate; }
+/* 07-oct-2026 (NUEVA ORDEN, urgente): tamaño decorativo con límites.
+   El sol gigante de la captura venía de un SVG sin medida propia
+   estirado por el navegador con una hoja vieja en caché. Ahora el
+   SVG lleva width/height intrínsecos y la CSS usa clamp(): jamás
+   puede volver a ocupar media pantalla. Además el contenido del
+   hero va siempre por encima de esta capa. */
+#pequeFxCapa .peque-deco{ position:absolute; width:clamp(36px, 4vw, 56px); height:auto; aspect-ratio:1; opacity:0.5; pointer-events:none; animation:pequeDecoFlota 7s ease-in-out infinite alternate; }
 #pequeFxCapa .peque-deco svg{ display:block; width:100%; height:100%; }
 #pequeFxCapa .peque-deco-sol{ left:16px; top:12px; }
-#pequeFxCapa .peque-deco-nube{ right:16px; top:56px; width:60px; height:45px; animation-duration:9s; }
+#pequeFxCapa .peque-deco-nube{ right:16px; top:56px; width:clamp(44px, 5vw, 68px); aspect-ratio:4/3; animation-duration:9s; }
+body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
 @keyframes pequeDecoFlota{ from{ transform:translateY(-6px) rotate(-3deg); } to{ transform:translateY(8px) rotate(3deg); } }
 .peque-fx-pausa .peque-deco{ animation-play-state:paused; }
-@media (max-width:1023px){ #pequeFxCapa{ display:none; } }
+/* Emojis flotantes del modo peque: pocos, pegados a los bordes,
+   detrás del contenido, solo transform y opacity, pausados con la
+   pestaña oculta y apagados con prefers-reduced-motion.
+   07-oct (orden directa de Sandro, «recupéralos de verdad»):
+   visibilidad subida para que se VEAN. Siguen siendo 6 spans sin
+   JS, animación solo transform/opacity: el coste es el mismo. */
+#pequeFxCapa .peque-emoji{ position:absolute; font-size:clamp(22px, 2.6vw, 32px); line-height:1; opacity:0.62; pointer-events:none; animation:pequeEmojiFlota 9s ease-in-out infinite alternate; }
+@keyframes pequeEmojiFlota{ from{ transform:translateY(-7px); opacity:0.5; } to{ transform:translateY(9px); opacity:0.72; } }
+.peque-fx-pausa .peque-emoji{ animation-play-state:paused; }
+@media (max-width:1023px){
+  /* En pantallas sin margen lateral no caben los dibujos SVG, pero
+     los emojis SÍ se quedan todos (orden de Sandro 07-oct): van en
+     los bordes del hero, detrás del contenido, tamaño prudente. */
+  #pequeFxCapa{ display:block; }
+  #pequeFxCapa .peque-deco{ display:none; }
+  #pequeFxCapa .peque-emoji{ display:block; font-size:20px; }
+  @keyframes pequeEmojiFlota{ from{ transform:translateY(-6px); opacity:0.42; } to{ transform:translateY(8px); opacity:0.6; } }
+}
 
 /* Movimiento reducido de verdad: la nube no flota y el titular no
    salta. Las reglas antiguas quedaban pisadas por otras posteriores;

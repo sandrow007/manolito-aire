@@ -323,7 +323,120 @@ export default {
       }
     }
 
-    // --- Nubosidad en tiempo real (OpenWeatherMap) para la luz difusa ---
+    // --- Proxy anti-CORS + caché KV para APARCAMIENTOS (Overpass / OSM) ---
+    // 07-oct-2026 (orden de Sandro, módulo parking): misma defensa en tres
+    // capas que /arboles (KV con stale-while-revalidate, carrera de espejos
+    // en paralelo, copia vieja de emergencia). Ruta aparte para que la caché
+    // de aparcamientos no colisione con la de árboles en el mismo bbox.
+    if (url.pathname === '/aparcamientos') {
+      if (request.method !== 'POST') {
+        return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
+      }
+      try {
+        const rawBody = await request.text();
+        let claveKv = null;
+        try {
+          const m = decodeURIComponent(rawBody).match(/\(([-\d.,\s]+)\)/);
+          if (m) claveKv = 'parking:' + m[1].split(',').map((n) => parseFloat(n).toFixed(3)).join(',');
+        } catch (e) { /* sin clave: seguimos sin caché */ }
+
+        const kv = env.AIR_QUALITY_CACHE || null;
+        const FRESCA_MS = 12 * 3600 * 1000; // 12 horas, como los árboles
+        const forzarFresca = request.headers.get('X-Arboles-Fresca') === '1';
+
+        let copiaKv = null;
+        if (kv && claveKv) {
+          try {
+            const { value, metadata } = await kv.getWithMetadata(claveKv);
+            copiaKv = value || null;
+            if (!forzarFresca && value && metadata && metadata.ts && Date.now() - metadata.ts < FRESCA_MS) {
+              return new Response(value, {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
+              });
+            }
+          } catch (e) { /* KV inaccesible: seguimos a los espejos */ }
+        }
+
+        const espejos = [
+          'https://lz4.overpass-api.de/api/interpreter',
+          'https://z.overpass-api.de/api/interpreter',
+          'https://overpass-api.de/api/interpreter',
+          'https://overpass.kumi.systems/api/interpreter',
+          'https://overpass.private.coffee/api/interpreter',
+          'https://overpass.nchc.org.tw/api/interpreter',
+        ];
+        const intentarEspejo = async (espejo) => {
+          const controller = new AbortController();
+          const temporizador = setTimeout(() => controller.abort(), 15000);
+          try {
+            const r = await fetch(espejo, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)',
+              },
+              body: rawBody,
+              signal: controller.signal,
+            });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const txt = await r.text();
+            let datos = null;
+            try { datos = JSON.parse(txt); } catch (e) { throw new Error('no JSON'); }
+            const ts = datos?.osm3s?.timestamp_osm_base;
+            const corrupto =
+              Array.isArray(datos?.elements) && datos.elements.length === 0 &&
+              typeof ts === 'string' && ts !== '' && !ts.includes('T');
+            if (corrupto) throw new Error('espejo corrupto');
+            if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
+            return txt;
+          } finally {
+            clearTimeout(temporizador);
+          }
+        };
+        if (copiaKv && !forzarFresca) {
+          if (ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(
+              Promise.any(espejos.map(intentarEspejo))
+                .then((nueva) => kv.put(claveKv, nueva, { expirationTtl: 2592000, metadata: { ts: Date.now() } }))
+                .catch(() => { })
+            );
+          }
+          return new Response(copiaKv, {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'vieja-refrescando', ...CORS_HEADERS }
+          });
+        }
+
+        let respuesta = null;
+        try {
+          respuesta = await Promise.any(espejos.map(intentarEspejo));
+        } catch (e) { /* todos fallaron */ }
+
+        if (respuesta) {
+          if (kv && claveKv && ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(
+              kv.put(claveKv, respuesta, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {})
+            );
+          }
+          return new Response(respuesta, {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'nueva', ...CORS_HEADERS }
+          });
+        }
+
+        if (copiaKv) {
+          return new Response(copiaKv, {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Arboles-Cache': 'vieja', ...CORS_HEADERS }
+          });
+        }
+
+        throw new Error('Overpass no disponible en ningún espejo');
+      } catch (err) {
+        return new Response(JSON.stringify({ elements: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      }
+    }
+
     // GET /clima?lat=..&lon=.. -> { nubes: 0-100, descripcion, humedad }
     // La API key vive SOLO aquí, como secret del Worker (nunca en el cliente):
     //   npx wrangler secret put OPENWEATHER_API_KEY
@@ -483,6 +596,29 @@ export default {
           url.pathname.slice('/ruta'.length) + url.search;
         const r = await fetch(destino, { headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' } });
         if (!r.ok) throw new Error(`OSRM HTTP ${r.status}`);
+        return new Response(await r.text(), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return new Response('{"code":"Error"}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      }
+    }
+
+    // --- Proxy OSRM perfil COCHE (viaje largo entre ciudades) --------------
+    // 07-oct-2026 (orden de Sandro, planificador de viaje): mismo servidor
+    // FOSSGIS que /ruta/ pero con el perfil routed-car. Lo usa viaje-largo.js
+    // para el tramo de carretera (sin cálculo de sombra). Si falla devolvemos
+    // {"code":"Error"} con 200 y el frontend decide el plan B sin manchar F12.
+    if (url.pathname.startsWith('/ruta-coche/')) {
+      try {
+        const destino = 'https://routing.openstreetmap.de/routed-car/route/v1' +
+          url.pathname.slice('/ruta-coche'.length) + url.search;
+        const r = await fetch(destino, { headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' } });
+        if (!r.ok) throw new Error(`OSRM car HTTP ${r.status}`);
         return new Response(await r.text(), {
           status: 200,
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }

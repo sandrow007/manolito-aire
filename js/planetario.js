@@ -263,16 +263,81 @@
     var cielo = s.alturaDeg > 15 ? 'dia' : s.alturaDeg > -6 ? 'tarde' : 'noche';
     if (widget.getAttribute('data-cielo') !== cielo) widget.setAttribute('data-cielo', cielo);
 
-    // Línea de información en tiempo real (cada segundo): hora efectiva,
-    // sol (altura y azimut) y luna con su % de iluminación y su fase.
+    // Línea de información en tiempo real (cada segundo).
+    // 08-oct-2026 (orden directa de Sandro): nada de datos genéricos.
+    // - Capa Sombras APAGADA: el resultado se oculta por completo, así no
+    //   salen alturas y azimuts que no le dicen nada a nadie.
+    // - De noche (sol bajo el horizonte): la métrica se deshabilita sola,
+    //   sin cálculos raros ni textos de relleno.
+    // - Capa Sombras ENCENDIDA y de día: resultado exacto sobre tu punto
+    //   (tu GPS si lo hay, si no el origen elegido, si no el centro del
+    //   mapa): «Al sol» o «A la sombra», leyendo SOLO la fuente 'sombras'
+    //   que ya calcula el motor. El motor no se toca.
     var info = $('rsPlanetarioInfo');
     if (info) {
-      var ilum    = Math.round(ilumFraccion * 100);
-      var horaTxt = fechaMostrada.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-      info.textContent =
-        horaTxt + ' · ' + tt('sun', 'Sol') + ': alt ' + s.alturaDeg.toFixed(1) +
-        '° az ' + Math.round(s.azimutDeg) +
-        '° · ' + tt('moon', 'Luna') + ': ' + ilum + '% ' + nombreFaseLunar(faseLuna);
+      var localesPlan = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+      var langPlan = (typeof currentLang !== 'undefined' && localesPlan[currentLang]) ? currentLang : 'es';
+      var horaTxt = fechaMostrada.toLocaleTimeString(localesPlan[langPlan], { hour: '2-digit', minute: '2-digit' });
+      var toggleSombras = document.getElementById('rsToggleSombras');
+      var sombrasOn = !!(toggleSombras && toggleSombras.checked);
+      var esDeNoche = s.alturaDeg <= 0;
+      if (!sombrasOn || esDeNoche) {
+        if (!info.hasAttribute('hidden')) info.setAttribute('hidden', '');
+        info.textContent = '';
+      } else {
+        var punto = null;
+        try {
+          if (window.__manolitUltimaPos && isFinite(window.__manolitUltimaPos.lat)) {
+            punto = [window.__manolitUltimaPos.lon, window.__manolitUltimaPos.lat];
+          }
+        } catch (e) { /* sin gps */ }
+        if (!punto) {
+          try {
+            var mapaPuntos = window.manolitAireMap;
+            var srcPuntos = mapaPuntos && mapaPuntos.getSource('puntos-manuales');
+            var datosPuntos = srcPuntos && (srcPuntos._data || (srcPuntos.serialize && srcPuntos.serialize().data));
+            var featsPuntos = datosPuntos && datosPuntos.features ? datosPuntos.features : [];
+            if (featsPuntos.length && featsPuntos[0].geometry && featsPuntos[0].geometry.type === 'Point') {
+              punto = featsPuntos[0].geometry.coordinates;
+            }
+          } catch (e) { /* sin punto elegido */ }
+        }
+        if (!punto && window.manolitAireMap) {
+          var centroInfo = window.manolitAireMap.getCenter();
+          punto = [centroInfo.lng, centroInfo.lat];
+        }
+        var enSombra = false, hayDatosSombra = false;
+        try {
+          var mapaSol = window.manolitAireMap;
+          if (mapaSol && typeof turf !== 'undefined' && punto) {
+            // Se leen los datos COMPLETOS de las dos fuentes de sombra que
+            // ya calcula el motor (edificios en 'sombras', árboles en
+            // 'arboles-globales-sombra'), no los tiles del viewport: así el
+            // resultado es exacto aunque el punto quede en el borde de la
+            // pantalla o la tesela aún no se regenere. Solo lectura.
+            var featsSombra = [];
+            ['sombras', 'arboles-globales-sombra'].forEach(function (nombreFuente) {
+              var srcSombra = mapaSol.getSource(nombreFuente);
+              if (!srcSombra) return;
+              var datosSombra = srcSombra._data || (srcSombra.serialize && srcSombra.serialize().data);
+              if (datosSombra && datosSombra.features) featsSombra = featsSombra.concat(datosSombra.features);
+            });
+            hayDatosSombra = featsSombra.length > 0;
+            var puntoTurf = turf.point(punto);
+            for (var fs = 0; fs < featsSombra.length; fs++) {
+              try { if (turf.booleanPointInPolygon(puntoTurf, featsSombra[fs])) { enSombra = true; break; } } catch (e2) { /* geometría rara */ }
+            }
+          }
+        } catch (e) { /* el motor aún no está listo */ }
+        info.removeAttribute('hidden');
+        // Si el motor aún no ha soltado las sombras, solo se enseña la
+        // hora; en cuanto haya datos entra el resultado exacto.
+        if (hayDatosSombra) {
+          info.textContent = horaTxt + ' · ' + (enSombra ? tt('shadeNow', 'A la sombra') : tt('sunNow', 'Al sol'));
+        } else {
+          info.textContent = horaTxt;
+        }
+      }
     }
   }
 

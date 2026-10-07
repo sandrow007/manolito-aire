@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Rutas con sombra y aire en tiempo real | Manolit∞ Aire</title>
-<meta name="description" content="Calcula rutas a pie por las calles con más sombra y consulta la calidad del aire en vivo y las horas de sol. Gratis, sin registro y sin publicidad.">
+<meta name="description" content="Manolit∞ Aire calcula rutas a pie por las calles con más sombra, enseña la calidad del aire en vivo y encuentra aparcamiento con sombra en tu destino. Gratis, sin registro y sin publicidad.">
 <!-- 28-sep-2026 (SEO, orden de Sandro): meta keywords eliminada, Google la
      ignora. Lo del agua y la publicidad se queda contado en su seccion de
      la pagina, no en la description. -->
@@ -13,13 +13,13 @@
 <meta name="msvalidate.01" content="BB80160D0DDA8E571A69649E11438153" />
 <!-- Hueco para la meta de verificacion de Google Search Console (la aporta Sandro):
      <meta name="google-site-verification" content="..." /> -->
-<link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="8ccec8e11c9f45acadc205acff3" src="//local.adguard.org?ts=1791394555437&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20261007%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20261007T180423Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D9ef0afdd2be8c5c3de385b42ada519d0be998078b55173aa2a68057e536d270a%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="8ccec8e11c9f45acadc205acff3" src="//local.adguard.org?ts=1791394555437&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://manolitoaire.com/">
 <meta property="og:title" content="Rutas con sombra y aire en tiempo real | Manolit∞ Aire">
-<meta property="og:description" content="Rutas a pie por las calles con más sombra y calidad del aire en vivo. Gratis, sin registro y sin publicidad.">
+<meta property="og:description" content="Rutas a pie con sombra, aire en vivo y aparcamiento con sombra al llegar. Gratis y sin registro.">
 <meta property="og:image" content="https://manolitoaire.com/compartir.png">
-<meta property="og:image:alt" content="Mapa de rutas con sombra y calidad del aire de Manolit∞ Aire">
+<meta property="og:image:alt" content="Mapa de rutas con sombra, aire en vivo y aparcamientos de Manolit∞ Aire">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">
 {
@@ -36,7 +36,7 @@
   "author": { "@type": "Person", "name": "Sandro" },
   "codeRepository": "https://github.com/sandrow007/manolito-aire",
   "license": "https://www.gnu.org/licenses/agpl-3.0.html",
-  "description": "Rutas a pie por las calles con más sombra y calidad del aire en vivo. Gratis, sin registro y sin publicidad."
+  "description": "Rutas a pie por las calles con más sombra, calidad del aire en vivo y aparcamiento con sombra en tu destino. Gratis, sin registro y sin publicidad."
 }
 </script>
 <script type="application/ld+json">
@@ -89,7 +89,7 @@
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta property="og:locale" content="es_ES">
 <meta name="twitter:title" content="Manolit∞ Aire: rutas frescas por la sombra real de Sevilla">
-<meta name="twitter:description" content="Sombra calle a calle en tiempo real, árboles por especie y aire en vivo. Sin registro, sin publicidad y con una huella de agua mínima.">
+<meta name="twitter:description" content="Sombra calle a calle en tiempo real, aire en vivo y aparcamiento con sombra en tu destino. Sin registro y sin publicidad.">
 
 <link rel="preconnect" href="https://unpkg.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -283,7 +283,6 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
-<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
@@ -682,6 +681,14 @@
            individual con su interruptor a la derecha. Mismo botón y mismo
            id de siempre (rsBtnCatastro), solo cambia el anclaje. -->
       <div class="rs-capa-fila rs-capa-fila-btn rs-ico-catastro" id="rsMonteCatastro"></div>
+      <!-- Aparcamientos (07-oct-2026, orden de Sandro): fila-botón como
+           Árboles o Catastro. La rellena js/aparcamientos-viaje.js, un
+           módulo nuevo y aditivo que consulta Overpass por el bbox visible. -->
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-parking" id="rsMonteParking"></div>
+      <!-- Planificador de viaje largo (07-oct-2026, orden de Sandro):
+           fila-botón que abre el panelito con origen y destino. Lo
+           rellena js/aparcamientos-viaje.js, el mismo módulo del parking. -->
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-viaje" id="rsMonteViaje"></div>
       </div>
     </div>
   </div>
@@ -1534,7 +1541,7 @@
 <script src="js/i18n.js" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
-<script src="js/cookie-banner.js" defer></script>
+
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
@@ -1582,6 +1589,10 @@
         .then(() => cargarScript('js/irradiacion-solar.js'))
         .then(() => cargarScript('js/microclima.js'))
         .then(() => cargarScript('js/rendimiento-movil.js'))
+        // 07-oct-2026 (orden de Sandro): aparcamientos y planificador de
+        // viaje en UN solo módulo nuevo y aditivo. Carga al final y se
+        // engancha al mapa por window.manolitAireMap, como arboles-3d.js.
+        .then(() => cargarScript('js/aparcamientos-viaje.js'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
     }
 

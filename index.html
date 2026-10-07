@@ -886,6 +886,10 @@
        Nada flota: cada botón empuja al siguiente bloque. -->
   <div class="peque-actions">
     <button type="button" class="peque-juego-btn" id="btnJuegoManolit" data-i18n="gameIntroBtn">Juega con Manolit∞</button>
+    <!-- El mismo juego, con contenido adulto, en modo ciudadano
+         (07-oct-2026, NUEVA ORDEN punto 4). La CSS lo enseña solo en
+         ese modo y el de peques solo en peque: no se mezclan. -->
+    <button type="button" class="ciudadano-juego-btn" id="btnJuegoCiudadano" data-i18n="gameIntroBtnAdult">Ponte a prueba con Manolit∞</button>
     <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
   </div>
 
@@ -1643,7 +1647,7 @@
       return 'es';
     }
 
-    function renderPequeFace(estado) {
+    function renderPequeFace(estado, clima) {
       const cloudDiv = document.getElementById('pequeCloudSvg');
       const msgEl = document.getElementById('pequeMessage');
       const humanEl = document.getElementById('humanLine');
@@ -1688,7 +1692,30 @@
             { msg: 'El aire necesita mimos…', humano: 'Hoy mejor nos quedamos dentro a pintar.', sub: 'Demasiadas partículas en la calle.' },
             { msg: 'El aire está un poco enfadado hoy.', humano: 'Toca jugar dentro de casa un rato, ¿construimos algo?', sub: 'Mejor esperar a que se calme.' },
             { msg: 'Hoy el cielo está cansado.', humano: 'Vamos a dibujar o leer un cuento dentro de casa.', sub: 'El aire de fuera necesita descansar.' }
-          ]
+          ],
+          // 07-oct-2026 (H): textos según el tiempo real. Sin ellos el hero mentía (decía "cielo despejado" lloviendo).
+          climaMsg: {
+            despejado: '¡Sol de los buenos!',
+            nublado: 'Hoy manda la nube.',
+            lluvia: '¡Que llueve!',
+            tormenta: '¡Tormenta a la vista!',
+            noche: 'Luna limpia esta noche.'
+          },
+          climaSub: {
+            despejado: 'Cielo despejado, sol de los buenos.',
+            nublado: 'Nubes altas, pero no llueve.',
+            lluvia: 'Está lloviendo ahora mismo.',
+            tormenta: 'Hay tormenta ahora mismo.',
+            noche: 'Es de noche y el cielo está despejado.'
+          },
+          climaHumano: {
+            despejado: 'Hace sol, así que a jugar fuera con gorra y agua.',
+            nublado: 'Nubes arriba, pero se puede jugar fuera tranquilo.',
+            lluvia: 'Día de charcos, paraguas y juegos bajo techo.',
+            tormenta: 'Mientras truena, mejor dentro y lejos de las ventanas.',
+            noche: 'Es hora de descansar, mañana habrá más juegos.'
+          },
+          subNeutro: 'Del cielo no me llega el parte ahora mismo.'
         },
         en: {
           buena: [
@@ -1706,7 +1733,29 @@
             { msg: 'The air needs a hug...', humano: 'Better stay inside and paint today.', sub: 'Too many particles outside.' },
             { msg: 'The air is a bit angry today.', humano: 'Time to play indoors for a while, shall we build something?', sub: 'Better wait for it to calm down.' },
             { msg: 'The sky is tired today.', humano: 'Let\'s draw or read a story indoors.', sub: 'The outside air needs to rest.' }
-          ]
+          ],
+          climaMsg: {
+            despejado: 'Good sunshine today!',
+            nublado: 'Clouds in charge today.',
+            lluvia: 'It is raining!',
+            tormenta: 'Storm ahead!',
+            noche: 'Clear moon tonight.'
+          },
+          climaSub: {
+            despejado: 'Clear sky, the good kind of sun.',
+            nublado: 'High clouds, but no rain.',
+            lluvia: 'It is raining right now.',
+            tormenta: 'There is a storm right now.',
+            noche: 'Night time and a clear sky.'
+          },
+          climaHumano: {
+            despejado: 'It is sunny, play outside with a hat and water.',
+            nublado: 'Clouds above, but outdoor play is fine.',
+            lluvia: 'A puddle day, umbrella and indoor games.',
+            tormenta: 'While it thunders, better inside and away from windows.',
+            noche: 'Time to rest, more games tomorrow.'
+          },
+          subNeutro: 'No weather report is reaching me right now.'
         },
         ca: {
           buena: [
@@ -1724,7 +1773,29 @@
             { msg: 'L\'aire necessita mimos…', humano: 'Avui millor ens quedem a dins a pintar.', sub: 'Massa partícules al carrer.' },
             { msg: 'L\'aire està una mica enfadat avui.', humano: 'Toca jugar dins de casa una estona, construïm alguna cosa?', sub: 'Millor esperar que es calmi.' },
             { msg: 'Avui el cel està cansat.', humano: 'Anem a dibuixar o llegir un conte dins de casa.', sub: 'L\'aire de fora necessita descansar.' }
-          ]
+          ],
+          climaMsg: {
+            despejado: 'Sol dels bons!',
+            nublado: 'Avui manen els núvols.',
+            lluvia: 'Plou!',
+            tormenta: 'Tempesta a la vista!',
+            noche: 'Lluna neta aquesta nit.'
+          },
+          climaSub: {
+            despejado: 'Cel clar, sol dels bons.',
+            nublado: 'Núvols alts, però no plou.',
+            lluvia: 'Està plovent ara mateix.',
+            tormenta: 'Hi ha tempesta ara mateix.',
+            noche: 'És de nit i el cel està clar.'
+          },
+          climaHumano: {
+            despejado: 'Fa sol, a jugar a fora amb gorra i aigua.',
+            nublado: 'Núvols a dalt, però es pot jugar a fora tranquil.',
+            lluvia: 'Dia de tolls, paraigua i jocs a dins.',
+            tormenta: 'Mentre truena, millor a dins i lluny de les finestres.',
+            noche: 'És hora de descansar, demà hi haurà més jocs.'
+          },
+          subNeutro: 'Del cel no em arriba el part ara mateix.'
         },
         gl: {
           buena: [
@@ -1742,7 +1813,29 @@
             { msg: 'O aire necesita mimos…', humano: 'Hoxe mellor quedamos dentro a pintar.', sub: 'Demasiadas partículas na rúa.' },
             { msg: 'O aire está un pouco enfadado hoxe.', humano: 'Toca xogar dentro de casa un cacho, construímos algo?', sub: 'Mellor esperar a que se calme.' },
             { msg: 'Hoxe o ceo está canso.', humano: 'Imos debuxar ou ler un conto dentro de casa.', sub: 'O aire de fóra necesita descansar.' }
-          ]
+          ],
+          climaMsg: {
+            despejado: 'Sol dos bos!',
+            nublado: 'Hoxe mandan as nubes.',
+            lluvia: 'Está chovendo!',
+            tormenta: 'Treboada á vista!',
+            noche: 'Lúa limpa esta noite.'
+          },
+          climaSub: {
+            despejado: 'Ceo despexado, sol dos bos.',
+            nublado: 'Nubes altas, pero non chove.',
+            lluvia: 'Está chovendo agora mesmo.',
+            tormenta: 'Hai treboada agora mesmo.',
+            noche: 'É de noite e o ceo está despexado.'
+          },
+          climaHumano: {
+            despejado: 'Fai sol, a xogar fóra con gorra e auga.',
+            nublado: 'Nubes arriba, pero pódese xogar fóra tranquilo.',
+            lluvia: 'Día de pozas, paraugas e xogos dentro.',
+            tormenta: 'Mentres trona, mellor dentro e lonxe das ventás.',
+            noche: 'É hora de descansar, mañá haberá máis xogos.'
+          },
+          subNeutro: 'Do ceo non me chega o parte agora mesmo.'
         },
         eu: {
           buena: [
@@ -1760,7 +1853,30 @@
             { msg: 'Aireak mimoak behar ditu…', humano: 'Gaur hobe barruan geratzea margotzen.', sub: 'Partikula gehiegi kalean.' },
             { msg: 'Airea apur bat haserre dago gaur.', humano: 'Etxe barruan jolasteko unea da, zerbait eraikiko dugu?', sub: 'Hobe lasaitu arte itxarotea.' },
             { msg: 'Gaur zerua nekatuta dago.', humano: 'Etxe barruan marraztera edo ipuin bat irakurtzera goaz.', sub: 'Kanpoko aireak atsedena behar du.' }
-          ]
+          ],
+          // Euskera mía, repásala tú o Jop antes de publicar.
+          climaMsg: {
+            despejado: 'Eguzki ederra!',
+            nublado: 'Gaur hodeiek dute agintea.',
+            lluvia: 'Euria ari du!',
+            tormenta: 'Ekaitza ikusgai!',
+            noche: 'Ilargi garbia gauean.'
+          },
+          climaSub: {
+            despejado: 'Zeru garbia, eguzki ederra.',
+            nublado: 'Hodei altuak, baina ez du euririk egiten.',
+            lluvia: 'Oraintxe ari du euriak.',
+            tormenta: 'Oraintxe ekaitza dago.',
+            noche: 'Gaua da eta zerua garbi dago.'
+          },
+          climaHumano: {
+            despejado: 'Eguzkia du, txanoa eta urarekin kanpoan jolastera.',
+            nublado: 'Hodeiak gainean, baina kanpoan lasai jolastu daiteke.',
+            lluvia: 'Putzu-eguna, aterkia eta barruko jolasak.',
+            tormenta: 'Trumoiak jotzen duen bitartean, hobe barruan eta leihoetatik urrun.',
+            noche: 'Atseden hartzeko ordua da, bihar jolas gehiago izango dira.'
+          },
+          subNeutro: 'Zeruaren berri ez zait oraintxe iristen.'
         },
         // 01-oct-2026: faltaba el georgiano (ka), el sexto idioma de la web.
         ka: {
@@ -1779,50 +1895,222 @@
             { msg: 'ჰაერს ფერება სჭირდება…', humano: 'დღეს უმჯობესია შინ დარჩე და დახატო.', sub: 'ქუჩაში ზედმეტად ბევრი მტვერია.' },
             { msg: 'ჰაერი დღეს ცოტა გაბრაზებულია.', humano: 'სახლში თამაშის დროა, რამეს ავაშენებთ?', sub: 'უმჯობესია დაველოდოთ, სანამ გაშვებულდება.' },
             { msg: 'ცა დღეს დაღლილია.', humano: 'შინ დავხატოთ ან ზღაპარს წავიკითხავთ.', sub: 'გარე ჰაერს დასვენება სჭირდება.' }
-          ]
+          ],
+          // Georgiano mío, repásalo tú o Jop antes de publicar.
+          climaMsg: {
+            despejado: 'კარგი მზეა!',
+            nublado: 'დღეს ღრუბლები მართავენ.',
+            lluvia: 'წვიმს!',
+            tormenta: 'ქარიშხალი მოახლოვდა!',
+            noche: 'სუფთა მთვარეა ამ ღამით.'
+          },
+          climaSub: {
+            despejado: 'ცა მოწმენდილია, კარგი მზეა.',
+            nublado: 'მაღალი ღრუბლებია, მაგრამ არ წვიმს.',
+            lluvia: 'ახლა წვიმს.',
+            tormenta: 'ახლა ქარიშხალია.',
+            noche: 'ღამეა და ცა მოწმენდილია.'
+          },
+          climaHumano: {
+            despejado: 'მზეა, გარეთ ვითამაშოთ ქუდით და წყლით.',
+            nublado: 'ზემოთ ღრუბლებია, მაგრამ გარეთ მშვიდად თამაში შეიძლება.',
+            lluvia: 'ტყაპიების დღეა, ქოლგა და თამაში შინ.',
+            tormenta: 'სანამ გუგუნებს, უმჯობესია შინ და ფანჯრებისგან შორს.',
+            noche: 'დასვენების დროა, ხვალ კიდევ მეტი თამაში იქნება.'
+          },
+          subNeutro: 'ცის ამინდის ცნობა ახლა არ მიმაღწევს.'
         }
       };
 
       const lang = getRobustLang();
       const idiomaSeleccionado = variacionesIdiomas[lang] ? variacionesIdiomas[lang] : variacionesIdiomas['es'];
-      const estadoData = idiomaSeleccionado[estado] || idiomaSeleccionado.mala; 
+      const estadoData = idiomaSeleccionado[estado] || idiomaSeleccionado.mala;
       const seleccion = estadoData[Math.floor(Math.random() * estadoData.length)];
 
-      let svg = '';
+      /* ---- NUEVA ORDEN 07-oct-2026, punto 2: el elemento principal
+         cambia según el tiempo REAL de la ciudad (no según el aire).
+         clima llega como 'despejado' | 'nublado' | 'lluvia' | 'tormenta'
+         | 'noche', o null si no hay datos: entonces se muestra la nube
+         mascota sola, sin gotas ni sol, y el texto no afirma nada del
+         cielo. La cara (ojos y boca) sigue siendo la del aire. ---- */
+      const climaOk = (typeof clima === 'string' && /^(despejado|nublado|lluvia|tormenta|noche)$/.test(clima)) ? clima : null;
 
-      // El viewBox crece a 120x102 para que quepan la nube y las gotas.
-      if (estado === 'buena') {
-        svg = `<svg viewBox="0 0 120 102" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase}
-                 ${eyes}
-                 <path d="M47 60 Q61 72 75 60" stroke="${TINTA}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-               </svg>`;
-      } else if (estado === 'moderada') {
-        svg = `<svg viewBox="0 0 120 102" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase}
-                 ${eyes}
-                 <line x1="49" y1="64" x2="73" y2="64" stroke="${TINTA}" stroke-width="3.5" stroke-linecap="round"/>
-               </svg>`;
-      } else {
-        svg = `<svg viewBox="0 0 120 102" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase}
-                 ${eyes}
-                 <path d="M47 68 Q61 57 75 68" stroke="${TINTA}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-                 <rect x="42" y="57" width="38" height="15" rx="5" fill="#FBFAF7" stroke="${TINTA}" stroke-width="2.5"/>
-                 <line x1="42" y1="63" x2="80" y2="63" stroke="${TINTA}" stroke-width="2"/>
-                 <line x1="42" y1="61" x2="30" y2="57" stroke="${TINTA}" stroke-width="2"/>
-                 <line x1="80" y1="61" x2="92" y2="57" stroke="${TINTA}" stroke-width="2"/>
-               </svg>`;
+      // Boca según el aire, reutilizada por nube y sol (coordenadas
+      // de la nube, vista 120x102; para el sol se desplaza con un grupo).
+      const bocaNube = estado === 'buena'
+        ? `<path d="M47 60 Q61 72 75 60" stroke="${TINTA}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
+        : estado === 'moderada'
+          ? `<line x1="49" y1="64" x2="73" y2="64" stroke="${TINTA}" stroke-width="3.5" stroke-linecap="round"/>`
+          : `<path d="M47 68 Q61 57 75 68" stroke="${TINTA}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+             <rect x="42" y="57" width="38" height="15" rx="5" fill="#FBFAF7" stroke="${TINTA}" stroke-width="2.5"/>
+             <line x1="42" y1="63" x2="80" y2="63" stroke="${TINTA}" stroke-width="2"/>
+             <line x1="42" y1="61" x2="30" y2="57" stroke="${TINTA}" stroke-width="2"/>
+             <line x1="80" y1="61" x2="92" y2="57" stroke="${TINTA}" stroke-width="2"/>`;
+
+      // Piezas sueltas con la misma geometría de siempre: la nube sin
+      // gotas (contorno granate y onda teal de cloudBase), dos gotas
+      // laterales para la tormenta y el rayo dorado con filo granate.
+      const nubeSola = `<path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
+                        <path d="M 48,38 Q 56,33 64,38 T 80,38" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>`;
+      const gotasLaterales = `<path d="M 40,79 C 35,87 35,92 40,95 C 45,92 45,87 40,79 Z" fill="#E6A100"/>
+                              <path d="M 84,79 C 79,87 79,92 84,95 C 89,92 89,87 84,79 Z" fill="#E6A100"/>`;
+      const rayoTormenta = `<path d="M 64,74 L 52,90 L 60,90 L 55,101 L 72,82 L 63,82 Z" fill="#E6A100" stroke="#7A0016" stroke-width="2.5" stroke-linejoin="round"/>`;
+
+      // Sol de Manolit∞ sonriendo (cielo despejado): círculo dorado con
+      // filo granate y rayos cortos, la cara del aire en tinta oscura.
+      // De noche la misma cara la lleva una luna creciente clara.
+      const ojosSol = (isWinking && estado === 'buena')
+        ? `<line x1="43" y1="44" x2="51" y2="44" stroke="${TINTA}" stroke-width="3" stroke-linecap="round"/>
+           <circle cx="71" cy="44" r="4.5" fill="${TINTA}"/>`
+        : `<circle cx="47" cy="44" r="4.5" fill="${TINTA}"/>
+           <circle cx="71" cy="44" r="4.5" fill="${TINTA}"/>`;
+      const bocaSol = estado === 'buena'
+        ? `<path d="M49 54 Q59 63 69 54" stroke="${TINTA}" stroke-width="3" fill="none" stroke-linecap="round"/>`
+        : estado === 'moderada'
+          ? `<line x1="51" y1="57" x2="67" y2="57" stroke="${TINTA}" stroke-width="3" stroke-linecap="round"/>`
+          : `<path d="M50 60 Q59 52 68 60" stroke="${TINTA}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+      const rayosSol = `<g stroke="#E6A100" stroke-width="4" stroke-linecap="round">
+          <line x1="59" y1="6" x2="59" y2="15"/><line x1="59" y1="75" x2="59" y2="84"/>
+          <line x1="23" y1="45" x2="32" y2="45"/><line x1="86" y1="45" x2="95" y2="45"/>
+          <line x1="33" y1="19" x2="39" y2="25"/><line x1="79" y1="65" x2="85" y2="71"/>
+          <line x1="85" y1="19" x2="79" y2="25"/><line x1="39" y1="65" x2="33" y2="71"/>
+        </g>`;
+      const solSVG = `${rayosSol}
+        <circle cx="59" cy="45" r="21" fill="#E6A100" stroke="#7A0016" stroke-width="4"/>
+        ${ojosSol}${bocaSol}`;
+      // Luna creciente clara con filo granate (despejado de noche).
+      const lunaSVG = `<path d="M 74,22 A 26,26 0 1 0 74,72 A 21,21 0 1 1 74,22 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="4" stroke-linejoin="round"/>
+        ${ojosSol}${bocaSol}`;
+
+      let figura = '';
+      if (climaOk === 'despejado') figura = solSVG;
+      else if (climaOk === 'noche') figura = lunaSVG;
+      else if (climaOk === 'lluvia') figura = `${cloudBase}${eyes}${bocaNube}`; // tres gotas, como siempre
+      else if (climaOk === 'tormenta') figura = `${nubeSola}${gotasLaterales}${rayoTormenta}${eyes}${bocaNube}`;
+      else figura = `${nubeSola}${eyes}${bocaNube}`; // nublado y neutro: nube sin gotas
+
+      const svg = `<svg viewBox="0 0 120 102" xmlns="http://www.w3.org/2000/svg">${figura}</svg>`;
+
+      // Textos coherentes con el MISMO estado del tiempo que la figura.
+      // Con lluvia o tormenta el consejo grande también es de tiempo
+      // (no tendría sentido invitar a jugar fuera mientras truena).
+      let txtMsg = seleccion.msg;
+      let txtHumano = seleccion.humano;
+      let txtSub = seleccion.sub;
+      if (climaOk && idiomaSeleccionado.climaSub && idiomaSeleccionado.climaSub[climaOk]) {
+        txtSub = idiomaSeleccionado.climaSub[climaOk];
+        if (idiomaSeleccionado.climaMsg && idiomaSeleccionado.climaMsg[climaOk]) {
+          txtMsg = idiomaSeleccionado.climaMsg[climaOk];
+        }
+        if (idiomaSeleccionado.climaHumano && idiomaSeleccionado.climaHumano[climaOk]) {
+          txtHumano = idiomaSeleccionado.climaHumano[climaOk];
+        }
+      } else if (!climaOk && idiomaSeleccionado.subNeutro) {
+        txtSub = idiomaSeleccionado.subNeutro;
       }
 
-      msgEl.textContent = seleccion.msg;
-      if (humanEl) humanEl.textContent = seleccion.humano;
-      if (subEl) subEl.textContent = seleccion.sub; 
-      
+      msgEl.textContent = txtMsg;
+      if (humanEl) humanEl.textContent = txtHumano;
+      if (subEl) subEl.textContent = txtSub;
+
       cloudDiv.innerHTML = svg;
     }
-    
-    window.actualizarModoPeque = renderPequeFace;
+
+    /* El clima y el aire se guardan sueltos para repintar cuando llegue
+       el otro dato, sin esperar ni bloquear. */
+    let ultimoEstadoAirePeque = null;
+    let ultimoClimaPeque = null;
+    window.actualizarModoPeque = function(estado) {
+      ultimoEstadoAirePeque = estado;
+      renderPequeFace(estado, ultimoClimaPeque);
+    };
+    window.actualizarClimaPeque = function(clima) {
+      ultimoClimaPeque = clima;
+      renderPequeFace(ultimoEstadoAirePeque || 'buena', ultimoClimaPeque);
+    };
+
+    /* ============================================================
+       CLIMA REAL EN MODO PEQUE (07-oct-2026, NUEVA ORDEN punto 2)
+       El elemento principal del hero sigue el tiempo real de la
+       ciudad elegida (despejado=sol sonriente, nublado=nube sola,
+       lluvia=nube con tres gotas, tormenta=nube con rayo, noche
+       despejada=luna). Si la petición falla o no hay datos, queda
+       el estado neutro (nube amable sin gotas) y ningún texto
+       contradice el cielo real.
+       Solo consulta cuando el modo peque está activo, directo a
+       Open-Meteo (API gratuita, sin clave, CORS abierto, igual que
+       la de calidad del aire que ya usa la web), con caché en
+       memoria de 15 min por ciudad: nada de trabajo continuo ni
+       timers, una petición por cambio de ciudad o de modo.
+       ============================================================ */
+    const CLIMA_PEQUE_COORDS = {
+      sevilla:   [37.3886, -5.9823],
+      madrid:    [40.4168, -3.7038],
+      barcelona: [41.3874, 2.1686],
+      valencia:  [39.4699, -0.3763],
+      laspalmas: [28.1235, -15.4363],
+      palma:     [39.5696, 2.6502],
+      ceuta:     [35.8894, -5.3213],
+      melilla:   [35.2923, -2.9381],
+      pamplona:  [42.8125, -1.6458],
+      santiago:  [42.8805, -8.5457],
+      zaragoza:  [41.6488, -0.8891],
+      malaga:    [36.7213, -4.4214],
+      eivissa:   [38.9089, 1.4328],
+      menorca:   [39.8874, 4.2614],
+      badajoz:   [38.8794, -6.9706]
+    };
+    const CLIMA_PEQUE_CACHE_MS = 15 * 60 * 1000;
+    const climaPequeCache = {};
+    let climaPequeFetchSeq = 0;
+    // Ciudad elegida en el selector del hero (por defecto Sevilla,
+    // la marcada "selected" en el HTML). La actualiza el desplegable.
+    let ciudadPequeActual = 'sevilla';
+
+    // weather_code de Open-Meteo (WMO) -> estado del hero.
+    // La nieve cuenta como lluvia (pregunta pendiente para Sandro,
+    // anotada en la entrega). De noche y despejado sale la luna.
+    function climaPequeDesdeDatos(code, nubes, esDeDia) {
+      if (typeof code !== 'number' || isNaN(code)) return null;
+      if (code >= 95) return 'tormenta';
+      if ((code >= 51 && code <= 67) || (code >= 71 && code <= 77) || (code >= 80 && code <= 86)) return 'lluvia';
+      if (code === 0 || code === 1) {
+        if (typeof nubes === 'number' && !isNaN(nubes) && nubes >= 55) return 'nublado';
+        return esDeDia === 0 ? 'noche' : 'despejado';
+      }
+      if (code === 2 || code === 3 || code === 45 || code === 48) return 'nublado';
+      return null; // código desconocido, estado neutro
+    }
+
+    function actualizarClimaPequeSiProcede(ciudad) {
+      ciudadPequeActual = ciudad;
+      if (!document.body.classList.contains('mode-peque')) return;
+      const coords = CLIMA_PEQUE_COORDS[ciudad];
+      if (!coords) return; // ciudad sin coordenadas, estado neutro
+      const ahora = Date.now();
+      const enCache = climaPequeCache[ciudad];
+      if (enCache && (ahora - enCache.t) < CLIMA_PEQUE_CACHE_MS) {
+        window.actualizarClimaPeque(enCache.estado);
+        return;
+      }
+      const miTurno = ++climaPequeFetchSeq;
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=' + coords[0] +
+            '&longitude=' + coords[1] +
+            '&current=weather_code,cloud_cover,is_day&timezone=auto')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d || !d.current) return; // sin datos, se queda neutro
+          const estado = climaPequeDesdeDatos(d.current.weather_code, d.current.cloud_cover, d.current.is_day);
+          climaPequeCache[ciudad] = { t: Date.now(), estado: estado };
+          // Solo pinta si sigue activo el modo peque, sigue siendo la
+          // ciudad elegida y no hay una petición más nueva en marcha.
+          if (miTurno !== climaPequeFetchSeq) return;
+          if (!document.body.classList.contains('mode-peque')) return;
+          window.actualizarClimaPeque(estado);
+        })
+        .catch(() => { /* fallo de red: estado neutro, sin errores visibles */ });
+    }
+    window.actualizarClimaPequeSiProcede = actualizarClimaPequeSiProcede;
 
     window.actualizarPanelCientifico = function(datos) {
       const { pm25, pm10, no2, o3, ica, hora, so2, co, uv } = datos;
@@ -1855,13 +2143,32 @@
       if (capaVieja) capaVieja.remove();
       if (mode !== 'peque') return;
       if (!hero) return;
+      // El clima del hero se actualiza aunque haya reduced-motion:
+      // no es animación, es información real.
+      actualizarClimaPequeSiProcede(ciudadPequeActual);
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const capa = document.createElement('div');
       capa.id = 'pequeFxCapa';
       capa.setAttribute('aria-hidden', 'true');
+      // 07-oct-2026 (NUEVA ORDEN, urgente): los SVG llevan width/height
+      // propios. Sin CSS (o con una hoja vieja en caché, que fue la causa
+      // del sol gigante en producción) un SVG con solo viewBox se estira
+      // al ancho del contenedor y sus rayos tapan el titular, el selector
+      // de ciudad y la nube. Con medida intrínseca eso es imposible.
       capa.innerHTML =
-        '<span class="peque-deco peque-deco-sol"><svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg"><g stroke="#E6A100" stroke-width="4" stroke-linecap="round"><line x1="45" y1="6" x2="45" y2="16"/><line x1="45" y1="74" x2="45" y2="84"/><line x1="6" y1="45" x2="16" y2="45"/><line x1="74" y1="45" x2="84" y2="45"/><line x1="17" y1="17" x2="24" y2="24"/><line x1="66" y1="66" x2="73" y2="73"/><line x1="73" y1="17" x2="66" y2="24"/><line x1="24" y1="66" x2="17" y2="73"/></g><circle cx="45" cy="45" r="19" fill="#E6A100" stroke="#7A0016" stroke-width="4"/></svg></span>' +
-        '<span class="peque-deco peque-deco-nube"><svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg"><path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/><path d="M 44,56 Q 54,50 64,56 T 84,56" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/></svg></span>';
+        '<span class="peque-deco peque-deco-sol"><svg width="48" height="48" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg"><g stroke="#E6A100" stroke-width="4" stroke-linecap="round"><line x1="45" y1="6" x2="45" y2="16"/><line x1="45" y1="74" x2="45" y2="84"/><line x1="6" y1="45" x2="16" y2="45"/><line x1="74" y1="45" x2="84" y2="45"/><line x1="17" y1="17" x2="24" y2="24"/><line x1="66" y1="66" x2="73" y2="73"/><line x1="73" y1="17" x2="66" y2="24"/><line x1="24" y1="66" x2="17" y2="73"/></g><circle cx="45" cy="45" r="19" fill="#E6A100" stroke="#7A0016" stroke-width="4"/></svg></span>' +
+        '<span class="peque-deco peque-deco-nube"><svg width="60" height="45" viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg"><path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/><path d="M 44,56 Q 54,50 64,56 T 84,56" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/></svg></span>' +
+        // Emojis flotantes recuperados (NUEVA ORDEN 07-oct-2026, punto 3):
+        // pocos, pegados a los márgenes, siempre detrás del contenido
+        // (la CSS pone el contenido del hero por encima), sin interceptar
+        // clics, con animación solo de transform/opacity, pausada con la
+        // pestaña oculta y apagada con prefers-reduced-motion (arriba).
+        '<span class="peque-emoji" style="left:5%;top:30%;animation-duration:9s" aria-hidden="true">☀️</span>' +
+        '<span class="peque-emoji" style="right:6%;top:22%;animation-duration:11s;animation-delay:-3s" aria-hidden="true">🌳</span>' +
+        '<span class="peque-emoji" style="left:8%;top:56%;animation-duration:10s;animation-delay:-5s" aria-hidden="true">💧</span>' +
+        '<span class="peque-emoji" style="right:5%;top:50%;animation-duration:12s;animation-delay:-2s" aria-hidden="true">🍃</span>' +
+        '<span class="peque-emoji peque-emoji-extra" style="left:12%;top:80%;animation-duration:13s;animation-delay:-7s" aria-hidden="true">🐦</span>' +
+        '<span class="peque-emoji peque-emoji-extra" style="right:11%;top:74%;animation-duration:8s;animation-delay:-4s" aria-hidden="true">⛅</span>';
       hero.appendChild(capa);
       // Pausa explícita con la pestaña oculta (el navegador ya frena las
       // animaciones CSS en segundo plano, esto lo deja garantizado).
@@ -1905,6 +2212,10 @@
 
         if (typeof window.setCurrentCity === 'function') {
           window.setCurrentCity(value);
+        }
+        // El hero del modo peque sigue el tiempo de la ciudad elegida.
+        if (typeof window.actualizarClimaPequeSiProcede === 'function') {
+          window.actualizarClimaPequeSiProcede(value);
         }
         if (forecastCityName) forecastCityName.textContent = text;
       });

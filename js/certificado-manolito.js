@@ -209,10 +209,12 @@ function glifoSello(id, cx, cy) {
       return `${rayos}<circle cx="${cx}" cy="${cy}" r="18" fill="${DORADO}"/>`;
     }
     case 'sombra':
-      /* Glifo de sombra ORIGINAL, recuperado del sello bueno: aro
-         abierto teal con su sombra gris proyectada debajo. */
-      return `<ellipse cx="${cx + 10}" cy="${cy + 27}" rx="21" ry="5.5" fill="${TINTA}" opacity="0.3" transform="rotate(-12 ${cx + 10} ${cy + 27})"/>
-      <circle cx="${cx}" cy="${cy}" r="24" fill="none" stroke="${TEAL}" stroke-width="5"/>`;
+      /* Glifo de sombra ORIGINAL DE VERDAD, copiado carácter a
+         carácter del diploma original que Sandro ha subido
+         (diploma-manolit.svg): la forma blanca con contorno teal
+         sobre su sombra gris. Este y ningún otro. */
+      return `<ellipse cx="${cx + 8}" cy="${cy + 22}" rx="26" ry="7" fill="${TINTA}" opacity="0.35"/>
+      <path d="M${cx} ${cy - 26} C${cx - 14} ${cy - 26} ${cx - 26} ${cy - 14} ${cx - 26} ${cy} C${cx - 26} ${cy + 10} ${cx - 18} ${cy + 17} ${cx - 10} ${cy + 22} L${cx + 10} ${cy + 22} C${cx + 18} ${cy + 17} ${cx + 26} ${cy + 10} ${cx + 26} ${cy} C${cx + 26} ${cy - 14} ${cx + 14} ${cy - 26} ${cx} ${cy - 26} Z" fill="#FFFFFF" stroke="${TEAL}" stroke-width="3"/>`;
     case 'salud':
       return `<path d="M${cx} ${cy + 24} C${cx - 22} ${cy + 6} ${cx - 32} ${cy - 8} ${cx - 32} ${cy - 20} C${cx - 32} ${cy - 30} ${cx - 24} ${cy - 36} ${cx - 16} ${cy - 36} C${cx - 10} ${cy - 36} ${cx - 4} ${cy - 33} ${cx} ${cy - 27} C${cx + 4} ${cy - 33} ${cx + 10} ${cy - 36} ${cx + 16} ${cy - 36} C${cx + 24} ${cy - 36} ${cx + 32} ${cy - 30} ${cx + 32} ${cy - 20} C${cx + 32} ${cy - 8} ${cx + 22} ${cy + 6} ${cx} ${cy + 24} Z" fill="${GRANATE}"/>
       <line x1="${cx}" y1="${cy - 16}" x2="${cx}" y2="${cy + 6}" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>

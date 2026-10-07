@@ -75,7 +75,7 @@ export const TEXTOS = {
     solUy: '¡Uy, ese sol achicharra! Mejor esquivarlo, miarma.',
     casiBurbuja: 'Casi, casi. Repite el nivel cuando quieras, que aquí nadie castiga.',
     burbujaCompleto: '¡Enhorabuena, miarma! Has completado el juego de Manolit∞ con los 6 sellos.',
-    decirCompleto: 'Enhorabuena. Has conseguido los seis sellos de protección del calor y el sello de simulador de sombras.',
+    decirCompleto: 'Enhorabuena. Has conseguido los seis sellos de protección del calor.',
     diplomaOkSvg: '¡Certificado SVG descargado! Guárdalo bien, campeón.',
     diplomaOkPdf: '¡Certificado PDF descargado! Ya puedes enseñarlo en casa.',
     diplomaErrSvg: 'Uy, no he podido fabricar el certificado. Prueba otra vez en un ratito.',
@@ -486,7 +486,7 @@ export const TEXTOS = {
     solUy: 'Ui, ese sol chamusca! Mellor esquivalo.',
     casiBurbuja: 'Case, case. Repite o nivel cando queiras, que aquí ninguén castiga.',
     burbujaCompleto: 'Parabéns! Completaches o xogo de Manolit∞ cos 6 selos.',
-    decirCompleto: 'Parabéns. Conseguiches os seis selos de protección da calor e o selo de simulador de sombras.',
+    decirCompleto: 'Parabéns. Conseguiches os seis selos de protección da calor.',
     diplomaOkSvg: 'Certificado SVG descargado! Gárdao ben, campión.',
     diplomaOkPdf: 'Certificado PDF descargado! Xa o podes ensinar na casa.',
     diplomaErrSvg: 'Ui, non puiden fabricar o certificado. Proba outra vez nun intre.',
@@ -623,7 +623,7 @@ export const TEXTOS = {
     solUy: 'Ui, eguzki hori erretzen du! Hobeto saihestu.',
     casiBurbuja: 'Ia, ia. Errepikatu maila nahi duzunean, hemen inork ez du zigortzen.',
     burbujaCompleto: 'Zorionak! Manolit∞ jokoa osatu duzu 6 zigiluekin.',
-    decirCompleto: 'Zorionak. Beroaren sei babes zigiluak eta itzal simulatzailearen zigilua lortu dituzu.',
+    decirCompleto: 'Zorionak. Beroaren sei babes zigiluak lortu dituzu.',
     diplomaOkSvg: 'SVG ziurtagiria deskargatuta! Gorde ondo, txapeldun.',
     diplomaOkPdf: 'PDF ziurtagiria deskargatuta! Dagoeneko etxean erakuts dezakezu.',
     diplomaErrSvg: 'Ui, ezin izan dut ziurtagiria egin. Saiatu berriro pixka bat barru.',
@@ -760,7 +760,7 @@ export const TEXTOS = {
     solUy: 'ო, ეს მზე წვავს! უმჯობესია გაექცე.',
     casiBurbuja: 'თითქმის, თითქმის. გაიმეორე დონე როცა გინდა, აქ არავინ სჯის.',
     burbujaCompleto: 'გილოცავ! დაასრულე მანოლიტ∞-ის თამაში 6 ბეჭდით.',
-    decirCompleto: 'გილოცავ. მოიპოვე სითბოსგან დაცვის ექვსი ბეჭედი და ჩრდილების სიმულატორის ბეჭედი.',
+    decirCompleto: 'გილოცავ. მოიპოვე სითბოსგან დაცვის ექვსი ბეჭედი.',
     diplomaOkSvg: 'SVG სერტიფიკატი ჩამოიტვირთა! დაინახე, ჩემპიონ.',
     diplomaOkPdf: 'PDF სერტიფიკატი ჩამოიტვირთა! შეგიძლია სახლში აჩვენო.',
     diplomaErrSvg: 'ო, სერტიფიკატი ვერ გამოვიდა. სცადე ცოტა მოგვიანებით.',
@@ -911,7 +911,7 @@ export const TEXTOS_CIUDADANO = {
     nocivoUy: 'Sol directo cazado. Menos 10 puntos, y a otra cosa.',
     casiBurbuja: 'Casi. Repite el nivel cuando quieras, aquí nadie castiga.',
     burbujaCompleto: 'Enhorabuena. Has completado el juego con los 6 sellos de protección.',
-    decirCompleto: 'Enhorabuena. Has conseguido los seis sellos de protección del calor y el sello de simulador de sombras.',
+    decirCompleto: 'Enhorabuena. Has conseguido los seis sellos de protección del calor.',
     diplomaOkSvg: 'Certificado SVG descargado. Guárdalo bien.',
     diplomaOkPdf: 'Certificado PDF descargado.',
     diplomaErrSvg: 'No he podido fabricar el certificado. Prueba otra vez en un rato.',
@@ -1049,7 +1049,7 @@ export const TEXTOS_CIUDADANO = {
     nocivoUy: 'Direct sun caught. Minus 10 points, move on.',
     casiBurbuja: 'Almost. Retry the level whenever you want, nobody punishes here.',
     burbujaCompleto: 'Congratulations. You completed the game with all 6 protection seals.',
-    decirCompleto: 'Congratulations. You earned the six heat protection seals and the shade simulator seal.',
+    decirCompleto: 'Congratulations. You earned the six heat protection seals.',
     diplomaOkSvg: 'SVG certificate downloaded. Keep it safe.',
     diplomaOkPdf: 'PDF certificate downloaded.',
     diplomaErrSvg: 'I could not build the certificate. Try again in a bit.',
@@ -1325,7 +1325,7 @@ export const TEXTOS_CIUDADANO = {
     nocivoUy: 'Sol directo apanhado. Menos 10 puntos, e a outra cousa.',
     casiBurbuja: 'Case. Repite o nivel cando queiras, aquí ninguén castiga.',
     burbujaCompleto: 'Parabéns. Completaches o xogo cos 6 selos de protección.',
-    decirCompleto: 'Parabéns. Conseguiches os seis selos de protección da calor e o selo de simulador de sombras.',
+    decirCompleto: 'Parabéns. Conseguiches os seis selos de protección da calor.',
     diplomaOkSvg: 'Certificado SVG descargado. Gárdao ben.',
     diplomaOkPdf: 'Certificado PDF descargado.',
     diplomaErrSvg: 'Non puiden fabricar o certificado. Proba outra vez nun intre.',
@@ -1465,7 +1465,7 @@ export const TEXTOS_CIUDADANO = {
     nocivoUy: 'Eguzki zuzena harrapatu duzu. 10 puntu gutxiago, eta beste gauza batera.',
     casiBurbuja: 'Ia-ia. Errepikatu maila nahi duzunean, hemen inork ez du zigortzen.',
     burbujaCompleto: 'Zorionak. Jokoa osatu duzu 6 babes-zigiluekin.',
-    decirCompleto: 'Zorionak. Beroaren sei babes-zigilu eta itzal-en simuladorearen zigilua lortu dituzu.',
+    decirCompleto: 'Zorionak. Beroaren sei babes-zigilu lortu dituzu.',
     diplomaOkSvg: 'SVG ziurtagiria deskargatuta. Gorde ondo.',
     diplomaOkPdf: 'PDF ziurtagiria deskargatuta.',
     diplomaErrSvg: 'Ezin izan dut ziurtagiria egin. Saiatu berriz geroago.',
@@ -1605,7 +1605,7 @@ export const TEXTOS_CIUDADANO = {
     nocivoUy: 'პირდაპირი მზე დაიჭირე. მინუს 10 ქულა და წინ.',
     casiBurbuja: 'თითქმის. გაიმეორე დონე როდესაც გინდა, აქ არავინ საჯის.',
     burbujaCompleto: 'გილოცავ. თამაში 6 დამცავი ბეჭდით დაასრულე.',
-    decirCompleto: 'გილოცავ. მიიღე სითბოს ექვსი დამცავი ბეჭედი და ჩრდილების სიმულატორის ბეჭედი.',
+    decirCompleto: 'გილოცავ. მიიღე სითბოს ექვსი დამცავი ბეჭედი.',
     diplomaOkSvg: 'SVG სერტიფიკატი ჩამოტვირთულია. კარგად შეინახე.',
     diplomaOkPdf: 'PDF სერტიფიკატი ჩამოტვირთულია.',
     diplomaErrSvg: 'სერტიფიკატი ვერ გავაკეთე. სცადე მოგვიანებით.',
@@ -1807,7 +1807,17 @@ const SVG_ESCUDO = `<svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" 
   <path d="M32 44 L41 54 L60 32" stroke="${GRANATE}" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-const SPRITES = { mascota: SVG_MASCOTA, sol: SVG_SOL, sombra: SVG_NUBE, salud: SVG_CORAZON, agua: SVG_GOTA, temp: SVG_TERMO, prevencion: SVG_ESCUDO };
+/* Glifo de SOMBRA DE VERDAD, el mismo del diploma original que
+   Sandro subió (diploma-manolit.svg): la forma blanca con contorno
+   teal sobre su sombra gris proyectada. Se usa en el muro de sellos
+   y en las piezas de sombra que caen. La nube (SVG_NUBE) deja de
+   representar la sombra por orden expresa de Sandro (07-oct). */
+const SVG_SOMBRA = `<svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <ellipse cx="53" cy="67" rx="26" ry="7" fill="#26424B" opacity="0.35"/>
+  <path d="M45 19 C31 19 19 31 19 45 C19 55 27 62 35 67 L55 67 C63 62 71 55 71 45 C71 31 59 19 45 19 Z" fill="#FFFFFF" stroke="${TEAL}" stroke-width="4"/>
+</svg>`;
+
+const SPRITES = { mascota: SVG_MASCOTA, sol: SVG_SOL, sombra: SVG_SOMBRA, salud: SVG_CORAZON, agua: SVG_GOTA, temp: SVG_TERMO, prevencion: SVG_ESCUDO };
 
 /* ---------------- estilos del juego (se inyectan una vez) ---------------- */
 function ponerEstilos() {
@@ -2007,10 +2017,8 @@ export function iniciarJuegoManolit(contenedor, opciones = {}) {
       s.appendChild(nodo('span', null, txt ? txt.sello : cfg.id));
       muro.appendChild(s);
     }
-    const fin = nodo('span', 'jm-sello' + (estado.sellos.length === NIVELES.length ? ' jm-ok' : ''));
-    fin.innerHTML = SVG_MASCOTA;
-    fin.appendChild(nodo('span', null, pack.finalCorto));
-    muro.appendChild(fin);
+    // 07-oct (orden expresa de Sandro): fuera el icono «final» del
+    // muro. El muro muestra los 6 sellos de protección y nada más.
   }
 
   function ponerBurbuja(txt) {
@@ -2394,7 +2402,7 @@ export function iniciarJuegoManolit(contenedor, opciones = {}) {
       pack.resNivel(Math.min(estado.nivel + (completo ? 1 : 0), NIVELES.length), NIVELES.length),
       pack.resSellos(estado.sellos.length, NIVELES.length, estado.sellos.map(nombreSello).join(', '))
     ];
-    if (completo) datos.push(pack.resSelloFinal);
+    // 07-oct (orden expresa de Sandro): el sello final no se nombra ni se muestra.
     for (const d of datos) lista.appendChild(nodo('li', null, d));
     const ultimaLeccion = textosDe(estado.lang, estado.modo).niveles[Math.max(0, estado.sellos.length - 1)].lecciones[0];
     const aprendido = nodo('p', 'jm-leccion', pack.aprendido(ultimaLeccion));

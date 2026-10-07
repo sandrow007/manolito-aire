@@ -47,22 +47,7 @@
       const storedLang = localStorage.getItem('manolito_lang') || localStorage.getItem('lang');
       if (storedLang) return storedLang.split('-')[0];
     } catch (e) {}
-    return 'en';
-  }
-
-  function getI18nMessages() {
-    try {
-      if (typeof window.getMessages === 'function') {
-        return window.getMessages(getRobustLang()) || null;
-      }
-    } catch (e) {}
-    return null;
-  }
-
-  function tChat(key, fallbackEs, fallbackEn) {
-    const msgs = getI18nMessages();
-    if (msgs && msgs[key]) return msgs[key];
-    return getRobustLang() === 'en' ? (fallbackEn || fallbackEs) : fallbackEs;
+    return 'es';
   }
 
   function parseMarkdownToHTML(text) {
@@ -117,11 +102,7 @@ SALUD: información educativa y sentido común (protección, horarios, hidrataci
     const uiLang = getRobustLang();
 
     if (typeof cookiesAccepted === 'function' && !cookiesAccepted()) {
-      return tChat(
-        'chatCookiesBlocked',
-        'Conexión bloqueada. Acepta las cookies para interactuar con la IA.',
-        'Connection blocked. Accept cookies to interact with AI.'
-      );
+      return "Conexión bloqueada. Acepta las cookies para interactuar con la IA.";
     }
 
     let historyText = "";
@@ -243,11 +224,9 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
 
     if (!finalAnswer) {
       console.debug("Errores acumulados:", errors);
-      finalAnswer = tChat(
-        'chatServerUnavailable',
-        '⚠️ Ahora mismo no puedo conectar con el servidor de Manolit∞.\n\nInténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de abajo tienen respuesta inmediata.',
-        '⚠️ I can’t connect to the Manolit∞ server right now.\n\nTry again in a few seconds. Meanwhile, the quick questions below still work instantly.'
-      );
+      finalAnswer = `⚠️ Ahora mismo no puedo conectar con el servidor de Manolit∞.
+
+Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de abajo tienen respuesta inmediata.`;
       chatHistory.pop();
     }
 
@@ -347,19 +326,10 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
      en texto, sin llamar a la IA: geocodificar (mundo) → Open-Meteo →
      nivel en palabras. Si el país no tiene soporte de datos, se dice
      con seriedad. */
-  const AIRE_NIVELES = [
-    [20, 'airLvlGood', 'bueno', 'good'],
-    [40, 'airLvlFair', 'aceptable', 'fair'],
-    [60, 'airLvlModerate', 'moderado', 'moderate'],
-    [80, 'airLvlPoor', 'malo', 'poor'],
-    [100, 'airLvlVeryPoor', 'muy malo', 'very poor'],
-    [Infinity, 'airLvlHazard', 'peligroso', 'hazardous']
-  ];
+  const AIRE_NIVELES = [[20, 'bueno'], [40, 'aceptable'], [60, 'moderado'], [80, 'malo'], [100, 'muy malo'], [Infinity, 'peligroso']];
   function nivelAirePalabra(aqi) {
-    for (const [tope, key, fallbackEs, fallbackEn] of AIRE_NIVELES) {
-      if (aqi <= tope) return tChat(key, fallbackEs, fallbackEn);
-    }
-    return tChat('airLvlHazard', 'peligroso', 'hazardous');
+    for (const [tope, palabra] of AIRE_NIVELES) if (aqi <= tope) return palabra;
+    return 'peligroso';
   }
   // Península como polígono que sigue la frontera (el rectángulo de antes
   // se tragaba Portugal entero), más Baleares y Canarias.
@@ -389,7 +359,7 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
   }
   async function intentarAireInternacional(pregunta) {
     try {
-      const m = String(pregunta || '').match(/(?:air(?:\s+quality)?|aire|contaminaci[oó]n|pollution|poluci[oó]n)\b[^]*?\b(?:in|en)\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’\-\s]{2,40}?)\s*(?:today|tomorrow|now|hoy|mañana|ahora)?\s*[?.!¡]*\s*$/i);
+      const m = String(pregunta || '').match(/(?:aire|contaminaci[oó]n|poluci[oó]n)\b[^]*?\ben\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’\-\s]{2,40}?)\s*(?:hoy|mañana|ahora)?\s*[?.!¡]*\s*$/i);
       if (!m) return null;
       let ciudad = m[1].trim();
       if (ciudad.length < 2) return null;
@@ -401,30 +371,67 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
       if (puntoEnEspana(lat, lon)) return null; // dentro de España: camino de siempre, la capa del mapa ya lo cubre
       ciudad = ciudad.charAt(0).toUpperCase() + ciudad.slice(1);
       const r = await fetch(`/api/air-quality?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&current=european_aqi&timezone=auto`);
-      if (!r.ok) return tChat('chatAirUnavailable', 'Calidad del aire no disponible para este país.', 'Air quality not available for this country.');
+      if (!r.ok) return 'Calidad del aire no disponible para este país.';
       const d = await r.json();
       const aqi = d && d.current && typeof d.current.european_aqi === 'number' ? d.current.european_aqi : null;
-      if (aqi == null) return tChat('chatAirUnavailable', 'Calidad del aire no disponible para este país.', 'Air quality not available for this country.');
-      return getRobustLang() === 'en'
-        ? `Air quality in ${ciudad} is ${nivelAirePalabra(aqi)}.`
-        : `La calidad del aire en ${ciudad} indica un nivel ${nivelAirePalabra(aqi)}.`;
+      if (aqi == null) return 'Calidad del aire no disponible para este país.';
+      return `La calidad del aire en ${ciudad} indica un nivel ${nivelAirePalabra(aqi)}.`;
     } catch (e) {
       return null; // cualquier fallo: que responda la IA como siempre
     }
   }
 
+  // 07-oct-2026 (orden de Sandro): intents que EJECUTAN, no solo responden.
+  // «Aparcamiento / dónde aparco» enciende la capa de aparcamientos (en la
+  // zona visible o en el sitio que nombre la frase) por el evento público
+  // 'manolito:activar-parking'. «Modo vago / busca la mejor sombra» enciende
+  // las sombras y los árboles del mapa sin pedir parámetros. Todo aditivo:
+  // si los módulos no están cargados, el chat sigue respondiendo igual.
+  async function intentarAccionDirecta(pregunta) {
+    const txt = String(pregunta || '');
+    try {
+      if (/\b(aparcamiento|aparcamientos|aparcar|aparco|aparcas|parking|parkings)\b/i.test(txt)) {
+        const m = txt.match(/\ben\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’\-\s]{2,40}?)\s*[?.!¡]*\s*$/i);
+        let detalle = {};
+        if (m) {
+          const geo = await fetch('/geo?q=' + encodeURIComponent(m[1].trim()) + '&format=json&limit=1', { headers: { 'Accept-Language': 'es' } });
+          if (geo.ok) {
+            const lugares = await geo.json();
+            if (lugares && lugares.length) {
+              detalle = { lat: parseFloat(lugares[0].lat), lon: parseFloat(lugares[0].lon) };
+            }
+          }
+        }
+        document.dispatchEvent(new CustomEvent('manolito:activar-parking', { detail: detalle }));
+        return 'Capa de aparcamientos encendida. Verde es gratis, ámbar de pago, azul cubierto, violeta subterráneo y gris privado o de clientes. Los que llevan anillo teal tienen sombra ahora mismo.';
+      }
+      if (/\b(modo vago|busca la mejor sombra|mejor sombra|la mejor sombra)\b/i.test(txt)) {
+        const tSombras = document.getElementById('rsToggleSombras');
+        if (tSombras && !tSombras.checked) tSombras.click();
+        const btnArboles = document.getElementById('rsBtnArboles');
+        if (btnArboles && btnArboles.getAttribute('aria-pressed') !== 'true') btnArboles.click();
+        return 'Hecho. Tienes las sombras y los árboles encendidos en el mapa, las zonas más oscuras son la mejor sombra ahora mismo.';
+      }
+    } catch (e) {
+      return null; // cualquier fallo: que responda la IA como siempre
+    }
+    return null;
+  }
+
   async function sendQuestion(question) {
     toggleInputState(true);
     addBubble(question, 'user');
-    setChatStatus(tChat('chatAnalyzing', 'Manolit∞ analizando contexto...', 'Manolit∞ is analyzing context...'));
+    setChatStatus('Manolit∞ analizando contexto...');
 
     try {
+      const accion = await intentarAccionDirecta(question);
+      if (accion) { addBubble(accion, 'mano'); return; }
       const aireLocal = await intentarAireInternacional(question);
       if (aireLocal) { addBubble(aireLocal, 'mano'); return; }
       const answer = await askManolito(question);
       addBubble(answer, 'mano');
     } catch (e) {
-      addBubble(tChat('chatUnexpectedError', 'Error inesperado. Reinténtalo en un momento.', 'Unexpected error. Please try again in a moment.'), 'mano');
+      addBubble("Error inesperado. Reinténtalo en un momento.", 'mano');
       console.debug("Error crítico:", e);
     } finally {
       setChatStatus('');

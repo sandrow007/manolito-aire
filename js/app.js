@@ -12,6 +12,18 @@ const cityData = {
   palma:     { name:'Palma de Mallorca', lat:39.5696, lon:2.6502 },
   ceuta:     { name:'Ceuta', lat:35.8894, lon:-5.3213 },
   melilla:   { name:'Melilla', lat:35.2923, lon:-2.9381 },
+  // 07-oct-2026 (bug encontrado probando la NUEVA ORDEN): el desplegable
+  // del hero ofrece 15 ciudades pero aquí solo estaban 8. Al elegir
+  // Pamplona, Santiago, Zaragoza, Málaga, Eivissa, Menorca o Badajoz,
+  // renderHero leía d.name de undefined y saltaba un error en consola.
+  // Coordenadas reales de cada capital (centro urbano).
+  pamplona:  { name:'Pamplona', lat:42.8125, lon:-1.6458 },
+  santiago:  { name:'Santiago de Compostela', lat:42.8805, lon:-8.5457 },
+  zaragoza:  { name:'Zaragoza', lat:41.6488, lon:-0.8891 },
+  malaga:    { name:'Málaga', lat:36.7213, lon:-4.4214 },
+  eivissa:   { name:'Eivissa', lat:38.9089, lon:1.4328 },
+  menorca:   { name:'Menorca', lat:39.8874, lon:4.2614 },
+  badajoz:   { name:'Badajoz', lat:38.8794, lon:-6.9706 },
 };
 
 const messages = {
@@ -1006,17 +1018,21 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ============================================================
    ENTRADA AL JUEGO «ATRAPA A MANOLIT∞» (07-oct-2026, orden
    directa de Sandro). Vive SOLO en la sección de niños: el botón
-   está dentro de .peque-character, que la CSS mantiene oculto
-   fuera del modo peque. El juego y el diploma se cargan perezosos
-   como módulos ES (sin 404: la base se deriva de la propia URL de
-   este script) y todo se destruye al cerrar el panel. Aditivo.
+   está en el bloque .peque-actions del hero y la CSS lo mantiene
+   oculto fuera del modo peque (.peque-juego-btn nace con
+   display:none y solo body.mode-peque lo enseña). El juego y el
+   diploma se cargan perezosos como módulos ES (sin 404: la base se
+   deriva de la propia URL de este script) y todo se destruye al
+   cerrar el panel. Aditivo.
    ============================================================ */
 (function () {
   const arrancar = () => {
     const btn = document.getElementById('btnJuegoManolit');
+    const btnAdulto = document.getElementById('btnJuegoCiudadano');
     const cont = document.getElementById('juegoManolitCont');
     if (!btn || !cont) return;
     let juego = null;
+    let modoJuego = null; // 'peque' | 'ciudadano' (NUEVA ORDEN 07-oct-2026)
     let promesaModulo = null;
     const urlJs = () => {
       const s = document.querySelector('script[src*="app.js"]');
@@ -1040,28 +1056,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (e) { /* la voz nunca rompe el juego */ }
     };
-    btn.addEventListener('click', async () => {
+    // Modo de audiencia activo según las clases del body: ciudadano es
+    // el modo por defecto (sin clase) o con clase mode-ciudadano.
+    const modoAudiencia = () =>
+      document.body.classList.contains('mode-peque') ? 'peque'
+      : (document.body.classList.contains('mode-cientifico') || document.body.classList.contains('mode-yayo')) ? 'otro'
+      : 'ciudadano';
+    const abrirJuego = async (modo, boton) => {
       if (juego) return;
       try {
         promesaModulo = promesaModulo || import(urlJs() + 'juego-manolito.js');
         const modulo = await promesaModulo;
         if (juego) return; // doble clic mientras cargaba
+        modoJuego = modo;
         juego = modulo.iniciarJuegoManolit(cont, {
-          getLang, decir,
+          getLang, decir, modo,
           cargarCertificado: () => import(urlJs() + 'certificado-manolito.js'),
-          onCerrar: () => { juego = null; cont.innerHTML = ''; btn.focus(); }
+          onCerrar: () => { juego = null; modoJuego = null; cont.innerHTML = ''; boton.focus(); }
         });
       } catch (e) {
         juego = null;
+        modoJuego = null;
         promesaModulo = null; // sin red para el módulo: se reintenta al pulsar
       }
-    });
+    };
+    btn.addEventListener('click', () => abrirJuego('peque', btn));
+    if (btnAdulto) btnAdulto.addEventListener('click', () => abrirJuego('ciudadano', btnAdulto));
     // Si se cambia de modo con el juego abierto, se destruye entero:
-    // juego oculto que sigue gastando batería, prohibido.
+    // juego oculto que sigue gastando batería, prohibido. El juego de
+    // peques solo vive en modo peque y el de ciudadanos solo en modo
+    // ciudadano: los dos modos no se mezclan (NUEVA ORDEN 07-oct-2026).
     const vigilanteModo = new MutationObserver(() => {
-      if (juego && !document.body.classList.contains('mode-peque')) {
+      if (!juego) return;
+      const actual = modoAudiencia();
+      if (actual !== modoJuego) {
         juego.destruir();
         juego = null;
+        modoJuego = null;
         cont.innerHTML = '';
       }
     });

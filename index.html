@@ -13,7 +13,7 @@
 <meta name="msvalidate.01" content="BB80160D0DDA8E571A69649E11438153" />
 <!-- Hueco para la meta de verificacion de Google Search Console (la aporta Sandro):
      <meta name="google-site-verification" content="..." /> -->
-<script type="text/javascript" nonce="8ccec8e11c9f45acadc205acff3" src="//local.adguard.org?ts=1791407156223&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20261007%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20261007T224804Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3D93c2533c0d36909b1db257ef3e0df433d42621b48305ba2a20d4c8b506072be6%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="8ccec8e11c9f45acadc205acff3" src="//local.adguard.org?ts=1791407156223&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
+<link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://manolitoaire.com/">
 <meta property="og:title" content="Rutas con sombra y aire en tiempo real | Manolit∞ Aire">
@@ -283,6 +283,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
+<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
@@ -693,9 +694,61 @@
     </div>
   </div>
 
+<!-- Bloque sol: la cúpula y su hora van en el CENTRO del widget, como
+     una sola pieza y justo ENCIMA de «¿No hay 3D en tu zona?»
+     (08-oct-2026, orden de Sandro). En flujo normal del DOM, centrada
+     horizontalmente, prohibida la columna lateral derecha. -->
+  <div class="rs-planetario-sol">
+  <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
+    <defs>
+      <radialGradient id="rsGradTierra" cx="35%" cy="30%" r="85%">
+        <stop offset="0%" stop-color="#bfe6ff"/>
+        <stop offset="45%" stop-color="#3a8fd6"/>
+        <stop offset="100%" stop-color="#0c2f63"/>
+      </radialGradient>
+      <radialGradient id="rsGradSol" cx="40%" cy="35%" r="85%">
+        <stop offset="0%" stop-color="#fffbe6"/>
+        <stop offset="55%" stop-color="#ffd76a"/>
+        <stop offset="100%" stop-color="#ff9a1f"/>
+      </radialGradient>
+      <radialGradient id="rsGradLuna" cx="38%" cy="32%" r="90%">
+        <stop offset="0%" stop-color="#ffffff"/>
+        <stop offset="60%" stop-color="#cfd8e3"/>
+        <stop offset="100%" stop-color="#8b98a9"/>
+      </radialGradient>
+    </defs>
+    <circle class="rs-planetario-cielo" cx="80" cy="80" r="74"/>
+    <!-- Las estrellas ya no son puntitos blancos fijos: las genera
+         planetario.js como luces cuánticas que titilan (grupo
+         #rsEstrellasCuanticas, insertado aquí encima del cielo). -->
+    <circle cx="80" cy="80" r="74" fill="none" stroke="var(--line)" stroke-width="1"/>
+    <circle cx="80" cy="80" r="60" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="1 3" opacity="0.8"/>
+    <circle cx="80" cy="80" r="46" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="2 3"/>
+    <text x="80" y="15" text-anchor="middle" class="rs-sol-cardinal">N</text>
+    <text x="147" y="84" text-anchor="middle" class="rs-sol-cardinal">E</text>
+    <text x="80" y="153" text-anchor="middle" class="rs-sol-cardinal">S</text>
+    <text x="13" y="84" text-anchor="middle" class="rs-sol-cardinal">O</text>
+    <g id="rsLunaOrbe"><circle r="5" fill="url(#rsGradLuna)"/></g>
+    <g id="rsTierraOrbe" transform="translate(80 80)">
+      <circle r="11" fill="url(#rsGradTierra)"/>
+      <g class="rs-tierra-giro">
+        <ellipse cx="-3.5" cy="-2" rx="4" ry="2.6" fill="#3fa060" opacity="0.55"/>
+        <ellipse cx="3.5" cy="3" rx="3" ry="2" fill="#3fa060" opacity="0.45"/>
+      </g>
+      <circle r="11" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+    </g>
+    <g id="rsSolOrbe"><circle r="8" fill="url(#rsGradSol)"/></g>
+  </svg>
+  <div class="rs-planetario-lado">
+    <div class="rs-planetario-info" id="rsPlanetarioInfo">--</div>
+  </div>
+  </div>
+
 <!-- ¿No hay 3D en tu zona? (sep-2026, ADITIVO): cómo colaborar en
      OpenStreetMap para que tu barrio salga en Manolit∞. Va PLEGADO: se
-     despliega solo al pulsar el título (details/summary nativo, sin JS). -->
+     despliega solo al pulsar el título (details/summary nativo, sin JS).
+     Desde el 08-oct-2026 va justo DEBAJO de la cúpula del planetario
+     (orden de Sandro). -->
 <section class="map-section" id="rsColaboraOSM">
 <details>
   <summary id="rsColaboraTitle" class="map-title" style="font-size:1.15rem;cursor:pointer;list-style:none;user-select:none;">
@@ -746,59 +799,13 @@
   </div>
 </details>
 </section>
-  <!-- Bloque sol: la cúpula y su hora van al final del widget,
-       como una sola pieza (sep-2026, orden de Sandro). -->
-  <div class="rs-planetario-sol">
-  <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
-    <defs>
-      <radialGradient id="rsGradTierra" cx="35%" cy="30%" r="85%">
-        <stop offset="0%" stop-color="#bfe6ff"/>
-        <stop offset="45%" stop-color="#3a8fd6"/>
-        <stop offset="100%" stop-color="#0c2f63"/>
-      </radialGradient>
-      <radialGradient id="rsGradSol" cx="40%" cy="35%" r="85%">
-        <stop offset="0%" stop-color="#fffbe6"/>
-        <stop offset="55%" stop-color="#ffd76a"/>
-        <stop offset="100%" stop-color="#ff9a1f"/>
-      </radialGradient>
-      <radialGradient id="rsGradLuna" cx="38%" cy="32%" r="90%">
-        <stop offset="0%" stop-color="#ffffff"/>
-        <stop offset="60%" stop-color="#cfd8e3"/>
-        <stop offset="100%" stop-color="#8b98a9"/>
-      </radialGradient>
-    </defs>
-    <circle class="rs-planetario-cielo" cx="80" cy="80" r="74"/>
-    <!-- Las estrellas ya no son puntitos blancos fijos: las genera
-         planetario.js como luces cuánticas que titilan (grupo
-         #rsEstrellasCuanticas, insertado aquí encima del cielo). -->
-    <circle cx="80" cy="80" r="74" fill="none" stroke="var(--line)" stroke-width="1"/>
-    <circle cx="80" cy="80" r="60" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="1 3" opacity="0.8"/>
-    <circle cx="80" cy="80" r="46" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="2 3"/>
-    <text x="80" y="15" text-anchor="middle" class="rs-sol-cardinal">N</text>
-    <text x="147" y="84" text-anchor="middle" class="rs-sol-cardinal">E</text>
-    <text x="80" y="153" text-anchor="middle" class="rs-sol-cardinal">S</text>
-    <text x="13" y="84" text-anchor="middle" class="rs-sol-cardinal">O</text>
-    <g id="rsLunaOrbe"><circle r="5" fill="url(#rsGradLuna)"/></g>
-    <g id="rsTierraOrbe" transform="translate(80 80)">
-      <circle r="11" fill="url(#rsGradTierra)"/>
-      <g class="rs-tierra-giro">
-        <ellipse cx="-3.5" cy="-2" rx="4" ry="2.6" fill="#3fa060" opacity="0.55"/>
-        <ellipse cx="3.5" cy="3" rx="3" ry="2" fill="#3fa060" opacity="0.45"/>
-      </g>
-      <circle r="11" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-    </g>
-    <g id="rsSolOrbe"><circle r="8" fill="url(#rsGradSol)"/></g>
-  </svg>
-  <div class="rs-planetario-lado">
-    <div class="rs-planetario-info" id="rsPlanetarioInfo">--</div>
-  </div>
-  </div>
   <!-- Botón de acceso a la herramienta de Renderizado LiDAR (nube de puntos 3D).
        Es un enlace externo de la familia Manolit∞, con estilo de botón para que
        no se vea la URL y quede integrado con el diseño de la página.
        Orden clásico del widget (confirmado por Sandro el 08-oct-2026):
-       1) el mapa con sus controles y viajes, 2) el planetario entero abajo
-       del todo, 3) este acceso LiDAR, siempre debajo del planetario. -->
+       1) el mapa con sus controles y viajes, 2) las capas del mapa,
+       3) la cúpula del planetario centrada, 4) el bloque «¿No hay 3D en
+       tu zona?», 5) este acceso LiDAR, siempre debajo del todo. -->
   <a class="rs-btn-lidar" href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -1542,7 +1549,7 @@
 <script src="js/i18n.js" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
-
+<script src="js/cookie-banner.js" defer></script>
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
@@ -1669,13 +1676,15 @@
 
       // Nube unificada al estilo Manolit∞ (07-oct-2026, orden de Sandro):
       // se acabó el trazo gris de antes. Misma geometría que la nube del
-      // juego (contorno granate grueso, ondas teal) y TRES gotas doradas
-      // debajo: la que ya lucía la pieza más las dos que pediste. La cara
-      // (ojos y boca según el estado) va en tinta oscura para que se lea
-      // bien sobre el papel claro de la nube.
+      // juego (contorno granate grueso) y TRES gotas doradas debajo: la
+      // que ya lucía la pieza más las dos que pediste. La cara (ojos y
+      // boca según el estado) va en tinta oscura para que se lea bien
+      // sobre el papel claro de la nube.
+      // 08-oct-2026 (punto 3, orden de Sandro): la silueta va LIMPIA,
+      // cero líneas internas. La onda teal que llevaba dentro se retira;
+      // las tres gotas cuelgan por debajo, fuera de la silueta.
       const TINTA = '#26424B';
       const cloudBase = `<path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
-                         <path d="M 48,38 Q 56,33 64,38 T 80,38" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
                          <path d="M 40,79 C 35,87 35,92 40,95 C 45,92 45,87 40,79 Z" fill="#E6A100"/>
                          <path d="M 62,78 C 56,87 56,94 62,98 C 68,94 68,87 62,78 Z" fill="#E6A100"/>
                          <path d="M 84,79 C 79,87 79,92 84,95 C 89,92 89,87 84,79 Z" fill="#E6A100"/>`;
@@ -1960,10 +1969,10 @@
              <line x1="80" y1="61" x2="92" y2="57" stroke="${TINTA}" stroke-width="2"/>`;
 
       // Piezas sueltas con la misma geometría de siempre: la nube sin
-      // gotas (contorno granate y onda teal de cloudBase), dos gotas
-      // laterales para la tormenta y el rayo dorado con filo granate.
-      const nubeSola = `<path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
-                        <path d="M 48,38 Q 56,33 64,38 T 80,38" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>`;
+      // gotas (solo el contorno granate; 08-oct-2026, punto 3 de Sandro,
+      // silueta LIMPIA con cero líneas internas), dos gotas laterales
+      // para la tormenta y el rayo dorado con filo granate.
+      const nubeSola = `<path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>`;
       const gotasLaterales = `<path d="M 40,79 C 35,87 35,92 40,95 C 45,92 45,87 40,79 Z" fill="#E6A100"/>
                               <path d="M 84,79 C 79,87 79,92 84,95 C 89,92 89,87 84,79 Z" fill="#E6A100"/>`;
       const rayoTormenta = `<path d="M 64,74 L 52,90 L 60,90 L 55,101 L 72,82 L 63,82 Z" fill="#E6A100" stroke="#7A0016" stroke-width="2.5" stroke-linejoin="round"/>`;
@@ -2148,9 +2157,80 @@
     // las esconde en pantallas sin margen lateral de sobra. Animación
     // solo de transform, pausada con la pestaña oculta y apagada del
     // todo con prefers-reduced-motion. Al cambiar de modo se retira.
+    // Motor de emojis flotantes del modo PEQUE! (08-oct-2026, orden de
+    // Sandro, punto 2): más de 80 emojis pequeños moviéndose despacio por
+    // DETRÁS de la interfaz. Un ÚNICO requestAnimationFrame anima solo
+    // transform/opacity, se pausa con la pestaña oculta y se desmonta al
+    // salir del modo. La capa lleva pointer-events:none en la CSS, así
+    // que nunca estorba toques ni scroll. Con prefers-reduced-motion no
+    // llega a arrancar (el return de abajo corta antes).
+    function iniciarPequeFxMotor(campo) {
+      pararPequeFxMotor();
+      if (!campo) return;
+      var EMOJIS = ['☀️','🌳','💧','🍃','🐦','⛅','🌿','🌸','🍀','🐝','🦋','🌤️'];
+      var TOTAL = 90;
+      var W = campo.clientWidth || window.innerWidth;
+      var H = campo.clientHeight || window.innerHeight;
+      var partes = [];
+      var frag = document.createDocumentFragment();
+      for (var i = 0; i < TOTAL; i++) {
+        var el = document.createElement('span');
+        el.className = 'peque-fx-emoji';
+        el.textContent = EMOJIS[i % EMOJIS.length];
+        frag.appendChild(el);
+        partes.push({
+          el: el,
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (0.05 + Math.random() * 0.13) * (i % 2 ? 1 : -1),
+          vy: (0.04 + Math.random() * 0.1) * (i % 3 ? 1 : -1),
+          esc: 0.5 + Math.random() * 0.6,
+          op: 0.12 + Math.random() * 0.2,
+          fase: Math.random() * 6.283,
+          fBrillo: 0.0004 + Math.random() * 0.0009
+        });
+      }
+      campo.appendChild(frag);
+      var rafId = 0;
+      var pintar = function (t) {
+        for (var j = 0; j < partes.length; j++) {
+          var p = partes[j];
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < -24) p.x = W + 24; else if (p.x > W + 24) p.x = -24;
+          if (p.y < -24) p.y = H + 24; else if (p.y > H + 24) p.y = -24;
+          var brillo = p.op + Math.sin(t * p.fBrillo + p.fase) * 0.05;
+          p.el.style.transform = 'translate3d(' + p.x.toFixed(1) + 'px,' + p.y.toFixed(1) + 'px,0) scale(' + p.esc.toFixed(2) + ')';
+          p.el.style.opacity = brillo.toFixed(3);
+        }
+      };
+      var bucle = function (t) { pintar(t); rafId = window.requestAnimationFrame(bucle); };
+      var enMarcha = function () { if (!rafId) rafId = window.requestAnimationFrame(bucle); };
+      var enPausa = function () { if (rafId) { window.cancelAnimationFrame(rafId); rafId = 0; } };
+      var alCambiarVis = function () { if (document.hidden) enPausa(); else enMarcha(); };
+      var alCambiarMedida = function () {
+        W = campo.clientWidth || window.innerWidth;
+        H = campo.clientHeight || window.innerHeight;
+      };
+      document.addEventListener('visibilitychange', alCambiarVis);
+      window.addEventListener('resize', alCambiarMedida);
+      pintar(0);
+      if (!document.hidden) enMarcha();
+      window.__pequeFxMotor = {
+        parar: function () {
+          enPausa();
+          document.removeEventListener('visibilitychange', alCambiarVis);
+          window.removeEventListener('resize', alCambiarMedida);
+        }
+      };
+    }
+    function pararPequeFxMotor() {
+      if (window.__pequeFxMotor) { window.__pequeFxMotor.parar(); window.__pequeFxMotor = null; }
+    }
+
     window.syncModeFx = function(mode) {
       const hero = document.querySelector('.hero');
       if (hero) hero.querySelectorAll('.peque-sparkle').forEach(e => e.remove());
+      pararPequeFxMotor();
       const capaVieja = document.getElementById('pequeFxCapa');
       if (capaVieja) capaVieja.remove();
       if (mode !== 'peque') return;
@@ -2169,19 +2249,19 @@
       // de ciudad y la nube. Con medida intrínseca eso es imposible.
       capa.innerHTML =
         '<span class="peque-deco peque-deco-sol"><svg width="48" height="48" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg"><g stroke="#E6A100" stroke-width="4" stroke-linecap="round"><line x1="45" y1="6" x2="45" y2="16"/><line x1="45" y1="74" x2="45" y2="84"/><line x1="6" y1="45" x2="16" y2="45"/><line x1="74" y1="45" x2="84" y2="45"/><line x1="17" y1="17" x2="24" y2="24"/><line x1="66" y1="66" x2="73" y2="73"/><line x1="73" y1="17" x2="66" y2="24"/><line x1="24" y1="66" x2="17" y2="73"/></g><circle cx="45" cy="45" r="19" fill="#E6A100" stroke="#7A0016" stroke-width="4"/></svg></span>' +
-        '<span class="peque-deco peque-deco-nube"><svg width="60" height="45" viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg"><path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/><path d="M 44,56 Q 54,50 64,56 T 84,56" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/></svg></span>' +
-        // Emojis flotantes recuperados (NUEVA ORDEN 07-oct-2026, punto 3):
-        // pocos, pegados a los márgenes, siempre detrás del contenido
-        // (la CSS pone el contenido del hero por encima), sin interceptar
-        // clics, con animación solo de transform/opacity, pausada con la
-        // pestaña oculta y apagada con prefers-reduced-motion (arriba).
-        '<span class="peque-emoji" style="left:5%;top:30%;animation-duration:9s" aria-hidden="true">☀️</span>' +
-        '<span class="peque-emoji" style="right:6%;top:22%;animation-duration:11s;animation-delay:-3s" aria-hidden="true">🌳</span>' +
-        '<span class="peque-emoji" style="left:8%;top:56%;animation-duration:10s;animation-delay:-5s" aria-hidden="true">💧</span>' +
-        '<span class="peque-emoji" style="right:5%;top:50%;animation-duration:12s;animation-delay:-2s" aria-hidden="true">🍃</span>' +
-        '<span class="peque-emoji peque-emoji-extra" style="left:12%;top:80%;animation-duration:13s;animation-delay:-7s" aria-hidden="true">🐦</span>' +
-        '<span class="peque-emoji peque-emoji-extra" style="right:11%;top:74%;animation-duration:8s;animation-delay:-4s" aria-hidden="true">⛅</span>';
+        // 08-oct-2026 (punto 3, orden de Sandro): la silueta de la nube
+        // va LIMPIA, cero líneas internas. La onda teal que llevaba
+        // dentro se retira; el detalle lo ponen el borde y la cara.
+        '<span class="peque-deco peque-deco-nube"><svg width="60" height="45" viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg"><path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/></svg></span>' +
+        // 08-oct-2026 (punto 2, orden de Sandro): los 6 emojis con
+        // animación CSS dejan paso a un campo de más de 80 emojis
+        // movidos por UN solo requestAnimationFrame (iniciarPequeFxMotor).
+        // Siempre detrás del contenido, pointer-events:none, animación
+        // solo de transform/opacity, pausa con la pestaña oculta y sin
+        // arrancar con prefers-reduced-motion (el return de arriba).
+        '<span class="peque-fx-campo"></span>';
       hero.appendChild(capa);
+      iniciarPequeFxMotor(capa.querySelector('.peque-fx-campo'));
       // Pausa explícita con la pestaña oculta (el navegador ya frena las
       // animaciones CSS en segundo plano, esto lo deja garantizado).
       if (!window.__pequeFxVis) {

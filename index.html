@@ -2157,13 +2157,16 @@
     // las esconde en pantallas sin margen lateral de sobra. Animación
     // solo de transform, pausada con la pestaña oculta y apagada del
     // todo con prefers-reduced-motion. Al cambiar de modo se retira.
-    // Motor de emojis flotantes del modo PEQUE! (08-oct-2026, orden de
-    // Sandro, punto 2): más de 80 emojis pequeños moviéndose despacio por
-    // DETRÁS de la interfaz. Un ÚNICO requestAnimationFrame anima solo
-    // transform/opacity, se pausa con la pestaña oculta y se desmonta al
-    // salir del modo. La capa lleva pointer-events:none en la CSS, así
-    // que nunca estorba toques ni scroll. Con prefers-reduced-motion no
-    // llega a arrancar (el return de abajo corta antes).
+    // Motor de emojis flotantes del modo PEQUE! (08-oct-2026 v2, orden de
+    // Sandro, «como los de hace 4 días»): más de 80 emojis pequeños que
+    // SALEN DE ABAJO y SUBEN FLOTANDO POCO A POCO hasta arriba del todo,
+    // donde se apagan y desaparecen, con un vaivén suave de lado a lado.
+    // Aparecen con fundido al nacer y se apagan con fundido al llegar.
+    // Un ÚNICO requestAnimationFrame anima solo transform/opacity, se
+    // pausa con la pestaña oculta y se desmonta al salir del modo. La
+    // capa lleva pointer-events:none en la CSS, así que nunca estorba
+    // toques ni scroll. Con prefers-reduced-motion no llega a arrancar
+    // (el return de abajo corta antes).
     function iniciarPequeFxMotor(campo) {
       pararPequeFxMotor();
       if (!campo) return;
@@ -2181,13 +2184,15 @@
         partes.push({
           el: el,
           x: Math.random() * W,
-          y: Math.random() * H,
-          vx: (0.05 + Math.random() * 0.13) * (i % 2 ? 1 : -1),
-          vy: (0.04 + Math.random() * 0.1) * (i % 3 ? 1 : -1),
+          // La primera pintada reparte los emojis por toda la altura para
+          // que el campo ya venga poblado; al reciclarse nacen abajo.
+          y: Math.random() * (H + 60) - 30,
+          vy: -(0.10 + Math.random() * 0.20),  // siempre hacia ARRIBA, despacio
+          amp: 8 + Math.random() * 18,         // vaivén lateral suave
+          fOnda: 0.0006 + Math.random() * 0.0012,
           esc: 0.5 + Math.random() * 0.6,
-          op: 0.12 + Math.random() * 0.2,
-          fase: Math.random() * 6.283,
-          fBrillo: 0.0004 + Math.random() * 0.0009
+          op: 0.16 + Math.random() * 0.24,     // sutiles pero se VEN
+          fase: Math.random() * 6.283
         });
       }
       campo.appendChild(frag);
@@ -2195,12 +2200,21 @@
       var pintar = function (t) {
         for (var j = 0; j < partes.length; j++) {
           var p = partes[j];
-          p.x += p.vx; p.y += p.vy;
-          if (p.x < -24) p.x = W + 24; else if (p.x > W + 24) p.x = -24;
-          if (p.y < -24) p.y = H + 24; else if (p.y > H + 24) p.y = -24;
-          var brillo = p.op + Math.sin(t * p.fBrillo + p.fase) * 0.05;
-          p.el.style.transform = 'translate3d(' + p.x.toFixed(1) + 'px,' + p.y.toFixed(1) + 'px,0) scale(' + p.esc.toFixed(2) + ')';
-          p.el.style.opacity = brillo.toFixed(3);
+          p.y += p.vy;
+          // Vida: 0 abajo del todo, 1 arriba del todo. Fundido de entrada
+          // en el primer tramo y de salida en el último: nacen y mueren
+          // suave, nunca aparecen ni desaparecen de golpe.
+          var vida = 1 - (p.y + 30) / (H + 60);
+          var fundido = vida < 0.12 ? vida / 0.12 : (vida > 0.85 ? (1 - vida) / 0.15 : 1);
+          if (fundido < 0) fundido = 0;
+          var vaiven = Math.sin(t * p.fOnda + p.fase) * p.amp;
+          p.el.style.transform = 'translate3d(' + (p.x + vaiven).toFixed(1) + 'px,' + p.y.toFixed(1) + 'px,0) scale(' + p.esc.toFixed(2) + ')';
+          p.el.style.opacity = (p.op * fundido).toFixed(3);
+          // Arriba del todo se apaga y vuelve a nacer abajo, en otro sitio.
+          if (p.y < -32) {
+            p.y = H + 24 + Math.random() * 50;
+            p.x = Math.random() * W;
+          }
         }
       };
       var bucle = function (t) { pintar(t); rafId = window.requestAnimationFrame(bucle); };

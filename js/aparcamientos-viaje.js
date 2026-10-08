@@ -27,6 +27,15 @@
      'manolito:planificar-viaje' (detail {origen, destino}).
      Evento emitido: 'manolito:parking-cambiado' (detail {activo}).
    - Licencia: AGPL-3.0 como el resto del proyecto.
+   - ARREGLO URGENTE 08-oct-2026 (orden de Sandro, «el parking choca con
+     sombras»): querySourceFeatures fuera de TODA la lectura de datos.
+     Esa llamada trocea por tiles y devolvía cero o un recorte, así que
+     cada recálculo del motor de sombras vaciaba los puntos y los
+     anillos teal no salían jamás. Ahora el geojson íntegro vive en
+     parking.datosActuales y las sombras se leen completas con
+     _data/serialize() de 'sombras' y 'arboles-globales-sombra'. Además
+     las capas llevan minzoom 12,5: aparecen AL ACERCARTE, rollo
+     edificios 3D, y de lejos ni se piden datos.
    ========================================================================== */
 (function () {
   'use strict';
@@ -48,6 +57,11 @@
     cacheClienteMs: 30 * 60 * 1000,
     maxPuntos: 300,
     zoomLlegada: 14.5,
+    // 08-oct-2026 (orden de Sandro, arreglo urgente): los puntos aparecen
+    // AL ACERCARTE, a la distancia a la que saltan los edificios 3D del
+    // estilo (minzoom ~13). Un pelo antes (12,5) para que ya te estén
+    // esperando cuando el edificio se levanta.
+    zoomMinParking: 12.5,
   };
 
   // Colores por combinación tipo/acceso/precio. Pensados para leerse igual
@@ -96,6 +110,11 @@
     temporizadorMove: null,
     temporizadorSombra: null,
     popup: null,
+    // 08-oct-2026 (arreglo urgente): copia ÍNTEGRA del último geojson
+    // pintado. reevaluarSombraActual trabaja sobre esta copia y jamás
+    // reconstruye con querySourceFeatures, que por tiles devolvía cero o
+    // solo lo visible y BORRABA los puntos en cada recálculo de sombras.
+    datosActuales: null,
   };
 
   function clasificarParking(tags) {
@@ -182,6 +201,11 @@
 
   async function descargarAparcamientos() {
     if (!parking.activo || !map) return;
+    // 08-oct-2026 (orden de Sandro): de lejos no se pide nada. Los
+    // parkings son cosa de cerca, como los edificios 3D; si el zoom es
+    // bajo se conserva lo ya pintado (la CSS de la capa lo oculta por
+    // minzoom) y se espera al próximo moveend para reintentar.
+    try { if (map.getZoom() < CONFIG.zoomMinParking) return; } catch (e) { /* sigue */ }
     var bbox = bboxConsulta();
     var clave = claveCelda(bbox);
 
@@ -230,10 +254,15 @@
     if (!estiloListo() || map.getSource('aparcamientos')) return;
     map.addSource('aparcamientos', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
+    // 08-oct-2026 (orden de Sandro): las tres capas llevan minzoom, como
+    // los edificios 3D. De lejos no se pintan (el dato queda guardado y
+    // vuelve solo al acercarte), de cerca aparecen a la distancia que
+    // estás mirando.
     map.addLayer({
       id: 'capa-aparcamientos-halo',
       type: 'circle',
       source: 'aparcamientos',
+      minzoom: CONFIG.zoomMinParking,
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 6, 16, 12],
         'circle-color': '#0b1220',
@@ -244,6 +273,7 @@
       id: 'capa-aparcamientos',
       type: 'circle',
       source: 'aparcamientos',
+      minzoom: CONFIG.zoomMinParking,
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 8],
         'circle-color': ['get', 'color'],
@@ -256,6 +286,7 @@
       id: 'capa-aparcamientos-sombra',
       type: 'circle',
       source: 'aparcamientos',
+      minzoom: CONFIG.zoomMinParking,
       filter: ['==', ['get', 'sombra'], true],
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 8, 16, 14],
@@ -293,21 +324,44 @@
       }
     }
     evaluarSombraEn(geojson);
+    parking.datosActuales = geojson;
     map.getSource('aparcamientos').setData(geojson);
   }
 
   function limpiarAparcamientos() {
+    parking.datosActuales = null;
     if (!map || !map.getSource('aparcamientos')) return;
     map.getSource('aparcamientos').setData({ type: 'FeatureCollection', features: [] });
     if (parking.popup) { try { parking.popup.remove(); } catch (e) { /* ok */ } parking.popup = null; }
   }
 
-  // Sombra: SOLO lee la fuente 'sombras' que ya mantiene shadows-route.js.
+  // Sombra: SOLO LEE (jamás escribe) las fuentes que ya mantienen otros
+  // módulos: 'sombras' (edificios, shadows-route.js) y
+  // 'arboles-globales-sombra' (árboles, manolito-mapa.js).
+  // 08-oct-2026 (orden de Sandro, arreglo urgente): antes se usaba
+  // querySourceFeatures, que por el troceado en tiles del mapa devuelve
+  // cero o solo lo que se ve en pantalla. Resultado: los anillos teal
+  // no salían NUNCA. Ahora se leen los datos COMPLETOS de la fuente
+  // (_data o serialize().data), el mismo patrón que usa planetario.js.
+  function leerDatosCompletosFuente(id) {
+    try {
+      var src = map.getSource(id);
+      if (!src) return null;
+      var datos = src._data || (src.serialize && src.serialize().data);
+      if (typeof datos === 'string') { try { datos = JSON.parse(datos); } catch (e) { datos = null; } }
+      return (datos && Array.isArray(datos.features)) ? datos.features : null;
+    } catch (e) { return null; }
+  }
+
   function evaluarSombraEn(geojson) {
     try {
-      if (typeof turf === 'undefined' || !map.getSource('sombras')) return;
-      var poligonos = map.querySourceFeatures('sombras');
-      if (!poligonos || !poligonos.length) return;
+      if (typeof turf === 'undefined') return;
+      var poligonos = [];
+      var deEdificios = leerDatosCompletosFuente('sombras');
+      var deArboles = leerDatosCompletosFuente('arboles-globales-sombra');
+      if (deEdificios) poligonos = poligonos.concat(deEdificios);
+      if (deArboles) poligonos = poligonos.concat(deArboles);
+      if (!poligonos.length) return;
       for (var i = 0; i < geojson.features.length; i++) {
         var f = geojson.features[i];
         var punto = turf.point(f.geometry.coordinates);
@@ -322,22 +376,26 @@
     } catch (e) { /* la sombra es un extra: jamás rompe la capa */ }
   }
 
+  // 08-oct-2026 (arreglo urgente del choque con sombras): se trabaja
+  // sobre la copia íntegra guardada en pintarAparcamientos. ANTES se
+  // reconstruía con querySourceFeatures('aparcamientos'), que por tiles
+  // devolvía cero o un recorte del viewport, y ese recorte se volcaba
+  // con setData: cada recálculo del motor de sombras BORRABA puntos.
   function reevaluarSombraActual() {
     if (!parking.activo || !map || !map.getSource('aparcamientos')) return;
     clearTimeout(parking.temporizadorSombra);
     parking.temporizadorSombra = setTimeout(function () {
       try {
         var src = map.getSource('aparcamientos');
-        if (!src) return;
-        var actuales = map.querySourceFeatures('aparcamientos');
-        if (!actuales || !actuales.length) return;
+        if (!src || !parking.datosActuales || !parking.datosActuales.features || !parking.datosActuales.features.length) return;
         var geojson = {
           type: 'FeatureCollection',
-          features: actuales.map(function (f) {
+          features: parking.datosActuales.features.map(function (f) {
             return { type: 'Feature', geometry: f.geometry, properties: Object.assign({}, f.properties, { sombra: false }) };
           }),
         };
         evaluarSombraEn(geojson);
+        parking.datosActuales = geojson;
         src.setData(geojson);
       } catch (e) { /* extra, nunca rompe */ }
     }, CONFIG.esperaSombraMs);
@@ -353,7 +411,9 @@
 
   function alCambiarDatos(e) {
     if (!parking.activo) return;
-    if (e && e.sourceId === 'sombras' && e.isSourceLoaded) reevaluarSombraActual();
+    // Recálculo de sombra de edificios O de árboles: en ambos casos hay
+    // que repasar los anillos (siempre con la copia íntegra guardada).
+    if (e && e.isSourceLoaded && (e.sourceId === 'sombras' || e.sourceId === 'arboles-globales-sombra')) reevaluarSombraActual();
   }
 
   function activarParking() {

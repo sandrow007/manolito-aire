@@ -2810,12 +2810,17 @@ body.mode-peque .im-lost-btn:active{ transform:translateY(1px); box-shadow:none;
 [data-theme="dark"] body.mode-peque .im-lost-btn:hover{ background:#007A87; color:#fff; border-color:#007A87; }
 
 /* Decoración intencionada: dos piezas del lenguaje Manolit∞ (sol dorado
-   y nube pequeña teal) quietas en las esquinas superiores del hero,
-   donde nunca hay contenido. La capa ahora es absoluta dentro del hero
-   y detrás de todo. Solo se pintan en pantallas anchas; con menos de
+   y nube pequeña teal) quietas en las esquinas superiores, donde nunca
+   hay contenido. Solo se pintan en pantallas anchas; con menos de
    1024px no hay margen lateral garantizado y no aparecen. Animación
-   solo de transform, pausada con la pestaña oculta. */
-#pequeFxCapa{ position:absolute; inset:0; z-index:0; }
+   solo de transform, pausada con la pestaña oculta.
+   08-oct-2026 (ARREGLO URGENTE, orden de Sandro): la capa vuelve a ser
+   FIJA A TODA LA VENTANA, como hace cuatro días. La versión absoluta
+   dentro del hero encerraba los 90 emojis en ese cajón y se agolpaban
+   de modo horrible. Al ir fija y con z-index 590 los emojis suben por
+   TODA la web (esta regla y la de sep-2026 dicen ahora lo mismo, así
+   que ninguna pisa a la otra). pointer-events:none: nunca estorba. */
+#pequeFxCapa{ position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:590; }
 /* 07-oct-2026 (NUEVA ORDEN, urgente): tamaño decorativo con límites.
    El sol gigante de la captura venía de un SVG sin medida propia
    estirado por el navegador con una hoja vieja en caché. Ahora el

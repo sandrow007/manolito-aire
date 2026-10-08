@@ -2153,20 +2153,23 @@
     // lluvia de emojis aleatorios que caía encima del titular y los
     // botones. Quedan solo dos piezas del lenguaje Manolit∞ (un sol
     // dorado y una nube pequeña con onda teal), quietas en las esquinas
-    // superiores del hero, detrás del contenido y sin tapar nada. La CSS
-    // las esconde en pantallas sin margen lateral de sobra. Animación
-    // solo de transform, pausada con la pestaña oculta y apagada del
-    // todo con prefers-reduced-motion. Al cambiar de modo se retira.
-    // Motor de emojis flotantes del modo PEQUE! (08-oct-2026 v2, orden de
+    // superiores y sin tapar nada (la capa es fija a toda la ventana
+    // desde el 08-oct, con pointer-events:none). La CSS las esconde en
+    // pantallas sin margen lateral de sobra. Animación solo de
+    // transform, pausada con la pestaña oculta y apagada del todo con
+    // prefers-reduced-motion. Al cambiar de modo se retira.
+    // Motor de emojis flotantes del modo PEQUE! (08-oct-2026 v3, orden de
     // Sandro, «como los de hace 4 días»): más de 80 emojis pequeños que
     // SALEN DE ABAJO y SUBEN FLOTANDO POCO A POCO hasta arriba del todo,
     // donde se apagan y desaparecen, con un vaivén suave de lado a lado.
     // Aparecen con fundido al nacer y se apagan con fundido al llegar.
-    // Un ÚNICO requestAnimationFrame anima solo transform/opacity, se
-    // pausa con la pestaña oculta y se desmonta al salir del modo. La
-    // capa lleva pointer-events:none en la CSS, así que nunca estorba
-    // toques ni scroll. Con prefers-reduced-motion no llega a arrancar
-    // (el return de abajo corta antes).
+    // v3: el campo cubre TODA LA VENTANA (capa fija colgada del body,
+    // z-index 590), porque encerrados en el hero se agolpaban de modo
+    // horrible. Un ÚNICO requestAnimationFrame anima solo
+    // transform/opacity, se pausa con la pestaña oculta y se desmonta al
+    // salir del modo. La capa lleva pointer-events:none en la CSS, así
+    // que nunca estorba toques ni scroll. Con prefers-reduced-motion no
+    // llega a arrancar (el return de abajo corta antes).
     function iniciarPequeFxMotor(campo) {
       pararPequeFxMotor();
       if (!campo) return;
@@ -2274,7 +2277,13 @@
         // solo de transform/opacity, pausa con la pestaña oculta y sin
         // arrancar con prefers-reduced-motion (el return de arriba).
         '<span class="peque-fx-campo"></span>';
-      hero.appendChild(capa);
+      // 08-oct-2026 (ARREGLO URGENTE, orden de Sandro): la capa se cuelga
+      // del BODY, no del hero. La CSS la tiene fija a toda la ventana
+      // (z-index 590, pointer-events:none), así los 90 emojis suben por
+      // TODA la web como hace cuatro días y no se agolpan en un cajón.
+      // Dentro del hero un transform de un ancestro podría convertirla
+      // en un cajón local otra vez; en body eso es imposible.
+      document.body.appendChild(capa);
       iniciarPequeFxMotor(capa.querySelector('.peque-fx-campo'));
       // Pausa explícita con la pestaña oculta (el navegador ya frena las
       // animaciones CSS en segundo plano, esto lo deja garantizado).

@@ -297,7 +297,7 @@ function renderQuantumBars(result) {
 		barrasHtml += `
     <button type="button" class="qbar-btn" data-i="${i}" aria-expanded="false" aria-controls="quantumDetail">
       <span class="qbar-label">${r.label}</span>
-      <span class="qbar-track"><span class="qbar-fill" style="width:${r.pct.toFixed(0)}%; background:${r.color};"></span></span>
+      <span class="qbar-track"><span class="qbar-fill" style="width:${r.pct.toFixed(1)}%; background:${r.color};"></span></span>
       <span class="qbar-pct">${fmt(r.pct)}&nbsp;%</span>
     </button>
   `;

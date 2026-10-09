@@ -411,7 +411,7 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .qbar-row{ display:flex; align-items:center; gap:10px; }
 .qbar-label{ width:90px; font-size:0.82rem; color:var(--ink); flex-shrink:0; }
 .qbar-track{ flex:1; height:14px; background:var(--mist); border-radius:999px; overflow:hidden; }
-.qbar-fill{ height:100%; border-radius:999px; transition:width 0.6s ease; }
+.qbar-fill{ display:block; height:100%; border-radius:999px; transition:width 0.6s ease; }
 .qbar-pct{ width:44px; text-align:right; font-family:var(--font-mono); font-size:0.78rem; color:var(--sky-mid); flex-shrink:0; }
 .quantum-disclaimer{ font-size:0.78rem; color:var(--sky-mid); font-style:italic; line-height:1.5; margin:0; }
 
@@ -3188,3 +3188,109 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
     opacity:0; visibility:hidden; pointer-events:none;
   }
 }
+
+/* ================================================================
+   REORDENACIÓN Y ALINEACIÓN DE LA PORTADA (09-oct-2026, tarea de
+   Sandro). Bloque ADITIVO: no se toca ninguna regla vieja, estas van
+   al final del archivo y ganan por cascada.
+
+   1) Una sola anchura de contenido (~960px) para tarjetas y bloques
+      grandes, columna ~680px para párrafos largos y un único paso
+      vertical entre secciones.
+   2) El pie en seis bloques ordenados (a-f): quiénes somos, apoyo,
+      sellos, escudos + IGN, familia y franja legal.
+   3) Contraste WCAG AA (4,5:1) en los textos del pie: las opacidades
+      viejas (0,65-0,8) dejaban los azul-verdoso claros por debajo del
+      mínimo sobre fondo claro (medido: 2,12:1 en las etiquetas de
+      gama tipo "REGIONAL", 2,86:1 en la atribución del IGN).
+   ================================================================ */
+:root{
+  --seccion-ancho:960px;   /* tarjetas y bloques grandes */
+  --seccion-texto:680px;   /* columna para párrafos largos */
+  --seccion-gap:46px;      /* el mismo aire vertical entre secciones */
+}
+
+/* 1) Anchura y ritmo vertical únicos (antes 1000/1000/760px y 46/56px) */
+.map-section, .forecast-section, .faq{
+  max-width:var(--seccion-ancho);
+  margin-top:var(--seccion-gap);
+}
+.quantum-section{
+  max-width:var(--seccion-ancho);
+  margin:var(--seccion-gap) auto 0;
+  padding:0 24px;
+}
+#ecoAgua .agua-texto{ max-width:var(--seccion-texto); }
+
+/* Los títulos de sección pasan de div a h2 (mismo nivel, mismo estilo):
+   se anula el margen que el navegador da a los h2 por defecto. */
+h2.map-title, h2.quantum-badge{ margin:0; }
+
+/* Navegación secundaria: área táctil mínima de 44px en cada enlace */
+.family-link{ display:inline-flex; align-items:center; min-height:44px; }
+
+/* 2) El pie en seis bloques (a-f) */
+.footer-cuentas-linea{ margin:6px 0 0; }
+.footer-cuentas{ font-weight:700; color:var(--accent); }
+.footer-apoyo{
+  margin-top:22px; padding-top:16px; border-top:1px dashed var(--line);
+  display:flex; align-items:center; justify-content:center;
+  gap:14px 26px; flex-wrap:wrap;
+}
+.footer-apoyo .donacion-mensaje{ margin:0; flex:1 1 260px; max-width:340px; text-align:right; }
+.footer-apoyo .donacion-boton{ flex:none; }
+.footer-apoyo .footer-redes{ flex:none; margin-top:0; align-items:flex-start; gap:4px; }
+.footer-apoyo .footer-red{ min-height:44px; } /* tamaño táctil decente (tarea 09-oct) */
+@media (max-width:700px){
+  .footer-apoyo{ flex-direction:column; gap:10px; }
+  .footer-apoyo .donacion-mensaje{ text-align:center; flex:none; max-width:none; }
+  .footer-apoyo .footer-redes{ align-items:center; }
+}
+.footer-sellos{
+  margin-top:22px; display:flex; align-items:center; justify-content:center;
+  gap:22px 30px; flex-wrap:wrap;
+}
+.footer-sellos .footer-sello{ margin:0; flex:none; }
+.footer-sellos .footer-oficial{ margin-top:0; justify-content:center; flex:none; }
+.footer-sellos .footer-alternativeto{ flex:none; }
+
+/* d) Los escudos en 4 columnas (escritorio) y 2x2 (móvil), con la
+      atribución del IGN justo debajo (en el HTML). */
+.footer .escudos-fila{
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px; max-width:var(--seccion-ancho); margin:0 auto;
+}
+.footer .escudo{ max-width:none; }
+@media (max-width:760px){
+  .footer .escudos-fila{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+/* e) La familia de proyectos: enlaces de verdad, ya no monoespaciado */
+.footer-family{ font-family:var(--font-body); font-size:0.8rem; }
+.footer-family a{
+  color:var(--sky-deep); font-weight:600;
+  text-decoration:underline; text-underline-offset:2px;
+}
+.footer-family a:hover{ color:var(--accent); }
+
+/* f) Franja legal final, pequeña y centrada */
+.footer-legal{
+  margin-top:22px; padding-top:12px; border-top:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  gap:4px 8px; flex-wrap:wrap; font-size:0.72rem;
+}
+.footer-legal .footer-sync-toggle{ font-size:inherit; }
+
+/* 3) Contraste WCAG AA en el pie (textos azul-verdoso claros sobre
+      fondo claro): se acabaron las opacidades que rebajaban el texto.
+      El azul de las etiquetas de gama pasa a #0E5563 (7,98:1 sobre el
+      papel claro; medido). En modo oscuro, su primo claro #7FD4DE
+      (13:1 sobre el fondo oscuro). */
+.footer .escudo{ opacity:1; }
+.footer .escudos-porque{ opacity:1; }
+.footer .escudo-gama{ opacity:1; color:#0E5563; }
+.footer .footer-red{ opacity:1; }
+.footer .footer-sync-toggle{ opacity:1; }
+.footer-sellos .sello-footer{ opacity:1; }
+.footer-sellos .footer-sello{ opacity:1; }
+[data-theme="dark"] .footer .escudo-gama{ color:#7FD4DE; }

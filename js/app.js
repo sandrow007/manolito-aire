@@ -835,6 +835,25 @@ function initMap(){
   if (!mapEl || typeof L === 'undefined') return;
 
   const map = L.map('map').setView(regionView.peninsula.center, regionView.peninsula.zoom);
+
+  /* 09-oct-2026 (corrección de la tarea de reordenación): la sección del
+     mapa lleva content-visibility:auto, así que cuando Leaflet nace (600px
+     antes de verse, por la carga perezosa) el navegador aún no ha pintado
+     el contenedor y el mapa medía mal: banda gris arriba y resto vacío.
+     Solución: recalcular el tamaño nada más crearlo (rAF + un segundo
+     intento a los 350ms) y otra vez cuando el contenedor entre de verdad
+     en pantalla. Al recalcular, Leaflet pide las teselas que faltan. */
+  requestAnimationFrame(() => { try { map.invalidateSize(); } catch (e) {} });
+  setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 350);
+  if ('IntersectionObserver' in window) {
+    const vigilaMedida = new IntersectionObserver((ents) => {
+      if (ents.some(e => e.isIntersecting)) {
+        vigilaMedida.disconnect();
+        requestAnimationFrame(() => setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 60));
+      }
+    });
+    vigilaMedida.observe(mapEl);
+  }
   const lang0 = (typeof currentLang !== 'undefined') ? currentLang : 'es';
   const dict0 = (typeof translations !== 'undefined') ? (translations[lang0] || translations.es) : null;
   const statusLineEl0 = document.getElementById('statusLine');

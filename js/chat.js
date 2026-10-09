@@ -403,14 +403,34 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
           }
         }
         document.dispatchEvent(new CustomEvent('manolito:activar-parking', { detail: detalle }));
-        return 'Capa de aparcamientos encendida. Verde es gratis, ámbar de pago, azul cubierto, violeta subterráneo y gris privado o de clientes. Los que llevan anillo teal tienen sombra ahora mismo.';
+        // 09-oct-2026 (orden de Sandro): de noche no se habla de sombra
+        // «ahora mismo», se dice la verdad, que no hay sol. Lo decide la
+        // función única de js/sol.js con el sitio nombrado o el centro del
+        // mapa. Si SunCalc aún no cargó, se queda la leyenda de siempre.
+        let colaParking = 'Los que llevan anillo teal tienen sombra ahora mismo.';
+        try {
+          const cChat = (window.manolitAireMap && window.manolitAireMap.getCenter) ? window.manolitAireMap.getCenter() : null;
+          const latChat = detalle.lat != null ? detalle.lat : (cChat && cChat.lat);
+          const lonChat = detalle.lon != null ? detalle.lon : (cChat && cChat.lng);
+          const haySolChat = (window.manolitHaySol && latChat != null) ? window.manolitHaySol(latChat, lonChat) : null;
+          if (haySolChat === false) colaParking = 'Ahora es de noche y no hay sol, así que el anillo teal no sale hasta que amanezca.';
+        } catch (eSolChat) { /* queda la leyenda de siempre */ }
+        return 'Capa de aparcamientos encendida. Verde es gratis, ámbar de pago, azul cubierto, violeta subterráneo y gris privado o de clientes. ' + colaParking;
       }
       if (/\b(modo vago|busca la mejor sombra|mejor sombra|la mejor sombra)\b/i.test(txt)) {
         const tSombras = document.getElementById('rsToggleSombras');
         if (tSombras && !tSombras.checked) tSombras.click();
         const btnArboles = document.getElementById('rsBtnArboles');
         if (btnArboles && btnArboles.getAttribute('aria-pressed') !== 'true') btnArboles.click();
-        return 'Hecho. Tienes las sombras y los árboles encendidos en el mapa, las zonas más oscuras son la mejor sombra ahora mismo.';
+        // 09-oct-2026 (orden de Sandro): de noche no hay zonas más oscuras
+        // porque no hay sol. Misma función única, mismo sitio.
+        let colaSombra = 'Tienes las sombras y los árboles encendidos en el mapa, las zonas más oscuras son la mejor sombra ahora mismo.';
+        try {
+          const cSombra = (window.manolitAireMap && window.manolitAireMap.getCenter) ? window.manolitAireMap.getCenter() : null;
+          const haySolSombra = (window.manolitHaySol && cSombra) ? window.manolitHaySol(cSombra.lat, cSombra.lng) : null;
+          if (haySolSombra === false) colaSombra = 'Es de noche y no hay sol, así que no hay sombras que pintar hasta que amanezca. Las capas quedan encendidas para cuando salga.';
+        } catch (eSolSombra) { /* queda la leyenda de siempre */ }
+        return 'Hecho. ' + colaSombra;
       }
     } catch (e) {
       return null; // cualquier fallo: que responda la IA como siempre

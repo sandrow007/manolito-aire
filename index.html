@@ -461,7 +461,7 @@
   <a href="#defensa-sombras" data-i18n="saludBannerCta">Descubre por qué defendemos la salud ambiental y cada rincón de sombra.</a>
 </div>
 
-<div class="topbar">
+<header class="topbar">
   <!-- El texto estático DEBE coincidir con el de i18n (clave tagline):
      antes traía "MAPA NACIONAL · DATOS EN VIVO" y al segundo se cambiaba
      por el doble de largo → la barra se re-envolvía y empujaba la página
@@ -539,7 +539,7 @@
     <button type="button" class="yayo-zoom-btn" id="fontDown" aria-label="Letra más pequeña">A−</button>
     <button type="button" class="yayo-zoom-btn" id="fontUp" aria-label="Letra más grande">A+</button>
   </div>
-</div>
+</header>
 
 <!-- Contador vivo del agua publicitaria, junto al título del mapa (sep-2026).
      Coste: UNA escritura de texto por segundo (nada de animaciones, ni canvas,
@@ -565,9 +565,16 @@
     .map-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   }
 </style>
-<div class="map-section" id="main-content" tabindex="-1">
+<!-- 09-oct-2026 (tarea de reordenación de Sandro): estructura semántica
+     de la portada. Todo el contenido vive dentro de <main> y cada bloque
+     es una <section> con su título enlazado por aria-labelledby. Este
+     id="main-content" NO se mueve a <main>: lo usan las reglas CSS del
+     panel de capas (#main-content ...) y el módulo de aparcamientos como
+     ancla de reserva. -->
+<main>
+<section class="map-section" id="main-content" tabindex="-1" aria-labelledby="rsRouteMapTitle">
   <div class="map-head">
-    <div class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</div>
+    <h2 class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</h2>
     <p class="agua-vivo-head" id="aguaVivoHead" role="status" aria-live="off">
       <span data-i18n="aguaVivoLabel">Anuncios gastando agua a nivel mundial:</span>
       <strong class="avh-num" id="aguaVivoNum">0 L</strong>
@@ -832,13 +839,13 @@
     </dl>
   </div>
 </section>
-</div>
+</section>
 
-<div class="hero">
+<section class="hero" aria-labelledby="heroTitulo">
   <!-- h1 unico con la busqueda principal y la marca sin simbolo (28-sep, SEO).
        Visible pero discreto para no tocar el diseño del hero.
        Traducido a los 6 idiomas (clave heroH1 en js/i18n.js). -->
-  <h1 data-i18n="heroH1" style="font-size:15px;font-weight:600;color:var(--sky-mid,#9fb3c8);text-align:center;margin:0 0 10px;">Manolito Aire. Rutas con sombra y calidad del aire en tiempo real</h1>
+  <h1 id="heroTitulo" data-i18n="heroH1" style="font-size:15px;font-weight:600;color:var(--sky-mid,#9fb3c8);text-align:center;margin:0 0 10px;">Manolito Aire. Rutas con sombra y calidad del aire en tiempo real</h1>
   <div class="city-picker" id="cityPickerContainer">
     <button class="city-dropdown-btn" id="cityDropdownBtn" aria-haspopup="listbox" aria-expanded="false">Sevilla</button>
     <ul class="city-dropdown-list" id="cityDropdownList" role="listbox" aria-label="Ciudad">
@@ -913,7 +920,7 @@
        abajo, nunca flota ni tapa nada. Solo existe con el modo peque
        activo. -->
   <div class="juego-manolit-cont" id="juegoManolitCont"></div>
-</div>
+</section>
 
 <!-- Los enlaces de familia bajan aquí (sep-2026, orden de Sandro): antes
      vivían en la barra de arriba y ahora que los modos ocupan ese sitio,
@@ -923,7 +930,7 @@
   <a class="family-link" href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a>
   <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
   <a class="family-link" href="manolito-aire-comparativa.html" target="_self" data-i18n="comparativaLink">Comparativa</a>
-  <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener" data-i18n="queEsLink">Que es Manolit∞ ©</a>
+  <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener" data-i18n="queEsLink">Qué es Manolit∞ ©</a>
   <!-- Entrada al generador del widget embebible (27-sep). Traducida a los
        6 idiomas el 28-sep (clave anadeLink en js/i18n.js). -->
   <a class="family-link" href="anade-manolito.html" target="_self" data-i18n="anadeLink">Añade Manolit∞ a tu web</a>
@@ -1138,9 +1145,9 @@
   </div>
 </details>
 
-<div class="map-section">
+<section class="map-section" aria-labelledby="tituloMapaAire">
   <div class="map-head">
-    <div class="map-title" data-i18n="mapTitle">El aire de España, ahora mismo</div>
+    <h2 class="map-title" id="tituloMapaAire" data-i18n="mapTitle">El aire de España, ahora mismo</h2>
     <div class="chip-toggle" id="regionJump">
       <button data-r="peninsula" class="active" data-i18n="region_peninsula">Península</button>
       <button data-r="canarias" data-i18n="region_canarias">Canarias</button>
@@ -1158,11 +1165,11 @@
     </div>
   </div>
   <div class="status-line" id="statusLine" data-i18n="statusLoading">Cargando datos en vivo…</div>
-</div>
+</section>
 
-<div class="forecast-section">
+<section class="forecast-section" aria-labelledby="tituloEvolucion">
   <div class="map-head">
-    <div class="map-title"><span data-i18n="evolAire">Evolución del aire</span> · <span id="forecastCityName">Sevilla</span></div>
+    <h2 class="map-title" id="tituloEvolucion"><span data-i18n="evolAire">Evolución del aire</span> · <span id="forecastCityName">Sevilla</span></h2>
   </div>
   <div class="chart-card">
     <div id="airChart"></div>
@@ -1171,16 +1178,22 @@
       <span><i class="dot-fore"></i> <span data-i18n="legendFore">Próximas 48h (pronóstico Copernicus/CAMS)</span></span>
     </div>
   </div>
+</section>
 
+<!-- MANOLIT∞ CUÁNTICO como sección propia (09-oct-2026, tarea de
+     reordenación de Sandro): sale de dentro de la sección de la gráfica
+     y se queda justo debajo, a la misma anchura, porque su aviso se
+     apoya en el pronóstico real de arriba. Los dos divs vacíos que
+     vivían aquí (week-label y quantumWeek, sin contenido ni script que
+     los rellene) eran el hueco vertical entre las barras y el aviso en
+     cursiva: eliminados por orden directa de Sandro. -->
+<section class="quantum-section" aria-labelledby="tituloCuantico">
   <div class="quantum-card">
     <div class="quantum-head">
-      <span class="quantum-badge" data-i18n="quantumBadge">Manolit∞ Cuántico</span>
+      <h2 class="quantum-badge" id="tituloCuantico" data-i18n="quantumBadge">Manolit∞ Cuántico</h2>
       <span class="quantum-sub" data-i18n="quantumSub">pronóstico simulado para los próximos 5 días, contado sin humo</span>
     </div>
     <div id="quantumBars" class="quantum-bars"></div>
-
-    <div class="week-label"></div>
-    <div id="quantumWeek" class="quantum-week"></div>
 
     <p class="quantum-disclaimer" data-i18n="quantumDisclaimer">
       Esto NO es una predicción meteorológica oficial. Es una simulación matemática
@@ -1189,12 +1202,12 @@
       guíate por el dato del gráfico y por fuentes oficiales, no por este número.
     </p>
   </div>
-</div>
-<div class="map-section" id="ecoAgua" style="border:1px solid rgba(14,59,71,0.18); background:linear-gradient(135deg, rgba(23,120,138,0.08), rgba(255,107,26,0.06));">
+</section>
+<section class="map-section" id="ecoAgua" aria-labelledby="tituloAgua" style="border:1px solid rgba(14,59,71,0.18); background:linear-gradient(135deg, rgba(23,120,138,0.08), rgba(255,107,26,0.06));">
   <div class="map-head">
-    <div class="map-title" data-i18n="aguaTitulo">El agua que no se ve</div>
+    <h2 class="map-title" id="tituloAgua" data-i18n="aguaTitulo">El agua que no se ve</h2>
   </div>
-  <p style="margin:4px 0 10px; line-height:1.6;"><span data-i18n="aguaP1">Esto ya no es una estimación: la telemetría real de los últimos 30 días dice </span><strong data-i18n="aguaS1">176.444 peticiones, 1,80 GB movidos y 4.819 visitas</strong><span data-i18n="aguaP2">. O sea, </span><strong data-i18n="aguaS2">0,38 MB y unos 2 mililitros de agua por visita</strong><span data-i18n="aguaP3">, medidos. Mientras tanto, la publicidad programática del mundo gasta </span><strong data-i18n="aguaS3">unos 375 litros cada segundo</strong><span data-i18n="aguaP4"> en subastas de anuncios que nadie pidió: al año, miles de piscinas olímpicas.</span></p>
+  <p class="agua-texto" style="margin:4px 0 10px; line-height:1.6;"><span data-i18n="aguaP1">Esto ya no es una estimación: la telemetría real de los últimos 30 días dice </span><strong data-i18n="aguaS1">176.444 peticiones, 1,80 GB movidos y 4.819 visitas</strong><span data-i18n="aguaP2">. O sea, </span><strong data-i18n="aguaS2">0,38 MB y unos 2 mililitros de agua por visita</strong><span data-i18n="aguaP3">, medidos. Mientras tanto, la publicidad programática del mundo gasta </span><strong data-i18n="aguaS3">unos 375 litros cada segundo</strong><span data-i18n="aguaP4"> en subastas de anuncios que nadie pidió: al año, miles de piscinas olímpicas.</span></p>
   <div id="ecoAguaVivo" role="status" aria-live="off"
        style="font-variant-numeric:tabular-nums; font-weight:700; color:var(--sky-deep,#0E3B47); background:var(--surface, rgba(255,255,255,0.65)); border-radius:12px; padding:10px 14px; margin-bottom:10px;">
     Desde que abriste esta página, los anuncios del mundo llevan gastados 0 litros de agua. Tu visita aquí: ~2 ml, medidos.
@@ -1202,7 +1215,7 @@
   <a href="manolito-aire-comparativa.html#agua" target="_self" data-i18n="aguaLink" style="font-weight:700; color:var(--accent,#FF6B1A);">
     Ver las cuentas completas, con los supuestos a la vista →
   </a>
-</div>
+</section>
 
 <script>
 // Contador del agua de la publicidad (sep-2026): 300.000 millones de
@@ -1334,40 +1347,53 @@
     <p data-i18n="faqA9">Usándolo y contándolo. Y si te apetece, apoyando en Ko-fi para pagar los servidores. También puedes mejorar el mapa de tu barrio en OpenStreetMap, que es gratis y ayuda a todo el mundo.</p>
   </details>
 </section>
+</main>
 
-<div class="footer">
+<footer class="footer">
+  <!-- 09-oct-2026 (tarea de reordenación de Sandro): el pie se ordena en
+       seis bloques: a) quiénes somos, b) apoyo y comunidad, c) sellos de
+       confianza, d) escudos que cuidan de nosotros con la atribución del
+       IGN debajo, e) familia de proyectos (enlaces de verdad) y f) la
+       franja legal con Sincronizar / Exportar datos. Mismo texto, mismos
+       ids, mismos enlaces: solo cambian el orden y la presentación. -->
+
+  <!-- a) Quiénes somos: la frase corta y el enlace a las cuentas del
+       agua, que viven en su propia sección (#ecoAgua). El párrafo largo
+       de la telemetría se queda allí: aquí solo va el enlace. -->
   <p data-i18n="footerFamiliaTxt">Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.</p>
-  <p class="footer-eco" data-i18n="footerEcoTxt">Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.</p>
-  <div class="footer-family" data-i18n="footerFamily">Manolit∞ Forestal · Islas de Calor Sevilla · Manolit∞ Aire</div>
-  <div class="footer-ign" style="margin-top:8px; font-size:0.75rem; opacity:0.7;" data-i18n="footerIgnTxt">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
-  <div style="margin-top:10px;">
-    <a href="aviso-legal.html" data-i18n="legalNotice">Aviso legal</a> · 
-    <a href="privacidad.html" data-i18n="privacy">Privacidad</a> · 
-    <a href="cookies.html" data-i18n="cookies">Cookies</a> ·
-    <!-- Enlace visible al codigo fuente (28-sep-2026): el proyecto es AGPL y
-         el repo es publico; ademas lo piden los revisores de AlternativeTo. -->
-    <a href="https://github.com/sandrow007/manolito-aire" target="_blank" rel="noopener" data-i18n="footerGithub">Código abierto</a>
-  </div>
+  <p class="footer-cuentas-linea"><a class="footer-cuentas" href="#ecoAgua" data-i18n="footerVerCuentas">Ver las cuentas</a></p>
 
-  <!-- Sincronizar / Exportar datos: tus ajustes (tema, paleta, idioma,
-       modo accesible, ciudad...) viajan en un archivo JSON entre tus
-       dispositivos. Sin cuentas, sin servidores: el archivo lo genera
-       y lo lee tu propio navegador. -->
-  <div class="footer-sync">
-    <button type="button" id="btnSyncExport" class="footer-sync-toggle" data-i18n="syncLink"
-            aria-expanded="false" aria-controls="syncPanel">Sincronizar / Exportar datos</button>
-    <div id="syncPanel" class="sync-panel" hidden>
-      <p class="sync-hint" data-i18n="syncHint">Guarda tus ajustes en un archivo y recupéralos en otro dispositivo. Sin cuentas ni servidores.</p>
-      <div class="sync-panel-btns">
-        <button type="button" id="btnSyncExportar" data-i18n="syncExportBtn">Exportar mis datos</button>
-        <button type="button" id="btnSyncImportar" data-i18n="syncImportBtn">Importar datos</button>
-      </div>
-      <input type="file" id="syncFileInput" accept="application/json,.json" hidden>
+  <!-- b) Apoyo y comunidad en una misma fila: el mensaje, el botón de
+       Ko-fi y las redes. (El div.footer-final de antes se disuelve: su
+       sello A+ sube al bloque de sellos y donación+redes forman esta
+       fila.) -->
+  <div class="footer-apoyo">
+    <p class="donacion-mensaje" data-i18n-html="donacionTxt">
+      Manolit∞ siempre sera gratis.<br>
+      Los servidores, por desgracia, no lo son...
+    </p>
+    <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer" data-i18n="kofiBtn">
+      Apoyar en Ko‑fi
+    </a>
+    <div class="footer-redes">
+      <a class="footer-red" href="https://www.tiktok.com/@manolitoinfinitum8" target="_blank" rel="noopener" aria-label="TikTok de Manolit">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+        <span>@manolitoinfinitum8</span>
+      </a>
+      <!-- Instagram del proyecto fuera del pie (26-sep, orden directa de
+           Sandro). El pie queda como el lo dejo corregido en la web: TikTok
+           @manolitoinfinitum8 y su Instagram personal @manolit_8. No volver
+           a anadir esa fila sin orden suya expresa. -->
+      <a class="footer-red footer-red-sola" href="https://www.instagram.com/manolit_8" target="_blank" rel="noopener" aria-label="Instagram personal de Sandro">
+        <span>@manolit_8</span>
+      </a>
     </div>
   </div>
 
-  <!-- Cierre del pie: a los lados del boton de Ko-fi, sin nuevo apartado -->
-  <div class="footer-final">
+  <!-- c) Sellos de confianza en una fila (09-oct-2026, orden de Sandro):
+       A+ de carbono, sello circular Manolit∞ e insignia de
+       AlternativeTo. -->
+  <div class="footer-sellos">
     <div class="footer-sello">
       <svg width="320" height="130" viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Sello de eficiencia: manolitoaire.com tiene calificación A+ en Website Carbon Rating">
         <defs>
@@ -1397,37 +1423,15 @@
         <text x="16" y="116" font-size="7.5" fill="#A9B3AC" data-i18n="svgCarbon3">Medido con Website Carbon Calculator (1ClickImpact) · 16/09/2026</text>
       </svg>
     </div>
-    <div class="footer-donacion">
-      <p class="donacion-mensaje" data-i18n-html="donacionTxt">
-        Manolit∞ siempre sera gratis.<br>
-        Los servidores, por desgracia, no lo son...
-      </p>
-      <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer" data-i18n="kofiBtn">
-        Apoyar en Ko‑fi
-      </a>
-    </div>
-    <div class="footer-redes">
-      <a class="footer-red" href="https://www.tiktok.com/@manolitoinfinitum8" target="_blank" rel="noopener" aria-label="TikTok de Manolit">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
-        <span>@manolitoinfinitum8</span>
-      </a>
-      <!-- Instagram del proyecto fuera del pie (26-sep, orden directa de
-           Sandro). El pie queda como el lo dejo corregido en la web: TikTok
-           @manolitoinfinitum8 y su Instagram personal @manolit_8. No volver
-           a anadir esa fila sin orden suya expresa. -->
-      <a class="footer-red footer-red-sola" href="https://www.instagram.com/manolit_8" target="_blank" rel="noopener" aria-label="Instagram personal de Sandro">
-        <span>@manolit_8</span>
-      </a>
-    </div>
-  </div>
-
   <!-- Sello oficial PERMANENTE (25-sep-2026, orden de Sandro). El bloque
        de salud se retira solo el domingo a las 18:00, pero este sello se
        queda en la esquina inferior del pie todo el año. Misma geometria
        exacta del archivo original que paso Sandro (solo cambian los ids
        internos para no repetirlos en el documento). Los colores salen de
        las mismas variables --sello-* de ambientes.css: corporativos todo
-       el año y verdes solo mientras dura el modo salud. -->
+       el año y verdes solo mientras dura el modo salud.
+       09-oct-2026: se muda a la fila de sellos (bloque c de la tarea
+       de reordenación de Sandro). -->
   <div class="footer-oficial">
     <div class="sello-footer" role="img" aria-label="Sello oficial Manolit∞, simulador de sombras">
         <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1453,6 +1457,20 @@
                   </g>
                 </svg>
     </div>
+  </div>
+
+  <!-- Insignia de AlternativeTo (28-sep-2026, orden de Sandro): al final del
+       todo del pie, centrada y discreta, con carga diferida para no pesar.
+       El alt lleva la marca bien escrita, Manolit∞ con su simbolo. -->
+  <div class="footer-alternativeto">
+    <a href="https://alternativeto.net/software/manolit-aire/about/?utm_source=badge&utm_medium=referral" target="_blank" rel="noopener">
+      <img src="https://alternativeto.net/static/badges/badge-compact-color.svg"
+           alt="Manolit∞ Aire | AlternativeTo"
+           width="171" height="55"
+           loading="lazy" decoding="async"
+           style="width:171px;height:55px;display:inline-block;" />
+    </a>
+  </div>
   </div>
 
   <!-- Escudos de salud ambiental (01-oct-2026, orden directa de Sandro):
@@ -1500,19 +1518,43 @@
     </div>
   </div>
 
-  <!-- Insignia de AlternativeTo (28-sep-2026, orden de Sandro): al final del
-       todo del pie, centrada y discreta, con carga diferida para no pesar.
-       El alt lleva la marca bien escrita, Manolit∞ con su simbolo. -->
-  <div style="text-align:center;margin:18px 0 6px;">
-    <a href="https://alternativeto.net/software/manolit-aire/about/?utm_source=badge&utm_medium=referral" target="_blank" rel="noopener">
-      <img src="https://alternativeto.net/static/badges/badge-compact-color.svg"
-           alt="Manolit∞ Aire | AlternativeTo"
-           width="171" height="55"
-           loading="lazy" decoding="async"
-           style="width:171px;height:55px;display:inline-block;" />
-    </a>
+  <!-- La atribución del mapa IGN vive justo debajo de los escudos
+       (09-oct-2026, orden de Sandro) y sin la opacidad vieja, que dejaba
+       el texto por debajo del contraste mínimo WCAG AA (2,86:1). -->
+  <div class="footer-ign" style="margin-top:8px; font-size:0.75rem;" data-i18n="footerIgnTxt">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
+
+  <!-- e) La familia de proyectos como enlaces de verdad (09-oct-2026,
+       orden de Sandro): ya no es texto monoespaciado, cada nombre enlaza
+       a su web. Traducido con data-i18n-html (la clave footerFamily de
+       js/i18n.js ahora lleva los enlaces dentro). -->
+  <div class="footer-family" data-i18n-html="footerFamily"><a href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a> · <a href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a> · <a href="https://manolitoaire.com" target="_blank" rel="noopener">Manolit∞ Aire</a></div>
+
+  <!-- Sincronizar / Exportar datos: tus ajustes (tema, paleta, idioma,
+       modo accesible, ciudad...) viajan en un archivo JSON entre tus
+       dispositivos. Sin cuentas, sin servidores: el archivo lo genera
+       y lo lee tu propio navegador. -->
+  <!-- f) Franja legal final, pequeña y centrada (09-oct-2026, orden de
+       Sandro): Sincronizar / Exportar datos es el último elemento y su
+       panel sigue abriéndose debajo, con los mismos ids de siempre. -->
+  <div class="footer-legal">
+    <a href="aviso-legal.html" data-i18n="legalNotice">Aviso legal</a> · 
+    <a href="privacidad.html" data-i18n="privacy">Privacidad</a> · 
+    <a href="cookies.html" data-i18n="cookies">Cookies</a> ·
+    <!-- Enlace visible al codigo fuente (28-sep-2026): el proyecto es AGPL y
+         el repo es publico; ademas lo piden los revisores de AlternativeTo. -->
+    <a href="https://github.com/sandrow007/manolito-aire" target="_blank" rel="noopener" data-i18n="footerGithub">Código abierto</a> ·
+    <button type="button" id="btnSyncExport" class="footer-sync-toggle" data-i18n="syncLink"
+            aria-expanded="false" aria-controls="syncPanel">Sincronizar / Exportar datos</button>
   </div>
-</div>
+    <div id="syncPanel" class="sync-panel" hidden>
+      <p class="sync-hint" data-i18n="syncHint">Guarda tus ajustes en un archivo y recupéralos en otro dispositivo. Sin cuentas ni servidores.</p>
+      <div class="sync-panel-btns">
+        <button type="button" id="btnSyncExportar" data-i18n="syncExportBtn">Exportar mis datos</button>
+        <button type="button" id="btnSyncImportar" data-i18n="syncImportBtn">Importar datos</button>
+      </div>
+      <input type="file" id="syncFileInput" accept="application/json,.json" hidden>
+    </div>
+</footer>
 
 <button class="chat-fab" onclick="openChat()" aria-label="Pregúntale a Manolit∞" title="Pregúntale a Manolit∞">
   <span class="chat-fab-ring"><span class="chat-fab-core">M∞</span></span>

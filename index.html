@@ -286,7 +286,6 @@
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
-<base target="_blank">
 </head>
 <body>
 
@@ -1592,6 +1591,11 @@
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
 <script src="js/cookie-banner.js" defer></script>
+<!-- 09-oct-2026 (orden de Sandro): la única verdad sobre si hay sol.
+     Sin dependencias propias, carga con defer y pregunta a SunCalc solo
+     cuando alguien le pregunta a ella. La usan parking, planetario y el
+     widget; nadie más decide por su cuenta si es de día o de noche. -->
+<script src="js/sol.js" defer></script>
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>

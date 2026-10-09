@@ -281,6 +281,16 @@
       var toggleSombras = document.getElementById('rsToggleSombras');
       var sombrasOn = !!(toggleSombras && toggleSombras.checked);
       var esDeNoche = s.alturaDeg <= 0;
+      // 09-oct-2026 (orden de Sandro): día o noche lo decide la función
+      // única de js/sol.js con la fecha que la cúpula está mostrando (la
+      // real o la del slider). Si SunCalc no está listo, queda el criterio
+      // de la cúpula, que es el mismo: altura del sol sobre el horizonte.
+      try {
+        if (window.manolitHaySol) {
+          var haySolPlan = window.manolitHaySol(p.lat, p.lon, fechaMostrada);
+          if (haySolPlan !== null) esDeNoche = !haySolPlan;
+        }
+      } catch (ePlan) { /* queda el criterio de la cúpula */ }
       if (!sombrasOn || esDeNoche) {
         if (!info.hasAttribute('hidden')) info.setAttribute('hidden', '');
         info.textContent = '';

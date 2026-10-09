@@ -1215,6 +1215,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return { lat: c.lat, lon: c.lon ?? c.lng };
   };
 
+  // 09-oct-2026 (orden de Sandro, «Al sol ahora a las 20:13»): cualquier
+  // frase de «ahora» (el popup del parking, por ejemplo) necesita saber si
+  // las sombras pintadas son una SIMULACIÓN del slider, porque entonces no
+  // valen para «ahora». modoManual se declara con let más abajo; esta
+  // flecha solo lo lee cuando alguien la llama, siempre después.
+  window.manolitAireSimulando = () => modoManual;
+
   let versionCalculoSombras = 0;
   // Marca si el último barrido de sombras ya repintó los tramos de la ruta,
   // para que aplicarCambioDeHora no lo haga DOS veces seguidas (antes cada

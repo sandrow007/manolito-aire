@@ -110,6 +110,10 @@
     temporizadorMove: null,
     temporizadorSombra: null,
     popup: null,
+    // 09-oct-2026 (orden de Sandro): qué parking tiene el popup abierto y
+    // el temporizador dormido hasta el próximo orto/ocaso (sin bucles).
+    popupFeatureId: null,
+    temporizadorSolPopup: null,
     // 08-oct-2026 (arreglo urgente): copia ÍNTEGRA del último geojson
     // pintado. reevaluarSombraActual trabaja sobre esta copia y jamás
     // reconstruye con querySourceFeatures, que por tiles devolvía cero o
@@ -156,6 +160,85 @@
     return t('parkingFeeUnknown', 'Precio sin dato');
   }
 
+  /* ---------------- Sol o sombra en el popup: la verdad o nada -----------
+     09-oct-2026 (orden directa de Sandro, «de noche no hay sol y la app no
+     inventa»): la frase de sol del popup sale SIEMPRE de esta cadena.
+       1) De noche (lo decide js/sol.js con SunCalc y la hora REAL, nunca
+          la del slider de simulación) → «Ahora es de noche, sin sol».
+       2) Cubierto o subterráneo según las etiquetas reales de OSM → nunca
+          «al sol»: tiene techo, así que «Con sombra ahora».
+       3) Si el slider está simulando otra hora, las sombras pintadas no
+          son las de ahora → «No se puede saber».
+       4) De día y con dato real del motor de sombras → sol o sombra.
+       5) Cualquier otra situación → «No se puede saber». No se adivina. */
+  function lineaSolParking(p, coords) {
+    var haySol = (window.manolitHaySol && coords && coords.length >= 2)
+      ? window.manolitHaySol(coords[1], coords[0])
+      : null;
+    if (haySol === false) return t('parkingNightNow', 'Ahora es de noche, sin sol');
+    if (p.tipo === 'subterraneo' || p.tipo === 'cubierto') return t('parkingShadeNow', 'Con sombra ahora');
+    try {
+      if (window.manolitAireSimulando && window.manolitAireSimulando()) return t('parkingSunUnknown', 'No se puede saber');
+    } catch (e) { /* sigue */ }
+    if (haySol === true && p.sombra === true) return t('parkingShadeNow', 'Con sombra ahora');
+    if (haySol === true && p.sombra === false) return t('parkingNoShade', 'Al sol ahora');
+    return t('parkingSunUnknown', 'No se puede saber');
+  }
+
+  function htmlPopupParking(p, coords) {
+    var lineas = [];
+    lineas.push('<strong>' + escaparHtml(p.nombre) + '</strong>');
+    lineas.push(textoTipo(p.tipo) + ' · ' + textoAcceso(p.acceso) + ' · ' + textoPrecio(p.precio));
+    if (p.capacidad) lineas.push(p.capacidad + ' ' + t('parkingCapacity', 'plazas'));
+    lineas.push(lineaSolParking(p, coords));
+    return '<div style="font:13px/1.5 system-ui,sans-serif;color:#1A2330">' + lineas.join('<br>') + '</div>';
+  }
+
+  // Si el popup sigue abierto cuando las sombras se recalculan (slider de
+  // hora, motor que termina de cargar...), se reescribe con el dato nuevo.
+  function refrescarPopupSiAbierto() {
+    try {
+      if (!parking.popup || !parking.popupFeatureId || !parking.datosActuales) return;
+      var feats = parking.datosActuales.features || [];
+      for (var i = 0; i < feats.length; i++) {
+        if (feats[i].properties && feats[i].properties.osmId === parking.popupFeatureId) {
+          parking.popup.setHTML(htmlPopupParking(feats[i].properties, feats[i].geometry && feats[i].geometry.coordinates));
+          break;
+        }
+      }
+    } catch (e) { /* el popup viejo sigue siendo válido */ }
+  }
+
+  // Sin bucles (orden de Sandro): UN temporizador dormido hasta el próximo
+  // orto u ocaso real, solo mientras el popup está abierto. Si el popup se
+  // abrió de día y pilla el ocaso por medio, la frase cambia sola a la de
+  // noche sin gastar batería mirando el reloj cada minuto.
+  function programarRefrescoSolPopup() {
+    clearTimeout(parking.temporizadorSolPopup);
+    try {
+      if (!window.SunCalc || !parking.popup) return;
+      var ll = parking.popup.getLngLat();
+      var ahora = new Date();
+      var candidatos = [];
+      var vecesHoy = window.SunCalc.getTimes(ahora, ll.lat, ll.lng);
+      candidatos.push(vecesHoy.sunrise, vecesHoy.sunset);
+      var vecesManana = window.SunCalc.getTimes(new Date(ahora.getTime() + 24 * 3600 * 1000), ll.lat, ll.lng);
+      candidatos.push(vecesManana.sunrise, vecesManana.sunset);
+      var proximo = null;
+      for (var i = 0; i < candidatos.length; i++) {
+        var d = candidatos[i];
+        if (d && d.getTime && d.getTime() > ahora.getTime() && (!proximo || d < proximo)) proximo = d;
+      }
+      if (!proximo) return;
+      var espera = proximo.getTime() - ahora.getTime() + 30000;
+      if (espera > 26 * 3600 * 1000) return; // demasiado lejos: ni se agenda
+      parking.temporizadorSolPopup = setTimeout(function () {
+        refrescarPopupSiAbierto();
+        programarRefrescoSolPopup(); // encadena el siguiente orto u ocaso si el popup sigue abierto
+      }, espera);
+    } catch (e) { /* sin refresco programado */ }
+  }
+
   function overpassAGeojson(datos) {
     var features = [];
     var elementos = (datos && Array.isArray(datos.elements)) ? datos.elements : [];
@@ -176,7 +259,10 @@
           precio: c.precio,
           color: c.color,
           capacidad: (el.tags && el.tags.capacity) || '',
-          sombra: false,
+          // 09-oct-2026 (orden de Sandro): null = SIN DATO de sombra.
+          // Antes nacía en false y el popup lo leía como «Al sol ahora»,
+          // incluso de noche cerrada. null jamás miente.
+          sombra: null,
         },
       });
     }
@@ -298,17 +384,17 @@
 
     map.on('click', 'capa-aparcamientos', function (e) {
       if (!e.features || !e.features.length) return;
-      var p = e.features[0].properties;
-      var lineas = [];
-      lineas.push('<strong>' + escaparHtml(p.nombre) + '</strong>');
-      lineas.push(textoTipo(p.tipo) + ' · ' + textoAcceso(p.acceso) + ' · ' + textoPrecio(p.precio));
-      if (p.capacidad) lineas.push(p.capacidad + ' ' + t('parkingCapacity', 'plazas'));
-      lineas.push(p.sombra ? t('parkingShadeNow', 'Con sombra ahora') : t('parkingNoShade', 'Al sol ahora'));
       if (parking.popup) { try { parking.popup.remove(); } catch (err) { /* ok */ } }
+      parking.popupFeatureId = e.features[0].properties.osmId || null;
       parking.popup = new maplibregl.Popup({ closeButton: true, maxWidth: '260px' })
         .setLngLat(e.lngLat)
-        .setHTML('<div style="font:13px/1.5 system-ui,sans-serif;color:#1A2330">' + lineas.join('<br>') + '</div>')
+        .setHTML(htmlPopupParking(e.features[0].properties, e.features[0].geometry && e.features[0].geometry.coordinates))
         .addTo(map);
+      parking.popup.on('close', function () {
+        parking.popupFeatureId = null;
+        clearTimeout(parking.temporizadorSolPopup);
+      });
+      programarRefrescoSolPopup();
     });
     map.on('mouseenter', 'capa-aparcamientos', function () { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'capa-aparcamientos', function () { map.getCanvas().style.cursor = ''; });
@@ -330,6 +416,8 @@
 
   function limpiarAparcamientos() {
     parking.datosActuales = null;
+    parking.popupFeatureId = null;
+    clearTimeout(parking.temporizadorSolPopup);
     if (!map || !map.getSource('aparcamientos')) return;
     map.getSource('aparcamientos').setData({ type: 'FeatureCollection', features: [] });
     if (parking.popup) { try { parking.popup.remove(); } catch (e) { /* ok */ } parking.popup = null; }
@@ -391,12 +479,13 @@
         var geojson = {
           type: 'FeatureCollection',
           features: parking.datosActuales.features.map(function (f) {
-            return { type: 'Feature', geometry: f.geometry, properties: Object.assign({}, f.properties, { sombra: false }) };
+            return { type: 'Feature', geometry: f.geometry, properties: Object.assign({}, f.properties, { sombra: null }) };
           }),
         };
         evaluarSombraEn(geojson);
         parking.datosActuales = geojson;
         src.setData(geojson);
+        refrescarPopupSiAbierto(); // 09-oct-2026: la frase de sol sigue al dato
       } catch (e) { /* extra, nunca rompe */ }
     }, CONFIG.esperaSombraMs);
   }

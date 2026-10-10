@@ -994,7 +994,7 @@ function initFontBoostControls(){
 
 function cuandoIdiomaListo(run) {
   if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
-    document.addEventListener('idioma-listo', run, { once: true });
+    document.addEventListener('langChanged', run, { once: true });
     return;
   }
   run();

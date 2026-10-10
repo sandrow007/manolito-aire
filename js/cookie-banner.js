@@ -122,7 +122,7 @@ function cookiesAccepted(){
 
 function initCookieBannerCuandoIdiomaListo() {
   if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
-    document.addEventListener('idioma-listo', initCookieBanner, { once: true });
+    document.addEventListener('langChanged', initCookieBanner, { once: true });
     return;
   }
   initCookieBanner();

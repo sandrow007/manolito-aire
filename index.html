@@ -399,7 +399,7 @@
       if (autoCierre) clearTimeout(autoCierre);
       setTimeout(() => {
         gate.remove();
-        document.dispatchEvent(new CustomEvent('idioma-listo', { detail: { lang } }));
+        document.dispatchEvent(new CustomEvent('langChanged', { detail: { lang } }));
       }, 190);
     }
     gate.addEventListener('click', (e) => {
@@ -573,7 +573,7 @@
       setTimeout(executeTransition, 7400);
     }
     if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
-      document.addEventListener('idioma-listo', () => {
+      document.addEventListener('langChanged', () => {
         requestAnimationFrame(() => requestAnimationFrame(iniciarSplash));
       }, { once: true });
       return;

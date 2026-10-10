@@ -3644,7 +3644,6 @@ function setLang(lang) {
 	window.__manolitoIdiomaResuelto = true;
 	try { localStorage.setItem('manolito_lang', lang); } catch (e) { }
 	applyTranslations();
-	if (typeof window.manolitoApplyGoogleLanguage === 'function') window.manolitoApplyGoogleLanguage(lang);
 	// Disparamos evento para que shadows-route.js y otros scripts sepan que
 	// cambió el idioma y retraduzcan sus propios textos dinámicos, sin
 	// recargar la página.
@@ -3653,6 +3652,7 @@ function setLang(lang) {
 			lang: lang
 		}
 	}));
+	if (typeof window.manolitoApplyGoogleLanguage === 'function') window.manolitoApplyGoogleLanguage(lang);
 	if (typeof renderHero === 'function') renderHero();
 }
 
@@ -3662,7 +3662,12 @@ document.addEventListener('DOMContentLoaded', () => {
 	const iniciar = () => {
 		if (window.__manolitoLangInicial) currentLang = window.__manolitoLangInicial;
 		applyTranslations();
-		if (typeof window.manolitoApplyGoogleLanguage === 'function') window.manolitoApplyGoogleLanguage(currentLang);
+		// Se lanza al final del ciclo para dejar que terminen primero los
+		// traductores específicos de cada página (legal, about, etc.) y que
+		// Google traduzca el DOM ya definitivo.
+		if (typeof window.manolitoApplyGoogleLanguage === 'function') {
+			setTimeout(() => window.manolitoApplyGoogleLanguage(currentLang), 0);
+		}
 		const toggle = document.getElementById('langToggle');
 		if (toggle) {
 			toggle.addEventListener('click', (e) => {

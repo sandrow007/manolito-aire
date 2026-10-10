@@ -1046,6 +1046,11 @@ document.addEventListener('DOMContentLoaded', () => {
    ============================================================ */
 (function () {
   const arrancar = () => {
+    const IDIOMAS_JUEGO = new Set(['es', 'ca', 'eu', 'gl', 'en', 'ka']);
+    const normalizarIdiomaJuego = (lang) => {
+      const limpio = String(lang || '').trim().toLowerCase().slice(0, 2);
+      return IDIOMAS_JUEGO.has(limpio) ? limpio : 'es';
+    };
     const btn = document.getElementById('btnJuegoManolit');
     const btnAdulto = document.getElementById('btnJuegoCiudadano');
     const cont = document.getElementById('juegoManolitCont');
@@ -1063,14 +1068,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // caliente le llega por el evento langChanged de i18n.js.
     const getLang = () => {
       try {
-        return (typeof window.getCurrentLang === 'function' && window.getCurrentLang()) || 'es';
+        return normalizarIdiomaJuego((typeof window.getCurrentLang === 'function' && window.getCurrentLang()) || 'es');
       } catch (e) { return 'es'; }
     };
     const decir = (txt) => {
       try {
         if (window.ManolitA11y && typeof window.ManolitA11y.vozPermitida === 'function' && window.ManolitA11y.vozPermitida()) {
           const u = new SpeechSynthesisUtterance(txt);
-          u.lang = document.documentElement.lang || 'es';
+          u.lang = normalizarIdiomaJuego(document.documentElement.lang || getLang());
           window.speechSynthesis.speak(u);
         }
       } catch (e) { /* la voz nunca rompe el juego */ }

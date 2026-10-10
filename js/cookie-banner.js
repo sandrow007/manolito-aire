@@ -3,7 +3,8 @@
    ============================================================ */
 
 function initCookieBanner(){
-  const choice = localStorage.getItem('manolito_cookies_choice');
+  let choice = null;
+  try { choice = localStorage.getItem('manolito_cookies_choice'); } catch (e) { choice = null; }
   if (choice === 'accepted' || choice === 'rejected') return;
 
   if (document.getElementById('cookieGate')) return;
@@ -13,7 +14,33 @@ function initCookieBanner(){
   // Es un modal real (bloquea la página): aviso de consentimiento.
   gate.setAttribute('role', 'dialog');
   gate.setAttribute('aria-modal', 'true');
-  gate.setAttribute('aria-label', 'Aviso de cookies');
+  function t(clave, fallback) {
+    const fallbackAr = {
+      cookieGateAria: 'إشعار ملفات تعريف الارتباط',
+      cookieGateTitle: 'قبل الدخول',
+      cookieGateBody: 'نستخدم الحد الأدنى فقط: تذكّر اللغة والمظهر، والسماح لدردشة مانوليتو بالعمل. بدون إعلانات وبدون تتبّع من أطراف ثالثة.',
+      cookieGatePolicy: 'عرض سياسة ملفات تعريف الارتباط',
+      cookieGateReject: 'رفض',
+      cookieGateAccept: 'قبول'
+    };
+    try {
+      const fn = window.getMessages;
+      if (typeof fn === 'function') {
+        const m = fn();
+        if (m && m[clave] != null) return m[clave];
+      }
+    } catch (e) { }
+    const langHtml = (document.documentElement.getAttribute('lang') || '').toLowerCase();
+    if (langHtml.indexOf('ar') === 0 && fallbackAr[clave]) return fallbackAr[clave];
+    return fallback;
+  }
+  const txtAria = t('cookieGateAria', 'Aviso de cookies');
+  const txtTitle = t('cookieGateTitle', 'Antes de entrar');
+  const txtBody = t('cookieGateBody', 'Usamos lo mínimo posible: recordar tu idioma y tema, y permitir que el chat de Manolito funcione. Nada de publicidad ni rastreo de terceros.');
+  const txtPolicy = t('cookieGatePolicy', 'Ver política de cookies');
+  const txtReject = t('cookieGateReject', 'Rechazar');
+  const txtAccept = t('cookieGateAccept', 'Aceptar');
+  gate.setAttribute('aria-label', txtAria);
   
   gate.style.cssText = `
     position: fixed; inset: 0; z-index: 100000; background: rgba(1, 2, 3, 0.85);
@@ -25,18 +52,17 @@ function initCookieBanner(){
     <div style="background: #FBFAF7; color: #0E3B47; max-width: 420px; width: 100%;
       border-radius: 18px; padding: 26px 24px; box-shadow: 0 25px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2);">
       <div style="font-weight: 700; font-size: 1.15rem; color: #0E3B47; margin-bottom: 8px;">
-        Antes de entrar
+        ${txtTitle}
       </div>
       <div style="font-size: 0.9rem; color: #17788A; margin-bottom: 18px; line-height: 1.4;">
-        Usamos lo mínimo posible: recordar tu idioma y tema, y permitir que el chat de Manolito
-        funcione. Nada de publicidad ni rastreo de terceros.
-        <a href="cookies.html" style="color: #007A87; text-decoration: underline;">Ver política de cookies</a>.
+        ${txtBody}
+        <a href="cookies.html" style="color: #007A87; text-decoration: underline;">${txtPolicy}</a>.
       </div>
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <button id="cookieRejectBtn" style="flex: 1; min-width: 120px; background: transparent; border: 1px solid #0E3B47;
-          color: #0E3B47; border-radius: 999px; padding: 11px 14px; font-weight: 600; cursor: pointer;">Rechazar</button>
+          color: #0E3B47; border-radius: 999px; padding: 11px 14px; font-weight: 600; cursor: pointer;">${txtReject}</button>
         <button id="cookieAcceptBtn" style="flex: 1; min-width: 120px; background: #0E3B47; border: none;
-          color: #FBFAF7; border-radius: 999px; padding: 11px 14px; font-weight: 600; cursor: pointer;">Aceptar</button>
+          color: #FBFAF7; border-radius: 999px; padding: 11px 14px; font-weight: 600; cursor: pointer;">${txtAccept}</button>
       </div>
     </div>
   `;
@@ -76,24 +102,34 @@ function initCookieBanner(){
   });
 
   document.getElementById('cookieAcceptBtn').addEventListener('click', () => {
-    localStorage.setItem('manolito_cookies_choice', 'accepted');
+    try { localStorage.setItem('manolito_cookies_choice', 'accepted'); } catch (e) { }
     cerrarGate();
     document.dispatchEvent(new CustomEvent('cookiesAceptadas'));
   });
   
   document.getElementById('cookieRejectBtn').addEventListener('click', () => {
-    localStorage.setItem('manolito_cookies_choice', 'rejected');
-    ['manolito_lang','manolito_theme','manolito_palette'].forEach(k => localStorage.removeItem(k));
+    try {
+      localStorage.setItem('manolito_cookies_choice', 'rejected');
+      ['manolito_lang','manolito_theme','manolito_palette'].forEach(k => localStorage.removeItem(k));
+    } catch (e) { }
     cerrarGate();
   });
 }
 
 function cookiesAccepted(){
-  return localStorage.getItem('manolito_cookies_choice') === 'accepted';
+  try { return localStorage.getItem('manolito_cookies_choice') === 'accepted'; } catch (e) { return false; }
+}
+
+function initCookieBannerCuandoIdiomaListo() {
+  if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
+    document.addEventListener('idioma-listo', initCookieBanner, { once: true });
+    return;
+  }
+  initCookieBanner();
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initCookieBanner);
+  document.addEventListener('DOMContentLoaded', initCookieBannerCuandoIdiomaListo);
 } else {
-  initCookieBanner();
+  initCookieBannerCuandoIdiomaListo();
 }

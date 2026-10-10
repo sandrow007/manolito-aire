@@ -147,6 +147,12 @@ const translations = {
 		osmRefreshError: "No se ha podido actualizar ahora mismo. Inténtalo en un minuto.",
 		privacy: "Privacidad",
 		cookies: "Cookies",
+		cookieGateAria: "Aviso de cookies",
+		cookieGateTitle: "Antes de entrar",
+		cookieGateBody: "Usamos lo mínimo posible: recordar tu idioma y tema, y permitir que el chat de Manolito funcione. Nada de publicidad ni rastreo de terceros.",
+		cookieGatePolicy: "Ver política de cookies",
+		cookieGateReject: "Rechazar",
+		cookieGateAccept: "Aceptar",
 		// shadows-route.js
 		searching: "Buscando…",
 		searchBtn: "Buscar ruta",
@@ -645,6 +651,12 @@ const translations = {
 		osmRefreshError: "No s'ha pogut actualitzar ara mateix. Torna-ho a provar en un minut.",
 		privacy: "Privacitat",
 		cookies: "Cookies",
+		cookieGateAria: "Avís de cookies",
+		cookieGateTitle: "Abans d'entrar",
+		cookieGateBody: "Fem servir el mínim possible: recordar el teu idioma i tema, i permetre que el xat de Manolito funcioni. Res de publicitat ni rastreig de tercers.",
+		cookieGatePolicy: "Veure política de cookies",
+		cookieGateReject: "Rebutjar",
+		cookieGateAccept: "Acceptar",
 		searching: "Buscant…",
 		searchBtn: "Buscar ruta",
 		calculating: "Calculant ruta real pels carrers…",
@@ -1132,6 +1144,12 @@ const translations = {
 		osmRefreshError: "Ezin izan da eguneratu orain. Saiatu minutu batean berriz.",
 		privacy: "Pribatutasuna",
 		cookies: "Cookieak",
+		cookieGateAria: "Cookieen abisua",
+		cookieGateTitle: "Sartu aurretik",
+		cookieGateBody: "Ahal den gutxiena erabiltzen dugu: zure hizkuntza eta gaia gogoratzea, eta Manolitoren txatak funtzionatzea. Ez dago publizitaterik ezta hirugarrenen jarraipenik ere.",
+		cookieGatePolicy: "Ikusi cookieen politika",
+		cookieGateReject: "Ukatu",
+		cookieGateAccept: "Onartu",
 		searching: "Bilatzen…",
 		searchBtn: "Ibilbidea bilatu",
 		calculating: "Kaleetako benetako ibilbidea kalkulatzen…",
@@ -1620,6 +1638,12 @@ const translations = {
 		backToMap: "← Volver al mapa",
 		privacy: "Privacidade",
 		cookies: "Cookies",
+		cookieGateAria: "Aviso de cookies",
+		cookieGateTitle: "Antes de entrar",
+		cookieGateBody: "Empregamos o mínimo posible: lembrar o teu idioma e tema, e permitir que o chat de Manolito funcione. Nada de publicidade nin rastrexo de terceiros.",
+		cookieGatePolicy: "Ver política de cookies",
+		cookieGateReject: "Rexeitar",
+		cookieGateAccept: "Aceptar",
 		searching: "Buscando…",
 		searchBtn: "Buscar ruta",
 		calculating: "Calculando ruta real polas rúas…",
@@ -2107,6 +2131,12 @@ const translations = {
 		osmRefreshError: "Could not refresh right now. Try again in a minute.",
 		privacy: "Privacy",
 		cookies: "Cookies",
+		cookieGateAria: "Cookie notice",
+		cookieGateTitle: "Before entering",
+		cookieGateBody: "We use the minimum possible: remember your language and theme, and allow Manolito chat to work. No advertising and no third-party tracking.",
+		cookieGatePolicy: "View cookie policy",
+		cookieGateReject: "Reject",
+		cookieGateAccept: "Accept",
 		searching: "Searching…",
 		searchBtn: "Search route",
 		calculating: "Calculating real walking route…",
@@ -2595,6 +2625,12 @@ const translations = {
 		osmRefreshError: "ახლა ვერ განახლდა. სცადე ერთ წუთში.",
 		privacy: "კონფიდენციალურობა",
 		cookies: "ქუქიები",
+		cookieGateAria: "ქუქიების შეტყობინება",
+		cookieGateTitle: "შემოსვლამდე",
+		cookieGateBody: "ვხმარობთ მხოლოდ მინიმუმს: დავიმახსოვროთ შენი ენა და თემა და იმუშაოს მანოლიტოს ჩატმა. არანაირი რეკლამა და მესამე მხარის თვალთვალი.",
+		cookieGatePolicy: "ქუქიების პოლიტიკის ნახვა",
+		cookieGateReject: "უარყოფა",
+		cookieGateAccept: "დადასტურება",
 		searching: "ძებნა…",
 		searchBtn: "მარშრუტის ძებნა",
 		calculating: "რეალური მარშრუტი ქუჩებით ითვლება…",
@@ -2955,7 +2991,10 @@ const translations = {
 };
 
 const LANG_RTL = { ar: true };
-let currentLang = localStorage.getItem('manolito_lang') || 'es';
+function leerLangGuardado() {
+	try { return localStorage.getItem('manolito_lang'); } catch (e) { return null; }
+}
+let currentLang = leerLangGuardado() || window.__manolitoLangInicial || 'es';
 
 function applyDocumentLangAttrs() {
 	const html = document.documentElement;
@@ -3010,7 +3049,9 @@ function applyTranslations() {
 
 function setLang(lang) {
 	currentLang = lang;
-	localStorage.setItem('manolito_lang', lang);
+	window.__manolitoLangInicial = lang;
+	window.__manolitoIdiomaResuelto = true;
+	try { localStorage.setItem('manolito_lang', lang); } catch (e) { }
 	applyTranslations();
 	// Disparamos evento para que shadows-route.js y otros scripts sepan que
 	// cambió el idioma y retraduzcan sus propios textos dinámicos, sin
@@ -3026,14 +3067,25 @@ function setLang(lang) {
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', () => {
-	applyTranslations();
-	const toggle = document.getElementById('langToggle');
-	if (toggle) {
-		toggle.addEventListener('click', (e) => {
-			if (e.target.tagName === 'BUTTON') setLang(e.target.dataset.lang);
-		});
+	const iniciar = () => {
+		if (window.__manolitoLangInicial) currentLang = window.__manolitoLangInicial;
+		applyTranslations();
+		const toggle = document.getElementById('langToggle');
+		if (toggle) {
+			toggle.addEventListener('click', (e) => {
+				if (e.target.tagName === 'BUTTON') setLang(e.target.dataset.lang);
+			});
+		}
+		initModoAccesible();
+	};
+	if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
+		document.addEventListener('idioma-listo', (e) => {
+			if (e && e.detail && e.detail.lang) currentLang = e.detail.lang;
+			iniciar();
+		}, { once: true });
+		return;
 	}
-	initModoAccesible();
+	iniciar();
 });
 
 /* ============================================================

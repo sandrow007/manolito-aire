@@ -421,6 +421,7 @@
       langElegido = btn.getAttribute('data-lang') || 'es';
       huboEleccionManual = true;
       pintarSeleccion();
+      resolverIdioma(langElegido, true);
     });
     pintarSeleccion();
     autoCierre = setTimeout(() => resolverIdioma(langElegido, huboEleccionManual), 30000);

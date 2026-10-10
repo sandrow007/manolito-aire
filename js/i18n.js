@@ -3644,6 +3644,7 @@ function setLang(lang) {
 	window.__manolitoIdiomaResuelto = true;
 	try { localStorage.setItem('manolito_lang', lang); } catch (e) { }
 	applyTranslations();
+	if (typeof window.manolitoApplyGoogleLanguage === 'function') window.manolitoApplyGoogleLanguage(lang);
 	// Disparamos evento para que shadows-route.js y otros scripts sepan que
 	// cambió el idioma y retraduzcan sus propios textos dinámicos, sin
 	// recargar la página.
@@ -3661,6 +3662,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const iniciar = () => {
 		if (window.__manolitoLangInicial) currentLang = window.__manolitoLangInicial;
 		applyTranslations();
+		if (typeof window.manolitoApplyGoogleLanguage === 'function') window.manolitoApplyGoogleLanguage(currentLang);
 		const toggle = document.getElementById('langToggle');
 		if (toggle) {
 			toggle.addEventListener('click', (e) => {
@@ -3762,396 +3764,103 @@ window.setLang = setLang;
 window.getCurrentLang = function () { return currentLang; };
 
 /* ============================================================
-   BOTÓN MÁGICO DE TRADUCCIÓN (01-oct-2026, orden directa de Sandro)
-   "Dejad de traducir a mano elemento a elemento: que la página
-   entera se traduzca sola, sin excepciones, sin romper lo que
-   ya funciona."
-
-   Cómo cubre TODO, en tres pisos, de más seguro a más automático:
-
-   1) data-i18n (lo de siempre, INTACTO): applyTranslations sigue
-      haciendo su trabajo arriba. Aquí no se toca.
-
-   2) BARREDOR POR DICCIONARIO: se construye un índice inverso
-      (texto español -> clave) a partir de translations.es y se
-      recorre la página con un TreeWalker. Cualquier texto visible
-      que exista en el diccionario se cambia por su traducción,
-      aunque nadie le puso data-i18n. Solo coincidencias EXACTAS:
-      nunca inventa, nunca adivina.
-
-   3) TRADUCCIÓN AUTOMÁTICA (MT) de último recurso: lo que no está
-      en el diccionario (frases nuevas que alguien meta mañana en
-      el HTML sin avisar) se manda, una a una y sin prisa, a la
-      ruta /traduce del worker (MyMemory, gratis, sin clave, UE).
-      Cada frase se traduce UNA vez por idioma y se guarda en
-      localStorage para siempre. Si el servicio falla o se acaba la
-      cuota, la frase se queda en español y la consola no se entera.
-
-   Reglas que no se saltan nada:
-   - No toca scripts, estilos, código, ni lo que escribe la persona
-     en el chat. No toca la marca: nada que lleve "Manolit" pasa por
-     la MT.
-   - En español no barre: solo devuelve a su texto original lo que
-     hubiera traducido antes (cambiar de inglés a español restaura).
-   - MutationObserver con espera de 300 ms: lo que aparezca después
-     (globos del chat, paneles que se inyectan, el mapa) se traduce
-     al llegar, sin bucles ni calentar el móvil. Nuestras propias
-     escrituras no re-disparan traducciones porque el texto ya no
-     coincide con el español del índice.
+   Google Translate (fallback automático global)
    ============================================================ */
 (function () {
-	if (window.__manolitBotonMagico) return;
-	window.__manolitBotonMagico = true;
+	if (window.__manolitoGoogleTranslateIniciado) return;
+	window.__manolitoGoogleTranslateIniciado = true;
 
-	function normaliza(s) {
-		return String(s).replace(/\s+/g, ' ').trim();
+	const GT_ALLOWED = ['es', 'ca', 'eu', 'gl', 'en', 'ka', 'ar'];
+	const GT_MAP = { es: 'es', ca: 'ca', eu: 'eu', gl: 'gl', en: 'en', ka: 'ka', ar: 'ar' };
+	let gtPromise = null;
+	let gtReady = false;
+	let gtPendiente = null;
+
+	function crearContenedor() {
+		let host = document.getElementById('google_translate_element');
+		if (host) return host;
+		host = document.createElement('div');
+		host.id = 'google_translate_element';
+		host.className = 'notranslate';
+		host.setAttribute('translate', 'no');
+		host.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none;opacity:0;';
+		document.body.appendChild(host);
+		return host;
 	}
 
-	// Índice inverso perezoso: texto español normalizado -> clave.
-	// Se saltan las plantillas con {huecos} (no coinciden tal cual) y
-	// los valores con HTML (esos los traduce data-i18n-html).
-	let indiceEs = null;
-	function construirIndice() {
-		if (indiceEs) return indiceEs;
-		indiceEs = new Map();
-		Object.keys(translations.es).forEach(k => {
-			if (/Tpl$/.test(k)) return;
-			const v = translations.es[k];
-			if (typeof v !== 'string') return;
-			if (v.indexOf('<') !== -1) return;
-			const n = normaliza(v);
-			if (n.length < 3) return;
-			if (!/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(n)) return;
-			if (!indiceEs.has(n)) indiceEs.set(n, k);
-		});
-		return indiceEs;
-	}
-
-	// Memoria de lo traducido: WeakMap para la clave, Set para poder
-	// repintar al cambiar de idioma (el WeakMap no se puede recorrer).
-	const nodoClave = new WeakMap();   // nodo de texto -> clave
-	const nodosVivos = new Set();      // nodos traducidos y conectados
-	const attrClaves = new WeakMap();  // elemento -> { atributo: clave }
-	const attrsVivos = new Set();      // elementos con atributos traducidos
-	let escribiendo = false;           // candado frente a nuestro propio observador
-
-	const SALTAR_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, CODE: 1, PRE: 1, TEXTAREA: 1, IFRAME: 1, CANVAS: 1, KBD: 1, SAMP: 1 };
-	function saltarContenedor(el) {
-		for (let p = el; p && p.nodeType === 1; p = p.parentElement) {
-			if (SALTAR_TAGS[p.tagName]) return true;
-			if (p.isContentEditable) return true;
-			if (p.getAttribute && p.getAttribute('translate') === 'no') return true;
-			if (p.hasAttribute && (p.hasAttribute('data-i18n') || p.hasAttribute('data-i18n-html'))) return true;
-			if (p.id === 'langToggle') return true; // cada idioma, en su idioma
-			if (p.classList && p.classList.contains('chat-msg') && p.classList.contains('user')) return true;
+	function aplicarIdiomaGoogle(lang) {
+		const destino = GT_MAP[lang] || 'es';
+		if (!document.body || !window.google || !window.google.translate || !window.google.translate.TranslateElement) {
+			gtPendiente = destino;
+			return false;
 		}
-		return false;
-	}
-
-	function ponerTextoNodo(nodo, dest) {
-		const v = nodo.nodeValue;
-		if (normaliza(v) === normaliza(dest)) return;
-		const cabeza = /^\s*/.exec(v)[0], cola = /\s*$/.exec(v)[0];
-		escribiendo = true;
-		nodo.nodeValue = cabeza + dest + cola;
-		escribiendo = false;
-	}
-
-	function traducirNodo(nodo) {
-		let clave = nodoClave.get(nodo);
-		if (!clave && currentLang === 'es') return; // en español no hay nada que buscar
-		const d = translations[currentLang] || translations.es;
-		if (!clave) {
-			const n = normaliza(nodo.nodeValue);
-			if (n.length < 3) return;
-			clave = construirIndice().get(n);
-			if (!clave) { ofrecerMTNodo(nodo, n); return; }
-			nodoClave.set(nodo, clave);
-			nodosVivos.add(nodo);
+		crearContenedor();
+		const combo = document.querySelector('.goog-te-combo');
+		if (!combo) {
+			gtPendiente = destino;
+			return false;
 		}
-		const dest = d[clave];
-		const baseEs = translations.es[clave];
-		if (typeof dest !== 'string' || !dest) {
-			if (typeof baseEs === 'string' && currentLang !== 'es') ofrecerMTNodo(nodo, normaliza(baseEs));
-			return;
+		if (combo.value !== destino) {
+			combo.value = destino;
+			combo.dispatchEvent(new Event('change', { bubbles: true }));
 		}
-		if (currentLang !== 'es' && typeof baseEs === 'string' && normaliza(dest) === normaliza(baseEs)) {
-			ofrecerMTNodo(nodo, normaliza(baseEs));
-			return;
-		}
-		ponerTextoNodo(nodo, dest);
-	}
-
-	function traducirAtributo(el, attr) {
-		const actual = el.getAttribute(attr);
-		if (actual == null || actual === '') return;
-		let mapa = attrClaves.get(el);
-		let clave = mapa && mapa[attr];
-		if (!clave && currentLang === 'es') return;
-		const d = translations[currentLang] || translations.es;
-		if (!clave) {
-			const n = normaliza(actual);
-			if (n.length < 3) return;
-			clave = construirIndice().get(n);
-			if (!clave) { ofrecerMTAtributo(el, attr, n); return; }
-			if (!mapa) { mapa = {}; attrClaves.set(el, mapa); }
-			mapa[attr] = clave;
-			attrsVivos.add(el);
-		}
-		const dest = d[clave];
-		const baseEs = translations.es[clave];
-		if (typeof dest !== 'string' || !dest) {
-			if (typeof baseEs === 'string' && currentLang !== 'es') ofrecerMTAtributo(el, attr, normaliza(baseEs), actual);
-			return;
-		}
-		if (currentLang !== 'es' && typeof baseEs === 'string' && normaliza(dest) === normaliza(baseEs)) {
-			ofrecerMTAtributo(el, attr, normaliza(baseEs), actual);
-			return;
-		}
-		if (actual !== dest) {
-			escribiendo = true;
-			el.setAttribute(attr, dest);
-			escribiendo = false;
-		}
-	}
-
-	const ATTRS = ['title', 'aria-label', 'placeholder', 'alt'];
-	function barrer(raiz) {
-		if (!raiz || currentLang === 'es') return;
-		try {
-			const walker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT, {
-				acceptNode(n) {
-					if (!n.nodeValue || !/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
-					const p = n.parentElement;
-					if (!p || saltarContenedor(p)) return NodeFilter.FILTER_REJECT;
-					return NodeFilter.FILTER_ACCEPT;
-				}
-			});
-			const lista = [];
-			while (walker.nextNode()) lista.push(walker.currentNode);
-			lista.forEach(traducirNodo);
-			if (raiz.nodeType !== 1 || !raiz.querySelectorAll) return;
-			const candidatos = Array.from(raiz.querySelectorAll('[title],[aria-label],[placeholder],[alt]'));
-			if (ATTRS.some(a => raiz.hasAttribute(a))) candidatos.unshift(raiz);
-			candidatos.forEach(el => {
-				if (saltarContenedor(el)) return;
-				if (el.hasAttribute('data-i18n-placeholder') || el.hasAttribute('data-i18n-aria-label')) return;
-				ATTRS.forEach(a => traducirAtributo(el, a));
-				if (el.tagName === 'INPUT') {
-					const tipo = (el.getAttribute('type') || 'text').toLowerCase();
-					if (tipo === 'button' || tipo === 'submit') traducirAtributo(el, 'value');
-				}
-			});
-		} catch (e) { /* el barrido jamás rompe la página */ }
-	}
-
-	// Al cambiar de idioma (también al volver a español): todo lo que
-	// se tradujo por diccionario se repinta con la clave que guardamos.
-	function repintarGuardados() {
-		const d = translations[currentLang] || translations.es;
-		nodosVivos.forEach(nodo => {
-			if (!nodo.isConnected) { nodosVivos.delete(nodo); return; }
-			const clave = nodoClave.get(nodo);
-			const dest = clave && d[clave];
-			if (typeof dest === 'string' && dest) ponerTextoNodo(nodo, dest);
-		});
-		attrsVivos.forEach(el => {
-			if (!el.isConnected) { attrsVivos.delete(el); return; }
-			const mapa = attrClaves.get(el);
-			if (!mapa) return;
-			Object.keys(mapa).forEach(attr => {
-				const dest = d[mapa[attr]];
-				if (typeof dest === 'string' && dest && el.getAttribute(attr) !== dest) {
-					escribiendo = true;
-					el.setAttribute(attr, dest);
-					escribiendo = false;
-				}
-			});
-		});
-	}
-
-	/* ---------------- Tercer piso: traducción automática ----------------
-	   Cola tranquila: una petición cada 320 ms, en pausa si la pestaña
-	   está oculta, y con caché por idioma+frase en localStorage para no
-	   pedir dos veces lo mismo en la vida. La marca queda fuera. */
-	const MT_IDIOMAS = { ca: 'ca', eu: 'eu', gl: 'gl', en: 'en', ka: 'ka', ar: 'ar' };
-	const mtItems = new Set();          // { original, aplicar, restaurar, conectado }
-	const mtPendientes = new Map();     // texto español -> [items esperando]
-	const mtNodosReg = new WeakSet();   // nodos ya apuntados a la MT
-	const mtAttrsReg = new WeakMap();   // elemento -> Set de atributos apuntados
-	let mtTimer = null;
-	let mtFallosSeguidos = 0;
-	let mtSilenciado = false;           // 3 fallos seguidos: paramos en silencio
-
-	function mtCacheKey(lang, texto) {
-		let h = 5381;
-		for (let i = 0; i < texto.length; i++) h = ((h << 5) + h + texto.charCodeAt(i)) >>> 0;
-		return 'manolito_trad_' + lang + '_' + h.toString(36) + '_' + texto.length;
-	}
-	function mtCacheLeer(lang, texto) {
-		try { return localStorage.getItem(mtCacheKey(lang, texto)); } catch (e) { return null; }
-	}
-	function mtCacheGuardar(lang, texto, trad) {
-		try { localStorage.setItem(mtCacheKey(lang, texto), trad); } catch (e) { /* sin espacio: va sin caché */ }
-	}
-
-	function esTraducibleMT(n) {
-		if (!n || n.length < 3 || n.length > 280) return false;
-		if (!/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(n)) return false;
-		if (/manolit/i.test(n)) return false;              // la marca no se toca
-		if (/^(https?:|www\.|#|\/)/i.test(n)) return false; // URLs y anclas
-		if (/^[\d\s.,:;%€$+\-–—/()'"¿?¡!]+$/.test(n)) return false; // sin letras reales
+		gtPendiente = null;
 		return true;
 	}
 
-	function encolarMT(item) {
-		if (currentLang === 'es' || !MT_IDIOMAS[currentLang]) return;
-		if (mtSilenciado) return;
-		if (!esTraducibleMT(item.original)) return;
-		const enCache = mtCacheLeer(currentLang, item.original);
-		if (enCache) { item.aplicar(enCache, currentLang); return; }
-		mtItems.add(item);
-		const lista = mtPendientes.get(item.original) || [];
-		lista.push(item);
-		mtPendientes.set(item.original, lista);
-		if (!mtTimer) mtTimer = setInterval(mtPaso, 320);
-	}
-
-	function mtPaso() {
-		if (document.hidden) return; // pestaña oculta: ni una petición
-		if (mtSilenciado) { clearInterval(mtTimer); mtTimer = null; return; }
-		const primero = mtPendientes.keys().next();
-		if (primero.done) { clearInterval(mtTimer); mtTimer = null; return; }
-		const texto = primero.value;
-		const items = mtPendientes.get(texto) || [];
-		mtPendientes.delete(texto);
-		const lang = currentLang;
-		fetch('/traduce?q=' + encodeURIComponent(texto) + '&a=' + MT_IDIOMAS[lang])
-			.then(r => (r && r.ok ? r.json() : null))
-			.then(d => {
-				if (d && d.ok && typeof d.texto === 'string' && d.texto.trim()) {
-					mtFallosSeguidos = 0;
-					mtCacheGuardar(lang, texto, d.texto);
-					items.forEach(i => { if (i.conectado()) i.aplicar(d.texto, lang); });
-				} else {
-					mtFallosSeguidos++;
-					if (mtFallosSeguidos >= 3) mtSilenciado = true;
-				}
-			})
-			.catch(() => {
-				mtFallosSeguidos++;
-				if (mtFallosSeguidos >= 3) mtSilenciado = true;
-			});
-	}
-
-	function ofrecerMTNodo(nodo, n) {
-		if (currentLang === 'es' || mtNodosReg.has(nodo)) return;
-		mtNodosReg.add(nodo);
-		const v = nodo.nodeValue;
-		const cabeza = /^\s*/.exec(v)[0], cola = /\s*$/.exec(v)[0];
-		const base = v.slice(cabeza.length, v.length - cola.length);
-		encolarMT({
-			original: n,
-			conectado: () => nodo.isConnected,
-			aplicar: (txt, lang) => {
-				if (lang !== currentLang) return;
-				escribiendo = true;
-				nodo.nodeValue = cabeza + txt + cola;
-				escribiendo = false;
-			},
-			restaurar: () => {
-				escribiendo = true;
-				nodo.nodeValue = cabeza + base + cola;
-				escribiendo = false;
+	function initGoogleTranslate() {
+		if (gtPromise) return gtPromise;
+		gtPromise = new Promise((resolve) => {
+			function finalizar() {
+				gtReady = true;
+				if (gtPendiente) aplicarIdiomaGoogle(gtPendiente);
+				resolve(true);
 			}
-		});
-	}
-
-	function ofrecerMTAtributo(el, attr, n, original) {
-		if (currentLang === 'es') return;
-		let reg = mtAttrsReg.get(el);
-		if (reg && reg.has(attr)) return;
-		if (!reg) { reg = new Set(); mtAttrsReg.set(el, reg); }
-		reg.add(attr);
-		encolarMT({
-			original: n,
-			conectado: () => el.isConnected,
-			aplicar: (txt, lang) => {
-				if (lang !== currentLang) return;
-				escribiendo = true;
-				el.setAttribute(attr, txt);
-				escribiendo = false;
-			},
-			restaurar: () => {
-				escribiendo = true;
-				el.setAttribute(attr, original);
-				escribiendo = false;
-			}
-		});
-	}
-
-	// Cambio de idioma con la MT en marcha: lo traducido por máquina se
-	// restaura (español), se aplica desde caché o se vuelve a encolar.
-	function repintarMT() {
-		mtItems.forEach(item => {
-			if (!item.conectado()) { mtItems.delete(item); return; }
-			if (currentLang === 'es') { item.restaurar(); return; }
-			const enCache = mtCacheLeer(currentLang, item.original);
-			if (enCache) item.aplicar(enCache, currentLang);
-			else encolarMT(item);
-		});
-	}
-
-	// Lo que se inyecta después (chat, paneles, mapa) pasa por aquí.
-	let barridoPendiente = null;
-	function alMutar(muts) {
-		if (escribiendo || currentLang === 'es') return;
-		if (barridoPendiente) clearTimeout(barridoPendiente);
-		const raices = new Set();
-		muts.forEach(m => {
-			if (m.type === 'characterData') {
-				if (m.target && m.target.parentElement) raices.add(m.target);
-			} else {
-				m.addedNodes.forEach(n => raices.add(n));
-			}
-		});
-		barridoPendiente = setTimeout(() => {
-			barridoPendiente = null;
-			raices.forEach(r => {
+			window.googleTranslateElementInit = function () {
 				try {
-					if (!r.isConnected) return;
-					if (r.nodeType === 3) {
-						if (r.parentElement && !saltarContenedor(r.parentElement)) traducirNodo(r);
-					} else if (r.nodeType === 1 && !saltarContenedor(r)) {
-						barrer(r);
-					}
-				} catch (e) { /* mutación rara: se ignora */ }
-			});
-		}, 300);
+					crearContenedor();
+					new window.google.translate.TranslateElement({
+						pageLanguage: 'es',
+						includedLanguages: GT_ALLOWED.join(','),
+						autoDisplay: false,
+						layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE
+					}, 'google_translate_element');
+				} catch (e) { }
+				setTimeout(finalizar, 80);
+			};
+			if (document.querySelector('script[data-manolito-google-translate="1"]')) {
+				setTimeout(() => resolve(false), 0);
+				return;
+			}
+			const s = document.createElement('script');
+			s.async = true;
+			s.defer = true;
+			s.dataset.manolitoGoogleTranslate = '1';
+			s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+			s.onerror = () => resolve(false);
+			document.head.appendChild(s);
+		});
+		return gtPromise;
 	}
 
-	document.addEventListener('langChanged', () => {
-		repintarGuardados();
-		repintarMT();
-		if (currentLang !== 'es') {
-			// Dos pasadas tardías por si algún módulo repinta después que
-			// nosotros (el observador de mutaciones también las caza).
-			setTimeout(() => barrer(document.body), 80);
-			setTimeout(() => barrer(document.body), 700);
+	window.manolitoApplyGoogleLanguage = function (lang) {
+		const destino = GT_MAP[lang] || 'es';
+		if (destino === 'es' && !gtReady) return;
+		if (destino === 'es' && gtReady && document.querySelector('.goog-te-combo')) {
+			aplicarIdiomaGoogle('es');
+			return;
 		}
-	});
+		gtPendiente = destino;
+		initGoogleTranslate().then(() => aplicarIdiomaGoogle(destino));
+	};
 
-	document.addEventListener('DOMContentLoaded', () => {
-		try {
-			construirIndice();
-			if (currentLang !== 'es') {
-				barrer(document.body);
-				setTimeout(() => barrer(document.body), 900);
-				setTimeout(() => barrer(document.body), 2600);
-			}
-			new MutationObserver(alMutar).observe(document.body, {
-				childList: true, subtree: true, characterData: true
-			});
-		} catch (e) { /* el botón mágico jamás tira la página */ }
-	});
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', () => {
+			const inicial = GT_MAP[currentLang] || 'es';
+			window.manolitoApplyGoogleLanguage(inicial);
+		}, { once: true });
+	} else {
+		const inicial = GT_MAP[currentLang] || 'es';
+		window.manolitoApplyGoogleLanguage(inicial);
+	}
 })();

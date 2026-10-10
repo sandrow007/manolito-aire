@@ -7,7 +7,7 @@
 
 /* ============================================================
    MANOLITO AIRE, i18n
-   Castellano, català, euskera, galego, English, ქართული (georgiano).
+   Castellano, català, euskera, galego, English, ქართული (georgiano), العربية.
    
    v3: Añadidas traducciones para el sistema de rutas alternativas
    con evaluación de porcentaje de sombra.
@@ -2954,7 +2954,17 @@ const translations = {
 	}
 };
 
+const LANG_RTL = { ar: true };
 let currentLang = localStorage.getItem('manolito_lang') || 'es';
+
+function applyDocumentLangAttrs() {
+	const html = document.documentElement;
+	html.setAttribute('lang', currentLang);
+	const esRtl = !!LANG_RTL[currentLang];
+	html.setAttribute('dir', esRtl ? 'rtl' : 'ltr');
+	html.classList.toggle('rtl', esRtl);
+	html.classList.toggle('ltr', !esRtl);
+}
 
 function getMessages() {
 	return translations[currentLang] || translations.es;
@@ -2995,7 +3005,7 @@ function applyTranslations() {
 		const md = document.querySelector('meta[name="description"]');
 		if (md) md.setAttribute('content', dict.metaDesc);
 	}
-	document.documentElement.setAttribute('lang', currentLang);
+	applyDocumentLangAttrs();
 }
 
 function setLang(lang) {
@@ -3137,9 +3147,7 @@ window.getCurrentLang = function () { return currentLang; };
    Reglas que no se saltan nada:
    - No toca scripts, estilos, código, ni lo que escribe la persona
      en el chat. No toca la marca: nada que lleve "Manolit" pasa por
-     la MT. Las páginas legales (aviso, privacidad, cookies) no se
-     traducen por máquina: un texto legal traducido a lo bruto es
-     peor que uno claro en español.
+     la MT.
    - En español no barre: solo devuelve a su texto original lo que
      hubiera traducido antes (cambiar de inglés a español restaura).
    - MutationObserver con espera de 300 ms: lo que aparezca después
@@ -3219,7 +3227,15 @@ window.getCurrentLang = function () { return currentLang; };
 			nodosVivos.add(nodo);
 		}
 		const dest = d[clave];
-		if (typeof dest !== 'string' || !dest) return;
+		const baseEs = translations.es[clave];
+		if (typeof dest !== 'string' || !dest) {
+			if (typeof baseEs === 'string' && currentLang !== 'es') ofrecerMTNodo(nodo, normaliza(baseEs));
+			return;
+		}
+		if (currentLang !== 'es' && typeof baseEs === 'string' && normaliza(dest) === normaliza(baseEs)) {
+			ofrecerMTNodo(nodo, normaliza(baseEs));
+			return;
+		}
 		ponerTextoNodo(nodo, dest);
 	}
 
@@ -3240,7 +3256,15 @@ window.getCurrentLang = function () { return currentLang; };
 			attrsVivos.add(el);
 		}
 		const dest = d[clave];
-		if (typeof dest !== 'string' || !dest) return;
+		const baseEs = translations.es[clave];
+		if (typeof dest !== 'string' || !dest) {
+			if (typeof baseEs === 'string' && currentLang !== 'es') ofrecerMTAtributo(el, attr, normaliza(baseEs), actual);
+			return;
+		}
+		if (currentLang !== 'es' && typeof baseEs === 'string' && normaliza(dest) === normaliza(baseEs)) {
+			ofrecerMTAtributo(el, attr, normaliza(baseEs), actual);
+			return;
+		}
 		if (actual !== dest) {
 			escribiendo = true;
 			el.setAttribute(attr, dest);
@@ -3306,9 +3330,8 @@ window.getCurrentLang = function () { return currentLang; };
 	/* ---------------- Tercer piso: traducción automática ----------------
 	   Cola tranquila: una petición cada 320 ms, en pausa si la pestaña
 	   está oculta, y con caché por idioma+frase en localStorage para no
-	   pedir dos veces lo mismo en la vida. La marca y las páginas
-	   legales quedan fuera. */
-	const MT_IDIOMAS = { ca: 'ca', eu: 'eu', gl: 'gl', en: 'en', ka: 'ka' };
+	   pedir dos veces lo mismo en la vida. La marca queda fuera. */
+	const MT_IDIOMAS = { ca: 'ca', eu: 'eu', gl: 'gl', en: 'en', ka: 'ka', ar: 'ar' };
 	const mtItems = new Set();          // { original, aplicar, restaurar, conectado }
 	const mtPendientes = new Map();     // texto español -> [items esperando]
 	const mtNodosReg = new WeakSet();   // nodos ya apuntados a la MT
@@ -3316,7 +3339,6 @@ window.getCurrentLang = function () { return currentLang; };
 	let mtTimer = null;
 	let mtFallosSeguidos = 0;
 	let mtSilenciado = false;           // 3 fallos seguidos: paramos en silencio
-	const esPaginaLegal = /(aviso-legal|privacidad|cookies|cookie)/i.test(location.pathname);
 
 	function mtCacheKey(lang, texto) {
 		let h = 5381;
@@ -3341,7 +3363,7 @@ window.getCurrentLang = function () { return currentLang; };
 
 	function encolarMT(item) {
 		if (currentLang === 'es' || !MT_IDIOMAS[currentLang]) return;
-		if (mtSilenciado || esPaginaLegal) return;
+		if (mtSilenciado) return;
 		if (!esTraducibleMT(item.original)) return;
 		const enCache = mtCacheLeer(currentLang, item.original);
 		if (enCache) { item.aplicar(enCache, currentLang); return; }
@@ -3384,6 +3406,7 @@ window.getCurrentLang = function () { return currentLang; };
 		mtNodosReg.add(nodo);
 		const v = nodo.nodeValue;
 		const cabeza = /^\s*/.exec(v)[0], cola = /\s*$/.exec(v)[0];
+		const base = v.slice(cabeza.length, v.length - cola.length);
 		encolarMT({
 			original: n,
 			conectado: () => nodo.isConnected,
@@ -3395,13 +3418,13 @@ window.getCurrentLang = function () { return currentLang; };
 			},
 			restaurar: () => {
 				escribiendo = true;
-				nodo.nodeValue = cabeza + n + cola;
+				nodo.nodeValue = cabeza + base + cola;
 				escribiendo = false;
 			}
 		});
 	}
 
-	function ofrecerMTAtributo(el, attr, n) {
+	function ofrecerMTAtributo(el, attr, n, original) {
 		if (currentLang === 'es') return;
 		let reg = mtAttrsReg.get(el);
 		if (reg && reg.has(attr)) return;
@@ -3418,7 +3441,7 @@ window.getCurrentLang = function () { return currentLang; };
 			},
 			restaurar: () => {
 				escribiendo = true;
-				el.setAttribute(attr, n);
+				el.setAttribute(attr, original);
 				escribiendo = false;
 			}
 		});

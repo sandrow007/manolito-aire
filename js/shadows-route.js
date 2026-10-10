@@ -2307,7 +2307,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   function formatoHora(fecha) {
-    const localesRs = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+    const localesRs = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE', ar: 'ar-SA' };
     const langRs = (typeof currentLang !== 'undefined' && localesRs[currentLang]) ? currentLang : 'es';
     return fecha.toLocaleTimeString(localesRs[langRs], { hour: '2-digit', minute: '2-digit' });
   }
@@ -6251,7 +6251,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           }
           const frase = new SpeechSynthesisUtterance(this._elegirFraseEstacional());
           // 01-oct-2026: la voz habla en el idioma elegido, no siempre es-ES.
-          const vocesRs = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+          const vocesRs = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE', ar: 'ar-SA' };
           frase.lang = vocesRs[(typeof currentLang !== 'undefined' && vocesRs[currentLang]) ? currentLang : 'es'];
 
           // VOZ SIN GÉNERO: ningún navegador ofrece hoy una voz española

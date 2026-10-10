@@ -308,27 +308,31 @@
   #idiomaInicioGate{
     position:fixed; inset:0; z-index:100001;
     display:flex; align-items:center; justify-content:center; padding:clamp(14px,3vw,28px);
-    background:rgba(1,2,3,.72); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+    background:#03050F;
     opacity:1; visibility:visible; transition:opacity .2s ease, visibility .2s ease;
   }
   #idiomaInicioGate.cerrando{ opacity:0; visibility:hidden; pointer-events:none; }
   .idioma-inicio-card{
-    width:min(980px,100%); background:var(--paper,#FBFAF7); color:var(--ink,#0E3B47);
-    border:1px solid rgba(14,59,71,.14); border-radius:18px; padding:clamp(14px,2.8vw,26px);
-    box-shadow:0 24px 55px rgba(0,0,0,.35);
+    width:min(360px,100%); color:#EAF1FF;
+    padding:0;
   }
-  .idioma-inicio-titulo{ font-size:clamp(1.15rem,2.2vw,1.5rem); font-weight:700; margin:0 0 .35rem; }
-  .idioma-inicio-sub{ margin:0 0 1rem; color:#1c6c7b; font-size:clamp(.9rem,1.7vw,1rem); }
+  .idioma-inicio-titulo{ display:none; }
+  .idioma-inicio-sub{ display:none; }
   .idioma-inicio-grid{
-    display:grid; grid-template-columns:repeat(auto-fit, minmax(clamp(116px,16vw,160px),1fr)); gap:clamp(8px,1.3vw,12px);
+    display:grid; grid-template-columns:1fr; gap:10px;
   }
   .idioma-inicio-btn{
-    min-height:48px; border-radius:12px; border:1px solid rgba(14,59,71,.18);
-    background:#fff; color:inherit; font:inherit; font-weight:600; cursor:pointer;
+    min-height:52px; border-radius:12px; border:1px solid rgba(233,240,255,.44);
+    background:#0E162A; color:#F4F7FF; font:inherit; font-weight:700; cursor:pointer;
     padding:10px 12px; text-align:center; line-height:1.2;
     transition:border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
   }
-  .idioma-inicio-btn:hover{ border-color:var(--accent,#FF6B1A); background:rgba(255,107,26,.08); }
+  .idioma-inicio-btn:hover{ border-color:#FFFFFF; background:#16233E; }
+  .idioma-inicio-btn.activa{
+    border-color:#FF8B41;
+    background:#1D2B4A;
+    box-shadow:0 0 0 2px rgba(255,139,65,.32);
+  }
   .idioma-inicio-btn:focus-visible{
     outline:3px solid var(--accent,#FF6B1A); outline-offset:2px;
     box-shadow:0 0 0 4px rgba(255,107,26,.2);
@@ -379,7 +383,16 @@
     const esperando = !!window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto;
     if (!esperando) { gate.remove(); return; }
     let cerrado = false;
+    let langElegido = 'es';
+    let huboEleccionManual = false;
     let autoCierre = null;
+    function pintarSeleccion() {
+      gate.querySelectorAll('button[data-lang]').forEach((btn) => {
+        const activa = btn.getAttribute('data-lang') === langElegido;
+        btn.classList.toggle('activa', activa);
+        btn.setAttribute('aria-pressed', activa ? 'true' : 'false');
+      });
+    }
     function resolverIdioma(lang, guardar) {
       if (cerrado) return;
       cerrado = true;
@@ -405,9 +418,12 @@
     gate.addEventListener('click', (e) => {
       const btn = e.target && e.target.closest ? e.target.closest('button[data-lang]') : null;
       if (!btn) return;
-      resolverIdioma(btn.getAttribute('data-lang') || 'es', true);
+      langElegido = btn.getAttribute('data-lang') || 'es';
+      huboEleccionManual = true;
+      pintarSeleccion();
     });
-    autoCierre = setTimeout(() => resolverIdioma('es', false), 30000);
+    pintarSeleccion();
+    autoCierre = setTimeout(() => resolverIdioma(langElegido, huboEleccionManual), 30000);
     const primerBtn = gate.querySelector('button[data-lang]');
     if (primerBtn) setTimeout(() => primerBtn.focus(), 0);
   })();

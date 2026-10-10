@@ -1610,8 +1610,9 @@
     if (!objetivo) return;
 
     let cargado = false;
+    let cargaMapaSombrasPromise = null;
     function cargarMapaSombras() {
-      if (cargado) return;
+      if (cargado) return cargaMapaSombrasPromise || Promise.resolve();
       cargado = true;
 
       function cargarScript(src) {
@@ -1632,7 +1633,7 @@
       // js/co2.js (27-sep): modulo propio y diminuto, la encuesta de CO2
       // evitado que aparece tras calcular una ruta. Carga en paralelo con
       // las librerias y shadows-route lo llama cuando enseña la distancia.
-      Promise.all([
+      cargaMapaSombrasPromise = Promise.all([
         cargarScript('js/a11y-guia.js'),
         cargarScript('js/co2.js'),
         cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
@@ -1649,6 +1650,18 @@
         // engancha al mapa por window.manolitAireMap, como arboles-3d.js.
         .then(() => cargarScript('js/aparcamientos-viaje.js'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
+      return cargaMapaSombrasPromise;
+    }
+
+    // Si alguien pulsa "↻ Act. mapa" antes de que el mapa de sombras se haya
+    // cargado por scroll, se fuerza la carga en ese mismo clic para que no
+    // parezca un botón muerto.
+    const btnRefreshOSM = document.getElementById('rsBtnActualizarOSM');
+    if (btnRefreshOSM) {
+      btnRefreshOSM.addEventListener('click', () => {
+        if (typeof window.manolitAireActualizarOSM === 'function') return;
+        cargarMapaSombras();
+      }, { once: true });
     }
 
     if ('IntersectionObserver' in window) {

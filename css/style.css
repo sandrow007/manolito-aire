@@ -686,6 +686,7 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 .rs-tierra-giro{ transform-box:fill-box; transform-origin:center; animation:rsGiroTierra 60s linear infinite; }
 @keyframes rsGiroTierra{ to{ transform:rotate(360deg); } }
 .rs-planetario-info{ font-family:var(--font-mono); font-size:0.62rem; color:var(--sky-mid); margin-top:4px; letter-spacing:0.02em; }
+.rs-planetario-info > span{ display:block; }
 
 /* ============================================================
    RUTA Y SOMBRAS 3D, sugerencias del autocompletado + mapa oscuro

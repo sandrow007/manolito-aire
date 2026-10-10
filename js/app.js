@@ -1054,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', () => cuandoIdiomaListo(() => {
    ============================================================ */
 (function () {
   const arrancar = () => {
-    const IDIOMAS_JUEGO = new Set(['es', 'ca', 'eu', 'gl', 'en', 'ka']);
+    const IDIOMAS_JUEGO = new Set(['es', 'ca', 'eu', 'gl', 'en', 'ka', 'ar']);
     const normalizarIdiomaJuego = (lang) => {
       const limpio = String(lang || '').trim().toLowerCase().slice(0, 2);
       return IDIOMAS_JUEGO.has(limpio) ? limpio : 'es';

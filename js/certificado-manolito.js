@@ -37,7 +37,7 @@ const DORADO = '#E6A100';
 const TEAL = '#007A87';
 const TINTA = '#26424B';
 const PAPEL = '#FBFAF7';
-const IDIOMAS_CERT = new Set(['es', 'ca', 'eu', 'gl', 'en', 'ka']);
+const IDIOMAS_CERT = new Set(['es', 'ca', 'eu', 'gl', 'en', 'ka', 'ar']);
 const CLAVES_CERT_REQUERIDAS = [
   'titulo', 'certifica', 'kicker', 'sellos', 'dia', 'serie', 'firma',
   'disc1', 'disc2', 'msgPequeCon', 'msgPequeSin', 'msgCiudCon', 'msgCiudSin'

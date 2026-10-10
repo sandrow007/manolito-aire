@@ -1720,6 +1720,12 @@ export const TEXTOS_CIUDADANO = {
   }
 };
 
+const IDIOMAS_JUEGO = new Set(['es', 'ca', 'eu', 'gl', 'en', 'ka']);
+function normalizarIdiomaJuego(lang) {
+  const limpio = String(lang || '').trim().toLowerCase().slice(0, 2);
+  return IDIOMAS_JUEGO.has(limpio) ? limpio : 'es';
+}
+
 /* Respaldo limpio: si falta una clave en un idioma se coge la
    española. Funciona igual con strings que con funciones.
    07-oct-2026: con modo 'ciudadano' el respaldo es el corpus
@@ -1727,7 +1733,7 @@ export const TEXTOS_CIUDADANO = {
 export function textosDe(lang, modo) {
   const corpus = (modo === 'ciudadano') ? TEXTOS_CIUDADANO : TEXTOS;
   const base = corpus.es;
-  const pack = corpus[lang] || base;
+  const pack = corpus[normalizarIdiomaJuego(lang)] || base;
   return new Proxy(pack, {
     get(obj, clave) {
       if (clave in obj) return obj[clave];
@@ -1967,7 +1973,7 @@ export function iniciarJuegoManolit(contenedor, opciones = {}) {
     enJuego: false, pausado: false,
     finEnMs: 0, ultimoSpawnMs: 0, piezas: [], llevadas: 0,
     intervalo: null, pausaEnMs: 0, ultimoTextoMarc: '',
-    lang: String(getLang() || 'es'),
+    lang: normalizarIdiomaJuego(getLang()),
     respondida: false, fbBien: false, finCompleto: false,
     credencial: '', observador: null,
     modo: modo
@@ -2079,7 +2085,8 @@ export function iniciarJuegoManolit(contenedor, opciones = {}) {
   /* Cambio de idioma en caliente: repinta la pantalla actual sin
      tocar puntos, sellos ni el reloj de la partida. */
   const alIdioma = (e) => {
-    const nuevo = e && e.detail && e.detail.lang ? String(e.detail.lang) : '';
+    if (!(e && e.detail && 'lang' in e.detail)) return;
+    const nuevo = normalizarIdiomaJuego(e.detail.lang);
     if (!nuevo || nuevo === estado.lang) return;
     estado.lang = nuevo;
     repintar();
@@ -2426,7 +2433,7 @@ export function iniciarJuegoManolit(contenedor, opciones = {}) {
         nombre: inp.value.trim().slice(0, 40),
         puntos: estado.puntos,
         sellos: [...estado.sellos],
-        fecha: new Date().toLocaleDateString(document.documentElement.lang || 'es'),
+        fecha: new Date().toLocaleDateString(estado.lang || 'es'),
         lang: estado.lang,
         credencial: estado.credencial,
         modo: estado.modo
@@ -2447,7 +2454,7 @@ export function iniciarJuegoManolit(contenedor, opciones = {}) {
         try {
           const cert = await cargarCert();
           if (!estado.credencial) estado.credencial = cert.nuevaCredencial();
-          cert.descargarPDF('certificado-manolit.pdf', cert.construirCertificadoSVG(hacer()));
+          await cert.descargarPDF('certificado-manolit.pdf', cert.construirCertificadoSVG(hacer()));
           ponerBurbuja(pack.diplomaOkPdf);
         } catch (e) {
           ponerBurbuja(pack.diplomaErrPdf);

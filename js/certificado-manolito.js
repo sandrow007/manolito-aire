@@ -37,6 +37,27 @@ const DORADO = '#E6A100';
 const TEAL = '#007A87';
 const TINTA = '#26424B';
 const PAPEL = '#FBFAF7';
+const IDIOMAS_CERT = new Set(['es', 'ca', 'eu', 'gl', 'en', 'ka']);
+const CLAVES_CERT_REQUERIDAS = [
+  'titulo', 'certifica', 'kicker', 'sellos', 'dia', 'serie', 'firma',
+  'disc1', 'disc2', 'msgPequeCon', 'msgPequeSin', 'msgCiudCon', 'msgCiudSin'
+];
+
+function normalizarIdiomaCert(lang) {
+  const limpio = String(lang || '').trim().toLowerCase().slice(0, 2);
+  return IDIOMAS_CERT.has(limpio) ? limpio : 'es';
+}
+
+function packCertValido(pack) {
+  if (!pack || typeof pack !== 'object') return false;
+  for (const k of CLAVES_CERT_REQUERIDAS) {
+    if (!(k in pack)) return false;
+  }
+  if (!pack.sellos || typeof pack.sellos !== 'object') return false;
+  if (typeof pack.msgPequeCon !== 'function' || typeof pack.msgPequeSin !== 'function') return false;
+  if (typeof pack.msgCiudCon !== 'function' || typeof pack.msgCiudSin !== 'function') return false;
+  return true;
+}
 
 function escXml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -130,10 +151,15 @@ export const TEXTOS_CERT = {
 
 function textosCertDe(lang) {
   const base = TEXTOS_CERT.es;
-  const pack = TEXTOS_CERT[lang] || base;
+  const idioma = normalizarIdiomaCert(lang);
+  const candidato = TEXTOS_CERT[idioma];
+  const pack = packCertValido(candidato) ? candidato : base;
   return new Proxy(pack, {
     get(obj, clave) {
-      if (clave in obj) return obj[clave];
+      if (clave === 'sellos') {
+        return { ...base.sellos, ...(obj.sellos || {}) };
+      }
+      if (clave in obj && obj[clave] != null) return obj[clave];
       return base[clave];
     }
   });

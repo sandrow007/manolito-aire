@@ -992,7 +992,15 @@ function initFontBoostControls(){
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function cuandoIdiomaListo(run) {
+  if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
+    document.addEventListener('langChanged', run, { once: true });
+    return;
+  }
+  run();
+}
+
+document.addEventListener('DOMContentLoaded', () => cuandoIdiomaListo(() => {
   applyMode(currentMode);
   initHeroControls();
   initFontBoostControls();
@@ -1032,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', () => {
     vigilante.observe(seccionMapa2D);
   } else if ('requestIdleCallback' in window) requestIdleCallback(iniciarMapa, { timeout: 2500 });
   else window.addEventListener('load', () => setTimeout(iniciarMapa, 100));
-});
+}));
 
 /* ============================================================
    ENTRADA AL JUEGO «ATRAPA A MANOLIT∞» (07-oct-2026, orden
@@ -1122,6 +1130,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     vigilanteModo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);
-  else arrancar();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => cuandoIdiomaListo(arrancar));
+  } else {
+    cuandoIdiomaListo(arrancar);
+  }
 })();

@@ -140,6 +140,33 @@
      ambiente se aplica antes del primer pintado (sin destello de la
      paleta normal al cargar un día señalado). -->
 <script src="js/ambientes.js"></script>
+<script>
+  (function () {
+    const LANG_RTL = { ar: true };
+    function safeGet(key) {
+      try { return localStorage.getItem(key); } catch (e) { return null; }
+    }
+    const savedLang = safeGet('manolito_lang');
+    window.__manolitoLangInicial = savedLang || null;
+    window.__manolitoIdiomaResuelto = !!savedLang;
+    window.__manolitoEsperaIdioma = !savedLang;
+    if (!savedLang) {
+      const html = document.documentElement;
+      html.classList.add('manolito-idioma-pendiente');
+      html.setAttribute('lang', 'es');
+      html.setAttribute('dir', 'ltr');
+      html.classList.add('ltr');
+      html.classList.remove('rtl');
+      return;
+    }
+    const html = document.documentElement;
+    html.setAttribute('lang', savedLang);
+    const esRtl = !!LANG_RTL[savedLang];
+    html.setAttribute('dir', esRtl ? 'rtl' : 'ltr');
+    html.classList.toggle('rtl', esRtl);
+    html.classList.toggle('ltr', !esRtl);
+  })();
+</script>
 
 <style>
   #manolitoSplash{
@@ -276,6 +303,43 @@
   @media (prefers-reduced-motion: reduce){
     #manolitoSplash, #manolitoSplash *{ animation:none !important; transition:none !important; }
   }
+  html.manolito-idioma-pendiente body{ overflow:hidden; }
+  html.manolito-idioma-pendiente #manolitoSplash{ opacity:0; visibility:hidden; pointer-events:none; }
+  #idiomaInicioGate{
+    position:fixed; inset:0; z-index:100001;
+    display:flex; align-items:center; justify-content:center; padding:clamp(14px,3vw,28px);
+    background:rgba(1,2,3,.72); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+    opacity:1; visibility:visible; transition:opacity .2s ease, visibility .2s ease;
+  }
+  #idiomaInicioGate.cerrando{ opacity:0; visibility:hidden; pointer-events:none; }
+  .idioma-inicio-card{
+    width:min(980px,100%); background:var(--paper,#FBFAF7); color:var(--ink,#0E3B47);
+    border:1px solid rgba(14,59,71,.14); border-radius:18px; padding:clamp(14px,2.8vw,26px);
+    box-shadow:0 24px 55px rgba(0,0,0,.35);
+  }
+  .idioma-inicio-titulo{ font-size:clamp(1.15rem,2.2vw,1.5rem); font-weight:700; margin:0 0 .35rem; }
+  .idioma-inicio-sub{ margin:0 0 1rem; color:#1c6c7b; font-size:clamp(.9rem,1.7vw,1rem); }
+  .idioma-inicio-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(clamp(116px,16vw,160px),1fr)); gap:clamp(8px,1.3vw,12px);
+  }
+  .idioma-inicio-btn{
+    min-height:48px; border-radius:12px; border:1px solid rgba(14,59,71,.18);
+    background:#fff; color:inherit; font:inherit; font-weight:600; cursor:pointer;
+    padding:10px 12px; text-align:center; line-height:1.2;
+    transition:border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+  }
+  .idioma-inicio-btn:hover{ border-color:var(--accent,#FF6B1A); background:rgba(255,107,26,.08); }
+  .idioma-inicio-btn:focus-visible{
+    outline:3px solid var(--accent,#FF6B1A); outline-offset:2px;
+    box-shadow:0 0 0 4px rgba(255,107,26,.2);
+  }
+  html:not(.manolito-idioma-pendiente) #idiomaInicioGate{
+    opacity:0; visibility:hidden; pointer-events:none;
+  }
+  @media (max-height:430px){
+    .idioma-inicio-card{ padding:12px; }
+    .idioma-inicio-btn{ min-height:44px; }
+  }
 </style>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="icon" type="image/png" href="/favicon.png">
@@ -290,6 +354,64 @@
 <body>
 
 <a href="#main-content" class="skip-link" data-i18n="skipToContent">Saltar al contenido principal</a>
+
+<div id="idiomaInicioGate">
+  <div class="idioma-inicio-card" role="dialog" aria-modal="true" aria-labelledby="idiomaInicioTitulo">
+    <h1 class="idioma-inicio-titulo" id="idiomaInicioTitulo">Elige tu idioma</h1>
+    <p class="idioma-inicio-sub">Selecciona el idioma para arrancar la web.</p>
+    <div class="idioma-inicio-grid" role="group" aria-label="Selector inicial de idioma">
+      <button type="button" class="idioma-inicio-btn" data-lang="es">Español</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="ca">Català</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="eu">Euskara</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="gl">Galego</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="en">English</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="ka">ქართული</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="ar">العربية</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function () {
+    const gate = document.getElementById('idiomaInicioGate');
+    if (!gate) return;
+    const html = document.documentElement;
+    const LANG_RTL = { ar: true };
+    const esperando = !!window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto;
+    if (!esperando) { gate.remove(); return; }
+    let cerrado = false;
+    let autoCierre = null;
+    function resolverIdioma(lang, guardar) {
+      if (cerrado) return;
+      cerrado = true;
+      if (guardar) {
+        try { localStorage.setItem('manolito_lang', lang); } catch (e) { }
+      }
+      window.__manolitoLangInicial = lang;
+      window.__manolitoIdiomaResuelto = true;
+      window.__manolitoEsperaIdioma = false;
+      html.classList.remove('manolito-idioma-pendiente');
+      html.setAttribute('lang', lang);
+      const esRtl = !!LANG_RTL[lang];
+      html.setAttribute('dir', esRtl ? 'rtl' : 'ltr');
+      html.classList.toggle('rtl', esRtl);
+      html.classList.toggle('ltr', !esRtl);
+      gate.classList.add('cerrando');
+      if (autoCierre) clearTimeout(autoCierre);
+      setTimeout(() => {
+        gate.remove();
+        document.dispatchEvent(new CustomEvent('langChanged', { detail: { lang } }));
+      }, 190);
+    }
+    gate.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest('button[data-lang]') : null;
+      if (!btn) return;
+      resolverIdioma(btn.getAttribute('data-lang') || 'es', true);
+    });
+    autoCierre = setTimeout(() => resolverIdioma('es', false), 30000);
+    const primerBtn = gate.querySelector('button[data-lang]');
+    if (primerBtn) setTimeout(() => primerBtn.focus(), 0);
+  })();
+</script>
 
 <div id="manolitoSplash">
   <div class="sky-glow"></div>
@@ -386,68 +508,77 @@
 
 <script>
   (function() {
-    const overlay = document.getElementById('manolitoSplash');
-    if (!overlay) return;
-    document.body.classList.add('manolito-splash-activo');
+    function iniciarSplash() {
+      if (window.__manolitoSplashIniciado) return;
+      window.__manolitoSplashIniciado = true;
+      const overlay = document.getElementById('manolitoSplash');
+      if (!overlay) return;
+      document.body.classList.add('manolito-splash-activo');
 
-    const field = document.getElementById('particles');
-    for (let i = 0; i < 28; i++) {
-      const p = document.createElement('div');
-      p.className = 'particle';
-      const size = 1.5 + Math.random() * 2.5;
-      p.style.width = size + 'px';
-      p.style.height = size + 'px';
-      p.style.left = Math.random() * 100 + 'vw';
-      p.style.bottom = '-10px';
-      p.style.animationDuration = (5 + Math.random() * 7) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
-      p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
-      field.appendChild(p);
-    }
-
-    const logoContainer = document.getElementById('logo-container');
-    function tiltLogo(e) {
-      const x = e.clientX / window.innerWidth - 0.5;
-      const y = e.clientY / window.innerHeight - 0.5;
-      logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
-    }
-    document.addEventListener('mousemove', tiltLogo);
-
-    // NUEVO: El tutorial SOLO arranca si ambas condiciones físicas se cumplen
-    function evaluarArranqueTutorial() {
-      const cookiesAceptadas = localStorage.getItem('manolito_cookies_choice') === 'accepted';
-      const splashDestruido = document.getElementById('manolitoSplash') === null;
-      
-      if (cookiesAceptadas && splashDestruido && typeof window.iniciarTutorialManolito === 'function') {
-        window.iniciarTutorialManolito();
+      const field = document.getElementById('particles');
+      for (let i = 0; i < 28; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = 1.5 + Math.random() * 2.5;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.bottom = '-10px';
+        p.style.animationDuration = (5 + Math.random() * 7) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
+        p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
+        field.appendChild(p);
       }
+
+      const logoContainer = document.getElementById('logo-container');
+      function tiltLogo(e) {
+        const x = e.clientX / window.innerWidth - 0.5;
+        const y = e.clientY / window.innerHeight - 0.5;
+        logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
+      }
+      document.addEventListener('mousemove', tiltLogo);
+
+      // NUEVO: El tutorial SOLO arranca si ambas condiciones físicas se cumplen
+      function evaluarArranqueTutorial() {
+        let cookiesAceptadas = false;
+        try { cookiesAceptadas = localStorage.getItem('manolito_cookies_choice') === 'accepted'; } catch (e) { cookiesAceptadas = false; }
+        const splashDestruido = document.getElementById('manolitoSplash') === null;
+        if (cookiesAceptadas && splashDestruido && typeof window.iniciarTutorialManolito === 'function') {
+          window.iniciarTutorialManolito();
+        }
+      }
+
+      // Escucha el evento del banner por si el usuario acepta las cookies DESPUÉS de que el splash desaparezca
+      document.addEventListener('cookiesAceptadas', evaluarArranqueTutorial);
+
+      let isLeaving = false;
+      function executeTransition() {
+        if (isLeaving) return;
+        isLeaving = true;
+        overlay.classList.add('leaving');
+        document.removeEventListener('mousemove', tiltLogo);
+        setTimeout(() => {
+          overlay.remove();
+          document.body.classList.remove('manolito-splash-activo');
+          // Evalúa el arranque justo en el instante en que el DOM elimina la portada
+          evaluarArranqueTutorial();
+        }, 2400);
+      }
+
+      document.getElementById('entryBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        executeTransition();
+      });
+
+      overlay.addEventListener('dblclick', executeTransition);
+      setTimeout(executeTransition, 7400);
     }
-
-    // Escucha el evento del banner por si el usuario acepta las cookies DESPUÉS de que el splash desaparezca
-    document.addEventListener('cookiesAceptadas', evaluarArranqueTutorial);
-
-    let isLeaving = false;
-    function executeTransition() {
-      if (isLeaving) return;
-      isLeaving = true;
-      overlay.classList.add('leaving');
-      document.removeEventListener('mousemove', tiltLogo);
-      
-      setTimeout(() => {
-        overlay.remove();
-        document.body.classList.remove('manolito-splash-activo');
-        
-        // Evalúa el arranque justo en el instante en que el DOM elimina la portada
-        evaluarArranqueTutorial();
-      }, 2400); 
+    if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
+      document.addEventListener('langChanged', () => {
+        requestAnimationFrame(() => requestAnimationFrame(iniciarSplash));
+      }, { once: true });
+      return;
     }
-
-    document.getElementById('entryBtn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      executeTransition();
-    });
-
-    overlay.addEventListener('dblclick', executeTransition);
-    const autoBoot = setTimeout(executeTransition, 7400);
+    iniciarSplash();
   })();
 </script>
 
@@ -1610,8 +1741,9 @@
     if (!objetivo) return;
 
     let cargado = false;
+    let cargaMapaSombrasPromise = null;
     function cargarMapaSombras() {
-      if (cargado) return;
+      if (cargado) return cargaMapaSombrasPromise || Promise.resolve();
       cargado = true;
 
       function cargarScript(src) {
@@ -1632,7 +1764,7 @@
       // js/co2.js (27-sep): modulo propio y diminuto, la encuesta de CO2
       // evitado que aparece tras calcular una ruta. Carga en paralelo con
       // las librerias y shadows-route lo llama cuando enseña la distancia.
-      Promise.all([
+      cargaMapaSombrasPromise = Promise.all([
         cargarScript('js/a11y-guia.js'),
         cargarScript('js/co2.js'),
         cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
@@ -1649,6 +1781,18 @@
         // engancha al mapa por window.manolitAireMap, como arboles-3d.js.
         .then(() => cargarScript('js/aparcamientos-viaje.js'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
+      return cargaMapaSombrasPromise;
+    }
+
+    // Si alguien pulsa "↻ Act. mapa" antes de que el mapa de sombras se haya
+    // cargado por scroll, se fuerza la carga en ese mismo clic para que no
+    // parezca un botón muerto.
+    const btnRefreshOSM = document.getElementById('rsBtnActualizarOSM');
+    if (btnRefreshOSM) {
+      btnRefreshOSM.addEventListener('click', () => {
+        if (typeof window.manolitAireActualizarOSM === 'function') return;
+        cargarMapaSombras();
+      }, { once: true });
     }
 
     if ('IntersectionObserver' in window) {

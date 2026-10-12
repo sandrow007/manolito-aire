@@ -89,7 +89,20 @@
   function $(id) { return document.getElementById(id); }
 
   function tt(clave, fallback) {
-    try { return typeof t === 'function' ? t(clave, fallback) : fallback; } catch (e) { return fallback; }
+    // 12-oct-2026 (orden de Sandro): la t() que esperaba este módulo no
+    // existe como global (cada script la tiene encerrada en su propio
+    // ámbito), así que el bloque de sol y luna salía siempre en castellano.
+    // Ahora, si no hay t() global, se lee el diccionario de i18n.js por
+    // window.getMessages(), que sí está colgado a propósito para esto.
+    try { if (typeof t === 'function') return t(clave, fallback); } catch (e) { }
+    try {
+      const fn = window.getMessages;
+      if (typeof fn === 'function') {
+        const msg = fn();
+        if (msg && msg[clave] != null) return msg[clave];
+      }
+    } catch (e) { }
+    return fallback;
   }
 
   function obtenerCoords() {

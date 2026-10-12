@@ -552,7 +552,9 @@
       const leyendaHora = document.createElement('div');
       leyendaHora.className = 'irr-leyenda';
       const spanHora = document.createElement('span');
-      leyendaHora.append('Hora del día: ', spanHora);
+      // 12-oct-2026 (orden de Sandro): esta etiqueta estaba fija en
+      // castellano; ahora sale del diccionario como el resto del panel.
+      leyendaHora.append(t('irrHourOfDay', 'Hora del día') + ': ', spanHora);
 
       const resumenEl = document.createElement('div');
       resumenEl.id = 'irrResumen';
@@ -661,6 +663,19 @@
         `${t('irrPenumbra', 'Penumbra (árbol)')} (×${ATENUACION.PENUMBRA.factor})<br>` +
         `${t('irrSol', 'Sol directo')} (×${ATENUACION.SOL.factor})`;
       onCambio(); // repinta etiquetas de día/hora y, si la capa está activa, recarga el estado
+      // 12-oct-2026 (orden de Sandro): dos huecos que quedaban en el idioma
+      // de arranque si el panel se construyó antes de elegir idioma en la
+      // pantalla de entrada (el mapa carga por scroll, la elección llega
+      // después): la etiqueta fija de la hora y el «cargando resumen» que
+      // solo se reescribía con la capa activa.
+      const leyHora = panelEl && panelEl.querySelector('.irr-leyenda');
+      if (leyHora && leyHora.firstChild) {
+        leyHora.firstChild.nodeValue = t('irrHourOfDay', 'Hora del día') + ': ';
+      }
+      const resumen = document.getElementById('irrResumen');
+      if (resumen && !resumen.querySelector('b')) {
+        resumen.textContent = t('irrAnnualLoading', 'Cargando resumen del año…');
+      }
       if (capaActiva) {
         const { anio } = fechaHoraValidos();
         cargarResumenAnual(anio);

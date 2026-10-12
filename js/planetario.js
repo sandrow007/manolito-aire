@@ -275,79 +275,35 @@
     //   que ya calcula el motor. El motor no se toca.
     var info = $('rsPlanetarioInfo');
     if (info) {
-      var localesPlan = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+      var localesPlan = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE', ar: 'ar-SA' };
       var langPlan = (typeof currentLang !== 'undefined' && localesPlan[currentLang]) ? currentLang : 'es';
-      var horaTxt = fechaMostrada.toLocaleTimeString(localesPlan[langPlan], { hour: '2-digit', minute: '2-digit' });
-      var toggleSombras = document.getElementById('rsToggleSombras');
-      var sombrasOn = !!(toggleSombras && toggleSombras.checked);
-      var esDeNoche = s.alturaDeg <= 0;
-      // 09-oct-2026 (orden de Sandro): día o noche lo decide la función
-      // única de js/sol.js con la fecha que la cúpula está mostrando (la
-      // real o la del slider). Si SunCalc no está listo, queda el criterio
-      // de la cúpula, que es el mismo: altura del sol sobre el horizonte.
-      try {
-        if (window.manolitHaySol) {
-          var haySolPlan = window.manolitHaySol(p.lat, p.lon, fechaMostrada);
-          if (haySolPlan !== null) esDeNoche = !haySolPlan;
-        }
-      } catch (ePlan) { /* queda el criterio de la cúpula */ }
-      if (!sombrasOn || esDeNoche) {
-        if (!info.hasAttribute('hidden')) info.setAttribute('hidden', '');
-        info.textContent = '';
-      } else {
-        var punto = null;
-        try {
-          if (window.__manolitUltimaPos && isFinite(window.__manolitUltimaPos.lat)) {
-            punto = [window.__manolitUltimaPos.lon, window.__manolitUltimaPos.lat];
-          }
-        } catch (e) { /* sin gps */ }
-        if (!punto) {
-          try {
-            var mapaPuntos = window.manolitAireMap;
-            var srcPuntos = mapaPuntos && mapaPuntos.getSource('puntos-manuales');
-            var datosPuntos = srcPuntos && (srcPuntos._data || (srcPuntos.serialize && srcPuntos.serialize().data));
-            var featsPuntos = datosPuntos && datosPuntos.features ? datosPuntos.features : [];
-            if (featsPuntos.length && featsPuntos[0].geometry && featsPuntos[0].geometry.type === 'Point') {
-              punto = featsPuntos[0].geometry.coordinates;
-            }
-          } catch (e) { /* sin punto elegido */ }
-        }
-        if (!punto && window.manolitAireMap) {
-          var centroInfo = window.manolitAireMap.getCenter();
-          punto = [centroInfo.lng, centroInfo.lat];
-        }
-        var enSombra = false, hayDatosSombra = false;
-        try {
-          var mapaSol = window.manolitAireMap;
-          if (mapaSol && typeof turf !== 'undefined' && punto) {
-            // Se leen los datos COMPLETOS de las dos fuentes de sombra que
-            // ya calcula el motor (edificios en 'sombras', árboles en
-            // 'arboles-globales-sombra'), no los tiles del viewport: así el
-            // resultado es exacto aunque el punto quede en el borde de la
-            // pantalla o la tesela aún no se regenere. Solo lectura.
-            var featsSombra = [];
-            ['sombras', 'arboles-globales-sombra'].forEach(function (nombreFuente) {
-              var srcSombra = mapaSol.getSource(nombreFuente);
-              if (!srcSombra) return;
-              var datosSombra = srcSombra._data || (srcSombra.serialize && srcSombra.serialize().data);
-              if (datosSombra && datosSombra.features) featsSombra = featsSombra.concat(datosSombra.features);
-            });
-            hayDatosSombra = featsSombra.length > 0;
-            var puntoTurf = turf.point(punto);
-            for (var fs = 0; fs < featsSombra.length; fs++) {
-              try { if (turf.booleanPointInPolygon(puntoTurf, featsSombra[fs])) { enSombra = true; break; } } catch (e2) { /* geometría rara */ }
-            }
-          }
-        } catch (e) { /* el motor aún no está listo */ }
-        info.removeAttribute('hidden');
-        // Si el motor aún no ha soltado las sombras, solo se enseña la
-        // hora; en cuanto haya datos entra el resultado exacto.
-        if (hayDatosSombra) {
-          info.textContent = horaTxt + ' · ' + (enSombra ? tt('shadeNow', 'A la sombra') : tt('sunNow', 'Al sol'));
-        } else {
-          info.textContent = horaTxt;
-        }
+      var localePlan = localesPlan[langPlan];
+      var horaTxt = fechaMostrada.toLocaleTimeString(localePlan, { hour: '2-digit', minute: '2-digit' });
+      function horaCorta(d) {
+        if (!(d instanceof Date) || isNaN(d)) return '--:--';
+        return d.toLocaleTimeString(localePlan, { hour: '2-digit', minute: '2-digit' });
       }
+      var solTimes = null;
+      var lunaTimes = null;
+      try { solTimes = SunCalc.getTimes(fechaMostrada, p.lat, p.lon); } catch (eTimes) { solTimes = null; }
+      try { lunaTimes = SunCalc.getMoonTimes(fechaMostrada, p.lat, p.lon); } catch (eMoonTimes) { lunaTimes = null; }
+      var salidaSol = horaCorta(solTimes && solTimes.sunrise);
+      var puestaSol = horaCorta(solTimes && solTimes.sunset);
+      var salidaLuna = horaCorta(lunaTimes && lunaTimes.rise);
+      var puestaLuna = horaCorta(lunaTimes && lunaTimes.set);
+      var solTxt = tt('sunPosition', 'Posición solar') + ' · ' + horaTxt + ' · ' +
+        tt('sunSummaryDeg', 'grados de altura') + ': ' + s.alturaDeg.toFixed(1) + '° · ' +
+        tt('sunSummaryAzimuth', 'azimut') + ': ' + s.azimutDeg.toFixed(1) + '° · ↑ ' + salidaSol + ' ↓ ' + puestaSol;
+      var lunaTxt = tt('moon', 'Luna') + ' · ' + horaTxt + ' · ' +
+        nombreFaseLunar(faseLuna) + ' (' + Math.round(ilumFraccion * 100) + '%) · ↑ ' + salidaLuna + ' ↓ ' + puestaLuna;
+      info.removeAttribute('hidden');
+      info.innerHTML = '';
+      var solLinea = document.createElement('span');
+      solLinea.textContent = solTxt;
+      var lunaLinea = document.createElement('span');
+      lunaLinea.textContent = lunaTxt;
+      info.appendChild(solLinea);
+      info.appendChild(lunaLinea);
     }
   }
 

@@ -7,7 +7,7 @@
 
 /* ============================================================
    MANOLITO AIRE, i18n
-   Castellano, català, euskera, galego, English, ქართული (georgiano).
+   Castellano, català, euskera, galego, English, ქართული (georgiano), العربية.
    
    v3: Añadidas traducciones para el sistema de rutas alternativas
    con evaluación de porcentaje de sombra.
@@ -147,6 +147,12 @@ const translations = {
 		osmRefreshError: "No se ha podido actualizar ahora mismo. Inténtalo en un minuto.",
 		privacy: "Privacidad",
 		cookies: "Cookies",
+		cookieGateAria: "Aviso de cookies",
+		cookieGateTitle: "Antes de entrar",
+		cookieGateBody: "Usamos lo mínimo posible: recordar tu idioma y tema, y permitir que el chat de Manolito funcione. Nada de publicidad ni rastreo de terceros.",
+		cookieGatePolicy: "Ver política de cookies",
+		cookieGateReject: "Rechazar",
+		cookieGateAccept: "Aceptar",
 		// shadows-route.js
 		searching: "Buscando…",
 		searchBtn: "Buscar ruta",
@@ -445,7 +451,6 @@ const translations = {
 		saludIcoPrev: "prevención",
 		saludIcoGroup: "Iconos de salud ambiental: sol, sombra, salud, agua, temperatura y prevención",
 		syncDoneTpl: "Sincronizado: {a} ajustes y {b} puntos. Recarga con Ctrl+Mayús+R para verlo todo aplicado.",
-		syncImportError: "Ese archivo no es una copia válida de Manolit∞ Aire.",
 		syncReadError: "No se pudo leer el archivo.",
 		treesLoading: "Cargando árboles…",
 		metaTitle: "Rutas con sombra y aire en tiempo real | Manolit∞ Aire",
@@ -645,6 +650,12 @@ const translations = {
 		osmRefreshError: "No s'ha pogut actualitzar ara mateix. Torna-ho a provar en un minut.",
 		privacy: "Privacitat",
 		cookies: "Cookies",
+		cookieGateAria: "Avís de cookies",
+		cookieGateTitle: "Abans d'entrar",
+		cookieGateBody: "Fem servir el mínim possible: recordar el teu idioma i tema, i permetre que el xat de Manolito funcioni. Res de publicitat ni rastreig de tercers.",
+		cookieGatePolicy: "Veure política de cookies",
+		cookieGateReject: "Rebutjar",
+		cookieGateAccept: "Acceptar",
 		searching: "Buscant…",
 		searchBtn: "Buscar ruta",
 		calculating: "Calculant ruta real pels carrers…",
@@ -893,7 +904,7 @@ const translations = {
 		capasTriggerAria: "Capes del mapa",
 		closeCapasAria: "Tancar el panell de capes",
 		gameIntroBtn: "Juga amb en Manolit∞",
-		gameIntroBtnAdult: "Posa´t a prova amb en Manolit∞",
+		gameIntroBtnAdult: "Posa't a prova amb en Manolit∞",
 		lidarBtn: "Renderitzat LiDAR",
 		colaboraTit: "No hi ha 3D a la teva zona?",
 		colaboraHint: "prem i t'explico com arreglar-ho en 5 minuts ▾",
@@ -934,7 +945,6 @@ const translations = {
 		saludIcoPrev: "prevenció",
 		saludIcoGroup: "Icones de salut ambiental: sol, ombra, salut, aigua, temperatura i prevenció",
 		syncDoneTpl: "Sincronitzat: {a} ajustos i {b} punts. Recarrega amb Ctrl+Maj+R per veure-ho tot aplicat.",
-		syncImportError: "Aquest fitxer no és una còpia vàlida de Manolit∞ Aire.",
 		syncReadError: "No s'ha pogut llegir el fitxer.",
 		treesLoading: "Carregant arbres…",
 		metaTitle: "Rutes amb ombra i aire en temps real | Manolit∞ Aire",
@@ -1132,6 +1142,12 @@ const translations = {
 		osmRefreshError: "Ezin izan da eguneratu orain. Saiatu minutu batean berriz.",
 		privacy: "Pribatutasuna",
 		cookies: "Cookieak",
+		cookieGateAria: "Cookieen abisua",
+		cookieGateTitle: "Sartu aurretik",
+		cookieGateBody: "Ahal den gutxiena erabiltzen dugu: zure hizkuntza eta gaia gogoratzea, eta Manolitoren txatak funtzionatzea. Ez dago publizitaterik ezta hirugarrenen jarraipenik ere.",
+		cookieGatePolicy: "Ikusi cookieen politika",
+		cookieGateReject: "Ukatu",
+		cookieGateAccept: "Onartu",
 		searching: "Bilatzen…",
 		searchBtn: "Ibilbidea bilatu",
 		calculating: "Kaleetako benetako ibilbidea kalkulatzen…",
@@ -1421,7 +1437,6 @@ const translations = {
 		saludIcoPrev: "prebentzioa",
 		saludIcoGroup: "Ingurumen-osasuneko ikonoak: eguzkia, itzala, osasuna, ura, tenperatura eta prebentzioa",
 		syncDoneTpl: "Sinkronizatuta: {a} ezarpen eta {b} puntu. Birkargatu Ctrl+Maius+R sakatuz dena aplikatuta ikusteko.",
-		syncImportError: "Fitxategi hori ez da Manolit∞ Aire-ren kopia baliozkoa.",
 		syncReadError: "Ezin izan da fitxategia irakurri.",
 		treesLoading: "Zuhaitzak kargatzen…",
 		metaTitle: "Itzaleko ibilbideak eta airea zuzenekoz | Manolit∞ Aire",
@@ -1617,9 +1632,14 @@ const translations = {
 		osmRefreshing: "Cargando…",
 		osmRefreshed: "✓ Actualizado",
 		osmRefreshError: "Non se puido actualizar agora. Téntao nun minuto.",
-		backToMap: "← Volver al mapa",
 		privacy: "Privacidade",
 		cookies: "Cookies",
+		cookieGateAria: "Aviso de cookies",
+		cookieGateTitle: "Antes de entrar",
+		cookieGateBody: "Empregamos o mínimo posible: lembrar o teu idioma e tema, e permitir que o chat de Manolito funcione. Nada de publicidade nin rastrexo de terceiros.",
+		cookieGatePolicy: "Ver política de cookies",
+		cookieGateReject: "Rexeitar",
+		cookieGateAccept: "Aceptar",
 		searching: "Buscando…",
 		searchBtn: "Buscar ruta",
 		calculating: "Calculando ruta real polas rúas…",
@@ -1909,7 +1929,6 @@ const translations = {
 		saludIcoPrev: "prevención",
 		saludIcoGroup: "Iconas de saúde ambiental: sol, sombra, saúde, auga, temperatura e prevención",
 		syncDoneTpl: "Sincronizado: {a} axustes e {b} puntos. Recarga con Ctrl+Maiús+R para velo todo aplicado.",
-		syncImportError: "Ese ficheiro non é unha copia válida de Manolit∞ Aire.",
 		syncReadError: "Non se puido ler o ficheiro.",
 		treesLoading: "Cargando árbores…",
 		metaTitle: "Rutas con sombra e aire en tempo real | Manolit∞ Aire",
@@ -2107,6 +2126,12 @@ const translations = {
 		osmRefreshError: "Could not refresh right now. Try again in a minute.",
 		privacy: "Privacy",
 		cookies: "Cookies",
+		cookieGateAria: "Cookie notice",
+		cookieGateTitle: "Before entering",
+		cookieGateBody: "We use the minimum possible: remember your language and theme, and allow Manolito chat to work. No advertising and no third-party tracking.",
+		cookieGatePolicy: "View cookie policy",
+		cookieGateReject: "Reject",
+		cookieGateAccept: "Accept",
 		searching: "Searching…",
 		searchBtn: "Search route",
 		calculating: "Calculating real walking route…",
@@ -2397,7 +2422,6 @@ const translations = {
 		saludIcoPrev: "prevention",
 		saludIcoGroup: "Environmental health icons: sun, shade, health, water, temperature and prevention",
 		syncDoneTpl: "Synced: {a} settings and {b} points. Reload with Ctrl+Shift+R to see everything applied.",
-		syncImportError: "That file is not a valid Manolit∞ Aire backup.",
 		syncReadError: "The file could not be read.",
 		treesLoading: "Loading trees…",
 		metaTitle: "Shade routes and live air quality | Manolit∞ Aire",
@@ -2550,7 +2574,7 @@ const translations = {
 		chatRouteDestPlaceholder: "ჩემი ამჟამინდელი მდებარეობიდან…",
 		chatRouteNotFound: "ვერ ვპოულობ ამ დანიშნულებას ასე. სცადე ქუჩა და ნომრით ან ადგილის სახელით.",
 		chatRouteChip: "გამოგითვლიო შენს მარშრუტს ჩრდილით აქედან?",
-		chatRouteAskDest: "მითხარი დანიშნულება, მსოფლიოს ნებისმიერი ადგილი ჯანდაბა. შემდეგ შენს მდებარეობას გამოვიყენებ მარშრუტის დასახატად. თუ გინდა ნახო როგორ მუშაობს, დააჭირე «ნახე მაგალითი».",
+		chatRouteAskDest: "მითხარი დანიშნულება, მსოფლიოს ნებისმიერი ადგილი გამოდგება. შემდეგ შენს მდებარეობას გამოვიყენებ მარშრუტის დასახატად. თუ გინდა ნახო როგორ მუშაობს, დააჭირე «ნახე მაგალითი».",
 		chatExampleBtn: "ნახე მაგალითი",
 		chatExamplePrep: "ვამზადებ მაგალითს ნამდვილი მონაცემებით, ერთი წუთი.",
 		chatExampleMin: "წუთი ფეხით",
@@ -2595,6 +2619,12 @@ const translations = {
 		osmRefreshError: "ახლა ვერ განახლდა. სცადე ერთ წუთში.",
 		privacy: "კონფიდენციალურობა",
 		cookies: "ქუქიები",
+		cookieGateAria: "ქუქიების შეტყობინება",
+		cookieGateTitle: "შემოსვლამდე",
+		cookieGateBody: "ვხმარობთ მხოლოდ მინიმუმს: დავიმახსოვროთ შენი ენა და თემა და იმუშაოს მანოლიტოს ჩატმა. არანაირი რეკლამა და მესამე მხარის თვალთვალი.",
+		cookieGatePolicy: "ქუქიების პოლიტიკის ნახვა",
+		cookieGateReject: "უარყოფა",
+		cookieGateAccept: "დადასტურება",
 		searching: "ძებნა…",
 		searchBtn: "მარშრუტის ძებნა",
 		calculating: "რეალური მარშრუტი ქუჩებით ითვლება…",
@@ -2727,7 +2757,6 @@ const translations = {
 		layerSun: "მზის პოზიცია",
 		resetBtn: "გადატვირთვა",
 		evaluatingShadows: "ალტერნატიულ მარშრუტებზე ჩრდილი ფასდება…",
-		s: "წმ",
 		inShadow: "ჩრდილში",
 		chosenMoreShadow: "არჩეულია მეტი ჩრდილის გამო",
 		chosenShorter: "ჩრდილი მსგავსია, არჩეულია უფრო მოკლე",
@@ -2815,7 +2844,7 @@ const translations = {
 		co2OpCoche: "მანქანა",
 		co2OpMoto: "მოტოციკლი",
 		co2OpAutobus: "ავტობუსი",
-		co2ResPie: "ფეხით იგივეს გამოყოფდი, 0 გ CO2. განსხვავება ისაა, რომ Manolitot გრილად დადიხარ.",
+		co2ResPie: "ფეხით იგივეს გამოყოფდი, 0 გ CO2. განსხვავება ისაა, რომ Manolit∞-თან გრილად დადიხარ.",
 		co2ResBici: "ველოსიპედით იგივეს გამოყოფდი, 0 გ CO2. განსხვავება გზის სიგრილეა.",
 		co2ResTpl: "ამ მარშრუტით ფეხით სიარულით თავიდან აიცილე დაახლოებით {c} CO2-ის ემისია, {m} სიარულის ნაცვლად.",
 		co2MedioCoche: "მანქანით",
@@ -2882,7 +2911,6 @@ const translations = {
 		saludIcoPrev: "პრევენცია",
 		saludIcoGroup: "გარემოს ჯანმრთელობის ხატულები: მზე, ჩრდილი, ჯანმრთელობა, წყალი, ტემპერატურა და პრევენცია",
 		syncDoneTpl: "სინქრონიზდა: {a} პარამეტრი და {b} წერტილი. ყველაფრის სანახავად გადატვირთე Ctrl+Shift+R-ით.",
-		syncImportError: "ეს ფაილი Manolit∞ Aire-ის სწორი ასლი არ არის.",
 		syncReadError: "ფაილის წაკითხვა ვერ მოხერხდა.",
 		treesLoading: "ხეები იტვირთება…",
 		metaTitle: "ჩრდილიანი მარშრუტები და ჰაერი რეალურ დროში | Manolit∞ Aire",
@@ -2951,10 +2979,626 @@ const translations = {
 		saludBannerFinTpl: "მწვანე დროებითია, {f} ვებგვერდი თავის ჩვეულ იერს დაუბრუნდება.",
 		escudosTitulo: "ფარები, რომლებიც გვიცავენ",
 		escudosPorque: "გარემოს ჯანმრთელობის ოთხი საჯარო ობსერვატორია, შენი მხრიდან პლანეტამდე. ისინი აქვეყნებენ მონაცემებსა და სიცხის ზღურბლებს, რომლებზეც ეს ვებგვერდი ეყრდნობა, და მათი მუშაობა ყველას გვიცავს.",
+	},
+	ar: {
+		// Modo salud de los sábados (sep-2026, orden de Sandro)
+		saludBannerTexto: "En esta tierra, cuidar nuestro entorno es cuidar nuestro cuerpo.",
+		saludBannerCta: "Descubre por qué defendemos la salud ambiental y cada rincón de sombra.",
+		saludKicker: "Fin de semana de la salud",
+		saludH2: "En defensa de las sombras: Salud Ambiental Urbana.",
+		saludP1: "Cruzar de la acera del sol a la de la sombra en pleno verano andaluz puede suponer diez grados de diferencia en tu cuerpo. Eso no es una anécdota, es salud ambiental. El asfalto y el hormigón retienen el calor y transforman nuestras calles en trampas térmicas que agreden al organismo.",
+		saludP2: "Ni siquiera Hércules, fundador mítico de Sevilla, era invencible. Era un semidiós y, como humano, tenía fragilidades físicas que debía proteger antes de caer. Nosotros no buscamos soluciones médicas tardías; buscamos prevención ambiental. Cada árbol y cada sombra es medicina urbana que modifica el clima de la calle para proteger a nuestra gente.",
+		saludNota: "Aviso de Manolit∞: Recuerda que este simulador es una herramienta digital para ayudarte a planificar, pero no es 100% preciso y las sombras reales de la calle pueden variar. Por eso la salud ambiental depende también de tu sentido común: ante la duda, busca siempre el refugio fresco.",
+		saludChat: "¡Por cierto! Recuerda que estamos en el fin de semana de la salud ambiental. El entorno influye en tu cuerpo: si sales a la calle, busca la acera de la sombra y refréscate, que la calle quema.",
+		saludSolTit: "Cuándo el sol se convierte en un problema",
+		saludSolTxt: "Entre las 12h y las 17h el sol no solo calienta, acumula radiación sobre el asfalto, las fachadas y tu cuerpo sin que lo notes. No se trata de evitarlo, sino de saber moverse por la ciudad en las horas en las que trabaja a tu favor y no en tu contra.",
+		saludSombraTit: "La sombra como infraestructura",
+		saludSombraTxt: "En una ciudad con 40°C, pasar de sol directo a sombra puede bajar la temperatura percibida hasta 10°C en segundos. No es comodidad, es protección real. Los árboles, los porches y las calles estrechas son recursos que existen y que se pueden usar. Manolit∞ Aire te ayuda a encontrarlos.",
+		saludCuerpoTit: "Tu cuerpo frente al calor urbano",
+		saludCuerpoTxt: "El calor extremo no avisa igual en todas las personas. Los niños, los mayores y quienes trabajan al aire libre lo notan antes y peor. Conocer cómo responde tu entorno, la temperatura de tu barrio, la brisa disponible, la sombra cercana, es la primera forma de cuidarte sin necesitar nada más que información.",
+		saludAguaTit: "Agua: lo que el cuerpo no puede negociar",
+		saludAguaTxt: "Con calor el cuerpo pierde agua más rápido de lo que percibimos. No esperes a tener sed. Beber antes, en pequeñas cantidades y de forma constante durante las horas de mayor calor, es lo que realmente marca la diferencia. El acceso a agua fresca en espacios públicos también es salud.",
+		saludTempTit: "No todas las calles tienen la misma temperatura",
+		saludTempTxt: "A dos manzanas de distancia puede haber una diferencia de 5°C según el tipo de suelo, la presencia de árboles o el ancho de la calle. Las islas de calor no son un concepto abstracto, son el barrio donde vives. Entender cómo se distribuye el calor en tu entorno cambia cómo te mueves y cuándo.",
+		saludPrevTit: "Prepararse antes de que llegue la ola",
+		saludPrevTxt: "Las olas de calor no son emergencias imprevisibles, tienen un patrón y se anuncian. Conocer los puntos de tu barrio donde el calor se concentra, identificar refugios frescos cercanos y saber qué vecinos necesitan más atención en esos días es, sencillamente, lo más efectivo que existe.",
+		saludRecursos: "Recursos oficiales",
+		saludLinkSanidad: "Consejería de Sanidad de la Junta",
+		saludLinkResponde: "Consultas y Gestión de Citas (Salud Responde)",
+		// Recursos por gama (26-sep, orden de Sandro, textos dictados).
+		// Las dos keys andaluzas de arriba quedan en reserva, ya no se
+		// muestran: de Andalucía solo queda OSMAN.
+		saludGamaRegional: "Gama Regional (Andalucía)",
+		saludGamaNacional: "Gama Nacional (España)",
+		saludGamaEuropea: "Gama Europea (UE)",
+		saludGamaGlobal: "Gama Global (ONU)",
+		saludLinkOsman: "OSMAN - Observatorio de Salud y Medio Ambiente de Andalucía",
+		saludUsoOsman: "Uso: Referencia autonómica para planes de acción local frente al cambio climático.",
+		saludLinkOscc: "OSCC - Observatorio de Salud y Cambio Climático",
+		saludUsoOscc: "Uso: Ente del Ministerio de Sanidad encargado de los umbrales de riesgo por provincias y alertas sanitarias por calor.",
+		saludLinkEuropeo: "Observatorio Europeo del Clima y la Salud",
+		saludUsoEuropeo: "Uso: Portal de la Comisión Europea y la AEMA para predecir impactos en la salud y monitorizar indicadores biometeorológicos en Europa.",
+		saludLinkClimahealth: "ClimaHealth",
+		saludUsoClimahealth: "Uso: La plataforma de conocimiento global compartida por la OMS y la OMM para la resiliencia en salud pública.",
+		saludP3: "Por eso existe esta web. Para que sepas dónde está la sombra ahora mismo y para que cuides las que quedan. Las ciudades que abrazan sus zonas verdes y sus calles frescas cuidan a su gente.",
+		saludCierre: "La sombra es medicina urbana, y es gratis.",
+		// General
+		tagline: "El aire y la sombra de tu calle, en vivo",
+		modesLabel: "¿Cómo quieres que te lo cuente?",
+		mode_ciudadano_title: "Ciudadano",
+		mode_ciudadano_sub: "Claro y directo",
+		mode_cientifico_title: "Científico",
+		mode_cientifico_sub: "Con los datos",
+		mode_yayo_title: "Abuela / Abuelo",
+		mode_yayo_sub: "Letra grande, sin prisa",
+		mode_peque_title: "Peque (5 años)",
+		mode_peque_sub: "Con dibujitos",
+		imLost: "No lo entiendo, explícamelo",
+		mapTitle: "El aire de España, ahora mismo",
+		legendGood: "Buena",
+		legendMid: "Moderada",
+		legendBad: "Mala",
+		legendNote: "Los puntos son estaciones reales. El color entre ciudades es estimado, no medido.",
+		aboutLink: "¿Por qué existe esto?",
+		chatOpen: "Pregúntale a Manolit∞",
+		chatTitle: "Manolit∞ te lo explica",
+		chatWelcome: "Soy Manolit∞. Pregunta lo que necesites.",
+		chatPlaceholder: "Escribe tu pregunta aquí...",
+		chatSend: "Enviar",
+		airLvlGood: "bueno",
+		airLvlFair: "aceptable",
+		airLvlModerate: "moderado",
+		airLvlPoor: "malo",
+		airLvlVeryPoor: "muy malo",
+		airLvlHazard: "peligroso",
+		chatAirUnavailable: "Calidad del aire no disponible para este país.",
+		chatRouteStreets: "Vas a pasar por",
+		chatRouteStreetsAir: "calles donde se estima un nivel de contaminación",
+		chatRouteAirOnly: "En esta ruta se estima un nivel de contaminación",
+		chatRouteMapLoading: "El mapa todavía se está cargando. Baja hasta él, deja que termine y vuelve a pulsarme.",
+		chatRouteLocating: "Buscando tu ubicación…",
+		chatRouteNoGeo: "Este navegador no me deja saber dónde estás. Escribe el origen a mano en el panel de rutas y te lo preparo.",
+		chatRouteDenied: "Sin permiso de ubicación no puedo salir desde donde estás. Si cambias de idea, actívalo en el navegador y vuelve a pulsarme.",
+		chatRouteBusy: "Ya estoy buscándote, dame unos segundos.",
+		chatRouteNoGps: "El GPS no consigue fijarte con buena precisión. Acércate a una ventana o sal a cielo abierto y vuelve a pulsarme.",
+		chatRouteDestFallback: "tu destino",
+		chatRouteDone: "Ruta nueva hasta",
+		chatRouteSeeMap: "La tienes pintada en el mapa.",
+		chatRouteFail: "No he podido calcular esa ruta. Prueba con otro destino cercano.",
+		chatRouteDestPlaceholder: "Ir desde mi ubicación actual hasta…",
+		chatRouteNotFound: "No encuentro ese destino tal cual. Prueba con calle y número o con el nombre del sitio.",
+		chatRouteChip: "¿Calculo tu ruta con sombra desde aquí?",
+		chatRouteAskDest: "Dime el destino, vale cualquier lugar del mundo. Después uso tu ubicación para trazar la ruta. Si prefieres ver cómo funciona, pulsa «Ver un ejemplo».",
+		chatExampleBtn: "Ver un ejemplo",
+		chatExamplePrep: "Preparo un ejemplo con datos reales, un momento.",
+		chatExampleMin: "minutos andando",
+		chatExampleNoTime: "tiempo por estimar",
+		chatExampleFrom: "Desde",
+		chatExampleTo: "hasta",
+		chatExampleFail: "No he podido dibujar el ejemplo. Inténtalo otra vez.",
+		footerFamily: "<a href='https://www.manolitoforestal.space/' target='_blank' rel='noopener'>Manolit∞ Forestal</a> · <a href='https://islasdecalorsevilla.com' target='_blank' rel='noopener'>Islas de Calor Sevilla</a> · <a href='https://manolitoaire.com' target='_blank' rel='noopener'>Manolit∞ Aire</a>",
+		footerVerCuentas: "Ver las cuentas",
+		orb_good: "bien",
+		orb_mid: "regular",
+		orb_bad: "malo",
+		quick_pm25: "¿Qué es el PM2.5?",
+		quick_color: "¿Por qué cambia el color?",
+		quick_bebe: "¿Es seguro salir con mi bebé?",
+		quick_q1: "¿En qué puedo ayudarte?",
+		quick_a1: "Te informo de la calidad del aire en tiempo real, de si es buen momento para salir a hacer deporte, de la sombra de tu calle a cualquier hora y de rutas a pie con más fresco. También respondo a cualquier otra pregunta.",
+		quick_q2: "¿Qué significan los colores del aire?",
+		quick_a2: "Verde: aire bueno, sal sin problema. Naranja: moderado, ojo si eres sensible. Rojo o morado: aire malo, mejor esperar a que mejore.",
+		quick_q3: "¿Puedo salir a hacer deporte hoy?",
+		quick_a3: "Mira el color del mapa: si está verde o amarillo, adelante. Si está naranja y tienes asma o vas con peques, mejor suave; si está rojo, déjalo para otro momento.",
+		quick_q4: "¿Cómo funcionan las sombras 3D?",
+		quick_a4: "Calculamos la posición real del sol a cada minuto y proyectamos la sombra de cada edificio y árbol sobre el mapa. Lo que ves es la sombra que hay ahora mismo en la calle.",
+		quick_q5: "¿Cómo busco una ruta con sombra?",
+		quick_a5: "Escribe tu origen y tu destino en el buscador del mapa 3D y pulsa «Buscar ruta». Te trazamos el camino a pie aprovechando la sombra que haya a esa hora.",
+		quick_q6: "¿Qué es la irradiación solar?",
+		quick_a6: "Activa la capa «Intensidad solar» y toca cualquier punto del mapa: verás cuánto sol recibe ese lugar según el histórico de la NASA, por año, mes, día y hora.",
+		quick_q7: "¿Qué es el paseo virtual 3D?",
+		quick_a7: "Es un paseo en primera persona por el mapa 3D: camina por las calles sin moverte del sofá y verás por dónde pega el sol y por dónde va la sombra.",
+		region_peninsula: "Península",
+		region_canarias: "Canarias",
+		region_baleares: "Baleares",
+		region_ceutamelilla: "Ceuta / Melilla",
+		statusLoading: "Cargando datos en vivo…",
+		legalNotice: "Aviso legal",
+		backToMap: "← Volver al mapa",
+		treesBtn: "Árboles",
+		osmRefreshBtn: "↻ Act. mapa",
+		osmRefreshTitle: "Baja los datos nuevos de OpenStreetMap (árboles y puntos) para esta zona",
+		osmRefreshing: "Cargando…",
+		osmRefreshed: "✓ Actualizado",
+		osmRefreshError: "No se ha podido actualizar ahora mismo. Inténtalo en un minuto.",
+		privacy: "Privacidad",
+		cookies: "Cookies",
+		cookieGateAria: "Aviso de cookies",
+		cookieGateTitle: "Antes de entrar",
+		cookieGateBody: "Usamos lo mínimo posible: recordar tu idioma y tema, y permitir que el chat de Manolito funcione. Nada de publicidad ni rastreo de terceros.",
+		cookieGatePolicy: "Ver política de cookies",
+		cookieGateReject: "Rechazar",
+		cookieGateAccept: "Aceptar",
+		// shadows-route.js
+		searching: "Buscando…",
+		searchBtn: "Buscar ruta",
+		calculating: "Calculando ruta real por calles…",
+		geocoding: "Geocodificando direcciones…",
+		fillBoth: "Introduce origen y destino.",
+		notFound: "No se ha encontrado",
+		tryFormat: "Prueba a escribirla como calle, número, ciudad",
+		clickOrigin: "Haz clic en el mapa para marcar el origen.",
+		clickDestiny: "Origen marcado, haz clic en el destino.",
+		chooseDestination: "elige el destino escribiéndolo arriba o con el botón Elegir en el mapa.",
+		pointMap: "Punto marcado en el mapa",
+		myLocation: "Mi ubicación",
+		locationMarked: "Ubicación marcada como origen",
+		locationPrecision: "precisión reportada por el navegador",
+		locationNote: "sin GPS real puede ser orientativa",
+		locationDenied: "No se ha podido obtener tu ubicación (¿has denegado el permiso?).",
+		locationAsking: "Pidiendo permiso de ubicación…",
+		errorGeolocation: "Este navegador no permite compartir tu ubicación.",
+		errorSearch: "No he podido trazar la ruta. Prueba otra vez en un ratito.",
+		routeReal: "Ruta",
+		routeFallback: "No se pudo calcular la ruta por calles (servidor de rutas ocupado), mostrando línea directa.",
+		routeEstimated: "tiempo estimado a paso normal",
+		routeRecalcWeather: "Ha cambiado la nubosidad, recalculando la ruta más fresca…",
+		skipToContent: "Saltar al contenido principal",
+		accModeBtn: "♿ Modo accesible",
+		layerGroup: "Capas del mapa",
+		timePresets: "Preajustes de hora",
+		timeSlider: "Hora del día",
+		aqiTitle: "Calidad del aire en el punto de origen",
+		chatDialogLabel: "Chat con Manolit",
+		chatClose: "Cerrar chat",
+		sunSummaryAbove: "Sol a",
+		sunSummaryDeg: "grados de altura",
+		sunSummaryAzimuth: "azimut",
+		sunSummaryBelow: "De noche: el sol está bajo el horizonte.",
+		stepsTitle: "Indicaciones paso a paso",
+		stepsListen: "Escuchar indicaciones",
+		stepsStop: "Detener lectura",
+		stepDepart: "Sal por {calle} hacia el {dir}, {metros} metros",
+		stepContinue: "Sigue por {calle} durante {metros} metros",
+		stepTurnLeft: "Gira a la izquierda en {calle} y sigue {metros} metros",
+		stepTurnRight: "Gira a la derecha en {calle} y sigue {metros} metros",
+		stepSlightLeft: "Gira levemente a la izquierda en {calle} y sigue {metros} metros",
+		stepSlightRight: "Gira levemente a la derecha en {calle} y sigue {metros} metros",
+		stepUturn: "Da la vuelta y toma {calle}, {metros} metros",
+		stepRoundabout: "En la rotonda, toma la salida hacia {calle} y sigue {metros} metros",
+		stepArrive: "Has llegado a tu destino.",
+		stepUnnamed: "calle sin nombre",
+		shadeShade: "tramo en sombra",
+		shadeSun: "tramo al sol",
+		shadeMixed: "tramo con sol y sombra",
+		shadeTip: "Consejo: es un tramo largo al sol, ve despacio, camina por el lado con edificios y lleva agua.",
+		dirN: "norte",
+		dirNE: "noreste",
+		dirE: "este",
+		dirSE: "sureste",
+		dirS: "sur",
+		dirSW: "suroeste",
+		dirW: "oeste",
+		dirNW: "noroeste",
+		walkGuidanceStart: "¡Vamos allá! Te voy cantando cada paso, tú camina tranquilo.",
+		minWalk: "min a pie",
+		sunPosition: "Posición solar",
+		sunBelow: "El sol está bajo el horizonte a esa hora, no hay sombras que proyectar.",
+		goldenHour: "Hora dorada",
+		blueHour: "Hora azul",
+		now: "Ahora",
+		simulating: "Simulando",
+		summerSolstice: "Solsticio de verano",
+		winterSolstice: "Solsticio de invierno",
+		btnSummer: "Verano",
+		btnWinter: "Invierno",
+		pickMap: "Elegir en el mapa",
+		captureView: "Capturar vista",
+		captureError: "No se ha podido generar la imagen (limitación del servidor de mapas). Prueba a hacer una captura de pantalla normal.",
+		origin: "Origen",
+		destiny: "Destino",
+		noResults: "Sin resultados",
+		aqiGood: "Buena",
+		aqiModerate: "Moderada",
+		aqiBad: "Mala",
+		aqiNoData: "Sin datos",
+		layerBuildings: "Edificios 3D",
+		layerShadows: "Sombras",
+		layerClouds: "Nubes",
+		layerRoute: "Ruta",
+		walkModeStart: "Iniciar caminata",
+		walkModeStop: "Detener caminata",
+		walkModeTracking: "Siguiendo tu posición…",
+		darkMapOn: "Mapa oscuro",
+		darkMapOff: "Mapa claro",
+		// 07-oct-2026 (orden de Sandro): SOLO claves nuevas del módulo de
+		// aparcamientos y del planificador de viaje. Nada existente se toca.
+		parkingBtn: "Buscar aparcamiento",
+		parkingName: "Aparcamiento",
+		parkingTypeSurface: "En la calle",
+		parkingTypeCovered: "Cubierto",
+		parkingTypeUnderground: "Subterráneo",
+		parkingAccessPublic: "Público",
+		parkingAccessPrivate: "Privado",
+		parkingAccessCustomers: "Solo clientes",
+		parkingFeeYes: "De pago",
+		parkingFeeNo: "Gratis",
+		parkingFeeUnknown: "Precio sin dato",
+		parkingShadeNow: "Con sombra ahora",
+		parkingNoShade: "Al sol ahora",
+		parkingNightNow: "Ahora es de noche, sin sol",
+		parkingSunUnknown: "No se puede saber",
+		sunNow: "Al sol",
+		shadeNow: "A la sombra",
+		parkingCapacity: "plazas",
+		tripBtn: "Planificar viaje",
+		tripPanelTitle: "Viaje largo en coche",
+		tripOriginPh: "Desde dónde sales (vacío = tu ubicación)",
+		tripDestPh: "A dónde vas",
+		tripCalcBtn: "Trazar viaje",
+		tripClearBtn: "Quitar viaje",
+		tripSearching: "Buscando el mejor camino…",
+		tripNeedDest: "Dime a dónde vas y te trazo el viaje.",
+		tripNoGeocode: "No encuentro ese destino. Prueba con el nombre de la ciudad.",
+		tripNoOrigin: "No encuentro ese origen. Déjalo vacío para salir de donde estás.",
+		tripNoRoute: "No he podido trazar el viaje en coche. Inténtalo en un momento.",
+		tripSummary: "Viaje trazado",
+		tripParkingOn: "Abajo tienes los aparcamientos del destino, con anillo los que están a la sombra.",
+		tripMapCenter: "Centro del mapa",
+		tripMyLocation: "Mi ubicación",
+		routeMapTitle: "Ruta y sombras 3D",
+		aguaVivoLabel: "Anuncios gastando agua a nivel mundial:",
+		aguaVivoCalc: "300.000M de impresiones al día × ~1 MB × 0,06 kWh/GB × 1,8 L/kWh ≈ 375 L/s",
+		originPlaceholder: "Punto de origen",
+		destinationPlaceholder: "Punto de destino",
+		layerSun: "Posición del sol",
+		resetBtn: "Reiniciar",
+		// ============================================================
+		// NUEVO v3: Sistema de rutas alternativas con evaluación de sombra
+		// ============================================================
+		evaluatingShadows: "Evaluando sombra en rutas alternativas…",
+		inShadow: "en sombra",
+		chosenMoreShadow: "elegida por más sombra",
+		chosenShorter: "sombra similar, elegida la más corta",
+		shadowStats: "Sombra en tu ruta",
+		noShadowData: "Calculando…",
+		shadowGreat: "¡Mira tú qué bien! Media ruta va por la sombrita",
+		shadowGood: "Buena sombra en partes de la ruta",
+		shadowSome: "Algo de sombra disponible",
+		shadowNone: "Poca o ninguna sombra en esta ruta",
+		of: "de",
+		inShadowShort: "a la sombra",
+		alternativesAvailable: "Hay rutas alternativas comparadas",
+		// v4: claves que shadows-route.js pedía y no existían
+		virtualWalkStart: "Paseo virtual 3D",
+		virtualWalkStop: "Salir del paseo",
+		virtualWalkHint: "Baja a la calle sin moverte del sofá: recorre la ruta como si la pisaras",
+		virtualWalkUnsupported: "Tu navegador no soporta el paseo virtual 3D.",
+		shadeCoverage: "Cobertura de sombra",
+		airDataUnavailable: "Datos de aire no disponibles ahora mismo.",
+		irrLayerBtn: "Intensidad solar",
+		irrPanelTitle: "Histórico de irradiación",
+		irrYear: "Año",
+		irrMonth: "Mes",
+		irrDay: "Día",
+		irrHour: "Hora (UTC)",
+		irrLoading: "Consultando NASA POWER…",
+		irrAnnualLoading: "Cargando resumen del año…",
+		irrNoData: "La NASA no tiene dato para esa fecha (¿futuro o demasiado reciente?).",
+		irrError: "No se ha podido consultar la NASA ahora mismo. Reintenta en unos segundos.",
+		irrDayOfMonth: "Día del mes: ",
+		irrHourOfDay: "Hora del día: ",
+		irrUmbra: "Umbra: sombra de edificio (protección total)",
+		irrPenumbra: "Penumbra: sombra de árbol (luz filtrada ~50 %)",
+		irrSol: "Sol directo: sin protección",
+		irrExposureFactor: "Factor de exposición",
+		irrEffectiveExposure: "Exposición efectiva aquí",
+		irrAnnual: "Irradiación anual",
+		irrBestDay: "Mejor día",
+		irrWorstDay: "peor",
+		irrPeakHours: "Horas de sol pico",
+		irrRealDays: "días reales",
+		irrQueryPoint: "Punto de consulta",
+		syncLink: "Sincronizar / Exportar datos",
+		syncHint: "Guarda tus ajustes en un archivo y recupéralos en otro dispositivo. Sin cuentas ni servidores.",
+		syncExportBtn: "Exportar mis datos",
+		syncImportBtn: "Importar datos",
+		syncImportError: "Ese archivo no es una copia de Manolit∞ Aire. No se ha importado nada.",
+		// FAQ (preguntas frecuentes)
+		faqTitle: "Preguntas frecuentes",
+		faqIntro: "Las que me hacéis de verdad, contestadas sin rodeos.",
+		faqQ1: "¿Esto es gratis de verdad?",
+		faqA1: "Sí. Y lo seguirá siendo. No hay registro, no hay truco y no hay una versión de pago escondida. Entras, miras el aire y te vas.",
+		faqQ2: "¿Por qué no hay anuncios?",
+		faqA2: "Porque los anuncios de hoy no son carteles. Son subastas que gastan agua y batería a tus espaldas cada vez que cargas una página. Aquí no entran. El proyecto se sostiene con el apoyo voluntario de la gente en Ko-fi.",
+		faqQ3: "¿De dónde salen los datos del aire?",
+		faqA3: "De las estaciones oficiales repartidas por España y de los modelos europeos de Copernicus, servidos por Open-Meteo. Datos públicos y científicos, nada inventado.",
+		faqQ4: "¿Lo de las sombras es real?",
+		faqA4: "Sí. Se calcula con los edificios de OpenStreetMap y la posición del sol en cada minuto. Si el mapa dice sombra, es que un edificio de verdad te la está dando.",
+		faqQ5: "¿Me estáis espiando?",
+		faqA5: "No. No hay rastreadores ni cookies de terceros. Tus ajustes se guardan en tu propio navegador y de ahí no salen.",
+		faqQ6: "¿Hay app para el móvil?",
+		faqA6: "No hace falta. La web funciona en el navegador de cualquier móvil sin instalar nada y sin ocupar memoria. Si la guardas en la pantalla de inicio, se abre como una app.",
+		faqQ7: "¿Quién hace esto?",
+		faqA7: "Una persona, Sandro, desde Sevilla. Sin empresa detrás y sin ánimo de lucro. Con datos abiertos y con la ayuda de quien apoya el proyecto.",
+		faqQ8: "¿Puedo usarlo en mi ciudad?",
+		faqA8: "Si está en España, sí. Las estaciones y los edificios cubren todo el país. Fuera de España el aire funciona en muchos sitios, pero las sombras dependen de lo bien mapeada que esté la zona en OpenStreetMap.",
+		faqQ9: "¿Cómo puedo ayudar?",
+		faqA9: "Usándolo y contándolo. Y si te apetece, apoyando en Ko-fi para pagar los servidores. También puedes mejorar el mapa de tu barrio en OpenStreetMap, que es gratis y ayuda a todo el mundo.",
+		// El agua que no se ve (seccion + contadores). {n} es el numero de litros.
+		aguaTitulo: "El agua que no se ve",
+		aguaP1: "Esto ya no es una estimación: la telemetría real de los últimos 30 días dice ",
+		aguaS1: "176.444 peticiones, 1,80 GB movidos y 4.819 visitas",
+		aguaP2: ". O sea, ",
+		aguaS2: "0,38 MB y unos 2 mililitros de agua por visita",
+		aguaP3: ", medidos. Mientras tanto, la publicidad programática del mundo gasta ",
+		aguaS3: "unos 375 litros cada segundo",
+		aguaP4: " en subastas de anuncios que nadie pidió: al año, miles de piscinas olímpicas.",
+		aguaLink: "Ver las cuentas completas, con los supuestos a la vista →",
+		aguaVivoTpl: "Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados {n} litros de agua. Tu visita aquí: ~2 ml, medidos.",
+		// 28-sep-2026: marca SEO en el hero, enlace al generador del widget,
+		// enlace al codigo abierto del pie y la encuesta de CO2 (js/co2.js).
+		heroH1: "Manolito Aire. Rutas con sombra y calidad del aire en tiempo real",
+		anadeLink: "Añade Manolit∞ a tu web",
+		footerGithub: "Código abierto",
+		co2Pregunta: "Si no hubieras usado esta ruta fresca a pie, ¿cómo habrías hecho el trayecto?",
+		co2OpPie: "A pie (sin Manolito)",
+		co2OpBici: "Bicicleta",
+		co2OpCoche: "Coche",
+		co2OpMoto: "Moto",
+		co2OpAutobus: "Autobús",
+		co2ResPie: "Andando habrías emitido lo mismo, 0 g de CO2. La diferencia es que con Manolito vas por la fresca.",
+		co2ResBici: "En bici habrías emitido lo mismo, 0 g de CO2. La diferencia es la fresca del camino.",
+		co2ResTpl: "Con esta ruta a pie has evitado emitir aproximadamente {c} de CO2 frente a ir {m}.",
+		co2MedioCoche: "en coche",
+		co2MedioMoto: "en moto",
+		co2MedioAutobus: "en autobús",
+		co2Nota: "Esta pregunta es solo para ti. Tu respuesta no se guarda ni sale de tu navegador.",
+		// 01-oct-2026: ultimo tramo de la traduccion completa. Textos visibles
+		// que aun estaban fijos en espanol (splash, capas, seccion OSM, footer,
+		// cuantico, sello carbono...). Los bloques con HTML interno usan
+		// data-i18n-html. ES reproduce el HTML estatico original tal cual.
+		subBrand: "+ Sombras 3D",
+		splashTagline: "Respira ∞ Camina ∞ Refúgiate ∞ Mapea ∞",
+		accBtn: "♿ Modo accesible",
+		capasBtn: "Capas",
+		layerMicroclimate: "Microclima",
+		microTag: "Estimado",
+		groupContent: "Contenido del mapa",
+		groupBase: "Mapa base",
+		groupEntorno: "Entorno",
+		groupSolSombra: "Sol y sombra",
+		groupClimaAire: "Clima y aire",
+		groupRecorrido: "Recorrido",
+		groupBaseInfra: "Base e infraestructura",
+		groupEntornoClima: "Entorno y clima",
+		groupIluminacionSol: "Iluminación y sol",
+		capasTriggerAria: "Capas del mapa",
+		closeCapasAria: "Cerrar el panel de capas",
+		gameIntroBtn: "Juega con Manolit∞",
+		gameIntroBtnAdult: "Ponte a prueba con Manolit∞",
+		lidarBtn: "Renderizado LiDAR",
+		colaboraTit: "¿No hay 3D en tu zona?",
+		colaboraHint: "pulsa y te cuento cómo arreglarlo en 5 minutos ▾",
+		osmIntro: "Manolit∞ dibuja los edificios y los árboles con los datos de <strong>OpenStreetMap (OSM)</strong>, el mapa libre que hacemos entre todos. Si tu calle sale vacía, <strong>puedes pintarla tú en 5 minutos</strong> y le haces sombra a todo el barrio:",
+		osmPaso1: "Entra en <a href=\"https://www.openstreetmap.org\" rel=\"noopener\">openstreetmap.org</a>, crea una cuenta gratis y pulsa <strong>Editar</strong>.",
+		osmPaso2: "<strong>Árboles:</strong><ul style=\"margin:4px 0 0;padding-left:1.2em;\"><li><em>Árbol suelto</em> → dibuja un <strong>punto</strong> y ponle la etiqueta <code>natural=tree</code>. Si sabes la especie, mejor: <code>species=Naranjo amargo</code> o <code>genus=Citrus</code> (también vale <code>wikipedia=es:Naranjo</code>). Así sale con su copa, su color y su fruta de verdad.</li><li><em>Calle con hilera de árboles</em> → dibuja <strong>una sola línea</strong> por la acera con <code>natural=tree_row</code>. No pongas árbol por árbol: Manolit∞ los coloca solos, uno cada ~9 m, siguiendo tu línea.</li></ul>",
+		osmPaso3: "<strong>Edificios:</strong> dibuja el contorno y pon <code>building=yes</code>. Si sabes las plantas, añade <code>building:levels=4</code>. Con eso la sombra sale a la altura real y no “por defecto”.",
+		osmPaso4: "Guarda los cambios… y listo.",
+		osmCuando: "<strong>¿Cuándo sale en Manolit∞?</strong> No te preocupes: el mapa se actualiza solo <strong>cada semana</strong>, así que tu aporte aparece aunque no lo veas al momento. Y si pasa la semana y no sale, o te urge para algo, <a href=\"https://github.com/sandrow007/manolito-aire/issues\" rel=\"noopener\">escríbeme desde aquí</a> y te meto la actualización a mano. 🌳",
+		uvLabel: "Índice UV",
+		updatedPrefix: "Actualizado: ",
+		updatedPlaceholder: "Actualizado: --",
+		heroLoading: "Cargando el aire de tu ciudad…",
+		heroMoment: "Un momento.",
+		evolAire: "Evolución del aire",
+		legendHist: "Últimas 48h (dato real)",
+		legendFore: "Próximas 48h (pronóstico Copernicus/CAMS)",
+		quantumBadge: "Manolit∞ Cuántico",
+		quantumSub: "pronóstico simulado para los próximos 5 días, contado sin humo",
+		quantumDisclaimer: "Esto NO es una predicción meteorológica oficial. Es una simulación matemática (formalismo cuántico simulado por software, sin hardware cuántico real) que calcula probabilidades a partir del pronóstico real de arriba. Para decisiones de salud, guíate por el dato del gráfico y por fuentes oficiales, no por este número.",
+		footerFamiliaTxt: "Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.",
+		footerEcoTxt: "Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.",
+		footerIgnTxt: "Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)",
+		donacionTxt: "Manolit∞ siempre sera gratis.<br>Los servidores, por desgracia, no lo son...",
+		kofiBtn: "Apoyar en Ko‑fi",
+		comparativaLink: "Comparativa",
+		queEsLink: "Qué es Manolit∞ ©",
+		statusLoadedTpl: "Cargados {a}/{b} puntos en vivo.",
+		svgCarbon1: "0,015 g CO₂ / visita · más limpio que el 99%",
+		svgCarbon2: "102,7 KB · hosting 100% renovable",
+		svgCarbon3: "Medido con Website Carbon Calculator (1ClickImpact) · 16/09/2026",
+		pequeInit: "El aire está contento!",
+		saludIcoSol: "sol",
+		saludIcoSombra: "sombra",
+		saludIcoSalud: "salud",
+		saludIcoAgua: "agua",
+		saludIcoTemp: "temp.",
+		saludIcoPrev: "prevención",
+		saludIcoGroup: "Iconos de salud ambiental: sol, sombra, salud, agua, temperatura y prevención",
+		syncDoneTpl: "Sincronizado: {a} ajustes y {b} puntos. Recarga con Ctrl+Mayús+R para verlo todo aplicado.",
+		syncReadError: "No se pudo leer el archivo.",
+		treesLoading: "Cargando árboles…",
+		metaTitle: "Rutas con sombra y aire en tiempo real | Manolit∞ Aire",
+		metaDesc: "Calcula rutas a pie por las calles con más sombra y consulta la calidad del aire en vivo y las horas de sol. Gratis, sin registro y sin publicidad.",
+		// 01-oct-2026 (segunda pasada): claves que shadows-route.js pedia con
+		// t() y no existian, por eso el panel de ruta salia mezclado en ingles.
+		and: "y",
+		camBrujula: "Brújula, volver al norte y nivelar la vista",
+		camFull: "Pantalla completa",
+		camPitchDown: "Mirar hacia abajo",
+		camPitchUp: "Mirar hacia arriba",
+		camZoomIn: "Acercar",
+		camZoomOut: "Alejar",
+		layerLoadError: "No se ha podido cargar la capa. Inténtalo de nuevo.",
+		locationCalibrating: "Calibrando el GPS, unos segundos…",
+		locationNotCalibrated: "El GPS no ha llegado a buena precisión (20 m o menos). Acércate a una ventana o sal a cielo abierto, o pulsa «Elegir en el mapa» para marcar el punto a mano.",
+		locationUpdated: "Ubicación actualizada",
+		syncData: "Sincronizar / Exportar datos",
+		voiceGuide: "Guía por voz",
+		winterModeOff: "Modo invierno desactivado: las rutas vuelven a buscar la sombra.",
+		winterModeOn: "Modo invierno activado: la próxima ruta buscará el sol (los tramos en sombra pesan más).",
+		winterSunRoute: "Modo invierno: ruta por el sol",
+		camGroupLabel: "Zoom e inclinación del mapa",
+		a11yOffRoute: "Atención, parece que te has alejado de la ruta guiada. Detente, orientate y, si lo necesitas, vuelve sobre tus pasos.",
+		stepsHide: "Ocultar indicaciones",
+		stepsShow: "Ver indicaciones",
+		voiceGranted: "Voz activada. Manolit te acompaña.",
+		voiceNo: "Ahora no",
+		voicePermission: "¿Quieres que Manolit hable en voz alta? Puedes cambiarlo cuando quieras.",
+		voiceYes: "Permitir voz",
+		closeLbl: "Cerrar",
+		osmBtnError: "✕ Error",
+		mapButtonsToggle: "Mostrar u ocultar los botones del mapa",
+		sunPanelToggle: "Mostrar u ocultar el panel de posición solar",
+		ignMapTitle: "Cartografía del Instituto Geográfico Nacional (CC BY 4.0 scne.es)",
+		catastroTitle: "Densidad de alturas oficial del Catastro de España (gratis, sin registro)",
+		airChartLoadingData: "Cargando datos del aire…",
+		airChartAriaLabel: "Gráfica del aire: línea continua pasado reciente, línea discontinua previsión",
+		airChartNow: "ahora",
+		airStatsTpl: "PM2.5 próximas 24 h: media {m} µg/m³ · pico {p} · mínimo {n}",
+		airChartError: "No se pudo cargar el histórico ahora mismo (la API está saturada por las 500+ peticiones del mapa). Prueba a recargar en unos segundos.",
+		airChartLoading: "Cargando histórico y pronóstico…",
+		airGood: "aire bueno",
+		airMid: "aire moderado",
+		airBad: "aire malo",
+		saludSaturdayTitle: "Manolit∞ Aire · Sábado de la Salud",
+		saludSaturdaySub: "+ Sábado de la Salud",
+		qProbGood: "probabilidad de aire bueno",
+		qProbMid: "probabilidad de aire moderado",
+		qProbBad: "probabilidad de aire malo",
+		qDetailTpl: "{l}: {p} %. {d} en las próximas 24 h. PM2.5 medio previsto {m} µg/m³ (entre {a} y {b}).",
+		sun: "Sol",
+		moon: "Luna",
+		moonNew: "luna nueva",
+		moonWaxCres: "luna creciente",
+		moonFirstQ: "cuarto creciente",
+		moonWaxGib: "gibosa creciente",
+		moonFull: "luna llena",
+		moonWanGib: "gibosa menguante",
+		moonLastQ: "cuarto menguante",
+		moonWanCres: "luna menguante",
+		askMe: "¡Pregúntame!",
+		mapLayers: "Capas de mapa",
+		familyZoneAria: "La familia Manolit y por qué existe esto",
+		layerAirQuality: "Calidad del aire",
+		airLayerLive: "Estimación en vivo · Open-Meteo",
+		airLayerOffSpain: "Capa de aire apagada, fuera de España no tenemos fuente fiable.",
+		saludBannerFinTpl: "El verde es temporal, el {f} la web vuelve a su piel de siempre.",
+		escudosTitulo: "Escudos que nos cuidan",
+		escudosPorque: "Cuatro observatorios públicos de salud ambiental, de tu tierra al planeta. Publican los datos y los umbrales de calor en los que se apoya esta web, y su trabajo nos protege a todos.",
 	}
 };
 
-let currentLang = localStorage.getItem('manolito_lang') || 'es';
+// 10-oct-2026: bloque árabe completo de arranque. Partimos de la base
+// castellana para cubrir todas las claves existentes y aplicamos un primer
+// tramo de traducciones revisadas para interfaz principal y flujos críticos.
+translations.ar = {
+	...translations.es,
+	// 12-oct-2026 (orden de Sandro): los dos textos de sol y noche del
+	// popup de aparcamientos también en árabe revisado, no solo vía gancho.
+	parkingNightNow: "الآن ليل، لا شمس",
+	parkingSunUnknown: "لا يمكن معرفة ذلك",
+	tagline: "هواء وظل شارِعك، مباشر",
+	modesLabel: "كيف تريد أن أشرحه لك؟",
+	mode_ciudadano_title: "مواطن",
+	mode_ciudadano_sub: "واضح ومباشر",
+	mode_cientifico_title: "علمي",
+	mode_cientifico_sub: "بالبيانات",
+	mode_yayo_title: "الجدة / الجد",
+	mode_yayo_sub: "خط كبير، على مهل",
+	mode_peque_title: "للصغار (5 سنوات)",
+	mode_peque_sub: "مع رسومات",
+	imLost: "لا أفهم، اشرحها لي",
+	mapTitle: "هواء إسبانيا الآن",
+	legendGood: "جيدة",
+	legendMid: "متوسطة",
+	legendBad: "سيئة",
+	aboutLink: "لماذا يوجد هذا؟",
+	chatOpen: "اسأل مانوليت∞",
+	chatTitle: "مانوليت∞ يشرح لك",
+	chatWelcome: "أنا مانوليت∞. اسأل ما تحتاج.",
+	chatPlaceholder: "اكتب سؤالك هنا...",
+	chatSend: "إرسال",
+	region_peninsula: "شبه الجزيرة",
+	region_canarias: "جزر الكناري",
+	region_baleares: "جزر البليار",
+	region_ceutamelilla: "سبتة / مليلية",
+	statusLoading: "جارٍ تحميل البيانات المباشرة…",
+	legalNotice: "إشعار قانوني",
+	backToMap: "← العودة إلى الخريطة",
+	treesBtn: "الأشجار",
+	osmRefreshBtn: "↻ تحديث الخريطة",
+	osmRefreshTitle: "حمّل بيانات OpenStreetMap الجديدة (أشجار ونقاط) لهذه المنطقة",
+	osmRefreshing: "جارٍ التحميل…",
+	osmRefreshed: "✓ تم التحديث",
+	osmRefreshError: "تعذر التحديث الآن. جرّب بعد دقيقة.",
+	privacy: "الخصوصية",
+	cookies: "ملفات تعريف الارتباط",
+	searchBtn: "ابحث عن مسار",
+	searching: "جارٍ البحث…",
+	calculating: "جارٍ حساب المسار الحقيقي عبر الشوارع…",
+	geocoding: "جارٍ ترميز العناوين جغرافيًا…",
+	fillBoth: "أدخل نقطة البداية والوجهة.",
+	notFound: "غير موجود",
+	tryFormat: "جرّب كتابتها كـ: شارع، رقم، مدينة",
+	clickOrigin: "اضغط على الخريطة لتحديد نقطة البداية.",
+	clickDestiny: "تم تحديد البداية، اضغط على الوجهة.",
+	chooseDestination: "اختر الوجهة بكتابتها في الأعلى أو بزر «اختر على الخريطة».",
+	pointMap: "تم تحديد نقطة على الخريطة",
+	myLocation: "موقعي",
+	locationMarked: "تم تحديد الموقع كنقطة بداية",
+	locationDenied: "تعذر الحصول على موقعك (هل رفضت الإذن؟).",
+	locationAsking: "جارٍ طلب إذن الموقع…",
+	errorGeolocation: "هذا المتصفح لا يسمح بمشاركة موقعك.",
+	errorSearch: "تعذر رسم المسار. جرّب مجددًا بعد قليل.",
+	routeReal: "المسار",
+	routeEstimated: "الوقت التقديري بالمشي العادي",
+	skipToContent: "تجاوز إلى المحتوى الرئيسي",
+	accModeBtn: "♿ وضع الوصول",
+	accBtn: "♿ وضع الوصول",
+	layerGroup: "طبقات الخريطة",
+	timePresets: "إعدادات الوقت",
+	timeSlider: "وقت اليوم",
+	aqiTitle: "جودة الهواء عند نقطة الانطلاق",
+	chatDialogLabel: "دردشة مع مانوليت",
+	chatClose: "إغلاق الدردشة",
+	mapLayers: "طبقات الخريطة",
+	capasBtn: "طبقات",
+	capasTriggerAria: "طبقات الخريطة",
+	closeCapasAria: "إغلاق لوحة الطبقات",
+	subBrand: "+ ظلال ثلاثية الأبعاد",
+	splashTagline: "تنفّس ∞ امشِ ∞ احتمِ ∞ ارسم ∞",
+	saludBannerTexto: "في هذه الأرض، رعاية بيئتنا هي رعاية أجسادنا.",
+	saludBannerCta: "اكتشف لماذا ندافع عن الصحة البيئية وكل ركن من الظل.",
+	winterModeOn: "وضع الشتاء مفعّل: المسار التالي يبحث عن الشمس (وزن أعلى للمقاطع المشمسة).",
+	winterModeOff: "وضع الشتاء متوقف: المسارات تبحث عن الظل مجددًا.",
+	winterSunRoute: "وضع الشتاء: مسار مشمس",
+	voiceGuide: "دليل صوتي",
+	closeLbl: "إغلاق",
+	cookieGateAria: "إشعار ملفات تعريف الارتباط",
+	cookieGateTitle: "قبل الدخول",
+	cookieGateBody: "نستخدم الحد الأدنى فقط: تذكّر لغتك وسِمتك، وللسماح لدردشة مانوليتو بالعمل. بلا إعلانات ولا تتبّع من طرف ثالث.",
+	cookieGatePolicy: "عرض سياسة ملفات تعريف الارتباط",
+	cookieGateReject: "رفض",
+	cookieGateAccept: "قبول",
+	chatRouteAskDest: "أخبرني بالوجهة، أي مكان في العالم يصلح. بعدها سأستخدم موقعك لرسم المسار. وإن أردت رؤية طريقة العمل، اضغط «عرض مثال»."
+};
+
+const LANG_RTL = { ar: true };
+function leerLangGuardado() {
+	try { return localStorage.getItem('manolito_lang'); } catch (e) { return null; }
+}
+let currentLang = leerLangGuardado() || window.__manolitoLangInicial || 'es';
+
+function applyDocumentLangAttrs() {
+	const html = document.documentElement;
+	html.setAttribute('lang', currentLang);
+	const esRtl = !!LANG_RTL[currentLang];
+	html.setAttribute('dir', esRtl ? 'rtl' : 'ltr');
+	html.classList.toggle('rtl', esRtl);
+	html.classList.toggle('ltr', !esRtl);
+}
 
 function getMessages() {
 	return translations[currentLang] || translations.es;
@@ -2995,12 +3639,14 @@ function applyTranslations() {
 		const md = document.querySelector('meta[name="description"]');
 		if (md) md.setAttribute('content', dict.metaDesc);
 	}
-	document.documentElement.setAttribute('lang', currentLang);
+	applyDocumentLangAttrs();
 }
 
 function setLang(lang) {
 	currentLang = lang;
-	localStorage.setItem('manolito_lang', lang);
+	window.__manolitoLangInicial = lang;
+	window.__manolitoIdiomaResuelto = true;
+	try { localStorage.setItem('manolito_lang', lang); } catch (e) { }
 	applyTranslations();
 	// Disparamos evento para que shadows-route.js y otros scripts sepan que
 	// cambió el idioma y retraduzcan sus propios textos dinámicos, sin
@@ -3010,20 +3656,38 @@ function setLang(lang) {
 			lang: lang
 		}
 	}));
+	if (typeof window.manolitoApplyGoogleLanguage === 'function') window.manolitoApplyGoogleLanguage(lang);
 	if (typeof renderHero === 'function') renderHero();
 }
 
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', () => {
-	applyTranslations();
-	const toggle = document.getElementById('langToggle');
-	if (toggle) {
-		toggle.addEventListener('click', (e) => {
-			if (e.target.tagName === 'BUTTON') setLang(e.target.dataset.lang);
-		});
+	const iniciar = () => {
+		if (window.__manolitoLangInicial) currentLang = window.__manolitoLangInicial;
+		applyTranslations();
+		// Se lanza al final del ciclo para dejar que terminen primero los
+		// traductores específicos de cada página (legal, about, etc.) y que
+		// Google traduzca el DOM ya definitivo.
+		if (typeof window.manolitoApplyGoogleLanguage === 'function') {
+			setTimeout(() => window.manolitoApplyGoogleLanguage(currentLang), 0);
+		}
+		const toggle = document.getElementById('langToggle');
+		if (toggle) {
+			toggle.addEventListener('click', (e) => {
+				if (e.target.tagName === 'BUTTON') setLang(e.target.dataset.lang);
+			});
+		}
+		initModoAccesible();
+	};
+	if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
+		document.addEventListener('langChanged', (e) => {
+			if (e && e.detail && e.detail.lang) currentLang = e.detail.lang;
+			iniciar();
+		}, { once: true });
+		return;
 	}
-	initModoAccesible();
+	iniciar();
 });
 
 /* ============================================================
@@ -3109,383 +3773,103 @@ window.setLang = setLang;
 window.getCurrentLang = function () { return currentLang; };
 
 /* ============================================================
-   BOTÓN MÁGICO DE TRADUCCIÓN (01-oct-2026, orden directa de Sandro)
-   "Dejad de traducir a mano elemento a elemento: que la página
-   entera se traduzca sola, sin excepciones, sin romper lo que
-   ya funciona."
-
-   Cómo cubre TODO, en tres pisos, de más seguro a más automático:
-
-   1) data-i18n (lo de siempre, INTACTO): applyTranslations sigue
-      haciendo su trabajo arriba. Aquí no se toca.
-
-   2) BARREDOR POR DICCIONARIO: se construye un índice inverso
-      (texto español -> clave) a partir de translations.es y se
-      recorre la página con un TreeWalker. Cualquier texto visible
-      que exista en el diccionario se cambia por su traducción,
-      aunque nadie le puso data-i18n. Solo coincidencias EXACTAS:
-      nunca inventa, nunca adivina.
-
-   3) TRADUCCIÓN AUTOMÁTICA (MT) de último recurso: lo que no está
-      en el diccionario (frases nuevas que alguien meta mañana en
-      el HTML sin avisar) se manda, una a una y sin prisa, a la
-      ruta /traduce del worker (MyMemory, gratis, sin clave, UE).
-      Cada frase se traduce UNA vez por idioma y se guarda en
-      localStorage para siempre. Si el servicio falla o se acaba la
-      cuota, la frase se queda en español y la consola no se entera.
-
-   Reglas que no se saltan nada:
-   - No toca scripts, estilos, código, ni lo que escribe la persona
-     en el chat. No toca la marca: nada que lleve "Manolit" pasa por
-     la MT. Las páginas legales (aviso, privacidad, cookies) no se
-     traducen por máquina: un texto legal traducido a lo bruto es
-     peor que uno claro en español.
-   - En español no barre: solo devuelve a su texto original lo que
-     hubiera traducido antes (cambiar de inglés a español restaura).
-   - MutationObserver con espera de 300 ms: lo que aparezca después
-     (globos del chat, paneles que se inyectan, el mapa) se traduce
-     al llegar, sin bucles ni calentar el móvil. Nuestras propias
-     escrituras no re-disparan traducciones porque el texto ya no
-     coincide con el español del índice.
+   Google Translate (fallback automático global)
    ============================================================ */
 (function () {
-	if (window.__manolitBotonMagico) return;
-	window.__manolitBotonMagico = true;
+	if (window.__manolitoGoogleTranslateIniciado) return;
+	window.__manolitoGoogleTranslateIniciado = true;
 
-	function normaliza(s) {
-		return String(s).replace(/\s+/g, ' ').trim();
+	const GT_ALLOWED = ['es', 'ca', 'eu', 'gl', 'en', 'ka', 'ar'];
+	const GT_MAP = { es: 'es', ca: 'ca', eu: 'eu', gl: 'gl', en: 'en', ka: 'ka', ar: 'ar' };
+	let gtPromise = null;
+	let gtReady = false;
+	let gtPendiente = null;
+
+	function crearContenedor() {
+		let host = document.getElementById('google_translate_element');
+		if (host) return host;
+		host = document.createElement('div');
+		host.id = 'google_translate_element';
+		host.className = 'notranslate';
+		host.setAttribute('translate', 'no');
+		host.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;pointer-events:none;opacity:0;';
+		document.body.appendChild(host);
+		return host;
 	}
 
-	// Índice inverso perezoso: texto español normalizado -> clave.
-	// Se saltan las plantillas con {huecos} (no coinciden tal cual) y
-	// los valores con HTML (esos los traduce data-i18n-html).
-	let indiceEs = null;
-	function construirIndice() {
-		if (indiceEs) return indiceEs;
-		indiceEs = new Map();
-		Object.keys(translations.es).forEach(k => {
-			if (/Tpl$/.test(k)) return;
-			const v = translations.es[k];
-			if (typeof v !== 'string') return;
-			if (v.indexOf('<') !== -1) return;
-			const n = normaliza(v);
-			if (n.length < 3) return;
-			if (!/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(n)) return;
-			if (!indiceEs.has(n)) indiceEs.set(n, k);
-		});
-		return indiceEs;
-	}
-
-	// Memoria de lo traducido: WeakMap para la clave, Set para poder
-	// repintar al cambiar de idioma (el WeakMap no se puede recorrer).
-	const nodoClave = new WeakMap();   // nodo de texto -> clave
-	const nodosVivos = new Set();      // nodos traducidos y conectados
-	const attrClaves = new WeakMap();  // elemento -> { atributo: clave }
-	const attrsVivos = new Set();      // elementos con atributos traducidos
-	let escribiendo = false;           // candado frente a nuestro propio observador
-
-	const SALTAR_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, CODE: 1, PRE: 1, TEXTAREA: 1, IFRAME: 1, CANVAS: 1, KBD: 1, SAMP: 1 };
-	function saltarContenedor(el) {
-		for (let p = el; p && p.nodeType === 1; p = p.parentElement) {
-			if (SALTAR_TAGS[p.tagName]) return true;
-			if (p.isContentEditable) return true;
-			if (p.getAttribute && p.getAttribute('translate') === 'no') return true;
-			if (p.hasAttribute && (p.hasAttribute('data-i18n') || p.hasAttribute('data-i18n-html'))) return true;
-			if (p.id === 'langToggle') return true; // cada idioma, en su idioma
-			if (p.classList && p.classList.contains('chat-msg') && p.classList.contains('user')) return true;
+	function aplicarIdiomaGoogle(lang) {
+		const destino = GT_MAP[lang] || 'es';
+		if (!document.body || !window.google || !window.google.translate || !window.google.translate.TranslateElement) {
+			gtPendiente = destino;
+			return false;
 		}
-		return false;
-	}
-
-	function ponerTextoNodo(nodo, dest) {
-		const v = nodo.nodeValue;
-		if (normaliza(v) === normaliza(dest)) return;
-		const cabeza = /^\s*/.exec(v)[0], cola = /\s*$/.exec(v)[0];
-		escribiendo = true;
-		nodo.nodeValue = cabeza + dest + cola;
-		escribiendo = false;
-	}
-
-	function traducirNodo(nodo) {
-		let clave = nodoClave.get(nodo);
-		if (!clave && currentLang === 'es') return; // en español no hay nada que buscar
-		const d = translations[currentLang] || translations.es;
-		if (!clave) {
-			const n = normaliza(nodo.nodeValue);
-			if (n.length < 3) return;
-			clave = construirIndice().get(n);
-			if (!clave) { ofrecerMTNodo(nodo, n); return; }
-			nodoClave.set(nodo, clave);
-			nodosVivos.add(nodo);
+		crearContenedor();
+		const combo = document.querySelector('.goog-te-combo');
+		if (!combo) {
+			gtPendiente = destino;
+			return false;
 		}
-		const dest = d[clave];
-		if (typeof dest !== 'string' || !dest) return;
-		ponerTextoNodo(nodo, dest);
-	}
-
-	function traducirAtributo(el, attr) {
-		const actual = el.getAttribute(attr);
-		if (actual == null || actual === '') return;
-		let mapa = attrClaves.get(el);
-		let clave = mapa && mapa[attr];
-		if (!clave && currentLang === 'es') return;
-		const d = translations[currentLang] || translations.es;
-		if (!clave) {
-			const n = normaliza(actual);
-			if (n.length < 3) return;
-			clave = construirIndice().get(n);
-			if (!clave) { ofrecerMTAtributo(el, attr, n); return; }
-			if (!mapa) { mapa = {}; attrClaves.set(el, mapa); }
-			mapa[attr] = clave;
-			attrsVivos.add(el);
+		if (combo.value !== destino) {
+			combo.value = destino;
+			combo.dispatchEvent(new Event('change', { bubbles: true }));
 		}
-		const dest = d[clave];
-		if (typeof dest !== 'string' || !dest) return;
-		if (actual !== dest) {
-			escribiendo = true;
-			el.setAttribute(attr, dest);
-			escribiendo = false;
-		}
-	}
-
-	const ATTRS = ['title', 'aria-label', 'placeholder', 'alt'];
-	function barrer(raiz) {
-		if (!raiz || currentLang === 'es') return;
-		try {
-			const walker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT, {
-				acceptNode(n) {
-					if (!n.nodeValue || !/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
-					const p = n.parentElement;
-					if (!p || saltarContenedor(p)) return NodeFilter.FILTER_REJECT;
-					return NodeFilter.FILTER_ACCEPT;
-				}
-			});
-			const lista = [];
-			while (walker.nextNode()) lista.push(walker.currentNode);
-			lista.forEach(traducirNodo);
-			if (raiz.nodeType !== 1 || !raiz.querySelectorAll) return;
-			const candidatos = Array.from(raiz.querySelectorAll('[title],[aria-label],[placeholder],[alt]'));
-			if (ATTRS.some(a => raiz.hasAttribute(a))) candidatos.unshift(raiz);
-			candidatos.forEach(el => {
-				if (saltarContenedor(el)) return;
-				if (el.hasAttribute('data-i18n-placeholder') || el.hasAttribute('data-i18n-aria-label')) return;
-				ATTRS.forEach(a => traducirAtributo(el, a));
-				if (el.tagName === 'INPUT') {
-					const tipo = (el.getAttribute('type') || 'text').toLowerCase();
-					if (tipo === 'button' || tipo === 'submit') traducirAtributo(el, 'value');
-				}
-			});
-		} catch (e) { /* el barrido jamás rompe la página */ }
-	}
-
-	// Al cambiar de idioma (también al volver a español): todo lo que
-	// se tradujo por diccionario se repinta con la clave que guardamos.
-	function repintarGuardados() {
-		const d = translations[currentLang] || translations.es;
-		nodosVivos.forEach(nodo => {
-			if (!nodo.isConnected) { nodosVivos.delete(nodo); return; }
-			const clave = nodoClave.get(nodo);
-			const dest = clave && d[clave];
-			if (typeof dest === 'string' && dest) ponerTextoNodo(nodo, dest);
-		});
-		attrsVivos.forEach(el => {
-			if (!el.isConnected) { attrsVivos.delete(el); return; }
-			const mapa = attrClaves.get(el);
-			if (!mapa) return;
-			Object.keys(mapa).forEach(attr => {
-				const dest = d[mapa[attr]];
-				if (typeof dest === 'string' && dest && el.getAttribute(attr) !== dest) {
-					escribiendo = true;
-					el.setAttribute(attr, dest);
-					escribiendo = false;
-				}
-			});
-		});
-	}
-
-	/* ---------------- Tercer piso: traducción automática ----------------
-	   Cola tranquila: una petición cada 320 ms, en pausa si la pestaña
-	   está oculta, y con caché por idioma+frase en localStorage para no
-	   pedir dos veces lo mismo en la vida. La marca y las páginas
-	   legales quedan fuera. */
-	const MT_IDIOMAS = { ca: 'ca', eu: 'eu', gl: 'gl', en: 'en', ka: 'ka' };
-	const mtItems = new Set();          // { original, aplicar, restaurar, conectado }
-	const mtPendientes = new Map();     // texto español -> [items esperando]
-	const mtNodosReg = new WeakSet();   // nodos ya apuntados a la MT
-	const mtAttrsReg = new WeakMap();   // elemento -> Set de atributos apuntados
-	let mtTimer = null;
-	let mtFallosSeguidos = 0;
-	let mtSilenciado = false;           // 3 fallos seguidos: paramos en silencio
-	const esPaginaLegal = /(aviso-legal|privacidad|cookies|cookie)/i.test(location.pathname);
-
-	function mtCacheKey(lang, texto) {
-		let h = 5381;
-		for (let i = 0; i < texto.length; i++) h = ((h << 5) + h + texto.charCodeAt(i)) >>> 0;
-		return 'manolito_trad_' + lang + '_' + h.toString(36) + '_' + texto.length;
-	}
-	function mtCacheLeer(lang, texto) {
-		try { return localStorage.getItem(mtCacheKey(lang, texto)); } catch (e) { return null; }
-	}
-	function mtCacheGuardar(lang, texto, trad) {
-		try { localStorage.setItem(mtCacheKey(lang, texto), trad); } catch (e) { /* sin espacio: va sin caché */ }
-	}
-
-	function esTraducibleMT(n) {
-		if (!n || n.length < 3 || n.length > 280) return false;
-		if (!/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(n)) return false;
-		if (/manolit/i.test(n)) return false;              // la marca no se toca
-		if (/^(https?:|www\.|#|\/)/i.test(n)) return false; // URLs y anclas
-		if (/^[\d\s.,:;%€$+\-–—/()'"¿?¡!]+$/.test(n)) return false; // sin letras reales
+		gtPendiente = null;
 		return true;
 	}
 
-	function encolarMT(item) {
-		if (currentLang === 'es' || !MT_IDIOMAS[currentLang]) return;
-		if (mtSilenciado || esPaginaLegal) return;
-		if (!esTraducibleMT(item.original)) return;
-		const enCache = mtCacheLeer(currentLang, item.original);
-		if (enCache) { item.aplicar(enCache, currentLang); return; }
-		mtItems.add(item);
-		const lista = mtPendientes.get(item.original) || [];
-		lista.push(item);
-		mtPendientes.set(item.original, lista);
-		if (!mtTimer) mtTimer = setInterval(mtPaso, 320);
-	}
-
-	function mtPaso() {
-		if (document.hidden) return; // pestaña oculta: ni una petición
-		if (mtSilenciado) { clearInterval(mtTimer); mtTimer = null; return; }
-		const primero = mtPendientes.keys().next();
-		if (primero.done) { clearInterval(mtTimer); mtTimer = null; return; }
-		const texto = primero.value;
-		const items = mtPendientes.get(texto) || [];
-		mtPendientes.delete(texto);
-		const lang = currentLang;
-		fetch('/traduce?q=' + encodeURIComponent(texto) + '&a=' + MT_IDIOMAS[lang])
-			.then(r => (r && r.ok ? r.json() : null))
-			.then(d => {
-				if (d && d.ok && typeof d.texto === 'string' && d.texto.trim()) {
-					mtFallosSeguidos = 0;
-					mtCacheGuardar(lang, texto, d.texto);
-					items.forEach(i => { if (i.conectado()) i.aplicar(d.texto, lang); });
-				} else {
-					mtFallosSeguidos++;
-					if (mtFallosSeguidos >= 3) mtSilenciado = true;
-				}
-			})
-			.catch(() => {
-				mtFallosSeguidos++;
-				if (mtFallosSeguidos >= 3) mtSilenciado = true;
-			});
-	}
-
-	function ofrecerMTNodo(nodo, n) {
-		if (currentLang === 'es' || mtNodosReg.has(nodo)) return;
-		mtNodosReg.add(nodo);
-		const v = nodo.nodeValue;
-		const cabeza = /^\s*/.exec(v)[0], cola = /\s*$/.exec(v)[0];
-		encolarMT({
-			original: n,
-			conectado: () => nodo.isConnected,
-			aplicar: (txt, lang) => {
-				if (lang !== currentLang) return;
-				escribiendo = true;
-				nodo.nodeValue = cabeza + txt + cola;
-				escribiendo = false;
-			},
-			restaurar: () => {
-				escribiendo = true;
-				nodo.nodeValue = cabeza + n + cola;
-				escribiendo = false;
+	function initGoogleTranslate() {
+		if (gtPromise) return gtPromise;
+		gtPromise = new Promise((resolve) => {
+			function finalizar() {
+				gtReady = true;
+				if (gtPendiente) aplicarIdiomaGoogle(gtPendiente);
+				resolve(true);
 			}
-		});
-	}
-
-	function ofrecerMTAtributo(el, attr, n) {
-		if (currentLang === 'es') return;
-		let reg = mtAttrsReg.get(el);
-		if (reg && reg.has(attr)) return;
-		if (!reg) { reg = new Set(); mtAttrsReg.set(el, reg); }
-		reg.add(attr);
-		encolarMT({
-			original: n,
-			conectado: () => el.isConnected,
-			aplicar: (txt, lang) => {
-				if (lang !== currentLang) return;
-				escribiendo = true;
-				el.setAttribute(attr, txt);
-				escribiendo = false;
-			},
-			restaurar: () => {
-				escribiendo = true;
-				el.setAttribute(attr, n);
-				escribiendo = false;
-			}
-		});
-	}
-
-	// Cambio de idioma con la MT en marcha: lo traducido por máquina se
-	// restaura (español), se aplica desde caché o se vuelve a encolar.
-	function repintarMT() {
-		mtItems.forEach(item => {
-			if (!item.conectado()) { mtItems.delete(item); return; }
-			if (currentLang === 'es') { item.restaurar(); return; }
-			const enCache = mtCacheLeer(currentLang, item.original);
-			if (enCache) item.aplicar(enCache, currentLang);
-			else encolarMT(item);
-		});
-	}
-
-	// Lo que se inyecta después (chat, paneles, mapa) pasa por aquí.
-	let barridoPendiente = null;
-	function alMutar(muts) {
-		if (escribiendo || currentLang === 'es') return;
-		if (barridoPendiente) clearTimeout(barridoPendiente);
-		const raices = new Set();
-		muts.forEach(m => {
-			if (m.type === 'characterData') {
-				if (m.target && m.target.parentElement) raices.add(m.target);
-			} else {
-				m.addedNodes.forEach(n => raices.add(n));
-			}
-		});
-		barridoPendiente = setTimeout(() => {
-			barridoPendiente = null;
-			raices.forEach(r => {
+			window.googleTranslateElementInit = function () {
 				try {
-					if (!r.isConnected) return;
-					if (r.nodeType === 3) {
-						if (r.parentElement && !saltarContenedor(r.parentElement)) traducirNodo(r);
-					} else if (r.nodeType === 1 && !saltarContenedor(r)) {
-						barrer(r);
-					}
-				} catch (e) { /* mutación rara: se ignora */ }
-			});
-		}, 300);
+					crearContenedor();
+					new window.google.translate.TranslateElement({
+						pageLanguage: 'es',
+						includedLanguages: GT_ALLOWED.join(','),
+						autoDisplay: false,
+						layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE
+					}, 'google_translate_element');
+				} catch (e) { }
+				setTimeout(finalizar, 80);
+			};
+			if (document.querySelector('script[data-manolito-google-translate="1"]')) {
+				setTimeout(() => resolve(false), 0);
+				return;
+			}
+			const s = document.createElement('script');
+			s.async = true;
+			s.defer = true;
+			s.dataset.manolitoGoogleTranslate = '1';
+			s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+			s.onerror = () => resolve(false);
+			document.head.appendChild(s);
+		});
+		return gtPromise;
 	}
 
-	document.addEventListener('langChanged', () => {
-		repintarGuardados();
-		repintarMT();
-		if (currentLang !== 'es') {
-			// Dos pasadas tardías por si algún módulo repinta después que
-			// nosotros (el observador de mutaciones también las caza).
-			setTimeout(() => barrer(document.body), 80);
-			setTimeout(() => barrer(document.body), 700);
+	window.manolitoApplyGoogleLanguage = function (lang) {
+		const destino = GT_MAP[lang] || 'es';
+		if (destino === 'es' && !gtReady) return;
+		if (destino === 'es' && gtReady && document.querySelector('.goog-te-combo')) {
+			aplicarIdiomaGoogle('es');
+			return;
 		}
-	});
+		gtPendiente = destino;
+		initGoogleTranslate().then(() => aplicarIdiomaGoogle(destino));
+	};
 
-	document.addEventListener('DOMContentLoaded', () => {
-		try {
-			construirIndice();
-			if (currentLang !== 'es') {
-				barrer(document.body);
-				setTimeout(() => barrer(document.body), 900);
-				setTimeout(() => barrer(document.body), 2600);
-			}
-			new MutationObserver(alMutar).observe(document.body, {
-				childList: true, subtree: true, characterData: true
-			});
-		} catch (e) { /* el botón mágico jamás tira la página */ }
-	});
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', () => {
+			const inicial = GT_MAP[currentLang] || 'es';
+			window.manolitoApplyGoogleLanguage(inicial);
+		}, { once: true });
+	} else {
+		const inicial = GT_MAP[currentLang] || 'es';
+		window.manolitoApplyGoogleLanguage(inicial);
+	}
 })();

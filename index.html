@@ -13,7 +13,7 @@
 <meta name="msvalidate.01" content="BB80160D0DDA8E571A69649E11438153" />
 <!-- Hueco para la meta de verificacion de Google Search Console (la aporta Sandro):
      <meta name="google-site-verification" content="..." /> -->
-<script type="text/javascript" nonce="9ab117842feb4fb78886e865c67" src="//local.adguard.org?ts=1791764208314&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20261012%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20261012T011509Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Dd3fc1570dcef522b67e42ccbe144d0c5b46117770585e3791eef5b67fc811c3e%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="9ab117842feb4fb78886e865c67" src="//local.adguard.org?ts=1791764208314&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
+<script type="text/javascript" nonce="9ab117842feb4fb78886e865c67" src="//local.adguard.org?ts=1791825564148&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20261012%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20261012T172142Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3De9797d5d88c7863aa087680347a019e5d4c44952706f5d9db1d735dc1d2dcd03%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="9ab117842feb4fb78886e865c67" src="//local.adguard.org?ts=1791825564148&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://manolitoaire.com/">
 <meta property="og:title" content="Rutas con sombra y aire en tiempo real | Manolit∞ Aire">
@@ -2149,6 +2149,48 @@
             noche: 'დასვენების დროა, ხვალ კიდევ მეტი თამაში იქნება.'
           },
           subNeutro: 'ცის ამინდის ცნობა ახლა არ მიმაღწევს.'
+        },
+        ar: {
+          // 12-oct-2026 (orden de Sandro): el hero del modo peque también
+          // habla árabe, con la misma voz cercana de los otros idiomas.
+          buena: [
+            { msg: 'الهواء سعيد!', humano: 'يمكنك اللعب في الخارج طوال اليوم!', sub: 'سماء صافية.' },
+            { msg: 'يا له من هواء نظيف اليوم!', humano: 'اجرِ واقفز والعب قدر ما تشاء!', sub: 'يوم مثالي للحديقة.' },
+            { msg: 'الهواء في عيد اليوم.', humano: 'إلى الخارج، فالتنفس رائع اليوم!', sub: 'لا غيوم غبار في أي مكان.' },
+            { msg: 'السماء سعيدة اليوم.', humano: 'يوم جميل للدراجة أو الكرة في الحديقة.', sub: 'هواء بارد ونظيف.' }
+          ],
+          moderada: [
+            { msg: 'الهواء متوسط اليوم...', humano: 'يمكنك الخروج، لكن الأفضل ألا تركض كثيرًا.', sub: 'جودة مقبولة.' },
+            { msg: 'الهواء خجول قليلًا اليوم.', humano: 'يمكن اللعب في الخارج بهدوء ومن دون إجهاد.', sub: 'لا جيد تمامًا ولا سيئ.' },
+            { msg: 'الهواء عادي اليوم.', humano: 'الأفضل ألعاب هادئة في الخارج اليوم.', sub: 'لا شيء خطير، فقط ضعيف قليلًا.' }
+          ],
+          mala: [
+            { msg: 'الهواء يحتاج إلى حنان...', humano: 'اليوم من الأفضل أن نبقى في الداخل لنرسم.', sub: 'جسيمات كثيرة في الشارع.' },
+            { msg: 'الهواء غاضب قليلًا اليوم.', humano: 'حان وقت اللعب داخل البيت قليلًا، هل نبني شيئًا؟', sub: 'الأفضل أن ننتظر حتى يهدأ.' },
+            { msg: 'السماء متعبة اليوم.', humano: 'هيّا نرسم أو نقرأ قصة داخل البيت.', sub: 'هواء الخارج يحتاج إلى راحة.' }
+          ],
+          climaMsg: {
+            despejado: 'شمس رائعة!',
+            nublado: 'السحاب هو صاحب الكلمة اليوم.',
+            lluvia: 'إنها تمطر!',
+            tormenta: 'عاصفة قادمة!',
+            noche: 'قمر صافٍ الليلة.'
+          },
+          climaSub: {
+            despejado: 'سماء صافية وشمس رائعة.',
+            nublado: 'غيوم عالية، لكنها لا تمطر.',
+            lluvia: 'إنها تمطر الآن.',
+            tormenta: 'هناك عاصفة الآن.',
+            noche: 'الليل الآن والسماء صافية.'
+          },
+          climaHumano: {
+            despejado: 'الشمس ساطعة، فلنلعب في الخارج مع قبعة وماء.',
+            nublado: 'غيوم في الأعلى، لكن يمكن اللعب في الخارج بهدوء.',
+            lluvia: 'يوم البرك والمظلة وألعاب داخل البيت.',
+            tormenta: 'ما دامت ترعد، فالأفضل البقاء في الداخل وبعيدًا عن النوافذ.',
+            noche: 'حان وقت الراحة، وغدًا مزيد من اللعب.'
+          },
+          subNeutro: 'لا يصلني تقرير السماء الآن.'
         }
       };
 

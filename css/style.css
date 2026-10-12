@@ -3295,3 +3295,12 @@ h2.map-title, h2.quantum-badge{ margin:0; }
 .footer-sellos .sello-footer{ opacity:1; }
 .footer-sellos .footer-sello{ opacity:1; }
 [data-theme="dark"] .footer .escudo-gama{ color:#7FD4DE; }
+
+/* 12-oct-2026 (orden de Sandro): en árabe (RTL) la tarjeta flotante de
+   capas es un flex en columna con flex-wrap:wrap heredado, y Chromium con
+   direction:rtl calcula mal el origen de las líneas de flex: la lista se
+   desplazaba fuera de la tarjeta por la izquierda y los títulos de grupo
+   quedaban cortados por el borde. Con nowrap la lista queda centrada y a
+   su ancho de contenido, igual que en LTR. Solo se toca RTL, LTR intacto. */
+html.rtl body.rs-capas-pop #main-content .rs-layer-toggles{ flex-wrap:nowrap; }
+html.rtl #main-content .rs-capa-grupo-tit{ text-align:right; }

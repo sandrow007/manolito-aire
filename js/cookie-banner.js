@@ -122,7 +122,14 @@ function cookiesAccepted(){
 
 function initCookieBannerCuandoIdiomaListo() {
   if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
-    document.addEventListener('langChanged', initCookieBanner, { once: true });
+    // 12-oct-2026 (orden de Sandro): el banner se creaba en español al elegir
+    // idioma en la pantalla de entrada. Este script se ejecuta antes de que
+    // i18n.js registre su propio listener de langChanged, así que al dispararse
+    // el evento el banner se pintaba ANTES de que i18n aplicara el idioma
+    // elegido. Con el setTimeout(0) la creación se difiere al final del evento,
+    // cuando i18n.js ya ha cambiado los textos, y el banner sale en el idioma
+    // correcto (árabe incluido) sin tocar diseño ni flujo.
+    document.addEventListener('langChanged', () => setTimeout(initCookieBanner, 0), { once: true });
     return;
   }
   initCookieBanner();

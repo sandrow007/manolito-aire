@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- sitemap.xml de manolitoaire.com (12-oct-2026)
+     Versión para Bing Webmaster Tools (y vale igual para Google).
+     Solo URLs que EXISTEN de verdad en el repo, con el nombre de archivo
+     real: el worker sirve los estáticos tal cual, sin reescrituras, así
+     que /about no existe, es /about.html. Fuera manolito-api.html (ya no
+     está en el repo) y main.html (no enlaza desde ninguna página).
+     lastmod solo donde conocemos la fecha real de cambio; en el resto se
+     omite antes que inventarla. La web es multilingüe por JavaScript (sin
+     URL por idioma), así que no hay hreflang: todos los idiomas comparten
+     la misma URL canónica. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://manolitoaire.com/</loc>
+    <lastmod>2026-10-12</lastmod>
+  </url>
+  <url>
+    <loc>https://manolitoaire.com/about.html</loc>
+  </url>
+  <url>
+    <loc>https://manolitoaire.com/anade-manolito.html</loc>
+  </url>
+  <url>
+    <loc>https://manolitoaire.com/manolito-aire-comparativa.html</loc>
+  </url>
+  <url>
+    <loc>https://manolitoaire.com/widget.html</loc>
+  </url>
+  <url>
+    <loc>https://manolitoaire.com/aviso-legal.html</loc>
+    <lastmod>2026-10-12</lastmod>
+  </url>
+  <url>
+    <loc>https://manolitoaire.com/privacidad.html</loc>
+    <lastmod>2026-10-12</lastmod>
+  </url>
+  <url>
+    <loc>https://manolitoaire.com/cookies.html</loc>
+    <lastmod>2026-10-12</lastmod>
+  </url>
+</urlset>

@@ -2641,10 +2641,19 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
 }
 
 /* ---------- Móvil: bottom sheet ----------
-   Hoja pegada al borde inferior del mapa, max-height 70dvh, asa
-   visual, cierre con la X y scroll interno. Respeta la safe-area
-   inferior. El botón queda en la esquina inferior derecha, por
-   encima de la atribución y sin tapar la ruta. */
+   12-oct-2026 (orden de Sandro, rediseño del panel en móvil): la hoja
+   era un flex en columna con flex-wrap:wrap heredado de la regla base;
+   al superar el contenido la altura máxima, la lista se ENVOLVÍA a una
+   segunda columna: cabecera sola a la izquierda (columna vacía debajo),
+   lista montando una columna nueva y los interruptores cortados por el
+   borde derecho de la tarjeta. Ahora: nowrap en TODOS los idiomas, una
+   sola columna a ancho completo, la lista llena la tarjeta y hace scroll
+   interno fluido, y la hoja flota separada de los bordes (ni la barra
+   del sistema, ni el widget solar ni el borde de pantalla la tocan),
+   con la safe-area respetada y la última fila («Mapa oscuro») entera
+   gracias al scroll-padding. La animación de apertura y cierre es la
+   misma transición suave de siempre, con un desplazamiento un poco más
+   de hoja (14 px) al flotar sobre el mapa. */
 @media (max-width:639.98px){
   #main-content #rsBtnCapasFlotante{
     top:auto;
@@ -2652,28 +2661,38 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
     right:calc(12px + env(safe-area-inset-right, 0px));
   }
   body.rs-capas-pop #main-content .rs-planetario-capas{
-    top:auto; left:0; right:0; bottom:0;
-    width:auto; max-width:none; max-height:70dvh;
+    top:auto;
+    left:calc(8px + env(safe-area-inset-left, 0px));
+    right:calc(8px + env(safe-area-inset-right, 0px));
+    bottom:calc(10px + env(safe-area-inset-bottom, 0px));
+    width:auto; max-width:none; max-height:min(72dvh, 560px);
     display:flex; flex-direction:column;
   }
-  body.rs-capas-pop #main-content .rs-planetario-capas.rs-capas-cerrada{ transform:translateY(8px); }
+  body.rs-capas-pop #main-content .rs-planetario-capas.rs-capas-cerrada{ transform:translateY(14px); }
   body.rs-capas-pop #main-content .rs-layer-toggles{
-    border-radius:16px 16px 0 0; max-height:70dvh;
-    display:flex; flex-direction:column;
-    padding-bottom:env(safe-area-inset-bottom, 0px);
+    border-radius:16px; max-height:100%;
+    display:flex; flex-direction:column; flex-wrap:nowrap; align-items:stretch;
+    padding-bottom:0; overflow:hidden;
   }
   /* El asa visual de la hoja. */
   body.rs-capas-pop #main-content .rs-layer-toggles::before{
     content:""; flex:0 0 auto; width:36px; height:4px; border-radius:2px;
     background:var(--mui-line-2); margin:6px auto 0;
   }
+  /* La lista: una columna a todo el ancho de la tarjeta, con el scroll
+     interno de siempre y aire abajo para que la última fila (los mapas
+     base) nunca quede a medias ni pegada al borde. */
   body.rs-capas-pop #main-content .rs-layer-toggles-lista{
-    max-height:calc(70dvh - 56px); overflow-y:auto;
+    flex:1 1 auto; min-height:0; width:100%; align-self:stretch;
+    max-height:none; overflow-y:auto;
+    overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+    padding:2px 8px calc(10px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom:12px;
   }
-  body.rs-capas-pop #main-content #rsMapStyleToggle{ grid-template-columns:repeat(3, 1fr) !important; }
-  body.rs-capas-pop #main-content #rsMapStyleToggle button{
-    flex-direction:column; justify-content:center; text-align:center; padding:8px 6px;
-  }
+  /* Filas e interruptores a todo el ancho: nada queda cortado por el
+     borde, en LTR y en RTL (el nowrap de arriba es la pieza clave). */
+  body.rs-capas-pop #main-content .rs-layer-toggles label.rs-capa-fila,
+  body.rs-capas-pop #main-content .rs-capa-fila-btn button{ width:100%; box-sizing:border-box; }
 }
 
 /* ---------- Hover solo donde hay hover de verdad ---------- */
@@ -3304,3 +3323,67 @@ h2.map-title, h2.quantum-badge{ margin:0; }
    su ancho de contenido, igual que en LTR. Solo se toca RTL, LTR intacto. */
 html.rtl body.rs-capas-pop #main-content .rs-layer-toggles{ flex-wrap:nowrap; }
 html.rtl #main-content .rs-capa-grupo-tit{ text-align:right; }
+
+/* ============================================================
+   12-oct-2026 (orden de Sandro, punto 3): los campos de origen y
+   destino se visten con la misma piel que la consola del mapa
+   (los botones y buscadores de arriba). Panel oscuro translúcido
+   con blur, borde fino claro, radio de control, iconos con el
+   trazo aclarado para que el pin teal y la bandera naranja se
+   lean sobre fondo oscuro, foco con el anillo naranja de la casa
+   y lista de sugerencias a juego. No se tocan las formas: la
+   tarjeta sigue redondeada a 16 px, los campos a su altura de
+   44 px y el botón Buscar ruta conserva su color mandarina y su
+   lupa, que ya mandan las paletas y el modo peque. En árabe el
+   icono pasa al lado derecho, donde empieza el texto.
+   ============================================================ */
+#main-content .rs-form{
+  background:rgba(22,26,32,0.94);
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+  border:1px solid var(--mui-line);
+  box-shadow:var(--mui-shadow);
+}
+#main-content .rs-form .rs-field input[type="text"]{
+  background-color:rgba(255,255,255,0.06);
+  border:1px solid var(--mui-line-2);
+  border-radius:var(--mui-r-ctl);
+  color:var(--mui-text);
+  caret-color:var(--mui-accent);
+  transition:border-color var(--mui-t), box-shadow var(--mui-t), background-color var(--mui-t);
+}
+#main-content .rs-form .rs-field input[type="text"]::placeholder{ color:var(--mui-soft); opacity:1; }
+#main-content .rs-form .rs-field input[type="text"]:hover{ border-color:rgba(255,255,255,0.22); }
+#main-content .rs-form .rs-field input[type="text"]:focus{
+  border-color:var(--mui-accent);
+  box-shadow:0 0 0 3px var(--mui-accent-tint);
+  background-color:rgba(255,255,255,0.09);
+}
+/* Los mismos dibujos de siempre (pin y bandera), con el trazo
+   aclarado: teal #0E7C86 y naranja #E04E00 apenas se distinguen
+   sobre el oscuro; sus primos claros pasan de sobra el 3:1 que
+   pide WCAG para componentes de interfaz (medido: 8,5:1 y 7:1). */
+#main-content .rs-form #rsOrigen{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2335C4D4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E");
+}
+#main-content .rs-form #rsDestino{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF8A4D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E");
+}
+/* Lista de sugerencias: el mismo menú oscuro que la consola. */
+#main-content .rs-sugerencias{
+  background:var(--mui-bg-2);
+  border:1px solid var(--mui-line-2);
+  border-radius:var(--mui-r-panel);
+  box-shadow:var(--mui-shadow);
+}
+#main-content .rs-sugerencias li{ color:var(--mui-text); }
+#main-content .rs-sugerencias li:hover,
+#main-content .rs-sugerencias li[aria-selected="true"]{ background:var(--mui-accent-tint); }
+#main-content .rs-sugerencias li.rs-sug-empty{ color:var(--mui-soft); }
+#main-content .rs-sug-linea2{ color:var(--mui-soft); }
+/* En árabe el texto nace a la derecha: el icono cambia de lado. */
+html.rtl #main-content .rs-form .rs-field input[type="text"]{
+  background-position:calc(100% - 10px) center;
+  padding-left:14px;
+  padding-right:38px;
+}

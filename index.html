@@ -13,7 +13,7 @@
 <meta name="msvalidate.01" content="BB80160D0DDA8E571A69649E11438153" />
 <!-- Hueco para la meta de verificacion de Google Search Console (la aporta Sandro):
      <meta name="google-site-verification" content="..." /> -->
-<script type="text/javascript" nonce="9ab117842feb4fb78886e865c67" src="//local.adguard.org?ts=1791825564148&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Findex.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20261012%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20261012T172142Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3De9797d5d88c7863aa087680347a019e5d4c44952706f5d9db1d735dc1d2dcd03%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527index.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="9ab117842feb4fb78886e865c67" src="//local.adguard.org?ts=1791825564148&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link rel="canonical" href="https://manolitoaire.com/">
+<link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://manolitoaire.com/">
 <meta property="og:title" content="Rutas con sombra y aire en tiempo real | Manolit∞ Aire">
@@ -641,12 +641,12 @@
         </div>
         <div class="mode-card" data-mode="yayo">
           <span class="mode-mark">03</span>
-          <div class="mode-title" data-i18n="mode_yayo_title">Abuela / Abuelo</div>
+          <div class="mode-title" data-i18n="mode_yayo_title">Mayores</div>
           <div class="mode-sub" data-i18n="mode_yayo_sub">Letra grande, sin prisa</div>
         </div>
         <div class="mode-card" data-mode="peque">
           <span class="mode-mark">04</span>
-          <div class="mode-title" data-i18n="mode_peque_title">Peque (5 años)</div>
+          <div class="mode-title" data-i18n="mode_peque_title">Peque</div>
           <div class="mode-sub" data-i18n="mode_peque_sub">Con dibujitos</div>
         </div>
       </div>
@@ -1399,8 +1399,21 @@
   refrescarIdioma();
   document.addEventListener('DOMContentLoaded', refrescarIdioma);
   document.addEventListener('langChanged', refrescarIdioma);
+  // No escribir con la sección fuera de pantalla (12-oct-2026, auditoría
+  // de rendimiento): el intervalo sigue a 250 ms, pero mientras la sección
+  // no se ve no se toca el DOM. Al hacer scroll y volver a verla, el número
+  // sale al día al instante porque se calcula del reloj real, no acumulado.
+  // Sin IntersectionObserver (navegadores viejos) se comporta como antes.
+  var enPantalla = true;
+  if ('IntersectionObserver' in window) {
+    try {
+      new IntersectionObserver(function (ents) {
+        enPantalla = !!(ents && ents[0] && ents[0].isIntersecting);
+      }, { rootMargin: '100px 0px' }).observe(el);
+    } catch (e) { enPantalla = true; }
+  }
   var id = setInterval(function () {
-    if (document.hidden) return;
+    if (document.hidden || !enPantalla) return;
     var litros = Math.round((Date.now() - inicio) / 1000 * 375);
     el.textContent = tpl.replace('{n}', litros.toLocaleString(locale));
   }, 250);
@@ -1740,7 +1753,7 @@
 <script src="js/i18n.js" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
-
+<script src="js/cookie-banner.js" defer></script>
 <!-- 09-oct-2026 (orden de Sandro): la única verdad sobre si hay sol.
      Sin dependencias propias, carga con defer y pregunta a SunCalc solo
      cuando alguien le pregunta a ella. La usan parking, planetario y el
@@ -2451,10 +2464,19 @@
       }
       campo.appendChild(frag);
       var rafId = 0;
-      var pintar = function (t) {
+      // Tope de 30 fps (12-oct-2026, auditoría de rendimiento, orden de
+      // Sandro): este era el ÚNICO bucle de la web sin tope, 90 nodos
+      // escritos 60 veces por segundo. Ahora pinta uno de cada dos
+      // fotogramas y el movimiento se calcula por tiempo real (dt), así
+      // la velocidad, el vaivén y los fundidos quedan IDÉNTICOS y el
+      // chip gráfico trabaja la mitad. Igual que el paseo virtual y el
+      // planetario, que ya se caparon en sep-2026.
+      var ultimaPintada = 0;
+      var pintar = function (t, dt) {
+        var pasos = dt / 16.7; // 1 = un fotograma clásico de 60 fps
         for (var j = 0; j < partes.length; j++) {
           var p = partes[j];
-          p.y += p.vy;
+          p.y += p.vy * pasos;
           // Vida: 0 abajo del todo, 1 arriba del todo. Fundido de entrada
           // en el primer tramo y de salida en el último: nacen y mueren
           // suave, nunca aparecen ni desaparecen de golpe.
@@ -2471,7 +2493,15 @@
           }
         }
       };
-      var bucle = function (t) { pintar(t); rafId = window.requestAnimationFrame(bucle); };
+      var bucle = function (t) {
+        // Se reprograma SIEMPRE primero: si pintar fallara algún día, el
+        // bucle sobrevive. Los fotogramas salteados no pintan nada.
+        rafId = window.requestAnimationFrame(bucle);
+        if (t - ultimaPintada < 33) return;
+        var dt = ultimaPintada ? Math.min(64, t - ultimaPintada) : 16.7;
+        ultimaPintada = t;
+        pintar(t, dt);
+      };
       var enMarcha = function () { if (!rafId) rafId = window.requestAnimationFrame(bucle); };
       var enPausa = function () { if (rafId) { window.cancelAnimationFrame(rafId); rafId = 0; } };
       var alCambiarVis = function () { if (document.hidden) enPausa(); else enMarcha(); };
@@ -2481,7 +2511,7 @@
       };
       document.addEventListener('visibilitychange', alCambiarVis);
       window.addEventListener('resize', alCambiarMedida);
-      pintar(0);
+      pintar(0, 16.7);
       if (!document.hidden) enMarcha();
       window.__pequeFxMotor = {
         parar: function () {

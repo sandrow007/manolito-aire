@@ -1022,8 +1022,9 @@ body.manolito-fs #shadowRouteMap{
   height:100dvh;
 }
 /* Dentro de la pantalla completa solo vive el mapa: el planetario, los
-   botones de capas y demás secciones quedan fuera (el planetario se
-   colaba por encima en el móvil). */
+    botones de capas y demás secciones quedan fuera (el planetario se
+    colaba por encima en el móvil). MANTENEMOS el panel de capas visible
+    para que el usuario pueda activar/desactivar layers en fullscreen. */
 body.manolito-fs .rs-planetario,
 body.manolito-fs .rs-layer-toggles,
 body.manolito-fs .rs-form,
@@ -1031,6 +1032,9 @@ body.manolito-fs #rsStatus,
 body.manolito-fs .rs-pasos,
 body.manolito-fs #rsAqiPanel,
 body.manolito-fs .chat-fab{ display:none !important; }
+body.manolito-fs .rs-planetario-capas,
+body.manolito-fs .rs-layer-toggles,
+body.manolito-fs #rsBtnCapasFlotante{ display:flex !important; visibility:visible !important; opacity:1 !important; pointer-events:auto !important; }
 
 /* Icono del botón de pantalla completa (el sprite de MapLibre solo se
    aplica a su control nativo; el nuestro dibuja el suyo). */

@@ -27,6 +27,7 @@
       next: "Siguiente",
       prev: "Anterior",
       done: "Finalizar",
+      progreso: "{{current}} de {{total}}",
       pasos: [
         /* 0 · ciudad */       { title: "Elige tu ciudad", desc: "Desde aquí cambias de ciudad y ves el aire que hace allí ahora mismo." },
         /* 1 · modos */        { title: "¿Cómo te lo cuento?", desc: "La misma información explicada de varias maneras. Elige la que mejor te venga." },
@@ -50,6 +51,7 @@
       next: "Següent",
       prev: "Anterior",
       done: "Finalitzar",
+      progreso: "{{current}} de {{total}}",
       pasos: [
         /* 0 · ciutat */       { title: "Escull la teva ciutat", desc: "Des d'aquí canvies de ciutat i veus l'aire que hi fa ara mateix." },
         /* 1 · maneres */      { title: "Com t'ho explico?", desc: "La mateixa informació explicada de diverses maneres. Tria la que millor et vagi." },
@@ -73,6 +75,7 @@
       next: "Hurrengoa",
       prev: "Aurrekoa",
       done: "Amaitu",
+      progreso: "{{current}} / {{total}}",
       pasos: [
         /* 0 · hiria */        { title: "Hautatu zure hiria", desc: "Hemendik aldatzen duzu hiria eta bertan une honetan dagoen airea ikusten duzu." },
         /* 1 · moduak */       { title: "Nola kontatu?", desc: "Informazio bera, hainbat modutan azalduta. Aukeratu zuri ondoen datorkizuna." },
@@ -96,6 +99,7 @@
       next: "Seguinte",
       prev: "Anterior",
       done: "Rematar",
+      progreso: "{{current}} de {{total}}",
       pasos: [
         /* 0 · cidade */       { title: "Escolle a túa cidade", desc: "Desde aquí cambias de cidade e ves o aire que hai alí agora mesmo." },
         /* 1 · modos */        { title: "Como cho conto?", desc: "A mesma información explicada de varias maneiras. Escolle a que mellor che veña." },
@@ -119,6 +123,7 @@
       next: "Next",
       prev: "Previous",
       done: "Done",
+      progreso: "{{current}} of {{total}}",
       pasos: [
         /* 0 · city */         { title: "Choose your city", desc: "From here you switch city and see the air over there right now." },
         /* 1 · modes */        { title: "How should I tell you?", desc: "The same information explained in a few different ways. Pick the one that suits you best." },
@@ -142,6 +147,7 @@
       next: "შემდეგი",
       prev: "წინა",
       done: "დასრულება",
+      progreso: "{{current}} / {{total}}",
       pasos: [
         /* 0 · ქალაქი */       { title: "აირჩიე შენი ქალაქი", desc: "აქედან ცვლი ქალაქს და ხედავ, როგორი ჰაერია იქ ამ წუთას." },
         /* 1 · რეჟიმები */     { title: "როგორ მოგიყვე?", desc: "იგივე ინფორმაცია, რამდენიმეგვარად ახსნილი. აირჩიე შენთვის ყველაზე მოსახერხებელი." },
@@ -159,6 +165,30 @@
         /* 13 · ko-fi */       { title: "მხარი დაუჭირე საქმეს", desc: "Manolit∞ უფასოა და უფასოდ დარჩება. თუ როდესმე გინდა ხარჯებში ხელის შეწყობა, აქ არის Ko-fi." },
         /* 14 · ძმები */       { title: "Manolit∞-ს ძმები", desc: "აქვე არიან Manolit∞ Forestal და სევილიის სითბოს კუნძულები, იგივე ზრუნვით შექმნილი." },
         /* 15 · წყალი */       { title: "წყალი, რომელიც არ ჩანს", desc: "აქ ხედავ, რამდენ წყალს ხმარობს მსოფლიო რეკლამა, სანამ ამ გვერდს უყურებ. შენი ვიზიტი დაახლოებით 2 მილილიტრს ხმარობს, გაზომილი მნიშვნელობაა. შედი შედარებაში და დაითვალე, რამდენ ლიტრს წვავს შენი ტელეფონი არავის მოთხოვნილი რეკლამების გამო." }
+      ]
+    },
+    ar: {
+      next: "التالي",
+      prev: "السابق",
+      done: "إنهاء",
+      progreso: "{{current}} من {{total}}",
+      pasos: [
+        /* 0 · المدينة */      { title: "اختر مدينتك", desc: "من هنا تغيّر المدينة وتشاهد جودة الهواء فيها الآن." },
+        /* 1 · الأنماط */      { title: "كيف تريد الشرح؟", desc: "نفس المعلومات لكن بعدة طرق. اختر الطريقة الأنسب لك." },
+        /* 2 · خريطة الهواء */ { title: "الهواء الآن", desc: "كل نقطة على الخريطة محطة قياس حقيقية. المسها لتعرف ماذا تتنفس." },
+        /* 3 · الرسم */        { title: "منحنى الهواء", desc: "مرر إصبعك على الخط لتظهر الساعة والقيمة الدقيقة. الجزء المتصل مقاس فعليًا والمتقطع لما سيأتي." },
+        /* 4 · المسار */       { title: "ابحث عن مسارك المظلل", desc: "اكتب نقطة الانطلاق والوجهة أو اضغط موقعي. Manolit∞ يوجّهك عبر الظل عند الحر، أو عبر الشمس إذا فعّلت وضع الشتاء." },
+        /* 5 · خريطة 3D */     { title: "الخريطة ثلاثية الأبعاد", desc: "المباني ترسم ظلها الحقيقي حسب الساعة. قرّب ودوّر وغيّر وقت اليوم لتراه. وعند بدء المشي يتحول الجزء الذي قطعته إلى الرمادي مثل Google Maps." },
+        /* 6 · الكوكب */       { title: "القبة الفلكية", desc: "أسفل الخريطة توجد قبة فلكية صغيرة. تدور الأرض وترى ارتفاع الشمس كل ساعة. حرّك الوقت وراقب حركة الظلال." },
+        /* 7 · lidar */        { title: "عارض LiDAR", desc: "أسفل القبة زر يفتح نماذج LiDAR. إنها سحب نقاط حقيقية للمدينة، نقطة بنقطة، لعشاق الاستكشاف." },
+        /* 8 · الطبقات */      { title: "الطبقات", desc: "من هنا تشغّل أو توقف المباني والظلال والمسار والشمس. وبزر طبقات الخريطة تغيّر نمط الخريطة الأساسية." },
+        /* 9 · الإشعاع */      { title: "شمس كل مكان", desc: "بزر الإشعاع الشمسي المس أي نقطة لترى كمية الشمس التي تصلها طوال السنة ببيانات NASA." },
+        /* 10 · الأشجار */     { title: "الأشجار والمشي الافتراضي", desc: "فعّل الأشجار لرؤية ظلها، ومع المشي الافتراضي ثلاثي الأبعاد يمكنك التجول في الشوارع من منظور الشخص الأول دون مغادرة البيت." },
+        /* 11 · الدردشة */     { title: "اسأل Manolit∞", desc: "زر M∞ يفتح الدردشة. اكتب له أو تحدث عبر الميكروفون وسيجيبك بصوت مرتفع." },
+        /* 12 · بياناتك */     { title: "بياناتك معك", desc: "في المزامنة والتصدير تحفظ إعداداتك في ملف وتنقلها إلى جهاز آخر. بلا حسابات وبلا خوادم." },
+        /* 13 · ko-fi */       { title: "ادعم الفكرة", desc: "Manolit∞ مجاني وسيبقى مجانيًا. إذا رغبت يومًا في المساعدة بالمصاريف فهنا Ko-fi." },
+        /* 14 · الأشقاء */     { title: "أشقاء Manolit∞", desc: "ستجد هنا أيضًا Manolit∞ Forestal وجزر حرارة إشبيلية، بنفس العناية." },
+        /* 15 · الماء */       { title: "الماء غير المرئي", desc: "هنا ترى الماء الذي تستهلكه إعلانات العالم بينما تتصفح هذه الصفحة. زيارتك تستهلك نحو 2 ملليلتر فقط، بقياس فعلي. ادخل المقارنة واحسب كم لتر يستهلكه هاتفك بسبب إعلانات لم يطلبها أحد." }
       ]
     }
   };
@@ -285,6 +315,7 @@
         allowClose: true,
         showButtons: ["next", "previous", "close"],
         showProgress: true,
+        progressText: textos.progreso,
         nextBtnText: textos.next,
         prevBtnText: textos.prev,
         doneBtnText: textos.done,
@@ -325,6 +356,7 @@
     driverActivo.setConfig({
       allowClose: true,
       showProgress: true,
+      progressText: textos.progreso,
       nextBtnText: textos.next,
       prevBtnText: textos.prev,
       doneBtnText: textos.done,

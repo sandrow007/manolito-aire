@@ -411,7 +411,7 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .qbar-row{ display:flex; align-items:center; gap:10px; }
 .qbar-label{ width:90px; font-size:0.82rem; color:var(--ink); flex-shrink:0; }
 .qbar-track{ flex:1; height:14px; background:var(--mist); border-radius:999px; overflow:hidden; }
-.qbar-fill{ height:100%; border-radius:999px; transition:width 0.6s ease; }
+.qbar-fill{ display:block; height:100%; border-radius:999px; transition:width 0.6s ease; }
 .qbar-pct{ width:44px; text-align:right; font-family:var(--font-mono); font-size:0.78rem; color:var(--sky-mid); flex-shrink:0; }
 .quantum-disclaimer{ font-size:0.78rem; color:var(--sky-mid); font-style:italic; line-height:1.5; margin:0; }
 
@@ -686,6 +686,7 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 .rs-tierra-giro{ transform-box:fill-box; transform-origin:center; animation:rsGiroTierra 60s linear infinite; }
 @keyframes rsGiroTierra{ to{ transform:rotate(360deg); } }
 .rs-planetario-info{ font-family:var(--font-mono); font-size:0.62rem; color:var(--sky-mid); margin-top:4px; letter-spacing:0.02em; }
+.rs-planetario-info > span{ display:block; }
 
 /* ============================================================
    RUTA Y SOMBRAS 3D, sugerencias del autocompletado + mapa oscuro
@@ -2517,6 +2518,16 @@ body.mode-peque .im-lost-btn{
 #main-content .rs-planetario{ grid-auto-flow:dense; }
 #main-content .rs-planetario > #rsColaboraOSM{ grid-column:1 / -1; justify-self:center; }
 #main-content .rs-planetario > a.rs-btn-lidar{ grid-column:1 / -1; justify-self:center; }
+
+/* 08-oct-2026 (orden de Sandro): la cúpula del planetario ya NO vive en
+   la columna lateral derecha. El widget bajo el mapa es una sola columna
+   en flujo normal: capas, cúpula centrada, «¿No hay 3D en tu zona?» y
+   LiDAR. Mismo orden en 360 px, tablet y escritorio, con el panel de
+   capas en la página (cuadrícula) o en el mapa (popover). */
+#main-content .rs-planetario{ grid-template-columns:minmax(0,1fr); }
+#main-content .rs-planetario-capas{ grid-row:auto; }
+#main-content .rs-planetario > .rs-planetario-sol{ grid-column:1 / -1; justify-self:center; }
+body.rs-capas-pop #main-content #rsPlanetario.rs-planetario{ flex-direction:column; flex-wrap:nowrap; }
 /* Con el panel ya en modo popover, la cuadrícula vuelve a la fila
    centrada de siempre (la de antes del rediseño). */
 body.rs-capas-pop #main-content .rs-planetario{
@@ -2641,10 +2652,19 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
 }
 
 /* ---------- Móvil: bottom sheet ----------
-   Hoja pegada al borde inferior del mapa, max-height 70dvh, asa
-   visual, cierre con la X y scroll interno. Respeta la safe-area
-   inferior. El botón queda en la esquina inferior derecha, por
-   encima de la atribución y sin tapar la ruta. */
+   12-oct-2026 (orden de Sandro, rediseño del panel en móvil): la hoja
+   era un flex en columna con flex-wrap:wrap heredado de la regla base;
+   al superar el contenido la altura máxima, la lista se ENVOLVÍA a una
+   segunda columna: cabecera sola a la izquierda (columna vacía debajo),
+   lista montando una columna nueva y los interruptores cortados por el
+   borde derecho de la tarjeta. Ahora: nowrap en TODOS los idiomas, una
+   sola columna a ancho completo, la lista llena la tarjeta y hace scroll
+   interno fluido, y la hoja flota separada de los bordes (ni la barra
+   del sistema, ni el widget solar ni el borde de pantalla la tocan),
+   con la safe-area respetada y la última fila («Mapa oscuro») entera
+   gracias al scroll-padding. La animación de apertura y cierre es la
+   misma transición suave de siempre, con un desplazamiento un poco más
+   de hoja (14 px) al flotar sobre el mapa. */
 @media (max-width:639.98px){
   #main-content #rsBtnCapasFlotante{
     top:auto;
@@ -2652,28 +2672,38 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
     right:calc(12px + env(safe-area-inset-right, 0px));
   }
   body.rs-capas-pop #main-content .rs-planetario-capas{
-    top:auto; left:0; right:0; bottom:0;
-    width:auto; max-width:none; max-height:70dvh;
+    top:auto;
+    left:calc(8px + env(safe-area-inset-left, 0px));
+    right:calc(8px + env(safe-area-inset-right, 0px));
+    bottom:calc(10px + env(safe-area-inset-bottom, 0px));
+    width:auto; max-width:none; max-height:min(72dvh, 560px);
     display:flex; flex-direction:column;
   }
-  body.rs-capas-pop #main-content .rs-planetario-capas.rs-capas-cerrada{ transform:translateY(8px); }
+  body.rs-capas-pop #main-content .rs-planetario-capas.rs-capas-cerrada{ transform:translateY(14px); }
   body.rs-capas-pop #main-content .rs-layer-toggles{
-    border-radius:16px 16px 0 0; max-height:70dvh;
-    display:flex; flex-direction:column;
-    padding-bottom:env(safe-area-inset-bottom, 0px);
+    border-radius:16px; max-height:100%;
+    display:flex; flex-direction:column; flex-wrap:nowrap; align-items:stretch;
+    padding-bottom:0; overflow:hidden;
   }
   /* El asa visual de la hoja. */
   body.rs-capas-pop #main-content .rs-layer-toggles::before{
     content:""; flex:0 0 auto; width:36px; height:4px; border-radius:2px;
     background:var(--mui-line-2); margin:6px auto 0;
   }
+  /* La lista: una columna a todo el ancho de la tarjeta, con el scroll
+     interno de siempre y aire abajo para que la última fila (los mapas
+     base) nunca quede a medias ni pegada al borde. */
   body.rs-capas-pop #main-content .rs-layer-toggles-lista{
-    max-height:calc(70dvh - 56px); overflow-y:auto;
+    flex:1 1 auto; min-height:0; width:100%; align-self:stretch;
+    max-height:none; overflow-y:auto;
+    overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+    padding:2px 8px calc(10px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom:12px;
   }
-  body.rs-capas-pop #main-content #rsMapStyleToggle{ grid-template-columns:repeat(3, 1fr) !important; }
-  body.rs-capas-pop #main-content #rsMapStyleToggle button{
-    flex-direction:column; justify-content:center; text-align:center; padding:8px 6px;
-  }
+  /* Filas e interruptores a todo el ancho: nada queda cortado por el
+     borde, en LTR y en RTL (el nowrap de arriba es la pieza clave). */
+  body.rs-capas-pop #main-content .rs-layer-toggles label.rs-capa-fila,
+  body.rs-capas-pop #main-content .rs-capa-fila-btn button{ width:100%; box-sizing:border-box; }
 }
 
 /* ---------- Hover solo donde hay hover de verdad ---------- */
@@ -2714,3 +2744,657 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
    Solo ocupa sitio cuando hay juego montado, y solo en modo peque. */
 .juego-manolit-cont:empty{ display:none; }
 body:not(.mode-peque) .juego-manolit-cont{ display:none; }
+
+/* ============================================================
+   MODO PEQUE — REDISEÑO VISUAL (07-oct-2026, orden de Sandro)
+   Jerarquía vertical clara de arriba abajo: ciudad, nube, titular,
+   explicación, calidad del aire y botones de acción. Nada flota
+   sobre nada. Sección aditiva: pisa solo lo que el rediseño cambia.
+   ============================================================ */
+
+/* La nube se queda sola dentro del orb-wrap: al sacar el titular y el
+   botón, la caja ya no se desborda ni se sube encima del selector de
+   ciudad. Altura más justa para que el conjunto respire. */
+body.mode-peque .orb-wrap{ height:150px; margin-bottom:6px; }
+
+/* El titular vive en flujo normal y a todo el ancho útil del hero (ya
+   no encerrado en los 200px del orb-wrap): tarjeta que abraza el texto
+   hasta 560px, borde dorado de marca y tinta legible. Idealmente una
+   línea en móvil, dos como mucho. Fuera del modo peque no existe. */
+.peque-message{ display:none; }
+body.mode-peque .peque-message{
+  display:block; box-sizing:border-box;
+  width:fit-content; max-width:560px; margin:6px auto 0;
+  font-size:clamp(1.25rem, 4.4vw, 1.65rem); line-height:1.28;
+  padding:12px 22px; border-radius:22px;
+  background:var(--surface, #fff); border:2px solid #E6A100;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  color:var(--text, #26424B); font-weight:700;
+}
+
+/* La explicación respira bajo el titular, mismo ancho de lectura. */
+body.mode-peque .human-line{ max-width:560px; margin-top:14px; }
+
+/* La calidad del aire se lee de un vistazo: chip sólido con buen
+   contraste, nada de letra pequeña perdida. El hero centra el chip
+   con su text-align. */
+body.mode-peque .sub-line{
+  display:inline-block; font-size:1.02rem; font-weight:600;
+  color:var(--sky-deep); background:var(--mist);
+  padding:6px 16px; border-radius:999px; margin:6px auto 4px;
+}
+
+/* Botones de acción juntos y en flujo, grandes y fáciles de tocar
+   (52px de alto, por encima del mínimo de 44). En móvil van apilados;
+   con 560px o más, uno al lado del otro. Fuera del modo peque el
+   bloque solo lleva el botón de ayuda, centrado como siempre. */
+.peque-actions{ display:flex; flex-direction:column; align-items:center; gap:12px; margin-top:20px; }
+.peque-actions .im-lost-btn{ margin-top:0; }
+@media (min-width:560px){
+  body.mode-peque .peque-actions{ flex-direction:row; justify-content:center; gap:16px; }
+}
+
+/* El botón del juego solo existe en modo peque y destaca como acción
+   principal (dorado de marca) sin pisar nada. */
+.peque-juego-btn{ display:none; }
+body.mode-peque .peque-juego-btn{
+  display:inline-block; margin-top:0; min-height:52px; padding:12px 26px;
+  font-size:1.1rem; border-radius:16px;
+  transition:transform 0.2s cubic-bezier(0.4,0,0.2,1), background-color 0.2s;
+}
+body.mode-peque .peque-juego-btn:hover{ background:#F2B01E; transform:translateY(-2px); }
+body.mode-peque .peque-juego-btn:active{ transform:translateY(1px); }
+
+/* El mismo juego en modo ciudadano (07-oct-2026, NUEVA ORDEN punto 4):
+   botón propio con contenido adulto, visible solo cuando el modo activo
+   es ciudadano (sin clase de modo, o con mode-ciudadano tras applyMode).
+   En peque, científico y yayo no aparece: los modos no se mezclan.
+   Mismo tamaño táctil que el de peques (52px, por encima de 44). */
+.ciudadano-juego-btn{ display:none; }
+body:not(.mode-peque):not(.mode-cientifico):not(.mode-yayo) .ciudadano-juego-btn{
+  display:inline-block; margin-top:0; min-height:52px; padding:12px 26px;
+  font-size:1.05rem; border-radius:16px; border:0; cursor:pointer;
+  font-weight:700; color:#FBFAF7; background:#007A87;
+  transition:transform 0.2s cubic-bezier(0.4,0,0.2,1), background-color 0.2s;
+}
+body:not(.mode-peque):not(.mode-cientifico):not(.mode-yayo) .ciudadano-juego-btn:hover{ background:#00919F; transform:translateY(-2px); }
+body:not(.mode-peque):not(.mode-cientifico):not(.mode-yayo) .ciudadano-juego-btn:active{ transform:translateY(1px); }
+.ciudadano-juego-btn:focus-visible{ outline:3px solid #7A0016; outline-offset:2px; }
+/* El contenedor del juego también vive en modo ciudadano: la regla
+   antigua lo escondía fuera de peque. Con panel montado (no vacío) y
+   modo ciudadano activo, se enseña. En científico y yayo sigue oculto. */
+body:not(.mode-peque):not(.mode-cientifico):not(.mode-yayo) .juego-manolit-cont:not(:empty){ display:block; }
+@media (min-width:560px){
+  body:not(.mode-peque):not(.mode-cientifico):not(.mode-yayo) .peque-actions{ flex-direction:row; justify-content:center; gap:16px; }
+}
+
+/* El chat de ayuda es la acción secundaria en modo peque: contorno
+   teal para que no compita con el dorado del juego. */
+body.mode-peque .im-lost-btn{
+  background:var(--surface, #fff); color:#007A87; border:2px solid #007A87;
+  font-weight:700; font-size:1.05rem; min-height:52px; padding:12px 24px;
+  border-radius:16px; box-shadow:none;
+}
+body.mode-peque .im-lost-btn:hover{ background:#007A87; color:#fff; transform:translateY(-2px); box-shadow:0 6px 14px rgba(0,122,135,0.25); }
+body.mode-peque .im-lost-btn:active{ transform:translateY(1px); box-shadow:none; }
+[data-theme="dark"] body.mode-peque .im-lost-btn{ color:#7FD8E4; border-color:#7FD8E4; }
+[data-theme="dark"] body.mode-peque .im-lost-btn:hover{ background:#007A87; color:#fff; border-color:#007A87; }
+
+/* Decoración intencionada: dos piezas del lenguaje Manolit∞ (sol dorado
+   y nube pequeña teal) quietas en las esquinas superiores, donde nunca
+   hay contenido. Solo se pintan en pantallas anchas; con menos de
+   1024px no hay margen lateral garantizado y no aparecen. Animación
+   solo de transform, pausada con la pestaña oculta.
+   08-oct-2026 (ARREGLO URGENTE, orden de Sandro): la capa vuelve a ser
+   FIJA A TODA LA VENTANA, como hace cuatro días. La versión absoluta
+   dentro del hero encerraba los 90 emojis en ese cajón y se agolpaban
+   de modo horrible. Al ir fija y con z-index 590 los emojis suben por
+   TODA la web (esta regla y la de sep-2026 dicen ahora lo mismo, así
+   que ninguna pisa a la otra). pointer-events:none: nunca estorba. */
+#pequeFxCapa{ position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:590; }
+/* 07-oct-2026 (NUEVA ORDEN, urgente): tamaño decorativo con límites.
+   El sol gigante de la captura venía de un SVG sin medida propia
+   estirado por el navegador con una hoja vieja en caché. Ahora el
+   SVG lleva width/height intrínsecos y la CSS usa clamp(): jamás
+   puede volver a ocupar media pantalla. Además el contenido del
+   hero va siempre por encima de esta capa. */
+#pequeFxCapa .peque-deco{ position:absolute; width:clamp(36px, 4vw, 56px); height:auto; aspect-ratio:1; opacity:0.5; pointer-events:none; animation:pequeDecoFlota 7s ease-in-out infinite alternate; }
+#pequeFxCapa .peque-deco svg{ display:block; width:100%; height:100%; }
+#pequeFxCapa .peque-deco-sol{ left:16px; top:12px; }
+#pequeFxCapa .peque-deco-nube{ right:16px; top:56px; width:clamp(44px, 5vw, 68px); aspect-ratio:4/3; animation-duration:9s; }
+body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
+@keyframes pequeDecoFlota{ from{ transform:translateY(-6px) rotate(-3deg); } to{ transform:translateY(8px) rotate(3deg); } }
+.peque-fx-pausa .peque-deco{ animation-play-state:paused; }
+/* Emojis flotantes del modo peque: pocos, pegados a los bordes,
+   detrás del contenido, solo transform y opacity, pausados con la
+   pestaña oculta y apagados con prefers-reduced-motion.
+   07-oct (orden directa de Sandro, «recupéralos de verdad»):
+   visibilidad subida para que se VEAN. Siguen siendo 6 spans sin
+   JS, animación solo transform/opacity: el coste es el mismo. */
+#pequeFxCapa .peque-emoji{ position:absolute; font-size:clamp(22px, 2.6vw, 32px); line-height:1; opacity:0.62; pointer-events:none; animation:pequeEmojiFlota 9s ease-in-out infinite alternate; }
+@keyframes pequeEmojiFlota{ from{ transform:translateY(-7px); opacity:0.5; } to{ transform:translateY(9px); opacity:0.72; } }
+.peque-fx-pausa .peque-emoji{ animation-play-state:paused; }
+
+/* 08-oct-2026 (orden de Sandro, punto 2): campo de más de 80 emojis
+   pequeños movidos por UN solo requestAnimationFrame (la función
+   iniciarPequeFxMotor del index). Solo transform/opacity, capa con
+   pointer-events:none detrás del contenido, pausa con la pestaña
+   oculta y sin arrancar con prefers-reduced-motion. Los spans viejos
+   con animación CSS ya no se generan; sus reglas quedan dormidas. */
+#pequeFxCapa .peque-fx-campo{ position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+#pequeFxCapa .peque-fx-emoji{
+  position:absolute; top:0; left:0; font-size:16px; line-height:1;
+  pointer-events:none; user-select:none; will-change:transform,opacity;
+}
+@media (max-width:1023px){
+  #pequeFxCapa .peque-fx-emoji{ font-size:14px; }
+}
+@media (max-width:1023px){
+  /* En pantallas sin margen lateral no caben los dibujos SVG, pero
+     los emojis SÍ se quedan todos (orden de Sandro 07-oct): van en
+     los bordes del hero, detrás del contenido, tamaño prudente. */
+  #pequeFxCapa{ display:block; }
+  #pequeFxCapa .peque-deco{ display:none; }
+  #pequeFxCapa .peque-emoji{ display:block; font-size:20px; }
+  @keyframes pequeEmojiFlota{ from{ transform:translateY(-6px); opacity:0.42; } to{ transform:translateY(8px); opacity:0.6; } }
+}
+
+/* Movimiento reducido de verdad: la nube no flota y el titular no
+   salta. Las reglas antiguas quedaban pisadas por otras posteriores;
+   al ir esta sección la última de la hoja, aquí manda esto. */
+@media (prefers-reduced-motion: reduce){
+  body.mode-peque .peque-cloud{ animation:none; }
+  body.mode-peque .peque-message{ animation:none; }
+  #pequeFxCapa{ display:none; }
+}
+
+/* --- Arreglo encontrado probando el modo peque (07-oct-2026):
+   el contain-intrinsic-size de las secciones diferidas recordaba un
+   ANCHO de 900px. Mientras la sección estaba fuera de pantalla, ese
+   ancho fantasma inflaba la rejilla del widget solar y la página
+   entera desbordaba a la derecha en móviles y en horizontal (scroll
+   lateral real en producción hasta que el usuario bajaba y la sección
+   se pintaba de verdad). El ancho de recuerdo pasa a 320px (cabe en
+   cualquier móvil) y la altura sigue en 900px, que era su misión:
+   estabilizar la barra de scroll. Medido tras el cambio: scrollWidth
+   igual al viewport en 360, 390, 768, 1024, 1440 y en horizontal. */
+.forecast-section, .map-section, .explain, .content{
+  contain-intrinsic-size: auto 320px auto 900px;
+}
+
+/* ============================================================
+   PANEL DE CAPAS — CONTROL SEGMENTADO, SCROLLBAR Y Z-INDEX
+   (07-oct-2026, tarde, orden directa de Sandro)
+
+   1) «Capas de mapa» deja de ser una caja con tarjetas y acordeón:
+      es un control segmentado plano de dos botones, [Mapa claro]
+      [Mapa IGN]. Activo en naranja, inactivo en gris, cambio de
+      capa inmediato. Sin cajas decorativas ni flecha (el JS ya no
+      crea el botón maestro: sus reglas viejas quedan inertes).
+   2) Catastro 3D sale del grupo de mapas base y pasa a fila-toggle
+      individual (#rsMonteCatastro), con interruptor a la derecha
+      como el resto de controles (icono propio de parcelas).
+   3) Scrollbar del panel: fina (5px), discreta, sin flechas ni
+      botones, semitransparente sobre el fondo oscuro y un poco
+      más clara al pasar el ratón.
+   4) Z-index: los marcadores del mapa (el Manolit que camina
+      llevaba z-index:999 en línea) quedan SIEMPRE por debajo del
+      panel y de los controles fijos. Nada flota encima de los
+      botones del panel.
+   Al ir esta sección la última de la hoja, gana a las reglas
+   anteriores con la misma especificidad.
+   ============================================================ */
+
+/* ---- 1) Control segmentado de mapa base ---- */
+#main-content #rsMapStyleToggle{
+  display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important;
+  gap:4px !important; align-items:stretch !important;
+  width:100%; /* el contenedor (.rs-capas-mapas) es flex: sin esto el
+                 segmentado encogía a su contenido y no llenaba la fila */
+  padding:2px 4px 6px; background:transparent; border:none; box-shadow:none;
+}
+#main-content #rsMapStyleToggle button{
+  flex:1 1 0; min-width:0; min-height:44px;
+  display:flex !important; flex-direction:row !important;
+  align-items:center; justify-content:center; gap:8px;
+  padding:8px 10px !important; margin:0;
+  font-family:inherit; font-size:13px !important; font-weight:600 !important;
+  letter-spacing:0 !important; text-transform:none !important; line-height:1.2;
+  white-space:nowrap;
+  color:var(--mui-soft) !important; background:transparent !important;
+  border:none !important; border-radius:10px !important; box-shadow:none !important;
+  cursor:pointer; text-align:center; backdrop-filter:none; -webkit-backdrop-filter:none;
+  transition:background var(--mui-t), color var(--mui-t);
+}
+#main-content #rsMapStyleToggle button:hover{
+  background:rgba(255,255,255,0.06) !important; color:var(--mui-text) !important;
+}
+#main-content #rsMapStyleToggle button[aria-pressed="true"],
+#main-content #rsMapStyleToggle button[aria-pressed="true"]:hover{
+  background:var(--mui-accent) !important; color:#1A0E04 !important;
+}
+#main-content #rsMapStyleToggle button:focus-visible{
+  outline:2px solid var(--mui-accent-text); outline-offset:2px;
+}
+#main-content #rsMapStyleToggle button::before{ width:16px; height:16px; color:currentColor; }
+/* El segmento claro lleva sol (antes heredaba la luna del viejo
+   «Mapa oscuro», que ya no existe como botón). */
+#main-content #rsBtnMapaOscuro::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+}
+@media (hover:none){
+  #main-content #rsMapStyleToggle button:hover{ background:transparent !important; color:var(--mui-soft) !important; }
+  #main-content #rsMapStyleToggle button[aria-pressed="true"]:hover{ background:var(--mui-accent) !important; color:#1A0E04 !important; }
+}
+
+/* El icono del segmento activo hereda el color del texto del botón.
+   Sin esto, una regla antigua lo pintaba naranja (pensada para cuando
+   el activo era un botón fantasma con fondo oscuro) y el sol se
+   volvía invisible sobre el relleno naranja: naranja sobre naranja. */
+#main-content #rsMapStyleToggle button[aria-pressed="true"]::before{ color:inherit; }
+
+/* ---- 2) Catastro 3D como fila-toggle: icono de parcelas ---- */
+#main-content .rs-ico-catastro::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h7v7H4z'/%3E%3Cpath d='M13 4h7v7h-7z'/%3E%3Cpath d='M4 13h7v7H4z'/%3E%3Cpath d='M13 13h7v7h-7z' stroke-dasharray='2.5 2'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h7v7H4z'/%3E%3Cpath d='M13 4h7v7h-7z'/%3E%3Cpath d='M4 13h7v7H4z'/%3E%3Cpath d='M13 13h7v7h-7z' stroke-dasharray='2.5 2'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   07-oct-2026 (orden de Sandro): tres retoques VISUALES y aditivos.
+
+   A) Los dos «cuadraditos» de antes (el plegador de la botonera, que hace
+      de desglose, y el flotante de capas) se visten como los botones del
+      resto de la UI: mismo radio de control, misma altura táctil y el
+      acento teal cuando están activos. Solo pinta, no toca lógica ni ids.
+   B) Icono nuevo para la fila «Planificar viaje».
+   C) Panelito del planificador de viaje (rsPanelViaje), en flujo normal
+      bajo el bloque de capas y apilado en móvil.
+   ========================================================================== */
+
+/* ---- A) Desglose y capas, ya como botones coherentes ---- */
+#main-content #rsBtnPlegarControles,
+#main-content #rsBtnCapasFlotante{
+  min-width:var(--mui-h); height:var(--mui-h);
+  border-radius:var(--mui-r-ctl);
+  border:1px solid var(--mui-line-2);
+  background:var(--mui-bg); color:var(--mui-ico);
+  box-shadow:var(--mui-shadow);
+  transition:background var(--mui-t), border-color var(--mui-t), color var(--mui-t);
+}
+#main-content #rsBtnPlegarControles::before,
+#main-content #rsBtnCapasFlotante::before{ color:var(--mui-soft); }
+@media (hover:hover) and (pointer:fine){
+  #main-content #rsBtnPlegarControles:hover,
+  #main-content #rsBtnCapasFlotante:hover{ background:#232A34; border-color:var(--mui-line); }
+  #main-content #rsBtnPlegarControles:hover::before,
+  #main-content #rsBtnCapasFlotante:hover::before{ color:var(--mui-text); }
+}
+#main-content #rsBtnCapasFlotante[aria-expanded="true"],
+#main-content #rsMapControls:not(.rs-plegado) #rsBtnPlegarControles{
+  background:var(--mui-accent-tint); border-color:var(--mui-accent);
+}
+#main-content #rsBtnCapasFlotante[aria-expanded="true"]::before,
+#main-content #rsMapControls:not(.rs-plegado) #rsBtnPlegarControles::before{
+  color:var(--mui-accent-text);
+}
+#main-content #rsBtnPlegarControles:focus-visible,
+#main-content #rsBtnCapasFlotante:focus-visible{
+  outline:2px solid var(--mui-accent-text); outline-offset:2px;
+}
+
+/* ---- B) Icono de la fila «Planificar viaje»: coche con ruta ---- */
+#main-content .rs-ico-viaje::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 16.5 6.4 11a2 2 0 0 1 2-1.5h7.2a2 2 0 0 1 2 1.5L19 16.5'/%3E%3Cpath d='M4 16.5h16v3h-2.2M4 19.5h2.2'/%3E%3Ccircle cx='8' cy='19' r='1.6'/%3E%3Ccircle cx='16' cy='19' r='1.6'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 16.5 6.4 11a2 2 0 0 1 2-1.5h7.2a2 2 0 0 1 2 1.5L19 16.5'/%3E%3Cpath d='M4 16.5h16v3h-2.2M4 19.5h2.2'/%3E%3Ccircle cx='8' cy='19' r='1.6'/%3E%3Ccircle cx='16' cy='19' r='1.6'/%3E%3C/svg%3E");
+}
+
+/* ---- C) Panelito del planificador de viaje ---- */
+#main-content .rs-panel-viaje{
+  margin:10px 0 0; padding:12px 14px;
+  background:var(--mui-bg); border:1px solid var(--mui-line-2);
+  border-radius:var(--mui-r-panel); box-shadow:var(--mui-shadow);
+  display:flex; flex-direction:column; gap:8px;
+  font-family:inherit; color:var(--mui-text);
+  /* 08-oct-2026 (orden de Sandro): apertura fluida, nada de aparecer
+     de golpe. Nace plegado y .rs-panel-viaje-abierto lo despliega. */
+  opacity:0; transform:translateY(-6px);
+  transition:opacity 0.26s ease, transform 0.26s ease;
+}
+#main-content .rs-panel-viaje.rs-panel-viaje-abierto{ opacity:1; transform:none; }
+#main-content .rs-panel-viaje[hidden]{ display:none; }
+/* El resultado del widget solar se oculta de verdad cuando toca
+   (capa Sombras apagada o de noche), aunque otro estilo lo pise. */
+#main-content .rs-planetario-info[hidden]{ display:none !important; }
+#main-content .rs-panel-viaje-tit{
+  margin:0; font-size:13px; font-weight:600; letter-spacing:0.01em;
+}
+#main-content .rs-panel-viaje input[type="text"]{
+  width:100%; box-sizing:border-box;
+  min-height:var(--mui-h); padding:6px 10px;
+  font:inherit; font-size:13px; color:var(--mui-text);
+  background:transparent; border:1px solid var(--mui-line-2);
+  border-radius:var(--mui-r-ctl);
+}
+#main-content .rs-panel-viaje input[type="text"]:focus-visible{
+  outline:2px solid var(--mui-accent-text); outline-offset:1px;
+}
+#main-content .rs-panel-viaje-botones{ display:flex; gap:8px; flex-wrap:wrap; }
+#main-content .rs-panel-viaje-botones button{
+  min-height:var(--mui-h); padding:4px 14px;
+  font:inherit; font-size:13px; font-weight:600;
+  border-radius:var(--mui-r-ctl); cursor:pointer;
+  border:1px solid var(--mui-line-2);
+  background:transparent; color:var(--mui-text);
+  transition:background var(--mui-t), border-color var(--mui-t), color var(--mui-t);
+}
+#main-content .rs-panel-viaje-botones .rs-panel-viaje-calcular{
+  background:var(--mui-accent); border-color:var(--mui-accent);
+  color:var(--mui-accent-text, #1A0E04);
+}
+#main-content .rs-panel-viaje-botones button:hover{ filter:brightness(1.08); }
+#main-content .rs-panel-viaje-botones button:focus-visible{
+  outline:2px solid var(--mui-accent-text); outline-offset:2px;
+}
+#main-content .rs-panel-viaje-estado{
+  margin:0; font-size:12.5px; line-height:1.45; color:var(--mui-soft);
+}
+#main-content .rs-panel-viaje-estado:empty{ display:none; }
+
+/* ==========================================================================
+   07-oct-2026 v2 (orden de Sandro): los tres mapas base (claro, IGN y
+   oscuro) dejan de ser pastillas segmentadas y pasan a ser FILAS con
+   interruptor a la derecha, exactamente como Árboles, Catastro 3D o
+   Buscar aparcamiento. Mismo alto táctil, icono a la izquierda e
+   interruptor teal leyendo aria-pressed. Solo pinta: los ids, los
+   handlers y el comportamiento radio (un mapa activo siempre) no se
+   tocan. Gana a las reglas antiguas por especificidad (tres ids).
+   ========================================================================== */
+#main-content #rsCapasMapas #rsMapStyleToggle{
+  display:flex !important; flex-direction:column !important; flex-wrap:nowrap !important;
+  gap:2px !important; align-items:stretch !important;
+  width:100%; padding:0; background:transparent; border:none; box-shadow:none;
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button{
+  position:relative; flex:0 0 auto; width:100%;
+  display:flex !important; flex-direction:row !important;
+  align-items:center; justify-content:flex-start; gap:10px;
+  min-height:var(--mui-h); padding:4px 10px 4px 38px !important; margin:0;
+  font-family:inherit; font-size:13px !important; font-weight:400 !important;
+  letter-spacing:0 !important; text-transform:none !important; line-height:1.2;
+  white-space:nowrap; text-align:left;
+  color:var(--mui-text) !important; background:transparent !important;
+  border:none !important; border-radius:var(--mui-r-ctl) !important; box-shadow:none !important;
+  cursor:pointer; backdrop-filter:none; -webkit-backdrop-filter:none;
+  transition:background var(--mui-t);
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button::before{
+  position:absolute; left:10px; top:50%; transform:translateY(-50%);
+  width:18px !important; height:18px !important;
+  color:var(--mui-soft) !important; pointer-events:none;
+}
+/* El interruptor de la derecha, idéntico al de las demás filas. */
+#main-content #rsCapasMapas #rsMapStyleToggle button::after{
+  content:''; margin-left:auto; flex:0 0 auto;
+  width:36px; height:22px; border-radius:999px;
+  background-color:#2A3039; border:1px solid var(--mui-line-2);
+  background-image:radial-gradient(circle 7px, #C9D1D9 97%, transparent);
+  background-repeat:no-repeat; background-position:3px 50%;
+  transition:background-color var(--mui-t), background-position var(--mui-t), border-color var(--mui-t);
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button:hover{
+  background:rgba(255,255,255,0.05) !important; color:var(--mui-text) !important;
+}
+/* Activo = interruptor teal e icono de acento, SIN pastilla naranja. */
+#main-content #rsCapasMapas #rsMapStyleToggle button[aria-pressed="true"],
+#main-content #rsCapasMapas #rsMapStyleToggle button[aria-pressed="true"]:hover{
+  background:transparent !important; color:var(--mui-text) !important;
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button[aria-pressed="true"]::before{
+  color:var(--mui-accent) !important;
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button[aria-pressed="true"]::after{
+  background-color:var(--mui-accent); border-color:var(--mui-accent);
+  background-image:radial-gradient(circle 7px, #1A0E04 97%, transparent);
+  background-position:19px 50%;
+}
+#main-content #rsCapasMapas #rsMapStyleToggle button:focus-visible{
+  outline:2px solid var(--mui-accent-text); outline-offset:2px;
+}
+/* El segmento «Mapa oscuro» no tenía icono propio: luna, como manda la
+   fila (sol para claro, mapa para IGN). */
+#main-content #rsCapasMapas #rsBtnMapaOsc::before{
+  content:'';
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13.5A8 8 0 1 1 10.5 4a6.5 6.5 0 0 0 9.5 9.5z'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13.5A8 8 0 1 1 10.5 4a6.5 6.5 0 0 0 9.5 9.5z'/%3E%3C/svg%3E");
+  background:currentColor;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  -webkit-mask-position:center; mask-position:center;
+  -webkit-mask-size:contain; mask-size:contain;
+}
+
+/* ---- 2b) Aparcamientos como fila-toggle: icono de plaza de parking ----
+   (07-oct-2026, orden de Sandro: misma mecánica visual que Catastro 3D,
+   solo se añade, no se toca nada de lo demás). */
+#main-content .rs-ico-parking::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M9.5 17v-10h3.25a2.75 2.75 0 0 1 0 5.5H9.5'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M9.5 17v-10h3.25a2.75 2.75 0 0 1 0 5.5H9.5'/%3E%3C/svg%3E");
+}
+
+/* ---- 3) Scrollbar fina y discreta del panel de capas ---- */
+#main-content .rs-layer-toggles-lista{
+  scrollbar-width:thin; /* Firefox: la más fina que permite */
+  scrollbar-color:rgba(230,233,238,0.26) transparent;
+}
+#main-content .rs-layer-toggles-lista::-webkit-scrollbar{ width:5px; height:5px; }
+#main-content .rs-layer-toggles-lista::-webkit-scrollbar-track{ background:transparent; }
+#main-content .rs-layer-toggles-lista::-webkit-scrollbar-thumb{
+  background:rgba(230,233,238,0.22); border-radius:999px;
+}
+#main-content .rs-layer-toggles-lista::-webkit-scrollbar-thumb:hover{
+  background:rgba(230,233,238,0.42);
+}
+#main-content .rs-layer-toggles-lista::-webkit-scrollbar-button{ display:none; width:0; height:0; }
+
+/* ---- 4) Nada flota por encima del panel ni de sus botones ----
+   El Manolit que camina pone z-index:999 en línea a su marcador;
+   esta regla (con !important, que gana al estilo en línea) deja
+   TODOS los marcadores del mapa bajo los controles fijos (5-7) y
+   muy por debajo del panel de capas (1110). No afecta a su clic:
+   donde no hay control encima, el marcador sigue respondiendo. */
+.map-wrap .maplibregl-marker{ z-index:4 !important; }
+
+/* ---- 5) El botón del chat no tapa la hoja de capas en móvil ----
+   .map-wrap crea su propio contexto de apilado (isolation:isolate), así
+   que el FAB del chat (position:fixed, z-index:1200 en body) pinta
+   SIEMPRE por encima de la hoja de capas, y su muñeco de Manolit con la
+   burbuja «¡Pregúntame!» caía justo encima de los botones del
+   segmentado. Mientras la hoja está abierta, el FAB se retira con una
+   transición suave y deja de ser enfocable; al cerrar la hoja vuelve
+   solo. Solo en móvil (la hoja es bottom sheet a todo lo ancho); en
+   escritorio el popover de 290px nunca coincide con el FAB. */
+@media (max-width:639.98px){
+  .chat-fab{ transition:transform .18s ease, opacity .18s ease, visibility .18s ease; }
+  body.rs-capas-pop:has(.rs-planetario-capas:not(.rs-capas-cerrada)) .chat-fab{
+    opacity:0; visibility:hidden; pointer-events:none;
+  }
+}
+
+/* ================================================================
+   REORDENACIÓN Y ALINEACIÓN DE LA PORTADA (09-oct-2026, tarea de
+   Sandro). Bloque ADITIVO: no se toca ninguna regla vieja, estas van
+   al final del archivo y ganan por cascada.
+
+   1) Una sola anchura de contenido (~960px) para tarjetas y bloques
+      grandes, columna ~680px para párrafos largos y un único paso
+      vertical entre secciones.
+   2) El pie en seis bloques ordenados (a-f): quiénes somos, apoyo,
+      sellos, escudos + IGN, familia y franja legal.
+   3) Contraste WCAG AA (4,5:1) en los textos del pie: las opacidades
+      viejas (0,65-0,8) dejaban los azul-verdoso claros por debajo del
+      mínimo sobre fondo claro (medido: 2,12:1 en las etiquetas de
+      gama tipo "REGIONAL", 2,86:1 en la atribución del IGN).
+   ================================================================ */
+:root{
+  --seccion-ancho:960px;   /* tarjetas y bloques grandes */
+  --seccion-texto:680px;   /* columna para párrafos largos */
+  --seccion-gap:46px;      /* el mismo aire vertical entre secciones */
+}
+
+/* 1) Anchura y ritmo vertical únicos (antes 1000/1000/760px y 46/56px) */
+.map-section, .forecast-section, .faq{
+  max-width:var(--seccion-ancho);
+  margin-top:var(--seccion-gap);
+}
+.quantum-section{
+  max-width:var(--seccion-ancho);
+  margin:var(--seccion-gap) auto 0;
+  padding:0 24px;
+}
+#ecoAgua .agua-texto{ max-width:var(--seccion-texto); }
+
+/* Los títulos de sección pasan de div a h2 (mismo nivel, mismo estilo):
+   se anula el margen que el navegador da a los h2 por defecto. */
+h2.map-title, h2.quantum-badge{ margin:0; }
+
+/* Navegación secundaria: área táctil mínima de 44px en cada enlace */
+.family-link{ display:inline-flex; align-items:center; min-height:44px; }
+
+/* 2) El pie en seis bloques (a-f) */
+.footer-cuentas-linea{ margin:6px 0 0; }
+.footer-cuentas{ font-weight:700; color:var(--accent); }
+.footer-apoyo{
+  margin-top:22px; padding-top:16px; border-top:1px dashed var(--line);
+  display:flex; align-items:center; justify-content:center;
+  gap:14px 26px; flex-wrap:wrap;
+}
+.footer-apoyo .donacion-mensaje{ margin:0; flex:1 1 260px; max-width:340px; text-align:right; }
+.footer-apoyo .donacion-boton{ flex:none; }
+.footer-apoyo .footer-redes{ flex:none; margin-top:0; align-items:flex-start; gap:4px; }
+.footer-apoyo .footer-red{ min-height:44px; } /* tamaño táctil decente (tarea 09-oct) */
+@media (max-width:700px){
+  .footer-apoyo{ flex-direction:column; gap:10px; }
+  .footer-apoyo .donacion-mensaje{ text-align:center; flex:none; max-width:none; }
+  .footer-apoyo .footer-redes{ align-items:center; }
+}
+.footer-sellos{
+  margin-top:22px; display:flex; align-items:center; justify-content:center;
+  gap:22px 30px; flex-wrap:wrap;
+}
+.footer-sellos .footer-sello{ margin:0; flex:none; }
+.footer-sellos .footer-oficial{ margin-top:0; justify-content:center; flex:none; }
+.footer-sellos .footer-alternativeto{ flex:none; }
+
+/* d) Los escudos en 4 columnas (escritorio) y 2x2 (móvil), con la
+      atribución del IGN justo debajo (en el HTML). */
+.footer .escudos-fila{
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px; max-width:var(--seccion-ancho); margin:0 auto;
+}
+.footer .escudo{ max-width:none; }
+@media (max-width:760px){
+  .footer .escudos-fila{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+/* e) La familia de proyectos: enlaces de verdad, ya no monoespaciado */
+.footer-family{ font-family:var(--font-body); font-size:0.8rem; }
+.footer-family a{
+  color:var(--sky-deep); font-weight:600;
+  text-decoration:underline; text-underline-offset:2px;
+}
+.footer-family a:hover{ color:var(--accent); }
+
+/* f) Franja legal final, pequeña y centrada */
+.footer-legal{
+  margin-top:22px; padding-top:12px; border-top:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  gap:4px 8px; flex-wrap:wrap; font-size:0.72rem;
+}
+.footer-legal .footer-sync-toggle{ font-size:inherit; }
+
+/* 3) Contraste WCAG AA en el pie (textos azul-verdoso claros sobre
+      fondo claro): se acabaron las opacidades que rebajaban el texto.
+      El azul de las etiquetas de gama pasa a #0E5563 (7,98:1 sobre el
+      papel claro; medido). En modo oscuro, su primo claro #7FD4DE
+      (13:1 sobre el fondo oscuro). */
+.footer .escudo{ opacity:1; }
+.footer .escudos-porque{ opacity:1; }
+.footer .escudo-gama{ opacity:1; color:#0E5563; }
+.footer .footer-red{ opacity:1; }
+.footer .footer-sync-toggle{ opacity:1; }
+.footer-sellos .sello-footer{ opacity:1; }
+.footer-sellos .footer-sello{ opacity:1; }
+[data-theme="dark"] .footer .escudo-gama{ color:#7FD4DE; }
+
+/* 12-oct-2026 (orden de Sandro): en árabe (RTL) la tarjeta flotante de
+   capas es un flex en columna con flex-wrap:wrap heredado, y Chromium con
+   direction:rtl calcula mal el origen de las líneas de flex: la lista se
+   desplazaba fuera de la tarjeta por la izquierda y los títulos de grupo
+   quedaban cortados por el borde. Con nowrap la lista queda centrada y a
+   su ancho de contenido, igual que en LTR. Solo se toca RTL, LTR intacto. */
+html.rtl body.rs-capas-pop #main-content .rs-layer-toggles{ flex-wrap:nowrap; }
+html.rtl #main-content .rs-capa-grupo-tit{ text-align:right; }
+
+/* ============================================================
+   12-oct-2026 (orden de Sandro, punto 3): los campos de origen y
+   destino se visten con la misma piel que la consola del mapa
+   (los botones y buscadores de arriba). Panel oscuro translúcido
+   con blur, borde fino claro, radio de control, iconos con el
+   trazo aclarado para que el pin teal y la bandera naranja se
+   lean sobre fondo oscuro, foco con el anillo naranja de la casa
+   y lista de sugerencias a juego. No se tocan las formas: la
+   tarjeta sigue redondeada a 16 px, los campos a su altura de
+   44 px y el botón Buscar ruta conserva su color mandarina y su
+   lupa, que ya mandan las paletas y el modo peque. En árabe el
+   icono pasa al lado derecho, donde empieza el texto.
+   ============================================================ */
+#main-content .rs-form{
+  background:rgba(22,26,32,0.94);
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+  border:1px solid var(--mui-line);
+  box-shadow:var(--mui-shadow);
+}
+#main-content .rs-form .rs-field input[type="text"]{
+  background-color:rgba(255,255,255,0.06);
+  border:1px solid var(--mui-line-2);
+  border-radius:var(--mui-r-ctl);
+  color:var(--mui-text);
+  caret-color:var(--mui-accent);
+  transition:border-color var(--mui-t), box-shadow var(--mui-t), background-color var(--mui-t);
+}
+#main-content .rs-form .rs-field input[type="text"]::placeholder{ color:var(--mui-soft); opacity:1; }
+#main-content .rs-form .rs-field input[type="text"]:hover{ border-color:rgba(255,255,255,0.22); }
+#main-content .rs-form .rs-field input[type="text"]:focus{
+  border-color:var(--mui-accent);
+  box-shadow:0 0 0 3px var(--mui-accent-tint);
+  background-color:rgba(255,255,255,0.09);
+}
+/* Los mismos dibujos de siempre (pin y bandera), con el trazo
+   aclarado: teal #0E7C86 y naranja #E04E00 apenas se distinguen
+   sobre el oscuro; sus primos claros pasan de sobra el 3:1 que
+   pide WCAG para componentes de interfaz (medido: 8,5:1 y 7:1). */
+#main-content .rs-form #rsOrigen{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2335C4D4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E");
+}
+#main-content .rs-form #rsDestino{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF8A4D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E");
+}
+/* Lista de sugerencias: el mismo menú oscuro que la consola. */
+#main-content .rs-sugerencias{
+  background:var(--mui-bg-2);
+  border:1px solid var(--mui-line-2);
+  border-radius:var(--mui-r-panel);
+  box-shadow:var(--mui-shadow);
+}
+#main-content .rs-sugerencias li{ color:var(--mui-text); }
+#main-content .rs-sugerencias li:hover,
+#main-content .rs-sugerencias li[aria-selected="true"]{ background:var(--mui-accent-tint); }
+#main-content .rs-sugerencias li.rs-sug-empty{ color:var(--mui-soft); }
+#main-content .rs-sug-linea2{ color:var(--mui-soft); }
+/* En árabe el texto nace a la derecha: el icono cambia de lado. */
+html.rtl #main-content .rs-form .rs-field input[type="text"]{
+  background-position:calc(100% - 10px) center;
+  padding-left:14px;
+  padding-right:38px;
+}

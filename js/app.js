@@ -12,6 +12,18 @@ const cityData = {
   palma:     { name:'Palma de Mallorca', lat:39.5696, lon:2.6502 },
   ceuta:     { name:'Ceuta', lat:35.8894, lon:-5.3213 },
   melilla:   { name:'Melilla', lat:35.2923, lon:-2.9381 },
+  // 07-oct-2026 (bug encontrado probando la NUEVA ORDEN): el desplegable
+  // del hero ofrece 15 ciudades pero aquí solo estaban 8. Al elegir
+  // Pamplona, Santiago, Zaragoza, Málaga, Eivissa, Menorca o Badajoz,
+  // renderHero leía d.name de undefined y saltaba un error en consola.
+  // Coordenadas reales de cada capital (centro urbano).
+  pamplona:  { name:'Pamplona', lat:42.8125, lon:-1.6458 },
+  santiago:  { name:'Santiago de Compostela', lat:42.8805, lon:-8.5457 },
+  zaragoza:  { name:'Zaragoza', lat:41.6488, lon:-0.8891 },
+  malaga:    { name:'Málaga', lat:36.7213, lon:-4.4214 },
+  eivissa:   { name:'Eivissa', lat:38.9089, lon:1.4328 },
+  menorca:   { name:'Menorca', lat:39.8874, lon:4.2614 },
+  badajoz:   { name:'Badajoz', lat:38.8794, lon:-6.9706 },
 };
 
 const messages = {
@@ -823,6 +835,25 @@ function initMap(){
   if (!mapEl || typeof L === 'undefined') return;
 
   const map = L.map('map').setView(regionView.peninsula.center, regionView.peninsula.zoom);
+
+  /* 09-oct-2026 (corrección de la tarea de reordenación): la sección del
+     mapa lleva content-visibility:auto, así que cuando Leaflet nace (600px
+     antes de verse, por la carga perezosa) el navegador aún no ha pintado
+     el contenedor y el mapa medía mal: banda gris arriba y resto vacío.
+     Solución: recalcular el tamaño nada más crearlo (rAF + un segundo
+     intento a los 350ms) y otra vez cuando el contenedor entre de verdad
+     en pantalla. Al recalcular, Leaflet pide las teselas que faltan. */
+  requestAnimationFrame(() => { try { map.invalidateSize(); } catch (e) {} });
+  setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 350);
+  if ('IntersectionObserver' in window) {
+    const vigilaMedida = new IntersectionObserver((ents) => {
+      if (ents.some(e => e.isIntersecting)) {
+        vigilaMedida.disconnect();
+        requestAnimationFrame(() => setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 60));
+      }
+    });
+    vigilaMedida.observe(mapEl);
+  }
   const lang0 = (typeof currentLang !== 'undefined') ? currentLang : 'es';
   const dict0 = (typeof translations !== 'undefined') ? (translations[lang0] || translations.es) : null;
   const statusLineEl0 = document.getElementById('statusLine');
@@ -961,7 +992,15 @@ function initFontBoostControls(){
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function cuandoIdiomaListo(run) {
+  if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
+    document.addEventListener('langChanged', run, { once: true });
+    return;
+  }
+  run();
+}
+
+document.addEventListener('DOMContentLoaded', () => cuandoIdiomaListo(() => {
   applyMode(currentMode);
   initHeroControls();
   initFontBoostControls();
@@ -1001,22 +1040,31 @@ document.addEventListener('DOMContentLoaded', () => {
     vigilante.observe(seccionMapa2D);
   } else if ('requestIdleCallback' in window) requestIdleCallback(iniciarMapa, { timeout: 2500 });
   else window.addEventListener('load', () => setTimeout(iniciarMapa, 100));
-});
+}));
 
 /* ============================================================
    ENTRADA AL JUEGO «ATRAPA A MANOLIT∞» (07-oct-2026, orden
    directa de Sandro). Vive SOLO en la sección de niños: el botón
-   está dentro de .peque-character, que la CSS mantiene oculto
-   fuera del modo peque. El juego y el diploma se cargan perezosos
-   como módulos ES (sin 404: la base se deriva de la propia URL de
-   este script) y todo se destruye al cerrar el panel. Aditivo.
+   está en el bloque .peque-actions del hero y la CSS lo mantiene
+   oculto fuera del modo peque (.peque-juego-btn nace con
+   display:none y solo body.mode-peque lo enseña). El juego y el
+   diploma se cargan perezosos como módulos ES (sin 404: la base se
+   deriva de la propia URL de este script) y todo se destruye al
+   cerrar el panel. Aditivo.
    ============================================================ */
 (function () {
   const arrancar = () => {
+    const IDIOMAS_JUEGO = new Set(['es', 'ca', 'eu', 'gl', 'en', 'ka', 'ar']);
+    const normalizarIdiomaJuego = (lang) => {
+      const limpio = String(lang || '').trim().toLowerCase().slice(0, 2);
+      return IDIOMAS_JUEGO.has(limpio) ? limpio : 'es';
+    };
     const btn = document.getElementById('btnJuegoManolit');
+    const btnAdulto = document.getElementById('btnJuegoCiudadano');
     const cont = document.getElementById('juegoManolitCont');
     if (!btn || !cont) return;
     let juego = null;
+    let modoJuego = null; // 'peque' | 'ciudadano' (NUEVA ORDEN 07-oct-2026)
     let promesaModulo = null;
     const urlJs = () => {
       const s = document.querySelector('script[src*="app.js"]');
@@ -1028,45 +1076,63 @@ document.addEventListener('DOMContentLoaded', () => {
     // caliente le llega por el evento langChanged de i18n.js.
     const getLang = () => {
       try {
-        return (typeof window.getCurrentLang === 'function' && window.getCurrentLang()) || 'es';
+        return normalizarIdiomaJuego((typeof window.getCurrentLang === 'function' && window.getCurrentLang()) || 'es');
       } catch (e) { return 'es'; }
     };
     const decir = (txt) => {
       try {
         if (window.ManolitA11y && typeof window.ManolitA11y.vozPermitida === 'function' && window.ManolitA11y.vozPermitida()) {
           const u = new SpeechSynthesisUtterance(txt);
-          u.lang = document.documentElement.lang || 'es';
+          u.lang = normalizarIdiomaJuego(document.documentElement.lang || getLang());
           window.speechSynthesis.speak(u);
         }
       } catch (e) { /* la voz nunca rompe el juego */ }
     };
-    btn.addEventListener('click', async () => {
+    // Modo de audiencia activo según las clases del body: ciudadano es
+    // el modo por defecto (sin clase) o con clase mode-ciudadano.
+    const modoAudiencia = () =>
+      document.body.classList.contains('mode-peque') ? 'peque'
+      : (document.body.classList.contains('mode-cientifico') || document.body.classList.contains('mode-yayo')) ? 'otro'
+      : 'ciudadano';
+    const abrirJuego = async (modo, boton) => {
       if (juego) return;
       try {
         promesaModulo = promesaModulo || import(urlJs() + 'juego-manolito.js');
         const modulo = await promesaModulo;
         if (juego) return; // doble clic mientras cargaba
+        modoJuego = modo;
         juego = modulo.iniciarJuegoManolit(cont, {
-          getLang, decir,
+          getLang, decir, modo,
           cargarCertificado: () => import(urlJs() + 'certificado-manolito.js'),
-          onCerrar: () => { juego = null; cont.innerHTML = ''; btn.focus(); }
+          onCerrar: () => { juego = null; modoJuego = null; cont.innerHTML = ''; boton.focus(); }
         });
       } catch (e) {
         juego = null;
+        modoJuego = null;
         promesaModulo = null; // sin red para el módulo: se reintenta al pulsar
       }
-    });
+    };
+    btn.addEventListener('click', () => abrirJuego('peque', btn));
+    if (btnAdulto) btnAdulto.addEventListener('click', () => abrirJuego('ciudadano', btnAdulto));
     // Si se cambia de modo con el juego abierto, se destruye entero:
-    // juego oculto que sigue gastando batería, prohibido.
+    // juego oculto que sigue gastando batería, prohibido. El juego de
+    // peques solo vive en modo peque y el de ciudadanos solo en modo
+    // ciudadano: los dos modos no se mezclan (NUEVA ORDEN 07-oct-2026).
     const vigilanteModo = new MutationObserver(() => {
-      if (juego && !document.body.classList.contains('mode-peque')) {
+      if (!juego) return;
+      const actual = modoAudiencia();
+      if (actual !== modoJuego) {
         juego.destruir();
         juego = null;
+        modoJuego = null;
         cont.innerHTML = '';
       }
     });
     vigilanteModo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);
-  else arrancar();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => cuandoIdiomaListo(arrancar));
+  } else {
+    cuandoIdiomaListo(arrancar);
+  }
 })();

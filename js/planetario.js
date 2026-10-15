@@ -89,7 +89,20 @@
   function $(id) { return document.getElementById(id); }
 
   function tt(clave, fallback) {
-    try { return typeof t === 'function' ? t(clave, fallback) : fallback; } catch (e) { return fallback; }
+    // 12-oct-2026 (orden de Sandro): la t() que esperaba este módulo no
+    // existe como global (cada script la tiene encerrada en su propio
+    // ámbito), así que el bloque de sol y luna salía siempre en castellano.
+    // Ahora, si no hay t() global, se lee el diccionario de i18n.js por
+    // window.getMessages(), que sí está colgado a propósito para esto.
+    try { if (typeof t === 'function') return t(clave, fallback); } catch (e) { }
+    try {
+      const fn = window.getMessages;
+      if (typeof fn === 'function') {
+        const msg = fn();
+        if (msg && msg[clave] != null) return msg[clave];
+      }
+    } catch (e) { }
+    return fallback;
   }
 
   function obtenerCoords() {
@@ -263,16 +276,47 @@
     var cielo = s.alturaDeg > 15 ? 'dia' : s.alturaDeg > -6 ? 'tarde' : 'noche';
     if (widget.getAttribute('data-cielo') !== cielo) widget.setAttribute('data-cielo', cielo);
 
-    // Línea de información en tiempo real (cada segundo): hora efectiva,
-    // sol (altura y azimut) y luna con su % de iluminación y su fase.
+    // Línea de información en tiempo real (cada segundo).
+    // 08-oct-2026 (orden directa de Sandro): nada de datos genéricos.
+    // - Capa Sombras APAGADA: el resultado se oculta por completo, así no
+    //   salen alturas y azimuts que no le dicen nada a nadie.
+    // - De noche (sol bajo el horizonte): la métrica se deshabilita sola,
+    //   sin cálculos raros ni textos de relleno.
+    // - Capa Sombras ENCENDIDA y de día: resultado exacto sobre tu punto
+    //   (tu GPS si lo hay, si no el origen elegido, si no el centro del
+    //   mapa): «Al sol» o «A la sombra», leyendo SOLO la fuente 'sombras'
+    //   que ya calcula el motor. El motor no se toca.
     var info = $('rsPlanetarioInfo');
     if (info) {
-      var ilum    = Math.round(ilumFraccion * 100);
-      var horaTxt = fechaMostrada.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-      info.textContent =
-        horaTxt + ' · ' + tt('sun', 'Sol') + ': alt ' + s.alturaDeg.toFixed(1) +
-        '° az ' + Math.round(s.azimutDeg) +
-        '° · ' + tt('moon', 'Luna') + ': ' + ilum + '% ' + nombreFaseLunar(faseLuna);
+      var localesPlan = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE', ar: 'ar-SA' };
+      var langPlan = (typeof currentLang !== 'undefined' && localesPlan[currentLang]) ? currentLang : 'es';
+      var localePlan = localesPlan[langPlan];
+      var horaTxt = fechaMostrada.toLocaleTimeString(localePlan, { hour: '2-digit', minute: '2-digit' });
+      function horaCorta(d) {
+        if (!(d instanceof Date) || isNaN(d)) return '--:--';
+        return d.toLocaleTimeString(localePlan, { hour: '2-digit', minute: '2-digit' });
+      }
+      var solTimes = null;
+      var lunaTimes = null;
+      try { solTimes = SunCalc.getTimes(fechaMostrada, p.lat, p.lon); } catch (eTimes) { solTimes = null; }
+      try { lunaTimes = SunCalc.getMoonTimes(fechaMostrada, p.lat, p.lon); } catch (eMoonTimes) { lunaTimes = null; }
+      var salidaSol = horaCorta(solTimes && solTimes.sunrise);
+      var puestaSol = horaCorta(solTimes && solTimes.sunset);
+      var salidaLuna = horaCorta(lunaTimes && lunaTimes.rise);
+      var puestaLuna = horaCorta(lunaTimes && lunaTimes.set);
+      var solTxt = tt('sunPosition', 'Posición solar') + ' · ' + horaTxt + ' · ' +
+        tt('sunSummaryDeg', 'grados de altura') + ': ' + s.alturaDeg.toFixed(1) + '° · ' +
+        tt('sunSummaryAzimuth', 'azimut') + ': ' + s.azimutDeg.toFixed(1) + '° · ↑ ' + salidaSol + ' ↓ ' + puestaSol;
+      var lunaTxt = tt('moon', 'Luna') + ' · ' + horaTxt + ' · ' +
+        nombreFaseLunar(faseLuna) + ' (' + Math.round(ilumFraccion * 100) + '%) · ↑ ' + salidaLuna + ' ↓ ' + puestaLuna;
+      info.removeAttribute('hidden');
+      info.innerHTML = '';
+      var solLinea = document.createElement('span');
+      solLinea.textContent = solTxt;
+      var lunaLinea = document.createElement('span');
+      lunaLinea.textContent = lunaTxt;
+      info.appendChild(solLinea);
+      info.appendChild(lunaLinea);
     }
   }
 

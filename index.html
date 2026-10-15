@@ -3,8 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rutas con sombra y aire en tiempo real | Manolit∞ Aire</title>
-<meta name="description" content="Calcula rutas a pie por las calles con más sombra y consulta la calidad del aire en vivo y las horas de sol. Gratis, sin registro y sin publicidad.">
+<title>Mapa de sombras en vivo y rutas con sombra | Manolit∞ Aire</title>
+<!-- 12-oct-2026 (SEO, orden de Sandro): el título y la descripción abren
+     con «mapa de sombras», la búsqueda exacta que queremos ganar, y la
+     descripción suma islas de calor y aparcamiento con sombra. Todo lo
+     que se promete aquí existe de verdad en la página. -->
+<meta name="description" content="Mapa de sombras en vivo, rutas a pie por la sombra, calidad del aire e islas de calor calle a calle. Aparcamiento con sombra al llegar. Gratis y sin registro.">
 <!-- 28-sep-2026 (SEO, orden de Sandro): meta keywords eliminada, Google la
      ignora. Lo del agua y la publicidad se queda contado en su seccion de
      la pagina, no en la description. -->
@@ -16,10 +20,10 @@
 <link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://manolitoaire.com/">
-<meta property="og:title" content="Rutas con sombra y aire en tiempo real | Manolit∞ Aire">
-<meta property="og:description" content="Rutas a pie por las calles con más sombra y calidad del aire en vivo. Gratis, sin registro y sin publicidad.">
+<meta property="og:title" content="Mapa de sombras en vivo y rutas con sombra | Manolit∞ Aire">
+<meta property="og:description" content="Mapa de sombras en vivo y rutas a pie por la sombra, con calidad del aire e islas de calor calle a calle. Gratis y sin registro.">
 <meta property="og:image" content="https://manolitoaire.com/compartir.png">
-<meta property="og:image:alt" content="Mapa de rutas con sombra y calidad del aire de Manolit∞ Aire">
+<meta property="og:image:alt" content="Mapa de sombras con edificios en 3D, rutas con sombra y aire en vivo de Manolit∞ Aire">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">
 {
@@ -36,7 +40,9 @@
   "author": { "@type": "Person", "name": "Sandro" },
   "codeRepository": "https://github.com/sandrow007/manolito-aire",
   "license": "https://www.gnu.org/licenses/agpl-3.0.html",
-  "description": "Rutas a pie por las calles con más sombra y calidad del aire en vivo. Gratis, sin registro y sin publicidad."
+  "keywords": "mapa de sombras, sombra urbana, rutas con sombra, islas de calor, calidad del aire, calor urbano, salud y clima, aparcamiento con sombra, sombra 3D",
+  "featureList": "Mapa de sombras en vivo con edificios y árboles reales, rutas a pie con porcentaje de sombra, calidad del aire en vivo, aparcamientos con sombra, irradiación solar y previsión de 5 días",
+  "description": "Mapa de sombras en vivo calculado con los edificios y árboles reales de OpenStreetMap y la posición del sol. Rutas a pie por la sombra, calidad del aire e islas de calor calle a calle, y aparcamiento con sombra al llegar. Gratis, sin registro y sin publicidad."
 }
 </script>
 <script type="application/ld+json">
@@ -75,7 +81,11 @@
     { "@type": "Question", "name": "¿Puedo usarlo en mi ciudad?",
       "acceptedAnswer": { "@type": "Answer", "text": "Si está en España, sí. Las estaciones y los edificios cubren todo el país. Fuera de España el aire funciona en muchos sitios, pero las sombras dependen de lo bien mapeada que esté la zona en OpenStreetMap." } },
     { "@type": "Question", "name": "¿Cómo puedo ayudar?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Usándolo y contándolo. Y si te apetece, apoyando en Ko-fi para pagar los servidores. También puedes mejorar el mapa de tu barrio en OpenStreetMap, que es gratis y ayuda a todo el mundo." } }
+      "acceptedAnswer": { "@type": "Answer", "text": "Usándolo y contándolo. Y si te apetece, apoyando en Ko-fi para pagar los servidores. También puedes mejorar el mapa de tu barrio en OpenStreetMap, que es gratis y ayuda a todo el mundo." } },
+    { "@type": "Question", "name": "¿Qué es una isla de calor?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Una zona de la ciudad varios grados más caliente que las de al lado, por culpa del asfalto, el tráfico y la falta de árboles. El mapa de sombras y el aire en vivo te ayudan a esquivarla, y en una ola de calor caminar por la sombra marca la diferencia." } },
+    { "@type": "Question", "name": "¿Puedo ver la sombra a otra hora o en otra fecha?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Sí. Mueve el control de hora y el mapa recalcula las sombras al momento, con el sol donde estaría de verdad. También puedes saltar al solsticio de verano o al de invierno para comparar." } }
   ]
 }
 </script>
@@ -88,8 +98,8 @@
 <meta name="author" content="Sandro">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta property="og:locale" content="es_ES">
-<meta name="twitter:title" content="Manolit∞ Aire: rutas frescas por la sombra real de Sevilla">
-<meta name="twitter:description" content="Sombra calle a calle en tiempo real, árboles por especie y aire en vivo. Sin registro, sin publicidad y con una huella de agua mínima.">
+<meta name="twitter:title" content="Mapa de sombras en vivo y rutas con sombra | Manolit∞ Aire">
+<meta name="twitter:description" content="Mapa de sombras en vivo, rutas a pie por la sombra, calidad del aire e islas de calor calle a calle. Sin registro y sin publicidad.">
 
 <link rel="preconnect" href="https://unpkg.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -140,6 +150,33 @@
      ambiente se aplica antes del primer pintado (sin destello de la
      paleta normal al cargar un día señalado). -->
 <script src="js/ambientes.js"></script>
+<script>
+  (function () {
+    const LANG_RTL = { ar: true };
+    function safeGet(key) {
+      try { return localStorage.getItem(key); } catch (e) { return null; }
+    }
+    const savedLang = safeGet('manolito_lang');
+    window.__manolitoLangInicial = savedLang || null;
+    window.__manolitoIdiomaResuelto = !!savedLang;
+    window.__manolitoEsperaIdioma = !savedLang;
+    if (!savedLang) {
+      const html = document.documentElement;
+      html.classList.add('manolito-idioma-pendiente');
+      html.setAttribute('lang', 'es');
+      html.setAttribute('dir', 'ltr');
+      html.classList.add('ltr');
+      html.classList.remove('rtl');
+      return;
+    }
+    const html = document.documentElement;
+    html.setAttribute('lang', savedLang);
+    const esRtl = !!LANG_RTL[savedLang];
+    html.setAttribute('dir', esRtl ? 'rtl' : 'ltr');
+    html.classList.toggle('rtl', esRtl);
+    html.classList.toggle('ltr', !esRtl);
+  })();
+</script>
 
 <style>
   #manolitoSplash{
@@ -276,6 +313,47 @@
   @media (prefers-reduced-motion: reduce){
     #manolitoSplash, #manolitoSplash *{ animation:none !important; transition:none !important; }
   }
+  html.manolito-idioma-pendiente body{ overflow:hidden; }
+  html.manolito-idioma-pendiente #manolitoSplash{ opacity:0; visibility:hidden; pointer-events:none; }
+  #idiomaInicioGate{
+    position:fixed; inset:0; z-index:100001;
+    display:flex; align-items:center; justify-content:center; padding:clamp(14px,3vw,28px);
+    background:#03050F;
+    opacity:1; visibility:visible; transition:opacity .2s ease, visibility .2s ease;
+  }
+  #idiomaInicioGate.cerrando{ opacity:0; visibility:hidden; pointer-events:none; }
+  .idioma-inicio-card{
+    width:min(360px,100%); color:#EAF1FF;
+    padding:0;
+  }
+  .idioma-inicio-titulo{ display:none; }
+  .idioma-inicio-sub{ display:none; }
+  .idioma-inicio-grid{
+    display:grid; grid-template-columns:1fr; gap:10px;
+  }
+  .idioma-inicio-btn{
+    min-height:52px; border-radius:12px; border:1px solid rgba(233,240,255,.44);
+    background:#0E162A; color:#F4F7FF; font:inherit; font-weight:700; cursor:pointer;
+    padding:10px 12px; text-align:center; line-height:1.2;
+    transition:border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+  }
+  .idioma-inicio-btn:hover{ border-color:#FFFFFF; background:#16233E; }
+  .idioma-inicio-btn.activa{
+    border-color:#FF8B41;
+    background:#1D2B4A;
+    box-shadow:0 0 0 2px rgba(255,139,65,.32);
+  }
+  .idioma-inicio-btn:focus-visible{
+    outline:3px solid var(--accent,#FF6B1A); outline-offset:2px;
+    box-shadow:0 0 0 4px rgba(255,107,26,.2);
+  }
+  html:not(.manolito-idioma-pendiente) #idiomaInicioGate{
+    opacity:0; visibility:hidden; pointer-events:none;
+  }
+  @media (max-height:430px){
+    .idioma-inicio-card{ padding:12px; }
+    .idioma-inicio-btn{ min-height:44px; }
+  }
 </style>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="icon" type="image/png" href="/favicon.png">
@@ -286,10 +364,82 @@
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
 <a href="#main-content" class="skip-link" data-i18n="skipToContent">Saltar al contenido principal</a>
+
+<div id="idiomaInicioGate">
+  <div class="idioma-inicio-card" role="dialog" aria-modal="true" aria-labelledby="idiomaInicioTitulo">
+    <h1 class="idioma-inicio-titulo" id="idiomaInicioTitulo">Elige tu idioma</h1>
+    <p class="idioma-inicio-sub">Selecciona el idioma para arrancar la web.</p>
+    <div class="idioma-inicio-grid" role="group" aria-label="Selector inicial de idioma">
+      <button type="button" class="idioma-inicio-btn" data-lang="es">Español</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="ca">Català</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="eu">Euskara</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="gl">Galego</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="en">English</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="ka">ქართული</button>
+      <button type="button" class="idioma-inicio-btn" data-lang="ar">العربية</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function () {
+    const gate = document.getElementById('idiomaInicioGate');
+    if (!gate) return;
+    const html = document.documentElement;
+    const LANG_RTL = { ar: true };
+    const esperando = !!window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto;
+    if (!esperando) { gate.remove(); return; }
+    let cerrado = false;
+    let langElegido = 'es';
+    let huboEleccionManual = false;
+    let autoCierre = null;
+    function pintarSeleccion() {
+      gate.querySelectorAll('button[data-lang]').forEach((btn) => {
+        const activa = btn.getAttribute('data-lang') === langElegido;
+        btn.classList.toggle('activa', activa);
+        btn.setAttribute('aria-pressed', activa ? 'true' : 'false');
+      });
+    }
+    function resolverIdioma(lang, guardar) {
+      if (cerrado) return;
+      cerrado = true;
+      if (guardar) {
+        try { localStorage.setItem('manolito_lang', lang); } catch (e) { }
+      }
+      window.__manolitoLangInicial = lang;
+      window.__manolitoIdiomaResuelto = true;
+      window.__manolitoEsperaIdioma = false;
+      html.classList.remove('manolito-idioma-pendiente');
+      html.setAttribute('lang', lang);
+      const esRtl = !!LANG_RTL[lang];
+      html.setAttribute('dir', esRtl ? 'rtl' : 'ltr');
+      html.classList.toggle('rtl', esRtl);
+      html.classList.toggle('ltr', !esRtl);
+      gate.classList.add('cerrando');
+      if (autoCierre) clearTimeout(autoCierre);
+      setTimeout(() => {
+        gate.remove();
+        document.dispatchEvent(new CustomEvent('langChanged', { detail: { lang } }));
+      }, 190);
+    }
+    gate.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest('button[data-lang]') : null;
+      if (!btn) return;
+      langElegido = btn.getAttribute('data-lang') || 'es';
+      huboEleccionManual = true;
+      pintarSeleccion();
+      resolverIdioma(langElegido, true);
+    });
+    pintarSeleccion();
+    autoCierre = setTimeout(() => resolverIdioma(langElegido, huboEleccionManual), 30000);
+    const primerBtn = gate.querySelector('button[data-lang]');
+    if (primerBtn) setTimeout(() => primerBtn.focus(), 0);
+  })();
+</script>
 
 <div id="manolitoSplash">
   <div class="sky-glow"></div>
@@ -386,68 +536,77 @@
 
 <script>
   (function() {
-    const overlay = document.getElementById('manolitoSplash');
-    if (!overlay) return;
-    document.body.classList.add('manolito-splash-activo');
+    function iniciarSplash() {
+      if (window.__manolitoSplashIniciado) return;
+      window.__manolitoSplashIniciado = true;
+      const overlay = document.getElementById('manolitoSplash');
+      if (!overlay) return;
+      document.body.classList.add('manolito-splash-activo');
 
-    const field = document.getElementById('particles');
-    for (let i = 0; i < 28; i++) {
-      const p = document.createElement('div');
-      p.className = 'particle';
-      const size = 1.5 + Math.random() * 2.5;
-      p.style.width = size + 'px';
-      p.style.height = size + 'px';
-      p.style.left = Math.random() * 100 + 'vw';
-      p.style.bottom = '-10px';
-      p.style.animationDuration = (5 + Math.random() * 7) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
-      p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
-      field.appendChild(p);
-    }
-
-    const logoContainer = document.getElementById('logo-container');
-    function tiltLogo(e) {
-      const x = e.clientX / window.innerWidth - 0.5;
-      const y = e.clientY / window.innerHeight - 0.5;
-      logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
-    }
-    document.addEventListener('mousemove', tiltLogo);
-
-    // NUEVO: El tutorial SOLO arranca si ambas condiciones físicas se cumplen
-    function evaluarArranqueTutorial() {
-      const cookiesAceptadas = localStorage.getItem('manolito_cookies_choice') === 'accepted';
-      const splashDestruido = document.getElementById('manolitoSplash') === null;
-      
-      if (cookiesAceptadas && splashDestruido && typeof window.iniciarTutorialManolito === 'function') {
-        window.iniciarTutorialManolito();
+      const field = document.getElementById('particles');
+      for (let i = 0; i < 28; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = 1.5 + Math.random() * 2.5;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.bottom = '-10px';
+        p.style.animationDuration = (5 + Math.random() * 7) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
+        p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
+        field.appendChild(p);
       }
+
+      const logoContainer = document.getElementById('logo-container');
+      function tiltLogo(e) {
+        const x = e.clientX / window.innerWidth - 0.5;
+        const y = e.clientY / window.innerHeight - 0.5;
+        logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
+      }
+      document.addEventListener('mousemove', tiltLogo);
+
+      // NUEVO: El tutorial SOLO arranca si ambas condiciones físicas se cumplen
+      function evaluarArranqueTutorial() {
+        let cookiesAceptadas = false;
+        try { cookiesAceptadas = localStorage.getItem('manolito_cookies_choice') === 'accepted'; } catch (e) { cookiesAceptadas = false; }
+        const splashDestruido = document.getElementById('manolitoSplash') === null;
+        if (cookiesAceptadas && splashDestruido && typeof window.iniciarTutorialManolito === 'function') {
+          window.iniciarTutorialManolito();
+        }
+      }
+
+      // Escucha el evento del banner por si el usuario acepta las cookies DESPUÉS de que el splash desaparezca
+      document.addEventListener('cookiesAceptadas', evaluarArranqueTutorial);
+
+      let isLeaving = false;
+      function executeTransition() {
+        if (isLeaving) return;
+        isLeaving = true;
+        overlay.classList.add('leaving');
+        document.removeEventListener('mousemove', tiltLogo);
+        setTimeout(() => {
+          overlay.remove();
+          document.body.classList.remove('manolito-splash-activo');
+          // Evalúa el arranque justo en el instante en que el DOM elimina la portada
+          evaluarArranqueTutorial();
+        }, 2400);
+      }
+
+      document.getElementById('entryBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        executeTransition();
+      });
+
+      overlay.addEventListener('dblclick', executeTransition);
+      setTimeout(executeTransition, 7400);
     }
-
-    // Escucha el evento del banner por si el usuario acepta las cookies DESPUÉS de que el splash desaparezca
-    document.addEventListener('cookiesAceptadas', evaluarArranqueTutorial);
-
-    let isLeaving = false;
-    function executeTransition() {
-      if (isLeaving) return;
-      isLeaving = true;
-      overlay.classList.add('leaving');
-      document.removeEventListener('mousemove', tiltLogo);
-      
-      setTimeout(() => {
-        overlay.remove();
-        document.body.classList.remove('manolito-splash-activo');
-        
-        // Evalúa el arranque justo en el instante en que el DOM elimina la portada
-        evaluarArranqueTutorial();
-      }, 2400); 
+    if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
+      document.addEventListener('langChanged', () => {
+        requestAnimationFrame(() => requestAnimationFrame(iniciarSplash));
+      }, { once: true });
+      return;
     }
-
-    document.getElementById('entryBtn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      executeTransition();
-    });
-
-    overlay.addEventListener('dblclick', executeTransition);
-    const autoBoot = setTimeout(executeTransition, 7400);
+    iniciarSplash();
   })();
 </script>
 
@@ -460,7 +619,7 @@
   <a href="#defensa-sombras" data-i18n="saludBannerCta">Descubre por qué defendemos la salud ambiental y cada rincón de sombra.</a>
 </div>
 
-<div class="topbar">
+<header class="topbar">
   <!-- El texto estático DEBE coincidir con el de i18n (clave tagline):
      antes traía "MAPA NACIONAL · DATOS EN VIVO" y al segundo se cambiaba
      por el doble de largo → la barra se re-envolvía y empujaba la página
@@ -492,12 +651,12 @@
         </div>
         <div class="mode-card" data-mode="yayo">
           <span class="mode-mark">03</span>
-          <div class="mode-title" data-i18n="mode_yayo_title">Abuela / Abuelo</div>
+          <div class="mode-title" data-i18n="mode_yayo_title">Mayores</div>
           <div class="mode-sub" data-i18n="mode_yayo_sub">Letra grande, sin prisa</div>
         </div>
         <div class="mode-card" data-mode="peque">
           <span class="mode-mark">04</span>
-          <div class="mode-title" data-i18n="mode_peque_title">Peque (5 años)</div>
+          <div class="mode-title" data-i18n="mode_peque_title">Peque</div>
           <div class="mode-sub" data-i18n="mode_peque_sub">Con dibujitos</div>
         </div>
       </div>
@@ -539,7 +698,7 @@
     <button type="button" class="yayo-zoom-btn" id="fontDown" aria-label="Letra más pequeña">A−</button>
     <button type="button" class="yayo-zoom-btn" id="fontUp" aria-label="Letra más grande">A+</button>
   </div>
-</div>
+</header>
 
 <!-- Contador vivo del agua publicitaria, junto al título del mapa (sep-2026).
      Coste: UNA escritura de texto por segundo (nada de animaciones, ni canvas,
@@ -565,9 +724,16 @@
     .map-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   }
 </style>
-<div class="map-section" id="main-content" tabindex="-1">
+<!-- 09-oct-2026 (tarea de reordenación de Sandro): estructura semántica
+     de la portada. Todo el contenido vive dentro de <main> y cada bloque
+     es una <section> con su título enlazado por aria-labelledby. Este
+     id="main-content" NO se mueve a <main>: lo usan las reglas CSS del
+     panel de capas (#main-content ...) y el módulo de aparcamientos como
+     ancla de reserva. -->
+<main>
+<section class="map-section" id="main-content" tabindex="-1" aria-labelledby="rsRouteMapTitle">
   <div class="map-head">
-    <div class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</div>
+    <h2 class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</h2>
     <p class="agua-vivo-head" id="aguaVivoHead" role="status" aria-live="off">
       <span data-i18n="aguaVivoLabel">Anuncios gastando agua a nivel mundial:</span>
       <strong class="avh-num" id="aguaVivoNum">0 L</strong>
@@ -614,14 +780,15 @@
 
 <!-- Las casillas de capas ya no van sueltas aquí (sep-2026, orden de
      Sandro): viven dentro del widget de posición solar, más abajo,
-     junto a los botones de mapa base (Mapa oscuro, Mapa IGN, Catastro
-     3D). Nada flota encima del mapa. -->
+     junto al control de mapa base (Mapa claro / Mapa IGN, segmentado
+     desde el 07-oct) y la fila de Catastro 3D. Nada flota encima del mapa. -->
 
 <div class="rs-planetario" id="rsPlanetario" data-cielo="dia">
   <!-- Capas del mapa integradas en el widget de posición solar (sep-2026,
-       orden de Sandro): las casillas de siempre y, debajo, los botones
-       de mapa base que shadows-route.js trae aquí (Mapa oscuro, Mapa
-       IGN y Catastro 3D). Todo en una fila elegante que se apila en
+       orden de Sandro): las casillas de siempre y el control de mapa base
+       que shadows-route.js trae aquí (desde el 07-oct: segmentado plano
+       [Mapa claro | Mapa IGN] y Catastro 3D en su propia fila-toggle).
+       Todo en una fila elegante que se apila en
        móvil, sin cambiar el tamaño de la cúpula. -->
   <div class="rs-planetario-capas" id="rsPlanetarioCapas">
     <div class="rs-layer-toggles" role="group" data-i18n-aria-label="layerGroup" aria-label="Capas del mapa">
@@ -637,15 +804,24 @@
            (bottom sheet en móvil) que se abre y se cierra desde el botón
            flotante. Todos los ids y casillas son los de siempre: solo
            cambia la presentación. Las filas vacías (rsMonte*) son puntos
-           de anclaje para los botones de Árboles e Irradiación solar.
-           «Sol y sombra» no existe como capa propia (era el nombre del
-           grupo de ayer) y Catastro 3D vive dentro de Mapa base, como
-           siempre. Nubes se queda en Entorno y clima aunque el brief no
-           la nombrara: quitarla habría sido tocar una capa. -->
-      <p class="rs-capa-grupo-tit" data-i18n="groupBaseInfra">Base e infraestructura</p>
-      <div class="rs-capas-mapas" id="rsCapasMapas"></div>
-      <label class="rs-capa-fila rs-ico-edificios"><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
-      <label class="rs-capa-fila rs-ico-ruta"><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
+           de anclaje para los botones de Árboles e Intensidad solar.
+           Nubes se queda en Entorno y clima aunque el brief no
+           la nombrara: quitarla habría sido tocar una capa.
+           Jerarquía (07-oct-2026, orden directa de Sandro): la iluminación
+           manda, así que el orden de los grupos es 1) Iluminación y sol,
+           2) Entorno y clima, 3) Base e infraestructura. En Base vive el
+           control segmentado de mapa base [Mapa claro | Mapa IGN] (la
+           caja con tarjetas y el acordeón «Capas de mapa» se eliminaron)
+           y Catastro 3D pasa a ser una fila-toggle individual más, como
+           Árboles e Intensidad solar. -->
+      <p class="rs-capa-grupo-tit" data-i18n="groupIluminacionSol">Iluminación y sol</p>
+      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
+           es lo que más calienta el móvil; ahora solo arranca si el usuario
+           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
+           pero la CPU está en reposo hasta que tú decidas. -->
+      <label class="rs-capa-fila rs-ico-sombras"><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
+      <label class="rs-capa-fila rs-ico-sol"><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-irradiacion" id="rsMonteIrradiacion"></div>
       <p class="rs-capa-grupo-tit" data-i18n="groupEntornoClima">Entorno y clima</p>
       <div class="rs-capa-fila rs-capa-fila-btn rs-ico-arboles" id="rsMonteArboles"></div>
       <!-- Calidad del aire (01-oct-2026, orden directa de Sandro): capa SOLO
@@ -657,24 +833,88 @@
            apaga y se oculta sola con un aviso. -->
       <label class="rs-capa-fila rs-ico-aire" id="rsCapaAireFila" hidden><input type="checkbox" id="rsToggleAire"> <span data-i18n="layerAirQuality">Calidad del aire</span></label>
       <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
-           Apagada por defecto para no saturar el móvil; la enciende el usuario. -->
+           Apagada por defecto para no saturar el móvil; la enciende el usuario.
+           (Verificado el 07-oct-2026: el toggle SÍ es interactivo, enciende
+           y apaga la capa en js/microclima.js; por eso se queda como toggle
+           y la etiqueta «Estimado» sigue siendo solo informativa.) -->
       <label class="rs-capa-fila rs-ico-microclima"><input type="checkbox" id="rsToggleMicroclima"> <span data-i18n="layerMicroclimate">Microclima</span> <em class="rs-capa-tag" data-i18n="microTag">Estimado</em></label>
       <label class="rs-capa-fila rs-ico-nubes"><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
-      <p class="rs-capa-grupo-tit" data-i18n="groupIluminacionSol">Iluminación y sol</p>
-      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
-           es lo que más calienta el móvil; ahora solo arranca si el usuario
-           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
-           pero la CPU está en reposo hasta que tú decidas. -->
-      <label class="rs-capa-fila rs-ico-sombras"><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
-      <label class="rs-capa-fila rs-ico-sol"><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
-      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-irradiacion" id="rsMonteIrradiacion"></div>
+      <p class="rs-capa-grupo-tit" data-i18n="groupBaseInfra">Base e infraestructura</p>
+      <div class="rs-capas-mapas" id="rsCapasMapas"></div>
+      <label class="rs-capa-fila rs-ico-edificios"><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
+      <label class="rs-capa-fila rs-ico-ruta"><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
+      <!-- Catastro 3D (07-oct-2026, orden de Sandro): ya no va con los mapas
+           base, es una capa combinable y se presenta como fila-toggle
+           individual con su interruptor a la derecha. Mismo botón y mismo
+           id de siempre (rsBtnCatastro), solo cambia el anclaje. -->
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-catastro" id="rsMonteCatastro"></div>
+      <!-- Aparcamientos (07-oct-2026, orden de Sandro): fila-botón como
+           Árboles o Catastro. La rellena js/aparcamientos-viaje.js, un
+           módulo nuevo y aditivo que consulta Overpass por el bbox visible. -->
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-parking" id="rsMonteParking"></div>
+      <!-- Planificador de viaje largo (07-oct-2026, orden de Sandro):
+           fila-botón que abre el panelito con origen y destino. Lo
+           rellena js/aparcamientos-viaje.js, el mismo módulo del parking. -->
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-viaje" id="rsMonteViaje"></div>
       </div>
     </div>
   </div>
 
+<!-- Bloque sol: la cúpula y su hora van en el CENTRO del widget, como
+     una sola pieza y justo ENCIMA de «¿No hay 3D en tu zona?»
+     (08-oct-2026, orden de Sandro). En flujo normal del DOM, centrada
+     horizontalmente, prohibida la columna lateral derecha. -->
+  <div class="rs-planetario-sol">
+  <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
+    <defs>
+      <radialGradient id="rsGradTierra" cx="35%" cy="30%" r="85%">
+        <stop offset="0%" stop-color="#bfe6ff"/>
+        <stop offset="45%" stop-color="#3a8fd6"/>
+        <stop offset="100%" stop-color="#0c2f63"/>
+      </radialGradient>
+      <radialGradient id="rsGradSol" cx="40%" cy="35%" r="85%">
+        <stop offset="0%" stop-color="#fffbe6"/>
+        <stop offset="55%" stop-color="#ffd76a"/>
+        <stop offset="100%" stop-color="#ff9a1f"/>
+      </radialGradient>
+      <radialGradient id="rsGradLuna" cx="38%" cy="32%" r="90%">
+        <stop offset="0%" stop-color="#ffffff"/>
+        <stop offset="60%" stop-color="#cfd8e3"/>
+        <stop offset="100%" stop-color="#8b98a9"/>
+      </radialGradient>
+    </defs>
+    <circle class="rs-planetario-cielo" cx="80" cy="80" r="74"/>
+    <!-- Las estrellas ya no son puntitos blancos fijos: las genera
+         planetario.js como luces cuánticas que titilan (grupo
+         #rsEstrellasCuanticas, insertado aquí encima del cielo). -->
+    <circle cx="80" cy="80" r="74" fill="none" stroke="var(--line)" stroke-width="1"/>
+    <circle cx="80" cy="80" r="60" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="1 3" opacity="0.8"/>
+    <circle cx="80" cy="80" r="46" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="2 3"/>
+    <text x="80" y="15" text-anchor="middle" class="rs-sol-cardinal">N</text>
+    <text x="147" y="84" text-anchor="middle" class="rs-sol-cardinal">E</text>
+    <text x="80" y="153" text-anchor="middle" class="rs-sol-cardinal">S</text>
+    <text x="13" y="84" text-anchor="middle" class="rs-sol-cardinal">O</text>
+    <g id="rsLunaOrbe"><circle r="5" fill="url(#rsGradLuna)"/></g>
+    <g id="rsTierraOrbe" transform="translate(80 80)">
+      <circle r="11" fill="url(#rsGradTierra)"/>
+      <g class="rs-tierra-giro">
+        <ellipse cx="-3.5" cy="-2" rx="4" ry="2.6" fill="#3fa060" opacity="0.55"/>
+        <ellipse cx="3.5" cy="3" rx="3" ry="2" fill="#3fa060" opacity="0.45"/>
+      </g>
+      <circle r="11" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+    </g>
+    <g id="rsSolOrbe"><circle r="8" fill="url(#rsGradSol)"/></g>
+  </svg>
+  <div class="rs-planetario-lado">
+    <div class="rs-planetario-info" id="rsPlanetarioInfo">--</div>
+  </div>
+  </div>
+
 <!-- ¿No hay 3D en tu zona? (sep-2026, ADITIVO): cómo colaborar en
      OpenStreetMap para que tu barrio salga en Manolit∞. Va PLEGADO: se
-     despliega solo al pulsar el título (details/summary nativo, sin JS). -->
+     despliega solo al pulsar el título (details/summary nativo, sin JS).
+     Desde el 08-oct-2026 va justo DEBAJO de la cúpula del planetario
+     (orden de Sandro). -->
 <section class="map-section" id="rsColaboraOSM">
 <details>
   <summary id="rsColaboraTitle" class="map-title" style="font-size:1.15rem;cursor:pointer;list-style:none;user-select:none;">
@@ -725,58 +965,13 @@
   </div>
 </details>
 </section>
-  <!-- Bloque sol: la cúpula y su hora van al final del widget,
-       como una sola pieza (sep-2026, orden de Sandro). -->
-  <div class="rs-planetario-sol">
-  <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
-    <defs>
-      <radialGradient id="rsGradTierra" cx="35%" cy="30%" r="85%">
-        <stop offset="0%" stop-color="#bfe6ff"/>
-        <stop offset="45%" stop-color="#3a8fd6"/>
-        <stop offset="100%" stop-color="#0c2f63"/>
-      </radialGradient>
-      <radialGradient id="rsGradSol" cx="40%" cy="35%" r="85%">
-        <stop offset="0%" stop-color="#fffbe6"/>
-        <stop offset="55%" stop-color="#ffd76a"/>
-        <stop offset="100%" stop-color="#ff9a1f"/>
-      </radialGradient>
-      <radialGradient id="rsGradLuna" cx="38%" cy="32%" r="90%">
-        <stop offset="0%" stop-color="#ffffff"/>
-        <stop offset="60%" stop-color="#cfd8e3"/>
-        <stop offset="100%" stop-color="#8b98a9"/>
-      </radialGradient>
-    </defs>
-    <circle class="rs-planetario-cielo" cx="80" cy="80" r="74"/>
-    <!-- Las estrellas ya no son puntitos blancos fijos: las genera
-         planetario.js como luces cuánticas que titilan (grupo
-         #rsEstrellasCuanticas, insertado aquí encima del cielo). -->
-    <circle cx="80" cy="80" r="74" fill="none" stroke="var(--line)" stroke-width="1"/>
-    <circle cx="80" cy="80" r="60" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="1 3" opacity="0.8"/>
-    <circle cx="80" cy="80" r="46" fill="none" stroke="var(--line)" stroke-width="0.8" stroke-dasharray="2 3"/>
-    <text x="80" y="15" text-anchor="middle" class="rs-sol-cardinal">N</text>
-    <text x="147" y="84" text-anchor="middle" class="rs-sol-cardinal">E</text>
-    <text x="80" y="153" text-anchor="middle" class="rs-sol-cardinal">S</text>
-    <text x="13" y="84" text-anchor="middle" class="rs-sol-cardinal">O</text>
-    <g id="rsLunaOrbe"><circle r="5" fill="url(#rsGradLuna)"/></g>
-    <g id="rsTierraOrbe" transform="translate(80 80)">
-      <circle r="11" fill="url(#rsGradTierra)"/>
-      <g class="rs-tierra-giro">
-        <ellipse cx="-3.5" cy="-2" rx="4" ry="2.6" fill="#3fa060" opacity="0.55"/>
-        <ellipse cx="3.5" cy="3" rx="3" ry="2" fill="#3fa060" opacity="0.45"/>
-      </g>
-      <circle r="11" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-    </g>
-    <g id="rsSolOrbe"><circle r="8" fill="url(#rsGradSol)"/></g>
-  </svg>
-  <div class="rs-planetario-lado">
-    <div class="rs-planetario-info" id="rsPlanetarioInfo">--</div>
-  </div>
-  </div>
   <!-- Botón de acceso a la herramienta de Renderizado LiDAR (nube de puntos 3D).
        Es un enlace externo de la familia Manolit∞, con estilo de botón para que
        no se vea la URL y quede integrado con el diseño de la página.
-       Orden lógico del widget (sep-2026, orden de Sandro): 1) planetario
-       1) las capas del mapa, 2) el planetario, 3) este acceso LiDAR. -->
+       Orden clásico del widget (confirmado por Sandro el 08-oct-2026):
+       1) el mapa con sus controles y viajes, 2) las capas del mapa,
+       3) la cúpula del planetario centrada, 4) el bloque «¿No hay 3D en
+       tu zona?», 5) este acceso LiDAR, siempre debajo del todo. -->
   <a class="rs-btn-lidar" href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -803,13 +998,13 @@
     </dl>
   </div>
 </section>
-</div>
+</section>
 
-<div class="hero">
+<section class="hero" aria-labelledby="heroTitulo">
   <!-- h1 unico con la busqueda principal y la marca sin simbolo (28-sep, SEO).
        Visible pero discreto para no tocar el diseño del hero.
        Traducido a los 6 idiomas (clave heroH1 en js/i18n.js). -->
-  <h1 data-i18n="heroH1" style="font-size:15px;font-weight:600;color:var(--sky-mid,#9fb3c8);text-align:center;margin:0 0 10px;">Manolito Aire. Rutas con sombra y calidad del aire en tiempo real</h1>
+  <h1 id="heroTitulo" data-i18n="heroH1" style="font-size:15px;font-weight:600;color:var(--sky-mid,#9fb3c8);text-align:center;margin:0 0 10px;">Manolito Aire. Mapa de sombras en vivo y rutas con sombra</h1>
   <div class="city-picker" id="cityPickerContainer">
     <button class="city-dropdown-btn" id="cityDropdownBtn" aria-haspopup="listbox" aria-expanded="false">Sevilla</button>
     <ul class="city-dropdown-list" id="cityDropdownList" role="listbox" aria-label="Ciudad">
@@ -834,22 +1029,19 @@
   <div class="orb-wrap">
     <div class="orb-ring"></div>
     <div class="orb"><div class="orb-face" id="orbFace" data-i18n="orb_good">bien</div></div>
+    <!-- En modo peque el orb-wrap solo aloja la nube (07-oct-2026, orden
+         de Sandro). El titular y el botón salieron de aquí: la caja tiene
+         200px fijos y todo lo que crecía dentro se salía y pisaba al
+         selector de ciudad y al texto de debajo. -->
     <div class="peque-character" id="pequeCharacter">
       <div class="peque-cloud" id="pequeCloudSvg"></div>
-      <div class="peque-message" id="pequeMessage" data-i18n="pequeInit">El aire está contento!</div>
-      <!-- Entrada al juego «Atrapa a Manolit∞» (07-oct-2026, orden de
-           Sandro). Vive SOLO aquí, en la sección de niños: la CSS de
-           .peque-character lo mantiene oculto fuera del modo peque.
-           El juego se carga perezoso desde js/app.js al pulsar. -->
-      <button type="button" class="peque-juego-btn" id="btnJuegoManolit" data-i18n="gameIntroBtn">Juega con Manolit∞</button>
     </div>
   </div>
 
-  <!-- Aquí se monta el panel del juego «Atrapa a Manolit∞» (07-oct-2026,
-       orden de Sandro). Va FUERA del orb-wrap (que tiene 200px fijos) y
-       en flujo normal: empuja el contenido hacia abajo, nunca flota ni
-       tapa nada. Solo existe contenido con el modo peque activo. -->
-  <div class="juego-manolit-cont" id="juegoManolitCont"></div>
+  <!-- Titular del modo peque (07-oct-2026, orden de Sandro): va en flujo
+       normal y a todo el ancho útil del hero, no encerrado en los 200px
+         del orb-wrap. La CSS lo esconde fuera del modo peque. -->
+  <div class="peque-message" id="pequeMessage" data-i18n="pequeInit">El aire está contento!</div>
 
   <div class="human-line" id="humanLine" data-i18n="heroLoading">Cargando el aire de tu ciudad…</div>
   <div class="sub-line" id="subLine" data-i18n="heroMoment">Un momento.</div>
@@ -869,9 +1061,25 @@
     <div class="sci-updated" id="sciUpdated" data-i18n="updatedPlaceholder">Actualizado: --</div>
   </div>
 
-  <br>
-  <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
-</div>
+  <!-- Botones de acción juntos y en flujo (07-oct-2026, orden de Sandro):
+       primero el juego (acción principal, solo visible en modo peque) y
+       después el chat de ayuda (visible en todos los modos, como antes).
+       Nada flota: cada botón empuja al siguiente bloque. -->
+  <div class="peque-actions">
+    <button type="button" class="peque-juego-btn" id="btnJuegoManolit" data-i18n="gameIntroBtn">Juega con Manolit∞</button>
+    <!-- El mismo juego, con contenido adulto, en modo ciudadano
+         (07-oct-2026, NUEVA ORDEN punto 4). La CSS lo enseña solo en
+         ese modo y el de peques solo en peque: no se mezclan. -->
+    <button type="button" class="ciudadano-juego-btn" id="btnJuegoCiudadano" data-i18n="gameIntroBtnAdult">Ponte a prueba con Manolit∞</button>
+    <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
+  </div>
+
+  <!-- Aquí se monta el panel del juego «Atrapa a Manolit∞». Va en flujo
+       normal, justo debajo de sus botones: empuja el contenido hacia
+       abajo, nunca flota ni tapa nada. Solo existe con el modo peque
+       activo. -->
+  <div class="juego-manolit-cont" id="juegoManolitCont"></div>
+</section>
 
 <!-- Los enlaces de familia bajan aquí (sep-2026, orden de Sandro): antes
      vivían en la barra de arriba y ahora que los modos ocupan ese sitio,
@@ -881,7 +1089,7 @@
   <a class="family-link" href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a>
   <a class="family-link" href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a>
   <a class="family-link" href="manolito-aire-comparativa.html" target="_self" data-i18n="comparativaLink">Comparativa</a>
-  <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener" data-i18n="queEsLink">Que es Manolit∞ ©</a>
+  <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener" data-i18n="queEsLink">Qué es Manolit∞ ©</a>
   <!-- Entrada al generador del widget embebible (27-sep). Traducida a los
        6 idiomas el 28-sep (clave anadeLink en js/i18n.js). -->
   <a class="family-link" href="anade-manolito.html" target="_self" data-i18n="anadeLink">Añade Manolit∞ a tu web</a>
@@ -1096,9 +1304,9 @@
   </div>
 </details>
 
-<div class="map-section">
+<section class="map-section" aria-labelledby="tituloMapaAire">
   <div class="map-head">
-    <div class="map-title" data-i18n="mapTitle">El aire de España, ahora mismo</div>
+    <h2 class="map-title" id="tituloMapaAire" data-i18n="mapTitle">El aire de España, ahora mismo</h2>
     <div class="chip-toggle" id="regionJump">
       <button data-r="peninsula" class="active" data-i18n="region_peninsula">Península</button>
       <button data-r="canarias" data-i18n="region_canarias">Canarias</button>
@@ -1116,11 +1324,11 @@
     </div>
   </div>
   <div class="status-line" id="statusLine" data-i18n="statusLoading">Cargando datos en vivo…</div>
-</div>
+</section>
 
-<div class="forecast-section">
+<section class="forecast-section" aria-labelledby="tituloEvolucion">
   <div class="map-head">
-    <div class="map-title"><span data-i18n="evolAire">Evolución del aire</span> · <span id="forecastCityName">Sevilla</span></div>
+    <h2 class="map-title" id="tituloEvolucion"><span data-i18n="evolAire">Evolución del aire</span> · <span id="forecastCityName">Sevilla</span></h2>
   </div>
   <div class="chart-card">
     <div id="airChart"></div>
@@ -1129,16 +1337,22 @@
       <span><i class="dot-fore"></i> <span data-i18n="legendFore">Próximas 48h (pronóstico Copernicus/CAMS)</span></span>
     </div>
   </div>
+</section>
 
+<!-- MANOLIT∞ CUÁNTICO como sección propia (09-oct-2026, tarea de
+     reordenación de Sandro): sale de dentro de la sección de la gráfica
+     y se queda justo debajo, a la misma anchura, porque su aviso se
+     apoya en el pronóstico real de arriba. Los dos divs vacíos que
+     vivían aquí (week-label y quantumWeek, sin contenido ni script que
+     los rellene) eran el hueco vertical entre las barras y el aviso en
+     cursiva: eliminados por orden directa de Sandro. -->
+<section class="quantum-section" aria-labelledby="tituloCuantico">
   <div class="quantum-card">
     <div class="quantum-head">
-      <span class="quantum-badge" data-i18n="quantumBadge">Manolit∞ Cuántico</span>
+      <h2 class="quantum-badge" id="tituloCuantico" data-i18n="quantumBadge">Manolit∞ Cuántico</h2>
       <span class="quantum-sub" data-i18n="quantumSub">pronóstico simulado para los próximos 5 días, contado sin humo</span>
     </div>
     <div id="quantumBars" class="quantum-bars"></div>
-
-    <div class="week-label"></div>
-    <div id="quantumWeek" class="quantum-week"></div>
 
     <p class="quantum-disclaimer" data-i18n="quantumDisclaimer">
       Esto NO es una predicción meteorológica oficial. Es una simulación matemática
@@ -1147,12 +1361,12 @@
       guíate por el dato del gráfico y por fuentes oficiales, no por este número.
     </p>
   </div>
-</div>
-<div class="map-section" id="ecoAgua" style="border:1px solid rgba(14,59,71,0.18); background:linear-gradient(135deg, rgba(23,120,138,0.08), rgba(255,107,26,0.06));">
+</section>
+<section class="map-section" id="ecoAgua" aria-labelledby="tituloAgua" style="border:1px solid rgba(14,59,71,0.18); background:linear-gradient(135deg, rgba(23,120,138,0.08), rgba(255,107,26,0.06));">
   <div class="map-head">
-    <div class="map-title" data-i18n="aguaTitulo">El agua que no se ve</div>
+    <h2 class="map-title" id="tituloAgua" data-i18n="aguaTitulo">El agua que no se ve</h2>
   </div>
-  <p style="margin:4px 0 10px; line-height:1.6;"><span data-i18n="aguaP1">Esto ya no es una estimación: la telemetría real de los últimos 30 días dice </span><strong data-i18n="aguaS1">176.444 peticiones, 1,80 GB movidos y 4.819 visitas</strong><span data-i18n="aguaP2">. O sea, </span><strong data-i18n="aguaS2">0,38 MB y unos 2 mililitros de agua por visita</strong><span data-i18n="aguaP3">, medidos. Mientras tanto, la publicidad programática del mundo gasta </span><strong data-i18n="aguaS3">unos 375 litros cada segundo</strong><span data-i18n="aguaP4"> en subastas de anuncios que nadie pidió: al año, miles de piscinas olímpicas.</span></p>
+  <p class="agua-texto" style="margin:4px 0 10px; line-height:1.6;"><span data-i18n="aguaP1">Esto ya no es una estimación: la telemetría real de los últimos 30 días dice </span><strong data-i18n="aguaS1">176.444 peticiones, 1,80 GB movidos y 4.819 visitas</strong><span data-i18n="aguaP2">. O sea, </span><strong data-i18n="aguaS2">0,38 MB y unos 2 mililitros de agua por visita</strong><span data-i18n="aguaP3">, medidos. Mientras tanto, la publicidad programática del mundo gasta </span><strong data-i18n="aguaS3">unos 375 litros cada segundo</strong><span data-i18n="aguaP4"> en subastas de anuncios que nadie pidió: al año, miles de piscinas olímpicas.</span></p>
   <div id="ecoAguaVivo" role="status" aria-live="off"
        style="font-variant-numeric:tabular-nums; font-weight:700; color:var(--sky-deep,#0E3B47); background:var(--surface, rgba(255,255,255,0.65)); border-radius:12px; padding:10px 14px; margin-bottom:10px;">
     Desde que abriste esta página, los anuncios del mundo llevan gastados 0 litros de agua. Tu visita aquí: ~2 ml, medidos.
@@ -1160,7 +1374,7 @@
   <a href="manolito-aire-comparativa.html#agua" target="_self" data-i18n="aguaLink" style="font-weight:700; color:var(--accent,#FF6B1A);">
     Ver las cuentas completas, con los supuestos a la vista →
   </a>
-</div>
+</section>
 
 <script>
 // Contador del agua de la publicidad (sep-2026): 300.000 millones de
@@ -1195,8 +1409,21 @@
   refrescarIdioma();
   document.addEventListener('DOMContentLoaded', refrescarIdioma);
   document.addEventListener('langChanged', refrescarIdioma);
+  // No escribir con la sección fuera de pantalla (12-oct-2026, auditoría
+  // de rendimiento): el intervalo sigue a 250 ms, pero mientras la sección
+  // no se ve no se toca el DOM. Al hacer scroll y volver a verla, el número
+  // sale al día al instante porque se calcula del reloj real, no acumulado.
+  // Sin IntersectionObserver (navegadores viejos) se comporta como antes.
+  var enPantalla = true;
+  if ('IntersectionObserver' in window) {
+    try {
+      new IntersectionObserver(function (ents) {
+        enPantalla = !!(ents && ents[0] && ents[0].isIntersecting);
+      }, { rootMargin: '100px 0px' }).observe(el);
+    } catch (e) { enPantalla = true; }
+  }
   var id = setInterval(function () {
-    if (document.hidden) return;
+    if (document.hidden || !enPantalla) return;
     var litros = Math.round((Date.now() - inicio) / 1000 * 375);
     el.textContent = tpl.replace('{n}', litros.toLocaleString(locale));
   }, 250);
@@ -1291,41 +1518,67 @@
     <summary data-i18n="faqQ9">¿Cómo puedo ayudar?</summary>
     <p data-i18n="faqA9">Usándolo y contándolo. Y si te apetece, apoyando en Ko-fi para pagar los servidores. También puedes mejorar el mapa de tu barrio en OpenStreetMap, que es gratis y ayuda a todo el mundo.</p>
   </details>
+
+  <!-- 12-oct-2026 (SEO, orden de Sandro): dos preguntas más que responden
+       de verdad a lo que la gente busca (isla de calor y sombra a otra
+       hora). El JSON-LD FAQPage del head lleva estas mismas dos. -->
+  <details class="faq-item">
+    <summary data-i18n="faqQ10">¿Qué es una isla de calor?</summary>
+    <p data-i18n="faqA10">Una zona de la ciudad varios grados más caliente que las de al lado, por culpa del asfalto, el tráfico y la falta de árboles. El mapa de sombras y el aire en vivo te ayudan a esquivarla, y en una ola de calor caminar por la sombra marca la diferencia.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ11">¿Puedo ver la sombra a otra hora o en otra fecha?</summary>
+    <p data-i18n="faqA11">Sí. Mueve el control de hora y el mapa recalcula las sombras al momento, con el sol donde estaría de verdad. También puedes saltar al solsticio de verano o al de invierno para comparar.</p>
+  </details>
 </section>
+</main>
 
-<div class="footer">
+<footer class="footer">
+  <!-- 09-oct-2026 (tarea de reordenación de Sandro): el pie se ordena en
+       seis bloques: a) quiénes somos, b) apoyo y comunidad, c) sellos de
+       confianza, d) escudos que cuidan de nosotros con la atribución del
+       IGN debajo, e) familia de proyectos (enlaces de verdad) y f) la
+       franja legal con Sincronizar / Exportar datos. Mismo texto, mismos
+       ids, mismos enlaces: solo cambian el orden y la presentación. -->
+
+  <!-- a) Quiénes somos: la frase corta y el enlace a las cuentas del
+       agua, que viven en su propia sección (#ecoAgua). El párrafo largo
+       de la telemetría se queda allí: aquí solo va el enlace. -->
   <p data-i18n="footerFamiliaTxt">Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.</p>
-  <p class="footer-eco" data-i18n="footerEcoTxt">Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.</p>
-  <div class="footer-family" data-i18n="footerFamily">Manolit∞ Forestal · Islas de Calor Sevilla · Manolit∞ Aire</div>
-  <div class="footer-ign" style="margin-top:8px; font-size:0.75rem; opacity:0.7;" data-i18n="footerIgnTxt">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
-  <div style="margin-top:10px;">
-    <a href="aviso-legal.html" data-i18n="legalNotice">Aviso legal</a> · 
-    <a href="privacidad.html" data-i18n="privacy">Privacidad</a> · 
-    <a href="cookies.html" data-i18n="cookies">Cookies</a> ·
-    <!-- Enlace visible al codigo fuente (28-sep-2026): el proyecto es AGPL y
-         el repo es publico; ademas lo piden los revisores de AlternativeTo. -->
-    <a href="https://github.com/sandrow007/manolito-aire" target="_blank" rel="noopener" data-i18n="footerGithub">Código abierto</a>
-  </div>
+  <p class="footer-cuentas-linea"><a class="footer-cuentas" href="#ecoAgua" data-i18n="footerVerCuentas">Ver las cuentas</a></p>
 
-  <!-- Sincronizar / Exportar datos: tus ajustes (tema, paleta, idioma,
-       modo accesible, ciudad...) viajan en un archivo JSON entre tus
-       dispositivos. Sin cuentas, sin servidores: el archivo lo genera
-       y lo lee tu propio navegador. -->
-  <div class="footer-sync">
-    <button type="button" id="btnSyncExport" class="footer-sync-toggle" data-i18n="syncLink"
-            aria-expanded="false" aria-controls="syncPanel">Sincronizar / Exportar datos</button>
-    <div id="syncPanel" class="sync-panel" hidden>
-      <p class="sync-hint" data-i18n="syncHint">Guarda tus ajustes en un archivo y recupéralos en otro dispositivo. Sin cuentas ni servidores.</p>
-      <div class="sync-panel-btns">
-        <button type="button" id="btnSyncExportar" data-i18n="syncExportBtn">Exportar mis datos</button>
-        <button type="button" id="btnSyncImportar" data-i18n="syncImportBtn">Importar datos</button>
-      </div>
-      <input type="file" id="syncFileInput" accept="application/json,.json" hidden>
+  <!-- b) Apoyo y comunidad en una misma fila: el mensaje, el botón de
+       Ko-fi y las redes. (El div.footer-final de antes se disuelve: su
+       sello A+ sube al bloque de sellos y donación+redes forman esta
+       fila.) -->
+  <div class="footer-apoyo">
+    <p class="donacion-mensaje" data-i18n-html="donacionTxt">
+      Manolit∞ siempre sera gratis.<br>
+      Los servidores, por desgracia, no lo son...
+    </p>
+    <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer" data-i18n="kofiBtn">
+      Apoyar en Ko‑fi
+    </a>
+    <div class="footer-redes">
+      <a class="footer-red" href="https://www.tiktok.com/@manolitoinfinitum8" target="_blank" rel="noopener" aria-label="TikTok de Manolit">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+        <span>@manolitoinfinitum8</span>
+      </a>
+      <!-- Instagram del proyecto fuera del pie (26-sep, orden directa de
+           Sandro). El pie queda como el lo dejo corregido en la web: TikTok
+           @manolitoinfinitum8 y su Instagram personal @manolit_8. No volver
+           a anadir esa fila sin orden suya expresa. -->
+      <a class="footer-red footer-red-sola" href="https://www.instagram.com/manolit_8" target="_blank" rel="noopener" aria-label="Instagram personal de Sandro">
+        <span>@manolit_8</span>
+      </a>
     </div>
   </div>
 
-  <!-- Cierre del pie: a los lados del boton de Ko-fi, sin nuevo apartado -->
-  <div class="footer-final">
+  <!-- c) Sellos de confianza en una fila (09-oct-2026, orden de Sandro):
+       A+ de carbono, sello circular Manolit∞ e insignia de
+       AlternativeTo. -->
+  <div class="footer-sellos">
     <div class="footer-sello">
       <svg width="320" height="130" viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Sello de eficiencia: manolitoaire.com tiene calificación A+ en Website Carbon Rating">
         <defs>
@@ -1355,37 +1608,15 @@
         <text x="16" y="116" font-size="7.5" fill="#A9B3AC" data-i18n="svgCarbon3">Medido con Website Carbon Calculator (1ClickImpact) · 16/09/2026</text>
       </svg>
     </div>
-    <div class="footer-donacion">
-      <p class="donacion-mensaje" data-i18n-html="donacionTxt">
-        Manolit∞ siempre sera gratis.<br>
-        Los servidores, por desgracia, no lo son...
-      </p>
-      <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer" data-i18n="kofiBtn">
-        Apoyar en Ko‑fi
-      </a>
-    </div>
-    <div class="footer-redes">
-      <a class="footer-red" href="https://www.tiktok.com/@manolitoinfinitum8" target="_blank" rel="noopener" aria-label="TikTok de Manolit">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
-        <span>@manolitoinfinitum8</span>
-      </a>
-      <!-- Instagram del proyecto fuera del pie (26-sep, orden directa de
-           Sandro). El pie queda como el lo dejo corregido en la web: TikTok
-           @manolitoinfinitum8 y su Instagram personal @manolit_8. No volver
-           a anadir esa fila sin orden suya expresa. -->
-      <a class="footer-red footer-red-sola" href="https://www.instagram.com/manolit_8" target="_blank" rel="noopener" aria-label="Instagram personal de Sandro">
-        <span>@manolit_8</span>
-      </a>
-    </div>
-  </div>
-
   <!-- Sello oficial PERMANENTE (25-sep-2026, orden de Sandro). El bloque
        de salud se retira solo el domingo a las 18:00, pero este sello se
        queda en la esquina inferior del pie todo el año. Misma geometria
        exacta del archivo original que paso Sandro (solo cambian los ids
        internos para no repetirlos en el documento). Los colores salen de
        las mismas variables --sello-* de ambientes.css: corporativos todo
-       el año y verdes solo mientras dura el modo salud. -->
+       el año y verdes solo mientras dura el modo salud.
+       09-oct-2026: se muda a la fila de sellos (bloque c de la tarea
+       de reordenación de Sandro). -->
   <div class="footer-oficial">
     <div class="sello-footer" role="img" aria-label="Sello oficial Manolit∞, simulador de sombras">
         <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1411,6 +1642,20 @@
                   </g>
                 </svg>
     </div>
+  </div>
+
+  <!-- Insignia de AlternativeTo (28-sep-2026, orden de Sandro): al final del
+       todo del pie, centrada y discreta, con carga diferida para no pesar.
+       El alt lleva la marca bien escrita, Manolit∞ con su simbolo. -->
+  <div class="footer-alternativeto">
+    <a href="https://alternativeto.net/software/manolit-aire/about/?utm_source=badge&utm_medium=referral" target="_blank" rel="noopener">
+      <img src="https://alternativeto.net/static/badges/badge-compact-color.svg"
+           alt="Manolit∞ Aire | AlternativeTo"
+           width="171" height="55"
+           loading="lazy" decoding="async"
+           style="width:171px;height:55px;display:inline-block;" />
+    </a>
+  </div>
   </div>
 
   <!-- Escudos de salud ambiental (01-oct-2026, orden directa de Sandro):
@@ -1458,19 +1703,43 @@
     </div>
   </div>
 
-  <!-- Insignia de AlternativeTo (28-sep-2026, orden de Sandro): al final del
-       todo del pie, centrada y discreta, con carga diferida para no pesar.
-       El alt lleva la marca bien escrita, Manolit∞ con su simbolo. -->
-  <div style="text-align:center;margin:18px 0 6px;">
-    <a href="https://alternativeto.net/software/manolit-aire/about/?utm_source=badge&utm_medium=referral" target="_blank" rel="noopener">
-      <img src="https://alternativeto.net/static/badges/badge-compact-color.svg"
-           alt="Manolit∞ Aire | AlternativeTo"
-           width="171" height="55"
-           loading="lazy" decoding="async"
-           style="width:171px;height:55px;display:inline-block;" />
-    </a>
+  <!-- La atribución del mapa IGN vive justo debajo de los escudos
+       (09-oct-2026, orden de Sandro) y sin la opacidad vieja, que dejaba
+       el texto por debajo del contraste mínimo WCAG AA (2,86:1). -->
+  <div class="footer-ign" style="margin-top:8px; font-size:0.75rem;" data-i18n="footerIgnTxt">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
+
+  <!-- e) La familia de proyectos como enlaces de verdad (09-oct-2026,
+       orden de Sandro): ya no es texto monoespaciado, cada nombre enlaza
+       a su web. Traducido con data-i18n-html (la clave footerFamily de
+       js/i18n.js ahora lleva los enlaces dentro). -->
+  <div class="footer-family" data-i18n-html="footerFamily"><a href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a> · <a href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a> · <a href="https://manolitoaire.com" target="_blank" rel="noopener">Manolit∞ Aire</a></div>
+
+  <!-- Sincronizar / Exportar datos: tus ajustes (tema, paleta, idioma,
+       modo accesible, ciudad...) viajan en un archivo JSON entre tus
+       dispositivos. Sin cuentas, sin servidores: el archivo lo genera
+       y lo lee tu propio navegador. -->
+  <!-- f) Franja legal final, pequeña y centrada (09-oct-2026, orden de
+       Sandro): Sincronizar / Exportar datos es el último elemento y su
+       panel sigue abriéndose debajo, con los mismos ids de siempre. -->
+  <div class="footer-legal">
+    <a href="aviso-legal.html" data-i18n="legalNotice">Aviso legal</a> · 
+    <a href="privacidad.html" data-i18n="privacy">Privacidad</a> · 
+    <a href="cookies.html" data-i18n="cookies">Cookies</a> ·
+    <!-- Enlace visible al codigo fuente (28-sep-2026): el proyecto es AGPL y
+         el repo es publico; ademas lo piden los revisores de AlternativeTo. -->
+    <a href="https://github.com/sandrow007/manolito-aire" target="_blank" rel="noopener" data-i18n="footerGithub">Código abierto</a> ·
+    <button type="button" id="btnSyncExport" class="footer-sync-toggle" data-i18n="syncLink"
+            aria-expanded="false" aria-controls="syncPanel">Sincronizar / Exportar datos</button>
   </div>
-</div>
+    <div id="syncPanel" class="sync-panel" hidden>
+      <p class="sync-hint" data-i18n="syncHint">Guarda tus ajustes en un archivo y recupéralos en otro dispositivo. Sin cuentas ni servidores.</p>
+      <div class="sync-panel-btns">
+        <button type="button" id="btnSyncExportar" data-i18n="syncExportBtn">Exportar mis datos</button>
+        <button type="button" id="btnSyncImportar" data-i18n="syncImportBtn">Importar datos</button>
+      </div>
+      <input type="file" id="syncFileInput" accept="application/json,.json" hidden>
+    </div>
+</footer>
 
 <button class="chat-fab" onclick="openChat()" aria-label="Pregúntale a Manolit∞" title="Pregúntale a Manolit∞">
   <span class="chat-fab-ring"><span class="chat-fab-core">M∞</span></span>
@@ -1508,6 +1777,11 @@
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
 <script src="js/cookie-banner.js" defer></script>
+<!-- 09-oct-2026 (orden de Sandro): la única verdad sobre si hay sol.
+     Sin dependencias propias, carga con defer y pregunta a SunCalc solo
+     cuando alguien le pregunta a ella. La usan parking, planetario y el
+     widget; nadie más decide por su cuenta si es de día o de noche. -->
+<script src="js/sol.js" defer></script>
 <script src="js/chat.js" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
@@ -1521,8 +1795,9 @@
     if (!objetivo) return;
 
     let cargado = false;
+    let cargaMapaSombrasPromise = null;
     function cargarMapaSombras() {
-      if (cargado) return;
+      if (cargado) return cargaMapaSombrasPromise || Promise.resolve();
       cargado = true;
 
       function cargarScript(src) {
@@ -1543,7 +1818,7 @@
       // js/co2.js (27-sep): modulo propio y diminuto, la encuesta de CO2
       // evitado que aparece tras calcular una ruta. Carga en paralelo con
       // las librerias y shadows-route lo llama cuando enseña la distancia.
-      Promise.all([
+      cargaMapaSombrasPromise = Promise.all([
         cargarScript('js/a11y-guia.js'),
         cargarScript('js/co2.js'),
         cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
@@ -1555,7 +1830,23 @@
         .then(() => cargarScript('js/irradiacion-solar.js'))
         .then(() => cargarScript('js/microclima.js'))
         .then(() => cargarScript('js/rendimiento-movil.js'))
+        // 07-oct-2026 (orden de Sandro): aparcamientos y planificador de
+        // viaje en UN solo módulo nuevo y aditivo. Carga al final y se
+        // engancha al mapa por window.manolitAireMap, como arboles-3d.js.
+        .then(() => cargarScript('js/aparcamientos-viaje.js'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
+      return cargaMapaSombrasPromise;
+    }
+
+    // Si alguien pulsa "↻ Act. mapa" antes de que el mapa de sombras se haya
+    // cargado por scroll, se fuerza la carga en ese mismo clic para que no
+    // parezca un botón muerto.
+    const btnRefreshOSM = document.getElementById('rsBtnActualizarOSM');
+    if (btnRefreshOSM) {
+      btnRefreshOSM.addEventListener('click', () => {
+        if (typeof window.manolitAireActualizarOSM === 'function') return;
+        cargarMapaSombras();
+      }, { once: true });
     }
 
     if ('IntersectionObserver' in window) {
@@ -1620,7 +1911,7 @@
       return 'es';
     }
 
-    function renderPequeFace(estado) {
+    function renderPequeFace(estado, clima) {
       const cloudDiv = document.getElementById('pequeCloudSvg');
       const msgEl = document.getElementById('pequeMessage');
       const humanEl = document.getElementById('humanLine');
@@ -1628,16 +1919,27 @@
 
       if (!cloudDiv || !msgEl) return;
 
-      const cloudBase = `<circle cx="50" cy="50" r="32" fill="#fff" stroke="#888" stroke-width="2"/>
-                         <circle cx="28" cy="48" r="22" fill="#fff" stroke="#888" stroke-width="2"/>
-                         <circle cx="72" cy="48" r="22" fill="#fff" stroke="#888" stroke-width="2"/>`;
+      // Nube unificada al estilo Manolit∞ (07-oct-2026, orden de Sandro):
+      // se acabó el trazo gris de antes. Misma geometría que la nube del
+      // juego (contorno granate grueso) y TRES gotas doradas debajo: la
+      // que ya lucía la pieza más las dos que pediste. La cara (ojos y
+      // boca según el estado) va en tinta oscura para que se lea bien
+      // sobre el papel claro de la nube.
+      // 08-oct-2026 (punto 3, orden de Sandro): la silueta va LIMPIA,
+      // cero líneas internas. La onda teal que llevaba dentro se retira;
+      // las tres gotas cuelgan por debajo, fuera de la silueta.
+      const TINTA = '#26424B';
+      const cloudBase = `<path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
+                         <path d="M 40,79 C 35,87 35,92 40,95 C 45,92 45,87 40,79 Z" fill="#E6A100"/>
+                         <path d="M 62,78 C 56,87 56,94 62,98 C 68,94 68,87 62,78 Z" fill="#E6A100"/>
+                         <path d="M 84,79 C 79,87 79,92 84,95 C 89,92 89,87 84,79 Z" fill="#E6A100"/>`;
 
       const isWinking = Math.random() > 0.7;
       const eyes = (isWinking && estado === 'buena')
-        ? `<line x1="34" y1="46" x2="40" y2="46" stroke="#333" stroke-width="2" stroke-linecap="round"/>
-           <circle cx="63" cy="46" r="6" fill="#333"/>`
-        : `<circle cx="37" cy="46" r="6" fill="#333"/>
-           <circle cx="63" cy="46" r="6" fill="#333"/>`;
+        ? `<line x1="41" y1="50" x2="50" y2="50" stroke="${TINTA}" stroke-width="3" stroke-linecap="round"/>
+           <circle cx="76" cy="50" r="5.5" fill="${TINTA}"/>`
+        : `<circle cx="46" cy="50" r="5.5" fill="${TINTA}"/>
+           <circle cx="76" cy="50" r="5.5" fill="${TINTA}"/>`;
 
       const variacionesIdiomas = {
         es: {
@@ -1656,7 +1958,30 @@
             { msg: 'El aire necesita mimos…', humano: 'Hoy mejor nos quedamos dentro a pintar.', sub: 'Demasiadas partículas en la calle.' },
             { msg: 'El aire está un poco enfadado hoy.', humano: 'Toca jugar dentro de casa un rato, ¿construimos algo?', sub: 'Mejor esperar a que se calme.' },
             { msg: 'Hoy el cielo está cansado.', humano: 'Vamos a dibujar o leer un cuento dentro de casa.', sub: 'El aire de fuera necesita descansar.' }
-          ]
+          ],
+          // 07-oct-2026 (H): textos según el tiempo real. Sin ellos el hero mentía (decía "cielo despejado" lloviendo).
+          climaMsg: {
+            despejado: '¡Sol de los buenos!',
+            nublado: 'Hoy manda la nube.',
+            lluvia: '¡Que llueve!',
+            tormenta: '¡Tormenta a la vista!',
+            noche: 'Luna limpia esta noche.'
+          },
+          climaSub: {
+            despejado: 'Cielo despejado, sol de los buenos.',
+            nublado: 'Nubes altas, pero no llueve.',
+            lluvia: 'Está lloviendo ahora mismo.',
+            tormenta: 'Hay tormenta ahora mismo.',
+            noche: 'Es de noche y el cielo está despejado.'
+          },
+          climaHumano: {
+            despejado: 'Hace sol, así que a jugar fuera con gorra y agua.',
+            nublado: 'Nubes arriba, pero se puede jugar fuera tranquilo.',
+            lluvia: 'Día de charcos, paraguas y juegos bajo techo.',
+            tormenta: 'Mientras truena, mejor dentro y lejos de las ventanas.',
+            noche: 'Es hora de descansar, mañana habrá más juegos.'
+          },
+          subNeutro: 'Del cielo no me llega el parte ahora mismo.'
         },
         en: {
           buena: [
@@ -1674,7 +1999,29 @@
             { msg: 'The air needs a hug...', humano: 'Better stay inside and paint today.', sub: 'Too many particles outside.' },
             { msg: 'The air is a bit angry today.', humano: 'Time to play indoors for a while, shall we build something?', sub: 'Better wait for it to calm down.' },
             { msg: 'The sky is tired today.', humano: 'Let\'s draw or read a story indoors.', sub: 'The outside air needs to rest.' }
-          ]
+          ],
+          climaMsg: {
+            despejado: 'Good sunshine today!',
+            nublado: 'Clouds in charge today.',
+            lluvia: 'It is raining!',
+            tormenta: 'Storm ahead!',
+            noche: 'Clear moon tonight.'
+          },
+          climaSub: {
+            despejado: 'Clear sky, the good kind of sun.',
+            nublado: 'High clouds, but no rain.',
+            lluvia: 'It is raining right now.',
+            tormenta: 'There is a storm right now.',
+            noche: 'Night time and a clear sky.'
+          },
+          climaHumano: {
+            despejado: 'It is sunny, play outside with a hat and water.',
+            nublado: 'Clouds above, but outdoor play is fine.',
+            lluvia: 'A puddle day, umbrella and indoor games.',
+            tormenta: 'While it thunders, better inside and away from windows.',
+            noche: 'Time to rest, more games tomorrow.'
+          },
+          subNeutro: 'No weather report is reaching me right now.'
         },
         ca: {
           buena: [
@@ -1692,7 +2039,29 @@
             { msg: 'L\'aire necessita mimos…', humano: 'Avui millor ens quedem a dins a pintar.', sub: 'Massa partícules al carrer.' },
             { msg: 'L\'aire està una mica enfadat avui.', humano: 'Toca jugar dins de casa una estona, construïm alguna cosa?', sub: 'Millor esperar que es calmi.' },
             { msg: 'Avui el cel està cansat.', humano: 'Anem a dibuixar o llegir un conte dins de casa.', sub: 'L\'aire de fora necessita descansar.' }
-          ]
+          ],
+          climaMsg: {
+            despejado: 'Sol dels bons!',
+            nublado: 'Avui manen els núvols.',
+            lluvia: 'Plou!',
+            tormenta: 'Tempesta a la vista!',
+            noche: 'Lluna neta aquesta nit.'
+          },
+          climaSub: {
+            despejado: 'Cel clar, sol dels bons.',
+            nublado: 'Núvols alts, però no plou.',
+            lluvia: 'Està plovent ara mateix.',
+            tormenta: 'Hi ha tempesta ara mateix.',
+            noche: 'És de nit i el cel està clar.'
+          },
+          climaHumano: {
+            despejado: 'Fa sol, a jugar a fora amb gorra i aigua.',
+            nublado: 'Núvols a dalt, però es pot jugar a fora tranquil.',
+            lluvia: 'Dia de tolls, paraigua i jocs a dins.',
+            tormenta: 'Mentre truena, millor a dins i lluny de les finestres.',
+            noche: 'És hora de descansar, demà hi haurà més jocs.'
+          },
+          subNeutro: 'Del cel no em arriba el part ara mateix.'
         },
         gl: {
           buena: [
@@ -1710,7 +2079,29 @@
             { msg: 'O aire necesita mimos…', humano: 'Hoxe mellor quedamos dentro a pintar.', sub: 'Demasiadas partículas na rúa.' },
             { msg: 'O aire está un pouco enfadado hoxe.', humano: 'Toca xogar dentro de casa un cacho, construímos algo?', sub: 'Mellor esperar a que se calme.' },
             { msg: 'Hoxe o ceo está canso.', humano: 'Imos debuxar ou ler un conto dentro de casa.', sub: 'O aire de fóra necesita descansar.' }
-          ]
+          ],
+          climaMsg: {
+            despejado: 'Sol dos bos!',
+            nublado: 'Hoxe mandan as nubes.',
+            lluvia: 'Está chovendo!',
+            tormenta: 'Treboada á vista!',
+            noche: 'Lúa limpa esta noite.'
+          },
+          climaSub: {
+            despejado: 'Ceo despexado, sol dos bos.',
+            nublado: 'Nubes altas, pero non chove.',
+            lluvia: 'Está chovendo agora mesmo.',
+            tormenta: 'Hai treboada agora mesmo.',
+            noche: 'É de noite e o ceo está despexado.'
+          },
+          climaHumano: {
+            despejado: 'Fai sol, a xogar fóra con gorra e auga.',
+            nublado: 'Nubes arriba, pero pódese xogar fóra tranquilo.',
+            lluvia: 'Día de pozas, paraugas e xogos dentro.',
+            tormenta: 'Mentres trona, mellor dentro e lonxe das ventás.',
+            noche: 'É hora de descansar, mañá haberá máis xogos.'
+          },
+          subNeutro: 'Do ceo non me chega o parte agora mesmo.'
         },
         eu: {
           buena: [
@@ -1728,7 +2119,30 @@
             { msg: 'Aireak mimoak behar ditu…', humano: 'Gaur hobe barruan geratzea margotzen.', sub: 'Partikula gehiegi kalean.' },
             { msg: 'Airea apur bat haserre dago gaur.', humano: 'Etxe barruan jolasteko unea da, zerbait eraikiko dugu?', sub: 'Hobe lasaitu arte itxarotea.' },
             { msg: 'Gaur zerua nekatuta dago.', humano: 'Etxe barruan marraztera edo ipuin bat irakurtzera goaz.', sub: 'Kanpoko aireak atsedena behar du.' }
-          ]
+          ],
+          // Euskera mía, repásala tú o Jop antes de publicar.
+          climaMsg: {
+            despejado: 'Eguzki ederra!',
+            nublado: 'Gaur hodeiek dute agintea.',
+            lluvia: 'Euria ari du!',
+            tormenta: 'Ekaitza ikusgai!',
+            noche: 'Ilargi garbia gauean.'
+          },
+          climaSub: {
+            despejado: 'Zeru garbia, eguzki ederra.',
+            nublado: 'Hodei altuak, baina ez du euririk egiten.',
+            lluvia: 'Oraintxe ari du euriak.',
+            tormenta: 'Oraintxe ekaitza dago.',
+            noche: 'Gaua da eta zerua garbi dago.'
+          },
+          climaHumano: {
+            despejado: 'Eguzkia du, txanoa eta urarekin kanpoan jolastera.',
+            nublado: 'Hodeiak gainean, baina kanpoan lasai jolastu daiteke.',
+            lluvia: 'Putzu-eguna, aterkia eta barruko jolasak.',
+            tormenta: 'Trumoiak jotzen duen bitartean, hobe barruan eta leihoetatik urrun.',
+            noche: 'Atseden hartzeko ordua da, bihar jolas gehiago izango dira.'
+          },
+          subNeutro: 'Zeruaren berri ez zait oraintxe iristen.'
         },
         // 01-oct-2026: faltaba el georgiano (ka), el sexto idioma de la web.
         ka: {
@@ -1747,49 +2161,264 @@
             { msg: 'ჰაერს ფერება სჭირდება…', humano: 'დღეს უმჯობესია შინ დარჩე და დახატო.', sub: 'ქუჩაში ზედმეტად ბევრი მტვერია.' },
             { msg: 'ჰაერი დღეს ცოტა გაბრაზებულია.', humano: 'სახლში თამაშის დროა, რამეს ავაშენებთ?', sub: 'უმჯობესია დაველოდოთ, სანამ გაშვებულდება.' },
             { msg: 'ცა დღეს დაღლილია.', humano: 'შინ დავხატოთ ან ზღაპარს წავიკითხავთ.', sub: 'გარე ჰაერს დასვენება სჭირდება.' }
-          ]
+          ],
+          // Georgiano mío, repásalo tú o Jop antes de publicar.
+          climaMsg: {
+            despejado: 'კარგი მზეა!',
+            nublado: 'დღეს ღრუბლები მართავენ.',
+            lluvia: 'წვიმს!',
+            tormenta: 'ქარიშხალი მოახლოვდა!',
+            noche: 'სუფთა მთვარეა ამ ღამით.'
+          },
+          climaSub: {
+            despejado: 'ცა მოწმენდილია, კარგი მზეა.',
+            nublado: 'მაღალი ღრუბლებია, მაგრამ არ წვიმს.',
+            lluvia: 'ახლა წვიმს.',
+            tormenta: 'ახლა ქარიშხალია.',
+            noche: 'ღამეა და ცა მოწმენდილია.'
+          },
+          climaHumano: {
+            despejado: 'მზეა, გარეთ ვითამაშოთ ქუდით და წყლით.',
+            nublado: 'ზემოთ ღრუბლებია, მაგრამ გარეთ მშვიდად თამაში შეიძლება.',
+            lluvia: 'ტყაპიების დღეა, ქოლგა და თამაში შინ.',
+            tormenta: 'სანამ გუგუნებს, უმჯობესია შინ და ფანჯრებისგან შორს.',
+            noche: 'დასვენების დროა, ხვალ კიდევ მეტი თამაში იქნება.'
+          },
+          subNeutro: 'ცის ამინდის ცნობა ახლა არ მიმაღწევს.'
+        },
+        ar: {
+          // 12-oct-2026 (orden de Sandro): el hero del modo peque también
+          // habla árabe, con la misma voz cercana de los otros idiomas.
+          buena: [
+            { msg: 'الهواء سعيد!', humano: 'يمكنك اللعب في الخارج طوال اليوم!', sub: 'سماء صافية.' },
+            { msg: 'يا له من هواء نظيف اليوم!', humano: 'اجرِ واقفز والعب قدر ما تشاء!', sub: 'يوم مثالي للحديقة.' },
+            { msg: 'الهواء في عيد اليوم.', humano: 'إلى الخارج، فالتنفس رائع اليوم!', sub: 'لا غيوم غبار في أي مكان.' },
+            { msg: 'السماء سعيدة اليوم.', humano: 'يوم جميل للدراجة أو الكرة في الحديقة.', sub: 'هواء بارد ونظيف.' }
+          ],
+          moderada: [
+            { msg: 'الهواء متوسط اليوم...', humano: 'يمكنك الخروج، لكن الأفضل ألا تركض كثيرًا.', sub: 'جودة مقبولة.' },
+            { msg: 'الهواء خجول قليلًا اليوم.', humano: 'يمكن اللعب في الخارج بهدوء ومن دون إجهاد.', sub: 'لا جيد تمامًا ولا سيئ.' },
+            { msg: 'الهواء عادي اليوم.', humano: 'الأفضل ألعاب هادئة في الخارج اليوم.', sub: 'لا شيء خطير، فقط ضعيف قليلًا.' }
+          ],
+          mala: [
+            { msg: 'الهواء يحتاج إلى حنان...', humano: 'اليوم من الأفضل أن نبقى في الداخل لنرسم.', sub: 'جسيمات كثيرة في الشارع.' },
+            { msg: 'الهواء غاضب قليلًا اليوم.', humano: 'حان وقت اللعب داخل البيت قليلًا، هل نبني شيئًا؟', sub: 'الأفضل أن ننتظر حتى يهدأ.' },
+            { msg: 'السماء متعبة اليوم.', humano: 'هيّا نرسم أو نقرأ قصة داخل البيت.', sub: 'هواء الخارج يحتاج إلى راحة.' }
+          ],
+          climaMsg: {
+            despejado: 'شمس رائعة!',
+            nublado: 'السحاب هو صاحب الكلمة اليوم.',
+            lluvia: 'إنها تمطر!',
+            tormenta: 'عاصفة قادمة!',
+            noche: 'قمر صافٍ الليلة.'
+          },
+          climaSub: {
+            despejado: 'سماء صافية وشمس رائعة.',
+            nublado: 'غيوم عالية، لكنها لا تمطر.',
+            lluvia: 'إنها تمطر الآن.',
+            tormenta: 'هناك عاصفة الآن.',
+            noche: 'الليل الآن والسماء صافية.'
+          },
+          climaHumano: {
+            despejado: 'الشمس ساطعة، فلنلعب في الخارج مع قبعة وماء.',
+            nublado: 'غيوم في الأعلى، لكن يمكن اللعب في الخارج بهدوء.',
+            lluvia: 'يوم البرك والمظلة وألعاب داخل البيت.',
+            tormenta: 'ما دامت ترعد، فالأفضل البقاء في الداخل وبعيدًا عن النوافذ.',
+            noche: 'حان وقت الراحة، وغدًا مزيد من اللعب.'
+          },
+          subNeutro: 'لا يصلني تقرير السماء الآن.'
         }
       };
 
       const lang = getRobustLang();
       const idiomaSeleccionado = variacionesIdiomas[lang] ? variacionesIdiomas[lang] : variacionesIdiomas['es'];
-      const estadoData = idiomaSeleccionado[estado] || idiomaSeleccionado.mala; 
+      const estadoData = idiomaSeleccionado[estado] || idiomaSeleccionado.mala;
       const seleccion = estadoData[Math.floor(Math.random() * estadoData.length)];
 
-      let svg = '';
+      /* ---- NUEVA ORDEN 07-oct-2026, punto 2: el elemento principal
+         cambia según el tiempo REAL de la ciudad (no según el aire).
+         clima llega como 'despejado' | 'nublado' | 'lluvia' | 'tormenta'
+         | 'noche', o null si no hay datos: entonces se muestra la nube
+         mascota sola, sin gotas ni sol, y el texto no afirma nada del
+         cielo. La cara (ojos y boca) sigue siendo la del aire. ---- */
+      const climaOk = (typeof clima === 'string' && /^(despejado|nublado|lluvia|tormenta|noche)$/.test(clima)) ? clima : null;
 
-      if (estado === 'buena') {
-        svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase}
-                 ${eyes}
-                 <path d="M32 62 Q50 80 68 62" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
-               </svg>`;
-      } else if (estado === 'moderada') {
-        svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase}
-                 ${eyes}
-                 <line x1="32" y1="64" x2="68" y2="64" stroke="#333" stroke-width="3" stroke-linecap="round"/>
-               </svg>`;
-      } else {
-        svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                 ${cloudBase}
-                 ${eyes}
-                 <path d="M32 66 Q50 52 68 66" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
-                 <rect x="30" y="56" width="40" height="14" rx="4" fill="#ddd" stroke="#666" stroke-width="2"/>
-                 <line x1="30" y1="61" x2="70" y2="61" stroke="#666" stroke-width="2"/>
-                 <line x1="28" y1="59" x2="18" y2="55" stroke="#666" stroke-width="2"/>
-                 <line x1="72" y1="59" x2="82" y2="55" stroke="#666" stroke-width="2"/>
-               </svg>`;
+      // Boca según el aire, reutilizada por nube y sol (coordenadas
+      // de la nube, vista 120x102; para el sol se desplaza con un grupo).
+      const bocaNube = estado === 'buena'
+        ? `<path d="M47 60 Q61 72 75 60" stroke="${TINTA}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
+        : estado === 'moderada'
+          ? `<line x1="49" y1="64" x2="73" y2="64" stroke="${TINTA}" stroke-width="3.5" stroke-linecap="round"/>`
+          : `<path d="M47 68 Q61 57 75 68" stroke="${TINTA}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+             <rect x="42" y="57" width="38" height="15" rx="5" fill="#FBFAF7" stroke="${TINTA}" stroke-width="2.5"/>
+             <line x1="42" y1="63" x2="80" y2="63" stroke="${TINTA}" stroke-width="2"/>
+             <line x1="42" y1="61" x2="30" y2="57" stroke="${TINTA}" stroke-width="2"/>
+             <line x1="80" y1="61" x2="92" y2="57" stroke="${TINTA}" stroke-width="2"/>`;
+
+      // Piezas sueltas con la misma geometría de siempre: la nube sin
+      // gotas (solo el contorno granate; 08-oct-2026, punto 3 de Sandro,
+      // silueta LIMPIA con cero líneas internas), dos gotas laterales
+      // para la tormenta y el rayo dorado con filo granate.
+      const nubeSola = `<path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>`;
+      const gotasLaterales = `<path d="M 40,79 C 35,87 35,92 40,95 C 45,92 45,87 40,79 Z" fill="#E6A100"/>
+                              <path d="M 84,79 C 79,87 79,92 84,95 C 89,92 89,87 84,79 Z" fill="#E6A100"/>`;
+      const rayoTormenta = `<path d="M 64,74 L 52,90 L 60,90 L 55,101 L 72,82 L 63,82 Z" fill="#E6A100" stroke="#7A0016" stroke-width="2.5" stroke-linejoin="round"/>`;
+
+      // Sol de Manolit∞ sonriendo (cielo despejado): círculo dorado con
+      // filo granate y rayos cortos, la cara del aire en tinta oscura.
+      // De noche la misma cara la lleva una luna creciente clara.
+      const ojosSol = (isWinking && estado === 'buena')
+        ? `<line x1="43" y1="44" x2="51" y2="44" stroke="${TINTA}" stroke-width="3" stroke-linecap="round"/>
+           <circle cx="71" cy="44" r="4.5" fill="${TINTA}"/>`
+        : `<circle cx="47" cy="44" r="4.5" fill="${TINTA}"/>
+           <circle cx="71" cy="44" r="4.5" fill="${TINTA}"/>`;
+      const bocaSol = estado === 'buena'
+        ? `<path d="M49 54 Q59 63 69 54" stroke="${TINTA}" stroke-width="3" fill="none" stroke-linecap="round"/>`
+        : estado === 'moderada'
+          ? `<line x1="51" y1="57" x2="67" y2="57" stroke="${TINTA}" stroke-width="3" stroke-linecap="round"/>`
+          : `<path d="M50 60 Q59 52 68 60" stroke="${TINTA}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+      const rayosSol = `<g stroke="#E6A100" stroke-width="4" stroke-linecap="round">
+          <line x1="59" y1="6" x2="59" y2="15"/><line x1="59" y1="75" x2="59" y2="84"/>
+          <line x1="23" y1="45" x2="32" y2="45"/><line x1="86" y1="45" x2="95" y2="45"/>
+          <line x1="33" y1="19" x2="39" y2="25"/><line x1="79" y1="65" x2="85" y2="71"/>
+          <line x1="85" y1="19" x2="79" y2="25"/><line x1="39" y1="65" x2="33" y2="71"/>
+        </g>`;
+      const solSVG = `${rayosSol}
+        <circle cx="59" cy="45" r="21" fill="#E6A100" stroke="#7A0016" stroke-width="4"/>
+        ${ojosSol}${bocaSol}`;
+      // Luna creciente clara con filo granate (despejado de noche).
+      const lunaSVG = `<path d="M 74,22 A 26,26 0 1 0 74,72 A 21,21 0 1 1 74,22 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="4" stroke-linejoin="round"/>
+        ${ojosSol}${bocaSol}`;
+
+      let figura = '';
+      if (climaOk === 'despejado') figura = solSVG;
+      else if (climaOk === 'noche') figura = lunaSVG;
+      else if (climaOk === 'lluvia') figura = `${cloudBase}${eyes}${bocaNube}`; // tres gotas, como siempre
+      else if (climaOk === 'tormenta') figura = `${nubeSola}${gotasLaterales}${rayoTormenta}${eyes}${bocaNube}`;
+      else figura = `${nubeSola}${eyes}${bocaNube}`; // nublado y neutro: nube sin gotas
+
+      const svg = `<svg viewBox="0 0 120 102" xmlns="http://www.w3.org/2000/svg">${figura}</svg>`;
+
+      // Textos coherentes con el MISMO estado del tiempo que la figura.
+      // Con lluvia o tormenta el consejo grande también es de tiempo
+      // (no tendría sentido invitar a jugar fuera mientras truena).
+      let txtMsg = seleccion.msg;
+      let txtHumano = seleccion.humano;
+      let txtSub = seleccion.sub;
+      if (climaOk && idiomaSeleccionado.climaSub && idiomaSeleccionado.climaSub[climaOk]) {
+        txtSub = idiomaSeleccionado.climaSub[climaOk];
+        if (idiomaSeleccionado.climaMsg && idiomaSeleccionado.climaMsg[climaOk]) {
+          txtMsg = idiomaSeleccionado.climaMsg[climaOk];
+        }
+        if (idiomaSeleccionado.climaHumano && idiomaSeleccionado.climaHumano[climaOk]) {
+          txtHumano = idiomaSeleccionado.climaHumano[climaOk];
+        }
+      } else if (!climaOk && idiomaSeleccionado.subNeutro) {
+        txtSub = idiomaSeleccionado.subNeutro;
       }
 
-      msgEl.textContent = seleccion.msg;
-      if (humanEl) humanEl.textContent = seleccion.humano;
-      if (subEl) subEl.textContent = seleccion.sub; 
-      
+      msgEl.textContent = txtMsg;
+      if (humanEl) humanEl.textContent = txtHumano;
+      if (subEl) subEl.textContent = txtSub;
+
       cloudDiv.innerHTML = svg;
     }
-    
-    window.actualizarModoPeque = renderPequeFace;
+
+    /* El clima y el aire se guardan sueltos para repintar cuando llegue
+       el otro dato, sin esperar ni bloquear. */
+    let ultimoEstadoAirePeque = null;
+    let ultimoClimaPeque = null;
+    window.actualizarModoPeque = function(estado) {
+      ultimoEstadoAirePeque = estado;
+      renderPequeFace(estado, ultimoClimaPeque);
+    };
+    window.actualizarClimaPeque = function(clima) {
+      ultimoClimaPeque = clima;
+      renderPequeFace(ultimoEstadoAirePeque || 'buena', ultimoClimaPeque);
+    };
+
+    /* ============================================================
+       CLIMA REAL EN MODO PEQUE (07-oct-2026, NUEVA ORDEN punto 2)
+       El elemento principal del hero sigue el tiempo real de la
+       ciudad elegida (despejado=sol sonriente, nublado=nube sola,
+       lluvia=nube con tres gotas, tormenta=nube con rayo, noche
+       despejada=luna). Si la petición falla o no hay datos, queda
+       el estado neutro (nube amable sin gotas) y ningún texto
+       contradice el cielo real.
+       Solo consulta cuando el modo peque está activo, directo a
+       Open-Meteo (API gratuita, sin clave, CORS abierto, igual que
+       la de calidad del aire que ya usa la web), con caché en
+       memoria de 15 min por ciudad: nada de trabajo continuo ni
+       timers, una petición por cambio de ciudad o de modo.
+       ============================================================ */
+    const CLIMA_PEQUE_COORDS = {
+      sevilla:   [37.3886, -5.9823],
+      madrid:    [40.4168, -3.7038],
+      barcelona: [41.3874, 2.1686],
+      valencia:  [39.4699, -0.3763],
+      laspalmas: [28.1235, -15.4363],
+      palma:     [39.5696, 2.6502],
+      ceuta:     [35.8894, -5.3213],
+      melilla:   [35.2923, -2.9381],
+      pamplona:  [42.8125, -1.6458],
+      santiago:  [42.8805, -8.5457],
+      zaragoza:  [41.6488, -0.8891],
+      malaga:    [36.7213, -4.4214],
+      eivissa:   [38.9089, 1.4328],
+      menorca:   [39.8874, 4.2614],
+      badajoz:   [38.8794, -6.9706]
+    };
+    const CLIMA_PEQUE_CACHE_MS = 15 * 60 * 1000;
+    const climaPequeCache = {};
+    let climaPequeFetchSeq = 0;
+    // Ciudad elegida en el selector del hero (por defecto Sevilla,
+    // la marcada "selected" en el HTML). La actualiza el desplegable.
+    let ciudadPequeActual = 'sevilla';
+
+    // weather_code de Open-Meteo (WMO) -> estado del hero.
+    // La nieve cuenta como lluvia (pregunta pendiente para Sandro,
+    // anotada en la entrega). De noche y despejado sale la luna.
+    function climaPequeDesdeDatos(code, nubes, esDeDia) {
+      if (typeof code !== 'number' || isNaN(code)) return null;
+      if (code >= 95) return 'tormenta';
+      if ((code >= 51 && code <= 67) || (code >= 71 && code <= 77) || (code >= 80 && code <= 86)) return 'lluvia';
+      if (code === 0 || code === 1) {
+        if (typeof nubes === 'number' && !isNaN(nubes) && nubes >= 55) return 'nublado';
+        return esDeDia === 0 ? 'noche' : 'despejado';
+      }
+      if (code === 2 || code === 3 || code === 45 || code === 48) return 'nublado';
+      return null; // código desconocido, estado neutro
+    }
+
+    function actualizarClimaPequeSiProcede(ciudad) {
+      ciudadPequeActual = ciudad;
+      if (!document.body.classList.contains('mode-peque')) return;
+      const coords = CLIMA_PEQUE_COORDS[ciudad];
+      if (!coords) return; // ciudad sin coordenadas, estado neutro
+      const ahora = Date.now();
+      const enCache = climaPequeCache[ciudad];
+      if (enCache && (ahora - enCache.t) < CLIMA_PEQUE_CACHE_MS) {
+        window.actualizarClimaPeque(enCache.estado);
+        return;
+      }
+      const miTurno = ++climaPequeFetchSeq;
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=' + coords[0] +
+            '&longitude=' + coords[1] +
+            '&current=weather_code,cloud_cover,is_day&timezone=auto')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d || !d.current) return; // sin datos, se queda neutro
+          const estado = climaPequeDesdeDatos(d.current.weather_code, d.current.cloud_cover, d.current.is_day);
+          climaPequeCache[ciudad] = { t: Date.now(), estado: estado };
+          // Solo pinta si sigue activo el modo peque, sigue siendo la
+          // ciudad elegida y no hay una petición más nueva en marcha.
+          if (miTurno !== climaPequeFetchSeq) return;
+          if (!document.body.classList.contains('mode-peque')) return;
+          window.actualizarClimaPeque(estado);
+        })
+        .catch(() => { /* fallo de red: estado neutro, sin errores visibles */ });
+    }
+    window.actualizarClimaPequeSiProcede = actualizarClimaPequeSiProcede;
 
     window.actualizarPanelCientifico = function(datos) {
       const { pm25, pm10, no2, o3, ica, hora, so2, co, uv } = datos;
@@ -1807,46 +2436,168 @@
       setVal('sciUpdated', ((typeof translations !== 'undefined' && translations[currentLang] && translations[currentLang].updatedPrefix) || 'Actualizado: ') + hora);
     };
 
-    // Efecto mágico del modo peque (sep-2026, orden de Sandro): los emojis
-    // ya no se quedan solo en el hero, suben flotando por TODA la página.
-    // Es una única capa fija con animaciones CSS (transform y opacity, lo
-    // más barato que existe para la GPU): sin bucles JS, sin intervalos,
-    // la batería no lo nota. Al cambiar de modo la capa se retira entera.
+    // Decoración del modo peque (07-oct-2026, orden de Sandro): fuera la
+    // lluvia de emojis aleatorios que caía encima del titular y los
+    // botones. Quedan solo dos piezas del lenguaje Manolit∞ (un sol
+    // dorado y una nube pequeña con onda teal), quietas en las esquinas
+    // superiores y sin tapar nada (la capa es fija a toda la ventana
+    // desde el 08-oct, con pointer-events:none). La CSS las esconde en
+    // pantallas sin margen lateral de sobra. Animación solo de
+    // transform, pausada con la pestaña oculta y apagada del todo con
+    // prefers-reduced-motion. Al cambiar de modo se retira.
+    // Motor de emojis flotantes del modo PEQUE! (08-oct-2026 v3, orden de
+    // Sandro, «como los de hace 4 días»): más de 80 emojis pequeños que
+    // SALEN DE ABAJO y SUBEN FLOTANDO POCO A POCO hasta arriba del todo,
+    // donde se apagan y desaparecen, con un vaivén suave de lado a lado.
+    // Aparecen con fundido al nacer y se apagan con fundido al llegar.
+    // v3: el campo cubre TODA LA VENTANA (capa fija colgada del body,
+    // z-index 590), porque encerrados en el hero se agolpaban de modo
+    // horrible. Un ÚNICO requestAnimationFrame anima solo
+    // transform/opacity, se pausa con la pestaña oculta y se desmonta al
+    // salir del modo. La capa lleva pointer-events:none en la CSS, así
+    // que nunca estorba toques ni scroll. Con prefers-reduced-motion no
+    // llega a arrancar (el return de abajo corta antes).
+    function iniciarPequeFxMotor(campo) {
+      pararPequeFxMotor();
+      if (!campo) return;
+      var EMOJIS = ['☀️','🌳','💧','🍃','🐦','⛅','🌿','🌸','🍀','🐝','🦋','🌤️'];
+      var TOTAL = 90;
+      var W = campo.clientWidth || window.innerWidth;
+      var H = campo.clientHeight || window.innerHeight;
+      var partes = [];
+      var frag = document.createDocumentFragment();
+      for (var i = 0; i < TOTAL; i++) {
+        var el = document.createElement('span');
+        el.className = 'peque-fx-emoji';
+        el.textContent = EMOJIS[i % EMOJIS.length];
+        frag.appendChild(el);
+        partes.push({
+          el: el,
+          x: Math.random() * W,
+          // La primera pintada reparte los emojis por toda la altura para
+          // que el campo ya venga poblado; al reciclarse nacen abajo.
+          y: Math.random() * (H + 60) - 30,
+          vy: -(0.10 + Math.random() * 0.20),  // siempre hacia ARRIBA, despacio
+          amp: 8 + Math.random() * 18,         // vaivén lateral suave
+          fOnda: 0.0006 + Math.random() * 0.0012,
+          esc: 0.5 + Math.random() * 0.6,
+          op: 0.16 + Math.random() * 0.24,     // sutiles pero se VEN
+          fase: Math.random() * 6.283
+        });
+      }
+      campo.appendChild(frag);
+      var rafId = 0;
+      // Tope de 30 fps (12-oct-2026, auditoría de rendimiento, orden de
+      // Sandro): este era el ÚNICO bucle de la web sin tope, 90 nodos
+      // escritos 60 veces por segundo. Ahora pinta uno de cada dos
+      // fotogramas y el movimiento se calcula por tiempo real (dt), así
+      // la velocidad, el vaivén y los fundidos quedan IDÉNTICOS y el
+      // chip gráfico trabaja la mitad. Igual que el paseo virtual y el
+      // planetario, que ya se caparon en sep-2026.
+      var ultimaPintada = 0;
+      var pintar = function (t, dt) {
+        var pasos = dt / 16.7; // 1 = un fotograma clásico de 60 fps
+        for (var j = 0; j < partes.length; j++) {
+          var p = partes[j];
+          p.y += p.vy * pasos;
+          // Vida: 0 abajo del todo, 1 arriba del todo. Fundido de entrada
+          // en el primer tramo y de salida en el último: nacen y mueren
+          // suave, nunca aparecen ni desaparecen de golpe.
+          var vida = 1 - (p.y + 30) / (H + 60);
+          var fundido = vida < 0.12 ? vida / 0.12 : (vida > 0.85 ? (1 - vida) / 0.15 : 1);
+          if (fundido < 0) fundido = 0;
+          var vaiven = Math.sin(t * p.fOnda + p.fase) * p.amp;
+          p.el.style.transform = 'translate3d(' + (p.x + vaiven).toFixed(1) + 'px,' + p.y.toFixed(1) + 'px,0) scale(' + p.esc.toFixed(2) + ')';
+          p.el.style.opacity = (p.op * fundido).toFixed(3);
+          // Arriba del todo se apaga y vuelve a nacer abajo, en otro sitio.
+          if (p.y < -32) {
+            p.y = H + 24 + Math.random() * 50;
+            p.x = Math.random() * W;
+          }
+        }
+      };
+      var bucle = function (t) {
+        // Se reprograma SIEMPRE primero: si pintar fallara algún día, el
+        // bucle sobrevive. Los fotogramas salteados no pintan nada.
+        rafId = window.requestAnimationFrame(bucle);
+        if (t - ultimaPintada < 33) return;
+        var dt = ultimaPintada ? Math.min(64, t - ultimaPintada) : 16.7;
+        ultimaPintada = t;
+        pintar(t, dt);
+      };
+      var enMarcha = function () { if (!rafId) rafId = window.requestAnimationFrame(bucle); };
+      var enPausa = function () { if (rafId) { window.cancelAnimationFrame(rafId); rafId = 0; } };
+      var alCambiarVis = function () { if (document.hidden) enPausa(); else enMarcha(); };
+      var alCambiarMedida = function () {
+        W = campo.clientWidth || window.innerWidth;
+        H = campo.clientHeight || window.innerHeight;
+      };
+      document.addEventListener('visibilitychange', alCambiarVis);
+      window.addEventListener('resize', alCambiarMedida);
+      pintar(0, 16.7);
+      if (!document.hidden) enMarcha();
+      window.__pequeFxMotor = {
+        parar: function () {
+          enPausa();
+          document.removeEventListener('visibilitychange', alCambiarVis);
+          window.removeEventListener('resize', alCambiarMedida);
+        }
+      };
+    }
+    function pararPequeFxMotor() {
+      if (window.__pequeFxMotor) { window.__pequeFxMotor.parar(); window.__pequeFxMotor = null; }
+    }
+
     window.syncModeFx = function(mode) {
       const hero = document.querySelector('.hero');
       if (hero) hero.querySelectorAll('.peque-sparkle').forEach(e => e.remove());
+      pararPequeFxMotor();
       const capaVieja = document.getElementById('pequeFxCapa');
       if (capaVieja) capaVieja.remove();
       if (mode !== 'peque') return;
+      if (!hero) return;
+      // El clima del hero se actualiza aunque haya reduced-motion:
+      // no es animación, es información real.
+      actualizarClimaPequeSiProcede(ciudadPequeActual);
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      // Lista ampliada (23-sep-2026, orden de Sandro): unicornio, la flamenca
-      // y toda la caja de juguetes. Con el pool grande, 16 spans no alcanzan
-      // para ver la variedad, subimos a 24. Sigue siendo animación CSS pura.
-      const emojis = [
-        '🦄', '💃', '🪼', '🦚', '🐧', '🐥', '🐛', '🦗', '🦇', '🐤',
-        '🧑‍🚒', '🧑‍🚀', '🦹‍♀️', '🦸‍♂️', '🧚', '🧜‍♂️', '🧜‍♀️', '🧙‍♂️', '🧙‍♀️', '🧝‍♂️',
-        '🧝', '🧏', '🧏‍♀️', '✌️', '🫶', '👨‍👩‍👧‍👦', '🧑🏼‍🧑🏽‍🧒🏻', '🔬', '🧬', '📽️',
-        '📡', '💡', '📐', '📏', '🍇', '🍒', '🫒', '🪾', '🥦', '☘️',
-        '🍀', '✈️', '🪂', '🚁', '🛸', '⛵', '🌍', '🌎', '🌏', '🗺️',
-        '🏝️', '🏜️', '🏘️', '🏡', '⛪', '🕍', '🕌', '🗽', '⛲', '🗼',
-        '🗾', '🫧', '🌦️', '🌝', '🌚', '⭐', '☄️', '☂️', '🌊', '💧',
-        '☮️', '♾️', '♒', '➕', '➖', '✖️', '➗', '🟰',
-        '🎈', '🌈', '🦋', '☀️', '🍃'
-      ];
       const capa = document.createElement('div');
       capa.id = 'pequeFxCapa';
       capa.setAttribute('aria-hidden', 'true');
-      for (let i = 0; i < 24; i++) {
-        const s = document.createElement('span');
-        s.className = 'peque-sparkle';
-        s.textContent = emojis[i % emojis.length];
-        s.style.left = (4 + Math.random() * 92) + '%';
-        s.style.animationDuration = (6 + Math.random() * 6) + 's';
-        s.style.animationDelay = (Math.random() * 6) + 's';
-        s.style.fontSize = (1.1 + Math.random() * 1.2) + 'rem';
-        capa.appendChild(s);
-      }
+      // 07-oct-2026 (NUEVA ORDEN, urgente): los SVG llevan width/height
+      // propios. Sin CSS (o con una hoja vieja en caché, que fue la causa
+      // del sol gigante en producción) un SVG con solo viewBox se estira
+      // al ancho del contenedor y sus rayos tapan el titular, el selector
+      // de ciudad y la nube. Con medida intrínseca eso es imposible.
+      capa.innerHTML =
+        '<span class="peque-deco peque-deco-sol"><svg width="48" height="48" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg"><g stroke="#E6A100" stroke-width="4" stroke-linecap="round"><line x1="45" y1="6" x2="45" y2="16"/><line x1="45" y1="74" x2="45" y2="84"/><line x1="6" y1="45" x2="16" y2="45"/><line x1="74" y1="45" x2="84" y2="45"/><line x1="17" y1="17" x2="24" y2="24"/><line x1="66" y1="66" x2="73" y2="73"/><line x1="73" y1="17" x2="66" y2="24"/><line x1="24" y1="66" x2="17" y2="73"/></g><circle cx="45" cy="45" r="19" fill="#E6A100" stroke="#7A0016" stroke-width="4"/></svg></span>' +
+        // 08-oct-2026 (punto 3, orden de Sandro): la silueta de la nube
+        // va LIMPIA, cero líneas internas. La onda teal que llevaba
+        // dentro se retira; el detalle lo ponen el borde y la cara.
+        '<span class="peque-deco peque-deco-nube"><svg width="60" height="45" viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg"><path d="M 34,72 A 16,16 0 0 1 36,42 A 20,20 0 0 1 72,28 A 17,17 0 0 1 102,46 A 13,13 0 0 1 98,72 Z" fill="#FBFAF7" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/></svg></span>' +
+        // 08-oct-2026 (punto 2, orden de Sandro): los 6 emojis con
+        // animación CSS dejan paso a un campo de más de 80 emojis
+        // movidos por UN solo requestAnimationFrame (iniciarPequeFxMotor).
+        // Siempre detrás del contenido, pointer-events:none, animación
+        // solo de transform/opacity, pausa con la pestaña oculta y sin
+        // arrancar con prefers-reduced-motion (el return de arriba).
+        '<span class="peque-fx-campo"></span>';
+      // 08-oct-2026 (ARREGLO URGENTE, orden de Sandro): la capa se cuelga
+      // del BODY, no del hero. La CSS la tiene fija a toda la ventana
+      // (z-index 590, pointer-events:none), así los 90 emojis suben por
+      // TODA la web como hace cuatro días y no se agolpan en un cajón.
+      // Dentro del hero un transform de un ancestro podría convertirla
+      // en un cajón local otra vez; en body eso es imposible.
       document.body.appendChild(capa);
+      iniciarPequeFxMotor(capa.querySelector('.peque-fx-campo'));
+      // Pausa explícita con la pestaña oculta (el navegador ya frena las
+      // animaciones CSS en segundo plano, esto lo deja garantizado).
+      if (!window.__pequeFxVis) {
+        window.__pequeFxVis = true;
+        document.addEventListener('visibilitychange', () => {
+          const c = document.getElementById('pequeFxCapa');
+          if (c) c.classList.toggle('peque-fx-pausa', document.hidden);
+        });
+      }
     };
 
   })();
@@ -1880,6 +2631,10 @@
 
         if (typeof window.setCurrentCity === 'function') {
           window.setCurrentCity(value);
+        }
+        // El hero del modo peque sigue el tiempo de la ciudad elegida.
+        if (typeof window.actualizarClimaPequeSiProcede === 'function') {
+          window.actualizarClimaPequeSiProcede(value);
         }
         if (forecastCityName) forecastCityName.textContent = text;
       });

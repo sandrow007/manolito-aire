@@ -39,7 +39,9 @@ Diseñado para WCAG 2.1 AA — compatible con lectores de pantalla (NVDA, VoiceO
 
 ### Licencia
 
-Copyleft-next 0.3.1 — ver [LICENSE](./LICENSE).
+GNU AGPL-3.0 con condiciones éticas adicionales (sección 7). Ver [LICENSE](./LICENSE).
+
+Las condiciones adicionales prohíben la publicidad, el rastreo, los muros de pago sobre lo esencial y cualquier uso con fines de vigilancia. Si algún día se aceptan contribuciones externas, hará falta un acuerdo de contribuidor (CLA) firmado para poder mantener el licenciamiento dual.
 
 ### Apoyo
 
@@ -47,7 +49,7 @@ Los servidores no son gratis. Si quieres ayudar: [Ko-fi](https://ko-fi.com/manol
 
 ### Uso Comercial y Licenciamiento Dual (Para Empresas)
 
-**Manolit∞ Aire** es, y siempre será, un proyecto de código abierto, libre y comunitario bajo la licencia **AGPL 3.0**. Creo firmemente en un internet abierto donde el conocimiento se comparte.
+**Manolit∞ Aire** es, y siempre será, un proyecto de código abierto, libre y comunitario bajo la licencia **AGPL 3.0 con condiciones éticas adicionales**. Creo firmemente en un internet abierto donde el conocimiento se comparte.
 
 Sin embargo, las grandes compañías y plataformas comerciales operan bajo dinámicas de software cerrado. Debido a los estrictos términos de copyleft de la AGPL 3.0, **cualquier plataforma comercial que integre este código está obligada legalmente a liberar todo su propio código fuente**.
 
@@ -94,7 +96,9 @@ Designed for WCAG 2.1 AA — compatible with screen readers (NVDA, VoiceOver, JA
 
 ### License
 
-Copyleft-next 0.3.1 — see [LICENSE](./LICENSE).
+GNU AGPL-3.0 with additional ethical terms (section 7). See [LICENSE](./LICENSE).
+
+The additional terms forbid advertising, user tracking, paywalls on essential features, and any surveillance use. If external contributions are ever accepted, a signed contributor agreement (CLA) will be required to keep dual licensing possible.
 
 ### Support
 
@@ -102,7 +106,7 @@ Servers aren't free. If you want to help: [Ko-fi](https://ko-fi.com/manolitoinfi
 
 ### Commercial Use and Dual Licensing (For Companies)
 
-**Manolit∞ Aire** is, and will always be, an open-source, free, community project under the **AGPL 3.0** license. I firmly believe in an open internet where knowledge is shared.
+**Manolit∞ Aire** is, and will always be, an open-source, free, community project under the **AGPL 3.0 license with additional ethical terms**. I firmly believe in an open internet where knowledge is shared.
 
 However, large companies and commercial platforms operate under closed-software dynamics. Due to the strict copyleft terms of AGPL 3.0, **any commercial platform that integrates this code is legally required to release its own full source code**.
 
@@ -149,7 +153,9 @@ Contact: 📬 **sandro.a007@gmail.com**
 
 ### ლიცენზია
 
-Copyleft-next 0.3.1 — იხილეთ [LICENSE](./LICENSE).
+GNU AGPL-3.0 დამატებითი ეთიკური პირობებით (მე-7 მუხლი). იხილეთ [LICENSE](./LICENSE).
+
+დამატებითი პირობები კრძალავს რეკლამას, მომხმარებლის თვალთვალს, აუცილებელ ფუნქციებზე ფასიან კედლებს და ზედამხედველობის ნებისმიერ გამოყენებას. თუ როდესმე გარეშე წვლილი მიიღება, ორმაგი ლიცენზირების შესანარჩუნებლად საჭირო იქნება ხელმოწერილი შემწირველის შეთანხმება (CLA).
 
 ### მხარდაჭერა
 
@@ -157,7 +163,7 @@ Copyleft-next 0.3.1 — იხილეთ [LICENSE](./LICENSE).
 
 ### კომერციული გამოყენება და ორმაგი ლიცენზირება (კომპანიებისთვის)
 
-**Manolit∞ Aire** არის და ყოველთვის იქნება ღია კოდის, თავისუფალი, სათემო პროექტი **AGPL 3.0** ლიცენზიით. მტკიცედ მჯერა ღია ინტერნეტის, სადაც ცოდნა ზიარდება.
+**Manolit∞ Aire** არის და ყოველთვის იქნება ღია კოდის, თავისუფალი, სათემო პროექტი **AGPL 3.0 ლიცენზიით დამატებითი ეთიკური პირობებით**. მტკიცედ მჯერა ღია ინტერნეტის, სადაც ცოდნა ზიარდება.
 
 თუმცა, დიდი კომპანიები და კომერციული პლატფორმები მუშაობენ დახურული პროგრამული უზრუნველყოფის დინამიკით. AGPL 3.0-ის მკაცრი copyleft პირობების გამო, **ნებისმიერი კომერციული პლატფორმა, რომელიც აინტეგრირებს ამ კოდს, სამართლებრივად ვალდებულია გახსნას თავისი მთელი საწყისი კოდი**.
 
@@ -175,4 +181,4 @@ Copyleft-next 0.3.1 — იხილეთ [LICENSE](./LICENSE).
 Obra registrada · Propiedad Intelectual
 Junta de Andalucía — Consejería de Cultura y Deporte
 Nº Expediente: RTA-3147-26 · Nº Registro: 2026999010353785
-Fecha: 28/08/2026 · AGPL-3.0 · Código libre para la humanidad.
+Fecha: 28/08/2026 · AGPL-3.0 con condiciones éticas adicionales · Código libre para la humanidad.

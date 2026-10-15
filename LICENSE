@@ -1,4 +1,4 @@
-# Licencia Pública Ética Manolit∞ v1.0
+# Licencia Manolit∞ AGPL-3.0 con Condiciones Éticas Adicionales v1.0
 
 Copyright (C) 2026 Sandro
 
@@ -6,9 +6,10 @@ Esta licencia se aplica a: Islas de Calor Sevilla, Manolitoaire y Manolit∞ For
 (en adelante, "el Software"), incluyendo su código fuente, algoritmos, datos generados
 y assets asociados.
 
-Esta licencia se basa en los principios copyleft de la GNU Affero General Public
-License v3.0, con condiciones adicionales vinculantes descritas más abajo. En caso
-de conflicto, prevalecen las condiciones adicionales de este documento.
+Esta licencia es la GNU Affero General Public License v3.0 (AGPL-3.0), con
+condiciones adicionales vinculantes descritas más abajo, conforme a lo previsto
+en la sección 7 de la AGPL-3.0 ("Additional Terms"). En caso de conflicto,
+prevalecen las condiciones adicionales de este documento.
 
 ## 1. Concesión de derechos
 
@@ -99,16 +100,18 @@ la Unión Europea en materia de propiedad intelectual.
 
 ---
 
-*Nota: esta licencia prioriza los principios éticos del proyecto (sin
-publicidad, sin rastreo, sin muros de pago, sin recolección de datos) por
-encima de la compatibilidad con la definición estricta de "código abierto"
-(OSI) o "software libre" (FSF), que no permiten restricciones de uso de este
-tipo. Se recomienda revisión por un profesional de propiedad intelectual
-antes de su aplicación formal en un litigio real.*
+*Nota: al añadir restricciones de uso sobre la AGPL-3.0, esta licencia deja de
+cumplir la definición estricta de "código abierto" (OSI) y de "software libre"
+(FSF), que no permiten restricciones de este tipo. Es una decisión deliberada
+del autor: los principios éticos del proyecto (sin publicidad, sin rastreo,
+sin muros de pago, sin recolección de datos) prevalecen sobre esa etiqueta.
+Se recomienda revisión por un profesional de propiedad intelectual antes de
+su aplicación formal en un litigio real.*
 
--- © 2026 Sandro 
+-- © 2026 Sandro
      Obra registrada - Propiedad Intelectual
      Junta de Andalucía - Consejería de Cultura y Deporte
      Nº Expediente: RTA-3147-26
      Nº Registro: 2026999010353785
-     Fecha: 28/08/2026 · AGPL-3.0 Código libre por y para la humanidad --
+     Fecha: 28/08/2026 · AGPL-3.0 con condiciones éticas adicionales
+     Código libre por y para la humanidad --

@@ -167,7 +167,7 @@
             finEl.className = 'salud-banner-fin';
             banner.appendChild(finEl);
           }
-          var LOCALES_SALUD = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+          var LOCALES_SALUD = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE', ar: 'ar-SA' };
           var langSalud = 'es';
           try { if (typeof window.getCurrentLang === 'function') langSalud = window.getCurrentLang() || 'es'; } catch (e) { }
           var fechaFin = ventana.hasta.toLocaleString(LOCALES_SALUD[langSalud] || 'es-ES', {

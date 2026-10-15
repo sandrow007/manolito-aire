@@ -460,6 +460,7 @@
       <button data-lang="gl">GL</button>
       <button data-lang="en" class="active">EN</button>
       <button data-lang="ka">KA</button>
+      <button data-lang="ar">AR</button>
     </div>
     <!-- Botón mini "Act. mapa": nace AQUÍ, con el primer pintado (si lo
          inyecta el JS tarde, la barra crece y empuja toda la página = CLS).

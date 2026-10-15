@@ -8,6 +8,8 @@
      - CA/EU/GL/KA: se mantiene el castellano, la versión legal
        de referencia (lenguas cooficiales plenamente comprensibles
        en España; el georgiano no es lengua de la normativa).
+     - AR: se deja el original para que el traductor automático común
+       lo traduzca por fragmentos, sin sustituir el texto legal oficial.
    ============================================================ */
 
 'use strict';

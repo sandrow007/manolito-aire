@@ -144,7 +144,7 @@ function drawAirChart(times, values, nowIndex) {
 	const fmtHora = t => {
 		const d = new Date(t);
 		if (isNaN(d)) return '';
-		const localesAir = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE' };
+		const localesAir = { es: 'es-ES', ca: 'ca-ES', eu: 'eu-ES', gl: 'gl-ES', en: 'en-GB', ka: 'ka-GE', ar: 'ar-SA' };
 		const langAir = (typeof currentLang !== 'undefined' && localesAir[currentLang]) ? currentLang : 'es';
 		const dia = d.toLocaleDateString(localesAir[langAir], {
 			weekday: 'short'

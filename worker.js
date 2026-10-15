@@ -50,7 +50,7 @@ REGLAS DE ORO:
 - NO INVENTES datos concretos (cifras, fechas, nombres): si no lo sabes, dilo con naturalidad.
 - Si te preguntan algo que no sea de esta web ni de aire/sol/sombras/clima urbano, responde igualmente con tu cultura general y sigue su hilo, igual de breve.`;
 
-const langNames = { es:'español', ca:'català', eu:'euskera', gl:'galego', en:'English' };
+const langNames = { es:'español', ca:'català', eu:'euskera', gl:'galego', en:'English', ka:'ქართული', ar:'العربية' };
 
 export default {
   async fetch(request, env, ctx) {
@@ -570,7 +570,7 @@ export default {
       try {
         const q = (url.searchParams.get('q') || '').slice(0, 400);
         const a = url.searchParams.get('a') || '';
-        if (!q.trim() || !/^(ca|eu|gl|en|ka)$/.test(a)) return neutra();
+        if (!q.trim() || !/^(ca|eu|gl|en|ka|ar)$/.test(a)) return neutra();
         const destino = 'https://api.mymemory.translated.net/get?q=' +
           encodeURIComponent(q) + '&langpair=es|' + a;
         const ctl = new AbortController();

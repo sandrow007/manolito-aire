@@ -2523,6 +2523,17 @@ body.rs-capas-pop #main-content .rs-planetario{
   display:flex; flex-direction:row; flex-wrap:wrap;
   justify-content:center; align-items:center; gap:14px 22px;
 }
+/* El planetario conserva su composición vertical también cuando las capas
+   se convierten en panel flotante: cúpula y hora centradas, LiDAR debajo. */
+body.rs-capas-pop #main-content .rs-planetario{
+  flex-direction:column; flex-wrap:nowrap; align-items:center; gap:16px;
+}
+body.rs-capas-pop #main-content .rs-planetario-sol{
+  align-items:center; justify-content:center; width:100%;
+}
+body.rs-capas-pop #main-content a.rs-btn-lidar{
+  margin-left:auto; margin-right:auto;
+}
 
 /* ---------- El botón flotante ----------
    Escritorio: lateral derecho, apilado sobre la columna de zoom con

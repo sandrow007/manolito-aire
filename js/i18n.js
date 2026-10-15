@@ -7,7 +7,7 @@
 
 /* ============================================================
    MANOLITO AIRE, i18n
-   Castellano, català, euskera, galego, English, ქართული (georgiano).
+   Castellano, català, euskera, galego, English, ქართული (georgiano), العربية.
    
    v3: Añadidas traducciones para el sistema de rutas alternativas
    con evaluación de porcentaje de sombra.
@@ -2739,13 +2739,17 @@ const translations = {
 		saludBannerFinTpl: "მწვანე დროებითია, {f} ვებგვერდი თავის ჩვეულ იერს დაუბრუნდება.",
 		escudosTitulo: "ფარები, რომლებიც გვიცავენ",
 		escudosPorque: "გარემოს ჯანმრთელობის ოთხი საჯარო ობსერვატორია, შენი მხრიდან პლანეტამდე. ისინი აქვეყნებენ მონაცემებსა და სიცხის ზღურბლებს, რომლებზეც ეს ვებგვერდი ეყრდნობა, და მათი მუშაობა ყველას გვიცავს.",
-	}
+	},
+	// Las cadenas árabes se obtienen bajo demanda mediante el fallback MT
+	// cacheado. El bloque explícito evita caer accidentalmente al español.
+	ar: {}
 };
 
 let currentLang = localStorage.getItem('manolito_lang') || 'es';
 
 function getMessages() {
-	return translations[currentLang] || translations.es;
+	const base = translations[currentLang] || translations.es;
+	return currentLang === 'ar' ? Object.assign({}, translations.es, base) : base;
 }
 
 let dict = translations[currentLang] || translations.es;
@@ -2755,14 +2759,17 @@ function applyTranslations() {
 	document.querySelectorAll('[data-i18n]').forEach(el => {
 		const key = el.getAttribute('data-i18n');
 		if (dict[key]) el.textContent = dict[key];
+		else if (currentLang === 'ar' && translations.es[key]) el.textContent = translations.es[key];
 	});
 	document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
 		const key = el.getAttribute('data-i18n-placeholder');
 		if (dict[key]) el.setAttribute('placeholder', dict[key]);
+		else if (currentLang === 'ar' && translations.es[key]) el.setAttribute('placeholder', translations.es[key]);
 	});
 	document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
 		const key = el.getAttribute('data-i18n-aria-label');
 		if (dict[key]) el.setAttribute('aria-label', dict[key]);
+		else if (currentLang === 'ar' && translations.es[key]) el.setAttribute('aria-label', translations.es[key]);
 	});
 	// 01-oct-2026: bloques con HTML interno (enlaces, strong, code) no caben en
 	// textContent. Con data-i18n-html se traducen enteros por innerHTML.
@@ -2770,6 +2777,7 @@ function applyTranslations() {
 	document.querySelectorAll('[data-i18n-html]').forEach(el => {
 		const key = el.getAttribute('data-i18n-html');
 		if (dict[key]) el.innerHTML = dict[key];
+		else if (currentLang === 'ar' && translations.es[key]) el.innerHTML = translations.es[key];
 	});
 	document.querySelectorAll('#langToggle button').forEach(b => {
 		b.classList.toggle('active', b.dataset.lang === currentLang);
@@ -2784,6 +2792,10 @@ function applyTranslations() {
 		if (md) md.setAttribute('content', dict.metaDesc);
 	}
 	document.documentElement.setAttribute('lang', currentLang);
+	// La estructura de la interfaz permanece LTR en todos los idiomas. Poner
+	// RTL en <html> reordena flex/grid y desplaza el planetario y sus controles;
+	// el atributo lang ya informa del árabe sin alterar la maqueta existente.
+	document.documentElement.setAttribute('dir', 'ltr');
 }
 
 function setLang(lang) {
@@ -2924,10 +2936,9 @@ window.getCurrentLang = function () { return currentLang; };
 
    Reglas que no se saltan nada:
    - No toca scripts, estilos, código, ni lo que escribe la persona
-     en el chat. No toca la marca: nada que lleve "Manolit" pasa por
-     la MT. Las páginas legales (aviso, privacidad, cookies) no se
-     traducen por máquina: un texto legal traducido a lo bruto es
-     peor que uno claro en español.
+     en el chat. La marca se protege con un marcador y se restaura
+     intacta después de la MT. Las páginas legales (aviso, privacidad,
+     cookies) solo se traducen por máquina al árabe.
    - En español no barre: solo devuelve a su texto original lo que
      hubiera traducido antes (cambiar de inglés a español restaura).
    - MutationObserver con espera de 300 ms: lo que aparezca después
@@ -3002,11 +3013,21 @@ window.getCurrentLang = function () { return currentLang; };
 			const n = normaliza(nodo.nodeValue);
 			if (n.length < 3) return;
 			clave = construirIndice().get(n);
-			if (!clave) { ofrecerMTNodo(nodo, n); return; }
+			if (!clave) {
+				ofrecerMTNodo(nodo, n);
+				return;
+			}
 			nodoClave.set(nodo, clave);
 			nodosVivos.add(nodo);
 		}
 		const dest = d[clave];
+		if (currentLang === 'ar') {
+			const fuente = translations.es[clave];
+			if (typeof fuente === 'string' && fuente.indexOf('<') === -1) {
+				ofrecerMTNodo(nodo, fuente);
+			}
+			return;
+		}
 		if (typeof dest !== 'string' || !dest) return;
 		ponerTextoNodo(nodo, dest);
 	}
@@ -3022,12 +3043,22 @@ window.getCurrentLang = function () { return currentLang; };
 			const n = normaliza(actual);
 			if (n.length < 3) return;
 			clave = construirIndice().get(n);
-			if (!clave) { ofrecerMTAtributo(el, attr, n); return; }
+			if (!clave) {
+				ofrecerMTAtributo(el, attr, n);
+				return;
+			}
 			if (!mapa) { mapa = {}; attrClaves.set(el, mapa); }
 			mapa[attr] = clave;
 			attrsVivos.add(el);
 		}
 		const dest = d[clave];
+		if (currentLang === 'ar') {
+			const fuente = translations.es[clave];
+			if (typeof fuente === 'string' && fuente.indexOf('<') === -1) {
+				ofrecerMTAtributo(el, attr, fuente);
+			}
+			return;
+		}
 		if (typeof dest !== 'string' || !dest) return;
 		if (actual !== dest) {
 			escribiendo = true;
@@ -3092,18 +3123,17 @@ window.getCurrentLang = function () { return currentLang; };
 	}
 
 	/* ---------------- Tercer piso: traducción automática ----------------
-	   Cola tranquila: una petición cada 320 ms, en pausa si la pestaña
-	   está oculta, y con caché por idioma+frase en localStorage para no
-	   pedir dos veces lo mismo en la vida. La marca y las páginas
-	   legales quedan fuera. */
-	const MT_IDIOMAS = { ca: 'ca', eu: 'eu', gl: 'gl', en: 'en', ka: 'ka' };
+	   Cola concurrente y cacheada: varias peticiones pequeñas en paralelo
+	   para que una página completa no tarde minutos en quedar traducida.
+	   La marca queda fuera; en las páginas legales solo se activa para árabe. */
+	const MT_IDIOMAS = { ca: 'ca', eu: 'eu', gl: 'gl', en: 'en', ka: 'ka', ar: 'ar' };
 	const mtItems = new Set();          // { original, aplicar, restaurar, conectado }
 	const mtPendientes = new Map();     // texto español -> [items esperando]
 	const mtNodosReg = new WeakSet();   // nodos ya apuntados a la MT
 	const mtAttrsReg = new WeakMap();   // elemento -> Set de atributos apuntados
-	let mtTimer = null;
-	let mtFallosSeguidos = 0;
-	let mtSilenciado = false;           // 3 fallos seguidos: paramos en silencio
+	const MT_MAX_CHARS = 360;           // deja margen bajo el límite de 400 del Worker
+	const MT_CONCURRENCIA = 6;
+	let mtActivas = 0;
 	const esPaginaLegal = /(aviso-legal|privacidad|cookies|cookie)/i.test(location.pathname);
 
 	function mtCacheKey(lang, texto) {
@@ -3119,84 +3149,134 @@ window.getCurrentLang = function () { return currentLang; };
 	}
 
 	function esTraducibleMT(n) {
-		if (!n || n.length < 3 || n.length > 280) return false;
+		if (!n || n.length < 3 || n.length > MT_MAX_CHARS) return false;
 		if (!/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(n)) return false;
-		if (/manolit/i.test(n)) return false;              // la marca no se toca
+		const sinMarca = n.replace(/manolit∞?(?:\s+aire)?/gi, '').trim();
+		if (!sinMarca) return false;                       // solo la marca no se toca
 		if (/^(https?:|www\.|#|\/)/i.test(n)) return false; // URLs y anclas
 		if (/^[\d\s.,:;%€$+\-–—/()'"¿?¡!]+$/.test(n)) return false; // sin letras reales
 		return true;
 	}
 
+	function protegerMarcasMT(texto) {
+		const marcas = [];
+		const consulta = texto.replace(/manolit∞?(?:\s+aire)?/gi, marca => {
+			const indice = marcas.push(marca) - 1;
+			return 'MANOLIT_BRAND_' + indice;
+		});
+		return { consulta, marcas };
+	}
+
+	function restaurarMarcasMT(texto, marcas) {
+		return texto.replace(/MANOLIT_BRAND_(\d+)/gi, (completo, indice) => {
+			const marca = marcas[Number(indice)];
+			return marca || completo;
+		});
+	}
+
 	function encolarMT(item) {
 		if (currentLang === 'es' || !MT_IDIOMAS[currentLang]) return;
-		if (mtSilenciado || esPaginaLegal) return;
+		if (item.soloAr && currentLang !== 'ar') return;
+		if (esPaginaLegal && currentLang !== 'ar') return;
 		if (!esTraducibleMT(item.original)) return;
+		mtItems.add(item);
 		const enCache = mtCacheLeer(currentLang, item.original);
 		if (enCache) { item.aplicar(enCache, currentLang); return; }
-		mtItems.add(item);
 		const lista = mtPendientes.get(item.original) || [];
 		lista.push(item);
 		mtPendientes.set(item.original, lista);
-		if (!mtTimer) mtTimer = setInterval(mtPaso, 320);
+		procesarMT();
 	}
 
-	function mtPaso() {
-		if (document.hidden) return; // pestaña oculta: ni una petición
-		if (mtSilenciado) { clearInterval(mtTimer); mtTimer = null; return; }
-		const primero = mtPendientes.keys().next();
-		if (primero.done) { clearInterval(mtTimer); mtTimer = null; return; }
-		const texto = primero.value;
-		const items = mtPendientes.get(texto) || [];
-		mtPendientes.delete(texto);
-		const lang = currentLang;
-		fetch('/traduce?q=' + encodeURIComponent(texto) + '&a=' + MT_IDIOMAS[lang])
-			.then(r => (r && r.ok ? r.json() : null))
-			.then(d => {
-				if (d && d.ok && typeof d.texto === 'string' && d.texto.trim()) {
-					mtFallosSeguidos = 0;
-					mtCacheGuardar(lang, texto, d.texto);
-					items.forEach(i => { if (i.conectado()) i.aplicar(d.texto, lang); });
-				} else {
-					mtFallosSeguidos++;
-					if (mtFallosSeguidos >= 3) mtSilenciado = true;
-				}
-			})
-			.catch(() => {
-				mtFallosSeguidos++;
-				if (mtFallosSeguidos >= 3) mtSilenciado = true;
-			});
+	function procesarMT() {
+		while (mtActivas < MT_CONCURRENCIA && mtPendientes.size) {
+			const primero = mtPendientes.keys().next();
+			if (primero.done) return;
+			const texto = primero.value;
+			const items = mtPendientes.get(texto) || [];
+			mtPendientes.delete(texto);
+			const lang = currentLang;
+			if (!MT_IDIOMAS[lang]) continue;
+			const protegido = protegerMarcasMT(texto);
+			mtActivas++;
+			fetch('/traduce?q=' + encodeURIComponent(protegido.consulta) + '&a=' + MT_IDIOMAS[lang])
+				.then(r => (r && r.ok ? r.json() : null))
+				.then(d => {
+					if (!d || !d.ok || typeof d.texto !== 'string' || !d.texto.trim()) return;
+					const traducido = restaurarMarcasMT(d.texto, protegido.marcas);
+					mtCacheGuardar(lang, texto, traducido);
+					items.forEach(i => { if (i.conectado()) i.aplicar(traducido, lang); });
+				})
+				.catch(() => {
+					// La interfaz conserva el texto original si el proxy o el
+					// proveedor de traducción no están disponibles.
+				})
+				.finally(() => {
+					mtActivas--;
+					procesarMT();
+				});
+		}
 	}
 
-	function ofrecerMTNodo(nodo, n) {
+	function dividirMT(texto) {
+		if (texto.length <= MT_MAX_CHARS) return [texto];
+		const partes = [];
+		let resto = texto;
+		while (resto.length > MT_MAX_CHARS) {
+			let corte = resto.lastIndexOf(' ', MT_MAX_CHARS);
+			if (corte < Math.floor(MT_MAX_CHARS * 0.55)) corte = MT_MAX_CHARS;
+			partes.push(resto.slice(0, corte).trim());
+			resto = resto.slice(corte).trim();
+		}
+		if (resto) partes.push(resto);
+		return partes;
+	}
+
+	function ofrecerMTNodo(nodo, n, opciones) {
 		if (currentLang === 'es' || mtNodosReg.has(nodo)) return;
 		mtNodosReg.add(nodo);
 		const v = nodo.nodeValue;
 		const cabeza = /^\s*/.exec(v)[0], cola = /\s*$/.exec(v)[0];
-		encolarMT({
-			original: n,
-			conectado: () => nodo.isConnected,
-			aplicar: (txt, lang) => {
-				if (lang !== currentLang) return;
-				escribiendo = true;
-				nodo.nodeValue = cabeza + txt + cola;
-				escribiendo = false;
-			},
-			restaurar: () => {
-				escribiendo = true;
-				nodo.nodeValue = cabeza + n + cola;
-				escribiendo = false;
-			}
+		const fuente = opciones && typeof opciones.fuente === 'string' ? opciones.fuente : n;
+		const soloAr = Boolean(opciones && opciones.soloAr);
+		const partes = dividirMT(fuente);
+		const traducidas = new Array(partes.length);
+		const pintarCompleto = () => {
+			if (!traducidas.every(Boolean)) return;
+			escribiendo = true;
+			nodo.nodeValue = cabeza + traducidas.join(' ') + cola;
+			escribiendo = false;
+		};
+		partes.forEach((parte, indice) => {
+			encolarMT({
+				original: parte,
+				soloAr,
+				conectado: () => nodo.isConnected,
+				aplicar: (txt, lang) => {
+					if (lang !== currentLang) return;
+					if (soloAr && lang !== 'ar') return;
+					traducidas[indice] = txt.trim();
+					pintarCompleto();
+				},
+				restaurar: () => {
+					escribiendo = true;
+					nodo.nodeValue = cabeza + fuente + cola;
+					escribiendo = false;
+				}
+			});
 		});
 	}
 
-	function ofrecerMTAtributo(el, attr, n) {
+	function ofrecerMTAtributo(el, attr, n, opciones) {
 		if (currentLang === 'es') return;
 		let reg = mtAttrsReg.get(el);
 		if (reg && reg.has(attr)) return;
 		if (!reg) { reg = new Set(); mtAttrsReg.set(el, reg); }
 		reg.add(attr);
+		const fuente = opciones && typeof opciones.fuente === 'string' ? opciones.fuente : n;
 		encolarMT({
-			original: n,
+			original: fuente,
+			soloAr: Boolean(opciones && opciones.soloAr),
 			conectado: () => el.isConnected,
 			aplicar: (txt, lang) => {
 				if (lang !== currentLang) return;
@@ -3206,9 +3286,130 @@ window.getCurrentLang = function () { return currentLang; };
 			},
 			restaurar: () => {
 				escribiendo = true;
-				el.setAttribute(attr, n);
+				el.setAttribute(attr, fuente);
 				escribiendo = false;
 			}
+		});
+	}
+
+	const arMetadatosReg = new Set();
+	function ofrecerMTMetadato(id, fuente, aplicar, restaurar) {
+		if (currentLang !== 'ar' || arMetadatosReg.has(id)) return;
+		arMetadatosReg.add(id);
+		encolarMT({
+			original: fuente,
+			soloAr: true,
+			conectado: () => true,
+			aplicar,
+			restaurar
+		});
+	}
+
+	function traducirMetadatosArabe() {
+		if (currentLang !== 'ar') return;
+		const titulo = translations.es.metaTitle;
+		if (typeof titulo === 'string') {
+			ofrecerMTMetadato(
+				'title',
+				titulo,
+				(txt, lang) => { if (lang === currentLang) document.title = txt; },
+				() => { document.title = titulo; }
+			);
+		}
+		const descripcion = translations.es.metaDesc;
+		const metaDescripcion = document.querySelector('meta[name="description"]');
+		if (metaDescripcion && typeof descripcion === 'string') {
+			ofrecerMTMetadato(
+				'meta-description',
+				descripcion,
+				(txt, lang) => { if (lang === currentLang) metaDescripcion.setAttribute('content', txt); },
+				() => { metaDescripcion.setAttribute('content', descripcion); }
+			);
+		}
+		[
+			['meta[property="og:title"]', 'og-title'],
+			['meta[property="og:description"]', 'og-description'],
+			['meta[name="twitter:title"]', 'twitter-title'],
+			['meta[name="twitter:description"]', 'twitter-description']
+		].forEach(([selector, id]) => {
+			const el = document.querySelector(selector);
+			if (!el) return;
+			const fuente = el.getAttribute('content') || '';
+			if (!fuente) return;
+			ofrecerMTMetadato(
+				id,
+				fuente,
+				(txt, lang) => { if (lang === currentLang) el.setAttribute('content', txt); },
+				() => { el.setAttribute('content', fuente); }
+			);
+		});
+	}
+
+	const arClavesReg = new WeakSet();
+	const arAttrsReg = new WeakMap();
+	function barrerHTMLArabe(raiz) {
+		const walker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
+		const nodos = [];
+		while (walker.nextNode()) {
+			const nodo = walker.currentNode;
+			if (!nodo.nodeValue || !/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(nodo.nodeValue)) continue;
+			let saltar = false;
+			for (let p = nodo.parentElement; p && p !== raiz; p = p.parentElement) {
+				if (SALTAR_TAGS[p.tagName] || p.isContentEditable || p.getAttribute('translate') === 'no') {
+					saltar = true;
+					break;
+				}
+			}
+			if (!saltar) nodos.push(nodo);
+		}
+		nodos.forEach(nodo => ofrecerMTNodo(nodo, normaliza(nodo.nodeValue), { soloAr: true }));
+	}
+
+	function traducirClavesArabe() {
+		if (currentLang !== 'ar') return;
+		const fuenteEs = translations.es;
+		document.querySelectorAll('[data-i18n]').forEach(el => {
+			if (arClavesReg.has(el)) return;
+			const clave = el.getAttribute('data-i18n');
+			const fuente = fuenteEs[clave];
+			if (typeof fuente !== 'string' || fuente.indexOf('<') !== -1) return;
+			arClavesReg.add(el);
+			// Si se llega aquí desde otro idioma, se vuelve primero a la
+			// fuente española para que nunca se encole el texto georgiano,
+			// inglés, etc. como si fuera una frase nueva.
+			el.textContent = fuente;
+			if (el.firstChild && el.firstChild.nodeType === 3) {
+				ofrecerMTNodo(el.firstChild, fuente, { soloAr: true, fuente });
+			}
+			barrerHTMLArabe(el);
+		});
+		document.querySelectorAll('[data-i18n-html]').forEach(el => {
+			if (arClavesReg.has(el)) return;
+			const clave = el.getAttribute('data-i18n-html');
+			const fuente = fuenteEs[clave];
+			if (typeof fuente !== 'string') return;
+			arClavesReg.add(el);
+			el.innerHTML = fuente;
+			barrerHTMLArabe(el);
+		});
+		[
+			['data-i18n-placeholder', 'placeholder'],
+			['data-i18n-aria-label', 'aria-label']
+		].forEach(([selector, attr]) => {
+			document.querySelectorAll('[' + selector + ']').forEach(el => {
+				const clave = el.getAttribute(selector);
+				const fuente = fuenteEs[clave];
+				if (typeof fuente !== 'string' || fuente.indexOf('<') !== -1) return;
+				let vistos = arAttrsReg.get(el);
+				if (!vistos) {
+					vistos = new Set();
+					arAttrsReg.set(el, vistos);
+				}
+				if (vistos.has(attr)) return;
+				vistos.add(attr);
+				if (el.getAttribute(attr) !== fuente) el.setAttribute(attr, fuente);
+				ofrecerMTAtributo(el, attr, fuente, { soloAr: true, fuente });
+			});
 		});
 	}
 
@@ -3218,9 +3419,20 @@ window.getCurrentLang = function () { return currentLang; };
 		mtItems.forEach(item => {
 			if (!item.conectado()) { mtItems.delete(item); return; }
 			if (currentLang === 'es') { item.restaurar(); return; }
+			if (item.soloAr && currentLang !== 'ar') { item.restaurar(); return; }
+			if (esPaginaLegal && currentLang !== 'ar') { item.restaurar(); return; }
 			const enCache = mtCacheLeer(currentLang, item.original);
 			if (enCache) item.aplicar(enCache, currentLang);
 			else encolarMT(item);
+		});
+	}
+
+	function repintarCacheArabe() {
+		if (currentLang !== 'ar') return;
+		mtItems.forEach(item => {
+			if (!item.soloAr || !item.conectado()) return;
+			const enCache = mtCacheLeer('ar', item.original);
+			if (enCache) item.aplicar(enCache, 'ar');
 		});
 	}
 
@@ -3239,6 +3451,7 @@ window.getCurrentLang = function () { return currentLang; };
 		});
 		barridoPendiente = setTimeout(() => {
 			barridoPendiente = null;
+			if (currentLang === 'ar') traducirClavesArabe();
 			raices.forEach(r => {
 				try {
 					if (!r.isConnected) return;
@@ -3255,11 +3468,29 @@ window.getCurrentLang = function () { return currentLang; };
 	document.addEventListener('langChanged', () => {
 		repintarGuardados();
 		repintarMT();
+		if (currentLang === 'ar') {
+			traducirMetadatosArabe();
+			traducirClavesArabe();
+		}
 		if (currentLang !== 'es') {
 			// Dos pasadas tardías por si algún módulo repinta después que
 			// nosotros (el observador de mutaciones también las caza).
-			setTimeout(() => barrer(document.body), 80);
-			setTimeout(() => barrer(document.body), 700);
+			setTimeout(() => {
+				if (currentLang === 'ar') {
+					repintarCacheArabe();
+					traducirMetadatosArabe();
+					traducirClavesArabe();
+				}
+				barrer(document.body);
+			}, 80);
+			setTimeout(() => {
+				if (currentLang === 'ar') {
+					repintarCacheArabe();
+					traducirMetadatosArabe();
+					traducirClavesArabe();
+				}
+				barrer(document.body);
+			}, 700);
 		}
 	});
 
@@ -3267,6 +3498,10 @@ window.getCurrentLang = function () { return currentLang; };
 		try {
 			construirIndice();
 			if (currentLang !== 'es') {
+				if (currentLang === 'ar') {
+					traducirMetadatosArabe();
+					traducirClavesArabe();
+				}
 				barrer(document.body);
 				setTimeout(() => barrer(document.body), 900);
 				setTimeout(() => barrer(document.body), 2600);

@@ -3402,3 +3402,32 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   padding-left:14px;
   padding-right:38px;
 }
+/*
+ * Corrección puntual: botón y panel de capas al ampliar el mapa en móvil.
+ * Pegar este bloque AL FINAL de css/style.css.
+ * No modifica la lógica de las capas ni ningún otro componente.
+ */
+
+/* El botón flotante debe quedar por encima del canvas tanto en el modo
+   de pantalla completa CSS (iPhone) como en el fullscreen nativo. */
+body.manolito-fs #main-content #rsBtnCapasFlotante,
+#main-content .map-wrap:fullscreen #rsBtnCapasFlotante,
+#main-content .map-wrap:-webkit-full-screen #rsBtnCapasFlotante {
+  position: fixed !important;
+  z-index: 2147483000 !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* El panel usa las posiciones responsive existentes (hoja inferior en
+   móvil). Solo cambiamos su contexto de posicionamiento y su prioridad
+   de apilado; la clase .rs-capas-cerrada sigue controlando apertura/cierre. */
+body.manolito-fs #main-content .rs-planetario-capas,
+#main-content .map-wrap:fullscreen .rs-planetario-capas,
+#main-content .map-wrap:-webkit-full-screen .rs-planetario-capas {
+  position: fixed !important;
+  z-index: 2147483001 !important;
+  display: flex !important;
+}

@@ -36,6 +36,14 @@
      _data/serialize() de 'sombras' y 'arboles-globales-sombra'. Además
      las capas llevan minzoom 12,5: aparecen AL ACERCARTE, rollo
      edificios 3D, y de lejos ni se piden datos.
+   - ARREGLO SVG SOLAR 17-oct-2026 (orden de Sandro): el bloque
+     SVG_SOL_BASE64 traía un carácter de más (un espacio suelto dentro
+     de la cadena, a mitad de un href) que rompía el base64 y además el
+     símbolo de infinito llevaba un desplazamiento de 15 unidades en
+     vez de uno mínimo de 3, así que se veía descolgado del círculo.
+     Regenerado y verificado por completo: decodificado, comprobado
+     byte a byte contra el original y probado con las cuatro fases
+     (amanecer/mediodia/tarde/ocaso) antes de integrarlo.
    ========================================================================== */
 (function () {
   'use strict';
@@ -111,8 +119,8 @@
     'MCIgeDI9IjI4IiB5Mj0iMCIvPjxsaW5lIHgxPSIxNCIgeTE9IjE0IiB4Mj0iMjAiIHkyPSIyMCIvPjxsaW5lIHgxPSIwIiB5MT0i',
     'MjAiIHgyPSIwIiB5Mj0iMjgiLz48bGluZSB4MT0iLTE0IiB5MT0iMTQiIHgyPSItMjAiIHkyPSIyMCIvPjxsaW5lIHgxPSItMjAi',
     'IHkxPSIwIiB4Mj0iLTI4IiB5Mj0iMCIvPjxsaW5lIHgxPSItMTQiIHkxPSItMTQiIHgyPSItMjAiIHkyPSItMjAiLz48L2c+PC9n',
-    'PgogICAgPGcgaWQ9InNvbC1vY2FzbyI+PGNpcmNsZSByPSIxNCIgZmlsbD0iI2VmNDQ0NCIgc3Ryb2tlPSIjN2YxZDFkIiBzdHJ',
-    'b2tlLXdpZHRoPSIzIi8+PGcgc3Ryb2tlPSIjN2YxZDFkIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+',
+    'PgogICAgPGcgaWQ9InNvbC1vY2FzbyI+PGNpcmNsZSByPSIxNCIgZmlsbD0iI2VmNDQ0NCIgc3Ryb2tlPSIjN2YxZDFkIiBzdHJv',
+    'a2Utd2lkdGg9IjMiLz48ZyBzdHJva2U9IiM3ZjFkMWQiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj48',
     'bGluZSB4MT0iMCIgeTE9Ii0yMCIgeDI9IjAiIHkyPSItMjgiLz48bGluZSB4MT0iMTQiIHkxPSItMTQiIHgyPSIyMCIgeTI9Ii0y',
     'MCIvPjxsaW5lIHgxPSIyMCIgeTE9IjAiIHgyPSIyOCIgeTI9IjAiLz48bGluZSB4MT0iMTQiIHkxPSIxNCIgeDI9IjIwIiB5Mj0i',
     'MjAiLz48bGluZSB4MT0iMCIgeTE9IjIwIiB4Mj0iMCIgeTI9IjI4Ii8+PGxpbmUgeDE9Ii0xNCIgeTE9IjE0IiB4Mj0iLTIwIiB5',
@@ -125,7 +133,7 @@
     'aWxsPSJ1cmwoI3NvbWJyYS1mcmVzY2EpIiBzdHJva2U9Im5vbmUiLz4KICAgICA8dXNlIGhyZWY9IiN3aXJlZnJhbWUtbG9nbyIg',
     'c3Ryb2tlPSJ1cmwoI3NvbWJyYS1mcmVzY2EpIiBzdHJva2Utd2lkdGg9IjgiIC8+CiAgPC9nPgogIDxnIHRyYW5zZm9ybT0idHJh',
     'bnNsYXRlKDMwMCwgNDIwKSBza2V3WCgwKSBzY2FsZSgxLCAtMC4xNSkgdHJhbnNsYXRlKC0xMDAsIC0yOTApIj4KICAgICA8dXNl',
-    'IGhyZWY9IiN3aXJlZnJhbWUt bG9nbyIgc3Ryb2tlPSIjMDBmM2ZmIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNiIgLz4K',
+    'IGhyZWY9IiN3aXJlZnJhbWUtbG9nbyIgc3Ryb2tlPSIjMDBmM2ZmIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNiIgLz4K',
     'ICA8L2c+CgogIDx1c2UgaHJlZj0iI3NvbC1tZWRpb2RpYSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzAwLCA2NSkiIGZpbHRlcj0i',
     'dXJsKCNnbG93KSIgLz4KCiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjAwLCAxMzApIiBmaWx0ZXI9InVybCgjZ2xvdykiPgog',
     'ICAgIDxwYXRoIGQ9Ik0gMTAwLDMwIEMgMzAsMTEwIDMwLDIxMCAxMDAsMjkwIEMgMTcwLDIxMCAxNzAsMTEwIDEwMCwzMCBaIiBm',
@@ -137,7 +145,7 @@
     'LDE1NSAxMDAsMTY1IFQgMTQwLDE2NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDBlNWZmIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9r',
     'ZS1saW5lY2FwPSJyb3VuZCIvPgogICAgIDxwYXRoIGQ9Ik0gNjUsMTc1IFEgODIuNSwxNjcgMTAwLDE3NSBUIDEzNSwxNzUiIGZp',
     'bGw9Im5vbmUiIHN0cm9rZT0iIzAwZTVmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8L2c+',
-    'Cjwvc3ZnPgo='
+    'Cjwvc3ZnPg=='
   ].join('');
 
   function crearSvgsSolares() {

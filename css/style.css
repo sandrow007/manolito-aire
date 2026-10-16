@@ -217,7 +217,7 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
    que el mapa pinte dentro (canvas WebGL, controles con z-index) puede
    salirse por encima de la barra superior fija al hacer scroll. */
 .map-wrap{ position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); isolation:isolate; }
-
+ 
 /* El mapa de sombras 3D abre la página: marco de degradado cálido
    (naranja → azul → verde) para que tenga vida y no se mezcle con el fondo */
 .map-section:has(#shadowRouteMap) .map-wrap{
@@ -437,8 +437,7 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 /* Detalle al tocar una barra (también lo leen los lectores de pantalla) */
 .quantum-detail{
   display:none; font-size:0.82rem; line-height:1.55; color:var(--ink);
-  background:var(--mist); border-radius:10px; padding:10px 14px; margin-bottom:14px;
-}
+  background:var(--mist); border-radius:10px; padding:10px 14px; margin-bottom:14px;}
 .quantum-detail.visible{ display:block; }
 
 /* ---------- tooltip del gráfico (propio, no de librería) ---------- */
@@ -657,8 +656,7 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
   transition:background .15s, border-color .15s;
 }
 #rsBtnPlegarCapas:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent); }
-.rs-layer-toggles label{ display:flex; align-items:center; gap:6px; cursor:pointer; }
-.rs-layer-toggles input[type="checkbox"]{ accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
+.rs-layer-toggles label{ display:flex; align-items:center; gap:6px; cursor:pointer; } .rs-layer-toggles input[type="checkbox"]{ accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
 .rs-sol-widget{
   position:absolute; bottom:14px; right:14px; z-index:400;
   background:var(--paper); border:1px solid var(--line); border-radius:14px;
@@ -877,8 +875,7 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 body.modo-accesible{
   font-size:1.25rem !important;
   line-height:1.7 !important;
-  background:#FFFFFF !important;
-  color:#000000 !important;
+  background:#FFFFFF !important;  color:#000000 !important;
 }
 
 /* Sin animaciones ni transiciones: nada se mueve */
@@ -1032,9 +1029,21 @@ body.manolito-fs #rsStatus,
 body.manolito-fs .rs-pasos,
 body.manolito-fs #rsAqiPanel,
 body.manolito-fs .chat-fab{ display:none !important; }
+/* En pantalla completa se conserva el botón flotante, pero el panel
+   respeta SIEMPRE el estado abierto/cerrado que gestiona shadows-route.js.
+   No se fuerza la visibilidad del panel cuando lleva .rs-capas-cerrada. */
 body.manolito-fs .rs-planetario-capas,
-body.manolito-fs .rs-layer-toggles,
-body.manolito-fs #rsBtnCapasFlotante{ display:flex !important; visibility:visible !important; opacity:1 !important; pointer-events:auto !important; }
+body.manolito-fs .rs-layer-toggles{ display:flex !important; }
+body.manolito-fs #rsBtnCapasFlotante{
+  display:flex !important; visibility:visible !important;
+  opacity:1 !important; pointer-events:auto !important; z-index:1120 !important;
+}
+body.manolito-fs .rs-planetario-capas:not(.rs-capas-cerrada){
+  visibility:visible !important; opacity:1 !important; pointer-events:auto !important;
+}
+body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
+  visibility:hidden !important; opacity:0 !important; pointer-events:none !important;
+}
 
 /* Icono del botón de pantalla completa (el sprite de MapLibre solo se
    aplica a su control nativo; el nuestro dibuja el suyo). */
@@ -1044,11 +1053,11 @@ body.manolito-fs #rsBtnCapasFlotante{ display:flex !important; visibility:visibl
   background-repeat:no-repeat;
   background-position:center;
   background-size:18px 18px;
-  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 2-2 2v-3'/%3E%3C/svg%3E");
   cursor:pointer;
 }
 [data-theme="dark"] .maplibregl-ctrl-group button.manolito-fs-btn{
-  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 2-2 2v-3'/%3E%3C/svg%3E");
 }
 .maplibregl-ctrl-group button.manolito-fs-btn.manolito-fs-activo,
 .maplibregl-ctrl-group button.manolito-fs-btn[aria-pressed="true"]{
@@ -1096,9 +1105,7 @@ body.manolito-fs #rsBtnCapasFlotante{ display:flex !important; visibility:visibl
   background-size: 18px 18px;
 }
 #rsOrigen{ background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E7C86' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E"); }
-#rsDestino{ background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E04E00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E"); }
-
-/* Botón Buscar ruta: protagonista, con lupa dibujada en CSS.
+#rsDestino{ background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E04E00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E"); }/* Botón Buscar ruta: protagonista, con lupa dibujada en CSS.
    El icono es un ::before (no texto): el cambio de idioma no lo borra. */
 #rsBuscarBtn{
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -1317,8 +1324,7 @@ body.manolito-fs #rsBtnCapasFlotante{ display:flex !important; visibility:visibl
 /* Modo oscuro (sep-2026): --panel no existe como variable y el tooltip
    quedaba fondo blanco con texto casi blanco (--ink es claro en dark):
    ilegible. Ahora en oscuro tiene fondo oscuro y texto claro, siempre. */
-[data-theme="dark"] .chart-tip{
-  background:#12232E;
+[data-theme="dark"] .chart-tip{  background:#12232E;
   color:#E8F0FF;
   border-color:rgba(125,249,255,0.35);
   box-shadow:0 4px 14px rgba(0,0,0,0.5);
@@ -1537,8 +1543,7 @@ body > #rsBtnActualizarOSM{ position:fixed; top:10px; right:48px; z-index:30; }
 [data-theme="dark"] .rs-btn-lidar{
   background:var(--sky-mid);
   color:#06222B;
-  box-shadow:0 2px 8px rgba(0,240,255,0.16);
-}
+  box-shadow:0 2px 8px rgba(0,240,255,0.16);}
 [data-theme="dark"] .rs-btn-lidar:hover, [data-theme="dark"] .rs-btn-lidar:focus-visible{
   box-shadow:0 4px 12px rgba(0,240,255,0.24);
 }
@@ -1757,8 +1762,7 @@ body.mode-peque .im-lost-btn{
   gap:6px !important;
 }
 #rsCapasMapas #rsBtnCapasMapa{ grid-column:1 / -1; }
-@media (max-width:900px){
-  .rs-planetario{ gap:14px; }
+@media (max-width:900px){  .rs-planetario{ gap:14px; }
   .rs-planetario-capas{ padding-left:0; }
 }
 
@@ -1977,8 +1981,7 @@ body.mode-peque .im-lost-btn{
   filter:none !important;
 }
 
-/* ============================================================
-   SISTEMA DE DISEÑO DEL MAPA (01-oct-2026, orden directa de Sandro)
+/* ============================================================   SISTEMA DE DISEÑO DEL MAPA (01-oct-2026, orden directa de Sandro)
    "Cliente impecable, sobrio y coherente, que no parezca generado
    por IA. Una sola fuente de verdad." Alcance: SOLO la interfaz del
    mapa (barra de acciones, botonera de cámara, panel de capas, tarjeta
@@ -2197,8 +2200,7 @@ body.mode-peque .im-lost-btn{
    presentan como lo que son, opciones de cartografía de fondo. ---- */
 #main-content .rs-capas-mapas{ padding:2px 2px 4px; }
 #main-content #rsMapStyleToggle{
-  display:grid !important; grid-template-columns:repeat(3, minmax(0,1fr));
-  gap:8px; align-items:stretch;
+  display:grid !important; grid-template-columns:repeat(3, minmax(0,1fr));  gap:8px; align-items:stretch;
 }
 /* El antiguo botón maestro "Capas de mapa" ya no hace falta: el panel
    unificado lo absorbe. El JS que lo crea sigue intacto, solo no se ve. */
@@ -2286,7 +2288,7 @@ body.mode-peque .im-lost-btn{
 }
 #main-content #rsBtnWalk::before{
   -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.2' cy='4.6' r='1.6'/%3E%3Cpath d='M9.5 20l2-4.8-1.6-2.4.9-3.8 2.9 1.7 2.2.7'/%3E%3Cpath d='M10.8 9.2 8.6 12l-2 .7'/%3E%3Cpath d='m13 10.8.9 3.7 2.6 4.7'/%3E%3C/svg%3E");
-          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.2' cy='4.6' r='1.6'/%3E%3Cpath d='M9.5 20l2-4.8-1.6-2.4.9-3.8 2.9 1.7 2.2.7'/%3E%3Cpath d='M10.8 9.2 8.6 12l-2 .7'/%3E%3Cpath d='m13 10.8.9 3.7 2.6 4.7'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.2' cy='4.6' r='1.6'/%3E%3Cpath d='M9.5 20l2-4.8-1.6-2.4.9-3.8 2.9 1.7'/%3E%3Cpath d='M10.8 9.2 8.6 12l-2 .7'/%3E%3Cpath d='m13 10.8.9 3.7 2.6 4.7'/%3E%3C/svg%3E");
 }
 #main-content #rsBtnGuiaVoz::before{
   -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9.5v5h3.2L11.5 18V6L7.2 9.5z'/%3E%3Cpath d='M14.5 9.2a4.2 4.2 0 0 1 0 5.6M17 6.8a7.6 7.6 0 0 1 0 10.4'/%3E%3C/svg%3E");
@@ -2417,8 +2419,7 @@ body.mode-peque .im-lost-btn{
 
 /* ==================== COLUMNA SOL + LIDAR Y COMPOSICIÓN BAJO EL MAPA ====
    El panel de capas y la tarjeta solar comparten sistema. Todo alineado
-   al ancho del mapa, nada centrado flotando. */
-#main-content .rs-planetario{
+   al ancho del mapa, nada centrado flotando. */#main-content .rs-planetario{
   display:grid; grid-template-columns:minmax(0,1fr) 232px;
   gap:12px; align-items:stretch; justify-content:stretch;
   width:100%; margin:12px 0 4px; text-align:left;
@@ -2556,7 +2557,7 @@ body.rs-capas-pop #main-content a.rs-btn-lidar{
    safe-area y de la atribución. 44 px, icono Layers propio (el mismo
    del panel), y al abrirse cambia a X con el estado de selección. */
 #main-content #rsBtnCapasFlotante{
-  position:absolute; z-index:1100;
+  position:absolute; z-index:1120;
   top:calc(50% - 216px);
   right:calc(12px + env(safe-area-inset-right, 0px));
   width:44px; height:44px; padding:0; margin:0;
@@ -2922,8 +2923,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
    cualquier móvil) y la altura sigue en 900px, que era su misión:
    estabilizar la barra de scroll. Medido tras el cambio: scrollWidth
    igual al viewport en 360, 390, 768, 1024, 1440 y en horizontal. */
-.forecast-section, .map-section, .explain, .content{
-  contain-intrinsic-size: auto 320px auto 900px;
+.forecast-section, .map-section, .explain, .content{  contain-intrinsic-size: auto 320px auto 900px;
 }
 
 /* ============================================================
@@ -3023,8 +3023,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
   border-radius:var(--mui-r-ctl);
   border:1px solid var(--mui-line-2);
   background:var(--mui-bg); color:var(--mui-ico);
-  box-shadow:var(--mui-shadow);
-  transition:background var(--mui-t), border-color var(--mui-t), color var(--mui-t);
+  box-shadow:var(--mui-shadow);  transition:background var(--mui-t), border-color var(--mui-t), color var(--mui-t);
 }
 #main-content #rsBtnPlegarControles::before,
 #main-content #rsBtnCapasFlotante::before{ color:var(--mui-soft); }
@@ -3124,8 +3123,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
   display:flex !important; flex-direction:row !important;
   align-items:center; justify-content:flex-start; gap:10px;
   min-height:var(--mui-h); padding:4px 10px 4px 38px !important; margin:0;
-  font-family:inherit; font-size:13px !important; font-weight:400 !important;
-  letter-spacing:0 !important; text-transform:none !important; line-height:1.2;
+  font-family:inherit; font-size:13px !important; font-weight:400 !important;  letter-spacing:0 !important; text-transform:none !important; line-height:1.2;
   white-space:nowrap; text-align:left;
   color:var(--mui-text) !important; background:transparent !important;
   border:none !important; border-radius:var(--mui-r-ctl) !important; box-shadow:none !important;
@@ -3225,8 +3223,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
 }
 
 /* ================================================================
-   REORDENACIÓN Y ALINEACIÓN DE LA PORTADA (09-oct-2026, tarea de
-   Sandro). Bloque ADITIVO: no se toca ninguna regla vieja, estas van
+   REORDENACIÓN Y ALINEACIÓN DE LA PORTADA (09-oct-2026, tarea de   Sandro). Bloque ADITIVO: no se toca ninguna regla vieja, estas van
    al final del archivo y ganan por cascada.
 
    1) Una sola anchura de contenido (~960px) para tarjetas y bloques
@@ -3326,8 +3323,7 @@ h2.map-title, h2.quantum-badge{ margin:0; }
 .footer .escudo-gama{ opacity:1; color:#0E5563; }
 .footer .footer-red{ opacity:1; }
 .footer .footer-sync-toggle{ opacity:1; }
-.footer-sellos .sello-footer{ opacity:1; }
-.footer-sellos .footer-sello{ opacity:1; }
+.footer-sellos .sello-footer{ opacity:1; } .footer-sellos .footer-sello{ opacity:1; }
 [data-theme="dark"] .footer .escudo-gama{ color:#7FD4DE; }
 
 /* 12-oct-2026 (orden de Sandro): en árabe (RTL) la tarjeta flotante de
@@ -3401,33 +3397,4 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   background-position:calc(100% - 10px) center;
   padding-left:14px;
   padding-right:38px;
-}
-/*
- * Corrección puntual: botón y panel de capas al ampliar el mapa en móvil.
- * Pegar este bloque AL FINAL de css/style.css.
- * No modifica la lógica de las capas ni ningún otro componente.
- */
-
-/* El botón flotante debe quedar por encima del canvas tanto en el modo
-   de pantalla completa CSS (iPhone) como en el fullscreen nativo. */
-body.manolito-fs #main-content #rsBtnCapasFlotante,
-#main-content .map-wrap:fullscreen #rsBtnCapasFlotante,
-#main-content .map-wrap:-webkit-full-screen #rsBtnCapasFlotante {
-  position: fixed !important;
-  z-index: 2147483000 !important;
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
-/* El panel usa las posiciones responsive existentes (hoja inferior en
-   móvil). Solo cambiamos su contexto de posicionamiento y su prioridad
-   de apilado; la clase .rs-capas-cerrada sigue controlando apertura/cierre. */
-body.manolito-fs #main-content .rs-planetario-capas,
-#main-content .map-wrap:fullscreen .rs-planetario-capas,
-#main-content .map-wrap:-webkit-full-screen .rs-planetario-capas {
-  position: fixed !important;
-  z-index: 2147483001 !important;
-  display: flex !important;
 }

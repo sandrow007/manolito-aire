@@ -1,6 +1,6 @@
 /* ============================================================================
    aparcamientos-viaje.js. APARCAMIENTOS + PLANIFICADOR DE VIAJE de Manolit∞
-   (ADITIVO, 07-oct-2026, orden directa de -: TODO en UN solo archivo)
+   (ADITIVO, 07-oct-2026, orden directa de Sandro: TODO en UN solo archivo)
    ----------------------------------------------------------------------------
    - Nada de lo existente se toca. Este módulo se engancha al mapa por el
      hook público window.manolitAireMap (el mismo que usa arboles-3d.js) y
@@ -27,7 +27,7 @@
      'manolito:planificar-viaje' (detail {origen, destino}).
      Evento emitido: 'manolito:parking-cambiado' (detail {activo}).
    - Licencia: AGPL-3.0 como el resto del proyecto.
-   - ARREGLO URGENTE 08-oct-2026 (orden de -, «el parking choca con
+   - ARREGLO URGENTE 08-oct-2026 (orden de Sandro, «el parking choca con
      sombras»): querySourceFeatures fuera de TODA la lectura de datos.
      Esa llamada trocea por tiles y devolvía cero o un recorte, así que
      cada recálculo del motor de sombras vaciaba los puntos y los
@@ -57,23 +57,124 @@
     cacheClienteMs: 30 * 60 * 1000,
     maxPuntos: 300,
     zoomLlegada: 14.5,
-    // 08-oct-2026 (orden de -, arreglo urgente): los puntos aparecen
-    // AL ACERCARTE, a la distancia a la que saltan los edificios 3D del
-    // estilo (minzoom ~13). Un pelo antes (12,5) para que ya te estén
-    // esperando cuando el edificio se levanta.
     zoomMinParking: 12.5,
   };
 
-  // Colores por combinación tipo/acceso/precio. Pensados para leerse igual
-  // de bien en mapa claro, IGN y mapa oscuro.
   var COLORES = {
-    superficieGratis: '#2E9E5B', // verde
-    superficiePago: '#E0A32E',   // ámbar
-    cubierto: '#3E7CB1',         // azul
-    subterraneo: '#7C6BD6',      // violeta
-    restringido: '#8A939E',      // gris (privado o solo clientes)
+    superficieGratis: '#2E9E5B',
+    superficiePago: '#E0A32E',
+    cubierto: '#3E7CB1',
+    subterraneo: '#7C6BD6',
+    restringido: '#8A939E',
   };
-  var COLOR_SOMBRA = '#0C7F8D'; // teal Manolit∞, el anillo de sombra
+  var COLOR_SOMBRA = '#0C7F8D';
+
+  /*
+   * Plantilla de los SVG solares originales aportados por el usuario.
+   * La plantilla lleva el dibujo vectorial de Manolit∞ y las cuatro variantes
+   * solares. Solo se ajustan los valores de sombra y la posición del sol.
+   * Se mantiene dentro de este mismo archivo, sin depender de rutas externas.
+   */
+  var SVG_SOL_BASE64 = [
+    'PHN2ZyB2aWV3Qm94PSIwIDAgNjAwIDYwMCIgd2lkdGg9IjYwMCIgaGVpZ2h0PSI2MDAiIHByZXNlcnZlQXNwZWN0UmF0aW89InhN',
+    'aWRZTWlkIG1lZXQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+CiAgICA8ZmlsdGVyIGlkPSJnbG93',
+    'IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERl',
+    'dmlhdGlvbj0iNCIgcmVzdWx0PSJibHVyIiAvPgogICAgICA8ZmVDb21wb3NpdGUgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iYmx1',
+    'ciIgb3BlcmF0b3I9Im92ZXIiIC8+CiAgICA8L2ZpbHRlcj4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdy1ibHVyIiB4PSItMzAlIiB5',
+    'PSItMzAlIiB3aWR0aD0iMTYwJSIgaGVpZ2h0PSIxNjAlIj4KICAgICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iNSIg',
+    'Lz4KICAgIDwvZmlsdGVyPgoKICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic29tYnJhLWZyZXNjYSIgeDE9IjAlIiB5MT0iMTAwJSIg',
+    'eDI9IjAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDBmM2ZmIiBzdG9wLW9wYWNpdHk9',
+    'IjAuOTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI2MCUiIHN0b3AtY29sb3I9IiMzYjgyZjYiIHN0b3Atb3BhY2l0eT0iMC40Ii8+',
+    'CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzNiODJmNiIgc3RvcC1vcGFjaXR5PSIwLjAiLz4KICAgIDwv',
+    'bGluZWFyR3JhZGllbnQ+CgogICAgPGcgaWQ9IndpcmVmcmFtZS1sb2dvIiBmaWxsPSJub25lIj4KICAgICAgIDxwYXRoIGQ9Ik0g',
+    'MTAwLDMwIEMgMzAsMTEwIDMwLDIxMCAxMDAsMjkwIEMgMTcwLDIxMCAxNzAsMTEwIDEwMCwzMCBaIiBzdHJva2UtbGluZWpvaW49',
+    'InJvdW5kIi8+CiAgICAgICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxNTAiIHI9IjQ1IiAvPgogICAgICAgPHBhdGggZD0iTSAxMDAs',
+    'MTQ2IEMgNzUsMTIxIDc1LDE3MSAxMDAsMTQ2IEMgMTI1LDEyMSAxMjUsMTcxIDEwMCwxNDYgWiIgc3Ryb2tlLWxpbmVqb2luPSJy',
+    'b3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgICA8cGF0aCBkPSJNIDYwLDE2NSBRIDgwLDE1NSAxMDAsMTY1IFQg',
+    'MTQwLDE2NSIgLz4KICAgICAgIDxwYXRoIGQ9Ik0gNjUsMTc1IFEgODIuNSwxNjcgMTAwLDE3NSBUIDEzNSwxNzUiIC8+CiAgICA8',
+    'L2c+CgogICAgPGcgaWQ9InNvbC1hbWFuZWNlciI+PGNpcmNsZSByPSIxNCIgZmlsbD0iI2ZiOTIzYyIgc3Ryb2tlPSIjYzI0MTBj',
+    'IiBzdHJva2Utd2lkdGg9IjMiLz48ZyBzdHJva2U9IiNjMjQxMGMiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJv',
+    'dW5kIj48bGluZSB4MT0iMCIgeTE9Ii0yMCIgeDI9IjAiIHkyPSItMjgiLz48bGluZSB4MT0iMTQiIHkxPSItMTQiIHgyPSIyMCIg',
+    'eTI9Ii0yMCIvPjxsaW5lIHgxPSIyMCIgeTE9IjAiIHgyPSIyOCIgeTI9IjAiLz48bGluZSB4MT0iMTQiIHkxPSIxNCIgeDI9IjIw',
+    'IiB5Mj0iMjAiLz48bGluZSB4MT0iMCIgeTE9IjIwIiB4Mj0iMCIgeTI9IjI4Ii8+PGxpbmUgeDE9Ii0xNCIgeTE9IjE0IiB4Mj0i',
+    'LTIwIiB5Mj0iMjAiLz48bGluZSB4MT0iLTIwIiB5MT0iMCIgeDI9Ii0yOCIgeTI9IjAiLz48bGluZSB4MT0iLTE0IiB5MT0iLTE0',
+    'IiB4Mj0iLTIwIiB5Mj0iLTIwIi8+PC9nPjwvZz4KICAgIDxnIGlkPSJzb2wtbWVkaW9kaWEiPjxjaXJjbGUgcj0iMTQiIGZpbGw9',
+    'IiNmZGUwNDciIHN0cm9rZT0iI2VhNTgwYyIgc3Ryb2tlLXdpZHRoPSIzIi8+PGcgc3Ryb2tlPSIjZWE1ODBjIiBzdHJva2Utd2lk',
+    'dGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PGxpbmUgeDE9IjAiIHkxPSItMjAiIHgyPSIwIiB5Mj0iLTI4Ii8+PGxpbmUg',
+    'eDE9IjE0IiB5MT0iLTE0IiB4Mj0iMjAiIHkyPSItMjAiLz48bGluZSB4MT0iMjAiIHkxPSIwIiB4Mj0iMjgiIHkyPSIwIi8+PGxp',
+    'bmUgeDE9IjE0IiB5MT0iMTQiIHgyPSIyMCIgeTI9IjIwIi8+PGxpbmUgeDE9IjAiIHkxPSIyMCIgeDI9IjAiIHkyPSIyOCIvPjxs',
+    'aW5lIHgxPSItMTQiIHkxPSIxNCIgeDI9Ii0yMCIgeTI9IjIwIi8+PGxpbmUgeDE9Ii0yMCIgeTE9IjAiIHgyPSItMjgiIHkyPSIw',
+    'Ii8+PGxpbmUgeDE9Ii0xNCIgeTE9Ii0xNCIgeDI9Ii0yMCIgeTI9Ii0yMCIvPjwvZz48L2c+CiAgICA8ZyBpZD0ic29sLXRhcmRl',
+    'Ij48Y2lyY2xlIHI9IjE0IiBmaWxsPSIjZjU5ZTBiIiBzdHJva2U9IiNiNDUzMDkiIHN0cm9rZS13aWR0aD0iMyIvPjxnIHN0cm9r',
+    'ZT0iI2I0NTMwOSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiPjxsaW5lIHgxPSIwIiB5MT0iLTIwIiB4',
+    'Mj0iMCIgeTI9Ii0yOCIvPjxsaW5lIHgxPSIxNCIgeTE9Ii0xNCIgeDI9IjIwIiB5Mj0iLTIwIi8+PGxpbmUgeDE9IjIwIiB5MT0i',
+    'MCIgeDI9IjI4IiB5Mj0iMCIvPjxsaW5lIHgxPSIxNCIgeTE9IjE0IiB4Mj0iMjAiIHkyPSIyMCIvPjxsaW5lIHgxPSIwIiB5MT0i',
+    'MjAiIHgyPSIwIiB5Mj0iMjgiLz48bGluZSB4MT0iLTE0IiB5MT0iMTQiIHgyPSItMjAiIHkyPSIyMCIvPjxsaW5lIHgxPSItMjAi',
+    'IHkxPSIwIiB4Mj0iLTI4IiB5Mj0iMCIvPjxsaW5lIHgxPSItMTQiIHkxPSItMTQiIHgyPSItMjAiIHkyPSItMjAiLz48L2c+PC9n',
+    'PgogICAgPGcgaWQ9InNvbC1vY2FzbyI+PGNpcmNsZSByPSIxNCIgZmlsbD0iI2VmNDQ0NCIgc3Ryb2tlPSIjN2YxZDFkIiBzdHJ',
+    'b2tlLXdpZHRoPSIzIi8+PGcgc3Ryb2tlPSIjN2YxZDFkIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+',
+    'bGluZSB4MT0iMCIgeTE9Ii0yMCIgeDI9IjAiIHkyPSItMjgiLz48bGluZSB4MT0iMTQiIHkxPSItMTQiIHgyPSIyMCIgeTI9Ii0y',
+    'MCIvPjxsaW5lIHgxPSIyMCIgeTE9IjAiIHgyPSIyOCIgeTI9IjAiLz48bGluZSB4MT0iMTQiIHkxPSIxNCIgeDI9IjIwIiB5Mj0i',
+    'MjAiLz48bGluZSB4MT0iMCIgeTE9IjIwIiB4Mj0iMCIgeTI9IjI4Ii8+PGxpbmUgeDE9Ii0xNCIgeTE9IjE0IiB4Mj0iLTIwIiB5',
+    'Mj0iMjAiLz48bGluZSB4MT0iLTIwIiB5MT0iMCIgeDI9Ii0yOCIgeTI9IjAiLz48bGluZSB4MT0iLTE0IiB5MT0iLTE0IiB4Mj0i',
+    'LTIwIiB5Mj0iLTIwIi8+PC9nPjwvZz4KICA8L2RlZnM+CgogIDxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9',
+    'IiMwMjA0MDYiIC8+CgogIDxlbGxpcHNlIGN4PSIzMDAiIGN5PSI0MjAiIHJ4PSI2MCIgcnk9IjE1IiBmaWxsPSIjMDBmM2ZmIiBv',
+    'cGFjaXR5PSIwLjEiIGZpbHRlcj0idXJsKCNnbG93KSIgLz4KCiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzAwLCA0MjApIHNr',
+    'ZXdYKDApIHNjYWxlKDEsIC0wLjE1KSB0cmFuc2xhdGUoLTEwMCwgLTI5MCkiIGZpbHRlcj0idXJsKCNzaGFkb3ctYmx1cikiPgog',
+    'ICAgIDxwYXRoIGQ9Ik0gMTAwLDMwIEMgMzAsMTEwIDMwLDIxMCAxMDAsMjkwIEMgMTcwLDIxMCAxNzAsMTEwIDEwMCwzMCBaIiBm',
+    'aWxsPSJ1cmwoI3NvbWJyYS1mcmVzY2EpIiBzdHJva2U9Im5vbmUiLz4KICAgICA8dXNlIGhyZWY9IiN3aXJlZnJhbWUtbG9nbyIg',
+    'c3Ryb2tlPSJ1cmwoI3NvbWJyYS1mcmVzY2EpIiBzdHJva2Utd2lkdGg9IjgiIC8+CiAgPC9nPgogIDxnIHRyYW5zZm9ybT0idHJh',
+    'bnNsYXRlKDMwMCwgNDIwKSBza2V3WCgwKSBzY2FsZSgxLCAtMC4xNSkgdHJhbnNsYXRlKC0xMDAsIC0yOTApIj4KICAgICA8dXNl',
+    'IGhyZWY9IiN3aXJlZnJhbWUt bG9nbyIgc3Ryb2tlPSIjMDBmM2ZmIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNiIgLz4K',
+    'ICA8L2c+CgogIDx1c2UgaHJlZj0iI3NvbC1tZWRpb2RpYSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzAwLCA2NSkiIGZpbHRlcj0i',
+    'dXJsKCNnbG93KSIgLz4KCiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjAwLCAxMzApIiBmaWx0ZXI9InVybCgjZ2xvdykiPgog',
+    'ICAgIDxwYXRoIGQ9Ik0gMTAwLDMwIEMgMzAsMTEwIDMwLDIxMCAxMDAsMjkwIEMgMTcwLDIxMCAxNzAsMTEwIDEwMCwzMCBaIiBm',
+    'aWxsPSJyZ2JhKDI1NSwgNDIsIDc1LCAwLjA1KSIgc3Ryb2tlPSIjZmYyYTRiIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5l',
+    'am9pbj0icm91bmQiLz4KICAgICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxNTAiIHI9IjQ1IiBmaWxsPSJub25lIiBzdHJva2U9IiNm',
+    'ZmNjMDAiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgIDxwYXRoIGQ9Ik0gMTAwLDE0NiBDIDc1LDEyMSA3NSwxNzEgMTAwLDE0NiBD',
+    'IDEyNSwxMjEgMTI1LDE3MSAxMDAsMTQ2IFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmMmE0YiIgc3Ryb2tlLXdpZHRoPSI1IiBz',
+    'dHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICAgICA8cGF0aCBkPSJNIDYwLDE2NSBRIDgw',
+    'LDE1NSAxMDAsMTY1IFQgMTQwLDE2NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDBlNWZmIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9r',
+    'ZS1saW5lY2FwPSJyb3VuZCIvPgogICAgIDxwYXRoIGQ9Ik0gNjUsMTc1IFEgODIuNSwxNjcgMTAwLDE3NSBUIDEzNSwxNzUiIGZp',
+    'bGw9Im5vbmUiIHN0cm9rZT0iIzAwZTVmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8L2c+',
+    'Cjwvc3ZnPgo='
+  ].join('');
+
+  function crearSvgsSolares() {
+    var base;
+    try { base = atob(SVG_SOL_BASE64); if (base) base = base.replace('<svg ', '<svg aria-hidden="true" focusable="false" ', 1); } catch (e) { base = ''; }
+    var sombraBase = 'transform="translate(300, 420) skewX(0) scale(1, -0.15) translate(-100, -290)"';
+    var solBase = '<use href="#sol-mediodia" transform="translate(300, 65)" filter="url(#glow)" />';
+    var ajustes = {
+      amanecer: {
+        sombra: 'transform="translate(300, 420) skewX(-60) scale(1, -0.40) translate(-100, -290)"',
+        sol: '<use href="#sol-amanecer" transform="translate(520, 300)" filter="url(#glow)" />'
+      },
+      mediodia: { sombra: sombraBase, sol: solBase },
+      tarde: {
+        sombra: 'transform="translate(300, 420) skewX(45) scale(1, -0.35) translate(-100, -290)"',
+        sol: '<use href="#sol-tarde" transform="translate(90, 150)" filter="url(#glow)" />'
+      },
+      ocaso: {
+        sombra: 'transform="translate(300, 420) skewX(56) scale(1, -0.45) translate(-100, -290)"',
+        sol: '<use href="#sol-ocaso" transform="translate(70, 300)" filter="url(#glow)" />'
+      }
+    };
+    var resultado = {};
+    Object.keys(ajustes).forEach(function (fase) {
+      var svg = base;
+      if (svg) {
+        svg = svg.split(sombraBase).join(ajustes[fase].sombra);
+        svg = svg.replace(solBase, ajustes[fase].sol);
+        resultado[fase] = svg;
+      } else {
+        resultado[fase] = base;
+      }
+    });
+    return resultado;
+  }
+  var SVG_SOL_FASES = crearSvgsSolares();
+
 
   var map = null;
 
@@ -110,14 +211,8 @@
     temporizadorMove: null,
     temporizadorSombra: null,
     popup: null,
-    // 09-oct-2026 (orden de -): qué parking tiene el popup abierto y
-    // el temporizador dormido hasta el próximo orto/ocaso (sin bucles).
     popupFeatureId: null,
     temporizadorSolPopup: null,
-    // 08-oct-2026 (arreglo urgente): copia ÍNTEGRA del último geojson
-    // pintado. reevaluarSombraActual trabaja sobre esta copia y jamás
-    // reconstruye con querySourceFeatures, que por tiles devolvía cero o
-    // solo lo visible y BORRABA los puntos en cada recálculo de sombras.
     datosActuales: null,
   };
 
@@ -160,17 +255,7 @@
     return t('parkingFeeUnknown', 'Precio sin dato');
   }
 
-  /* ---------------- Sol o sombra en el popup: la verdad o nada -----------
-     09-oct-2026 (orden directa de -, «de noche no hay sol y la app no
-     inventa»): la frase de sol del popup sale SIEMPRE de esta cadena.
-       1) De noche (lo decide js/sol.js con SunCalc y la hora REAL, nunca
-          la del slider de simulación) → «Ahora es de noche, sin sol».
-       2) Cubierto o subterráneo según las etiquetas reales de OSM → nunca
-          «al sol»: tiene techo, así que «Con sombra ahora».
-       3) Si el slider está simulando otra hora, las sombras pintadas no
-          son las de ahora → «No se puede saber».
-       4) De día y con dato real del motor de sombras → sol o sombra.
-       5) Cualquier otra situación → «No se puede saber». No se adivina. */
+  /* ---------------- Sol o sombra en el popup: la verdad o nada ----------- */
   function lineaSolParking(p, coords) {
     var haySol = (window.manolitHaySol && coords && coords.length >= 2)
       ? window.manolitHaySol(coords[1], coords[0])
@@ -185,7 +270,6 @@
     return t('parkingSunUnknown', 'No se puede saber');
   }
 
-  /* Iconografía propia en SVG: no se usan emojis ni iconos tipográficos. */
   function svgIconoParking(tipo, tamano, color) {
     var size = tamano || 24;
     var tinta = color || 'currentColor';
@@ -208,58 +292,71 @@
     var style = document.createElement('style');
     style.id = 'manolito-parking-results-style';
     style.textContent = `
-      .maplibregl-popup.mp-parking-popup{z-index:1200;max-width:calc(100vw - 20px)!important}
-      .maplibregl-popup.mp-parking-popup .maplibregl-popup-content{padding:0;border:1px solid #d3e1e5;border-radius:15px;overflow:hidden;box-shadow:0 14px 38px rgba(17,42,52,.23);background:#fff;max-width:calc(100vw - 20px);}
-      .maplibregl-popup.mp-parking-popup .maplibregl-popup-close-button{z-index:3;right:7px;top:7px;width:29px;height:29px;border-radius:50%;font-size:21px;line-height:27px;color:#42535b;background:#edf4f6}
-      .mp-parking-results{width:620px;max-width:calc(100vw - 22px);max-height:min(78vh, 660px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;font:14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1a2830;background:#fff;box-sizing:border-box}
+      .maplibregl-popup.mp-parking-popup{z-index:1200;max-width:calc(100vw - 16px)!important}
+      .maplibregl-popup.mp-parking-popup .maplibregl-popup-content{padding:0;border:1px solid #d3e1e5;border-radius:12px;overflow:hidden;box-shadow:0 9px 26px rgba(17,42,52,.2);background:#fff;max-width:calc(100vw - 16px)}
+      .maplibregl-popup.mp-parking-popup .maplibregl-popup-close-button{z-index:3;right:5px;top:5px;width:25px;height:25px;border-radius:50%;font-size:19px;line-height:23px;color:#42535b;background:#edf4f6}
+      .mp-parking-results{width:440px;max-width:calc(100vw - 16px);max-height:min(55vh,430px);max-height:min(55dvh,430px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;font:12px/1.35 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1a2830;background:#fff;box-sizing:border-box}
       .mp-parking-results *{box-sizing:border-box}
-      .mp-results-title{padding:13px 42px 11px 16px;background:#f7fbfc;border-bottom:1px solid #e3ecef;font-size:14px;font-weight:750;letter-spacing:.01em;color:#263c46}
-      .mp-parking-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(190px,.9fr);min-width:0}
-      .mp-selected-parking{padding:14px;min-width:0}
-      .mp-parking-heading{display:flex;align-items:flex-start;gap:11px;min-width:0}
-      .mp-parking-symbol{display:flex;align-items:center;justify-content:center;flex:0 0 65px;width:65px;height:65px;border-radius:10px;background:#eaf2f7;color:#264f67;border:1px solid #dbe7ee}
-      .mp-parking-copy{min-width:0;padding-top:1px}
-      .mp-parking-name{font-size:18px;line-height:1.2;font-weight:800;overflow-wrap:anywhere;color:#142a35;margin:0 0 4px}
-      .mp-parking-type{font-size:13px;color:#4a5c65;margin-bottom:2px}
-      .mp-parking-meta{font-size:12px;color:#65757d}
-      .mp-parking-status{display:flex;align-items:center;gap:9px;margin:13px -14px 0;padding:10px 14px;border-top:1px solid #e1ece8;border-bottom:1px solid #e1ece8;background:#eaf8f0;color:#236f50;min-height:49px}
-      .mp-parking-status strong{display:block;font-size:14px;line-height:1.25}
-      .mp-parking-status span{display:block;font-size:11px;opacity:.92;margin-top:2px}
+      .mp-results-title{padding:9px 36px 8px 11px;background:#f7fbfc;border-bottom:1px solid #e3ecef;font-size:11px;font-weight:750;letter-spacing:.01em;color:#263c46}
+      .mp-parking-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(145px,.85fr);min-width:0}
+      .mp-selected-parking{padding:10px;min-width:0}
+      .mp-parking-heading{display:flex;align-items:center;gap:8px;min-width:0}
+      .mp-parking-symbol{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;border-radius:8px;background:#eaf2f7;color:#264f67;border:1px solid #dbe7ee}
+      .mp-parking-copy{min-width:0;flex:1;padding-top:1px}
+      .mp-parking-name{font-size:14px;line-height:1.2;font-weight:800;overflow-wrap:anywhere;color:#142a35;margin:0 0 3px}
+      .mp-parking-type{font-size:11px;color:#4a5c65;margin-bottom:2px}
+      .mp-parking-meta{font-size:10px;color:#65757d;overflow-wrap:anywhere}
+      .mp-parking-sun-scene{display:block;flex:0 0 43px;width:43px;height:43px;max-width:43px;overflow:hidden;border-radius:7px;border:1px solid #1c2a30;background:#020406}
+      .mp-parking-sun-scene svg{display:block;width:100%;height:100%}
+      .mp-parking-status{display:flex;align-items:center;gap:7px;margin:9px -10px 0;padding:7px 10px;border-top:1px solid #e1ece8;border-bottom:1px solid #e1ece8;background:#eaf8f0;color:#236f50;min-height:39px}
+      .mp-parking-status>svg{flex:0 0 19px;width:19px;height:19px}
+      .mp-parking-status strong{display:block;font-size:11px;line-height:1.25}
+      .mp-parking-status span{display:block;font-size:9px;line-height:1.3;opacity:.92;margin-top:2px}
       .mp-parking-status.is-sun{background:#fff7de;border-color:#f2e7bf;color:#855c06}
+      .mp-parking-status.is-shade{background:#e7f7f5;border-color:#d2ebe7;color:#176b69}
       .mp-parking-status.is-unknown{background:#f1f5f7;border-color:#e1e8eb;color:#566770}
-      .mp-parking-data{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:13px;padding:13px 0 2px}
-      .mp-parking-data-item{display:flex;align-items:flex-start;gap:8px;min-width:0;color:#36515f}
-      .mp-parking-data-item strong{display:block;font-size:12px;font-weight:750;color:#344953}
-      .mp-parking-data-item span{display:block;font-size:12px;color:#687a82;overflow-wrap:anywhere;margin-top:2px}
-      .mp-parking-footer{border-top:1px solid #e9eff1;margin-top:12px;padding-top:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:9px;font-size:11px;color:#647780}
+      .mp-parking-data{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px;padding:9px 0 1px}
+      .mp-parking-data-item{display:flex;align-items:flex-start;gap:6px;min-width:0;color:#36515f}
+      .mp-parking-data-item>svg{flex:0 0 18px;width:18px;height:18px}
+      .mp-parking-data-item strong{display:block;font-size:10px;font-weight:750;color:#344953}
+      .mp-parking-data-item span{display:block;font-size:10px;line-height:1.3;color:#687a82;overflow-wrap:anywhere;margin-top:2px}
+      .mp-parking-footer{border-top:1px solid #e9eff1;margin-top:8px;padding-top:7px;display:flex;align-items:flex-start;justify-content:space-between;gap:7px;font-size:9px;line-height:1.3;color:#647780}
       .mp-parking-footer strong{color:#425760}
-      .mp-parking-options{padding:13px 12px;background:#fbfcfd;border-left:1px solid #e2eaed;min-width:0}
-      .mp-options-title{font-size:12px;font-weight:800;color:#52636b;text-transform:uppercase;letter-spacing:.035em;margin:0 0 8px}
-      .mp-parking-option{appearance:none;display:flex;width:100%;min-width:0;align-items:flex-start;gap:9px;text-align:left;padding:9px 0;border:0;border-bottom:1px solid #e3e9ec;background:transparent;color:inherit;cursor:pointer;font:inherit;border-radius:0}
+      .mp-parking-options{padding:10px 9px;background:#fbfcfd;border-left:1px solid #e2eaed;min-width:0}
+      .mp-options-title{font-size:10px;font-weight:800;color:#52636b;text-transform:uppercase;letter-spacing:.035em;margin:0 0 4px}
+      .mp-parking-options-list{min-width:0}
+      .mp-parking-option{appearance:none;display:flex;width:100%;min-width:0;align-items:flex-start;gap:7px;text-align:left;padding:7px 0;border:0;border-bottom:1px solid #e3e9ec;background:transparent;color:inherit;cursor:pointer;font:inherit;border-radius:0}
       .mp-parking-option:last-child{border-bottom:0}
       .mp-parking-option:focus-visible{outline:2px solid #0c7f8d;outline-offset:2px;border-radius:6px}
       .mp-parking-option:hover .mp-option-name{color:#0c7180;text-decoration:underline}
-      .mp-option-symbol{display:flex;align-items:center;justify-content:center;flex:0 0 43px;width:43px;height:43px;border-radius:8px;background:#edf4f7;border:1px solid #e1eaed;color:#36596b}
+      .mp-option-symbol{display:flex;align-items:center;justify-content:center;flex:0 0 32px;width:32px;height:32px;border-radius:7px;background:#edf4f7;border:1px solid #e1eaed;color:#36596b}
+      .mp-option-symbol svg{width:19px;height:19px}
       .mp-option-copy{min-width:0;flex:1}
-      .mp-option-name{display:block;font-size:13px;line-height:1.25;font-weight:750;color:#203944;overflow-wrap:anywhere}
-      .mp-option-type{display:block;font-size:11px;color:#63757d;margin-top:3px}
-      .mp-option-status{display:flex;align-items:center;gap:4px;font-size:11px;margin-top:4px;color:#37795a}
+      .mp-option-name{display:block;font-size:11px;line-height:1.25;font-weight:750;color:#203944;overflow-wrap:anywhere}
+      .mp-option-type{display:block;font-size:9px;line-height:1.3;color:#63757d;margin-top:2px}
+      .mp-option-status{display:flex;align-items:center;gap:3px;font-size:9px;line-height:1.25;margin-top:3px;color:#37795a}
+      .mp-option-status svg{flex:0 0 12px;width:12px;height:12px}
       .mp-option-status.is-sun{color:#966d11}.mp-option-status.is-unknown{color:#708089}
-      .mp-option-distance{font-size:10px;color:#819098;white-space:nowrap;margin-top:2px}
-      .mp-no-options{font-size:12px;line-height:1.5;color:#77868d;padding:8px 0}
+      .mp-option-distance{font-size:9px;color:#819098;white-space:nowrap;margin-top:2px}
+      .mp-no-options{font-size:10px;line-height:1.4;color:#77868d;padding:5px 0}
       @media(max-width:580px){
-        .mp-parking-results{width:calc(100vw - 22px);max-width:calc(100vw - 22px);max-height:min(72vh, 560px);max-height:min(72dvh, 560px)}
-        .mp-results-title{padding:11px 40px 10px 12px;font-size:13px}
+        .mp-parking-results{width:min(365px,calc(100vw - 16px));max-width:calc(100vw - 16px);max-height:min(53vh,410px);max-height:min(53dvh,410px)}
+        .mp-results-title{padding:8px 34px 7px 10px;font-size:10px}
         .mp-parking-grid{grid-template-columns:minmax(0,1fr)}
-        .mp-selected-parking{padding:12px}
-        .mp-parking-symbol{flex-basis:54px;width:54px;height:54px}
-        .mp-parking-name{font-size:16px}
-        .mp-parking-status{margin-left:-12px;margin-right:-12px;padding:9px 12px}
-        .mp-parking-data{gap:10px}
-        .mp-parking-options{border-left:0;border-top:1px solid #e2eaed;padding:11px 12px}
-        .mp-options-title{margin-bottom:5px}
-        .mp-parking-option{padding:7px 0}
-        .mp-option-symbol{flex-basis:39px;width:39px;height:39px}
+        .mp-selected-parking{padding:9px}
+        .mp-parking-symbol{flex-basis:40px;width:40px;height:40px}
+        .mp-parking-symbol svg{width:32px;height:32px}
+        .mp-parking-sun-scene{flex-basis:38px;width:38px;height:38px;max-width:38px}
+        .mp-parking-name{font-size:13px}
+        .mp-parking-status{margin-left:-9px;margin-right:-9px;padding:6px 9px}
+        .mp-parking-data{gap:8px;padding-top:8px}
+        .mp-parking-options{border-left:0;border-top:1px solid #e2eaed;padding:8px 9px;background:#fbfcfd}
+        .mp-options-title{margin-bottom:6px}
+        .mp-parking-options-list{display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding:1px 1px 5px;scroll-snap-type:x proximity}
+        .mp-parking-option{flex:0 0 min(78%,225px);width:auto;min-height:66px;padding:7px;border:1px solid #e3e9ec;border-radius:8px;background:#fff;scroll-snap-align:start}
+        .mp-parking-option:last-child{border-bottom:1px solid #e3e9ec}
+        .mp-option-symbol{flex-basis:30px;width:30px;height:30px}
+        .mp-parking-footer{margin-top:7px;padding-top:6px}
       }
       @media(prefers-reduced-motion:no-preference){.mp-parking-option{transition:color .15s ease,background .15s ease}}
     `;
@@ -286,12 +383,63 @@
     return { texto: texto, clase: clase, icono: icono };
   }
 
+  // Selecciona el SVG según los eventos solares reales del lugar.
+  // Si SunCalc no puede calcularlos, la fase se marca como orientativa.
+  function faseSolarParking(coords) {
+    var resultado = { clave: 'ocaso', etiqueta: 'Fase solar no disponible', alt: 'Escena solar de Manolito Aire' };
+    if (!Array.isArray(coords) || coords.length < 2 || !isFinite(coords[0]) || !isFinite(coords[1])) return resultado;
+
+    var ahora = new Date();
+    var fase = null;
+    var aproximada = false;
+    try {
+      if (window.SunCalc && typeof window.SunCalc.getTimes === 'function') {
+        var tiempos = window.SunCalc.getTimes(ahora, Number(coords[1]), Number(coords[0]));
+        function ts(nombre) {
+          var valor = tiempos && tiempos[nombre];
+          return valor && typeof valor.getTime === 'function' && isFinite(valor.getTime()) ? valor.getTime() : null;
+        }
+        var ahoraMs = ahora.getTime();
+        var amanecer = ts('sunrise');
+        var finAmanecer = ts('sunriseEnd');
+        var mediodia = ts('solarNoon');
+        var horaDorada = ts('goldenHour');
+        var ocaso = ts('sunset');
+        if (amanecer !== null && ocaso !== null) {
+          if (ahoraMs < amanecer || ahoraMs >= ocaso) fase = 'ocaso';
+          else if (finAmanecer !== null && ahoraMs < finAmanecer) fase = 'amanecer';
+          else if (mediodia !== null && ahoraMs < mediodia) fase = 'mediodia';
+          else if (horaDorada !== null && ahoraMs >= horaDorada) fase = 'ocaso';
+          else fase = 'tarde';
+        }
+      }
+    } catch (e) { /* se usará la fase aproximada */ }
+
+    if (!fase) {
+      aproximada = true;
+      var hora = ahora.getHours() + ahora.getMinutes() / 60;
+      if (hora < 7 || hora >= 20) fase = 'ocaso';
+      else if (hora < 9) fase = 'amanecer';
+      else if (hora < 14) fase = 'mediodia';
+      else if (hora < 18.5) fase = 'tarde';
+      else fase = 'ocaso';
+    }
+
+    var etiquetas = {
+      amanecer: 'Amanecer',
+      mediodia: 'Mediodía',
+      tarde: 'Tarde',
+      ocaso: 'Ocaso o noche',
+    };
+    resultado.clave = fase;
+    resultado.etiqueta = etiquetas[fase] + (aproximada ? ' · fase orientativa' : '');
+    resultado.alt = 'Escena solar ' + etiquetas[fase].toLowerCase() + ' de Manolito Aire' + (aproximada ? ', calculada de forma orientativa' : '');
+    return resultado;
+  }
+
   function obtenerAlternativasParking(p, coords) {
     var feats = parking.datosActuales && parking.datosActuales.features || [];
     return feats.filter(function (f) {
-      // El bloque «Otras opciones» solo recomienda parkings clasificados
-      // como públicos y con una ubicación utilizable; no presenta los
-      // privados o solo para clientes como alternativas generales.
       return f && f.properties && f.properties.osmId && f.properties.osmId !== p.osmId &&
         f.properties.acceso === 'publico' && f.geometry && f.geometry.type === 'Point' &&
         Array.isArray(f.geometry.coordinates) && f.geometry.coordinates.length >= 2 &&
@@ -299,17 +447,19 @@
     }).map(function (f) {
       return { feature: f, distancia: distanciaParkingKm(coords, f.geometry.coordinates) };
     }).filter(function (item) {
-      // Evita llamar «cercano» a un parking que queda lejos del punto elegido.
       return isFinite(item.distancia) && item.distancia <= 3;
     }).sort(function (a, b) { return a.distancia - b.distancia; }).slice(0, 3);
   }
 
   function htmlPopupParking(p, coords) {
     var estado = estadoVisualParking(p, coords);
+    var fase = faseSolarParking(coords);
+    var escenaSvg = SVG_SOL_FASES[fase.clave] || SVG_SOL_FASES.ocaso;
     var alternativas = obtenerAlternativasParking(p, coords);
     var capacidad = p.capacidad ? escaparHtml(p.capacidad) + ' plazas registradas' : 'No indicada en el mapa';
     var tarifa = p.tarifa ? escaparHtml(p.tarifa) : (p.precio === 'pago' ? 'Tarifa no indicada' : (p.precio === 'gratis' ? 'Sin coste según los datos del mapa' : 'Sin dato'));
     var horario = p.horario ? escaparHtml(p.horario) : 'No indicado';
+
     var opcionesHtml = alternativas.map(function (item) {
       var f = item.feature, q = f.properties, c = f.geometry.coordinates;
       var sol = estadoVisualParking(q, c);
@@ -322,20 +472,22 @@
         '<span class="mp-option-status ' + sol.clase + '">' + svgIconoParking(sol.icono, 13, 'currentColor') + '<span>' + escaparHtml(sol.texto) + '</span></span></span>' +
         (distancia ? '<span class="mp-option-distance">' + escaparHtml(distancia) + '</span>' : '') + '</button>';
     }).join('');
+
     if (!opcionesHtml) opcionesHtml = '<div class="mp-no-options">No hay otras opciones públicas registradas a menos de 3 km.</div>';
 
     var descripcionEstado = estado.clase === 'is-shade' ? 'Dato calculado con las capas de sombra del mapa' : (estado.clase === 'is-sun' ? 'Sin sombra detectada en este punto' : 'La información de sombra puede no estar disponible');
     return '<section class="mp-parking-results" aria-label="Resultados de búsqueda de parking">' +
       '<div class="mp-results-title">' + escaparHtml(t('parkingSearchResults', 'Resultados de búsqueda de parking')) + '</div>' +
       '<div class="mp-parking-grid"><section class="mp-selected-parking" aria-label="Aparcamiento seleccionado">' +
-      '<div class="mp-parking-heading"><span class="mp-parking-symbol">' + svgIconoParking('garaje', 43, '#244c64') + '</span>' +
+      '<div class="mp-parking-heading"><span class="mp-parking-symbol">' + svgIconoParking('garaje', 34, '#244c64') + '</span>' +
       '<div class="mp-parking-copy"><h3 class="mp-parking-name">' + escaparHtml(p.nombre || t('parkingName', 'Aparcamiento')) + '</h3>' +
-      '<div class="mp-parking-type">' + escaparHtml(textoTipo(p.tipo)) + '</div><div class="mp-parking-meta">' + escaparHtml(textoAcceso(p.acceso)) + ' · ' + escaparHtml(textoPrecio(p.precio)) + '</div></div></div>' +
+      '<div class="mp-parking-type">' + escaparHtml(textoTipo(p.tipo)) + '</div><div class="mp-parking-meta">' + escaparHtml(textoAcceso(p.acceso)) + ' · ' + escaparHtml(textoPrecio(p.precio)) + '</div></div>' +
+      '<span class="mp-parking-sun-scene" role="img" aria-label="' + escaparHtml(fase.alt) + '" title="' + escaparHtml(fase.etiqueta) + '">' + escenaSvg + '</span></div>' +
       '<div class="mp-parking-status ' + estado.clase + '">' + svgIconoParking(estado.icono, 24, 'currentColor') + '<div><strong>' + escaparHtml(estado.texto) + '</strong><span>' + escaparHtml(descripcionEstado) + '</span></div></div>' +
       '<div class="mp-parking-data"><div class="mp-parking-data-item">' + svgIconoParking('plazas', 22, '#537481') + '<div><strong>Capacidad</strong><span>' + capacidad + '</span></div></div>' +
       '<div class="mp-parking-data-item">' + svgIconoParking('precio', 22, '#537481') + '<div><strong>Precio</strong><span>' + tarifa + '</span></div></div></div>' +
       '<div class="mp-parking-footer"><span><strong>Acceso:</strong> ' + escaparHtml(textoAcceso(p.acceso)) + '</span><span><strong>Horario:</strong> ' + horario + '</span></div>' +
-      '</section><aside class="mp-parking-options" aria-label="Otras opciones"><h4 class="mp-options-title">' + escaparHtml(t('parkingOtherOptions', 'Otras opciones')) + '</h4>' + opcionesHtml + '</aside></div></section>';
+      '</section><aside class="mp-parking-options" aria-label="Otras opciones"><h4 class="mp-options-title">' + escaparHtml(t('parkingOtherOptions', 'Otras opciones')) + '</h4><div class="mp-parking-options-list">' + opcionesHtml + '</div></aside></div></section>';
   }
 
   function conectarEventosAlternativasPopup() {
@@ -343,14 +495,14 @@
     var raiz = parking.popup.getElement();
     if (!raiz) return;
     raiz.classList.add('mp-parking-popup');
-    // El contenido es desplazable en móvil. Estos eventos no deben llegar
-    // al mapa, porque podrían moverlo o cambiar el zoom mientras se lee.
+
     if (!raiz.__manolitoParkingGestos) {
       ['wheel', 'touchstart', 'touchmove'].forEach(function (tipo) {
         raiz.addEventListener(tipo, function (e) { e.stopPropagation(); }, { passive: true });
       });
       raiz.__manolitoParkingGestos = true;
     }
+
     var botones = raiz.querySelectorAll('[data-parking-id]');
     Array.prototype.forEach.call(botones, function (boton) {
       boton.addEventListener('click', function (e) {
@@ -376,28 +528,27 @@
       parking.popup = null;
       try { anterior.remove(); } catch (e) { /* popup ya cerrado */ }
     }
+
     var coords = feature.geometry.coordinates;
     parking.popupFeatureId = feature.properties.osmId || null;
-    var popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '650px', offset: 12, className: 'mp-parking-popup' })
+    var popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '440px', offset: 8, className: 'mp-parking-popup' })
       .setLngLat(coords)
       .setHTML(htmlPopupParking(feature.properties, coords))
       .addTo(map);
     parking.popup = popup;
+
     popup.on('close', function () {
-      // Un evento tardío de un popup anterior no debe borrar la referencia
-      // ni el temporizador de la tarjeta que acaba de abrirse.
       if (parking.popup === popup) {
         parking.popup = null;
         parking.popupFeatureId = null;
         clearTimeout(parking.temporizadorSolPopup);
       }
     });
+
     conectarEventosAlternativasPopup();
     programarRefrescoSolPopup();
   }
 
-  // Si el popup sigue abierto cuando las sombras se recalculan (slider de
-  // hora, motor que termina de cargar...), se reescribe con el dato nuevo.
   function refrescarPopupSiAbierto() {
     try {
       if (!parking.popup || !parking.popupFeatureId || !parking.datosActuales) return;
@@ -412,10 +563,6 @@
     } catch (e) { /* el popup viejo sigue siendo válido */ }
   }
 
-  // Sin bucles (orden de -): UN temporizador dormido hasta el próximo
-  // orto u ocaso real, solo mientras el popup está abierto. Si el popup se
-  // abrió de día y pilla el ocaso por medio, la frase cambia sola a la de
-  // noche sin gastar batería mirando el reloj cada minuto.
   function programarRefrescoSolPopup() {
     clearTimeout(parking.temporizadorSolPopup);
     try {
@@ -424,9 +571,9 @@
       var ahora = new Date();
       var candidatos = [];
       var vecesHoy = window.SunCalc.getTimes(ahora, ll.lat, ll.lng);
-      candidatos.push(vecesHoy.sunrise, vecesHoy.sunset);
+      candidatos.push(vecesHoy.sunrise, vecesHoy.sunriseEnd, vecesHoy.solarNoon, vecesHoy.goldenHour, vecesHoy.sunsetStart, vecesHoy.sunset);
       var vecesManana = window.SunCalc.getTimes(new Date(ahora.getTime() + 24 * 3600 * 1000), ll.lat, ll.lng);
-      candidatos.push(vecesManana.sunrise, vecesManana.sunset);
+      candidatos.push(vecesManana.sunrise, vecesManana.sunriseEnd, vecesManana.solarNoon, vecesManana.goldenHour, vecesManana.sunsetStart, vecesManana.sunset);
       var proximo = null;
       for (var i = 0; i < candidatos.length; i++) {
         var d = candidatos[i];
@@ -434,10 +581,10 @@
       }
       if (!proximo) return;
       var espera = proximo.getTime() - ahora.getTime() + 30000;
-      if (espera > 26 * 3600 * 1000) return; // demasiado lejos: ni se agenda
+      if (espera > 26 * 3600 * 1000) return;
       parking.temporizadorSolPopup = setTimeout(function () {
         refrescarPopupSiAbierto();
-        programarRefrescoSolPopup(); // encadena el siguiente orto u ocaso si el popup sigue abierto
+        programarRefrescoSolPopup();
       }, espera);
     } catch (e) { /* sin refresco programado */ }
   }
@@ -464,9 +611,6 @@
           capacidad: (el.tags && el.tags.capacity) || '',
           tarifa: (el.tags && (el.tags.charge || el.tags['fee:charge'])) || '',
           horario: (el.tags && el.tags.opening_hours) || '',
-          // 09-oct-2026 (orden de -): null = SIN DATO de sombra.
-          // Antes nacía en false y el popup lo leía como «Al sol ahora»,
-          // incluso de noche cerrada. null jamás miente.
           sombra: null,
         },
       });
@@ -492,10 +636,6 @@
 
   async function descargarAparcamientos() {
     if (!parking.activo || !map) return;
-    // 08-oct-2026 (orden de -): de lejos no se pide nada. Los
-    // parkings son cosa de cerca, como los edificios 3D; si el zoom es
-    // bajo se conserva lo ya pintado (la CSS de la capa lo oculta por
-    // minzoom) y se espera al próximo moveend para reintentar.
     try { if (map.getZoom() < CONFIG.zoomMinParking) return; } catch (e) { /* sigue */ }
     var bbox = bboxConsulta();
     var clave = claveCelda(bbox);
@@ -528,13 +668,10 @@
       var datos = await resp.json();
       var geojson = overpassAGeojson(datos);
       parking.cache.set(clave, { ts: Date.now(), geojson: geojson });
-      if (parking.cache.size > 40) {
-        parking.cache.delete(parking.cache.keys().next().value);
-      }
+      if (parking.cache.size > 40) parking.cache.delete(parking.cache.keys().next().value);
       if (controller === parking.peticion) pintarAparcamientos(geojson);
     } catch (e) {
-      // Silencio total: el proxy ya devuelve 200 con elements vacíos y F12
-      // no se entera de nada.
+      // El proxy devuelve un resultado vacío cuando no hay coincidencias.
     } finally {
       clearTimeout(temporizador);
       if (controller === parking.peticion) parking.peticion = null;
@@ -544,11 +681,6 @@
   function asegurarCapasParking() {
     if (!estiloListo() || map.getSource('aparcamientos')) return;
     map.addSource('aparcamientos', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-
-    // 08-oct-2026 (orden de -): las tres capas llevan minzoom, como
-    // los edificios 3D. De lejos no se pintan (el dato queda guardado y
-    // vuelve solo al acercarte), de cerca aparecen a la distancia que
-    // estás mirando.
     map.addLayer({
       id: 'capa-aparcamientos-halo',
       type: 'circle',
@@ -572,7 +704,6 @@
         'circle-stroke-color': '#ffffff',
       },
     });
-    // Anillo teal para los que tienen sombra AHORA.
     map.addLayer({
       id: 'capa-aparcamientos-sombra',
       type: 'circle',
@@ -598,7 +729,7 @@
   function pintarAparcamientos(geojson) {
     if (!map) return;
     if (!map.getSource('aparcamientos')) {
-      try { asegurarCapasParking(); } catch (e) { /* abajo el plan B */ }
+      try { asegurarCapasParking(); } catch (e) { /* intenta al siguiente idle */ }
       if (!map.getSource('aparcamientos')) {
         map.once('idle', function () { if (parking.activo) pintarAparcamientos(geojson); });
         return;
@@ -615,17 +746,12 @@
     clearTimeout(parking.temporizadorSolPopup);
     if (!map || !map.getSource('aparcamientos')) return;
     map.getSource('aparcamientos').setData({ type: 'FeatureCollection', features: [] });
-    if (parking.popup) { try { parking.popup.remove(); } catch (e) { /* ok */ } parking.popup = null; }
+    if (parking.popup) {
+      try { parking.popup.remove(); } catch (e) { /* sin popup */ }
+      parking.popup = null;
+    }
   }
 
-  // Sombra: SOLO LEE (jamás escribe) las fuentes que ya mantienen otros
-  // módulos: 'sombras' (edificios, shadows-route.js) y
-  // 'arboles-globales-sombra' (árboles, manolito-mapa.js).
-  // 08-oct-2026 (orden de -, arreglo urgente): antes se usaba
-  // querySourceFeatures, que por el troceado en tiles del mapa devuelve
-  // cero o solo lo que se ve en pantalla. Resultado: los anillos teal
-  // no salían NUNCA. Ahora se leen los datos COMPLETOS de la fuente
-  // (_data o serialize().data), el mismo patrón que usa planetario.js.
   function leerDatosCompletosFuente(id) {
     try {
       var src = map.getSource(id);
@@ -656,14 +782,9 @@
         }
         f.properties.sombra = cubierto;
       }
-    } catch (e) { /* la sombra es un extra: jamás rompe la capa */ }
+    } catch (e) { /* la sombra es un extra: nunca rompe la capa */ }
   }
 
-  // 08-oct-2026 (arreglo urgente del choque con sombras): se trabaja
-  // sobre la copia íntegra guardada en pintarAparcamientos. ANTES se
-  // reconstruía con querySourceFeatures('aparcamientos'), que por tiles
-  // devolvía cero o un recorte del viewport, y ese recorte se volcaba
-  // con setData: cada recálculo del motor de sombras BORRABA puntos.
   function reevaluarSombraActual() {
     if (!parking.activo || !map || !map.getSource('aparcamientos')) return;
     clearTimeout(parking.temporizadorSombra);
@@ -680,8 +801,8 @@
         evaluarSombraEn(geojson);
         parking.datosActuales = geojson;
         src.setData(geojson);
-        refrescarPopupSiAbierto(); // 09-oct-2026: la frase de sol sigue al dato
-      } catch (e) { /* extra, nunca rompe */ }
+        refrescarPopupSiAbierto();
+      } catch (e) { /* el dato de sombra es un extra */ }
     }, CONFIG.esperaSombraMs);
   }
 
@@ -695,8 +816,6 @@
 
   function alCambiarDatos(e) {
     if (!parking.activo) return;
-    // Recálculo de sombra de edificios O de árboles: en ambos casos hay
-    // que repasar los anillos (siempre con la copia íntegra guardada).
     if (e && e.isSourceLoaded && (e.sourceId === 'sombras' || e.sourceId === 'arboles-globales-sombra')) reevaluarSombraActual();
   }
 
@@ -707,12 +826,12 @@
     map.on('moveend', alMoverElMapa);
     map.on('sourcedata', alCambiarDatos);
     if (estiloListo()) {
-      try { asegurarCapasParking(); } catch (e) { /* ya entra el idle */ }
+      try { asegurarCapasParking(); } catch (e) { /* reintenta con idle */ }
       descargarAparcamientos();
     } else {
       map.once('idle', function () {
         if (!parking.activo) return;
-        try { asegurarCapasParking(); } catch (e) { /* jamás rompe el mapa */ }
+        try { asegurarCapasParking(); } catch (e) { /* no interfiere con el mapa */ }
         descargarAparcamientos();
       });
     }
@@ -732,7 +851,10 @@
     document.dispatchEvent(new CustomEvent('manolito:parking-cambiado', { detail: { activo: false } }));
   }
 
-  function alternarParking() { if (parking.activo) desactivarParking(); else activarParking(); }
+  function alternarParking() {
+    if (parking.activo) desactivarParking();
+    else activarParking();
+  }
 
   function activarParkingEn(lat, lon) {
     if (!map) return;
@@ -775,7 +897,7 @@
       if (Array.isArray(datos) && datos.length) {
         return { lat: parseFloat(datos[0].lat), lon: parseFloat(datos[0].lon), nombre: datos[0].display_name || consulta };
       }
-    } catch (e) { /* silencio: null y mensaje claro */ }
+    } catch (e) { /* muestra un estado claro a través de quien llama */ }
     return null;
   }
 
@@ -856,9 +978,7 @@
       type: 'FeatureCollection',
       features: [{ type: 'Feature', geometry: geometry, properties: {} }],
     });
-    // Reaplicar el estilo fino sobre las capas recién creadas del viaje.
     afinarLineasRuta();
-    // Que el viaje SE VEA: encuadre de la ruta completa antes de la llegada.
     try {
       var bounds = new maplibregl.LngLatBounds(geometry.coordinates[0], geometry.coordinates[0]);
       for (var i = 1; i < geometry.coordinates.length; i++) bounds.extend(geometry.coordinates[i]);
@@ -875,8 +995,6 @@
     decirEstado('');
   }
 
-  // Llegada: enciende el motor de sombras SOLO si estaba apagado (es lo que
-  // da el anillo teal a los parkings) y activa la capa centrada en destino.
   function prepararLlegada(destino) {
     try {
       var toggleSombras = document.getElementById('rsToggleSombras');
@@ -893,6 +1011,7 @@
 
     var dTxt = String(destinoTexto != null ? destinoTexto : (viaje.inputDestino ? viaje.inputDestino.value : '')).trim();
     var oTxt = String(origenTexto != null ? origenTexto : (viaje.inputOrigen ? viaje.inputOrigen.value : '')).trim();
+
     if (!dTxt) {
       decirEstado(t('tripNeedDest', 'Dime a dónde vas y te trazo el viaje.'));
       return;
@@ -904,6 +1023,7 @@
       decirEstado(t('tripNoGeocode', 'No encuentro ese destino. Prueba con el nombre de la ciudad.'));
       return;
     }
+
     var origen = oTxt ? await geocodificar(oTxt) : await miPosicion();
     if (!origen) {
       decirEstado(t('tripNoOrigin', 'No encuentro ese origen. Déjalo vacío para salir de donde estás.'));
@@ -922,13 +1042,13 @@
     var kmTxt = String(km >= 10 ? Math.round(km) : (Math.round(km * 10) / 10)).replace('.', ',');
     var min = Math.round(ruta.duracionS / 60);
     var tiempoTxt = min >= 60 ? Math.floor(min / 60) + ' h ' + (min % 60) + ' min' : min + ' min';
+
     decirEstado(t('tripSummary', 'Viaje trazado') + ' · ' + kmTxt + ' km · ' + tiempoTxt + '. ' + t('tripParkingOn', 'Abajo tienes los aparcamientos del destino, con anillo los que están a la sombra.'));
 
     clearTimeout(viaje.temporizadorLlegada);
     viaje.temporizadorLlegada = setTimeout(function () { prepararLlegada(destino); }, CONFIG.esperaLlegadaMs);
   }
 
-  /* ---------------- Interfaz: dos filas-botón y el panelito ---------------- */
   function crearBotones() {
     parking.btn = document.createElement('button');
     parking.btn.type = 'button';
@@ -947,6 +1067,7 @@
     var monteParking = document.getElementById('rsMonteParking');
     var monteViaje = document.getElementById('rsMonteViaje');
     var lista = document.getElementById('rsListaCapas');
+
     if (monteParking) monteParking.appendChild(parking.btn);
     else if (lista) {
       var filaP = document.createElement('div');
@@ -955,6 +1076,7 @@
       filaP.appendChild(parking.btn);
       lista.appendChild(filaP);
     }
+
     if (monteViaje) monteViaje.appendChild(viaje.btn);
     else if (lista) {
       var filaV = document.createElement('div');
@@ -1016,21 +1138,14 @@
     viaje.estado.setAttribute('role', 'status');
     viaje.panel.appendChild(viaje.estado);
 
-    // 08-oct-2026 (orden directa de -): el panel vive junto al MAPA,
-    // en la zona de mapas y viajes, nunca en medio del planetario. Así el
-    // orden clásico queda intacto: mapa y sus controles arriba, el
-    // planetario entero abajo del todo y el acceso LiDAR debajo de él.
     var mapaWrap = document.querySelector('.map-wrap');
     if (mapaWrap && mapaWrap.parentNode) mapaWrap.parentNode.insertBefore(viaje.panel, mapaWrap.nextSibling);
     else document.getElementById('main-content')?.appendChild(viaje.panel);
 
-    // Apertura con animación (08-oct): en vez de hidden seco, el panel
-    // baja suave con opacidad y desplazamiento (CSS .rs-panel-viaje-abierto).
     viaje.btn.addEventListener('click', function () {
       var abierto = !viaje.panel.hasAttribute('hidden');
       if (!abierto) {
         viaje.panel.removeAttribute('hidden');
-        // Forzar reflow para que la transición arranque desde cerrado.
         void viaje.panel.offsetHeight;
         viaje.panel.classList.add('rs-panel-viaje-abierto');
         viaje.btn.setAttribute('aria-pressed', 'true');
@@ -1057,23 +1172,27 @@
     if (parking.btn) parking.btn.textContent = t('parkingBtn', 'Buscar aparcamiento');
     if (viaje.btn) viaje.btn.textContent = t('tripBtn', 'Planificar viaje');
     if (!viaje.panel) return;
+
     var tit = viaje.panel.querySelector('.rs-panel-viaje-tit');
     if (tit) tit.textContent = t('tripPanelTitle', 'Viaje largo en coche');
+
     if (viaje.inputOrigen) {
       viaje.inputOrigen.setAttribute('placeholder', t('tripOriginPh', 'Desde dónde sales (vacío = tu ubicación)'));
       viaje.inputOrigen.setAttribute('aria-label', t('tripOriginPh', 'Desde dónde sales (vacío = tu ubicación)'));
     }
+
     if (viaje.inputDestino) {
       viaje.inputDestino.setAttribute('placeholder', t('tripDestPh', 'A dónde vas'));
       viaje.inputDestino.setAttribute('aria-label', t('tripDestPh', 'A dónde vas'));
     }
+
     var bc = viaje.panel.querySelector('.rs-panel-viaje-calcular');
     if (bc) bc.textContent = t('tripCalcBtn', 'Trazar viaje');
+
     var bl = viaje.panel.querySelector('.rs-panel-viaje-limpiar');
     if (bl) bl.textContent = t('tripClearBtn', 'Quitar viaje');
   }
 
-  /* ---------------- APIs públicas y eventos -------------------------------- */
   window.manolitoParking = {
     alternar: alternarParking,
     activar: activarParking,
@@ -1081,6 +1200,7 @@
     estaActivo: function () { return parking.activo; },
     activarEn: activarParkingEn,
   };
+
   window.manolitoViaje = {
     planificar: planificar,
     limpiar: limpiarViaje,
@@ -1091,43 +1211,32 @@
     if (isFinite(d.lat) && isFinite(d.lon)) activarParkingEn(d.lat, d.lon);
     else activarParking();
   });
+
   document.addEventListener('manolito:planificar-viaje', function (e) {
     var d = (e && e.detail) || {};
     planificar(d.origen, d.destino);
   });
+
   document.addEventListener('manolito:idioma-cambiado', refrescarTextos);
 
-  /* ---------------- Arranque: espera al mapa con reintentos suaves -------- */
-  /* ================================================================
-     BLOQUE 3 · Restyle fino de las líneas de ruta (08-oct-2026, orden
-     directa de -: "la visualización de los trazados es tosca").
-     No se toca shadows-route.js: se ajustan los paint de las capas ya
-     creadas con setPaintProperty, con guardas por si aún no existen.
-     Qué cambia: grosores que ESCALAN con el zoom (antes fijos, por eso
-     a zoom bajo la línea era un chorro), opacidades más suaves y un
-     line-blur fino que hace de anti-aliasing en los bordes.
-     ================================================================ */
   function afinarLineasRuta(intentos) {
     if (!map) return;
     if (typeof intentos !== 'number') intentos = 0;
-    // Con el motor de sombras activo el estilo anda ocupado recalculando
-    // justo cuando se traza el viaje: si no está listo, se reintenta en
-    // el próximo idle en vez de rendirse en silencio.
     if (!estiloListo()) {
       if (intentos < 10) map.once('idle', function () { afinarLineasRuta(intentos + 1); });
       return;
     }
+
     var ajustes = [
-      // Ruta a pie (las pinta shadows-route.js)
       ['capa-ruta-outline', { 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 9], 'line-opacity': 0.55 }],
       ['capa-ruta-glow', { 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 7, 16, 14], 'line-opacity': 0.22, 'line-blur': 6 }],
       ['capa-ruta', { 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2.5, 16, 5.5], 'line-opacity': 0.95, 'line-blur': 0.4 }],
       ['capa-ruta-sombra-outline', { 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 9], 'line-opacity': 0.6 }],
       ['capa-ruta-sombra', { 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2.5, 16, 5.5], 'line-opacity': 0.9, 'line-blur': 0.4 }],
-      // Viaje largo en coche (las pinta este módulo, bloque 2)
       ['capa-viaje-outline', { 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 3, 10, 6, 15, 9], 'line-opacity': 0.55 }],
       ['capa-viaje', { 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 1.8, 10, 3.5, 15, 5.5], 'line-opacity': 0.95, 'line-blur': 0.4 }],
     ];
+
     var algunaFalta = false;
     ajustes.forEach(function (par) {
       var id = par[0], props = par[1];
@@ -1136,10 +1245,7 @@
         try { map.setPaintProperty(id, prop, props[prop]); } catch (e) { /* capa rehaciéndose */ }
       });
     });
-    // Las capas de la ruta a pie nacen cuando arranca el motor de sombras
-    // y las del viaje al trazar; si alguna falta se reintenta unas pocas
-    // veces (tope 10, nunca un bucle infinito) y además se reaplica el
-    // estilo cada vez que se traza un viaje nuevo.
+
     if (algunaFalta && intentos < 10) {
       map.once('idle', function () { afinarLineasRuta(intentos + 1); });
     }

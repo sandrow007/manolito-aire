@@ -185,13 +185,215 @@
     return t('parkingSunUnknown', 'No se puede saber');
   }
 
+  /* Iconografía propia en SVG: no se usan emojis ni iconos tipográficos. */
+  function svgIconoParking(tipo, tamano, color) {
+    var size = tamano || 24;
+    var tinta = color || 'currentColor';
+    var dibujos = {
+      garaje: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5M8 21v-7h8v7M8 11.5h8"/><path d="M9 16h6"/>',
+      sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.93 4.93l1.77 1.77m10.6 10.6 1.77 1.77M2 12h2.5m15 0H22M4.93 19.07l1.77-1.77m10.6-10.6 1.77-1.77"/>',
+      sombra: '<path d="M4 14.5a5.5 5.5 0 0 1 10.8-1.4A4.2 4.2 0 1 1 16.5 21H8a6 6 0 0 1-4-6.5Z"/><path d="M4 3v5M1.5 5.5h5M3 4l4 4"/>',
+      plazas: '<circle cx="9" cy="7" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 4v2"/>',
+      precio: '<circle cx="12" cy="12" r="9"/><path d="M15 8.5c-.7-1-1.7-1.5-3-1.5-1.7 0-3 1-3 2.5S10.3 12 12 12s3 1 3 2.5S13.7 17 12 17c-1.3 0-2.3-.5-3-1.5M12 5v14"/>',
+      reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+      luna: '<path d="M19.5 15.5A8 8 0 0 1 8.5 4.5 8.5 8.5 0 1 0 19.5 15.5Z"/>',
+      pin: '<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.2"/>',
+      flecha: '<path d="M4 12h15M13 5l7 7-7 7"/>',
+    };
+    return '<svg aria-hidden="true" focusable="false" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="' + tinta + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (dibujos[tipo] || dibujos.garaje) + '</svg>';
+  }
+
+  function instalarEstilosPopupParking() {
+    if (document.getElementById('manolito-parking-results-style')) return;
+    var style = document.createElement('style');
+    style.id = 'manolito-parking-results-style';
+    style.textContent = `
+      .maplibregl-popup.mp-parking-popup{z-index:1200;max-width:calc(100vw - 20px)!important}
+      .maplibregl-popup.mp-parking-popup .maplibregl-popup-content{padding:0;border:1px solid #d3e1e5;border-radius:15px;overflow:hidden;box-shadow:0 14px 38px rgba(17,42,52,.23);background:#fff;max-width:calc(100vw - 20px);}
+      .maplibregl-popup.mp-parking-popup .maplibregl-popup-close-button{z-index:3;right:7px;top:7px;width:29px;height:29px;border-radius:50%;font-size:21px;line-height:27px;color:#42535b;background:#edf4f6}
+      .mp-parking-results{width:620px;max-width:calc(100vw - 22px);max-height:min(78vh, 660px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;font:14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1a2830;background:#fff;box-sizing:border-box}
+      .mp-parking-results *{box-sizing:border-box}
+      .mp-results-title{padding:13px 42px 11px 16px;background:#f7fbfc;border-bottom:1px solid #e3ecef;font-size:14px;font-weight:750;letter-spacing:.01em;color:#263c46}
+      .mp-parking-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(190px,.9fr);min-width:0}
+      .mp-selected-parking{padding:14px;min-width:0}
+      .mp-parking-heading{display:flex;align-items:flex-start;gap:11px;min-width:0}
+      .mp-parking-symbol{display:flex;align-items:center;justify-content:center;flex:0 0 65px;width:65px;height:65px;border-radius:10px;background:#eaf2f7;color:#264f67;border:1px solid #dbe7ee}
+      .mp-parking-copy{min-width:0;padding-top:1px}
+      .mp-parking-name{font-size:18px;line-height:1.2;font-weight:800;overflow-wrap:anywhere;color:#142a35;margin:0 0 4px}
+      .mp-parking-type{font-size:13px;color:#4a5c65;margin-bottom:2px}
+      .mp-parking-meta{font-size:12px;color:#65757d}
+      .mp-parking-status{display:flex;align-items:center;gap:9px;margin:13px -14px 0;padding:10px 14px;border-top:1px solid #e1ece8;border-bottom:1px solid #e1ece8;background:#eaf8f0;color:#236f50;min-height:49px}
+      .mp-parking-status strong{display:block;font-size:14px;line-height:1.25}
+      .mp-parking-status span{display:block;font-size:11px;opacity:.92;margin-top:2px}
+      .mp-parking-status.is-sun{background:#fff7de;border-color:#f2e7bf;color:#855c06}
+      .mp-parking-status.is-unknown{background:#f1f5f7;border-color:#e1e8eb;color:#566770}
+      .mp-parking-data{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:13px;padding:13px 0 2px}
+      .mp-parking-data-item{display:flex;align-items:flex-start;gap:8px;min-width:0;color:#36515f}
+      .mp-parking-data-item strong{display:block;font-size:12px;font-weight:750;color:#344953}
+      .mp-parking-data-item span{display:block;font-size:12px;color:#687a82;overflow-wrap:anywhere;margin-top:2px}
+      .mp-parking-footer{border-top:1px solid #e9eff1;margin-top:12px;padding-top:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:9px;font-size:11px;color:#647780}
+      .mp-parking-footer strong{color:#425760}
+      .mp-parking-options{padding:13px 12px;background:#fbfcfd;border-left:1px solid #e2eaed;min-width:0}
+      .mp-options-title{font-size:12px;font-weight:800;color:#52636b;text-transform:uppercase;letter-spacing:.035em;margin:0 0 8px}
+      .mp-parking-option{appearance:none;display:flex;width:100%;min-width:0;align-items:flex-start;gap:9px;text-align:left;padding:9px 0;border:0;border-bottom:1px solid #e3e9ec;background:transparent;color:inherit;cursor:pointer;font:inherit;border-radius:0}
+      .mp-parking-option:last-child{border-bottom:0}
+      .mp-parking-option:focus-visible{outline:2px solid #0c7f8d;outline-offset:2px;border-radius:6px}
+      .mp-parking-option:hover .mp-option-name{color:#0c7180;text-decoration:underline}
+      .mp-option-symbol{display:flex;align-items:center;justify-content:center;flex:0 0 43px;width:43px;height:43px;border-radius:8px;background:#edf4f7;border:1px solid #e1eaed;color:#36596b}
+      .mp-option-copy{min-width:0;flex:1}
+      .mp-option-name{display:block;font-size:13px;line-height:1.25;font-weight:750;color:#203944;overflow-wrap:anywhere}
+      .mp-option-type{display:block;font-size:11px;color:#63757d;margin-top:3px}
+      .mp-option-status{display:flex;align-items:center;gap:4px;font-size:11px;margin-top:4px;color:#37795a}
+      .mp-option-status.is-sun{color:#966d11}.mp-option-status.is-unknown{color:#708089}
+      .mp-option-distance{font-size:10px;color:#819098;white-space:nowrap;margin-top:2px}
+      .mp-no-options{font-size:12px;line-height:1.5;color:#77868d;padding:8px 0}
+      @media(max-width:580px){
+        .mp-parking-results{width:calc(100vw - 22px);max-width:calc(100vw - 22px);max-height:min(72vh, 560px);max-height:min(72dvh, 560px)}
+        .mp-results-title{padding:11px 40px 10px 12px;font-size:13px}
+        .mp-parking-grid{grid-template-columns:minmax(0,1fr)}
+        .mp-selected-parking{padding:12px}
+        .mp-parking-symbol{flex-basis:54px;width:54px;height:54px}
+        .mp-parking-name{font-size:16px}
+        .mp-parking-status{margin-left:-12px;margin-right:-12px;padding:9px 12px}
+        .mp-parking-data{gap:10px}
+        .mp-parking-options{border-left:0;border-top:1px solid #e2eaed;padding:11px 12px}
+        .mp-options-title{margin-bottom:5px}
+        .mp-parking-option{padding:7px 0}
+        .mp-option-symbol{flex-basis:39px;width:39px;height:39px}
+      }
+      @media(prefers-reduced-motion:no-preference){.mp-parking-option{transition:color .15s ease,background .15s ease}}
+    `;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  function distanciaParkingKm(a, b) {
+    if (!a || !b || a.length < 2 || b.length < 2) return Infinity;
+    var rad = Math.PI / 180;
+    var dLat = (b[1] - a[1]) * rad;
+    var dLon = (b[0] - a[0]) * rad;
+    var lat1 = a[1] * rad, lat2 = b[1] * rad;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(Math.max(0, 1 - h)));
+  }
+
+  function estadoVisualParking(p, coords) {
+    var texto = lineaSolParking(p, coords);
+    var lower = String(texto || '').toLowerCase();
+    var clase = 'is-unknown', icono = 'reloj';
+    if (/noche|sin sol/.test(lower)) { clase = 'is-unknown'; icono = 'luna'; }
+    else if (/sombra|cubierto|subterráneo|subterraneo/.test(lower)) { clase = 'is-shade'; icono = 'sombra'; }
+    else if (/al sol/.test(lower)) { clase = 'is-sun'; icono = 'sol'; }
+    return { texto: texto, clase: clase, icono: icono };
+  }
+
+  function obtenerAlternativasParking(p, coords) {
+    var feats = parking.datosActuales && parking.datosActuales.features || [];
+    return feats.filter(function (f) {
+      // El bloque «Otras opciones» solo recomienda parkings clasificados
+      // como públicos y con una ubicación utilizable; no presenta los
+      // privados o solo para clientes como alternativas generales.
+      return f && f.properties && f.properties.osmId && f.properties.osmId !== p.osmId &&
+        f.properties.acceso === 'publico' && f.geometry && f.geometry.type === 'Point' &&
+        Array.isArray(f.geometry.coordinates) && f.geometry.coordinates.length >= 2 &&
+        isFinite(f.geometry.coordinates[0]) && isFinite(f.geometry.coordinates[1]);
+    }).map(function (f) {
+      return { feature: f, distancia: distanciaParkingKm(coords, f.geometry.coordinates) };
+    }).filter(function (item) {
+      // Evita llamar «cercano» a un parking que queda lejos del punto elegido.
+      return isFinite(item.distancia) && item.distancia <= 3;
+    }).sort(function (a, b) { return a.distancia - b.distancia; }).slice(0, 3);
+  }
+
   function htmlPopupParking(p, coords) {
-    var lineas = [];
-    lineas.push('<strong>' + escaparHtml(p.nombre) + '</strong>');
-    lineas.push(textoTipo(p.tipo) + ' · ' + textoAcceso(p.acceso) + ' · ' + textoPrecio(p.precio));
-    if (p.capacidad) lineas.push(p.capacidad + ' ' + t('parkingCapacity', 'plazas'));
-    lineas.push(lineaSolParking(p, coords));
-    return '<div style="font:13px/1.5 system-ui,sans-serif;color:#1A2330">' + lineas.join('<br>') + '</div>';
+    var estado = estadoVisualParking(p, coords);
+    var alternativas = obtenerAlternativasParking(p, coords);
+    var capacidad = p.capacidad ? escaparHtml(p.capacidad) + ' plazas registradas' : 'No indicada en el mapa';
+    var tarifa = p.tarifa ? escaparHtml(p.tarifa) : (p.precio === 'pago' ? 'Tarifa no indicada' : (p.precio === 'gratis' ? 'Sin coste según los datos del mapa' : 'Sin dato'));
+    var horario = p.horario ? escaparHtml(p.horario) : 'No indicado';
+    var opcionesHtml = alternativas.map(function (item) {
+      var f = item.feature, q = f.properties, c = f.geometry.coordinates;
+      var sol = estadoVisualParking(q, c);
+      var distancia = isFinite(item.distancia) ? (item.distancia < 1 ? Math.round(item.distancia * 1000) + ' m' : (Math.round(item.distancia * 10) / 10).toString().replace('.', ',') + ' km') : '';
+      var iconTipo = (q.tipo === 'subterraneo' || q.tipo === 'cubierto') ? 'garaje' : 'pin';
+      return '<button type="button" class="mp-parking-option" data-parking-id="' + escaparHtml(q.osmId) + '" aria-label="Ver ' + escaparHtml(q.nombre || 'aparcamiento') + '">' +
+        '<span class="mp-option-symbol">' + svgIconoParking(iconTipo, 24, '#36596b') + '</span>' +
+        '<span class="mp-option-copy"><span class="mp-option-name">' + escaparHtml(q.nombre || t('parkingName', 'Aparcamiento')) + '</span>' +
+        '<span class="mp-option-type">' + escaparHtml(textoTipo(q.tipo)) + ' · ' + escaparHtml(textoPrecio(q.precio)) + '</span>' +
+        '<span class="mp-option-status ' + sol.clase + '">' + svgIconoParking(sol.icono, 13, 'currentColor') + '<span>' + escaparHtml(sol.texto) + '</span></span></span>' +
+        (distancia ? '<span class="mp-option-distance">' + escaparHtml(distancia) + '</span>' : '') + '</button>';
+    }).join('');
+    if (!opcionesHtml) opcionesHtml = '<div class="mp-no-options">No hay otras opciones públicas registradas a menos de 3 km.</div>';
+
+    var descripcionEstado = estado.clase === 'is-shade' ? 'Dato calculado con las capas de sombra del mapa' : (estado.clase === 'is-sun' ? 'Sin sombra detectada en este punto' : 'La información de sombra puede no estar disponible');
+    return '<section class="mp-parking-results" aria-label="Resultados de búsqueda de parking">' +
+      '<div class="mp-results-title">' + escaparHtml(t('parkingSearchResults', 'Resultados de búsqueda de parking')) + '</div>' +
+      '<div class="mp-parking-grid"><section class="mp-selected-parking" aria-label="Aparcamiento seleccionado">' +
+      '<div class="mp-parking-heading"><span class="mp-parking-symbol">' + svgIconoParking('garaje', 43, '#244c64') + '</span>' +
+      '<div class="mp-parking-copy"><h3 class="mp-parking-name">' + escaparHtml(p.nombre || t('parkingName', 'Aparcamiento')) + '</h3>' +
+      '<div class="mp-parking-type">' + escaparHtml(textoTipo(p.tipo)) + '</div><div class="mp-parking-meta">' + escaparHtml(textoAcceso(p.acceso)) + ' · ' + escaparHtml(textoPrecio(p.precio)) + '</div></div></div>' +
+      '<div class="mp-parking-status ' + estado.clase + '">' + svgIconoParking(estado.icono, 24, 'currentColor') + '<div><strong>' + escaparHtml(estado.texto) + '</strong><span>' + escaparHtml(descripcionEstado) + '</span></div></div>' +
+      '<div class="mp-parking-data"><div class="mp-parking-data-item">' + svgIconoParking('plazas', 22, '#537481') + '<div><strong>Capacidad</strong><span>' + capacidad + '</span></div></div>' +
+      '<div class="mp-parking-data-item">' + svgIconoParking('precio', 22, '#537481') + '<div><strong>Precio</strong><span>' + tarifa + '</span></div></div></div>' +
+      '<div class="mp-parking-footer"><span><strong>Acceso:</strong> ' + escaparHtml(textoAcceso(p.acceso)) + '</span><span><strong>Horario:</strong> ' + horario + '</span></div>' +
+      '</section><aside class="mp-parking-options" aria-label="Otras opciones"><h4 class="mp-options-title">' + escaparHtml(t('parkingOtherOptions', 'Otras opciones')) + '</h4>' + opcionesHtml + '</aside></div></section>';
+  }
+
+  function conectarEventosAlternativasPopup() {
+    if (!parking.popup) return;
+    var raiz = parking.popup.getElement();
+    if (!raiz) return;
+    raiz.classList.add('mp-parking-popup');
+    // El contenido es desplazable en móvil. Estos eventos no deben llegar
+    // al mapa, porque podrían moverlo o cambiar el zoom mientras se lee.
+    if (!raiz.__manolitoParkingGestos) {
+      ['wheel', 'touchstart', 'touchmove'].forEach(function (tipo) {
+        raiz.addEventListener(tipo, function (e) { e.stopPropagation(); }, { passive: true });
+      });
+      raiz.__manolitoParkingGestos = true;
+    }
+    var botones = raiz.querySelectorAll('[data-parking-id]');
+    Array.prototype.forEach.call(botones, function (boton) {
+      boton.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var id = boton.getAttribute('data-parking-id');
+        var feats = parking.datosActuales && parking.datosActuales.features || [];
+        for (var i = 0; i < feats.length; i++) {
+          if (feats[i].properties && feats[i].properties.osmId === id) {
+            abrirPopupParking(feats[i]);
+            break;
+          }
+        }
+      });
+    });
+  }
+
+  function abrirPopupParking(feature) {
+    if (!map || !feature || !feature.properties || !feature.geometry || !Array.isArray(feature.geometry.coordinates)) return;
+    instalarEstilosPopupParking();
+    if (parking.popup) {
+      var anterior = parking.popup;
+      parking.popup = null;
+      try { anterior.remove(); } catch (e) { /* popup ya cerrado */ }
+    }
+    var coords = feature.geometry.coordinates;
+    parking.popupFeatureId = feature.properties.osmId || null;
+    var popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '650px', offset: 12, className: 'mp-parking-popup' })
+      .setLngLat(coords)
+      .setHTML(htmlPopupParking(feature.properties, coords))
+      .addTo(map);
+    parking.popup = popup;
+    popup.on('close', function () {
+      // Un evento tardío de un popup anterior no debe borrar la referencia
+      // ni el temporizador de la tarjeta que acaba de abrirse.
+      if (parking.popup === popup) {
+        parking.popup = null;
+        parking.popupFeatureId = null;
+        clearTimeout(parking.temporizadorSolPopup);
+      }
+    });
+    conectarEventosAlternativasPopup();
+    programarRefrescoSolPopup();
   }
 
   // Si el popup sigue abierto cuando las sombras se recalculan (slider de
@@ -203,6 +405,7 @@
       for (var i = 0; i < feats.length; i++) {
         if (feats[i].properties && feats[i].properties.osmId === parking.popupFeatureId) {
           parking.popup.setHTML(htmlPopupParking(feats[i].properties, feats[i].geometry && feats[i].geometry.coordinates));
+          conectarEventosAlternativasPopup();
           break;
         }
       }
@@ -259,6 +462,8 @@
           precio: c.precio,
           color: c.color,
           capacidad: (el.tags && el.tags.capacity) || '',
+          tarifa: (el.tags && (el.tags.charge || el.tags['fee:charge'])) || '',
+          horario: (el.tags && el.tags.opening_hours) || '',
           // 09-oct-2026 (orden de Sandro): null = SIN DATO de sombra.
           // Antes nacía en false y el popup lo leía como «Al sol ahora»,
           // incluso de noche cerrada. null jamás miente.
@@ -384,17 +589,7 @@
 
     map.on('click', 'capa-aparcamientos', function (e) {
       if (!e.features || !e.features.length) return;
-      if (parking.popup) { try { parking.popup.remove(); } catch (err) { /* ok */ } }
-      parking.popupFeatureId = e.features[0].properties.osmId || null;
-      parking.popup = new maplibregl.Popup({ closeButton: true, maxWidth: '260px' })
-        .setLngLat(e.lngLat)
-        .setHTML(htmlPopupParking(e.features[0].properties, e.features[0].geometry && e.features[0].geometry.coordinates))
-        .addTo(map);
-      parking.popup.on('close', function () {
-        parking.popupFeatureId = null;
-        clearTimeout(parking.temporizadorSolPopup);
-      });
-      programarRefrescoSolPopup();
+      abrirPopupParking(e.features[0]);
     });
     map.on('mouseenter', 'capa-aparcamientos', function () { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'capa-aparcamientos', function () { map.getCanvas().style.cursor = ''; });

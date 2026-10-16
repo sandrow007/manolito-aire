@@ -1,6 +1,6 @@
 /* ============================================================================
    aparcamientos-viaje.js. APARCAMIENTOS + PLANIFICADOR DE VIAJE de Manolit∞
-   (ADITIVO, 07-oct-2026, orden directa de Sandro: TODO en UN solo archivo)
+   (ADITIVO, 07-oct-2026, orden directa de -: TODO en UN solo archivo)
    ----------------------------------------------------------------------------
    - Nada de lo existente se toca. Este módulo se engancha al mapa por el
      hook público window.manolitAireMap (el mismo que usa arboles-3d.js) y
@@ -27,7 +27,7 @@
      'manolito:planificar-viaje' (detail {origen, destino}).
      Evento emitido: 'manolito:parking-cambiado' (detail {activo}).
    - Licencia: AGPL-3.0 como el resto del proyecto.
-   - ARREGLO URGENTE 08-oct-2026 (orden de Sandro, «el parking choca con
+   - ARREGLO URGENTE 08-oct-2026 (orden de -, «el parking choca con
      sombras»): querySourceFeatures fuera de TODA la lectura de datos.
      Esa llamada trocea por tiles y devolvía cero o un recorte, así que
      cada recálculo del motor de sombras vaciaba los puntos y los
@@ -57,7 +57,7 @@
     cacheClienteMs: 30 * 60 * 1000,
     maxPuntos: 300,
     zoomLlegada: 14.5,
-    // 08-oct-2026 (orden de Sandro, arreglo urgente): los puntos aparecen
+    // 08-oct-2026 (orden de -, arreglo urgente): los puntos aparecen
     // AL ACERCARTE, a la distancia a la que saltan los edificios 3D del
     // estilo (minzoom ~13). Un pelo antes (12,5) para que ya te estén
     // esperando cuando el edificio se levanta.
@@ -110,7 +110,7 @@
     temporizadorMove: null,
     temporizadorSombra: null,
     popup: null,
-    // 09-oct-2026 (orden de Sandro): qué parking tiene el popup abierto y
+    // 09-oct-2026 (orden de -): qué parking tiene el popup abierto y
     // el temporizador dormido hasta el próximo orto/ocaso (sin bucles).
     popupFeatureId: null,
     temporizadorSolPopup: null,
@@ -161,7 +161,7 @@
   }
 
   /* ---------------- Sol o sombra en el popup: la verdad o nada -----------
-     09-oct-2026 (orden directa de Sandro, «de noche no hay sol y la app no
+     09-oct-2026 (orden directa de -, «de noche no hay sol y la app no
      inventa»): la frase de sol del popup sale SIEMPRE de esta cadena.
        1) De noche (lo decide js/sol.js con SunCalc y la hora REAL, nunca
           la del slider de simulación) → «Ahora es de noche, sin sol».
@@ -412,7 +412,7 @@
     } catch (e) { /* el popup viejo sigue siendo válido */ }
   }
 
-  // Sin bucles (orden de Sandro): UN temporizador dormido hasta el próximo
+  // Sin bucles (orden de -): UN temporizador dormido hasta el próximo
   // orto u ocaso real, solo mientras el popup está abierto. Si el popup se
   // abrió de día y pilla el ocaso por medio, la frase cambia sola a la de
   // noche sin gastar batería mirando el reloj cada minuto.
@@ -464,7 +464,7 @@
           capacidad: (el.tags && el.tags.capacity) || '',
           tarifa: (el.tags && (el.tags.charge || el.tags['fee:charge'])) || '',
           horario: (el.tags && el.tags.opening_hours) || '',
-          // 09-oct-2026 (orden de Sandro): null = SIN DATO de sombra.
+          // 09-oct-2026 (orden de -): null = SIN DATO de sombra.
           // Antes nacía en false y el popup lo leía como «Al sol ahora»,
           // incluso de noche cerrada. null jamás miente.
           sombra: null,
@@ -492,7 +492,7 @@
 
   async function descargarAparcamientos() {
     if (!parking.activo || !map) return;
-    // 08-oct-2026 (orden de Sandro): de lejos no se pide nada. Los
+    // 08-oct-2026 (orden de -): de lejos no se pide nada. Los
     // parkings son cosa de cerca, como los edificios 3D; si el zoom es
     // bajo se conserva lo ya pintado (la CSS de la capa lo oculta por
     // minzoom) y se espera al próximo moveend para reintentar.
@@ -545,7 +545,7 @@
     if (!estiloListo() || map.getSource('aparcamientos')) return;
     map.addSource('aparcamientos', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 
-    // 08-oct-2026 (orden de Sandro): las tres capas llevan minzoom, como
+    // 08-oct-2026 (orden de -): las tres capas llevan minzoom, como
     // los edificios 3D. De lejos no se pintan (el dato queda guardado y
     // vuelve solo al acercarte), de cerca aparecen a la distancia que
     // estás mirando.
@@ -621,7 +621,7 @@
   // Sombra: SOLO LEE (jamás escribe) las fuentes que ya mantienen otros
   // módulos: 'sombras' (edificios, shadows-route.js) y
   // 'arboles-globales-sombra' (árboles, manolito-mapa.js).
-  // 08-oct-2026 (orden de Sandro, arreglo urgente): antes se usaba
+  // 08-oct-2026 (orden de -, arreglo urgente): antes se usaba
   // querySourceFeatures, que por el troceado en tiles del mapa devuelve
   // cero o solo lo que se ve en pantalla. Resultado: los anillos teal
   // no salían NUNCA. Ahora se leen los datos COMPLETOS de la fuente
@@ -1016,7 +1016,7 @@
     viaje.estado.setAttribute('role', 'status');
     viaje.panel.appendChild(viaje.estado);
 
-    // 08-oct-2026 (orden directa de Sandro): el panel vive junto al MAPA,
+    // 08-oct-2026 (orden directa de -): el panel vive junto al MAPA,
     // en la zona de mapas y viajes, nunca en medio del planetario. Así el
     // orden clásico queda intacto: mapa y sus controles arriba, el
     // planetario entero abajo del todo y el acceso LiDAR debajo de él.
@@ -1100,7 +1100,7 @@
   /* ---------------- Arranque: espera al mapa con reintentos suaves -------- */
   /* ================================================================
      BLOQUE 3 · Restyle fino de las líneas de ruta (08-oct-2026, orden
-     directa de Sandro: "la visualización de los trazados es tosca").
+     directa de -: "la visualización de los trazados es tosca").
      No se toca shadows-route.js: se ajustan los paint de las capas ya
      creadas con setPaintProperty, con guardas por si aún no existen.
      Qué cambia: grosores que ESCALAN con el zoom (antes fijos, por eso

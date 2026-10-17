@@ -1,5 +1,4 @@
 /* ============================================================
-<<<<<<< HEAD
    MANOLITO AIRE, i18n
    Castellano, català, euskera, galego, English, ქართული (georgiano), العربية.
    

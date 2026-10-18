@@ -115,6 +115,24 @@ main{ position:relative; isolation:isolate; }
 @media (prefers-reduced-motion:reduce){
   .manolit-side-logo{ transition:none; }
 }
+/* En móviles y tabletas estrechas, los motivos vuelven como marca de agua:
+   muy tenues, detrás del contenido y sin capturar gestos táctiles. */
+@media (max-width:900px){
+  .manolit-side-rails{ display:flex!important; }
+  .manolit-side-rail{ width:clamp(24px, 6vw, 48px); padding:16px 0; }
+  .manolit-side-logo{
+    opacity:.045; filter:none; overflow:hidden;
+    pointer-events:none; transition:none;
+  }
+  .manolit-side-logo:nth-child(even){ display:none; }
+}
+@media (max-width:480px){
+  .manolit-side-rail{ width:clamp(22px, 6vw, 32px); }
+  .manolit-side-logo{ opacity:.04; }
+}
+@media (max-width:900px) and (prefers-reduced-transparency:reduce){
+  .manolit-side-logo{ opacity:.08; }
+}
 
 /* ---------- barra superior, común a todas las páginas ---------- */
 .topbar{

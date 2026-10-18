@@ -2740,12 +2740,113 @@ const translations = {
 		escudosTitulo: "ფარები, რომლებიც გვიცავენ",
 		escudosPorque: "გარემოს ჯანმრთელობის ოთხი საჯარო ობსერვატორია, შენი მხრიდან პლანეტამდე. ისინი აქვეყნებენ მონაცემებსა და სიცხის ზღურბლებს, რომლებზეც ეს ვებგვერდი ეყრდნობა, და მათი მუშაობა ყველას გვიცავს.",
 	},
-	// Las cadenas árabes se obtienen bajo demanda mediante el fallback MT
-	// cacheado. El bloque explícito evita caer accidentalmente al español.
-	ar: {}
+	// Traducciones locales para la interfaz principal; el fallback MT queda
+	// reservado para frases largas que aún no tienen una traducción propia.
+	ar: {
+		heroH1: "مانوليتو إير: مسارات مظللة وجودة الهواء مباشرةً",
+		heroLoading: "جارٍ تحميل هواء مدينتك…",
+		heroMoment: "لحظة من فضلك.",
+		metaTitle: "مسارات الظل وجودة الهواء المباشرة | Manolit∞ Aire",
+		metaDesc: "خطّط لمسارات مشيًا في الشوارع الأكثر ظلًا، وتابع جودة الهواء وساعات سطوع الشمس. مجانًا، بلا تسجيل أو إعلانات.",
+		skipToContent: "انتقل إلى المحتوى الرئيسي",
+		tagline: "هواء وظل شارعك، مباشرةً",
+		modesLabel: "كيف تريد أن أشرح لك؟",
+		mode_ciudadano_title: "مواطن",
+		mode_ciudadano_sub: "واضح ومباشر",
+		mode_cientifico_title: "علمي",
+		mode_cientifico_sub: "مع البيانات",
+		mode_yayo_title: "الجدة / الجد",
+		mode_yayo_sub: "خط كبير وبدون استعجال",
+		mode_peque_title: "للأطفال (٥ سنوات)",
+		mode_peque_sub: "مع الرسوم",
+		imLost: "لم أفهم، اشرح لي",
+		mapTitle: "هواء إسبانيا الآن",
+		legendGood: "جيد",
+		legendMid: "متوسط",
+		legendBad: "سيئ",
+		airLvlGood: "جيد",
+		airLvlFair: "مقبول",
+		airLvlModerate: "متوسط",
+		airLvlPoor: "سيئ",
+		airLvlVeryPoor: "سيئ جدًا",
+		airLvlHazard: "خطير",
+		searchBtn: "ابحث عن مسار",
+		searching: "جارٍ البحث…",
+		calculating: "جارٍ حساب المسار عبر الشوارع…",
+		geocoding: "جارٍ تحديد العناوين…",
+		fillBoth: "أدخل نقطة الانطلاق والوجهة.",
+		notFound: "لم يتم العثور عليها",
+		tryFormat: "جرّب كتابة اسم الشارع ورقمه والمدينة",
+		clickOrigin: "انقر على الخريطة لتحديد نقطة الانطلاق.",
+		clickDestiny: "تم تحديد نقطة الانطلاق؛ انقر لتحديد الوجهة.",
+		chooseDestination: "اكتب الوجهة أعلاه أو اختر «التحديد على الخريطة».",
+		pointMap: "تم تحديد النقطة على الخريطة",
+		myLocation: "موقعي",
+		locationMarked: "تم تحديد الموقع كنقطة انطلاق",
+		locationPrecision: "الدقة التي أبلغ عنها المتصفح",
+		locationNote: "قد يكون الموقع تقريبيًا من دون GPS حقيقي",
+		locationDenied: "تعذّر تحديد موقعك. هل رفضت الإذن؟",
+		locationAsking: "جارٍ طلب إذن تحديد الموقع…",
+		errorGeolocation: "هذا المتصفح لا يسمح بمشاركة موقعك.",
+		errorSearch: "تعذّر رسم المسار. حاول مرة أخرى بعد قليل.",
+		routeReal: "المسار",
+		routeEstimated: "الوقت المقدّر بسرعة مشي عادية",
+		origin: "نقطة الانطلاق",
+		destiny: "الوجهة",
+		noResults: "لا توجد نتائج",
+		aqiGood: "جيد",
+		aqiModerate: "متوسط",
+		aqiBad: "سيئ",
+		aqiNoData: "لا توجد بيانات",
+		layerBuildings: "مبانٍ ثلاثية الأبعاد",
+		layerShadows: "الظلال",
+		layerClouds: "السحب",
+		layerRoute: "المسار",
+		walkModeStart: "ابدأ المشي",
+		walkModeStop: "أوقف المشي",
+		walkModeTracking: "جارٍ تتبّع موقعك…",
+		darkMapOn: "خريطة داكنة",
+		darkMapOff: "خريطة فاتحة",
+		routeMapTitle: "المسار والظلال ثلاثية الأبعاد",
+		originPlaceholder: "نقطة الانطلاق",
+		destinationPlaceholder: "الوجهة",
+		resetBtn: "إعادة ضبط",
+		virtualWalkStart: "جولة افتراضية ثلاثية الأبعاد",
+		virtualWalkStop: "إنهاء الجولة",
+		shadeCoverage: "نسبة المسار المظلل",
+		airDataUnavailable: "بيانات جودة الهواء غير متاحة الآن.",
+		irrLayerBtn: "الإشعاع الشمسي",
+		voiceGuide: "الإرشادات الصوتية",
+		pickMap: "التحديد على الخريطة",
+		captureView: "التقاط صورة للخريطة",
+		now: "الآن",
+		btnSummer: "الصيف",
+		btnWinter: "الشتاء",
+		winterSunRoute: "وضع الشتاء: مسار مشمس",
+		winterModeOn: "تم تفعيل وضع الشتاء: سيبحث المسار التالي عن أشعة الشمس.",
+		winterModeOff: "تم إيقاف وضع الشتاء: ستبحث المسارات مجددًا عن الظل.",
+		stepsTitle: "إرشادات خطوة بخطوة",
+		stepsListen: "استمع إلى الإرشادات",
+		stepsStop: "إيقاف القراءة",
+		stepArrive: "لقد وصلت إلى وجهتك.",
+		stepUnnamed: "شارع بلا اسم",
+		minWalk: "دقيقة مشيًا",
+		sunPosition: "موضع الشمس",
+		sunBelow: "الشمس تحت الأفق في ذلك الوقت؛ لا توجد ظلال لإسقاطها.",
+		faqTitle: "الأسئلة الشائعة",
+		faqIntro: "إجابات مباشرة عن الأسئلة التي تطرحونها فعلًا."
+	}
 };
 
-let currentLang = localStorage.getItem('manolito_lang') || 'es';
+let currentLang = 'es';
+try {
+	const idiomaGuardado = localStorage.getItem('manolito_lang');
+	if (idiomaGuardado && Object.prototype.hasOwnProperty.call(translations, idiomaGuardado)) {
+		currentLang = idiomaGuardado;
+	}
+} catch (e) {
+	// El selector sigue funcionando aunque el navegador bloquee el almacenamiento.
+}
 
 function getMessages() {
 	const base = translations[currentLang] || translations.es;
@@ -2799,8 +2900,13 @@ function applyTranslations() {
 }
 
 function setLang(lang) {
+	if (!Object.prototype.hasOwnProperty.call(translations, lang)) return;
 	currentLang = lang;
-	localStorage.setItem('manolito_lang', lang);
+	try {
+		localStorage.setItem('manolito_lang', lang);
+	} catch (e) {
+		// La preferencia no se recordará, pero el cambio se aplica en esta sesión.
+	}
 	applyTranslations();
 	// Disparamos evento para que shadows-route.js y otros scripts sepan que
 	// cambió el idioma y retraduzcan sus propios textos dinámicos, sin
@@ -2820,7 +2926,8 @@ document.addEventListener('DOMContentLoaded', () => {
 	const toggle = document.getElementById('langToggle');
 	if (toggle) {
 		toggle.addEventListener('click', (e) => {
-			if (e.target.tagName === 'BUTTON') setLang(e.target.dataset.lang);
+			const boton = e.target.closest && e.target.closest('button[data-lang]');
+			if (boton && toggle.contains(boton)) setLang(boton.dataset.lang);
 		});
 	}
 	initModoAccesible();
@@ -3308,7 +3415,9 @@ window.getCurrentLang = function () { return currentLang; };
 	function traducirMetadatosArabe() {
 		if (currentLang !== 'ar') return;
 		const titulo = translations.es.metaTitle;
-		if (typeof titulo === 'string') {
+		if (typeof translations.ar.metaTitle === 'string') {
+			document.title = translations.ar.metaTitle;
+		} else if (typeof titulo === 'string') {
 			ofrecerMTMetadato(
 				'title',
 				titulo,
@@ -3318,7 +3427,9 @@ window.getCurrentLang = function () { return currentLang; };
 		}
 		const descripcion = translations.es.metaDesc;
 		const metaDescripcion = document.querySelector('meta[name="description"]');
-		if (metaDescripcion && typeof descripcion === 'string') {
+		if (metaDescripcion && typeof translations.ar.metaDesc === 'string') {
+			metaDescripcion.setAttribute('content', translations.ar.metaDesc);
+		} else if (metaDescripcion && typeof descripcion === 'string') {
 			ofrecerMTMetadato(
 				'meta-description',
 				descripcion,
@@ -3374,6 +3485,11 @@ window.getCurrentLang = function () { return currentLang; };
 			const fuente = fuenteEs[clave];
 			if (typeof fuente !== 'string' || fuente.indexOf('<') !== -1) return;
 			arClavesReg.add(el);
+			const traduccionArabe = translations.ar[clave];
+			if (typeof traduccionArabe === 'string' && traduccionArabe) {
+				el.textContent = traduccionArabe;
+				return;
+			}
 			// Si se llega aquí desde otro idioma, se vuelve primero a la
 			// fuente española para que nunca se encole el texto georgiano,
 			// inglés, etc. como si fuera una frase nueva.
@@ -3389,6 +3505,11 @@ window.getCurrentLang = function () { return currentLang; };
 			const fuente = fuenteEs[clave];
 			if (typeof fuente !== 'string') return;
 			arClavesReg.add(el);
+			const traduccionArabe = translations.ar[clave];
+			if (typeof traduccionArabe === 'string' && traduccionArabe) {
+				el.innerHTML = traduccionArabe;
+				return;
+			}
 			el.innerHTML = fuente;
 			barrerHTMLArabe(el);
 		});
@@ -3400,6 +3521,11 @@ window.getCurrentLang = function () { return currentLang; };
 				const clave = el.getAttribute(selector);
 				const fuente = fuenteEs[clave];
 				if (typeof fuente !== 'string' || fuente.indexOf('<') !== -1) return;
+				const traduccionArabe = translations.ar[clave];
+				if (typeof traduccionArabe === 'string' && traduccionArabe) {
+					el.setAttribute(attr, traduccionArabe);
+					return;
+				}
 				let vistos = arAttrsReg.get(el);
 				if (!vistos) {
 					vistos = new Set();

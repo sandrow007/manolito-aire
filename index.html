@@ -849,7 +849,10 @@
   <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar ruta</button>
   <div id="rsParkingAction"></div>
 </div>
-    <div id="rsStatus" class="chat-status" style="margin:8px 0 14px;" role="status" aria-live="polite" aria-atomic="true"></div>
+    <label class="rs-status-toggle">
+      <input class="rs-status-expand visually-hidden" type="checkbox" aria-controls="rsOrigen rsDestino rsBuscarBtn">
+      <span id="rsStatus" class="chat-status" style="margin:8px 0 14px;" role="status" aria-live="polite" aria-atomic="true"></span>
+    </label>
     <!-- Resumen accesible de la ruta: el mapa es un canvas y un lector de
          pantalla no puede verlo; esta región role="status" lleva siempre el
          mismo dato en texto (distancia, duración, % sombra y posición del

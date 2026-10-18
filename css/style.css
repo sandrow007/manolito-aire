@@ -418,7 +418,7 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
    navegador en iPhone/Android, que con vh recortaba el mapa). */
 #shadowRouteMap{
   width:100%;
-  height: clamp(440px, 62vh, 760px);
+  height: clamp(440px, 62svh, 760px);
   height: clamp(440px, 62dvh, 760px);
   background:var(--mist);
 }
@@ -429,8 +429,9 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 @media (max-width: 640px){
   .map-section{ padding: 0 8px; }
   #shadowRouteMap{
-    height: calc(72vh);
-    height: calc(72dvh - env(safe-area-inset-top, 0px));
+    height: calc(100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    min-height:min(440px,calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));
   }
   .map-wrap{ border-radius:12px; }
 }
@@ -1188,7 +1189,7 @@ body.manolito-fs .map-section:has(#shadowRouteMap) .map-wrap{
   position:fixed;
   inset:0;
   width:100vw;
-  height:100vh;
+  height:100svh;
   height:100dvh;
   z-index:99999;
   border:none !important;
@@ -1199,7 +1200,7 @@ body.manolito-fs .map-section:has(#shadowRouteMap) .map-wrap{
 }
 body.manolito-fs #shadowRouteMap{
   width:100%;
-  height:100vh;
+  height:100svh;
   height:100dvh;
 }
 /* Dentro de la pantalla completa solo vive el mapa: el planetario, los
@@ -2782,7 +2783,7 @@ body.mode-peque .im-lost-btn{
    fallback a 100vh (la barra de direcciones de Chrome Android ya no
    descuadra nada) y un suelo de 440 px para pantallas muy bajas.
    El canvas se reajusta con ResizeObserver (shadows-route.js). */
-#shadowRouteMap{ height:100vh; height:100dvh; min-height:440px; }
+#shadowRouteMap{ height:100svh; height:100dvh; min-height:440px; }
 
 /* ---------- La cuadrícula bajo el mapa, con y sin JS ----------
    La sección de OpenStreetMap y el botón LiDAR siempre a lo ancho;
@@ -2915,11 +2916,38 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
 
 /* ---------- Safe-areas en los controles del mapa ---------- */
 #main-content #rsCamCtl{
-  right:calc(12px + env(safe-area-inset-right, 0px)) !important;
+  inset-inline-end:calc(12px + env(safe-area-inset-right, 0px)) !important;
+  inset-inline-start:auto !important;
 }
 #main-content #rsMapControls{
   top:calc(10px + env(safe-area-inset-top, 0px)) !important;
-  left:calc(10px + env(safe-area-inset-left, 0px)) !important;
+  inset-inline-start:calc(10px + env(safe-area-inset-left, 0px)) !important;
+  inset-inline-end:auto !important;
+}
+
+/* La botonera del mapa se desplaza en horizontal en teléfonos estrechos. */
+@media (max-width:640px){
+  #main-content #rsMapControls{
+    flex-wrap:nowrap !important;
+    max-inline-size:calc(100vw - 20px);
+    overflow-x:auto;
+    overflow-y:hidden;
+    overscroll-behavior-inline:contain;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-x;
+  }
+  #main-content #rsMapControls::-webkit-scrollbar{ display:none; }
+  #main-content #rsMapControls button{
+    flex:0 0 auto;
+    min-block-size:44px;
+    padding-inline:8px !important;
+    font-size:11px !important;
+    white-space:nowrap;
+  }
+  #main-content #rsCamCtl{
+    inset-inline-end:calc(8px + env(safe-area-inset-right, 0px)) !important;
+  }
 }
 
 /* ---------- Pantallas bajas de escritorio: el flotante sube ---------- */
@@ -3939,6 +3967,58 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 @media (prefers-reduced-motion:reduce){
   #main-content .rs-form input,
   #main-content .rs-form button{ transition:none !important; }
+}
+
+/* El resumen de estado se convierte en el disparador nativo del panel. */
+#main-content .rs-form{
+  max-block-size:520px;
+  overflow:visible;
+  transition:max-block-size 240ms ease, opacity 240ms ease, padding 240ms ease, border-width 240ms ease;
+}
+#main-content .rs-status-toggle{
+  position:relative;
+  display:block;
+  cursor:default;
+  touch-action:manipulation;
+}
+#main-content .rs-status-expand{ position:absolute; }
+#main-content .rs-status-toggle:has(#rsStatus.rs-status-ruta){ cursor:pointer; }
+#main-content .rs-status-toggle:has(#rsStatus.rs-status-ruta) #rsStatus{
+  padding-inline-end:44px;
+  transition:background-color 240ms ease, border-color 240ms ease;
+}
+#main-content .rs-status-toggle:has(#rsStatus.rs-status-ruta)::after{
+  content:"";
+  position:absolute;
+  inset-inline-end:18px;
+  inset-block-start:50%;
+  inline-size:8px;
+  block-size:8px;
+  border-inline-end:2px solid currentColor;
+  border-block-end:2px solid currentColor;
+  transform:translateY(-70%) rotate(45deg);
+  pointer-events:none;
+  transition:transform 240ms ease;
+}
+#main-content .rs-status-toggle:has(.rs-status-expand:checked)::after{
+  transform:translateY(-20%) rotate(225deg);
+}
+#main-content .rs-status-toggle:has(.rs-status-expand:focus-visible) #rsStatus{
+  outline:2px solid var(--mui-accent);
+  outline-offset:2px;
+}
+#main-content:has(#rsStatus.rs-status-ruta):not(:has(.rs-status-expand:checked)) .rs-form{
+  max-block-size:0;
+  overflow:clip;
+  padding-block:0;
+  border-block-width:0;
+  opacity:0;
+  pointer-events:none;
+}
+@media (prefers-reduced-motion:reduce){
+  #main-content .rs-form,
+  #main-content .rs-status-toggle:has(#rsStatus.rs-status-ruta)::after,
+  #main-content .rs-status-toggle:has(#rsStatus.rs-status-ruta) #rsStatus{ transition:none !important; }
 }
 
 /* El contador conserva su fórmula completa en escritorio y la despliega

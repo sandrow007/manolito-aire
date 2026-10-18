@@ -1091,7 +1091,7 @@
 </section>
 </section>
 
-<section class="hero" aria-labelledby="heroTitulo">
+<section class="hero air-loading" aria-labelledby="heroTitulo" aria-busy="true">
   <!-- h1 unico con la busqueda principal y la marca sin simbolo (28-sep, SEO).
        Visible pero discreto para no tocar el diseño del hero.
        Traducido a los 6 idiomas (clave heroH1 en js/i18n.js). -->
@@ -1119,7 +1119,7 @@
 
   <div class="orb-wrap">
     <div class="orb-ring"></div>
-    <div class="orb"><div class="orb-face" id="orbFace" data-i18n="orb_good">bien</div></div>
+    <div class="orb"><div class="orb-face" id="orbFace" data-i18n="orb_good" aria-hidden="true"></div></div>
     <!-- En modo peque el orb-wrap solo aloja la nube (07-oct-2026, orden
          de Sandro). El titular y el botón salieron de aquí: la caja tiene
          200px fijos y todo lo que crecía dentro se salía y pisaba al
@@ -1132,7 +1132,7 @@
   <!-- Titular del modo peque (07-oct-2026, orden de Sandro): va en flujo
        normal y a todo el ancho útil del hero, no encerrado en los 200px
          del orb-wrap. La CSS lo esconde fuera del modo peque. -->
-  <div class="peque-message" id="pequeMessage" data-i18n="pequeInit">El aire está contento!</div>
+  <div class="peque-message" id="pequeMessage" data-i18n="pequeInit" aria-hidden="true"></div>
 
   <div class="human-line" id="humanLine" data-i18n="heroLoading">Cargando el aire de tu ciudad…</div>
   <div class="sub-line" id="subLine" data-i18n="heroMoment">Un momento.</div>
@@ -2409,6 +2409,7 @@
       }
 
       msgEl.textContent = txtMsg;
+      msgEl.removeAttribute('aria-hidden');
       if (humanEl) humanEl.textContent = txtHumano;
       if (subEl) subEl.textContent = txtSub;
 

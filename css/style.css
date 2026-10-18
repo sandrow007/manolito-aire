@@ -237,6 +237,27 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .sub-line{ color: var(--sky-mid); font-size:0.96rem; max-width:440px; margin:0 auto 20px; }
 .tech-readout{ font-family: var(--font-mono); font-size: 0.75rem; color: var(--sky-deep); background: var(--mist); display:inline-block; padding: 8px 14px; border-radius: 10px; }
 
+/* Estado de carga del aire: sin mostrar un estado «bueno» hasta tener dato. */
+.hero.air-loading{ --state-color:#82909a; }
+.hero.air-loading .orb-face,
+.hero.air-loading .peque-message,
+.hero.air-loading .tech-readout:empty{
+  color:transparent !important;
+  background:linear-gradient(90deg,rgba(130,144,154,.16) 25%,rgba(130,144,154,.32) 50%,rgba(130,144,154,.16) 75%);
+  background-size:200% 100%;
+  animation:airSkeleton 1.4s ease-in-out infinite;
+}
+.hero.air-loading .orb-face{ width:46px; height:9px; padding:0; border-radius:999px; }
+.hero.air-loading .peque-message{ min-width:min(240px,70vw); min-height:1.35em; border-radius:8px; }
+.hero.air-loading .tech-readout:empty{ width:210px; height:14px; padding:0; border-radius:8px; }
+.hero.air-no-data .orb-face{ visibility:hidden; }
+@keyframes airSkeleton{ to{ background-position-x:-200%; } }
+@media (prefers-reduced-motion:reduce){
+  .hero.air-loading .orb-face,
+  .hero.air-loading .peque-message,
+  .hero.air-loading .tech-readout:empty{ animation:none; }
+}
+
 .im-lost-btn{
   margin-top: 22px; border:1px solid var(--sky-deep); background: transparent; color: var(--sky-deep);
   font-family: var(--font-body); font-weight:600; font-size:0.86rem; padding: 11px 20px; border-radius: 999px; cursor:pointer;

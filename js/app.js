@@ -176,7 +176,8 @@ function stateFromPM25(v){
 
 let currentMode = 'ciudadano';
 let currentCity = 'sevilla';
-let currentPM25 = 9;
+let currentPM25 = null;
+let airRequestFailed = false;
 
 // *** FUNCIÓN MÁGICA PARA EL NUEVO SELECTOR DE CIUDADES ***
 // El HTML la llama cuando eligen una ciudad.
@@ -186,22 +187,48 @@ window.setCurrentCity = function(city) {
 };
 
 function renderHero(){
-  const d = cityData[currentCity];
-  const state = stateFromPM25(currentPM25);
+  const heroEl = document.querySelector('.hero');
   const lang = (typeof currentLang !== 'undefined') ? currentLang : 'es';
-  const [line1, line2] = getHeroMessages(lang)[currentMode][state](d.name);
+  const dict = (typeof translations !== 'undefined') ? (translations[lang] || translations.es) : null;
   const humanLineEl = document.getElementById('humanLine');
   const subLineEl = document.getElementById('subLine');
   const techEl = document.getElementById('techReadout');
   const orbFaceEl = document.getElementById('orbFace');
+  if (currentPM25 == null || !Number.isFinite(currentPM25)) {
+    heroEl?.classList.toggle('air-no-data', airRequestFailed);
+    heroEl?.classList.toggle('air-loading', !airRequestFailed);
+    heroEl?.setAttribute('aria-busy', airRequestFailed ? 'false' : 'true');
+    if (humanLineEl) humanLineEl.textContent = airRequestFailed
+      ? (dict?.aqiNoData || 'Sin datos')
+      : (dict?.heroLoading || 'Cargando el aire de tu ciudad…');
+    if (subLineEl) subLineEl.textContent = airRequestFailed ? '' : (dict?.heroMoment || 'Un momento.');
+    if (techEl) techEl.textContent = '';
+    if (orbFaceEl) {
+      orbFaceEl.textContent = '';
+      orbFaceEl.setAttribute('aria-hidden', 'true');
+    }
+    const pequeMessage = document.getElementById('pequeMessage');
+    if (pequeMessage) {
+      pequeMessage.textContent = airRequestFailed ? (dict?.aqiNoData || 'Sin datos') : '';
+      pequeMessage.setAttribute('aria-hidden', airRequestFailed ? 'false' : 'true');
+    }
+    return;
+  }
+  heroEl?.classList.remove('air-loading', 'air-no-data');
+  heroEl?.setAttribute('aria-busy', 'false');
+  const d = cityData[currentCity];
+  const state = stateFromPM25(currentPM25);
+  const [line1, line2] = getHeroMessages(lang)[currentMode][state](d.name);
   if (humanLineEl) humanLineEl.textContent = line1;
   if (subLineEl) subLineEl.textContent = line2;
   const dictIca = (typeof translations !== 'undefined') ? (translations[lang] || translations.es) : null;
   const icaTxt = dictIca ? (state==='good'?dictIca.aqiGood:state==='mid'?dictIca.aqiModerate:dictIca.aqiBad)
                          : (state==='good'?'Buena':state==='mid'?'Moderada':'Mala');
   if (techEl) techEl.textContent = `PM2.5 ${currentPM25} µg/m³ · ICA: ${icaTxt}`;
-  const dict = (typeof translations !== 'undefined') ? (translations[lang] || translations.es) : null;
-  if (orbFaceEl) orbFaceEl.textContent = dict ? dict[`orb_${state}`] : state;
+  if (orbFaceEl) {
+    orbFaceEl.textContent = dict ? dict[`orb_${state}`] : state;
+    orbFaceEl.removeAttribute('aria-hidden');
+  }
   document.documentElement.style.setProperty('--state-color',
     state==='good' ? 'var(--breath-good)' : state==='mid' ? 'var(--breath-mid)' : 'var(--breath-bad)');
     
@@ -257,6 +284,9 @@ function aqiFromPM25(pm){
 
 async function fetchCurrentCity(){
   const d = cityData[currentCity];
+  currentPM25 = null;
+  airRequestFailed = false;
+  renderHero();
   try{
     // Panel científico con más datos (sep-2026, orden de Sandro): se piden
     // también SO₂, CO e índice UV. El Worker pasa la consulta tal cual a
@@ -272,7 +302,8 @@ async function fetchCurrentCity(){
     }
     const data = await r.json();
     const c = data.current || {};
-    currentPM25 = c.pm2_5 ?? currentPM25;
+    currentPM25 = c.pm2_5 != null && Number.isFinite(Number(c.pm2_5)) ? Number(c.pm2_5) : null;
+    airRequestFailed = currentPM25 == null;
     // Alimenta el panel del modo científico con datos reales.
     if (typeof window.actualizarPanelCientifico === 'function'){
       const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -288,7 +319,7 @@ async function fetchCurrentCity(){
         hora
       });
     }
-  } catch(e){ /* se queda con el último valor conocido */ }
+  } catch(e){ airRequestFailed = true; }
   renderHero();
 }
 
@@ -1041,6 +1072,10 @@ document.addEventListener('DOMContentLoaded', () => cuandoIdiomaListo(() => {
   } else if ('requestIdleCallback' in window) requestIdleCallback(iniciarMapa, { timeout: 2500 });
   else window.addEventListener('load', () => setTimeout(iniciarMapa, 100));
 }));
+
+document.addEventListener('langChanged', () => {
+  renderHero();
+});
 
 /* ============================================================
    ENTRADA AL JUEGO «ATRAPA A MANOLIT∞» (07-oct-2026, orden

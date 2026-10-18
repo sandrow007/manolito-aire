@@ -3438,6 +3438,28 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
   margin:var(--seccion-gap) auto 0;
   padding:0 24px;
 }
+.quantum-experimental-label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:fit-content;
+  margin:0 0 8px;
+  padding:5px 10px;
+  border:1px dashed var(--accent,#FF6B1A);
+  border-radius:999px;
+  color:var(--sky-mid,#17788A);
+  font:700 .68rem/1.2 system-ui,sans-serif;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.quantum-experimental-label::before{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--accent,#FF6B1A);
+  box-shadow:0 0 0 3px var(--accent-soft,rgba(255,107,26,.14));
+}
 #ecoAgua .agua-texto{ max-width:var(--seccion-texto); }
 
 /* Los títulos de sección pasan de div a h2 (mismo nivel, mismo estilo):

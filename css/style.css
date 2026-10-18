@@ -2647,6 +2647,11 @@ body.rs-capas-pop #main-content a.rs-btn-lidar{
   touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   transition:background var(--mui-t), border-color var(--mui-t), color var(--mui-t);
 }
+/* Al abrir el panel, la X de su cabecera es el único control de cierre.
+   El botón flotante reaparece al cerrar, conservando el foco accesible. */
+body.rs-capas-pop #main-content #rsBtnCapasFlotante[aria-expanded="true"]{
+  visibility:hidden; pointer-events:none;
+}
 #main-content #rsBtnCapasFlotante::before{
   content:""; width:22px; height:22px; background:currentColor;
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3 9 4.5-9 4.5-9-4.5L12 3z'/%3E%3Cpath d='m3.5 12.2 8.5 4.3 8.5-4.3'/%3E%3Cpath d='m3.5 16.4 8.5 4.3 8.5-4.3'/%3E%3C/svg%3E") no-repeat center/contain;
@@ -2755,14 +2760,14 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
     right:calc(12px + env(safe-area-inset-right, 0px));
   }
   body.rs-capas-pop #main-content .rs-planetario-capas{
-    top:auto;
+    top:calc(64px + env(safe-area-inset-top, 0px));
     left:calc(8px + env(safe-area-inset-left, 0px));
     right:calc(8px + env(safe-area-inset-right, 0px));
-    bottom:calc(10px + env(safe-area-inset-bottom, 0px));
+    bottom:auto;
     width:auto; max-width:none; max-height:min(72dvh, 560px);
     display:flex; flex-direction:column;
   }
-  body.rs-capas-pop #main-content .rs-planetario-capas.rs-capas-cerrada{ transform:translateY(14px); }
+  body.rs-capas-pop #main-content .rs-planetario-capas.rs-capas-cerrada{ transform:translateY(-14px); }
   body.rs-capas-pop #main-content .rs-layer-toggles{
     border-radius:16px; max-height:100%;
     display:flex; flex-direction:column; flex-wrap:nowrap; align-items:stretch;

@@ -82,6 +82,40 @@ body{
 
 a{ color: var(--sky-mid); }
 
+/* Decoración lateral de la portada: forma parte del flujo de <main> al
+   desplazarse y queda debajo de las secciones, sin interceptar clics. */
+main{ position:relative; isolation:isolate; }
+.manolit-side-rails{
+  position:absolute; inset:0; display:flex; justify-content:space-between;
+  pointer-events:none; z-index:-1; overflow:visible; user-select:none;
+}
+.manolit-side-rail{
+  width:min(270px, calc((100vw - 1000px) / 2)); min-width:0;
+  display:flex; flex-direction:column; justify-content:space-evenly;
+  align-items:center; flex:0 0 auto; padding:36px 0;
+}
+.manolit-side-logo{
+  display:block; width:100%; height:auto; flex:0 0 auto; overflow:visible;
+  pointer-events:auto; opacity:.28;
+  filter:drop-shadow(0 0 12px rgba(0,229,255,.17));
+  transition:opacity 180ms ease, filter 180ms ease;
+}
+.manolit-side-rail-right .manolit-side-logo{ transform:scaleX(-1); }
+.manolit-side-logo:hover,
+.manolit-side-logo:active{
+  opacity:.36;
+  filter:drop-shadow(0 0 15px rgba(0,229,255,.23));
+}
+@media (max-width:1499px){ .manolit-side-rails{ display:none!important; } }
+@media (prefers-reduced-transparency:reduce){
+  .manolit-side-logo{ opacity:.16; filter:none; }
+  .manolit-side-logo:hover,
+  .manolit-side-logo:active{ opacity:.22; filter:none; }
+}
+@media (prefers-reduced-motion:reduce){
+  .manolit-side-logo{ transition:none; }
+}
+
 /* ---------- barra superior, común a todas las páginas ---------- */
 .topbar{
   display:flex; flex-wrap:wrap; gap:12px; align-items:center;

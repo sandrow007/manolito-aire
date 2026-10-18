@@ -731,6 +731,97 @@
      panel de capas (#main-content ...) y el módulo de aparcamientos como
      ancla de reserva. -->
 <main>
+<!-- Motivo vectorial compartido para la decoración lateral de la portada. -->
+<svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"
+     style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <filter id="manolitSideGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="manolitSideSoft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+    <linearGradient id="manolitSideCyan" gradientUnits="userSpaceOnUse" x1="0" y1="290" x2="0" y2="30">
+      <stop offset="0" stop-color="#00f3ff" stop-opacity="0.9" />
+      <stop offset="1" stop-color="#00f3ff" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="manolitSideBlue" gradientUnits="userSpaceOnUse" x1="0" y1="290" x2="0" y2="30">
+      <stop offset="0" stop-color="#3b82f6" stop-opacity="0.9" />
+      <stop offset="1" stop-color="#3b82f6" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="manolitSideViolet" gradientUnits="userSpaceOnUse" x1="0" y1="290" x2="0" y2="30">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity="0.9" />
+      <stop offset="1" stop-color="#a78bfa" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="manolitSidePink" gradientUnits="userSpaceOnUse" x1="0" y1="290" x2="0" y2="30">
+      <stop offset="0" stop-color="#f472b6" stop-opacity="0.9" />
+      <stop offset="1" stop-color="#f472b6" stop-opacity="0" />
+    </linearGradient>
+    <g id="manolitSideShield">
+      <path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" />
+    </g>
+    <g id="manolitSideWire" fill="none">
+      <circle cx="100" cy="150" r="45" />
+      <path d="M60,165 Q80,155 100,165 T140,165" />
+      <path d="M65,175 Q82.5,167 100,175 T135,175" />
+      <path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" stroke-linejoin="round" stroke-linecap="round" />
+      <path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" stroke-linejoin="round" />
+    </g>
+    <symbol id="manolitSideArtwork" viewBox="0 0 600 600">
+      <ellipse cx="300" cy="420" rx="60" ry="15" fill="#00f3ff" opacity="0.1" filter="url(#manolitSideGlow)" />
+      <g transform="matrix(1 0 -0.9615 -0.1154 300 420) translate(-100,-290)" filter="url(#manolitSideSoft)" opacity="0.9">
+        <use href="#manolitSideShield" fill="url(#manolitSidePink)" />
+        <use href="#manolitSideWire" stroke="url(#manolitSidePink)" stroke-width="8" />
+      </g>
+      <g transform="matrix(1 0 0.808 -0.1731 300 420) translate(-100,-290)" filter="url(#manolitSideSoft)" opacity="0.9">
+        <use href="#manolitSideShield" fill="url(#manolitSideCyan)" />
+        <use href="#manolitSideWire" stroke="url(#manolitSideCyan)" stroke-width="8" />
+      </g>
+      <g transform="matrix(1 0 -0.5385 -0.2692 300 420) translate(-100,-290)" filter="url(#manolitSideSoft)" opacity="0.9">
+        <use href="#manolitSideShield" fill="url(#manolitSideViolet)" />
+        <use href="#manolitSideWire" stroke="url(#manolitSideViolet)" stroke-width="8" />
+      </g>
+      <g transform="matrix(1 0 0 -0.2115 300 420) translate(-100,-290)" filter="url(#manolitSideSoft)" opacity="0.9">
+        <use href="#manolitSideShield" fill="url(#manolitSideBlue)" />
+        <use href="#manolitSideWire" stroke="url(#manolitSideBlue)" stroke-width="8" />
+      </g>
+      <g fill="none" stroke-width="1.8" opacity="0.75">
+        <use href="#manolitSideWire" stroke="#f472b6" transform="matrix(1 0 -0.9615 -0.1154 300 420) translate(-100,-290)" />
+        <use href="#manolitSideWire" stroke="#00f3ff" transform="matrix(1 0 0.808 -0.1731 300 420) translate(-100,-290)" />
+        <use href="#manolitSideWire" stroke="#a78bfa" transform="matrix(1 0 -0.5385 -0.2692 300 420) translate(-100,-290)" />
+        <use href="#manolitSideWire" stroke="#3b82f6" transform="matrix(1 0 0 -0.2115 300 420) translate(-100,-290)" />
+      </g>
+      <g transform="translate(200,130)" filter="url(#manolitSideGlow)">
+        <path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(255,42,75,0.05)" stroke="#ff2a4b" stroke-width="4" stroke-linejoin="round" />
+        <circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="3" />
+        <path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="4" stroke-linecap="round" />
+        <path d="M65,175 Q82.5,167 100,175 T135,175" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" />
+      </g>
+    </symbol>
+  </defs>
+</svg>
+<!-- Los rails son absolutos respecto a <main>, no fijos al viewport: recorren
+     la altura de la portada y se desplazan con el contenido al hacer scroll. -->
+<div class="manolit-side-rails" aria-hidden="true">
+  <aside class="manolit-side-rail manolit-side-rail-left">
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+  </aside>
+  <aside class="manolit-side-rail manolit-side-rail-right">
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+    <svg class="manolit-side-logo" viewBox="135 0 330 600"><use href="#manolitSideArtwork" width="600" height="600" transform="translate(-195 -220) scale(1.65)" /></svg>
+  </aside>
+</div>
 <section class="map-section" id="main-content" tabindex="-1" aria-labelledby="rsRouteMapTitle">
   <div class="map-head">
     <h2 class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</h2>

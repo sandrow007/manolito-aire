@@ -2972,15 +2972,15 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
    de hoja (14 px) al flotar sobre el mapa. */
 @media (max-width:639.98px){
   #main-content #rsBtnCapasFlotante{
-    top:auto;
-    bottom:calc(30px + env(safe-area-inset-bottom, 0px));
-    right:calc(12px + env(safe-area-inset-right, 0px));
+    top:calc(20px + env(safe-area-inset-top, 0px));
+    bottom:auto;
+    inset-inline-end:calc(12px + max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)));
   }
   body.rs-capas-pop #main-content .rs-planetario-capas{
-    top:auto;
+    top:calc(72px + env(safe-area-inset-top, 0px));
     left:calc(8px + env(safe-area-inset-left, 0px));
     right:calc(8px + env(safe-area-inset-right, 0px));
-    bottom:calc(10px + env(safe-area-inset-bottom, 0px));
+    bottom:auto;
     width:auto; max-width:none; max-height:min(72dvh, 560px);
     display:flex; flex-direction:column;
   }
@@ -3866,8 +3866,8 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 /* En móvil, el panel de capas vuelve a ser una hoja inferior desplazable. */
 @media (max-width:639.98px){
   body.rs-capas-pop #main-content .rs-planetario-capas{
-    top:auto;
-    bottom:calc(10px + env(safe-area-inset-bottom, 0px));
+    top:calc(72px + env(safe-area-inset-top, 0px));
+    bottom:auto;
     inset-inline:8px;
     width:auto;
     max-width:none;

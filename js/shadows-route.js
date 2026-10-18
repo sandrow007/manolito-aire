@@ -3540,9 +3540,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
 
     const btnAhora = crearBoton(t('now', 'Ahora'), 'rsBtnAhora');
+    const btnMediodia = crearBoton('12:00', 'rsBtnMediodia');
+    const btnTarde = crearBoton('17:00', 'rsBtnTarde');
     const btnVerano = crearBoton(t('btnSummer', 'Verano'), 'rsBtnVerano');
     const btnInvierno = crearBoton(t('btnWinter', 'Invierno'), 'rsBtnInvierno');
     const btnCapturar = crearBoton(t('captureView', 'Capturar vista'), 'rsBtnCapturar');
+    const etiquetaHora = t('timeSlider', 'Hora del día');
+    btnMediodia.setAttribute('aria-label', etiquetaHora + ' · 12:00');
+    btnTarde.setAttribute('aria-label', etiquetaHora + ' · 17:00');
     btnCapturar.className = 'rs-btn-capturar';
 
     btnAhora.addEventListener('click', () => {
@@ -3552,6 +3557,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       sliderTiempo.value = String(minutosDesdeFecha(new Date()));
       aplicarCambioDeHora(false);
     });
+
+    // Los accesos rápidos reutilizan el evento normal del slider; el cálculo
+    // horario y el debounce existentes siguen siendo la única ruta de cambio.
+    const fijarHoraRapida = minutos => {
+      sliderTiempo.value = String(minutos);
+      sliderTiempo.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    btnMediodia.addEventListener('click', () => fijarHoraRapida(720));
+    btnTarde.addEventListener('click', () => fijarHoraRapida(1020));
 
     btnVerano.addEventListener('click', () => {
       modoManual = true;
@@ -3571,7 +3585,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     btnCapturar.addEventListener('click', capturarVista);
 
-    filaBotones.append(btnAhora, btnVerano, btnInvierno, btnCapturar);
+    filaBotones.append(btnAhora, btnMediodia, btnTarde, btnVerano, btnInvierno, btnCapturar);
     // "Ahora / Verano / Invierno" forman un grupo lógico de preajustes;
     // display:contents mantiene el layout exacto sin cambiar el HTML visual.
     const grupoPreajustes = document.createElement('div');
@@ -3579,7 +3593,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     grupoPreajustes.setAttribute('aria-label', t('timePresets', 'Preajustes de hora'));
     grupoPreajustes.style.display = 'contents';
     filaBotones.insertBefore(grupoPreajustes, filaBotones.firstChild);
-    grupoPreajustes.append(btnAhora, btnVerano, btnInvierno);
+    grupoPreajustes.append(btnAhora, btnMediodia, btnTarde, btnVerano, btnInvierno);
     cuerpo.append(filaEtiqueta, sliderTiempo, divisor, filaBotones, anunciadorHora);
     panel.append(cabecera, cuerpo);
     contenedorMapa.appendChild(panel);
@@ -5212,6 +5226,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (btnCapturar) btnCapturar.textContent = t('captureView', 'Capturar vista');
     const btnAhora = document.getElementById('rsBtnAhora');
     if (btnAhora) btnAhora.textContent = t('now', 'Ahora');
+    const etiquetaHora = t('timeSlider', 'Hora del día');
+    const btnMediodia = document.getElementById('rsBtnMediodia');
+    if (btnMediodia) btnMediodia.setAttribute('aria-label', etiquetaHora + ' · 12:00');
+    const btnTarde = document.getElementById('rsBtnTarde');
+    if (btnTarde) btnTarde.setAttribute('aria-label', etiquetaHora + ' · 17:00');
+    const grupoPreajustes = document.querySelector('#rsTimeControls .rs-botones [role="group"]');
+    if (grupoPreajustes) grupoPreajustes.setAttribute('aria-label', t('timePresets', 'Preajustes de hora'));
     const btnVerano = document.getElementById('rsBtnVerano');
     if (btnVerano) btnVerano.textContent = t('btnSummer', 'Verano');
     const btnInvierno = document.getElementById('rsBtnInvierno');

@@ -2863,14 +2863,14 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
     right:calc(12px + env(safe-area-inset-right, 0px));
   }
   body.rs-capas-pop #main-content .rs-planetario-capas{
-    top:calc(64px + env(safe-area-inset-top, 0px));
+    top:auto;
     left:calc(8px + env(safe-area-inset-left, 0px));
     right:calc(8px + env(safe-area-inset-right, 0px));
-    bottom:auto;
+    bottom:calc(10px + env(safe-area-inset-bottom, 0px));
     width:auto; max-width:none; max-height:min(72dvh, 560px);
     display:flex; flex-direction:column;
   }
-  body.rs-capas-pop #main-content .rs-planetario-capas.rs-capas-cerrada{ transform:translateY(-14px); }
+  body.rs-capas-pop #main-content .rs-planetario-capas.rs-capas-cerrada{ transform:translateY(14px); }
   body.rs-capas-pop #main-content .rs-layer-toggles{
     border-radius:16px; max-height:100%;
     display:flex; flex-direction:column; flex-wrap:nowrap; align-items:stretch;
@@ -3653,4 +3653,48 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   #main-content .rs-form #rsBuscarBtn{ grid-column:1; }
   #rsParkingAction{ grid-column:2; }
   #main-content .rs-form .rs-toggle-invierno{ grid-column:1/-1; }
+}
+
+/* Control horario más cómodo: slider ancho y números estables. */
+#main-content #rsTimeControls{
+  width:min(330px,calc(100vw - 24px)) !important;
+  min-width:260px;
+  padding:14px 16px;
+}
+#main-content #rsTimeLabel{
+  font-size:15px;
+  font-variant-numeric:tabular-nums;
+}
+#main-content #rsTimeSlider{ height:28px; }
+#main-content #rsTimeSlider::-webkit-slider-runnable-track{ height:5px; }
+#main-content #rsTimeSlider::-webkit-slider-thumb{ width:18px; height:18px; margin-top:-7px; }
+#main-content #rsTimeSlider::-moz-range-track{ height:5px; }
+#main-content #rsTimeSlider::-moz-range-thumb{ width:16px; height:16px; }
+#main-content #rsTimeControls .rs-botones{ gap:6px; }
+#main-content #rsTimeControls .rs-botones button{
+  min-height:44px;
+  flex:1 1 calc(33.333% - 6px);
+  padding:9px 8px;
+  font-variant-numeric:tabular-nums;
+}
+#main-content #rsTimeControls .rs-botones button.rs-btn-capturar{ flex-basis:100%; }
+@media (max-width:480px){
+  #main-content #rsTimeControls{
+    width:calc(100vw - 24px) !important;
+    min-width:0;
+    max-width:calc(100% - 24px);
+  }
+}
+
+/* En móvil, el panel de capas vuelve a ser una hoja inferior desplazable. */
+@media (max-width:639.98px){
+  body.rs-capas-pop #main-content .rs-planetario-capas{
+    top:auto;
+    bottom:calc(10px + env(safe-area-inset-bottom, 0px));
+    inset-inline:8px;
+    width:auto;
+    max-width:none;
+    max-height:min(72dvh,560px);
+  }
+  body.rs-capas-pop #main-content .rs-planetario-capas.rs-capas-cerrada{ transform:translateY(14px); }
 }

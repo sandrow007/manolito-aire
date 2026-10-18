@@ -1645,7 +1645,7 @@
 </main>
 
 <footer class="footer">
-  <!-- Los mismos contenidos e identificadores se presentan en tres columnas. -->
+  <!-- Apoyo, insignias y proyectos arriba; observatorios y enlaces legales debajo. -->
 
   <!-- a) Quiénes somos: la frase corta y el enlace a las cuentas del
        agua, que viven en su propia sección (#ecoAgua). El párrafo largo
@@ -1661,7 +1661,7 @@
        fila.) -->
   <div class="footer-apoyo">
     <p class="donacion-mensaje" data-i18n-html="donacionTxt">
-      Manolit∞ siempre sera gratis.<br>
+      Manolit∞ siempre será gratis.<br>
       Los servidores, por desgracia, no lo son...
     </p>
     <a class="donacion-boton" href="https://ko-fi.com/manolitoinfinito" target="_blank" rel="noopener noreferrer" data-i18n="kofiBtn">
@@ -1684,9 +1684,7 @@
 
   </div>
 
-  <!-- c) Sellos de confianza en una fila (09-oct-2026, orden de Sandro):
-       A+ de carbono, sello circular Manolit∞ e insignia de
-       AlternativeTo. -->
+  <!-- c) Insignias apiladas y centradas en el orden indicado. -->
   <div class="footer-column footer-column--trust">
   <div class="footer-sellos">
     <div class="footer-sello">
@@ -1718,6 +1716,16 @@
         <text x="16" y="116" font-size="7.5" fill="#A9B3AC" data-i18n="svgCarbon3">Medido con Website Carbon Calculator (1ClickImpact) · 16/09/2026</text>
       </svg>
     </div>
+  <!-- Insignia de AlternativeTo. -->
+  <div class="footer-alternativeto">
+    <a href="https://alternativeto.net/software/manolit-aire/about/?utm_source=badge&utm_medium=referral" target="_blank" rel="noopener">
+      <img src="https://alternativeto.net/static/badges/badge-compact-color.svg"
+           alt="Manolit∞ Aire | AlternativeTo"
+           width="171" height="55"
+           loading="lazy" decoding="async"
+           style="width:171px;height:55px;display:inline-block;" />
+    </a>
+  </div>
   <!-- Sello oficial PERMANENTE (25-sep-2026, orden de Sandro). El bloque
        de salud se retira solo el domingo a las 18:00, pero este sello se
        queda en la esquina inferior del pie todo el año. Misma geometria
@@ -1754,30 +1762,17 @@
     </div>
   </div>
 
-  <!-- Insignia de AlternativeTo (28-sep-2026, orden de Sandro): al final del
-       todo del pie, centrada y discreta, con carga diferida para no pesar.
-       El alt lleva la marca bien escrita, Manolit∞ con su simbolo. -->
-  <div class="footer-alternativeto">
-    <a href="https://alternativeto.net/software/manolit-aire/about/?utm_source=badge&utm_medium=referral" target="_blank" rel="noopener">
-      <img src="https://alternativeto.net/static/badges/badge-compact-color.svg"
-           alt="Manolit∞ Aire | AlternativeTo"
-           width="171" height="55"
-           loading="lazy" decoding="async"
-           style="width:171px;height:55px;display:inline-block;" />
-    </a>
-  </div>
+
   </div>
 
-  <!-- Escudos de salud ambiental (01-oct-2026, orden directa de Sandro):
-       las cuatro insignias SVG dibujadas para el fin de semana de la salud
-       se habian quedado aparcadas en un comentario de la seccion de salud
-       y estuvieron a punto de perderse. RECUPERADAS PARA SIEMPRE: viven
-       aqui, junto al sello oficial del pie, visibles todo el año y con su
-       explicacion. Son las fuentes publicas oficiales que esta web
-       consulta y enlaza, ordenadas de lo cercano a lo global. No son
-       socios ni patrocinadores, son los observatorios publicos que
-       publican los datos y los umbrales de riesgo por calor. El bloque
-       comentado original de la seccion de salud se queda intacto. -->
+  </div>
+
+  <div class="footer-column footer-column--links">
+  <div class="footer-family" data-i18n-html="footerFamily"><a href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a> · <a href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a> · <a href="https://manolitoaire.com" target="_blank" rel="noopener">Manolit∞ Aire</a></div>
+  </div>
+
+  <div class="footer-row footer-observatories">
+  <!-- Observatorios públicos de salud ambiental. -->
   <div class="escudos-pie" id="escudosSalud">
     <p class="escudos-titulo" data-i18n="escudosTitulo">Escudos que nos cuidan</p>
     <p class="escudos-porque" data-i18n="escudosPorque">Cuatro observatorios públicos de salud ambiental, de tu tierra al planeta. Publican los datos y los umbrales de calor en los que se apoya esta web, y su trabajo nos protege a todos.</p>
@@ -1819,27 +1814,14 @@
   <div class="footer-ign" style="margin-top:8px; font-size:0.75rem;" data-i18n="footerIgnTxt">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
   </div>
 
-  <!-- e) La familia de proyectos como enlaces de verdad (09-oct-2026,
-       orden de Sandro): ya no es texto monoespaciado, cada nombre enlaza
-       a su web. Traducido con data-i18n-html (la clave footerFamily de
-       js/i18n.js ahora lleva los enlaces dentro). -->
-  <div class="footer-column footer-column--links">
-  <div class="footer-family" data-i18n-html="footerFamily"><a href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a> · <a href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a> · <a href="https://manolitoaire.com" target="_blank" rel="noopener">Manolit∞ Aire</a></div>
-
-  <!-- Sincronizar / Exportar datos: tus ajustes (tema, paleta, idioma,
-       modo accesible, ciudad...) viajan en un archivo JSON entre tus
-       dispositivos. Sin cuentas, sin servidores: el archivo lo genera
-       y lo lee tu propio navegador. -->
-  <!-- f) Franja legal final, pequeña y centrada (09-oct-2026, orden de
-       Sandro): Sincronizar / Exportar datos es el último elemento y su
-       panel sigue abriéndose debajo, con los mismos ids de siempre. -->
+  <div class="footer-row footer-bottom">
   <div class="footer-legal">
     <a href="aviso-legal.html" data-i18n="legalNotice">Aviso legal</a> · 
     <a href="privacidad.html" data-i18n="privacy">Privacidad</a> · 
     <a href="cookies.html" data-i18n="cookies">Cookies</a> ·
     <!-- Enlace visible al codigo fuente (28-sep-2026): el proyecto es AGPL y
          el repo es publico; ademas lo piden los revisores de AlternativeTo. -->
-    <a href="https://github.com/sandrow007/manolito-aire" target="_blank" rel="noopener" data-i18n="footerGithub">Código abierto</a> ·
+    <a href="https://github.com/sandrow007/manolito-aire" target="_blank" rel="noopener" data-i18n="footerGithub">Código abierto</a>
     <button type="button" id="btnSyncExport" class="footer-sync-toggle" data-i18n="syncLink"
             aria-expanded="false" aria-controls="syncPanel">Sincronizar / Exportar datos</button>
   </div>
@@ -1852,6 +1834,7 @@
       <input type="file" id="syncFileInput" accept="application/json,.json" hidden>
     </div>
   </div>
+
   </div>
 </footer>
 

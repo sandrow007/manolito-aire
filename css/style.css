@@ -3610,8 +3610,8 @@ h2.map-title, h2.quantum-badge{ margin:0; }
 .footer-sellos .footer-oficial{ margin-top:0; justify-content:center; flex:none; }
 .footer-sellos .footer-alternativeto{ flex:none; }
 
-/* d) Los escudos en 4 columnas (escritorio) y 2x2 (móvil), con la
-      atribución del IGN justo debajo (en el HTML). */
+/* d) Los escudos en 2x2 y, en pantallas muy estrechas, apilados.
+      La atribución del IGN queda justo debajo, en el HTML. */
 .footer .escudos-fila{
   display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
   gap:12px; max-width:var(--seccion-ancho); margin:0 auto;
@@ -3650,47 +3650,80 @@ h2.map-title, h2.quantum-badge{ margin:0; }
 .footer-sellos .sello-footer{ opacity:1; } .footer-sellos .footer-sello{ opacity:1; }
 [data-theme="dark"] .footer .escudo-gama{ color:#7FD4DE; }
 
-/* Pie ordenado en tres columnas sin mover ni recrear sus controles. */
-.footer-columns{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) minmax(0,1fr);
-  align-items:start;
-  gap:var(--ux-space-3);
-  max-width:1200px;
-  margin-inline:auto;
-  text-align:start;
-}
-.footer-column{
+/* Pie centrado del snapshot de referencia; las envolturas actuales solo
+   se aplanan para presentación, sin alterar el DOM ni sus selectores. */
+.footer{
   display:flex;
   flex-direction:column;
   align-items:stretch;
-  gap:var(--ux-space-2);
-  min-width:0;
+  padding-inline:24px;
 }
-.footer-column--about .footer-cuentas-linea{ margin:0; }
-.footer-column--about .footer-apoyo{
-  flex-direction:column;
-  align-items:stretch;
-  justify-content:flex-start;
-  gap:var(--ux-space-2);
-  margin-top:var(--ux-space-2);
-  padding-top:var(--ux-space-2);
+.footer-columns,
+.footer-column,
+.footer-row{ display:contents; }
+.footer-family{ order:1; }
+.footer-legal{ order:2; }
+#syncPanel{ order:3; }
+.footer-sellos .footer-oficial{ order:1; }
+.footer-sellos .footer-alternativeto{ order:2; }
+.footer-column--about .footer-red-sola{ position:relative; padding-inline-start:0; }
+.footer-column--about .footer-red-sola::before{
+  content:"";
+  display:block;
+  box-sizing:border-box;
+  width:15px;
+  height:15px;
+  flex:0 0 15px;
+  border:1.5px solid currentColor;
+  border-radius:4px;
 }
-.footer-column--about .footer-apoyo .donacion-mensaje{ max-width:none; text-align:start; }
-.footer-column--about .footer-apoyo .footer-redes{ align-items:flex-start; }
-.footer-column--trust .footer-sellos{ justify-content:flex-start; gap:var(--ux-space-2); }
-.footer-column--trust .footer-ign{ margin-top:0 !important; }
-.footer-column--links .footer-family{ margin-top:0; }
-.footer-column--links .footer-legal{ justify-content:flex-start; margin-top:auto; }
-@media (min-width:701px) and (max-width:960px){
-  .footer-columns{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .footer-column--links{ grid-column:1/-1; }
+.footer-column--about .footer-red-sola::after{
+  content:"";
+  position:absolute;
+  inset-inline-start:4px;
+  top:calc(50% - 3px);
+  box-sizing:border-box;
+  width:6px;
+  height:6px;
+  border:1.5px solid currentColor;
+  border-radius:50%;
+  box-shadow:4px -4px 0 -1px currentColor;
+  pointer-events:none;
+}
+.footer .footer-apoyo{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  column-gap:26px;
+}
+.footer .footer-apoyo .donacion-mensaje{
+  grid-column:1;
+  justify-self:end;
+  max-width:340px;
+}
+.footer .footer-apoyo .donacion-boton{
+  grid-column:2;
+  justify-self:center;
+}
+.footer .footer-apoyo .footer-redes{
+  grid-column:3;
+  justify-self:start;
 }
 @media (max-width:700px){
-  .footer-columns{ grid-template-columns:minmax(0,1fr); gap:var(--ux-space-3); }
-  .footer-column--links .footer-legal{ justify-content:flex-start; }
+  .footer .footer-apoyo{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .footer .footer-apoyo .donacion-mensaje{ text-align:center; }
+  .footer .footer-apoyo .donacion-boton,
+  .footer .footer-legal a,
+  .footer .footer-legal .footer-sync-toggle{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+  }
 }
-
 /* 12-oct-2026 (orden de Sandro): en árabe (RTL) la tarjeta flotante de
    capas es un flex en columna con flex-wrap:wrap heredado, y Chromium con
    direction:rtl calcula mal el origen de las líneas de flex: la lista se
@@ -4645,30 +4678,4 @@ html[lang="ar"] #main-content #rsCamCtl{
   #main-content #rsTimeControls{ width:calc(100% - 24px) !important; }
   #main-content #rsTimeControls .rs-solar-tabs{ gap:7px; }
   #main-content #rsTimeControls .rs-solar-tab{ font-size:9px !important; }
-}
-
-/* Franja legal al cierre real del footer, después de observatorios e IGN. */
-.footer-column--trust,
-.footer-column--links{ display:contents; }
-.footer-column--about{ grid-column:1; grid-row:1; }
-.footer-column--trust .footer-sellos{ grid-column:2; grid-row:1; }
-.footer-column--links .footer-family{ grid-column:3; grid-row:1; }
-.footer-column--trust .escudos-pie{ grid-column:1/-1; grid-row:2; margin-top:0; }
-.footer-column--trust .footer-ign{ grid-column:1/-1; grid-row:3; margin-top:0 !important; }
-.footer-column--links .footer-legal{ grid-column:1/-1; grid-row:4; justify-content:center; margin-top:0; }
-.footer-column--links #syncPanel{ grid-column:1/-1; grid-row:5; }
-@media (min-width:701px) and (max-width:960px){
-  .footer-column--links .footer-family{ grid-column:1/-1; grid-row:2; }
-  .footer-column--trust .escudos-pie{ grid-row:3; }
-  .footer-column--trust .footer-ign{ grid-row:4; }
-  .footer-column--links .footer-legal{ grid-row:5; }
-  .footer-column--links #syncPanel{ grid-row:6; }
-}
-@media (max-width:700px){
-  .footer-column--trust .footer-sellos{ grid-column:1; grid-row:2; }
-  .footer-column--links .footer-family{ grid-column:1; grid-row:3; }
-  .footer-column--trust .escudos-pie{ grid-row:4; }
-  .footer-column--trust .footer-ign{ grid-row:5; }
-  .footer-column--links .footer-legal{ grid-row:6; justify-content:flex-start; }
-  .footer-column--links #syncPanel{ grid-row:7; }
 }

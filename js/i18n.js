@@ -391,7 +391,7 @@ const translations = {
 		footerFamiliaTxt: "Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.",
 		footerEcoTxt: "Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.",
 		footerIgnTxt: "Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)",
-		donacionTxt: "Manolit∞ siempre sera gratis.<br>Los servidores, por desgracia, no lo son...",
+		donacionTxt: "Manolit∞ siempre será gratis.<br>Los servidores, por desgracia, no lo son...",
 		kofiBtn: "Apoyar en Ko‑fi",
 		comparativaLink: "Comparativa",
 		queEsLink: "Que es Manolit∞ ©",

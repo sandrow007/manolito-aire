@@ -90,7 +90,7 @@ main{ position:relative; isolation:isolate; }
   pointer-events:none; z-index:-1; overflow:visible; user-select:none;
 }
 .manolit-side-rail{
-  width:min(270px, calc((100vw - 1000px) / 2)); min-width:0;
+  width:min(270px, calc((100vw - 760px) / 2)); min-width:0;
   display:flex; flex-direction:column; justify-content:space-evenly;
   align-items:center; flex:0 0 auto; padding:36px 0;
 }
@@ -106,7 +106,7 @@ main{ position:relative; isolation:isolate; }
   opacity:.36;
   filter:drop-shadow(0 0 15px rgba(0,229,255,.23));
 }
-@media (max-width:1499px){ .manolit-side-rails{ display:none!important; } }
+@media (max-width:900px){ .manolit-side-rails{ display:none!important; } }
 @media (prefers-reduced-transparency:reduce){
   .manolit-side-logo{ opacity:.16; filter:none; }
   .manolit-side-logo:hover,
@@ -115,23 +115,27 @@ main{ position:relative; isolation:isolate; }
 @media (prefers-reduced-motion:reduce){
   .manolit-side-logo{ transition:none; }
 }
-/* En móviles y tabletas estrechas, los motivos vuelven como marca de agua:
-   muy tenues, detrás del contenido y sin capturar gestos táctiles. */
+@media (min-width:901px) and (max-width:1200px){
+  .manolit-side-logo{ opacity:.075; filter:none; }
+}
+/* En móvil, una columna central de emblemas completos acompaña el scroll;
+   en escritorio se mantienen las dos columnas laterales. */
 @media (max-width:900px){
-  .manolit-side-rails{ display:flex!important; }
-  .manolit-side-rail{ width:clamp(24px, 6vw, 48px); padding:16px 0; }
-  .manolit-side-logo{
-    opacity:.045; filter:none; overflow:hidden;
+  .manolit-side-rails{ display:flex!important; justify-content:center; }
+  .manolit-side-rail-left{ width:min(270px, 76vw); padding:28px 0; }
+  .manolit-side-rail-right{ display:none!important; }
+  .manolit-side-rail-left .manolit-side-logo{
+    transform:none; opacity:.045; filter:none;
     pointer-events:none; transition:none;
   }
-  .manolit-side-logo:nth-child(even){ display:none; }
+  .manolit-side-rail-left .manolit-side-logo:nth-child(n+4){ display:none; }
 }
 @media (max-width:480px){
-  .manolit-side-rail{ width:clamp(22px, 6vw, 32px); }
-  .manolit-side-logo{ opacity:.04; }
+  .manolit-side-rail-left{ width:min(270px, 76vw); }
+  .manolit-side-rail-left .manolit-side-logo{ opacity:.04; }
 }
 @media (max-width:900px) and (prefers-reduced-transparency:reduce){
-  .manolit-side-logo{ opacity:.08; }
+  .manolit-side-rail-left .manolit-side-logo{ opacity:.05; }
 }
 
 /* ---------- barra superior, común a todas las páginas ---------- */
@@ -1214,8 +1218,30 @@ body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
     border: 1px solid var(--line); border-radius: 999px;
   }
   /* El formulario de ruta en columna, cómodo para el pulgar */
-  .rs-form .rs-field{ flex: 1 1 100%; min-width: 0; }
-  .rs-form #rsBuscarBtn{ width: 100%; }
+  #main-content .rs-form .rs-field{ flex:1 1 100%; min-width:0; }
+  #main-content .rs-form .rs-field input[type="text"]{
+    display:block; width:100%; min-width:0;
+  }
+  #main-content .rs-form #rsBuscarBtn{ width:100%; min-height:44px; }
+  #main-content .rs-form .rs-toggle-invierno{ margin:0 auto; }
+}
+
+/* En móviles anchos/tabletas pequeñas el formulario aprovecha el ancho:
+   origen y destino comparten fila; buscar y modo invierno quedan alineados
+   debajo. En teléfonos estrechos se mantiene el apilado cómodo al tacto. */
+@media (min-width:480px) and (max-width:700px){
+  #main-content .rs-form{
+    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    align-items:center; gap:10px;
+  }
+  #main-content .rs-form .rs-field{ min-width:0; }
+  #main-content .rs-form #rsBuscarBtn{
+    grid-column:1; width:100%; min-width:0; padding:8px 10px;
+  }
+  #main-content .rs-form .rs-toggle-invierno{
+    grid-column:2; width:100%; min-width:0; margin:0; padding:8px 10px;
+    justify-content:center; font-size:.78rem; line-height:1.2;
+  }
 }
 
 

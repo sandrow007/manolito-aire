@@ -3967,6 +3967,8 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 /* Rediseño compacto del panel de ruta, solo para móvil. */
 @media (max-width:640px){
   #main-content .map-head{
+    position:relative;
+    z-index:30;
     display:grid;
     grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);
     align-items:center;

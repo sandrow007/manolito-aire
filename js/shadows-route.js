@@ -608,6 +608,45 @@
     attributionControl: true
 });
 
+  // El estilo Liberty de OpenMapTiles separa los límites marcados como
+  // `disputed` en una capa discontinua. Para que no haya cortes en la frontera
+  // internacional, esa capa conserva sus datos pero usa exactamente el trazo
+  // de la frontera normal.
+  function normalizarFronterasDisputed() {
+    const fronteraNormal = map.getLayer('boundary_2');
+    const fronteraDisputada = map.getLayer('boundary_disputed');
+    if (!fronteraNormal || !fronteraDisputada) return;
+
+    try {
+      const filtroNormal = map.getFilter('boundary_2');
+      if (Array.isArray(filtroNormal) && filtroNormal[0] === 'all') {
+        map.setFilter('boundary_2', filtroNormal.filter((condicion, indice) => {
+          if (indice === 0 || !Array.isArray(condicion)) return true;
+          return !(condicion[0] === '!=' && condicion[1]?.[0] === 'get' &&
+            condicion[1][1] === 'disputed' && condicion[2] === 1);
+        }));
+      }
+
+      ['line-color', 'line-width', 'line-opacity'].forEach((propiedad) => {
+        map.setPaintProperty(
+          'boundary_disputed',
+          propiedad,
+          map.getPaintProperty('boundary_2', propiedad)
+        );
+      });
+      ['line-cap', 'line-join'].forEach((propiedad) => {
+        map.setLayoutProperty(
+          'boundary_disputed',
+          propiedad,
+          map.getLayoutProperty('boundary_2', propiedad)
+        );
+      });
+      map.setPaintProperty('boundary_disputed', 'line-dasharray', undefined);
+    } catch (e) { /* el estilo remoto aún se está terminando de cargar */ }
+  }
+
+  map.on('style.load', normalizarFronterasDisputed);
+
 // AHORA SÍ: El mapa está creado, lo pasamos a global para que los árboles lo enganchen
 window.manolitAireMap = map;
 // Controles nativos de MapLibre retirados (sep-2026, orden de Sandro):

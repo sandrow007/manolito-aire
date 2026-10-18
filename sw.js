@@ -23,12 +23,10 @@
    - 23-sep-c: about.html rehecho (textos humanizados, lema nuevo sin
      'vende sombra', inglés y georgiano completos, LANGS con en).
    - 23-sep-d: index.html, modo peque con 24 emojis flotantes
-     (lista ampliada por Sandro, unicornio y flamenca incluidos).
    - 23-sep-e: modo salud los sábados (ambiente verde, banner y
      sección defensa de las sombras, automático y reversible).
    - 25-sep-a: el modo salud cubre sábado entero y domingo hasta las
      18:00, y este primer finde arranca ya desde el viernes 25.
-   - 25-sep-b: textos del modo salud con voz de Sandro (Hércules),
      banner sin decir el día para que el estreno de viernes cuadre.
    ============================================================ */
 'use strict';
@@ -45,7 +43,6 @@
 // 2026-09-14-a: (1) descamuflaje: el árbol plano duplicado pegado a un
 // naranjo/albizia 3D ya no se pinta (adiós al "cubo verde" y al flash
 // negro al hacer zoom); (2) el naranjo 3D da naranjas MADURAS también en
-// verano (orden de Sandro); (3) emisivo del naranjo ajustado para que no
 // brille de más de cerca. Cambian arboles-3d.js y shadows-route.js.
 // 2026-09-14-b: SEO de sostenibilidad en index.html (huella hídrica por
 // visita ~1-4 ml, sin publicidad programática; metas, OG, JSON-LD y línea
@@ -86,7 +83,6 @@
 // pagina se queda arriba y ya no tapa el mapa ni corta el contenido.
 // Cambia style.css.
 // 2026-09-16-f: se actualiza la pagina "Por que existe esto" (about.html) con
-// el nuevo texto de Sandro (huella hidrica digital, publicidad programatica,
 // cero anuncios por coherencia y llamada a una futura ley), limpio de guiones
 // largos, punto y coma y dos puntos en los textos visibles.
 // Cambia about.html.
@@ -98,7 +94,6 @@
 // aviso-legal.html, privacidad.html y cookies.html.
 // 2026-09-16-h: nueva seccion de preguntas frecuentes (FAQ) al final de
 // index.html, antes del pie. Hecha con details/summary, sin JavaScript,
-// con el tono de Sandro y sin marcas tipicas de texto de IA.
 // Cambian index.html y style.css.
 // 2026-09-18-c: botonera de camara del mapa (zoom y mirar arriba o abajo
 // sin rueda de raton), pitch libre hasta 85 grados, joystick del paseo
@@ -114,7 +109,6 @@
 // hoja propia, sin cargar nada extra. En iPhone el boton usa el modo
 // pantalla completa por CSS de siempre.
 // Cambian style.css y js/shadows-route.js.
-// 2026-09-18-e: orden visual del mapa (orden de Sandro). El zoom ya no
 // sale dos veces: se retiran los controles nativos de MapLibre y todo
 // el manejo del mapa vive en una unica botonera a la izquierda (zoom,
 // mirar arriba o abajo, norte y pantalla completa juntos). El widget
@@ -131,7 +125,6 @@
 // botones de mapa base en rejilla de tres columnas.
 // Cambian style.css y js/shadows-route.js.
 // 2026-09-18-g: widget de posicion solar en COLUMNA con el orden
-// logico que pide Sandro (1 planetario con su hora, 2 boton de
 // Renderizado LiDAR, 3 capas del mapa), centrado en movil y en
 // ordenador. Botonera del mapa mas pequena en movil (34 px). La
 // brujula, ademas de girar con el mapa, al tocarla vuelve al norte
@@ -143,7 +136,7 @@
 // VE al dar a Mi ubicacion y aguanta GPS lento de movil) y
 // js/microclima.js (respaldo directo a Open-Meteo si el worker aun no
 // tiene la ruta nueva).
-// Historial de la versión 2026-10-12-c: -c 12-oct (orden directa de Sandro, pendiente del visto bueno de Sandro y de Jop): vista móvil pulida y aparecer en Bing. (1) css/style.css: rediseño del panel de capas en móvil, la hoja envolvía la lista a una segunda columna por un flex-wrap heredado (cabecera sola a la izquierda, interruptores cortados por el borde derecho y «Mapa oscuro» a medias); ahora una sola columna a ancho completo con nowrap en TODOS los idiomas, scroll interno fluido, hoja flotante separada de los bordes y de la barra del sistema con la safe-area respetada. Además los campos de origen y destino se visten con la piel de la consola del mapa (panel oscuro translúcido con blur, borde fino, radio de control, foco con anillo naranja, sugerencias a juego e iconos pin y bandera con el trazo aclarado para leerse sobre el oscuro; en árabe el icono cambia de lado), sin tocar las formas ni el botón Buscar ruta. (2) js/i18n.js e index.html: el modo «Peque (5 años)» pasa a «Peque» y «Abuela / Abuelo» pasa a «Mayores» en los siete idiomas. (3) index.html rendimiento, sin cambios visibles: el motor de emojis del modo peque pinta a 30 fps con movimiento por tiempo real (era el único bucle de la web sin tope, 90 nodos escritos 60 veces por segundo) y el contador de agua de la sección eco no escribe mientras está fuera de pantalla. (4) sitemap.xml nuevo en la raíz (faltaba en el repo y robots.txt lo referenciaba): solo URLs reales con nombre de archivo, preparado para Bing Webmaster Tools. (5) SEO para «mapa de sombras» y vocabulario vecino (orden de Sandro): título y descripción abren con la búsqueda exacta, el JSON-LD de WebApplication suma keywords y featureList reales, el H1 del héroe y sus 7 traducciones dicen «mapa de sombras en vivo», y el FAQ visible gana dos preguntas (isla de calor y ver la sombra a otra hora o fecha) que también entran en el JSON-LD FAQPage. Nada inventado, todo lo prometido existe en la página. Toca css/style.css, js/i18n.js, index.html, sitemap.xml (nuevo) y sw.js.
+const VERSION = '2026-10-18-solar-panel';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

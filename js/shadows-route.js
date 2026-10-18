@@ -3503,10 +3503,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnPlegar.id = 'rsPlegarBtn';
     btnPlegar.type = 'button';
     btnPlegar.setAttribute('aria-label', t('sunPanelToggle', 'Mostrar u ocultar el panel de posición solar'));
+    btnPlegar.setAttribute('aria-expanded', 'true');
     btnPlegar.innerHTML = '<svg width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     btnPlegar.addEventListener('click', async () => {
       const estabaCerrado = panel.classList.contains('rs-cerrado');
       panel.classList.toggle('rs-cerrado');
+      btnPlegar.setAttribute('aria-expanded', estabaCerrado ? 'true' : 'false');
       if (estabaCerrado) {
         asegurarActivacionSolar();
         await recalcularSombrasVisibles();
@@ -3515,8 +3517,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         sincronizarArboles();
       }
     });
-
-    panel.classList.add('rs-cerrado');
 
     cabecera.append(eyebrow, svgSol, btnPlegar);
 
@@ -3636,6 +3636,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     panel.append(cabecera, cuerpo);
     contenedorMapa.appendChild(panel);
 
+    asegurarActivacionSolar();
     actualizarEtiquetaTiempo(false);
   }
 

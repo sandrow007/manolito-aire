@@ -4433,3 +4433,67 @@ html[lang="ar"] #main-content #rsCamCtl{
   #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"],
   #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]::after{ transition:none !important; }
 }
+
+/* Panel solar flotante: misma información y controles, nueva composición. */
+#main-content #rsTimeControls{
+  width:min(392px,calc(100vw - 24px)) !important;
+  min-width:0;
+  padding:18px 20px;
+  background:rgba(22,26,32,0.96) !important;
+  border-color:rgba(255,255,255,0.12) !important;
+  border-radius:15px !important;
+  box-shadow:0 12px 28px rgba(0,0,0,0.32) !important;
+  color:#E8EDF5;
+}
+#main-content #rsTimeControls .rs-cabecera{
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  align-items:center;
+  min-height:30px;
+  margin-bottom:13px !important;
+}
+#main-content #rsTimeControls .rs-eyebrow{
+  font-size:14px !important;
+  font-weight:600;
+  color:#AAB4C4 !important;
+}
+#main-content #rsTimeControls .rs-cabecera > svg{ width:54px; height:31px; }
+#main-content #rsPlegarBtn{
+  width:34px;
+  height:30px;
+  padding:0;
+  border:1px solid rgba(255,255,255,0.10) !important;
+  border-radius:9px !important;
+  background:rgba(255,255,255,0.025) !important;
+  color:#D5DCE8 !important;
+}
+#main-content #rsPlegarBtn:hover{ background:rgba(255,255,255,0.09) !important; }
+#main-content #rsTimeControls .rs-fila{ min-height:27px; }
+#main-content #rsTimeLabel{
+  font-size:16px;
+  font-weight:700;
+  color:#E8EDF5 !important;
+  font-variant-numeric:tabular-nums;
+}
+#main-content #rsGoldenBadge{ color:#FFB45D; border-color:rgba(255,180,93,0.42); background:rgba(255,180,93,0.12); }
+#main-content #rsTimeControls .rs-divisor{ margin:15px 0 11px; background:rgba(255,255,255,0.13); }
+#main-content #rsTimeSlider{ height:32px; margin:5px 0 0; }
+#main-content #rsTimeSlider::-webkit-slider-runnable-track{ height:6px; background:rgba(207,216,230,0.28) !important; }
+#main-content #rsTimeSlider::-webkit-slider-thumb{ width:20px; height:20px; margin-top:-7px; background:#FFB45D; border:2px solid #202631; box-shadow:0 1px 5px rgba(0,0,0,0.35); }
+#main-content #rsTimeSlider::-moz-range-track{ height:6px; background:rgba(207,216,230,0.28) !important; }
+#main-content #rsTimeSlider::-moz-range-thumb{ width:18px; height:18px; background:#FFB45D; border:2px solid #202631; }
+#main-content #rsTimeControls .rs-botones{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin-top:0; }
+#main-content #rsTimeControls .rs-botones button{
+  min-height:53px;
+  padding:9px 8px;
+  background:rgba(255,255,255,0.025) !important;
+  border-color:rgba(255,255,255,0.12) !important;
+  color:#CAD2DF !important;
+  font-variant-numeric:tabular-nums;
+}
+#main-content #rsTimeControls .rs-botones button:hover{ background:rgba(255,180,93,0.13) !important; border-color:rgba(255,180,93,0.62) !important; color:#FFF3DD !important; }
+#main-content #rsTimeControls .rs-botones button.rs-btn-capturar{ grid-column:1 / -1; min-height:50px; color:#B5BECC !important; }
+@media (max-width:480px){
+  #main-content #rsTimeControls{ width:calc(100vw - 24px) !important; min-width:0; max-width:calc(100% - 24px); padding:14px 16px; }
+  #main-content #rsTimeControls .rs-botones button{ min-height:47px; }
+}

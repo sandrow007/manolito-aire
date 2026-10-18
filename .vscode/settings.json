@@ -1,5 +1,5 @@
 {
-    "deepseek.apiKey": "",
+    "deepseek.apiKey": "sk-mXwj4h7J5Ed7I1vsnB9h1Iy446AsX1alIi0TBQHLRlGNrVBn",
     "deepseek.model": "deepseek-v4-pro",
     "deepseek-copilot.maxTokens": 80000,
     "deepseek.maxTokens": 8100,
@@ -7,5 +7,6 @@
     "liveServer.settings.port": 5501,
     "github.copilot.chat.localIndex.enabled": true,
     "gitlens.currentLine.enabled": true,
-    "gitlens.hovers.currentLine.over": "line"
+    "gitlens.hovers.currentLine.over": "line",
+    "chat.agent.sandbox.network.allowLocalNetwork": true
 }

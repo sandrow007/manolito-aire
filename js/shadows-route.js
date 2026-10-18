@@ -3545,9 +3545,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btnVerano = crearBoton(t('btnSummer', 'Verano'), 'rsBtnVerano');
     const btnInvierno = crearBoton(t('btnWinter', 'Invierno'), 'rsBtnInvierno');
     const btnCapturar = crearBoton(t('captureView', 'Capturar vista'), 'rsBtnCapturar');
-    const etiquetaHora = t('timeSlider', 'Hora del día');
-    btnMediodia.setAttribute('aria-label', etiquetaHora + ' · 12:00');
-    btnTarde.setAttribute('aria-label', etiquetaHora + ' · 17:00');
+    btnMediodia.setAttribute('aria-label', '12:00');
+    btnTarde.setAttribute('aria-label', '17:00');
     btnCapturar.className = 'rs-btn-capturar';
 
     btnAhora.addEventListener('click', () => {
@@ -4837,6 +4836,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   const statusEl = document.getElementById('rsStatus');
 
   function mostrarEstado(texto, tipo) {
+    statusEl.classList.remove('rs-status-ruta');
     statusEl.textContent = texto;
     statusEl.style.color = tipo === 'error' ? leerVar('--breath-bad') : tipo === 'ok' ? leerVar('--breath-good') : leerVar('--sky-mid');
   }
@@ -5151,6 +5151,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
         const resumenRuta = `${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`;
         mostrarEstado(resumenRuta, 'ok');
+        statusEl.classList.add('rs-status-ruta');
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);
@@ -5226,11 +5227,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (btnCapturar) btnCapturar.textContent = t('captureView', 'Capturar vista');
     const btnAhora = document.getElementById('rsBtnAhora');
     if (btnAhora) btnAhora.textContent = t('now', 'Ahora');
-    const etiquetaHora = t('timeSlider', 'Hora del día');
     const btnMediodia = document.getElementById('rsBtnMediodia');
-    if (btnMediodia) btnMediodia.setAttribute('aria-label', etiquetaHora + ' · 12:00');
+    if (btnMediodia) btnMediodia.setAttribute('aria-label', '12:00');
     const btnTarde = document.getElementById('rsBtnTarde');
-    if (btnTarde) btnTarde.setAttribute('aria-label', etiquetaHora + ' · 17:00');
+    if (btnTarde) btnTarde.setAttribute('aria-label', '17:00');
     const grupoPreajustes = document.querySelector('#rsTimeControls .rs-botones [role="group"]');
     if (grupoPreajustes) grupoPreajustes.setAttribute('aria-label', t('timePresets', 'Preajustes de hora'));
     const btnVerano = document.getElementById('rsBtnVerano');

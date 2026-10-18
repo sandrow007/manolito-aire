@@ -3698,3 +3698,29 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   }
   body.rs-capas-pop #main-content .rs-planetario-capas.rs-capas-cerrada{ transform:translateY(14px); }
 }
+
+/* Resumen calculado de ruta: tarjeta clara, visible y leíble sobre el mapa. */
+#main-content #rsStatus.rs-status-ruta{
+  display:block;
+  margin-block:12px 16px !important;
+  padding:14px 16px;
+  border:1px solid var(--mui-line-2);
+  border-inline-start:4px solid var(--mui-accent);
+  border-radius:var(--mui-r-panel,14px);
+  background:rgba(22,26,32,.96);
+  box-shadow:var(--mui-shadow);
+  color:var(--mui-text) !important;
+  font-size:clamp(.92rem,2.2vw,1.04rem);
+  font-weight:650;
+  line-height:1.5;
+  font-variant-numeric:tabular-nums;
+}
+#main-content .rs-pasos{
+  border-color:var(--mui-line-2);
+  border-radius:var(--mui-r-panel,14px);
+  background:rgba(22,26,32,.96);
+  color:var(--mui-text);
+  box-shadow:var(--mui-shadow);
+}
+#main-content .rs-pasos-cabecera{ align-items:center; }
+#main-content .rs-lista-pasos{ padding-inline-start:1.5em; }

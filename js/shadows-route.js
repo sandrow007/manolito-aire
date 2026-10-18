@@ -2360,6 +2360,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       modoManual ? t('simulating', 'Simulando') + ': ' :
       t('now', 'Ahora') + ': ';
     etiquetaTiempo.textContent = prefijo + formatoHora(fecha);
+    const marcadorSolar = document.querySelector('#rsSolarMarker');
+    if (marcadorSolar && sliderTiempo) {
+      const x = 20 + (Number(sliderTiempo.value) / 1439) * 300;
+      marcadorSolar.setAttribute('transform', `translate(${x - 20} 0)`);
+      const etiquetaMarcador = marcadorSolar.querySelector('text');
+      if (etiquetaMarcador) etiquetaMarcador.textContent = formatoHora(fecha);
+    }
     // El slider anuncia la hora en formato legible, no los minutos crudos.
     if (sliderTiempo) sliderTiempo.setAttribute('aria-valuetext', formatoHora(fecha));
     // Anuncio por lector de pantalla con debounce (~400 ms): mientras se
@@ -3488,16 +3495,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     eyebrow.id = 'rsEyebrowSol';
     eyebrow.textContent = t('sunPosition', 'Posición solar');
 
-    const svgSol = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svgSol.setAttribute('viewBox', '0 0 60 34');
-    svgSol.setAttribute('width', '48');
-    svgSol.setAttribute('height', '28');
-    svgSol.innerHTML = `
-      <g id="rsSolGrupo" style="transition:opacity .3s;">
-        <path d="M 4 30 A 26 26 0 0 1 56 30" fill="none" stroke="#c98a4b" stroke-width="1" stroke-dasharray="1.5 3" opacity="0.55"/>
-        <line x1="4" y1="30" x2="56" y2="30" stroke="#ffffff22" stroke-width="1"/>
-        <circle id="rsSolPunto" cx="30" cy="4" r="3.4" fill="#e7b06a"/>
-      </g>`;
+    const tabs = document.createElement('div');
+    tabs.className = 'rs-solar-tabs';
+    tabs.setAttribute('role', 'group');
+    tabs.setAttribute('aria-label', t('timePresets', 'Preajustes de hora'));
 
     const btnPlegar = document.createElement('button');
     btnPlegar.id = 'rsPlegarBtn';
@@ -3518,7 +3519,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
     });
 
-    cabecera.append(eyebrow, svgSol, btnPlegar);
+    cabecera.append(tabs, btnPlegar);
 
     const cuerpo = document.createElement('div');
     cuerpo.className = 'rs-cuerpo';
@@ -3536,6 +3537,29 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     sliderTiempo = document.createElement('input');
     sliderTiempo.type = 'range';
+    // Timeline visual compacta del adjunto; el input mantiene la logica actual.
+    const timeline = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    timeline.id = 'rsSolarTimeline';
+    timeline.setAttribute('viewBox', '0 0 340 116');
+    timeline.setAttribute('role', 'slider');
+    timeline.setAttribute('tabindex', '0');
+    timeline.innerHTML = '<defs><linearGradient id="rsSolarGradient" x1="20" y1="0" x2="320" y2="0"><stop offset="0" stop-color="#00f3ff"/><stop offset=".333" stop-color="#3b82f6"/><stop offset=".667" stop-color="#a78bfa"/><stop offset="1" stop-color="#f472b6"/></linearGradient></defs><path d="M20 88H320" class="rs-solar-track"/><path d="M20 88H320" class="rs-solar-gradient"/><g class="rs-solar-ticks"><path d="M20 88v7M57.5 88v3.5M95 88v3.5M132.5 88v7M170 88v3.5M207.5 88v3.5M245 88v7M282.5 88v3.5M320 88v7"/><text x="20" y="108">0</text><text x="132.5" y="108">9</text><text x="170" y="108">12</text><text x="245" y="108">18</text><text x="320" y="108">24</text></g><g id="rsSolarMarker"><text x="20" y="7">--:--</text><g transform="translate(-6 0) scale(.26)"><path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="6" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="5"/><path d="M 100,146 C 75,121 75,171 100,146 C 125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#00e5ff" stroke-width="5" stroke-linecap="round"/><path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#00e5ff" stroke-width="4" stroke-linecap="round"/></g></g>';
+    function fijarHoraDesdeTimeline(evento) {
+      const rect = timeline.getBoundingClientRect();
+      const proporcion = Math.max(0, Math.min(1, (evento.clientX - rect.left) / rect.width));
+      sliderTiempo.value = String(Math.round((proporcion * 1439) / 5) * 5);
+      sliderTiempo.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    timeline.addEventListener('pointerdown', evento => { timeline.setPointerCapture?.(evento.pointerId); fijarHoraDesdeTimeline(evento); });
+    timeline.addEventListener('pointermove', evento => { if (evento.buttons) fijarHoraDesdeTimeline(evento); });
+    timeline.addEventListener('keydown', evento => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(evento.key)) return;
+      evento.preventDefault();
+      const actual = Number(sliderTiempo.value) || 0;
+      const siguiente = evento.key === 'Home' ? 0 : evento.key === 'End' ? 1435 : actual + (evento.key === 'ArrowRight' ? 5 : -5);
+      sliderTiempo.value = String(Math.max(0, Math.min(1435, siguiente)));
+      sliderTiempo.dispatchEvent(new Event('input', { bubbles: true }));
+    });
     sliderTiempo.id = 'rsTimeSlider';
     sliderTiempo.min = '0';
     sliderTiempo.max = '1439';
@@ -3623,16 +3647,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     btnCapturar.addEventListener('click', capturarVista);
 
-    filaBotones.append(btnAhora, btnMediodia, btnTarde, btnVerano, btnInvierno, btnCapturar);
+    btnAhora.className = 'rs-solar-tab';
+    btnVerano.className = 'rs-solar-tab';
+    btnInvierno.className = 'rs-solar-tab';
+    tabs.append(btnInvierno, btnAhora, btnVerano);
+    btnMediodia.hidden = true;
+    btnTarde.hidden = true;
+    filaBotones.append(btnMediodia, btnTarde, btnCapturar);
     // "Ahora / Verano / Invierno" forman un grupo lógico de preajustes;
     // display:contents mantiene el layout exacto sin cambiar el HTML visual.
-    const grupoPreajustes = document.createElement('div');
-    grupoPreajustes.setAttribute('role', 'group');
-    grupoPreajustes.setAttribute('aria-label', t('timePresets', 'Preajustes de hora'));
-    grupoPreajustes.style.display = 'contents';
-    filaBotones.insertBefore(grupoPreajustes, filaBotones.firstChild);
-    grupoPreajustes.append(btnAhora, btnMediodia, btnTarde, btnVerano, btnInvierno);
-    cuerpo.append(filaEtiqueta, sliderTiempo, divisor, filaBotones, anunciadorHora);
+    cuerpo.append(filaEtiqueta, sliderTiempo, timeline, divisor, filaBotones, anunciadorHora);
     panel.append(cabecera, cuerpo);
     contenedorMapa.appendChild(panel);
 

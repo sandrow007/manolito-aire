@@ -4308,7 +4308,8 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
     display:block;
     position:absolute;
     z-index:30;
-    inset-block-start:calc(100% + 5px);
+    inset-block-start:auto;
+    inset-block-end:calc(100% + 5px);
     inset-inline-end:0;
     inline-size:min(360px,calc(100vw - 24px));
     box-sizing:border-box;

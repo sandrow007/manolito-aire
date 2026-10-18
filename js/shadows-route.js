@@ -1467,6 +1467,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   window.manolitIntervalos = window.manolitIntervalos || [];
   window.manolitIntervalos.push(setInterval(() => {
     if (document.hidden) return; // pestaña oculta: cero gasto de CPU/batería
+    const widgetHora = document.querySelector('svg#map #w');
+    if (widgetHora && !widgetHora.classList.contains('o')) return;
     if (!solarActivado || modoManual || paseoActivo) return;
     // Rendimiento (sep-2026): con las sombras apagadas en el panel no hay
     // nada que mantener, ni siquiera despertamos el cálculo (ahorro real

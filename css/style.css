@@ -4679,3 +4679,10 @@ html[lang="ar"] #main-content #rsCamCtl{
   #main-content #rsTimeControls .rs-solar-tabs{ gap:7px; }
   #main-content #rsTimeControls .rs-solar-tab{ font-size:9px !important; }
 }
+
+/* El marcador queda quieto plegado y recupera sus animaciones al abrirse. */
+svg#map:not(:has(#w.o)) #mk,
+svg#map:not(:has(#w.o)) #mk *{
+  animation-play-state:paused !important;
+  transition:none !important;
+}

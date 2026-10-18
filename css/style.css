@@ -4085,3 +4085,25 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
     overflow-wrap:anywhere;
   }
 }
+
+/* Árabe: activa RTL solo en la sección del mapa, sin alterar el estado
+   global de idiomas ni los elementos de la vista inicial. */
+html[lang="ar"] #main-content{ direction:rtl; }
+html[lang="ar"] #main-content .rs-form .rs-field input[type="text"]{
+  background-position:calc(100% - 10px) center;
+  padding-inline-start:14px;
+  padding-inline-end:38px;
+}
+html[lang="ar"] #main-content #rsMapControls{
+  inset-inline-start:calc(10px + env(safe-area-inset-right, 0px)) !important;
+  inset-inline-end:auto !important;
+}
+html[lang="ar"] #main-content #rsCamCtl{
+  inset-inline-end:calc(12px + env(safe-area-inset-left, 0px)) !important;
+  inset-inline-start:auto !important;
+}
+@media (max-width:640px){
+  html[lang="ar"] #main-content #rsCamCtl{
+    inset-inline-end:calc(8px + env(safe-area-inset-left, 0px)) !important;
+  }
+}

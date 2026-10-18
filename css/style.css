@@ -3620,6 +3620,47 @@ h2.map-title, h2.quantum-badge{ margin:0; }
 .footer-sellos .sello-footer{ opacity:1; } .footer-sellos .footer-sello{ opacity:1; }
 [data-theme="dark"] .footer .escudo-gama{ color:#7FD4DE; }
 
+/* Pie ordenado en tres columnas sin mover ni recrear sus controles. */
+.footer-columns{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) minmax(0,1fr);
+  align-items:start;
+  gap:var(--ux-space-3);
+  max-width:1200px;
+  margin-inline:auto;
+  text-align:start;
+}
+.footer-column{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:var(--ux-space-2);
+  min-width:0;
+}
+.footer-column--about .footer-cuentas-linea{ margin:0; }
+.footer-column--about .footer-apoyo{
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+  gap:var(--ux-space-2);
+  margin-top:var(--ux-space-2);
+  padding-top:var(--ux-space-2);
+}
+.footer-column--about .footer-apoyo .donacion-mensaje{ max-width:none; text-align:start; }
+.footer-column--about .footer-apoyo .footer-redes{ align-items:flex-start; }
+.footer-column--trust .footer-sellos{ justify-content:flex-start; gap:var(--ux-space-2); }
+.footer-column--trust .footer-ign{ margin-top:0 !important; }
+.footer-column--links .footer-family{ margin-top:0; }
+.footer-column--links .footer-legal{ justify-content:flex-start; margin-top:auto; }
+@media (min-width:701px) and (max-width:960px){
+  .footer-columns{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .footer-column--links{ grid-column:1/-1; }
+}
+@media (max-width:700px){
+  .footer-columns{ grid-template-columns:minmax(0,1fr); gap:var(--ux-space-3); }
+  .footer-column--links .footer-legal{ justify-content:flex-start; }
+}
+
 /* 12-oct-2026 (orden de Sandro): en árabe (RTL) la tarjeta flotante de
    capas es un flex en columna con flex-wrap:wrap heredado, y Chromium con
    direction:rtl calcula mal el origen de las líneas de flex: la lista se

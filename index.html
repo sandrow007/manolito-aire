@@ -372,7 +372,7 @@
 
 <div id="idiomaInicioGate">
   <div class="idioma-inicio-card" role="dialog" aria-modal="true" aria-labelledby="idiomaInicioTitulo">
-    <h1 class="idioma-inicio-titulo" id="idiomaInicioTitulo">Elige tu idioma</h1>
+    <p class="idioma-inicio-titulo" id="idiomaInicioTitulo">Elige tu idioma</p>
     <p class="idioma-inicio-sub">Selecciona el idioma para arrancar la web.</p>
     <div class="idioma-inicio-grid" role="group" aria-label="Selector inicial de idioma">
       <button type="button" class="idioma-inicio-btn" data-lang="es">Español</button>
@@ -1096,7 +1096,7 @@
   <!-- h1 unico con la busqueda principal y la marca sin simbolo (28-sep, SEO).
        Visible pero discreto para no tocar el diseño del hero.
        Traducido a los 6 idiomas (clave heroH1 en js/i18n.js). -->
-  <h1 id="heroTitulo" data-i18n="heroH1" style="font-size:15px;font-weight:600;color:var(--sky-mid,#9fb3c8);text-align:center;margin:0 0 10px;">Manolito Aire. Mapa de sombras en vivo y rutas con sombra</h1>
+  <h1 id="heroTitulo" data-i18n="tagline" style="font-size:15px;font-weight:600;color:var(--sky-mid,#9fb3c8);text-align:center;margin:0 0 10px;">El aire y la sombra de tu calle, en vivo</h1>
   <div class="air-hero-card" id="airHeroCard">
   <div class="city-picker" id="cityPickerContainer">
     <button class="city-dropdown-btn" id="cityDropdownBtn" aria-haspopup="listbox" aria-expanded="false">Sevilla</button>
@@ -1639,16 +1639,13 @@
 </main>
 
 <footer class="footer">
-  <!-- 09-oct-2026 (tarea de reordenación de Sandro): el pie se ordena en
-       seis bloques: a) quiénes somos, b) apoyo y comunidad, c) sellos de
-       confianza, d) escudos que cuidan de nosotros con la atribución del
-       IGN debajo, e) familia de proyectos (enlaces de verdad) y f) la
-       franja legal con Sincronizar / Exportar datos. Mismo texto, mismos
-       ids, mismos enlaces: solo cambian el orden y la presentación. -->
+  <!-- Los mismos contenidos e identificadores se presentan en tres columnas. -->
 
   <!-- a) Quiénes somos: la frase corta y el enlace a las cuentas del
        agua, que viven en su propia sección (#ecoAgua). El párrafo largo
        de la telemetría se queda allí: aquí solo va el enlace. -->
+  <div class="footer-columns">
+  <div class="footer-column footer-column--about">
   <p data-i18n="footerFamiliaTxt">Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.</p>
   <p class="footer-cuentas-linea"><a class="footer-cuentas" href="#ecoAgua" data-i18n="footerVerCuentas">Ver las cuentas</a></p>
 
@@ -1679,9 +1676,12 @@
     </div>
   </div>
 
+  </div>
+
   <!-- c) Sellos de confianza en una fila (09-oct-2026, orden de Sandro):
        A+ de carbono, sello circular Manolit∞ e insignia de
        AlternativeTo. -->
+  <div class="footer-column footer-column--trust">
   <div class="footer-sellos">
     <div class="footer-sello">
       <svg width="320" height="130" viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Sello de eficiencia: manolitoaire.com tiene calificación A+ en Website Carbon Rating">
@@ -1811,11 +1811,13 @@
        (09-oct-2026, orden de Sandro) y sin la opacidad vieja, que dejaba
        el texto por debajo del contraste mínimo WCAG AA (2,86:1). -->
   <div class="footer-ign" style="margin-top:8px; font-size:0.75rem;" data-i18n="footerIgnTxt">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
+  </div>
 
   <!-- e) La familia de proyectos como enlaces de verdad (09-oct-2026,
        orden de Sandro): ya no es texto monoespaciado, cada nombre enlaza
        a su web. Traducido con data-i18n-html (la clave footerFamily de
        js/i18n.js ahora lleva los enlaces dentro). -->
+  <div class="footer-column footer-column--links">
   <div class="footer-family" data-i18n-html="footerFamily"><a href="https://www.manolitoforestal.space/" target="_blank" rel="noopener">Manolit∞ Forestal</a> · <a href="https://islasdecalorsevilla.com" target="_blank" rel="noopener">Islas de Calor Sevilla</a> · <a href="https://manolitoaire.com" target="_blank" rel="noopener">Manolit∞ Aire</a></div>
 
   <!-- Sincronizar / Exportar datos: tus ajustes (tema, paleta, idioma,
@@ -1843,6 +1845,8 @@
       </div>
       <input type="file" id="syncFileInput" accept="application/json,.json" hidden>
     </div>
+  </div>
+  </div>
 </footer>
 
 <button class="chat-fab" onclick="openChat()" aria-label="Pregúntale a Manolit∞" title="Pregúntale a Manolit∞">

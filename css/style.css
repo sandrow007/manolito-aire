@@ -3964,6 +3964,242 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   }
 }
 
+/* Rediseño compacto del panel de ruta, solo para móvil. */
+@media (max-width:640px){
+  #main-content .map-head{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);
+    align-items:center;
+    gap:8px;
+    margin-block-end:8px;
+  }
+  #main-content .map-title{
+    min-inline-size:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-size:.86rem;
+    line-height:1.2;
+    white-space:nowrap;
+  }
+  #main-content #aguaVivoHead{
+    gap:4px;
+    margin:0;
+    font-size:.72rem;
+    line-height:1.2;
+  }
+  #main-content #aguaVivoHead .avh-num{
+    font-size:.88rem;
+    margin-inline:0 2px;
+  }
+  #main-content .rs-form{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    grid-auto-rows:auto;
+    column-gap:8px;
+    row-gap:0;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+    max-block-size:235px;
+  }
+  #main-content .rs-form .rs-field{
+    box-sizing:border-box;
+    grid-column:1 / -1;
+    inline-size:100%;
+    min-inline-size:0;
+    padding-inline:12px;
+    background:var(--paper);
+    border-inline:1px solid var(--line);
+  }
+  #main-content .rs-form .rs-field:first-child{
+    padding-block:0;
+    border-block-start:1px solid var(--line);
+    border-block-end:0;
+    border-start-start-radius:15px;
+    border-start-end-radius:15px;
+  }
+  #main-content .rs-form .rs-field:nth-child(2){
+    padding-block:0;
+    border-block-start:1px solid var(--line);
+    border-block-end:1px solid var(--line);
+    border-end-start-radius:15px;
+    border-end-end-radius:15px;
+  }
+  #main-content .rs-form .rs-field input[type="text"]{
+    box-sizing:border-box;
+    inline-size:100%;
+    min-block-size:44px;
+    padding-block:8px;
+    padding-inline-start:40px;
+    padding-inline-end:8px;
+    border:0 !important;
+    border-radius:8px;
+    background-color:transparent;
+    color:var(--ink);
+    font-size:16px;
+    line-height:1.25;
+  }
+  #main-content .rs-form .rs-field input[type="text"]:focus{
+    box-shadow:inset 0 0 0 1px var(--mui-accent);
+  }
+  html[lang="ar"] #main-content .rs-form .rs-field input[type="text"]{
+    background-position:calc(100% - 12px) center;
+    padding-inline-start:8px;
+    padding-inline-end:40px;
+  }
+  #main-content .rs-form #rsBuscarBtn,
+  #rsParkingAction{
+    box-sizing:border-box;
+    grid-column:1;
+    min-inline-size:0;
+    inline-size:100%;
+    margin-block-start:8px;
+  }
+  #rsParkingAction{ grid-column:2; display:flex; }
+  #main-content .rs-form #rsBuscarBtn,
+  #main-content .rs-form .rs-parking-action{
+    box-sizing:border-box;
+    min-block-size:44px;
+    min-height:44px !important;
+    padding-block:6px;
+    padding-inline:6px;
+    gap:5px;
+    border-radius:12px;
+    font-size:clamp(13px,3.7vw,15px) !important;
+    line-height:1.15;
+    white-space:nowrap;
+    transition-duration:240ms;
+  }
+  #main-content .rs-form #rsBuscarBtn{
+    justify-content:center;
+    background:#FF6B1A !important;
+    color:#0D1F26 !important;
+  }
+  #main-content .rs-form .rs-parking-action{
+    justify-content:center;
+    background:transparent !important;
+    border:1px solid #35C4D4;
+    color:var(--sky-deep);
+  }
+  #main-content .rs-form .rs-parking-action::before{
+    inline-size:20px;
+    block-size:20px;
+    flex:0 0 20px;
+    background:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='4'/%3E%3Cpath d='M9 17V7h3.5a3 3 0 0 1 0 6H9'/%3E%3Cpath d='M13 19.5l6.5-6.5M16.5 19.5l3-3'/%3E%3C/svg%3E") no-repeat center/contain;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='4'/%3E%3Cpath d='M9 17V7h3.5a3 3 0 0 1 0 6H9'/%3E%3Cpath d='M13 19.5l6.5-6.5M16.5 19.5l3-3'/%3E%3C/svg%3E") no-repeat center/contain;
+  }
+  #main-content .rs-form .rs-parking-action[aria-pressed="true"]{
+    background:rgba(53,196,212,.10) !important;
+    border-color:#35C4D4;
+    color:var(--sky-deep);
+  }
+  #main-content .rs-form .rs-toggle-invierno{
+    box-sizing:border-box;
+    grid-column:1 / -1;
+    display:flex;
+    align-items:center;
+    justify-self:stretch;
+    min-block-size:44px;
+    margin-block:8px 0 !important;
+    margin-inline:0;
+    padding-block:0;
+    padding-inline:8px;
+    border:0;
+    border-radius:0;
+    background:transparent !important;
+    color:var(--ink,#0D1F26) !important;
+    font-size:15px !important;
+    line-height:1.25;
+    gap:8px;
+  }
+  #main-content .rs-form .rs-toggle-invierno.rs-invierno-activo{
+    color:var(--ink,#0D1F26) !important;
+  }
+  #main-content .rs-form .rs-toggle-invierno .rs-icono-sol{
+    order:0;
+    display:inline-flex;
+    color:#FF6B1A;
+  }
+  #main-content .rs-form .rs-toggle-invierno .rs-icono-sol svg{
+    inline-size:18px;
+    block-size:18px;
+    stroke-width:1.8;
+  }
+  #main-content .rs-form .rs-toggle-invierno > span:last-child{ order:1; }
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]{
+    appearance:none;
+    -webkit-appearance:none;
+    position:relative;
+    order:2;
+    inline-size:44px;
+    block-size:26px;
+    flex:0 0 44px;
+    margin-block:0;
+    margin-inline-start:auto;
+    margin-inline-end:0;
+    border:1px solid var(--line);
+    border-radius:999px;
+    background:var(--line);
+    cursor:pointer;
+    transition:background-color 240ms ease,border-color 240ms ease;
+  }
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]::after{
+    content:"";
+    position:absolute;
+    inset-inline-start:3px;
+    inset-block-start:3px;
+    inline-size:18px;
+    block-size:18px;
+    border-radius:50%;
+    background:var(--paper);
+    transition:transform 240ms ease,background-color 240ms ease;
+  }
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:checked{
+    background:#FF6B1A;
+    border-color:#FF6B1A;
+  }
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:checked::after{
+    background:var(--paper);
+    transform:translateX(18px);
+  }
+  html[lang="ar"] #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]{
+    margin-inline-start:auto;
+    margin-inline-end:0;
+  }
+  html[lang="ar"] #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:checked::after{
+    transform:translateX(-18px);
+  }
+  #main-content #rsStatus.rs-status-ruta{
+    min-block-size:44px;
+    padding-block:10px;
+    padding-inline:12px 40px;
+    font-size:14px;
+    line-height:1.35;
+  }
+  #main-content #shadowRouteMap{
+    height:calc(100svh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+    height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+    min-height:min(440px,calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)));
+  }
+  @media (min-width:390px){
+    #main-content .rs-form .rs-parking-action::before{
+      inline-size:24px;
+      block-size:24px;
+      flex-basis:24px;
+    }
+  }
+}
+
+@media (max-width:640px) and (prefers-reduced-motion:reduce){
+  #main-content .rs-form,
+  #main-content .rs-form input,
+  #main-content .rs-form button,
+  #main-content .rs-status-toggle::after,
+  #main-content #aguaVivoHead .avh-info .avh-calc{ transition:none !important; }
+}
+
 @media (prefers-reduced-motion:reduce){
   #main-content .rs-form input,
   #main-content .rs-form button{ transition:none !important; }
@@ -4106,4 +4342,91 @@ html[lang="ar"] #main-content #rsCamCtl{
   html[lang="ar"] #main-content #rsCamCtl{
     inset-inline-end:calc(8px + env(safe-area-inset-left, 0px)) !important;
   }
+}
+
+@media (max-width:640px){
+  #main-content #rsListaCapas .rs-toggle-en-capas{
+    display:flex !important;
+    align-items:center;
+    box-sizing:border-box;
+    inline-size:100%;
+    min-block-size:44px;
+    margin-block:6px 0 !important;
+    padding-block:6px;
+    padding-inline:8px;
+    border:1px solid var(--mui-line-2);
+    border-radius:var(--mui-r-ctl,12px);
+    background:rgba(255,255,255,.045) !important;
+    color:var(--mui-text) !important;
+    font-size:13px !important;
+    line-height:1.15;
+    gap:6px;
+    transition:background-color 240ms ease,border-color 240ms ease,color 240ms ease;
+  }
+  #main-content #rsListaCapas .rs-toggle-en-capas .rs-icono-sol{
+    display:inline-flex;
+    flex:0 0 auto;
+    color:#FF6B1A;
+    order:0;
+  }
+  #main-content #rsListaCapas .rs-toggle-en-capas .rs-icono-sol svg{
+    inline-size:16px;
+    block-size:16px;
+    stroke-width:1.8;
+  }
+  #main-content #rsListaCapas .rs-toggle-en-capas > span:last-child{
+    order:1;
+    flex:1 1 auto;
+    min-inline-size:0;
+  }
+  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]{
+    appearance:none !important;
+    -webkit-appearance:none !important;
+    position:relative;
+    order:2;
+    inline-size:44px !important;
+    block-size:26px !important;
+    flex:0 0 44px;
+    margin-block:0 !important;
+    margin-inline-start:auto !important;
+    margin-inline-end:0 !important;
+    border:1px solid var(--mui-line-2);
+    border-radius:999px;
+    background:rgba(255,255,255,.08) !important;
+    background-image:none !important;
+    cursor:pointer;
+    transition:background-color 240ms ease,border-color 240ms ease;
+  }
+  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]::after{
+    content:"";
+    position:absolute;
+    inset-inline-start:3px;
+    inset-block-start:3px;
+    inline-size:18px;
+    block-size:18px;
+    border-radius:50%;
+    background:var(--mui-text);
+    transition:transform 240ms ease,background-color 240ms ease;
+  }
+  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]:checked{
+    background:#FF6B1A !important;
+    border-color:#FF6B1A;
+  }
+  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]:checked::after{
+    background:#fff;
+    transform:translateX(18px);
+  }
+  html[lang="ar"] #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]:checked::after{
+    transform:translateX(-18px);
+  }
+  #main-content #rsListaCapas .rs-toggle-en-capas:focus-within{
+    outline:2px solid var(--mui-accent);
+    outline-offset:2px;
+  }
+}
+
+@media (max-width:640px) and (prefers-reduced-motion:reduce){
+  #main-content #rsListaCapas .rs-toggle-en-capas,
+  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"],
+  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]::after{ transition:none !important; }
 }

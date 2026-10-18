@@ -5773,7 +5773,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     iconoSol.setAttribute('aria-hidden', 'true');
     iconoSol.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
     etiqueta.append(caja, iconoSol, texto);
-    form.appendChild(etiqueta);
+    const listaCapas = document.getElementById('rsListaCapas');
+    const anchoMovil = window.matchMedia('(max-width:640px)');
+    function colocarInterruptorInvierno() {
+      if (anchoMovil.matches && listaCapas) {
+        etiqueta.classList.add('rs-toggle-en-capas');
+        const grupoLuz = listaCapas.querySelector('.rs-capa-grupo-tit');
+        if (grupoLuz) grupoLuz.after(etiqueta);
+        else listaCapas.appendChild(etiqueta);
+        return;
+      }
+      etiqueta.classList.remove('rs-toggle-en-capas');
+      form.appendChild(etiqueta);
+    }
+    colocarInterruptorInvierno();
+    anchoMovil.addEventListener('change', colocarInterruptorInvierno);
 
     caja.addEventListener('change', () => {
       modoInviernoRuta = caja.checked;

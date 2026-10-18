@@ -2972,12 +2972,12 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
    de hoja (14 px) al flotar sobre el mapa. */
 @media (max-width:639.98px){
   #main-content #rsBtnCapasFlotante{
-    top:calc(20px + env(safe-area-inset-top, 0px));
+    top:calc(50% - 76px);
     bottom:auto;
     inset-inline-end:calc(12px + max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)));
   }
   body.rs-capas-pop #main-content .rs-planetario-capas{
-    top:calc(72px + env(safe-area-inset-top, 0px));
+    top:calc(50% - 76px);
     left:calc(8px + env(safe-area-inset-left, 0px));
     right:calc(8px + env(safe-area-inset-right, 0px));
     bottom:auto;
@@ -3866,7 +3866,7 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 /* En móvil, el panel de capas vuelve a ser una hoja inferior desplazable. */
 @media (max-width:639.98px){
   body.rs-capas-pop #main-content .rs-planetario-capas{
-    top:calc(72px + env(safe-area-inset-top, 0px));
+    top:calc(50% - 76px);
     bottom:auto;
     inset-inline:8px;
     width:auto;

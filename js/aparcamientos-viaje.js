@@ -214,6 +214,7 @@
   var parking = {
     activo: false,
     btn: null,
+    quickBtn: null,
     cache: new Map(), // clave celda → { ts, geojson }
     peticion: null,
     temporizadorMove: null,
@@ -1065,6 +1066,21 @@
     parking.btn.textContent = t('parkingBtn', 'Buscar aparcamiento');
     parking.btn.addEventListener('click', function () { alternarParking(); });
 
+    var parkingAction = document.getElementById('rsParkingAction');
+    if (parkingAction) {
+      parking.quickBtn = document.createElement('button');
+      parking.quickBtn.type = 'button';
+      parking.quickBtn.id = 'rsBtnParkingQuick';
+      parking.quickBtn.className = 'rs-parking-action';
+      parking.quickBtn.setAttribute('aria-pressed', 'false');
+      parking.quickBtn.textContent = parking.btn.textContent;
+      parking.quickBtn.addEventListener('click', function () { parking.btn.click(); });
+      document.addEventListener('manolito:parking-cambiado', function (e) {
+        parking.quickBtn.setAttribute('aria-pressed', e.detail?.activo ? 'true' : 'false');
+      });
+      parkingAction.appendChild(parking.quickBtn);
+    }
+
     viaje.btn = document.createElement('button');
     viaje.btn.type = 'button';
     viaje.btn.id = 'rsBtnViaje';
@@ -1178,6 +1194,7 @@
 
   function refrescarTextos() {
     if (parking.btn) parking.btn.textContent = t('parkingBtn', 'Buscar aparcamiento');
+    if (parking.quickBtn) parking.quickBtn.textContent = parking.btn.textContent;
     if (viaje.btn) viaje.btn.textContent = t('tripBtn', 'Planificar viaje');
     if (!viaje.panel) return;
 

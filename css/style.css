@@ -3504,3 +3504,71 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   padding-left:14px;
   padding-right:38px;
 }
+
+/* Búsqueda prioritaria, aparcamiento como acción secundaria y legible. */
+#main-content .rs-form{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;
+  align-items:center;
+  gap:10px;
+}
+#main-content .rs-form .rs-field{ min-width:0; }
+#main-content .rs-form #rsBuscarBtn{
+  grid-column:3;
+  min-height:46px;
+  margin:0;
+  white-space:nowrap;
+}
+#rsParkingAction{ grid-column:4; min-width:0; }
+#main-content .rs-form .rs-parking-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  width:100%;
+  min-height:46px;
+  padding:8px 14px;
+  border:1px solid rgba(53,196,212,.62);
+  border-radius:var(--mui-r-ctl,12px);
+  background:rgba(53,196,212,.11);
+  color:#B9F3F2;
+  font:600 .88rem/1.2 system-ui,sans-serif;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+#main-content .rs-form .rs-parking-action::before{
+  content:"";
+  width:17px;
+  height:17px;
+  flex:0 0 auto;
+  background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42'/%3E%3C/svg%3E") no-repeat center/contain;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42'/%3E%3C/svg%3E") no-repeat center/contain;
+}
+#main-content .rs-form .rs-parking-action[aria-pressed="true"]{
+  background:rgba(53,196,212,.24);
+  border-color:#35C4D4;
+  color:#E3FFFF;
+}
+#main-content .rs-form .rs-parking-action:focus-visible{
+  outline:2px solid var(--mui-accent);
+  outline-offset:2px;
+}
+#main-content .rs-form .rs-toggle-invierno{ grid-column:1/-1; justify-self:start; }
+@media (max-width:700px){
+  #main-content .rs-form{ grid-template-columns:minmax(0,1fr); }
+  #main-content .rs-form .rs-field,
+  #main-content .rs-form #rsBuscarBtn,
+  #rsParkingAction,
+  #main-content .rs-form .rs-toggle-invierno{ grid-column:1; width:100%; }
+  #main-content .rs-form .rs-parking-action{ min-height:48px; }
+  #main-content .rs-form .rs-toggle-invierno{ justify-self:stretch; }
+}
+@media (min-width:480px) and (max-width:700px){
+  #main-content .rs-form{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  #main-content .rs-form .rs-field:nth-child(1){ grid-column:1; }
+  #main-content .rs-form .rs-field:nth-child(2){ grid-column:2; }
+  #main-content .rs-form #rsBuscarBtn{ grid-column:1; }
+  #rsParkingAction{ grid-column:2; }
+  #main-content .rs-form .rs-toggle-invierno{ grid-column:1/-1; }
+}

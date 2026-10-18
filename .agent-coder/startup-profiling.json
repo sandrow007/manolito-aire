@@ -1,1233 +1,1233 @@
 {
-  "capturedAt": "2026-10-18T15:57:50.024Z",
+  "capturedAt": "2026-10-18T17:11:52.290Z",
   "extensionVersion": "1.4.3",
-  "activationTotalMs": 70.09,
+  "activationTotalMs": 73.82,
   "startupKind": "cold",
   "entries": [
     {
       "name": "AI surface registration (licence, controller, chat view + participant)",
-      "startOffsetMs": 0.14,
-      "durationMs": 11.75
+      "startOffsetMs": 0.31,
+      "durationMs": 13.24
     },
     {
       "name": "API key cache warm-up",
-      "startOffsetMs": 19.5,
-      "durationMs": 391.37
+      "startOffsetMs": 19.95,
+      "durationMs": 2942.98
     },
     {
       "name": "Licence status bar",
-      "startOffsetMs": 21.58,
-      "durationMs": 1.72
+      "startOffsetMs": 22.07,
+      "durationMs": 1.16
     },
     {
       "name": "Licence silent reverify",
-      "startOffsetMs": 23.91,
-      "durationMs": 387.73
+      "startOffsetMs": 23.88,
+      "durationMs": 2939.77
     },
     {
       "name": "SlopGuard status bar",
-      "startOffsetMs": 24.01,
-      "durationMs": 0.77
+      "startOffsetMs": 23.98,
+      "durationMs": 0.88
     },
     {
       "name": "Analysis status bar",
-      "startOffsetMs": 24.89,
-      "durationMs": 0.17
+      "startOffsetMs": 24.97,
+      "durationMs": 0.2
     },
     {
       "name": "Platform integration runtime",
-      "startOffsetMs": 25.13,
-      "durationMs": 1.08
+      "startOffsetMs": 25.24,
+      "durationMs": 1.15
     },
     {
       "name": "Workspace infrastructure (IPC, LM tools, file watcher)",
-      "startOffsetMs": 26.31,
-      "durationMs": 4.7
+      "startOffsetMs": 26.5,
+      "durationMs": 5.46
     },
     {
       "name": "IPC bridge (ExtensionIpcServer)",
-      "startOffsetMs": 26.44,
-      "durationMs": 0.68
+      "startOffsetMs": 26.78,
+      "durationMs": 0.89
     },
     {
       "name": "Language model tools (vscode.lm)",
-      "startOffsetMs": 27.2,
-      "durationMs": 2.6
+      "startOffsetMs": 27.72,
+      "durationMs": 2.97
     },
     {
       "name": "Language model chat provider (vscode.lm)",
-      "startOffsetMs": 29.82,
-      "durationMs": 0.65
+      "startOffsetMs": 30.72,
+      "durationMs": 0.66
     },
     {
       "name": "File system watcher (**/*)",
-      "startOffsetMs": 30.49,
-      "durationMs": 0.39
+      "startOffsetMs": 31.39,
+      "durationMs": 0.29
     },
     {
       "name": "Workspace index startup task creation",
-      "startOffsetMs": 31.13,
-      "durationMs": 0.38
+      "startOffsetMs": 32.08,
+      "durationMs": 0.33
     },
     {
       "name": "Symbol hover provider",
-      "startOffsetMs": 31.6,
+      "startOffsetMs": 32.51,
       "durationMs": 0.54
     },
     {
       "name": "Command registration",
-      "startOffsetMs": 32.47,
-      "durationMs": 35.8
+      "startOffsetMs": 33.31,
+      "durationMs": 38.41
     },
     {
       "name": "Command (eager): agentCoder.openAuto",
-      "startOffsetMs": 43.33,
-      "durationMs": 0.53
+      "startOffsetMs": 46.33,
+      "durationMs": 0.66
     },
     {
       "name": "Command (eager): agentCoder.askAboutSelection",
-      "startOffsetMs": 43.93,
-      "durationMs": 0.33
+      "startOffsetMs": 47.06,
+      "durationMs": 0.4
     },
     {
       "name": "Command (eager): agentCoder.explainSelection",
-      "startOffsetMs": 44.27,
-      "durationMs": 0.33
-    },
-    {
-      "name": "Command (eager): agentCoder.proposeFixForSelection",
-      "startOffsetMs": 44.62,
-      "durationMs": 0.39
-    },
-    {
-      "name": "Command (eager): agentCoder.refactorSelection",
-      "startOffsetMs": 45.02,
-      "durationMs": 0.43
-    },
-    {
-      "name": "Command (eager): agentCoder.extractSelectionToFunction",
-      "startOffsetMs": 45.47,
-      "durationMs": 0.38
-    },
-    {
-      "name": "Command (eager): agentCoder.generateTestsForSelection",
-      "startOffsetMs": 45.86,
+      "startOffsetMs": 47.47,
       "durationMs": 0.37
     },
     {
+      "name": "Command (eager): agentCoder.proposeFixForSelection",
+      "startOffsetMs": 47.86,
+      "durationMs": 0.43
+    },
+    {
+      "name": "Command (eager): agentCoder.refactorSelection",
+      "startOffsetMs": 48.3,
+      "durationMs": 0.26
+    },
+    {
+      "name": "Command (eager): agentCoder.extractSelectionToFunction",
+      "startOffsetMs": 48.57,
+      "durationMs": 0.28
+    },
+    {
+      "name": "Command (eager): agentCoder.generateTestsForSelection",
+      "startOffsetMs": 48.86,
+      "durationMs": 0.22
+    },
+    {
       "name": "Command (eager): agentCoder.addDocCommentForSelection",
-      "startOffsetMs": 46.25,
+      "startOffsetMs": 49.09,
       "durationMs": 0.31
     },
     {
       "name": "Command (eager): agentCoder.autoCommentForSelection",
-      "startOffsetMs": 46.57,
-      "durationMs": 0.34
+      "startOffsetMs": 49.41,
+      "durationMs": 0.3
     },
     {
       "name": "Command (eager): agentCoder.autoExamineSymbolForSelection",
-      "startOffsetMs": 46.92,
-      "durationMs": 0.34
+      "startOffsetMs": 49.73,
+      "durationMs": 0.31
     },
     {
       "name": "Command (eager): agentCoder.showContextForSelection",
-      "startOffsetMs": 47.28,
-      "durationMs": 0.33
+      "startOffsetMs": 50.06,
+      "durationMs": 0.35
     },
     {
       "name": "Command (eager): agentCoder.validateSelection",
-      "startOffsetMs": 47.63,
-      "durationMs": 0.32
+      "startOffsetMs": 50.43,
+      "durationMs": 0.33
     },
     {
       "name": "Command (eager): agentCoder.securityReviewSelection",
-      "startOffsetMs": 47.97,
-      "durationMs": 0.39
+      "startOffsetMs": 50.77,
+      "durationMs": 0.3
     },
     {
       "name": "Command (eager): agentCoder.performanceReviewSelection",
-      "startOffsetMs": 48.38,
-      "durationMs": 0.34
+      "startOffsetMs": 51.08,
+      "durationMs": 0.32
     },
     {
       "name": "Command (eager): agentCoder.impactReviewSelection",
-      "startOffsetMs": 48.73,
-      "durationMs": 0.35
+      "startOffsetMs": 51.41,
+      "durationMs": 0.32
     },
     {
       "name": "Command (eager): agentCoder.showPublicApiRiskForSelection",
-      "startOffsetMs": 49.1,
-      "durationMs": 0.38
+      "startOffsetMs": 51.74,
+      "durationMs": 0.44
     },
     {
       "name": "Command (eager): agentCoder.compareSelectionAcrossHistory",
-      "startOffsetMs": 49.5,
-      "durationMs": 0.35
+      "startOffsetMs": 52.2,
+      "durationMs": 0.42
     },
     {
       "name": "Command (eager): agentCoder.addSelectionAsSolveEvidence",
-      "startOffsetMs": 49.87,
-      "durationMs": 0.36
+      "startOffsetMs": 52.64,
+      "durationMs": 0.45
     },
     {
       "name": "Command (eager): agentCoder.showProvenanceForSelection",
-      "startOffsetMs": 50.24,
+      "startOffsetMs": 53.11,
       "durationMs": 0.36
     },
     {
       "name": "Command (eager): agentCoder.checkSelectionForSlop",
-      "startOffsetMs": 50.61,
-      "durationMs": 0.35
+      "startOffsetMs": 53.48,
+      "durationMs": 0.49
     },
     {
       "name": "Command (eager): agentCoder.explainOrRefineSlopFinding",
-      "startOffsetMs": 50.99,
-      "durationMs": 0.58
+      "startOffsetMs": 53.99,
+      "durationMs": 0.53
     },
     {
       "name": "Command (eager): agentCoder.addSlopFindingToTechnicalDebt",
-      "startOffsetMs": 51.59,
-      "durationMs": 0.37
+      "startOffsetMs": 54.54,
+      "durationMs": 0.53
     },
     {
       "name": "Command (eager): agentCoder.proposeSlopMinimalCleanup",
-      "startOffsetMs": 51.97,
-      "durationMs": 0.39
+      "startOffsetMs": 55.08,
+      "durationMs": 0.37
     },
     {
       "name": "Command (eager): agentCoder.implementProjectWide",
-      "startOffsetMs": 52.47,
+      "startOffsetMs": 55.5,
       "durationMs": 0.47
     },
     {
       "name": "Command (eager): agentCoder.prettyFormatSelection",
-      "startOffsetMs": 52.96,
-      "durationMs": 0.39
-    },
-    {
-      "name": "Command (eager): agentCoder.rollbackLastEdit",
-      "startOffsetMs": 53.38,
-      "durationMs": 0.41
-    },
-    {
-      "name": "Command (eager): agentCoder.explainSymbolAtCursor",
-      "startOffsetMs": 53.91,
-      "durationMs": 0.39
-    },
-    {
-      "name": "Live Context CodeLens provider",
-      "startOffsetMs": 60.96,
-      "durationMs": 0.7
-    },
-    {
-      "name": "Live diagnostic quick-fix (code actions) provider",
-      "startOffsetMs": 61.67,
-      "durationMs": 0.7
-    },
-    {
-      "name": "Live Context tree view provider",
-      "startOffsetMs": 62.38,
-      "durationMs": 0.91
-    },
-    {
-      "name": "Live validation decoration controller",
-      "startOffsetMs": 63.3,
-      "durationMs": 1.56
-    },
-    {
-      "name": "Command (eager): agentCoder.openLiveContext",
-      "startOffsetMs": 65.79,
-      "durationMs": 0.3
-    },
-    {
-      "name": "Command (eager): agentCoder.toggleLiveContext",
-      "startOffsetMs": 66.11,
-      "durationMs": 0.31
-    },
-    {
-      "name": "Command (eager): agentCoder.validateCurrentBuffer",
-      "startOffsetMs": 66.44,
+      "startOffsetMs": 55.99,
       "durationMs": 0.29
     },
     {
+      "name": "Command (eager): agentCoder.rollbackLastEdit",
+      "startOffsetMs": 56.29,
+      "durationMs": 0.31
+    },
+    {
+      "name": "Command (eager): agentCoder.explainSymbolAtCursor",
+      "startOffsetMs": 56.71,
+      "durationMs": 0.32
+    },
+    {
+      "name": "Live Context CodeLens provider",
+      "startOffsetMs": 64.92,
+      "durationMs": 0.6
+    },
+    {
+      "name": "Live diagnostic quick-fix (code actions) provider",
+      "startOffsetMs": 65.52,
+      "durationMs": 0.45
+    },
+    {
+      "name": "Live Context tree view provider",
+      "startOffsetMs": 65.98,
+      "durationMs": 0.64
+    },
+    {
+      "name": "Live validation decoration controller",
+      "startOffsetMs": 66.62,
+      "durationMs": 1.45
+    },
+    {
+      "name": "Command (eager): agentCoder.openLiveContext",
+      "startOffsetMs": 69.45,
+      "durationMs": 0.36
+    },
+    {
+      "name": "Command (eager): agentCoder.toggleLiveContext",
+      "startOffsetMs": 69.93,
+      "durationMs": 0.4
+    },
+    {
+      "name": "Command (eager): agentCoder.validateCurrentBuffer",
+      "startOffsetMs": 70.34,
+      "durationMs": 0.31
+    },
+    {
       "name": "Command (eager): agentCoder.showValidationToolchain",
-      "startOffsetMs": 66.74,
-      "durationMs": 0.34
+      "startOffsetMs": 70.69,
+      "durationMs": 0.29
     },
     {
       "name": "Deferred command registrations (background batch)",
-      "startOffsetMs": 68.25,
-      "durationMs": 66.66
+      "startOffsetMs": 71.71,
+      "durationMs": 131.02
     },
     {
       "name": "Workspace state restore (.workspace snapshot read)",
-      "startOffsetMs": 68.98,
-      "durationMs": 214.99
+      "startOffsetMs": 72.55,
+      "durationMs": 3020.36
     },
     {
       "name": "Workspace index restore/reconciliation",
-      "startOffsetMs": 69.14,
-      "durationMs": 216.28
+      "startOffsetMs": 72.78,
+      "durationMs": 3021.66
     },
     {
       "name": "Audit retention pruning",
-      "startOffsetMs": 69.18,
-      "durationMs": 231.34
+      "startOffsetMs": 72.82,
+      "durationMs": 3091.97
     },
     {
       "name": "Command (deferred): agentCoder.openChat",
-      "startOffsetMs": 97.71,
-      "durationMs": 0.39
+      "startOffsetMs": 163.17,
+      "durationMs": 0.33
     },
     {
       "name": "Command (deferred): agentCoder.clearChat",
-      "startOffsetMs": 98.12,
-      "durationMs": 0.27
+      "startOffsetMs": 163.51,
+      "durationMs": 0.25
     },
     {
       "name": "Command (deferred): agentCoder.openSettings",
-      "startOffsetMs": 98.4,
-      "durationMs": 0.23
-    },
-    {
-      "name": "Command (deferred): agentCoder.reviewLicenseAgreement",
-      "startOffsetMs": 98.64,
-      "durationMs": 0.21
-    },
-    {
-      "name": "Command (deferred): agentCoder.showStartupProfile",
-      "startOffsetMs": 98.85,
-      "durationMs": 0.23
-    },
-    {
-      "name": "Command (deferred): agentCoder.openProjectMap",
-      "startOffsetMs": 99.09,
+      "startOffsetMs": 163.77,
       "durationMs": 0.26
     },
     {
-      "name": "Command (deferred): agentCoder.openProjectVisualLinkMap",
-      "startOffsetMs": 99.37,
-      "durationMs": 0.24
+      "name": "Command (deferred): agentCoder.reviewLicenseAgreement",
+      "startOffsetMs": 164.04,
+      "durationMs": 0.22
     },
     {
-      "name": "Command (deferred): agentCoder.openDependencyGraph",
-      "startOffsetMs": 99.62,
-      "durationMs": 0.2
-    },
-    {
-      "name": "Command (deferred): agentCoder.openTechnicalDebtDashboard",
-      "startOffsetMs": 99.84,
-      "durationMs": 0.23
-    },
-    {
-      "name": "Command (deferred): agentCoder.openAITransparencyPanel",
-      "startOffsetMs": 100.08,
-      "durationMs": 0.2
-    },
-    {
-      "name": "Command (deferred): agentCoder.openOptimisers",
-      "startOffsetMs": 100.29,
-      "durationMs": 0.21
-    },
-    {
-      "name": "Command (deferred): agentCoder.showHelp",
-      "startOffsetMs": 100.51,
-      "durationMs": 0.2
-    },
-    {
-      "name": "Command (deferred): agentCoder.showExamples",
-      "startOffsetMs": 100.72,
-      "durationMs": 0.17
-    },
-    {
-      "name": "Command (deferred): agentCoder.openOnlineHelp",
-      "startOffsetMs": 100.89,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.openMultiAgentCommandCentre",
-      "startOffsetMs": 101.06,
+      "name": "Command (deferred): agentCoder.showStartupProfile",
+      "startOffsetMs": 164.27,
       "durationMs": 0.15
     },
     {
-      "name": "Command (deferred): agentCoder.openEngineeringControlCentre",
-      "startOffsetMs": 101.22,
+      "name": "Command (deferred): agentCoder.openProjectMap",
+      "startOffsetMs": 164.42,
       "durationMs": 0.14
     },
     {
-      "name": "Command (deferred): agentCoder.openMemoryBrowser",
-      "startOffsetMs": 101.37,
+      "name": "Command (deferred): agentCoder.openProjectVisualLinkMap",
+      "startOffsetMs": 164.57,
       "durationMs": 0.13
     },
     {
-      "name": "Command (deferred): agentCoder.openPromptChainWorkflowPanel",
-      "startOffsetMs": 101.51,
-      "durationMs": 0.2
+      "name": "Command (deferred): agentCoder.openDependencyGraph",
+      "startOffsetMs": 164.71,
+      "durationMs": 0.15
     },
     {
-      "name": "Command (deferred): agentCoder.openAiHealthDashboard",
-      "startOffsetMs": 101.71,
-      "durationMs": 0.14
-    },
-    {
-      "name": "Command (deferred): agentCoder.openEngineeringSessionRecorder",
-      "startOffsetMs": 101.85,
-      "durationMs": 0.19
-    },
-    {
-      "name": "Command (deferred): agentCoder.openProjectDigitalTwin",
-      "startOffsetMs": 102.04,
-      "durationMs": 0.13
-    },
-    {
-      "name": "Command (deferred): agentCoder.openProjectTimeMachine",
-      "startOffsetMs": 102.18,
-      "durationMs": 0.13
-    },
-    {
-      "name": "Command (deferred): agentCoder.openBugProbabilityHeatmap",
-      "startOffsetMs": 102.32,
+      "name": "Command (deferred): agentCoder.openTechnicalDebtDashboard",
+      "startOffsetMs": 164.88,
       "durationMs": 0.21
     },
     {
+      "name": "Command (deferred): agentCoder.openAITransparencyPanel",
+      "startOffsetMs": 165.1,
+      "durationMs": 0.25
+    },
+    {
+      "name": "Command (deferred): agentCoder.openOptimisers",
+      "startOffsetMs": 165.36,
+      "durationMs": 0.22
+    },
+    {
+      "name": "Command (deferred): agentCoder.showHelp",
+      "startOffsetMs": 165.58,
+      "durationMs": 0.21
+    },
+    {
+      "name": "Command (deferred): agentCoder.showExamples",
+      "startOffsetMs": 165.8,
+      "durationMs": 0.19
+    },
+    {
+      "name": "Command (deferred): agentCoder.openOnlineHelp",
+      "startOffsetMs": 165.99,
+      "durationMs": 0.2
+    },
+    {
+      "name": "Command (deferred): agentCoder.openMultiAgentCommandCentre",
+      "startOffsetMs": 166.19,
+      "durationMs": 0.19
+    },
+    {
+      "name": "Command (deferred): agentCoder.openEngineeringControlCentre",
+      "startOffsetMs": 166.39,
+      "durationMs": 0.22
+    },
+    {
+      "name": "Command (deferred): agentCoder.openMemoryBrowser",
+      "startOffsetMs": 166.62,
+      "durationMs": 0.19
+    },
+    {
+      "name": "Command (deferred): agentCoder.openPromptChainWorkflowPanel",
+      "startOffsetMs": 166.82,
+      "durationMs": 0.21
+    },
+    {
+      "name": "Command (deferred): agentCoder.openAiHealthDashboard",
+      "startOffsetMs": 167.04,
+      "durationMs": 0.2
+    },
+    {
+      "name": "Command (deferred): agentCoder.openEngineeringSessionRecorder",
+      "startOffsetMs": 167.24,
+      "durationMs": 0.21
+    },
+    {
+      "name": "Command (deferred): agentCoder.openProjectDigitalTwin",
+      "startOffsetMs": 167.45,
+      "durationMs": 0.19
+    },
+    {
+      "name": "Command (deferred): agentCoder.openProjectTimeMachine",
+      "startOffsetMs": 167.65,
+      "durationMs": 0.21
+    },
+    {
+      "name": "Command (deferred): agentCoder.openBugProbabilityHeatmap",
+      "startOffsetMs": 167.86,
+      "durationMs": 0.2
+    },
+    {
       "name": "Command (deferred): agentCoder.openProjectMetadataAnalyzer",
-      "startOffsetMs": 102.54,
+      "startOffsetMs": 168.07,
       "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.openEngineeringCostEstimator",
-      "startOffsetMs": 102.74,
-      "durationMs": 0.19
+      "startOffsetMs": 168.27,
+      "durationMs": 0.27
     },
     {
       "name": "Command (deferred): agentCoder.openKnowledgePreservationEngine",
-      "startOffsetMs": 102.94,
-      "durationMs": 0.17
+      "startOffsetMs": 168.55,
+      "durationMs": 0.25
     },
     {
       "name": "Command (deferred): agentCoder.openProjectHealthForecast",
-      "startOffsetMs": 103.12,
-      "durationMs": 0.15
+      "startOffsetMs": 168.8,
+      "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.openArchitectureEvolutionSimulator",
-      "startOffsetMs": 103.27,
-      "durationMs": 0.14
+      "startOffsetMs": 169,
+      "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.openInvariantControlCentre",
-      "startOffsetMs": 103.41,
-      "durationMs": 0.14
-    },
-    {
-      "name": "Command (deferred): agentCoder.openPlanControlCentre",
-      "startOffsetMs": 103.58,
-      "durationMs": 0.3
-    },
-    {
-      "name": "Command (deferred): agentCoder.openNamingConventionAdvisor",
-      "startOffsetMs": 103.89,
-      "durationMs": 0.19
-    },
-    {
-      "name": "Command (deferred): agentCoder.openApiEvolutionTracker",
-      "startOffsetMs": 104.08,
-      "durationMs": 0.22
-    },
-    {
-      "name": "Command (deferred): agentCoder.openReleaseReadiness",
-      "startOffsetMs": 104.31,
-      "durationMs": 0.15
-    },
-    {
-      "name": "Command (deferred): agentCoder.openDocumentationDriftDetector",
-      "startOffsetMs": 104.46,
-      "durationMs": 0.13
-    },
-    {
-      "name": "Command (deferred): agentCoder.openWorkspaceDocumenter",
-      "startOffsetMs": 104.6,
-      "durationMs": 0.14
-    },
-    {
-      "name": "Command (deferred): agentCoder.openArchitectureMentor",
-      "startOffsetMs": 104.75,
-      "durationMs": 0.14
-    },
-    {
-      "name": "Command (deferred): agentCoder.openLegacyCodeRescueMode",
-      "startOffsetMs": 104.89,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.openCodeArchaeologist",
-      "startOffsetMs": 105.06,
-      "durationMs": 0.14
-    },
-    {
-      "name": "Command (deferred): agentCoder.openEngineeringKpiDashboard",
-      "startOffsetMs": 105.2,
-      "durationMs": 0.15
-    },
-    {
-      "name": "Command (deferred): agentCoder.openRefactorConfidenceSimulator",
-      "startOffsetMs": 105.35,
-      "durationMs": 0.14
-    },
-    {
-      "name": "Command (deferred): agentCoder.openFeatureCompletionPredictor",
-      "startOffsetMs": 105.49,
-      "durationMs": 0.13
-    },
-    {
-      "name": "Command (deferred): agentCoder.openPluginMarketplace",
-      "startOffsetMs": 105.63,
-      "durationMs": 0.19
-    },
-    {
-      "name": "Command (deferred): agentCoder.openIndustryCompliancePacks",
-      "startOffsetMs": 105.83,
-      "durationMs": 0.26
-    },
-    {
-      "name": "Command (deferred): agentCoder.openSlopControlCentre",
-      "startOffsetMs": 106.09,
+      "startOffsetMs": 169.21,
       "durationMs": 0.23
     },
     {
-      "name": "Command (deferred): agentCoder.openToolchainControlCentre",
-      "startOffsetMs": 106.33,
+      "name": "Command (deferred): agentCoder.openPlanControlCentre",
+      "startOffsetMs": 169.46,
+      "durationMs": 0.27
+    },
+    {
+      "name": "Command (deferred): agentCoder.openNamingConventionAdvisor",
+      "startOffsetMs": 169.73,
       "durationMs": 0.21
     },
     {
+      "name": "Command (deferred): agentCoder.openApiEvolutionTracker",
+      "startOffsetMs": 169.95,
+      "durationMs": 0.19
+    },
+    {
+      "name": "Command (deferred): agentCoder.openReleaseReadiness",
+      "startOffsetMs": 170.15,
+      "durationMs": 0.19
+    },
+    {
+      "name": "Command (deferred): agentCoder.openDocumentationDriftDetector",
+      "startOffsetMs": 170.35,
+      "durationMs": 0.26
+    },
+    {
+      "name": "Command (deferred): agentCoder.openWorkspaceDocumenter",
+      "startOffsetMs": 170.61,
+      "durationMs": 0.26
+    },
+    {
+      "name": "Command (deferred): agentCoder.openArchitectureMentor",
+      "startOffsetMs": 170.88,
+      "durationMs": 0.29
+    },
+    {
+      "name": "Command (deferred): agentCoder.openLegacyCodeRescueMode",
+      "startOffsetMs": 171.18,
+      "durationMs": 0.2
+    },
+    {
+      "name": "Command (deferred): agentCoder.openCodeArchaeologist",
+      "startOffsetMs": 171.38,
+      "durationMs": 0.22
+    },
+    {
+      "name": "Command (deferred): agentCoder.openEngineeringKpiDashboard",
+      "startOffsetMs": 171.61,
+      "durationMs": 0.23
+    },
+    {
+      "name": "Command (deferred): agentCoder.openRefactorConfidenceSimulator",
+      "startOffsetMs": 171.85,
+      "durationMs": 0.2
+    },
+    {
+      "name": "Command (deferred): agentCoder.openFeatureCompletionPredictor",
+      "startOffsetMs": 172.05,
+      "durationMs": 0.17
+    },
+    {
+      "name": "Command (deferred): agentCoder.openPluginMarketplace",
+      "startOffsetMs": 172.23,
+      "durationMs": 0.2
+    },
+    {
+      "name": "Command (deferred): agentCoder.openIndustryCompliancePacks",
+      "startOffsetMs": 172.44,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.openSlopControlCentre",
+      "startOffsetMs": 172.62,
+      "durationMs": 0.19
+    },
+    {
+      "name": "Command (deferred): agentCoder.openToolchainControlCentre",
+      "startOffsetMs": 172.81,
+      "durationMs": 0.18
+    },
+    {
       "name": "Command (deferred): agentCoder.openEngineeringIntelligenceNetwork",
-      "startOffsetMs": 106.55,
+      "startOffsetMs": 173,
       "durationMs": 0.26
     },
     {
       "name": "Command (deferred): agentCoder.openValidationSystem",
-      "startOffsetMs": 106.81,
-      "durationMs": 0.3
-    },
-    {
-      "name": "Command (deferred): agentCoder.openEngineeringRoadmap",
-      "startOffsetMs": 107.13,
-      "durationMs": 0.28
-    },
-    {
-      "name": "Command (deferred): agentCoder.openPersonalEngineeringProfile",
-      "startOffsetMs": 107.42,
-      "durationMs": 0.17
-    },
-    {
-      "name": "Command (deferred): agentCoder.openInnovationAssistant",
-      "startOffsetMs": 107.59,
-      "durationMs": 0.24
-    },
-    {
-      "name": "Command (deferred): agentCoder.openConnectedAIPlatforms",
-      "startOffsetMs": 107.84,
-      "durationMs": 0.24
-    },
-    {
-      "name": "Command (deferred): agentCoder.mcpServerStart",
-      "startOffsetMs": 108.09,
-      "durationMs": 0.31
-    },
-    {
-      "name": "Command (deferred): agentCoder.mcpServerStop",
-      "startOffsetMs": 108.42,
-      "durationMs": 0.21
-    },
-    {
-      "name": "Command (deferred): agentCoder.mcpServerRestart",
-      "startOffsetMs": 108.63,
-      "durationMs": 0.28
-    },
-    {
-      "name": "Command (deferred): agentCoder.openAIIntuition",
-      "startOffsetMs": 108.92,
-      "durationMs": 0.22
-    },
-    {
-      "name": "Command (deferred): agentCoder.openLocalTestLaboratory",
-      "startOffsetMs": 109.15,
-      "durationMs": 0.22
-    },
-    {
-      "name": "Command (deferred): agentCoder.openTestEvidence",
-      "startOffsetMs": 109.37,
-      "durationMs": 0.21
-    },
-    {
-      "name": "Command (deferred): agentCoder.openTestHistory",
-      "startOffsetMs": 109.59,
-      "durationMs": 0.21
-    },
-    {
-      "name": "Command (deferred): agentCoder.createTestCase",
-      "startOffsetMs": 109.81,
-      "durationMs": 0.19
-    },
-    {
-      "name": "Command (deferred): agentCoder.createDiagnosticProbe",
-      "startOffsetMs": 110.01,
+      "startOffsetMs": 173.26,
       "durationMs": 0.18
     },
     {
-      "name": "Command (deferred): agentCoder.generateFailureReproduction",
-      "startOffsetMs": 110.2,
+      "name": "Command (deferred): agentCoder.openEngineeringRoadmap",
+      "startOffsetMs": 173.45,
       "durationMs": 0.19
     },
     {
-      "name": "Command (deferred): agentCoder.executeTestScript",
-      "startOffsetMs": 110.39,
-      "durationMs": 0.19
-    },
-    {
-      "name": "Command (deferred): agentCoder.executeTestRepeatedly",
-      "startOffsetMs": 110.58,
-      "durationMs": 0.23
-    },
-    {
-      "name": "Command (deferred): agentCoder.cancelTestExecution",
-      "startOffsetMs": 110.82,
+      "name": "Command (deferred): agentCoder.openPersonalEngineeringProfile",
+      "startOffsetMs": 173.65,
       "durationMs": 0.21
     },
     {
-      "name": "Command (deferred): agentCoder.promoteTemporaryTest",
-      "startOffsetMs": 111.04,
+      "name": "Command (deferred): agentCoder.openInnovationAssistant",
+      "startOffsetMs": 173.87,
       "durationMs": 0.25
     },
     {
+      "name": "Command (deferred): agentCoder.openConnectedAIPlatforms",
+      "startOffsetMs": 174.12,
+      "durationMs": 0.22
+    },
+    {
+      "name": "Command (deferred): agentCoder.mcpServerStart",
+      "startOffsetMs": 174.35,
+      "durationMs": 0.17
+    },
+    {
+      "name": "Command (deferred): agentCoder.mcpServerStop",
+      "startOffsetMs": 174.53,
+      "durationMs": 0.16
+    },
+    {
+      "name": "Command (deferred): agentCoder.mcpServerRestart",
+      "startOffsetMs": 174.7,
+      "durationMs": 0.19
+    },
+    {
+      "name": "Command (deferred): agentCoder.openAIIntuition",
+      "startOffsetMs": 174.89,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.openLocalTestLaboratory",
+      "startOffsetMs": 175.08,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.openTestEvidence",
+      "startOffsetMs": 175.26,
+      "durationMs": 0.27
+    },
+    {
+      "name": "Command (deferred): agentCoder.openTestHistory",
+      "startOffsetMs": 175.54,
+      "durationMs": 0.17
+    },
+    {
+      "name": "Command (deferred): agentCoder.createTestCase",
+      "startOffsetMs": 175.71,
+      "durationMs": 0.26
+    },
+    {
+      "name": "Command (deferred): agentCoder.createDiagnosticProbe",
+      "startOffsetMs": 175.98,
+      "durationMs": 0.22
+    },
+    {
+      "name": "Command (deferred): agentCoder.generateFailureReproduction",
+      "startOffsetMs": 176.2,
+      "durationMs": 0.23
+    },
+    {
+      "name": "Command (deferred): agentCoder.executeTestScript",
+      "startOffsetMs": 176.44,
+      "durationMs": 0.24
+    },
+    {
+      "name": "Command (deferred): agentCoder.executeTestRepeatedly",
+      "startOffsetMs": 176.68,
+      "durationMs": 0.16
+    },
+    {
+      "name": "Command (deferred): agentCoder.cancelTestExecution",
+      "startOffsetMs": 176.84,
+      "durationMs": 0.14
+    },
+    {
+      "name": "Command (deferred): agentCoder.promoteTemporaryTest",
+      "startOffsetMs": 176.97,
+      "durationMs": 0.16
+    },
+    {
       "name": "Command (deferred): agentCoder.deleteTestScript",
-      "startOffsetMs": 111.3,
-      "durationMs": 0.21
+      "startOffsetMs": 177.14,
+      "durationMs": 0.13
     },
     {
       "name": "Command (deferred): agentCoder.restoreTestScript",
-      "startOffsetMs": 111.51,
-      "durationMs": 0.2
+      "startOffsetMs": 177.27,
+      "durationMs": 0.14
     },
     {
       "name": "Command (deferred): agentCoder.cleanTestLaboratory",
-      "startOffsetMs": 111.72,
+      "startOffsetMs": 177.41,
       "durationMs": 0.21
     },
     {
       "name": "Command (deferred): agentCoder.terminateTestProcesses",
-      "startOffsetMs": 111.94,
-      "durationMs": 0.2
+      "startOffsetMs": 177.63,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.compareTestRuns",
-      "startOffsetMs": 112.15,
-      "durationMs": 0.2
+      "startOffsetMs": 177.8,
+      "durationMs": 0.18
     },
     {
       "name": "Command (deferred): agentCoder.exportReproductionPackage",
-      "startOffsetMs": 112.35,
-      "durationMs": 0.21
+      "startOffsetMs": 177.99,
+      "durationMs": 0.23
     },
     {
       "name": "Command (deferred): agentCoder.solveProblem",
-      "startOffsetMs": 112.57,
-      "durationMs": 0.2
+      "startOffsetMs": 178.23,
+      "durationMs": 0.19
     },
     {
       "name": "Command (deferred): agentCoder.showProblemSolvingStatus",
-      "startOffsetMs": 112.78,
-      "durationMs": 0.23
+      "startOffsetMs": 178.42,
+      "durationMs": 0.19
     },
     {
       "name": "Command (deferred): agentCoder.openProblemSolvingPanel",
-      "startOffsetMs": 113.02,
-      "durationMs": 0.24
+      "startOffsetMs": 178.61,
+      "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.analyseWorkspace",
-      "startOffsetMs": 113.27,
-      "durationMs": 0.21
+      "startOffsetMs": 178.82,
+      "durationMs": 0.23
     },
     {
       "name": "Command (deferred): agentCoder.changeLanguageAdapter",
-      "startOffsetMs": 113.48,
-      "durationMs": 0.19
+      "startOffsetMs": 179.06,
+      "durationMs": 0.25
     },
     {
       "name": "Command (deferred): agentCoder.configureAIProvider",
-      "startOffsetMs": 113.68,
-      "durationMs": 0.19
+      "startOffsetMs": 179.32,
+      "durationMs": 0.21
     },
     {
       "name": "Command (deferred): agentCoder.setApiKey",
-      "startOffsetMs": 113.88,
-      "durationMs": 0.22
+      "startOffsetMs": 179.54,
+      "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.selectModel",
-      "startOffsetMs": 114.1,
-      "durationMs": 0.23
+      "startOffsetMs": 179.75,
+      "durationMs": 0.21
     },
     {
       "name": "Command (deferred): agentCoder.setLocalServer",
-      "startOffsetMs": 114.35,
-      "durationMs": 0.24
+      "startOffsetMs": 179.97,
+      "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.clearApiKey",
-      "startOffsetMs": 114.59,
-      "durationMs": 0.27
+      "startOffsetMs": 180.18,
+      "durationMs": 0.31
     },
     {
       "name": "Command (deferred): agentCoder.activateProLicense",
-      "startOffsetMs": 114.87,
-      "durationMs": 0.3
-    },
-    {
-      "name": "Command (deferred): agentCoder.deactivateLicense",
-      "startOffsetMs": 115.17,
-      "durationMs": 0.25
-    },
-    {
-      "name": "Command (deferred): agentCoder.showLicenseStatus",
-      "startOffsetMs": 115.43,
+      "startOffsetMs": 180.5,
       "durationMs": 0.26
     },
     {
+      "name": "Command (deferred): agentCoder.deactivateLicense",
+      "startOffsetMs": 180.76,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.showLicenseStatus",
+      "startOffsetMs": 180.94,
+      "durationMs": 0.17
+    },
+    {
       "name": "Command (deferred): agentCoder.recheckLicense",
-      "startOffsetMs": 115.7,
-      "durationMs": 0.28
+      "startOffsetMs": 181.12,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.askAboutCurrentFile",
-      "startOffsetMs": 115.99,
-      "durationMs": 0.23
+      "startOffsetMs": 181.3,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.showSlopPreCommitSummary",
-      "startOffsetMs": 116.23,
-      "durationMs": 0.21
+      "startOffsetMs": 181.48,
+      "durationMs": 0.16
     },
     {
       "name": "Command (deferred): agentCoder.buildProject",
-      "startOffsetMs": 116.45,
-      "durationMs": 0.21
+      "startOffsetMs": 181.64,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.planTask",
-      "startOffsetMs": 116.67,
-      "durationMs": 0.21
+      "startOffsetMs": 181.81,
+      "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.analyzeDecision",
-      "startOffsetMs": 116.89,
-      "durationMs": 0.22
+      "startOffsetMs": 182.02,
+      "durationMs": 0.15
     },
     {
       "name": "Command (deferred): agentCoder.explainLastDecision",
-      "startOffsetMs": 117.11,
-      "durationMs": 0.2
+      "startOffsetMs": 182.17,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.promoteSolutionPattern",
-      "startOffsetMs": 117.31,
-      "durationMs": 0.19
+      "startOffsetMs": 182.35,
+      "durationMs": 0.16
     },
     {
       "name": "Command (deferred): agentCoder.listSolutionLibrary",
-      "startOffsetMs": 117.51,
-      "durationMs": 0.18
+      "startOffsetMs": 182.51,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.removeSolutionPattern",
-      "startOffsetMs": 117.69,
-      "durationMs": 0.14
+      "startOffsetMs": 182.69,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.listProvenance",
-      "startOffsetMs": 117.84,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.buildArchitectureGraph",
-      "startOffsetMs": 118.01,
-      "durationMs": 0.19
-    },
-    {
-      "name": "Command (deferred): agentCoder.analyzeCallGraph",
-      "startOffsetMs": 118.2,
-      "durationMs": 0.15
-    },
-    {
-      "name": "Command (deferred): agentCoder.analyzeConcurrency",
-      "startOffsetMs": 118.36,
-      "durationMs": 0.14
-    },
-    {
-      "name": "Command (deferred): agentCoder.analyzeResourceOwnership",
-      "startOffsetMs": 118.5,
-      "durationMs": 0.17
-    },
-    {
-      "name": "Command (deferred): agentCoder.analyzeChangeImpact",
-      "startOffsetMs": 118.67,
-      "durationMs": 0.15
-    },
-    {
-      "name": "Command (deferred): agentCoder.analyzeUIAccessibility",
-      "startOffsetMs": 118.83,
-      "durationMs": 0.19
-    },
-    {
-      "name": "Command (deferred): agentCoder.analyzeSchemaChange",
-      "startOffsetMs": 119.03,
-      "durationMs": 0.25
-    },
-    {
-      "name": "Command (deferred): agentCoder.proposeSchemaMigration",
-      "startOffsetMs": 119.28,
-      "durationMs": 0.27
-    },
-    {
-      "name": "Command (deferred): agentCoder.addAPIContract",
-      "startOffsetMs": 119.56,
-      "durationMs": 0.2
-    },
-    {
-      "name": "Command (deferred): agentCoder.analyzeAPIContractChange",
-      "startOffsetMs": 119.76,
+      "startOffsetMs": 182.86,
       "durationMs": 0.18
     },
     {
-      "name": "Command (deferred): agentCoder.analyzeSerializationCompatibility",
-      "startOffsetMs": 119.95,
+      "name": "Command (deferred): agentCoder.buildArchitectureGraph",
+      "startOffsetMs": 183.05,
       "durationMs": 0.17
     },
     {
-      "name": "Command (deferred): agentCoder.captureBaseline",
-      "startOffsetMs": 120.13,
-      "durationMs": 0.17
+      "name": "Command (deferred): agentCoder.analyzeCallGraph",
+      "startOffsetMs": 183.22,
+      "durationMs": 0.18
     },
     {
-      "name": "Command (deferred): agentCoder.initNewProject",
-      "startOffsetMs": 120.31,
+      "name": "Command (deferred): agentCoder.analyzeConcurrency",
+      "startOffsetMs": 183.4,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.analyzeResourceOwnership",
+      "startOffsetMs": 183.58,
       "durationMs": 0.16
     },
     {
-      "name": "Command (deferred): agentCoder.initCurrentProject",
-      "startOffsetMs": 120.47,
+      "name": "Command (deferred): agentCoder.analyzeChangeImpact",
+      "startOffsetMs": 183.75,
       "durationMs": 0.16
     },
     {
-      "name": "Command (deferred): agentCoder.detectRegression",
-      "startOffsetMs": 120.63,
-      "durationMs": 0.15
-    },
-    {
-      "name": "Command (deferred): agentCoder.runTests",
-      "startOffsetMs": 120.79,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.validateProject",
-      "startOffsetMs": 120.96,
-      "durationMs": 0.23
-    },
-    {
-      "name": "Command (deferred): agentCoder.repairBuild",
-      "startOffsetMs": 121.19,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.proposeFix",
-      "startOffsetMs": 121.36,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.proposeProjectFix",
-      "startOffsetMs": 121.52,
-      "durationMs": 0.13
-    },
-    {
-      "name": "Command (deferred): agentCoder.generateDocComments",
-      "startOffsetMs": 121.66,
-      "durationMs": 0.15
-    },
-    {
-      "name": "Command (deferred): agentCoder.prettyFormat",
-      "startOffsetMs": 121.82,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.cancelCurrentTask",
-      "startOffsetMs": 121.98,
-      "durationMs": 0.15
-    },
-    {
-      "name": "Command (deferred): agentCoder.addProjectInvariant",
-      "startOffsetMs": 122.14,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.listProjectInvariants",
-      "startOffsetMs": 122.31,
-      "durationMs": 0.15
-    },
-    {
-      "name": "Command (deferred): agentCoder.migrateInvariantsToExtendedSchema",
-      "startOffsetMs": 122.46,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.validateInvariantAgainstFile",
-      "startOffsetMs": 122.63,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.runInvariantTestCases",
-      "startOffsetMs": 122.79,
-      "durationMs": 0.16
-    },
-    {
-      "name": "Command (deferred): agentCoder.createDecisionRecord",
-      "startOffsetMs": 122.96,
-      "durationMs": 0.15
-    },
-    {
-      "name": "Command (deferred): agentCoder.listDecisionRecords",
-      "startOffsetMs": 123.11,
-      "durationMs": 0.17
-    },
-    {
-      "name": "Command (deferred): agentCoder.checkQualityRules",
-      "startOffsetMs": 123.28,
+      "name": "Command (deferred): agentCoder.analyzeUIAccessibility",
+      "startOffsetMs": 183.91,
       "durationMs": 0.14
     },
     {
-      "name": "Command (deferred): agentCoder.detectAIAuthorship",
-      "startOffsetMs": 123.42,
-      "durationMs": 0.14
+      "name": "Command (deferred): agentCoder.analyzeSchemaChange",
+      "startOffsetMs": 184.05,
+      "durationMs": 0.16
     },
     {
-      "name": "Command (deferred): agentCoder.detectAIAuthorshipAcrossProject",
-      "startOffsetMs": 123.56,
-      "durationMs": 0.12
+      "name": "Command (deferred): agentCoder.proposeSchemaMigration",
+      "startOffsetMs": 184.22,
+      "durationMs": 0.18
     },
     {
-      "name": "Command (deferred): agentCoder.listTechnicalDebt",
-      "startOffsetMs": 123.69,
-      "durationMs": 0.12
-    },
-    {
-      "name": "Command (deferred): agentCoder.addUserPreference",
-      "startOffsetMs": 123.81,
-      "durationMs": 0.13
-    },
-    {
-      "name": "Command (deferred): agentCoder.listUserPreferences",
-      "startOffsetMs": 123.94,
-      "durationMs": 0.17
-    },
-    {
-      "name": "Command (deferred): agentCoder.generateTests",
-      "startOffsetMs": 124.11,
-      "durationMs": 0.17
-    },
-    {
-      "name": "Command (deferred): agentCoder.analyzeTestAdequacy",
-      "startOffsetMs": 124.29,
+      "name": "Command (deferred): agentCoder.addAPIContract",
+      "startOffsetMs": 184.41,
       "durationMs": 0.19
     },
     {
+      "name": "Command (deferred): agentCoder.analyzeAPIContractChange",
+      "startOffsetMs": 184.6,
+      "durationMs": 0.17
+    },
+    {
+      "name": "Command (deferred): agentCoder.analyzeSerializationCompatibility",
+      "startOffsetMs": 184.78,
+      "durationMs": 0.21
+    },
+    {
+      "name": "Command (deferred): agentCoder.captureBaseline",
+      "startOffsetMs": 184.99,
+      "durationMs": 0.23
+    },
+    {
+      "name": "Command (deferred): agentCoder.initNewProject",
+      "startOffsetMs": 185.23,
+      "durationMs": 0.21
+    },
+    {
+      "name": "Command (deferred): agentCoder.initCurrentProject",
+      "startOffsetMs": 185.45,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.detectRegression",
+      "startOffsetMs": 185.63,
+      "durationMs": 0.17
+    },
+    {
+      "name": "Command (deferred): agentCoder.runTests",
+      "startOffsetMs": 185.81,
+      "durationMs": 0.17
+    },
+    {
+      "name": "Command (deferred): agentCoder.validateProject",
+      "startOffsetMs": 185.99,
+      "durationMs": 0.17
+    },
+    {
+      "name": "Command (deferred): agentCoder.repairBuild",
+      "startOffsetMs": 186.16,
+      "durationMs": 0.21
+    },
+    {
+      "name": "Command (deferred): agentCoder.proposeFix",
+      "startOffsetMs": 186.38,
+      "durationMs": 0.21
+    },
+    {
+      "name": "Command (deferred): agentCoder.proposeProjectFix",
+      "startOffsetMs": 186.59,
+      "durationMs": 0.23
+    },
+    {
+      "name": "Command (deferred): agentCoder.generateDocComments",
+      "startOffsetMs": 186.83,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.prettyFormat",
+      "startOffsetMs": 187.01,
+      "durationMs": 0.23
+    },
+    {
+      "name": "Command (deferred): agentCoder.cancelCurrentTask",
+      "startOffsetMs": 187.25,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.addProjectInvariant",
+      "startOffsetMs": 187.44,
+      "durationMs": 0.19
+    },
+    {
+      "name": "Command (deferred): agentCoder.listProjectInvariants",
+      "startOffsetMs": 187.63,
+      "durationMs": 0.17
+    },
+    {
+      "name": "Command (deferred): agentCoder.migrateInvariantsToExtendedSchema",
+      "startOffsetMs": 187.81,
+      "durationMs": 0.17
+    },
+    {
+      "name": "Command (deferred): agentCoder.validateInvariantAgainstFile",
+      "startOffsetMs": 187.98,
+      "durationMs": 0.2
+    },
+    {
+      "name": "Command (deferred): agentCoder.runInvariantTestCases",
+      "startOffsetMs": 188.18,
+      "durationMs": 0.21
+    },
+    {
+      "name": "Command (deferred): agentCoder.createDecisionRecord",
+      "startOffsetMs": 188.4,
+      "durationMs": 0.2
+    },
+    {
+      "name": "Command (deferred): agentCoder.listDecisionRecords",
+      "startOffsetMs": 188.6,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.checkQualityRules",
+      "startOffsetMs": 188.78,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.detectAIAuthorship",
+      "startOffsetMs": 188.97,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.detectAIAuthorshipAcrossProject",
+      "startOffsetMs": 189.16,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.listTechnicalDebt",
+      "startOffsetMs": 189.35,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.addUserPreference",
+      "startOffsetMs": 189.53,
+      "durationMs": 0.17
+    },
+    {
+      "name": "Command (deferred): agentCoder.listUserPreferences",
+      "startOffsetMs": 189.71,
+      "durationMs": 0.2
+    },
+    {
+      "name": "Command (deferred): agentCoder.generateTests",
+      "startOffsetMs": 189.91,
+      "durationMs": 0.18
+    },
+    {
+      "name": "Command (deferred): agentCoder.analyzeTestAdequacy",
+      "startOffsetMs": 190.1,
+      "durationMs": 0.16
+    },
+    {
       "name": "Command (deferred): agentCoder.addPerformanceBudget",
-      "startOffsetMs": 124.48,
+      "startOffsetMs": 190.26,
       "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.checkPerformanceBudgets",
-      "startOffsetMs": 124.66,
-      "durationMs": 0.16
+      "startOffsetMs": 190.43,
+      "durationMs": 0.18
     },
     {
       "name": "Command (deferred): agentCoder.recommendValidationLevel",
-      "startOffsetMs": 124.83,
-      "durationMs": 0.18
+      "startOffsetMs": 190.62,
+      "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.searchProject",
-      "startOffsetMs": 125.01,
-      "durationMs": 0.19
+      "startOffsetMs": 190.82,
+      "durationMs": 0.16
     },
     {
       "name": "Command (deferred): agentCoder.analyzeSupplyChain",
-      "startOffsetMs": 125.2,
-      "durationMs": 0.18
+      "startOffsetMs": 190.99,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.analyzeLicenseCompliance",
-      "startOffsetMs": 125.38,
-      "durationMs": 0.16
+      "startOffsetMs": 191.17,
+      "durationMs": 0.14
     },
     {
       "name": "Command (deferred): agentCoder.validateInSandbox",
-      "startOffsetMs": 125.54,
-      "durationMs": 0.16
+      "startOffsetMs": 191.31,
+      "durationMs": 0.13
     },
     {
       "name": "Command (deferred): agentCoder.detectToolchainProfile",
-      "startOffsetMs": 125.71,
-      "durationMs": 0.16
+      "startOffsetMs": 191.44,
+      "durationMs": 0.14
     },
     {
       "name": "Command (deferred): agentCoder.captureBuildEnvironment",
-      "startOffsetMs": 125.87,
-      "durationMs": 0.16
+      "startOffsetMs": 191.59,
+      "durationMs": 0.13
     },
     {
       "name": "Command (deferred): agentCoder.addCompatibilityEntry",
-      "startOffsetMs": 126.04,
-      "durationMs": 0.16
+      "startOffsetMs": 191.72,
+      "durationMs": 0.24
     },
     {
       "name": "Command (deferred): agentCoder.listCompatibilityEntries",
-      "startOffsetMs": 126.2,
-      "durationMs": 0.15
+      "startOffsetMs": 191.96,
+      "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.checkCompatibility",
-      "startOffsetMs": 126.35,
-      "durationMs": 0.2
+      "startOffsetMs": 192.17,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.removeCompatibilityEntry",
-      "startOffsetMs": 126.56,
-      "durationMs": 0.2
+      "startOffsetMs": 192.34,
+      "durationMs": 0.16
     },
     {
       "name": "Command (deferred): agentCoder.gitStatus",
-      "startOffsetMs": 126.77,
-      "durationMs": 0.17
+      "startOffsetMs": 192.51,
+      "durationMs": 0.16
     },
     {
       "name": "Command (deferred): agentCoder.reviewStagedChanges",
-      "startOffsetMs": 126.94,
-      "durationMs": 0.16
+      "startOffsetMs": 192.67,
+      "durationMs": 0.15
     },
     {
       "name": "Command (deferred): agentCoder.createTaskBranch",
-      "startOffsetMs": 127.11,
-      "durationMs": 0.18
+      "startOffsetMs": 192.83,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.createGitCheckpoint",
-      "startOffsetMs": 127.3,
-      "durationMs": 0.16
+      "startOffsetMs": 193.01,
+      "durationMs": 0.21
     },
     {
       "name": "Command (deferred): agentCoder.suggestCommitMessage",
-      "startOffsetMs": 127.47,
-      "durationMs": 0.17
+      "startOffsetMs": 193.22,
+      "durationMs": 0.22
     },
     {
       "name": "Command (deferred): agentCoder.recommendModel",
-      "startOffsetMs": 127.64,
-      "durationMs": 0.18
+      "startOffsetMs": 193.44,
+      "durationMs": 0.24
     },
     {
       "name": "Command (deferred): agentCoder.showTokenLedger",
-      "startOffsetMs": 127.83,
-      "durationMs": 0.17
+      "startOffsetMs": 193.69,
+      "durationMs": 0.15
     },
     {
       "name": "Command (deferred): agentCoder.showModelPerformance",
-      "startOffsetMs": 128.01,
-      "durationMs": 0.17
+      "startOffsetMs": 193.85,
+      "durationMs": 0.21
     },
     {
       "name": "Command (deferred): agentCoder.recordCorrection",
-      "startOffsetMs": 128.19,
-      "durationMs": 0.17
+      "startOffsetMs": 194.06,
+      "durationMs": 0.19
     },
     {
       "name": "Command (deferred): agentCoder.viewProjectMemory",
-      "startOffsetMs": 128.36,
+      "startOffsetMs": 194.26,
       "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.generateDebugHypotheses",
-      "startOffsetMs": 128.57,
-      "durationMs": 0.16
+      "startOffsetMs": 194.46,
+      "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.analyzeCrashArtifact",
-      "startOffsetMs": 128.73,
-      "durationMs": 0.16
+      "startOffsetMs": 194.67,
+      "durationMs": 0.2
     },
     {
       "name": "Command (deferred): agentCoder.viewDebugSessions",
-      "startOffsetMs": 128.89,
-      "durationMs": 0.17
+      "startOffsetMs": 194.87,
+      "durationMs": 0.26
     },
     {
       "name": "Command (deferred): agentCoder.showDebugSessionReport",
-      "startOffsetMs": 129.07,
-      "durationMs": 0.17
+      "startOffsetMs": 195.13,
+      "durationMs": 0.26
     },
     {
       "name": "Command (deferred): agentCoder.recordRootCauseVerification",
-      "startOffsetMs": 129.24,
-      "durationMs": 0.15
+      "startOffsetMs": 195.39,
+      "durationMs": 0.19
     },
     {
       "name": "Command (deferred): agentCoder.proposeObservabilityInstrumentation",
-      "startOffsetMs": 129.4,
-      "durationMs": 0.14
+      "startOffsetMs": 195.59,
+      "durationMs": 0.19
     },
     {
       "name": "Command (deferred): agentCoder.listPlugins",
-      "startOffsetMs": 129.54,
-      "durationMs": 0.14
+      "startOffsetMs": 195.78,
+      "durationMs": 0.15
     },
     {
       "name": "Command (deferred): agentCoder.reviewPluginWrites",
-      "startOffsetMs": 129.69,
-      "durationMs": 0.16
+      "startOffsetMs": 195.94,
+      "durationMs": 0.15
     },
     {
       "name": "Command (deferred): agentCoder.showPrivacyStatus",
-      "startOffsetMs": 129.85,
+      "startOffsetMs": 196.09,
       "durationMs": 0.15
     },
     {
       "name": "Command (deferred): agentCoder.showAutonomyStatus",
-      "startOffsetMs": 130.01,
-      "durationMs": 0.17
+      "startOffsetMs": 196.25,
+      "durationMs": 0.15
     },
     {
       "name": "Command (deferred): agentCoder.setEconomyMode",
-      "startOffsetMs": 130.21,
-      "durationMs": 0.15
-    },
-    {
-      "name": "Command (deferred): agentCoder.setResponseQualityMode",
-      "startOffsetMs": 130.37,
+      "startOffsetMs": 196.41,
       "durationMs": 0.14
     },
     {
+      "name": "Command (deferred): agentCoder.setResponseQualityMode",
+      "startOffsetMs": 196.55,
+      "durationMs": 0.19
+    },
+    {
       "name": "Command (deferred): agentCoder.runDiagnostics",
-      "startOffsetMs": 130.51,
-      "durationMs": 0.15
+      "startOffsetMs": 196.75,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.validateConfiguration",
-      "startOffsetMs": 130.67,
-      "durationMs": 0.2
+      "startOffsetMs": 196.92,
+      "durationMs": 0.15
     },
     {
       "name": "Command (deferred): agentCoder.showResourcePressure",
-      "startOffsetMs": 130.88,
-      "durationMs": 0.28
+      "startOffsetMs": 197.07,
+      "durationMs": 0.23
     },
     {
       "name": "Command (deferred): agentCoder.runTokenRegressionTests",
-      "startOffsetMs": 131.17,
-      "durationMs": 0.19
+      "startOffsetMs": 197.32,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.runPromptSnapshotTests",
-      "startOffsetMs": 131.37,
-      "durationMs": 0.19
+      "startOffsetMs": 197.5,
+      "durationMs": 0.18
     },
     {
       "name": "Command (deferred): agentCoder.analyzeTokenWaste",
-      "startOffsetMs": 131.57,
-      "durationMs": 0.21
+      "startOffsetMs": 197.69,
+      "durationMs": 0.15
     },
     {
       "name": "Command (deferred): agentCoder.runPerformanceAcceptanceCriteria",
-      "startOffsetMs": 131.79,
-      "durationMs": 0.25
+      "startOffsetMs": 197.84,
+      "durationMs": 0.14
     },
     {
       "name": "Command (deferred): agentCoder.showProviderCapabilities",
-      "startOffsetMs": 132.04,
+      "startOffsetMs": 197.99,
       "durationMs": 0.19
     },
     {
       "name": "Command (deferred): agentCoder.openLearningSearch",
-      "startOffsetMs": 132.24,
-      "durationMs": 0.16
+      "startOffsetMs": 198.18,
+      "durationMs": 0.18
     },
     {
       "name": "Command (deferred): agentCoder.openDesignSimulation",
-      "startOffsetMs": 132.4,
-      "durationMs": 0.21
+      "startOffsetMs": 198.37,
+      "durationMs": 0.15
     },
     {
       "name": "Command (deferred): agentCoder.showCallers",
-      "startOffsetMs": 132.62,
-      "durationMs": 0.21
+      "startOffsetMs": 198.52,
+      "durationMs": 0.17
     },
     {
       "name": "Command (deferred): agentCoder.validateActiveSymbol",
-      "startOffsetMs": 132.84,
-      "durationMs": 0.18
+      "startOffsetMs": 198.69,
+      "durationMs": 0.14
     },
     {
       "name": "Command (deferred): agentCoder.validateChangedRegion",
-      "startOffsetMs": 133.02,
-      "durationMs": 0.18
+      "startOffsetMs": 198.84,
+      "durationMs": 0.13
     },
     {
       "name": "Command (deferred): agentCoder.refreshLiveContextCache",
-      "startOffsetMs": 133.21,
-      "durationMs": 0.2
+      "startOffsetMs": 198.97,
+      "durationMs": 0.27
     },
     {
       "name": "Command (deferred): agentCoder.clearLiveContextCache",
-      "startOffsetMs": 133.42,
-      "durationMs": 0.13
+      "startOffsetMs": 199.24,
+      "durationMs": 0.12
     },
     {
       "name": "Command (deferred): agentCoder.explainCurrentDiagnostic",
-      "startOffsetMs": 133.56,
-      "durationMs": 0.12
+      "startOffsetMs": 199.36,
+      "durationMs": 0.16
     },
     {
       "name": "Command (deferred): agentCoder.proposeFixForCurrentDiagnostic",
-      "startOffsetMs": 133.68,
-      "durationMs": 0.11
+      "startOffsetMs": 199.53,
+      "durationMs": 0.27
     },
     {
       "name": "Command (deferred): agentCoder.diagnoseLiveContext",
-      "startOffsetMs": 133.8,
-      "durationMs": 0.11
+      "startOffsetMs": 199.8,
+      "durationMs": 0.37
     },
     {
       "name": "Command (deferred): agentCoder.contextChat",
-      "startOffsetMs": 133.91,
-      "durationMs": 0.11
+      "startOffsetMs": 200.18,
+      "durationMs": 0.3
     },
     {
       "name": "Command (deferred): agentCoder.togglePairProgrammer",
-      "startOffsetMs": 134.03,
-      "durationMs": 0.11
+      "startOffsetMs": 200.49,
+      "durationMs": 0.49
     },
     {
       "name": "Command (deferred): agentCoder.pairProgrammerProposeFix",
-      "startOffsetMs": 134.14,
-      "durationMs": 0.12
+      "startOffsetMs": 200.99,
+      "durationMs": 0.36
     },
     {
       "name": "Command (deferred): agentCoder.openWorkspaceGoals",
-      "startOffsetMs": 134.27,
-      "durationMs": 0.11
+      "startOffsetMs": 201.35,
+      "durationMs": 0.36
     },
     {
       "name": "Command (deferred): agentCoder.toggleLiveCodingCoach",
-      "startOffsetMs": 134.39,
-      "durationMs": 0.13
+      "startOffsetMs": 201.75,
+      "durationMs": 0.39
     }
   ]
 }

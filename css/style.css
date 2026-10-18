@@ -1203,6 +1203,31 @@ body.manolito-fs #shadowRouteMap{
   height:100svh;
   height:100dvh;
 }
+/* En escritorio y Android se usa fullscreen nativo sobre .map-wrap. El
+   modo nativo también debe estirar el mapa y sus widgets hasta el viewport:
+   si solo se agranda el marco, los controles quedan anclados al mapa de 460px. */
+.map-wrap:fullscreen,
+.map-wrap:-webkit-full-screen{
+  width:100vw;
+  height:100svh;
+  height:100dvh;
+  border:0 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  background:#000;
+}
+.map-wrap:fullscreen #shadowRouteMap,
+.map-wrap:-webkit-full-screen #shadowRouteMap{
+  width:100%;
+  height:100svh;
+  height:100dvh;
+}
+/* Los paneles viven dentro del marco fullscreen; fijamos su prioridad para
+   que permanezcan visibles sobre el canvas en pantallas grandes y pequeñas. */
+.map-wrap:fullscreen #rsTimeControls,
+.map-wrap:-webkit-full-screen #rsTimeControls{ z-index:20; }
+.map-wrap:fullscreen #rsShadowBadge,
+.map-wrap:-webkit-full-screen #rsShadowBadge{ z-index:21; }
 /* Dentro de la pantalla completa solo vive el mapa: el planetario, los
     botones de capas y demás secciones quedan fuera (el planetario se
     colaba por encima en el móvil). MANTENEMOS el panel de capas visible
@@ -4685,4 +4710,115 @@ svg#map:not(:has(#w.o)) #mk,
 svg#map:not(:has(#w.o)) #mk *{
   animation-play-state:paused !important;
   transition:none !important;
+}
+
+/* Escritorio: el formulario de rutas conserva el aire limpio de móvil,
+   con campos separados, acciones de igual altura y el modo invierno como
+   interruptor compacto en vez de una casilla suelta. */
+@media (min-width:701px){
+  #main-content .rs-form{
+    gap:12px;
+    padding:14px;
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:18px;
+    background:linear-gradient(145deg,rgba(26,31,39,.97),rgba(17,21,28,.97));
+    box-shadow:0 14px 34px rgba(0,0,0,.22);
+  }
+  #main-content .rs-form .rs-field input[type="text"]{
+    box-sizing:border-box;
+    width:100%;
+    min-height:52px;
+    padding-inline:42px 14px;
+    border-radius:14px;
+    background-color:rgba(255,255,255,.055);
+  }
+  #main-content .rs-form #rsBuscarBtn,
+  #main-content .rs-form .rs-parking-action{
+    min-height:52px;
+    border-radius:14px;
+    transition:transform 180ms ease,box-shadow 180ms ease,background-color 180ms ease,border-color 180ms ease;
+  }
+  #main-content .rs-form #rsBuscarBtn{
+    padding-inline:20px;
+    box-shadow:0 6px 18px rgba(255,155,66,.20);
+  }
+  #main-content .rs-form #rsBuscarBtn:hover{
+    transform:translateY(-1px);
+    box-shadow:0 10px 24px rgba(255,155,66,.28);
+  }
+  #main-content .rs-form .rs-parking-action{
+    min-width:210px;
+    padding-inline:16px;
+    border-radius:14px;
+  }
+  #main-content .rs-form .rs-parking-action:hover{
+    transform:translateY(-1px);
+    background:rgba(53,196,212,.18);
+    border-color:#35C4D4;
+  }
+  #main-content .rs-form .rs-toggle-invierno{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    min-height:42px;
+    margin:0;
+    padding:5px 12px;
+    border:1px solid rgba(255,255,255,.11);
+    border-radius:999px;
+    background:rgba(255,255,255,.035);
+    box-shadow:none;
+    color:var(--mui-text,#E8EDF5);
+    font-size:.86rem;
+    transition:border-color 180ms ease,background-color 180ms ease;
+  }
+  #main-content .rs-form .rs-toggle-invierno:hover,
+  #main-content .rs-form .rs-toggle-invierno.rs-invierno-activo{
+    border-color:rgba(255,180,93,.48);
+    background:rgba(255,180,93,.09);
+  }
+  #main-content .rs-form .rs-toggle-invierno .rs-icono-sol{ order:0; color:#FFB45D; }
+  #main-content .rs-form .rs-toggle-invierno > span:last-child{ order:1; }
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]{
+    appearance:none;
+    -webkit-appearance:none;
+    position:relative;
+    order:2;
+    width:42px;
+    height:24px;
+    flex:0 0 42px;
+    margin:0 0 0 4px;
+    border:1px solid rgba(255,255,255,.22);
+    border-radius:999px;
+    background:#303946;
+    cursor:pointer;
+    transition:background-color 180ms ease,border-color 180ms ease;
+  }
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]::after{
+    content:"";
+    position:absolute;
+    inset-inline-start:3px;
+    inset-block-start:3px;
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    background:#E8EDF5;
+    transition:transform 180ms ease,background-color 180ms ease;
+  }
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:checked{
+    border-color:#FFB45D;
+    background:#FF9A3D;
+  }
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:checked::after{
+    background:#171B22;
+    transform:translateX(18px);
+  }
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:focus-visible{
+    outline:2px solid #FFB45D;
+    outline-offset:3px;
+  }
+}
+@media (min-width:701px) and (prefers-reduced-motion:reduce){
+  #main-content .rs-form .rs-toggle-invierno,
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"],
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]::after{ transition:none; }
 }

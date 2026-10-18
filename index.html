@@ -3151,18 +3151,36 @@ svg#map #mk:focus,svg#map #mk:focus-visible{outline:none!important}
   var root=document.querySelector('svg#map');
   var routeMap=document.getElementById('shadowRouteMap');
   if(!root||!routeMap)return;
+  var overlayParent=root.parentNode;
+  var overlayNext=root.nextSibling;
+  function syncOverlayParent(){
+    var mapWrap=routeMap.parentElement;
+    var expanded=document.fullscreenElement===mapWrap||document.body.classList.contains('manolito-fs');
+    var target=expanded?mapWrap:overlayParent;
+    if(target&&root.parentNode!==target){
+      if(expanded)target.appendChild(root);
+      else target.insertBefore(root,overlayNext&&overlayNext.parentNode===target?overlayNext:null);
+    }
+    return expanded;
+  }
   function positionOverlay(){
+    var expanded=syncOverlayParent();
     var r=routeMap.getBoundingClientRect();
     var scale=Math.min(1,r.width/390,r.height/460);
+    var mapWrap=routeMap.parentElement;
+    var wrapRect=expanded?mapWrap.getBoundingClientRect():null;
     root.style.width=(390*scale)+'px';
     root.style.height=(460*scale)+'px';
-    root.style.left=(r.left+window.scrollX)+'px';
-    root.style.top=(r.bottom+window.scrollY-460*scale)+'px';
+    root.style.left=(expanded?r.left-wrapRect.left:r.left+window.scrollX)+'px';
+    root.style.top=(expanded?r.bottom-wrapRect.top-460*scale:r.bottom+window.scrollY-460*scale)+'px';
     root.style.visibility='visible';
   }
   var queued=false;
   function queuePosition(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;positionOverlay();});}
   window.addEventListener('resize',queuePosition,{passive:true});
+  document.addEventListener('fullscreenchange',queuePosition);
+  document.addEventListener('webkitfullscreenchange',queuePosition);
+  if(window.MutationObserver)new MutationObserver(queuePosition).observe(document.body,{attributes:true,attributeFilter:['class']});
   if(window.visualViewport)visualViewport.addEventListener('resize',queuePosition,{passive:true});
   function syncMapTime(){
     var clock=root.querySelector('#bt');

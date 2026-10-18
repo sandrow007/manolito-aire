@@ -136,7 +136,7 @@
 // VE al dar a Mi ubicacion y aguanta GPS lento de movil) y
 // js/microclima.js (respaldo directo a Open-Meteo si el worker aun no
 // tiene la ruta nueva).
-const VERSION = '2026-10-18-solar-panel';
+const VERSION = '2026-10-18-desktop-route-form';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

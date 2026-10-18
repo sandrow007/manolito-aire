@@ -2,17 +2,40 @@
    MANOLITO AIRE — tema (claro/oscuro) y paleta de acento
    ============================================================ */
 
+function leerTemaGuardado(){
+  try { return localStorage.getItem('manolito_theme'); }
+  catch (e) { return null; }
+}
+
+function temaDelSistema(){
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+    ? 'light'
+    : 'dark';
+}
+
+function aplicarTema(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀' : '☾';
+}
+
 function initTheme(){
-  // Por defecto arranca en modo oscuro con acento cian "cosmos": la misma
-  // familia visual que su web hermana islasdecalorsevilla.com.
-  const savedTheme = localStorage.getItem('manolito_theme') || 'dark';
+  const guardado = leerTemaGuardado();
+  const savedTheme = guardado === 'light' || guardado === 'dark' ? guardado : temaDelSistema();
   const savedPalette = localStorage.getItem('manolito_palette') || 'cosmos';
 
-  document.documentElement.setAttribute('data-theme', savedTheme);
+  aplicarTema(savedTheme);
   document.documentElement.setAttribute('data-palette', savedPalette);
 
-  const themeBtn = document.getElementById('themeToggle');
-  if (themeBtn) themeBtn.textContent = savedTheme === 'dark' ? '☀' : '☾';
+  // Si no hay preferencia manual, acompaña los cambios del tema del sistema.
+  if (!guardado && window.matchMedia) {
+    const media = window.matchMedia('(prefers-color-scheme: light)');
+    const sincronizarTemaSistema = (evento) => {
+      if (!leerTemaGuardado()) aplicarTema(evento.matches ? 'light' : 'dark');
+    };
+    if (media.addEventListener) media.addEventListener('change', sincronizarTemaSistema);
+    else if (media.addListener) media.addListener(sincronizarTemaSistema);
+  }
 
   document.querySelectorAll('#paletteToggle button').forEach(b=>{
     b.classList.toggle('active', b.dataset.palette === savedPalette);
@@ -22,10 +45,8 @@ function initTheme(){
 function toggleTheme(){
   const current = document.documentElement.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('manolito_theme', next);
-  const themeBtn = document.getElementById('themeToggle');
-  if (themeBtn) themeBtn.textContent = next === 'dark' ? '☀' : '☾';
+  try { localStorage.setItem('manolito_theme', next); } catch (e) {}
+  aplicarTema(next);
 }
 
 function setPalette(p){

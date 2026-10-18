@@ -23,6 +23,31 @@
   --accent-2: #7B2FFF;    /* jacarandá */
   --accent-text: #C24500; /* versión oscura del acento para texto (contraste AA) */
 
+  /* Escalas base de la interfaz: ocho píxeles, tipografía de sistema. */
+  --ux-font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ux-font-mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+  --ux-type-xs:.75rem;
+  --ux-type-sm:.875rem;
+  --ux-type-base:1rem;
+  --ux-type-lg:1.25rem;
+  --ux-type-xl:1.5rem;
+  --ux-space-1:8px;
+  --ux-space-2:16px;
+  --ux-space-3:24px;
+  --ux-space-4:32px;
+  --ux-space-5:40px;
+  --ux-space-6:48px;
+  --ux-accent:var(--accent);
+  --ux-radius-control:8px;
+  --ux-radius-panel:12px;
+  --ux-radius-card:16px;
+  --ux-radius-pill:999px;
+  --ux-shadow-card:0 1px 2px rgba(0,0,0,.24),0 6px 20px rgba(0,0,0,.22);
+  --ux-shadow-float:0 8px 24px rgba(0,0,0,.2);
+  --ux-transition-fast:200ms ease;
+  --ux-transition-ui:250ms ease;
+  --ux-transition-slow:300ms ease;
+
   /* --- estados del aire (no cambian con el tema) --- */
   --breath-good:#00B98A;  /* menta viva */
   --breath-mid:#FFB800;   /* sol de albero */
@@ -30,9 +55,9 @@
 
   /* --- tipografía hermanada con islasdecalorsevilla.com: sans de sistema
          para texto y display, mono para datos (aspecto profesional/tech) --- */
-  --font-display:'SF Pro Display','Segoe UI',system-ui,-apple-system,sans-serif;
-  --font-body:'SF Pro Display','Segoe UI',system-ui,-apple-system,sans-serif;
-  --font-mono:'IBM Plex Mono','Courier New',monospace;
+  --font-display:var(--ux-font-sans);
+  --font-body:var(--ux-font-sans);
+  --font-mono:var(--ux-font-mono);
 }
 
 /* --- modo oscuro --- */
@@ -648,7 +673,7 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .yayo-zoom-btn {
   width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--sky-deep, #0E3B47);
   background: var(--paper, #FBFAF7); color: var(--sky-deep, #0E3B47);
-  font-family: var(--font-display, 'Fraunces', serif); font-size: 1.6rem; font-weight: 700;
+  font-family:var(--font-display,var(--ux-font-sans)); font-size:1.6rem; font-weight:700;
   cursor: pointer; box-shadow: 0 4px 14px rgba(14,59,71,0.18);
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
@@ -659,14 +684,14 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
    MEJORAS PARA LOS MODOS (CIENTÍFICO, YAYO, PEQUE)
    ============================================================ */
 
-body.mode-cientifico .orb-face { font-family: 'IBM Plex Mono', monospace; font-size: 2.6rem; font-weight: 500; }
-body.mode-cientifico .human-line { font-family: 'IBM Plex Mono', monospace; }
-body.mode-cientifico .tech-readout { font-family: 'IBM Plex Mono', monospace; font-size: 1rem; color: var(--text-soft, #555); }
+body.mode-cientifico .orb-face { font-family:var(--font-mono); font-size:2.6rem; font-weight:500; }
+body.mode-cientifico .human-line { font-family:var(--font-mono); }
+body.mode-cientifico .tech-readout { font-family:var(--font-mono); font-size:1rem; color:var(--text-soft,#555); }
 
 .sci-panel {
   display: none; margin: 1rem auto 0; background: var(--surface, rgba(255,255,255,0.85));
   backdrop-filter: blur(8px); border-radius: 1.2rem; padding: 0.8rem 1.2rem;
-  font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; max-width: 340px;
+  font-family:var(--font-mono); font-size:.9rem; max-width:340px;
   border: 1px solid var(--border, #ccc); text-align: left; color: var(--text, #333);
 }
 body.mode-cientifico .sci-panel { display: block; }
@@ -754,7 +779,7 @@ body.mode-peque .peque-message { animation: pequePop 0.55s cubic-bezier(0.34, 1.
 .city-picker { position: relative; display: flex; justify-content: center; margin: 1rem 0; }
 .city-dropdown-btn {
   background: var(--surface, #fff); border: 1px solid var(--border, #ccc); border-radius: 2rem;
-  padding: 0.7rem 1.8rem; font-family: 'Karla', sans-serif; font-weight: 600; font-size: 1rem;
+  padding:.7rem 1.8rem; font-family:var(--font-body); font-weight:600; font-size:1rem;
   color: var(--text, #333); cursor: pointer; backdrop-filter: blur(6px);
   box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s;
 }
@@ -768,7 +793,7 @@ body.mode-peque .peque-message { animation: pequePop 0.55s cubic-bezier(0.34, 1.
 }
 .city-dropdown-list.open { display: block; }
 .city-dropdown-list li {
-  padding: 0.6rem 1.2rem; font-family: 'Karla', sans-serif; font-size: 0.95rem;
+  padding:.6rem 1.2rem; font-family:var(--font-body); font-size:.95rem;
   color: var(--text, #333); cursor: pointer; transition: background 0.15s;
 }
 city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
@@ -777,7 +802,7 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 /* ============================================================
    APARTADO DE DONACIONES (DISCRETO)
    ============================================================ */
-.footer-donacion { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed var(--line, #ccc); text-align: center; font-family: 'Karla', sans-serif; color: var(--text-soft, #666); }
+.footer-donacion { margin-top:1.5rem; padding-top:1rem; border-top:1px dashed var(--line,#ccc); text-align:center; font-family:var(--font-body); color:var(--text-soft,#666); }
 .donacion-mensaje { font-size: 0.9rem; line-height: 1.4; margin: 0 0 0.6rem 0; }
 .donacion-boton {
   display: inline-block; padding: 0.4rem 1.2rem; border: 1px solid var(--line, #ccc); border-radius: 2rem;
@@ -2247,14 +2272,14 @@ body.mode-peque .im-lost-btn{
   --mui-soft:#9BA3AD;
   --mui-soft-2:#8B949E;
   --mui-ico:#C9D1D9;
-  --mui-accent:#FF6B1A;
+  --mui-accent:var(--ux-accent,#FF6B1A);
   --mui-accent-text:#FFB37A;
   --mui-accent-tint:rgba(255,107,26,0.13);
-  --mui-r-panel:12px;
-  --mui-r-ctl:8px;
+  --mui-r-panel:var(--ux-radius-panel,12px);
+  --mui-r-ctl:var(--ux-radius-control,8px);
   --mui-h:36px;        /* altura de control (escritorio) */
-  --mui-shadow:0 1px 2px rgba(0,0,0,0.24), 0 6px 20px rgba(0,0,0,0.22);
-  --mui-t:0.16s ease;
+  --mui-shadow:var(--ux-shadow-card,0 1px 2px rgba(0,0,0,0.24), 0 6px 20px rgba(0,0,0,0.22));
+  --mui-t:var(--ux-transition-ui,250ms ease);
 }
 @media (pointer:coarse){
   #main-content{ --mui-h:44px; }  /* objetivo táctil mínimo 44 px */
@@ -3486,7 +3511,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
 :root{
   --seccion-ancho:960px;   /* tarjetas y bloques grandes */
   --seccion-texto:680px;   /* columna para párrafos largos */
-  --seccion-gap:46px;      /* el mismo aire vertical entre secciones */
+  --seccion-gap:var(--ux-space-6); /* ritmo común de 8 px */
 }
 
 /* 1) Anchura y ritmo vertical únicos (antes 1000/1000/760px y 46/56px) */

@@ -2407,7 +2407,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       #rsPlegarBtn svg{ display:block; transition:transform .2s ease; }
       #rsTimeControls.rs-cerrado #rsPlegarBtn svg{ transform:rotate(180deg); }
       #rsTimeLabel{
-        font-family:var(--font-mono, 'IBM Plex Mono', monospace);
+        font-family:var(--font-mono,ui-monospace,monospace);
         font-size:12px; letter-spacing:.02em; color:#C24500; font-weight:700;
       }
       #rsGoldenBadge{

@@ -203,6 +203,10 @@ function renderHero(){
       : (dict?.heroLoading || 'Cargando el aire de tu ciudad…');
     if (subLineEl) subLineEl.textContent = airRequestFailed ? '' : (dict?.heroMoment || 'Un momento.');
     if (techEl) techEl.textContent = '';
+    const heroIcaValue = document.getElementById('heroIcaValue');
+    const heroIcaCategory = document.getElementById('heroIcaCategory');
+    if (heroIcaValue) heroIcaValue.textContent = '';
+    if (heroIcaCategory) heroIcaCategory.textContent = '';
     if (orbFaceEl) {
       orbFaceEl.textContent = '';
       orbFaceEl.setAttribute('aria-hidden', 'true');
@@ -224,7 +228,18 @@ function renderHero(){
   const dictIca = (typeof translations !== 'undefined') ? (translations[lang] || translations.es) : null;
   const icaTxt = dictIca ? (state==='good'?dictIca.aqiGood:state==='mid'?dictIca.aqiModerate:dictIca.aqiBad)
                          : (state==='good'?'Buena':state==='mid'?'Moderada':'Mala');
-  if (techEl) techEl.textContent = `PM2.5 ${currentPM25} µg/m³ · ICA: ${icaTxt}`;
+  const heroIcaValue = document.getElementById('heroIcaValue');
+  const heroIcaCategory = document.getElementById('heroIcaCategory');
+  const icaValue = aqiFromPM25(currentPM25);
+  if (heroIcaValue) {
+    heroIcaValue.textContent = icaValue == null ? '' : String(icaValue);
+    heroIcaValue.removeAttribute('aria-hidden');
+  }
+  if (heroIcaCategory) {
+    heroIcaCategory.textContent = icaTxt;
+    heroIcaCategory.removeAttribute('aria-hidden');
+  }
+  if (techEl) techEl.textContent = `PM2.5 ${currentPM25} µg/m³`;
   if (orbFaceEl) {
     orbFaceEl.textContent = dict ? dict[`orb_${state}`] : state;
     orbFaceEl.removeAttribute('aria-hidden');

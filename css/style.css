@@ -237,6 +237,88 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .sub-line{ color: var(--sky-mid); font-size:0.96rem; max-width:440px; margin:0 auto 20px; }
 .tech-readout{ font-family: var(--font-mono); font-size: 0.75rem; color: var(--sky-deep); background: var(--mist); display:inline-block; padding: 8px 14px; border-radius: 10px; }
 
+.air-hero-card{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  width:min(100%,720px);
+  margin-inline:auto;
+  padding:clamp(14px,3vw,24px);
+  border:1px solid var(--line,rgba(255,255,255,.12));
+  border-radius:20px;
+  background:var(--surface,rgba(14,24,33,.92));
+  box-shadow:0 12px 32px rgba(0,0,0,.16);
+}
+.air-hero-card .city-picker{ margin:0; }
+.air-hero-card .orb-wrap{ margin-block:0; }
+.air-hero-ica{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-height:54px;
+  padding:6px 16px;
+  border:1px solid var(--line,rgba(255,255,255,.16));
+  border-radius:14px;
+  background:rgba(255,255,255,.06);
+  color:var(--sky-deep,#EAF1FF);
+  font-variant-numeric:tabular-nums;
+}
+.air-hero-ica > span:first-child{ font-size:.72rem; font-weight:700; letter-spacing:.08em; }
+#heroIcaValue{ font-size:1.55rem; font-weight:750; font-variant-numeric:tabular-nums; }
+#heroIcaCategory{ font-size:.88rem; font-weight:650; }
+.air-pollutants{ width:min(100%,560px); text-align:start; }
+.air-pollutants > summary{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:4px 10px;
+  min-height:44px;
+  padding:8px 12px;
+  border:1px solid var(--line,rgba(255,255,255,.16));
+  border-radius:12px;
+  color:var(--sky-deep,#EAF1FF);
+  background:rgba(255,255,255,.045);
+  font-weight:650;
+  cursor:pointer;
+}
+.air-pollutants > summary::marker{ color:var(--accent,#35C4D4); }
+.air-pollutants[open] > summary{ border-end-start-radius:0; border-end-end-radius:0; }
+.air-pollutants .tech-readout{ display:block; width:100%; box-sizing:border-box; margin:0; }
+.air-pollutants[open] .sci-panel{ display:block; width:100%; max-width:none; box-sizing:border-box; margin:0; border-start-start-radius:0; border-start-end-radius:0; }
+.hero.air-no-data .air-hero-ica{ display:none; }
+.hero.air-loading .air-hero-ica strong,
+.hero.air-loading #heroIcaCategory{
+  color:transparent;
+  border-radius:6px;
+  background:linear-gradient(90deg,rgba(130,144,154,.16) 25%,rgba(130,144,154,.32) 50%,rgba(130,144,154,.16) 75%);
+  background-size:200% 100%;
+  animation:airSkeleton 1.4s ease-in-out infinite;
+}
+.hero.air-loading .air-hero-ica strong{ width:34px; height:26px; }
+.hero.air-loading #heroIcaCategory{ width:78px; height:18px; }
+.hero.air-loading #sciPanel td[id],
+.hero.air-loading #sciUpdated{ color:transparent; font-size:0; }
+.hero.air-loading #sciPanel td[id]::after,
+.hero.air-loading #sciUpdated::after{
+  content:"";
+  display:inline-block;
+  width:4.5rem;
+  height:.72em;
+  border-radius:5px;
+  background:linear-gradient(90deg,rgba(130,144,154,.16) 25%,rgba(130,144,154,.32) 50%,rgba(130,144,154,.16) 75%);
+  background-size:200% 100%;
+  animation:airSkeleton 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion:reduce){
+  .hero.air-loading .air-hero-ica strong,
+  .hero.air-loading #heroIcaCategory,
+  .hero.air-loading #sciPanel td[id]::after,
+  .hero.air-loading #sciUpdated::after{ animation:none; }
+}
+
 /* Estado de carga del aire: sin mostrar un estado «bueno» hasta tener dato. */
 .hero.air-loading{ --state-color:#82909a; }
 .hero.air-loading .orb-face,

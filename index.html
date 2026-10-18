@@ -1097,6 +1097,7 @@
        Visible pero discreto para no tocar el diseño del hero.
        Traducido a los 6 idiomas (clave heroH1 en js/i18n.js). -->
   <h1 id="heroTitulo" data-i18n="heroH1" style="font-size:15px;font-weight:600;color:var(--sky-mid,#9fb3c8);text-align:center;margin:0 0 10px;">Manolito Aire. Mapa de sombras en vivo y rutas con sombra</h1>
+  <div class="air-hero-card" id="airHeroCard">
   <div class="city-picker" id="cityPickerContainer">
     <button class="city-dropdown-btn" id="cityDropdownBtn" aria-haspopup="listbox" aria-expanded="false">Sevilla</button>
     <ul class="city-dropdown-list" id="cityDropdownList" role="listbox" aria-label="Ciudad">
@@ -1137,7 +1138,15 @@
 
   <div class="human-line" id="humanLine" data-i18n="heroLoading">Cargando el aire de tu ciudad…</div>
   <div class="sub-line" id="subLine" data-i18n="heroMoment">Un momento.</div>
-  <div class="tech-readout" id="techReadout"></div>
+  <div class="air-hero-ica" role="group" data-i18n-aria-label="aqiTitle" aria-label="Calidad del aire en el punto de origen">
+    <span>ICA</span>
+    <strong id="heroIcaValue" aria-hidden="true"></strong>
+    <span id="heroIcaCategory" aria-hidden="true"></span>
+  </div>
+
+  <details class="air-pollutants">
+    <summary><span data-i18n="mode_cientifico_title">Científico</span></summary>
+    <div class="tech-readout" id="techReadout"></div>
 
   <div class="sci-panel" id="sciPanel">
     <table>
@@ -1151,6 +1160,8 @@
       <tr><td>ICA</td><td id="sciICA">--</td></tr>
     </table>
     <div class="sci-updated" id="sciUpdated" data-i18n="updatedPlaceholder">Actualizado: --</div>
+  </div>
+  </details>
   </div>
 
   <!-- Botones de acción juntos y en flujo (07-oct-2026, orden de Sandro):
@@ -2515,18 +2526,28 @@
 
     window.actualizarPanelCientifico = function(datos) {
       const { pm25, pm10, no2, o3, ica, hora, so2, co, uv } = datos;
-      const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const noDisponible = val == null || String(val).includes('--');
+        el.textContent = noDisponible
+          ? ((typeof translations !== 'undefined' && translations[currentLang] && translations[currentLang].aqiNoData) || 'Sin datos')
+          : val;
+      };
       setVal('sciPM25', pm25 + ' µg/m³');
       setVal('sciPM10', pm10 + ' µg/m³');
       setVal('sciNO2',  no2 + ' µg/m³');
       setVal('sciO3',   o3 + ' µg/m³');
       // Datos extra del modo científico (sep-2026, orden de Sandro): solo se
       // escriben si la llamada los trajo; si faltan, la fila enseña '--'.
-      if (so2 !== undefined) setVal('sciSO2', so2 + ' µg/m³');
-      if (co  !== undefined) setVal('sciCO',  co  + ' µg/m³');
-      if (uv  !== undefined) setVal('sciUV',  String(uv));
+      setVal('sciSO2', so2 != null ? so2 + ' µg/m³' : null);
+      setVal('sciCO',  co  != null ? co  + ' µg/m³' : null);
+      setVal('sciUV',  uv  != null ? String(uv) : null);
       setVal('sciICA',  ica);
-      setVal('sciUpdated', ((typeof translations !== 'undefined' && translations[currentLang] && translations[currentLang].updatedPrefix) || 'Actualizado: ') + hora);
+      const tieneDatoReal = [pm25, pm10, no2, o3, ica, so2, co, uv]
+        .some(valor => valor != null && !String(valor).includes('--'));
+      const updatedPrefix = (typeof translations !== 'undefined' && translations[currentLang] && translations[currentLang].updatedPrefix) || 'Actualizado: ';
+      setVal('sciUpdated', tieneDatoReal ? updatedPrefix + hora : null);
     };
 
     // Decoración del modo peque (07-oct-2026, orden de Sandro): fuera la

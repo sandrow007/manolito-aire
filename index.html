@@ -825,11 +825,14 @@
 <section class="map-section" id="main-content" tabindex="-1" aria-labelledby="rsRouteMapTitle">
   <div class="map-head">
     <h2 class="map-title" id="rsRouteMapTitle" data-i18n="routeMapTitle">Ruta y sombras 3D</h2>
-    <p class="agua-vivo-head" id="aguaVivoHead" role="status" aria-live="off">
+    <div class="agua-vivo-head" id="aguaVivoHead" role="status" aria-live="off">
       <span data-i18n="aguaVivoLabel">Anuncios gastando agua a nivel mundial:</span>
       <strong class="avh-num" id="aguaVivoNum">0 L</strong>
-      <span class="avh-calc" data-i18n="aguaVivoCalc">300.000M de impresiones al día × ~1 MB × 0,06 kWh/GB × 1,8 L/kWh ≈ 375 L/s</span>
-    </p>
+      <details class="avh-info">
+        <summary data-i18n-aria-label="aguaVivoCalc" aria-label="Fórmula del contador">ⓘ</summary>
+        <span class="avh-calc" data-i18n="aguaVivoCalc">300.000M de impresiones al día × ~1 MB × 0,06 kWh/GB × 1,8 L/kWh ≈ 375 L/s</span>
+      </details>
+    </div>
   </div>
 
 <div class="rs-form">

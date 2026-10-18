@@ -3940,3 +3940,68 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   #main-content .rs-form input,
   #main-content .rs-form button{ transition:none !important; }
 }
+
+/* El contador conserva su fórmula completa en escritorio y la despliega
+   desde un control táctil en móvil. */
+#main-content #aguaVivoHead{
+  min-inline-size:0;
+  align-items:center;
+  gap:6px;
+}
+#main-content #aguaVivoHead > span:first-child{ min-inline-size:0; }
+#main-content #aguaVivoHead .avh-info{ display:contents; }
+#main-content #aguaVivoHead .avh-info summary{ display:none; }
+#main-content #aguaVivoHead .avh-info .avh-calc{ display:block; }
+@media (max-width:640px){
+  #main-content #aguaVivoHead{
+    display:flex;
+    flex-wrap:nowrap;
+    inline-size:100%;
+    text-align:start;
+  }
+  #main-content #aguaVivoHead > span:first-child{
+    flex:1 1 auto;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #main-content #aguaVivoHead .avh-num{ flex:0 0 auto; white-space:nowrap; }
+  #main-content #aguaVivoHead .avh-info{
+    display:block;
+    position:relative;
+    flex:0 0 44px;
+  }
+  #main-content #aguaVivoHead .avh-info summary{
+    display:grid;
+    place-items:center;
+    inline-size:44px;
+    block-size:44px;
+    border:1px solid var(--mui-line-2);
+    border-radius:50%;
+    color:var(--mui-text);
+    cursor:pointer;
+    list-style:none;
+    touch-action:manipulation;
+  }
+  #main-content #aguaVivoHead .avh-info summary::-webkit-details-marker{ display:none; }
+  #main-content #aguaVivoHead .avh-info .avh-calc,
+  #main-content #aguaVivoHead .avh-info:not([open]) .avh-calc{ display:none; }
+  #main-content #aguaVivoHead .avh-info[open] .avh-calc{
+    display:block;
+    position:absolute;
+    z-index:30;
+    inset-block-start:calc(100% + 5px);
+    inset-inline-end:0;
+    inline-size:min(360px,calc(100vw - 24px));
+    box-sizing:border-box;
+    padding:10px 12px;
+    border:1px solid var(--mui-line-2);
+    border-radius:12px;
+    background:var(--mui-bg-2);
+    color:var(--mui-text);
+    box-shadow:var(--mui-shadow);
+    font-size:.72rem;
+    line-height:1.45;
+    overflow-wrap:anywhere;
+  }
+}

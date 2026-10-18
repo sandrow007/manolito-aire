@@ -3873,3 +3873,70 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 }
 #main-content .rs-pasos-cabecera{ align-items:center; }
 #main-content .rs-lista-pasos{ padding-inline-start:1.5em; }
+
+/* Ajuste móvil del buscador: campos apilados y acciones en paralelo. */
+@media (max-width:640px){
+  html,
+  body{ overflow-x:clip; }
+
+  #main-content .rs-form{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:8px;
+    padding:10px;
+  }
+  #main-content .rs-form .rs-field{
+    grid-column:1 / -1;
+    min-inline-size:0;
+    inline-size:100%;
+  }
+  #main-content .rs-form .rs-field input[type="text"]{
+    box-sizing:border-box;
+    inline-size:100%;
+    min-block-size:48px;
+    padding-block:10px;
+    font-size:16px;
+  }
+  #main-content .rs-form #rsBuscarBtn,
+  #rsParkingAction{
+    grid-column:auto;
+    min-inline-size:0;
+    inline-size:100%;
+  }
+  #main-content .rs-form #rsBuscarBtn,
+  #main-content .rs-form .rs-parking-action{
+    box-sizing:border-box;
+    min-height:48px;
+    min-block-size:48px;
+    padding-inline:6px;
+    gap:6px;
+    font-size:clamp(.72rem,3.5vw,.84rem);
+    line-height:1.15;
+    white-space:nowrap;
+    transition-duration:240ms;
+  }
+  #main-content .rs-form .rs-toggle-invierno{
+    grid-column:1 / -1;
+    justify-self:stretch;
+    min-block-size:44px;
+    margin:0;
+    padding:6px 10px;
+    border-radius:var(--mui-r-ctl,12px);
+    background:rgba(255,255,255,.045);
+    font-size:.82rem;
+    line-height:1.25;
+  }
+  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]{
+    inline-size:20px;
+    block-size:20px;
+    flex:0 0 auto;
+  }
+  #main-content .rs-form button:focus-visible,
+  #main-content .rs-form input:focus-visible{
+    outline-offset:2px;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  #main-content .rs-form input,
+  #main-content .rs-form button{ transition:none !important; }
+}

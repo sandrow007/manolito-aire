@@ -4277,30 +4277,26 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   /* ---------------- Geocodificación (Nominatim) ---------------- */
 
-  async function consultarNominatim(consulta) {
+  async function consultarNominatim(consulta, centroCercano) {
     const url = new URL(CONFIG.nominatimUrl, window.location.origin);
     url.searchParams.set('q', consulta);
     url.searchParams.set('format', 'json');
-    url.searchParams.set('limit', '1');
-    // Nominatim es UN motor mundial (no hay "motor de España" aparte), pero
-    // hay que decirle el país: sin este filtro una calle típica podía salir
-    // en Latinoamérica o no encontrarse. Las sugerencias del desplegable ya
-    // llevaban countrycodes=es; faltaba aquí, en la búsqueda directa.
-    url.searchParams.set('countrycodes', 'es');
+    url.searchParams.set('limit', '8');
+    if (centroCercano) aplicarPreferenciaCercania(url, centroCercano);
     return fetchConReintentos(url.toString(), { headers: { 'Accept-Language': 'es' } });
   }
 
-  async function geocodificar(direccionTexto) {
+  async function geocodificar(direccionTexto, input) {
+    const centroCercano = await obtenerCentroPreferido(input);
+    const sinNumero = direccionTexto.replace(/\s*\d+\s*$/, '').trim();
     const variantes = [
       direccionTexto,
-      `${direccionTexto}, España`,
-      direccionTexto.replace(/\s*\d+\s*$/, '').trim(),
-      `${direccionTexto.replace(/\s*\d+\s*$/, '').trim()}, España`,
+      sinNumero,
     ].filter((v, i, arr) => v && arr.indexOf(v) === i);
 
     for (const intento of variantes) {
       try {
-        const datos = await consultarNominatim(intento);
+        const datos = await consultarNominatim(intento, centroCercano);
         if (datos && datos.length > 0) {
           return { lat: parseFloat(datos[0].lat), lon: parseFloat(datos[0].lon), nombre: datos[0].display_name };
         }
@@ -4840,6 +4836,59 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   const seleccionPorInput = new Map();
 
+  let centroAutocompletadoCache = null;
+  let promesaCentroAutocompletado = null;
+
+  async function obtenerCentroPreferido(input) {
+    const origenElegido = input === inputDestino ? seleccionPorInput.get(inputOrigen) : null;
+    for (const punto of [origenElegido, origenParaAutoRuta, window.__manolitUltimaPos]) {
+      if (punto && Number.isFinite(Number(punto.lat)) && Number.isFinite(Number(punto.lon))) {
+        return { lat: Number(punto.lat), lon: Number(punto.lon) };
+      }
+    }
+
+    if (centroAutocompletadoCache && Date.now() - centroAutocompletadoCache.ts < 5 * 60 * 1000) {
+      return centroAutocompletadoCache.punto;
+    }
+    // Solo aprovecha GPS si ya está autorizado: escribir en el buscador no
+    // dispara una solicitud de permiso ni enciende el GPS del móvil.
+    if (!navigator.geolocation || !navigator.permissions?.query) return null;
+    if (!promesaCentroAutocompletado) {
+      promesaCentroAutocompletado = (async () => {
+        try {
+          const permiso = await navigator.permissions.query({ name: 'geolocation' });
+          if (permiso.state !== 'granted') return null;
+          return await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+              () => resolve(null),
+              { enableHighAccuracy: false, timeout: 1500, maximumAge: 5 * 60 * 1000 }
+            );
+          });
+        } catch (e) {
+          return null;
+        }
+      })();
+    }
+    const punto = await promesaCentroAutocompletado;
+    promesaCentroAutocompletado = null;
+    if (punto) centroAutocompletadoCache = { punto, ts: Date.now() };
+    return punto;
+  }
+
+  function aplicarPreferenciaCercania(url, punto) {
+    if (!punto) return;
+    const medioGrado = 0.45;
+    const lonGrados = Math.min(8, medioGrado / Math.max(0.2, Math.cos(punto.lat * Math.PI / 180)));
+    // Nominatim prioriza esta zona, pero bounded=0 mantiene resultados de
+    // cualquier país para que una búsqueda explícita siga siendo mundial.
+    url.searchParams.set('viewbox', [
+      punto.lon - lonGrados, punto.lat + medioGrado,
+      punto.lon + lonGrados, punto.lat - medioGrado,
+    ].join(','));
+    url.searchParams.set('bounded', '0');
+  }
+
   function crearAutocompletado(input, contenedorSugerenciasId) {
     const contenedor = document.getElementById(contenedorSugerenciasId);
     if (!contenedor) return;
@@ -4868,12 +4917,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         controladorActual = new AbortController();
 
         try {
+          const centroCercano = await obtenerCentroPreferido(input);
           const url = new URL(CONFIG.nominatimUrl, window.location.origin);
           url.searchParams.set('q', texto);
           url.searchParams.set('format', 'json');
-          url.searchParams.set('limit', '6');
+          url.searchParams.set('limit', '8');
           url.searchParams.set('addressdetails', '1');
-          url.searchParams.set('countrycodes', 'es');
+          aplicarPreferenciaCercania(url, centroCercano);
 
           const resp = await fetch(url.toString(), {
             headers: { 'Accept-Language': 'es' },
@@ -5001,7 +5051,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const seleccionado = seleccionPorInput.get(input);
     const texto = input.value.trim();
     if (seleccionado && seleccionado.texto === texto) return seleccionado;
-    return geocodificar(texto);
+    return geocodificar(texto, input);
   }
 
   async function manejarBusqueda(origenDirecto, destinoDirecto) {
@@ -7308,9 +7358,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         cacheLocalGuardar(CACHE_GEO_CHAT, arr.slice(0, 20));
       };
 
-      // Geocodificador MUNDIAL del chat (sep-2026, orden de Sandro): el
-      // buscador del panel sigue centrado en España y no se toca; el chat
-      // admite cualquier plaza o ciudad del mundo, sin filtro de país.
+      // Geocodificador MUNDIAL del chat: tanto el panel como el chat admiten
+      // cualquier plaza o ciudad del mundo, sin filtro de país.
       const geocodificarMundial = async (q) => {
         const url = new URL(CONFIG.nominatimUrl, window.location.origin);
         url.searchParams.set('q', q);
@@ -7526,8 +7575,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             url.searchParams.set('q', q);
             url.searchParams.set('format', 'json');
             url.searchParams.set('limit', '1');
-            // Sin filtro de país (sep-2026, orden de Sandro): el chat
-            // admite cualquier lugar del mundo. El panel sigue en España.
+            // Sin filtro de país: el chat admite cualquier lugar del mundo.
             const r = await fetch(url.toString(), { headers: { 'Accept-Language': 'es' }, signal: geoAbort.signal });
             if (!r.ok) { ocultarSugerencia(); return; }
             const datos = await r.json();

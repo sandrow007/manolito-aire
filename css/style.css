@@ -125,17 +125,17 @@ main{ position:relative; isolation:isolate; }
   .manolit-side-rail-left{ width:min(270px, 76vw); padding:28px 0; }
   .manolit-side-rail-right{ display:none!important; }
   .manolit-side-rail-left .manolit-side-logo{
-    transform:none; opacity:.045; filter:none;
+    transform:none; opacity:.075; filter:none;
     pointer-events:none; transition:none;
   }
   .manolit-side-rail-left .manolit-side-logo:nth-child(n+4){ display:none; }
 }
 @media (max-width:480px){
   .manolit-side-rail-left{ width:min(270px, 76vw); }
-  .manolit-side-rail-left .manolit-side-logo{ opacity:.04; }
+  .manolit-side-rail-left .manolit-side-logo{ opacity:.07; }
 }
 @media (max-width:900px) and (prefers-reduced-transparency:reduce){
-  .manolit-side-rail-left .manolit-side-logo{ opacity:.05; }
+  .manolit-side-rail-left .manolit-side-logo{ opacity:.065; }
 }
 
 /* ---------- barra superior, común a todas las páginas ---------- */

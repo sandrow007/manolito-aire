@@ -165,6 +165,11 @@
   <p data-i18n-legal="priv_18">
     Debido a que la arquitectura técnica de Manolit∞ Aire está diseñada para no almacenar ningún dato de carácter personal en bases de datos propias, no existe ningún perfil o registro asociado a tu persona que podamos extraer, modificar, transferir o borrar de nuestros sistemas. Para cualquier consulta técnica, legal o relacionada con el proyecto de software, puedes ponerte en contacto directamente con el desarrollador del sitio web a través del correo electrónico <strong>SANDRO.A007@GMAIL.COM</strong>.
   </p>
+
+  <h2 data-i18n-legal="priv_53">13. Capa de fuentes de agua y privacidad de ubicación</h2>
+  <p data-i18n-legal="priv_54">
+    Al activar «Fuentes de agua», el navegador calcula y mantiene en memoria la caja geográfica visible del mapa. No se solicita el GPS para esta capa. La caja se envía directamente a Overpass y, solo cuando corresponde a su cobertura, al servicio de datos municipales de Valencia; en Málaga se descarga el conjunto municipal público y se filtra localmente. No guardamos la caja ni un historial de consultas en localStorage ni en servidores propios, y la aplicación no adjunta nombre, cuenta ni identificadores de usuario. Como son peticiones directas a terceros, estos reciben la dirección IP y metadatos técnicos habituales de conexión y podrían conservar registros según sus propias políticas. Por eso, la consulta no se describe como anónima frente a esos proveedores.
+  </p>
 </div>
 
 <div class="footer">
@@ -172,7 +177,7 @@
 </div>
 
 <script src="js/i18n.js"></script>
-<script src="js/i18n-legal.js"></script>
+<script src="js/i18n-legal.js?v=fuentes-agua-1"></script>
 <script src="js/theme.js"></script>
 
 

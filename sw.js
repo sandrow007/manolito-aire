@@ -139,9 +139,9 @@
 // 2026-10-20-splash-sombra-real: intro nuevo (MAN [logo] LIT∞ con la sombra
 // real del logo proyectada en el suelo). Cambia solo index.html; la
 // puerta de idiomas y la ciudad en sombra siguen igual.
-// 2026-10-20-b: splash principal ampliado a 20 s y ajustes móviles del panel
-// de capas y del control de modo invierno. Cambian index.html y style.css.
-const VERSION = '2026-10-20-b-splash-20s-capas-movil';
+// 2026-10-20-c: el modo invierno permanece integrado en las capas del mapa.
+// Cambian js/shadows-route.js y style.css.
+const VERSION = '2026-10-20-c-modo-invierno-en-capas';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
@@ -169,6 +169,13 @@ const HOSTS_DINAMICOS = [
 	'lz4.overpass-api.de',
 	'overpass.kumi.systems',
 	'overpass.nchc.org.tw',
+];
+
+/* Respuestas geográficas de fuentes: uso en memoria de la página, sin caché
+   Cache API persistente. Las llamadas POST ya quedan fuera de este handler. */
+const HOSTS_SOLO_MEMORIA = [
+	'geoportal.valencia.es',
+	'datosabiertos.malaga.eu',
 ];
 
 /* ---------------- install / activate ---------------- */
@@ -309,6 +316,7 @@ self.addEventListener('fetch', function(ev) {
 		return;
 	}
 	if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+	if (HOSTS_SOLO_MEMORIA.indexOf(url.hostname) !== -1) return;
 
 	// Navegaciones (entrar a la web): frescura primero.
 	if (peticion.mode === 'navigate') {

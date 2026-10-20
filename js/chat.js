@@ -33,6 +33,9 @@
 
   let chatHistory = [];
   const QUESTION_CACHE = new Map();
+  let waterSearchPendingLocation = false;
+  let waterSearchOriginInMemory = null;
+  const WATER_SEARCH_TITLE = 'Buscame fuente de agua más cercana';
 
   function getRobustLang() {
     // OJO: "currentLang" aquí NO se declara en este archivo — se lee la
@@ -74,6 +77,7 @@ Eres Manolit∞, asistente de "Manolit∞ Aire" (manolitoaire.com), web de calid
 - Irradiación solar hora a hora con datos NASA POWER y atenuación umbra/penumbra.
 - Extras: planetario sol/luna en vivo, pantalla completa también en iPhone, paseo virtual 3D, captura, capas IGN y Catastro, idiomas es/ca/eu/gl/en/ka.
 - Gratis, sin registro, sin publicidad; la ubicación solo si se comparte.
+- La capa «Fuentes de agua» muestra fuentes públicas cartografiadas; «Búsqueda de agua» también busca manantiales, ríos y lagos de OpenStreetMap. Si no hay ubicación conocida, pregunta por ciudad/dirección/coordenadas, y solo comunica fuente y ruta si la aplicación entrega resultados calculados. Ríos, lagos y manantiales no garantizan agua potable.
 
 === ESPECIALIDAD CATEDRÁTICA (clima urbano y salud solar) ===
 - Sombras y luz natural en general; posición solar según hora y estación.
@@ -95,6 +99,7 @@ SALUD: información educativa y sentido común (protección, horarios, hidrataci
 8. NO INVENTES datos concretos (cifras, fechas, nombres): si no lo sabes, dilo con naturalidad.
 5. CONTINUIDAD: nunca te quedes sin respuesta; da la mejor aproximación posible.
 6. COHERENCIA: si la pregunta ya fue respondida, usa exactamente la respuesta previa.
+9. BÚSQUEDA DE AGUA: cuando la persona solicite esa función, incluye una sección destacada con el título exacto «Buscame fuente de agua más cercana». Si no hay ubicación disponible, pídela amablemente (ciudad, dirección o coordenadas). No inventes la fuente, la distancia ni una ruta; usa únicamente resultados calculados por la aplicación y explica que el recorrido está dibujado en el mapa propio de Manolit. No generes enlaces a otros servicios de mapas. Las fuentes públicas cartografiadas no garantizan disponibilidad ni potabilidad actual.
 
 [FIN DE INSTRUCCIONES SISTEMA]`;
 
@@ -291,6 +296,28 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
     const questionText = btn ? btn.textContent.trim() : key;
     if (!questionText) return;
 
+    if (key === 'water') {
+      addBubble(questionText, 'user');
+      toggleInputState(true);
+      setChatStatus('Buscando una fuente de agua cercana…');
+      try {
+        const known = getKnownWaterLocation();
+        if (!known) {
+          waterSearchPendingLocation = true;
+          addWaterBubble('Todavía no conozco tu ubicación. ¿Me dices una ciudad, una dirección o unas coordenadas (latitud, longitud)?');
+          return;
+        }
+        await completeWaterSearch(known);
+      } catch (error) {
+        addWaterBubble('No he podido completar la búsqueda ahora mismo. Puedes volver a intentarlo en un momento.');
+        console.debug('[chat agua] No se pudo completar la búsqueda:', error);
+      } finally {
+        setChatStatus('');
+        toggleInputState(false);
+      }
+      return;
+    }
+
     // Respuesta local inmediata: las preguntas rápidas tienen respuesta
     // fija en i18n.js (quick_aN), así que funcionan siempre, incluso sin
     // conexión, y no hace falta llamar al servidor.
@@ -306,6 +333,114 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
     } catch (e) { /* si falla, seguimos con la IA */ }
 
     await sendQuestion(questionText);
+  }
+
+  function addWaterBubble(text) {
+    const body = document.getElementById('chatBody');
+    if (!body) return;
+    const div = document.createElement('div');
+    div.className = 'chat-msg mano chat-water-result';
+    const title = document.createElement('h3');
+    title.textContent = WATER_SEARCH_TITLE;
+    div.appendChild(title);
+    const paragraph = document.createElement('p');
+    paragraph.textContent = text;
+    div.appendChild(paragraph);
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function getKnownWaterLocation() {
+    if (waterSearchOriginInMemory) return waterSearchOriginInMemory;
+    const known = window.__manolitUltimaPos;
+    if (known && Number.isFinite(Number(known.lat)) && Number.isFinite(Number(known.lon ?? known.lng))) {
+      return { lat: Number(known.lat), lon: Number(known.lon ?? known.lng), nombre: 'Mi ubicación' };
+    }
+    try {
+      const source = window.manolitAireMap && window.manolitAireMap.getSource('puntos-manuales');
+      const data = source && (source._data || (source.serialize && source.serialize().data));
+      const point = data && data.features && data.features.find(feature =>
+        feature && feature.geometry && feature.geometry.type === 'Point'
+      );
+      if (point) {
+        return {
+          lat: Number(point.geometry.coordinates[1]),
+          lon: Number(point.geometry.coordinates[0]),
+          nombre: 'Mi ubicación'
+        };
+      }
+    } catch (error) { /* el mapa todavía puede no estar cargado */ }
+    return null;
+  }
+
+  function parseWaterCoordinates(text) {
+    const match = String(text || '').trim().match(/^\s*(-?\d{1,2}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)\s*$/);
+    if (!match) return null;
+    const lat = Number(match[1].replace(',', '.'));
+    const lon = Number(match[2].replace(',', '.'));
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+    return { lat, lon, nombre: `${lat}, ${lon}` };
+  }
+
+  async function geocodeWaterLocation(text) {
+    const coordinates = parseWaterCoordinates(text);
+    if (coordinates) return coordinates;
+    const url = new URL('/geo', window.location.origin);
+    url.searchParams.set('q', String(text || '').trim());
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('limit', '1');
+    const response = await fetch(url.toString(), { headers: { 'Accept-Language': getRobustLang() } });
+    if (!response.ok) throw new Error('No se pudo consultar esa ubicación.');
+    const places = await response.json();
+    if (!Array.isArray(places) || !places.length) throw new Error('No he encontrado esa ubicación.');
+    return {
+      lat: Number(places[0].lat),
+      lon: Number(places[0].lon),
+      nombre: places[0].display_name || String(text).trim()
+    };
+  }
+
+  async function waitForWaterTools() {
+    if (typeof window.manolitAireCargarMapaSombras === 'function') {
+      await window.manolitAireCargarMapaSombras();
+    }
+    const deadline = Date.now() + 30000;
+    while (Date.now() < deadline) {
+      if (typeof window.manolitAireBuscarFuenteAguaCercana === 'function' &&
+          typeof window.manolitAireCalcularRutaAgua === 'function') return;
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+    throw new Error('El mapa todavía se está cargando.');
+  }
+
+  async function completeWaterSearch(origin) {
+    waterSearchPendingLocation = false;
+    waterSearchOriginInMemory = {
+      lat: Number(origin.lat), lon: Number(origin.lon), nombre: origin.nombre || 'Mi ubicación'
+    };
+    await waitForWaterTools();
+    const toggle = document.getElementById('rsToggleFuentesAgua');
+    if (toggle && !toggle.checked) toggle.click();
+    const fountain = await window.manolitAireBuscarFuenteAguaCercana(origin);
+    if (!fountain) {
+      waterSearchPendingLocation = false;
+      addWaterBubble('No encuentro fuentes públicas, manantiales ni masas de agua cartografiadas en un radio de 5 km de esa ubicación.');
+      return false;
+    }
+    const nombreFuente = fountain.nombre && fountain.nombre !== fountain.tipo
+      ? `${fountain.tipo}: ${fountain.nombre}`
+      : fountain.tipo;
+    const routeDrawn = await window.manolitAireCalcularRutaAgua(
+      { lat: origin.lat, lon: origin.lon, nombre: origin.nombre || 'Mi ubicación' },
+      { lat: fountain.lat, lon: fountain.lon, nombre: nombreFuente || 'Fuente pública de agua' }
+    );
+    if (!routeDrawn) throw new Error('La ruta no llegó a dibujarse en el mapa.');
+    waterSearchPendingLocation = false;
+    const notaPotabilidad = fountain.potable
+      ? 'Comprueba que la fuente siga en servicio al llegar.'
+      : 'Un manantial, río o lago no garantiza agua potable.';
+    addWaterBubble(`Aquí tienes la ruta a la fuente de agua más cercana. He calculado el camino basándome en tu ubicación. La ruta a pie ya está dibujada en el mapa de Manolit. He marcado ${nombreFuente}. ${notaPotabilidad}`);
+    return true;
   }
 
   async function askCustom() {
@@ -444,6 +579,23 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
     setChatStatus('Manolit∞ analizando contexto...');
 
     try {
+      if (waterSearchPendingLocation) {
+        let origin;
+        try {
+          origin = await geocodeWaterLocation(question);
+        } catch (error) {
+          addWaterBubble('No he podido localizar ese punto. Prueba con una ciudad, una dirección o coordenadas en formato latitud, longitud.');
+          console.debug('[chat agua] No se reconoció la ubicación:', error);
+          return;
+        }
+        try {
+          await completeWaterSearch(origin);
+        } catch (error) {
+          addWaterBubble('He localizado el punto, pero no he podido calcular la ruta ahora mismo. Vuelve a intentarlo en un momento.');
+          console.debug('[chat agua] No se pudo calcular la ruta:', error);
+        }
+        return;
+      }
       const accion = await intentarAccionDirecta(question);
       if (accion) { addBubble(accion, 'mano'); return; }
       const aireLocal = await intentarAireInternacional(question);

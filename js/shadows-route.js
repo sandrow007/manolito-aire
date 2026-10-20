@@ -5159,6 +5159,39 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
   }
 
+  // Puente aditivo para la búsqueda de agua desde el chat. Reutiliza el
+  // mismo cálculo peatonal y sus preferencias actuales (sombra/invierno),
+  // sin cambiar el estado de los interruptores ni la lógica de los árboles.
+  window.manolitAireCalcularRutaAgua = async function (origen, destino) {
+    const puntoValido = punto => punto && Number.isFinite(Number(punto.lat)) && Number.isFinite(Number(punto.lon));
+    if (!puntoValido(origen) || !puntoValido(destino)) throw new Error('Los puntos de la ruta no son válidos.');
+    const escaparHtml = texto => String(texto).replace(/[&<>"']/g, caracter => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[caracter]);
+    const origenSeguro = {
+      lat: Number(origen.lat), lon: Number(origen.lon),
+      nombre: escaparHtml(origen.nombre || 'Mi ubicación')
+    };
+    const destinoSeguro = {
+      lat: Number(destino.lat), lon: Number(destino.lon),
+      nombre: escaparHtml(destino.nombre || 'Fuente pública de agua')
+    };
+    const rutaCalculada = await ejecutarBusquedaConPuntos(origenSeguro, destinoSeguro);
+    if (!rutaCalculada || rutaCalculada.esReal !== true) return false;
+    try {
+      const source = map.getSource('ruta');
+      const data = source && (source._data || (source.serialize && source.serialize().data));
+      const feature = data && data.type === 'Feature' ? data :
+        (data && Array.isArray(data.features) ? data.features.find(item => item && item.geometry) : null);
+      const coordinates = feature && feature.geometry && feature.geometry.coordinates;
+      const end = Array.isArray(coordinates) && coordinates[coordinates.length - 1];
+      return Array.isArray(end) && Math.abs(end[0] - destinoSeguro.lon) < 0.005 &&
+        Math.abs(end[1] - destinoSeguro.lat) < 0.005;
+    } catch (error) {
+      return false;
+    }
+  };
+
   /* ---------------- Indicaciones paso a paso accesibles ----------------
      (sep-2026) Todo el motor A11Y (guía por voz, lectura de indicaciones,
      permiso de voz, lista accesible) vive ahora en js/a11y-guia.js, un
@@ -5242,11 +5275,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         console.debug(errAire);
         mostrarEstado(t('airDataUnavailable', 'No se ha podido cargar la calidad del aire ahora mismo (demasiadas peticiones). Prueba de nuevo en unos segundos.'), 'error');
       }
+      return ruta;
     } catch (err) {
       console.debug(err);
       if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
       if (window.ManolitCO2) window.ManolitCO2.ocultar();
       mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+      return null;
     } finally {
       ponerCargando(false);
     }
@@ -5591,6 +5626,30 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     grupo.append(btnCamMas, btnCamMenos, btnCamArriba, btnCamAbajo, btnCamBrujula, btnCamUbi, btnCamFull);
     contenedorMapa.appendChild(grupo);
+
+    // Mantiene el botón de capas alineado justo encima de la botonera real
+    // de zoom, también en ventanas bajas y al cambiar el tamaño del mapa.
+    function alinearCapasSobreZoom() {
+      const botonCapas = document.getElementById('rsBtnCapasFlotante');
+      const botoneraZoom = document.getElementById('rsCamCtl');
+      const contenedor = botonCapas && botonCapas.offsetParent;
+      if (!botonCapas || !botoneraZoom || !contenedor) return;
+      const cajaContenedor = contenedor.getBoundingClientRect();
+      const cajaZoom = botoneraZoom.getBoundingClientRect();
+      const altoCapas = botonCapas.getBoundingClientRect().height;
+      botonCapas.style.top = Math.round(cajaZoom.top - cajaContenedor.top - altoCapas - 8) + 'px';
+    }
+    let alinearCapasRaf = 0;
+    const programarAlineacionCapas = () => {
+      if (alinearCapasRaf) return;
+      alinearCapasRaf = requestAnimationFrame(() => {
+        alinearCapasRaf = 0;
+        alinearCapasSobreZoom();
+      });
+    };
+    programarAlineacionCapas();
+    window.addEventListener('resize', programarAlineacionCapas, { passive: true });
+    map.on('resize', programarAlineacionCapas);
   }
 
   map.on('load', () => {
@@ -5840,20 +5899,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     iconoSol.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
     etiqueta.append(caja, iconoSol, texto);
     const listaCapas = document.getElementById('rsListaCapas');
-    const anchoMovil = window.matchMedia('(max-width:640px)');
     function colocarInterruptorInvierno() {
-      if (anchoMovil.matches && listaCapas) {
-        etiqueta.classList.add('rs-toggle-en-capas');
-        const grupoLuz = listaCapas.querySelector('.rs-capa-grupo-tit');
-        if (grupoLuz) grupoLuz.after(etiqueta);
-        else listaCapas.appendChild(etiqueta);
+      if (!listaCapas) {
+        form.appendChild(etiqueta);
         return;
       }
-      etiqueta.classList.remove('rs-toggle-en-capas');
-      form.appendChild(etiqueta);
+      etiqueta.classList.add('rs-toggle-en-capas');
+      const grupoLuz = listaCapas.querySelector('.rs-capa-grupo-tit');
+      if (grupoLuz) grupoLuz.after(etiqueta);
+      else listaCapas.appendChild(etiqueta);
     }
     colocarInterruptorInvierno();
-    anchoMovil.addEventListener('change', colocarInterruptorInvierno);
 
     caja.addEventListener('change', () => {
       modoInviernoRuta = caja.checked;

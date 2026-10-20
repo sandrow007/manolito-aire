@@ -126,7 +126,7 @@
 </noscript>
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=busqueda-agua-1">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -1375,6 +1375,7 @@
       <p class="rs-capa-grupo-tit" data-i18n="groupBaseInfra">Base e infraestructura</p>
       <div class="rs-capas-mapas" id="rsCapasMapas"></div>
       <label class="rs-capa-fila rs-ico-edificios"><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
+      <label class="rs-capa-fila rs-ico-fuentes-agua"><input type="checkbox" id="rsToggleFuentesAgua"> <span data-i18n="layerWaterFountains">Fuentes de agua</span></label>
       <label class="rs-capa-fila rs-ico-ruta"><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
       <!-- Catastro 3D (07-oct-2026, orden de Sandro): ya no va con los mapas
            base, es una capa combinable y se presenta como fila-toggle
@@ -2285,14 +2286,15 @@
     </div>
     <div class="chat-msg mano" data-i18n="chatWelcome">Tranquilo/a, vamos con calma. Dime qué no entiendes, o elige una pregunta.</div>
     <div id="chatBody"></div>
-    <!-- Botones de inicio (sep-2026, orden de Sandro): solo estos dos,
-         uno al lado del otro en horizontal compacto. El chip de la ruta
+    <!-- Botones de inicio: preguntas rápidas y búsqueda de agua.
+         El chip de la ruta
          con sombra que añade shadows-route.js ocupa la fila entera
          debajo. Las respuestas rápidas viejas siguen en i18n.js por si
          algún día vuelven, no estorban. -->
     <div class="quick-qs">
       <button data-quick="q1" onclick="askQuick('q1')" data-i18n="quick_q1">¿En qué puedo ayudarte?</button>
       <button data-quick="q3" onclick="askQuick('q3')" data-i18n="quick_q3">¿Puedo salir a hacer deporte hoy?</button>
+      <button id="quickWaterSearch" data-quick="water" onclick="askQuick('water')" data-i18n="quick_water">Búsqueda de agua</button>
     </div>
     <div class="chat-input-row">
       <label for="chatInputField" class="visually-hidden" data-i18n="chatPlaceholder">Escribe tu pregunta aquí...</label>
@@ -2305,7 +2307,7 @@
 
 <!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
 <script src="js/theme.js" defer></script>
-<script src="js/i18n.js" defer></script>
+<script src="js/i18n.js?v=busqueda-agua-1" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
 <script src="js/cookie-banner.js" defer></script>
@@ -2314,7 +2316,7 @@
      cuando alguien le pregunta a ella. La usan parking, planetario y el
      widget; nadie más decide por su cuenta si es de día o de noche. -->
 <script src="js/sol.js" defer></script>
-<script src="js/chat.js" defer></script>
+<script src="js/chat.js?v=busqueda-agua-1" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
 <script src="js/planetario.js" defer></script>
@@ -2357,8 +2359,13 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js'))
-        .then(() => cargarScript('js/arboles-3d.js'))
+        .then(() => cargarScript('js/shadows-route.js?v=busqueda-agua-1'))
+        .then(() => {
+          // Capa independiente de fuentes de agua; su fallo no detiene los
+          // módulos existentes de árboles, irradiación ni aparcamientos.
+          cargarScript('js/fuentes-agua.js?v=busqueda-agua-1').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));
+          return cargarScript('js/arboles-3d.js');
+        })
         .then(() => cargarScript('js/irradiacion-solar.js'))
         .then(() => cargarScript('js/microclima.js'))
         .then(() => cargarScript('js/rendimiento-movil.js'))
@@ -2369,6 +2376,7 @@
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
       return cargaMapaSombrasPromise;
     }
+    window.manolitAireCargarMapaSombras = cargarMapaSombras;
 
     // Si alguien pulsa "↻ Act. mapa" antes de que el mapa de sombras se haya
     // cargado por scroll, se fuerza la carga en ese mismo clic para que no

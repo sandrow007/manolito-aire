@@ -2120,12 +2120,14 @@ body.mode-peque .im-lost-btn{
   border-bottom:1px solid var(--border, var(--line));
 }
 
-/* Botones de inicio del chat en horizontal compacto (sep-2026, orden de
-   Sandro): dos columnas iguales, uno al lado del otro. El chip de la
-   ruta con sombra (lo crea shadows-route.js) ocupa la fila entera. */
+/* Botones de inicio del chat en horizontal compacto. El botón de búsqueda
+   de agua y el chip de la ruta con sombra ocupan una fila entera. */
 .quick-qs{ display:grid; grid-template-columns:1fr 1fr; }
 .quick-qs button{ text-align:center; }
+.quick-qs #quickWaterSearch,
 .quick-qs #rsChipRutaChat{ grid-column:1 / -1; justify-content:center; }
+.chat-water-result h3{ margin:0 0 6px; font-size:.92rem; color:var(--sky-deep); }
+.chat-water-result p{ margin:0 0 6px; }
 
 /* ============================================================
    MODO OSCURO LEGIBLE (01-oct-2026, orden directa de Sandro)
@@ -2453,6 +2455,10 @@ body.mode-peque .im-lost-btn{
 #main-content .rs-ico-edificios::before{
   -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v16'/%3E%3Cpath d='M12 21v-9.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V21'/%3E%3C/svg%3E");
           mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v16'/%3E%3Cpath d='M12 21v-9.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V21'/%3E%3C/svg%3E");
+}
+#main-content .rs-ico-fuentes-agua::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2C9.6 7.1 6.5 10.3 6.5 14.2a5.5 5.5 0 0 0 11 0c0-3.9-3.1-7.1-5.5-11z'/%3E%3Cpath d='M9.5 15.5a2.7 2.7 0 0 0 2.5 2'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2C9.6 7.1 6.5 10.3 6.5 14.2a5.5 5.5 0 0 0 11 0c0-3.9-3.1-7.1-5.5-11z'/%3E%3Cpath d='M9.5 15.5a2.7 2.7 0 0 0 2.5 2'/%3E%3C/svg%3E");
 }
 #main-content .rs-ico-arboles::before{
   -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8.5' r='5.5'/%3E%3Cpath d='M12 14v7'/%3E%3Cpath d='M12 10.5 10 8.5'/%3E%3C/svg%3E");
@@ -2979,7 +2985,6 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
 
 /* ---------- Pantallas bajas de escritorio: el flotante sube ---------- */
 @media (min-width:640px) and (max-height:600px){
-  #main-content #rsBtnCapasFlotante{ top:calc(12px + env(safe-area-inset-top, 0px)); }
   body.rs-capas-pop #main-content .rs-planetario-capas{ top:calc(64px + env(safe-area-inset-top, 0px)); }
 }
 

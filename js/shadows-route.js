@@ -8489,10 +8489,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
     }
 
-    if (map.loaded()) {
+    if (map.loaded() || map.isStyleLoaded()) {
       asegurarCapas();
     } else {
       map.once('load', asegurarCapas);
+      map.once('style.load', asegurarCapas);
     }
 
     let capaVisible = true;
@@ -8520,7 +8521,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (capaVisible) {
           // Feedback de carga: la consulta a Overpass puede tardar unos
           // segundos; sin aviso parece que el botón "no hace nada".
-          btn.textContent = t('treesLoading', 'Cargando árboles…');
+          const mensajes = typeof window.getMessages === 'function' ? window.getMessages() : {};
+          btn.textContent = mensajes.treesLoading || 'Cargando árboles…';
           try {
             await cargarArbolesDeLaVista();
             recalcularSombrasArboles();

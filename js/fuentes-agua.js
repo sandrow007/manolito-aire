@@ -729,6 +729,7 @@ function nearbyDuplicate(feature, keySet) {
   function activate() {
     enabled = true;
     generation++;
+    if (!mapReady && map.isStyleLoaded()) mapReady = true;
     map.on('move', scheduleRefresh);
     if (mapReady) ensureGraphicLayer().then(refreshCurrentView);
   }

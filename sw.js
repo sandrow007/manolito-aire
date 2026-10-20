@@ -139,10 +139,11 @@
 // 2026-10-20-splash-sombra-real: intro nuevo (MAN [logo] LIT∞ con la sombra
 // real del logo proyectada en el suelo). Cambia solo index.html; la
 // puerta de idiomas y la ciudad en sombra siguen igual.
-// 2026-10-20-i: recupera los controles cuando carga el estilo, evita duplicar
-// el botón de árboles y repara su acción traducida.
-// Cambian index.html, js/shadows-route.js y sw.js.
-const VERSION = '2026-10-20-i-mapa-como-antes';
+// 2026-10-20-l: recarga la lógica histórica de árboles y el estado de las
+// capas de agua y aparcamiento en el preview local.
+// Cambian index.html, js/shadows-route.js, js/fuentes-agua.js,
+// js/aparcamientos-viaje.js y sw.js.
+const VERSION = '2026-10-20-l-logica-adjunta';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

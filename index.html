@@ -2359,11 +2359,11 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=mapa-como-antes-20261020'))
+        .then(() => cargarScript('js/shadows-route.js?v=logica-adjunta-k-20261020'))
         .then(() => {
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
-          cargarScript('js/fuentes-agua.js?v=busqueda-agua-1').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));
+          cargarScript('js/fuentes-agua.js?v=capas-adjuntas-20261020').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));
           return cargarScript('js/arboles-3d.js');
         })
         .then(() => cargarScript('js/irradiacion-solar.js'))
@@ -2372,7 +2372,7 @@
         // 07-oct-2026 (orden de Sandro): aparcamientos y planificador de
         // viaje en UN solo módulo nuevo y aditivo. Carga al final y se
         // engancha al mapa por window.manolitAireMap, como arboles-3d.js.
-        .then(() => cargarScript('js/aparcamientos-viaje.js'))
+        .then(() => cargarScript('js/aparcamientos-viaje.js?v=capas-adjuntas-20261020'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
       return cargaMapaSombrasPromise;
     }

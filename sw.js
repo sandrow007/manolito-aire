@@ -139,9 +139,10 @@
 // 2026-10-20-splash-sombra-real: intro nuevo (MAN [logo] LIT∞ con la sombra
 // real del logo proyectada en el suelo). Cambia solo index.html; la
 // puerta de idiomas y la ciudad en sombra siguen igual.
-// 2026-10-20-g: los árboles prueban los espejos cuando el proxy no tiene datos
-// y el botón se repone si falta. Cambian js/shadows-route.js y sw.js.
-const VERSION = '2026-10-20-g-recupera-arboles';
+// 2026-10-20-h: la botonera del mapa se inicializa aunque MapLibre ya haya
+// terminado de cargar, y las capas de árboles se reponen al cambiar el estilo.
+// Cambian js/shadows-route.js y sw.js.
+const VERSION = '2026-10-20-h-controles-mapa';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

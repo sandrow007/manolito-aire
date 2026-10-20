@@ -8393,6 +8393,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function asegurarCapas() {
       if (!map.getSource('arboles-globales-sombra')) {
         map.addSource('arboles-globales-sombra', { type: 'geojson', data: turf.featureCollection([]) });
+      }
+      if (!map.getLayer('capa-sombra-arboles-globales')) {
         map.addLayer({
           id: 'capa-sombra-arboles-globales',
           type: 'fill',
@@ -8406,6 +8408,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       asegurarOrdenCapas();
       if (!map.getSource('arboles-globales-copas')) {
         map.addSource('arboles-globales-copas', { type: 'geojson', data: turf.featureCollection([]) });
+      }
+      if (!map.getLayer('capa-arboles-globales-3d')) {
         map.addLayer({
           id: 'capa-arboles-globales-3d',
           type: 'fill-extrusion',
@@ -8446,6 +8450,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     } else {
       map.once('load', asegurarCapas);
     }
+    // MapLibre elimina las fuentes y capas propias al sustituir el estilo
+    // base. Reponerlas y volver a dibujar la vista conserva los árboles
+    // después de cambiar de mapa base o recargar el estilo.
+    map.on('style.load', async () => {
+      try {
+        asegurarCapas();
+        await cargarArbolesDeLaVista();
+        recalcularSombrasArboles();
+      } catch (e) {
+        console.debug('[arboles-globales] No se pudieron restaurar las capas tras recargar el estilo:', e.message);
+      }
+    });
 
     let capaVisible = true;
     let overpassBackoffHasta = 0;

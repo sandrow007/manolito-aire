@@ -3926,8 +3926,8 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 /* En móvil, el panel de capas vuelve a ser una hoja inferior desplazable. */
 @media (max-width:639.98px){
   body.rs-capas-pop #main-content .rs-planetario-capas{
-    top:calc(50% - 76px);
-    bottom:auto;
+    top:auto;
+    bottom:calc(8px + env(safe-area-inset-bottom, 0px));
     inset-inline:8px;
     width:auto;
     max-width:none;
@@ -4414,17 +4414,21 @@ html[lang="ar"] #main-content #rsCamCtl{
     box-sizing:border-box;
     inline-size:100%;
     min-block-size:44px;
-    margin-block:6px 0 !important;
-    padding-block:6px;
-    padding-inline:8px;
-    border:1px solid var(--mui-line-2);
+    margin-block:0 !important;
+    padding-block:4px;
+    padding-inline:10px;
+    border:0;
     border-radius:var(--mui-r-ctl,12px);
-    background:rgba(255,255,255,.045) !important;
+    background:transparent !important;
+    box-shadow:none;
     color:var(--mui-text) !important;
     font-size:13px !important;
     line-height:1.15;
-    gap:6px;
+    gap:10px;
     transition:background-color 240ms ease,border-color 240ms ease,color 240ms ease;
+  }
+  #main-content #rsListaCapas .rs-toggle-en-capas:hover{
+    background:rgba(255,255,255,.05) !important;
   }
   #main-content #rsListaCapas .rs-toggle-en-capas .rs-icono-sol{
     display:inline-flex;
@@ -4433,8 +4437,8 @@ html[lang="ar"] #main-content #rsCamCtl{
     order:0;
   }
   #main-content #rsListaCapas .rs-toggle-en-capas .rs-icono-sol svg{
-    inline-size:16px;
-    block-size:16px;
+    inline-size:14px;
+    block-size:14px;
     stroke-width:1.8;
   }
   #main-content #rsListaCapas .rs-toggle-en-capas > span:last-child{
@@ -4447,9 +4451,9 @@ html[lang="ar"] #main-content #rsCamCtl{
     -webkit-appearance:none !important;
     position:relative;
     order:2;
-    inline-size:44px !important;
-    block-size:26px !important;
-    flex:0 0 44px;
+    inline-size:36px !important;
+    block-size:22px !important;
+    flex:0 0 36px;
     margin-block:0 !important;
     margin-inline-start:auto !important;
     margin-inline-end:0 !important;
@@ -4465,8 +4469,8 @@ html[lang="ar"] #main-content #rsCamCtl{
     position:absolute;
     inset-inline-start:3px;
     inset-block-start:3px;
-    inline-size:18px;
-    block-size:18px;
+    inline-size:14px;
+    block-size:14px;
     border-radius:50%;
     background:var(--mui-text);
     transition:transform 240ms ease,background-color 240ms ease;
@@ -4477,10 +4481,10 @@ html[lang="ar"] #main-content #rsCamCtl{
   }
   #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]:checked::after{
     background:#fff;
-    transform:translateX(18px);
+    transform:translateX(16px);
   }
   html[lang="ar"] #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]:checked::after{
-    transform:translateX(-18px);
+    transform:translateX(-16px);
   }
   #main-content #rsListaCapas .rs-toggle-en-capas:focus-within{
     outline:2px solid var(--mui-accent);

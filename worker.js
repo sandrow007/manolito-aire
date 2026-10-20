@@ -252,6 +252,89 @@ export default {
           // OJO: overpass.osm.ch devuelve 200 con elements vacío y fecha
           // basura (timestamp_osm_base:"116617"), corrupto y fuera.
         ];
+        const obtenerBBoxConsulta = () => {
+          const query = new URLSearchParams(rawBody).get('data') || '';
+          const match = query.match(/\(([-\d.,\s]+)\)/);
+          if (!match) return null;
+          const valores = match[1].split(',').map((n) => Number(n.trim()));
+          if (valores.length !== 4 || valores.some((n) => !Number.isFinite(n))) return null;
+          const [south, west, north, east] = valores;
+          if (south >= north || west >= east) return null;
+          return { south, west, north, east };
+        };
+        const decodificarXml = (valor) => String(valor || '').replace(/&(?:amp|lt|gt|quot|apos|#\d+|#x[\da-f]+);/gi, (entidad) => {
+          const entidades = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'" };
+          if (entidades[entidad]) return entidades[entidad];
+          const codigo = entidad[2].toLowerCase() === 'x'
+            ? parseInt(entidad.slice(3, -1), 16)
+            : parseInt(entidad.slice(2, -1), 10);
+          try { return String.fromCodePoint(codigo); } catch (e) { return entidad; }
+        });
+        const atributoXml = (atributos, nombre) => {
+          const match = atributos.match(new RegExp('(?:^|\\s)' + nombre + '="([^"]*)"'));
+          return match ? decodificarXml(match[1]) : null;
+        };
+        const intentarApiMapaOsm = async () => {
+          const bbox = obtenerBBoxConsulta();
+          if (!bbox) throw new Error('BBox OSM inválido');
+          const controller = new AbortController();
+          const temporizador = setTimeout(() => controller.abort(), 10000);
+          try {
+            const valores = [bbox.west, bbox.south, bbox.east, bbox.north]
+              .map((n) => n.toFixed(6)).join(',');
+            const urlMapa = 'https://api.openstreetmap.org/api/0.6/map?bbox=' + valores;
+            const r = await fetch(urlMapa, {
+              headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+              signal: controller.signal,
+            });
+            if (!r.ok) throw new Error(`OSM API HTTP ${r.status}`);
+            const xml = await r.text();
+            const nodos = new Map();
+            const filas = [];
+            const elementos = [];
+            const leerEtiquetas = (contenido) => {
+              const tags = {};
+              for (const tag of contenido.matchAll(/<tag\b([^>]*)\/?\s*>/g)) {
+                const k = atributoXml(tag[1], 'k');
+                const v = atributoXml(tag[1], 'v');
+                if (k && v != null) tags[k] = v;
+              }
+              return tags;
+            };
+
+            for (const elemento of xml.matchAll(/<(node|way)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g)) {
+              const tipo = elemento[1];
+              const atributos = elemento[2];
+              const contenido = elemento[3] || '';
+              const id = Number(atributoXml(atributos, 'id'));
+              const tags = leerEtiquetas(contenido);
+              if (tipo === 'node') {
+                const lat = Number(atributoXml(atributos, 'lat'));
+                const lon = Number(atributoXml(atributos, 'lon'));
+                if (Number.isFinite(id) && Number.isFinite(lat) && Number.isFinite(lon)) {
+                  nodos.set(String(id), { lat, lon });
+                  if (tags.natural === 'tree') elementos.push({ type: 'node', id, lat, lon, tags });
+                }
+              } else if (tags.natural === 'tree_row') {
+                const refs = Array.from(contenido.matchAll(/<nd\b([^>]*)\/?\s*>/g))
+                  .map((nd) => atributoXml(nd[1], 'ref'))
+                  .filter(Boolean);
+                filas.push({ id, refs, tags });
+              }
+            }
+
+            for (const fila of filas) {
+              const geometry = fila.refs.map((ref) => nodos.get(String(ref))).filter(Boolean);
+              if (geometry.length >= 2) {
+                elementos.push({ type: 'way', id: fila.id, tags: fila.tags, geometry });
+              }
+            }
+            if (!elementos.length) throw new Error('La API OSM no devolvió árboles para esta vista');
+            return JSON.stringify({ version: 0.6, generator: 'OpenStreetMap API', elements: elementos });
+          } finally {
+            clearTimeout(temporizador);
+          }
+        };
         const intentarEspejo = async (espejo) => {
           const controller = new AbortController();
           const temporizador = setTimeout(() => controller.abort(), 15000);
@@ -278,6 +361,7 @@ export default {
               typeof ts === 'string' && ts !== '' && !ts.includes('T');
             if (corrupto) throw new Error('espejo corrupto');
             if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
+            if (datos.elements.length === 0) throw new Error('el espejo no devolvió árboles');
             return txt;
           } finally {
             clearTimeout(temporizador);
@@ -305,7 +389,12 @@ export default {
         // espera a todos (máx. 15 s) si TODOS fallan.
         let respuesta = null;
         try {
-          respuesta = await Promise.any(espejos.map(intentarEspejo));
+          // Mantiene Overpass como fuente original y usa la API de datos OSM
+          // por bbox si los espejos Overpass están caídos o devuelven vacío.
+          respuesta = await Promise.any([
+            ...espejos.map(intentarEspejo),
+            intentarApiMapaOsm(),
+          ]);
         } catch (e) { /* AggregateError: todos fallaron */ }
 
         if (respuesta) {

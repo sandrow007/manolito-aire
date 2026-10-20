@@ -5,9 +5,11 @@
  * - Solicita datos solo cuando el switch está activado y zoom >= 15.
  * - Usa un único icono SVG como imagen de MapLibre; cada fuente es un punto
  *   de una única capa symbol, sin crear marcadores HTML.
- * - La cobertura OSM se cachea por celdas únicamente en memoria. En Valencia
- *   y Málaga se combina con conjuntos municipales oficiales catalogados en
- *   datos.gob.es. No se persisten consultas ni coordenadas.
+ * - La cobertura OSM se cachea por celdas únicamente en memoria. Además del
+ *   BBox visible, en Sevilla se consulta explícitamente el área OSM de la
+ *   ciudad. En Valencia y Málaga se combina con conjuntos municipales
+ *   oficiales catalogados en datos.gob.es. No se persisten consultas ni
+ *   coordenadas.
  */
 (function () {
   'use strict';
@@ -60,6 +62,7 @@
     '</svg>';
 
   const osmCells = new Map(); // cell key -> { features: Map, touched }
+  const sevillaFeatures = new Map(); // cobertura OSM explícita del área de Sevilla
   const valenciaCells = new Map();
   const malagaFeatures = new Map();
   const naturalSearchCache = new Map(); // consultas del chat en memoria, con TTL
@@ -314,8 +317,15 @@
       queryBounds.south.toFixed(6), queryBounds.west.toFixed(6),
       queryBounds.north.toFixed(6), queryBounds.east.toFixed(6)
     ].join(',');
-    const query = '[out:json][timeout:15];(node["amenity"="drinking_water"](' +
-      bbox + '););out body qt;';
+    // OSM por el visor + consulta explícita del área de Sevilla. La segunda
+    // rama cubre fuentes cartografiadas dentro del término municipal aunque
+    // el BBox visible solo roce una parte de la ciudad. La caché por celdas y
+    // la deduplicación posterior evitan pintar puntos repetidos.
+    const query = '[out:json][timeout:15];' +
+      'area["name"="Sevilla"]->.areaSevilla;' +
+      '(node["amenity"="drinking_water"](' + bbox + ');' +
+      'node["amenity"="drinking_water"](area.areaSevilla);' +
+      ');out body qt;';
     const form = new URLSearchParams({ data: query });
     const data = await fetchJsonWithBackoff(
       'overpass',
@@ -329,6 +339,15 @@
     );
     if (!data || !Array.isArray(data.elements)) throw new Error('Respuesta Overpass no válida');
     const features = data.elements.map(featureFromOverpass).filter(Boolean);
+    const coveredCellKeys = new Set(queryCells.map(cell => cell.key));
+    // La rama del área de Sevilla puede devolver puntos fuera del BBox que
+    // disparó la petición. Los conservamos para cuando el visor llegue allí.
+    for (const feature of features) {
+      const [lon, lat] = feature.geometry.coordinates;
+      if (!coveredCellKeys.has(keyForPoint(lon, lat))) {
+        sevillaFeatures.set(String(feature.id), feature);
+      }
+    }
     cacheFeaturesByCell(osmCells, queryCells, features);
     trimCellCache(osmCells, visibleCells);
   }
@@ -416,6 +435,9 @@ function nearbyDuplicate(feature, keySet) {
       if (pointInBounds(feature, bounds)) official.set(String(feature.id), feature);
     }
     featuresInCellCache(osmCells, cells, bounds, osm);
+    for (const feature of sevillaFeatures.values()) {
+      if (pointInBounds(feature, bounds)) osm.set(String(feature.id), feature);
+    }
 
     const result = new Map();
     const coordinateKeys = new Set();

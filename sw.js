@@ -139,9 +139,9 @@
 // 2026-10-20-splash-sombra-real: intro nuevo (MAN [logo] LIT∞ con la sombra
 // real del logo proyectada en el suelo). Cambia solo index.html; la
 // puerta de idiomas y la ciudad en sombra siguen igual.
-// 2026-10-20-c: el modo invierno permanece integrado en las capas del mapa.
-// Cambian js/shadows-route.js y style.css.
-const VERSION = '2026-10-20-c-modo-invierno-en-capas';
+// 2026-10-20-d: la capa de fuentes consulta OSM por el BBox visible y añade
+// la cobertura explícita del área de Sevilla. Cambian js/fuentes-agua.js.
+const VERSION = '2026-10-20-d-fuentes-osm-sevilla';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

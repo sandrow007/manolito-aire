@@ -139,7 +139,9 @@
 // 2026-10-20-splash-sombra-real: intro nuevo (MAN [logo] LIT∞ con la sombra
 // real del logo proyectada en el suelo). Cambia solo index.html; la
 // puerta de idiomas y la ciudad en sombra siguen igual.
-const VERSION = '2026-10-20-splash-sombra-real';
+// 2026-10-20-b: splash principal ampliado a 20 s y ajustes móviles del panel
+// de capas y del control de modo invierno. Cambian index.html y style.css.
+const VERSION = '2026-10-20-b-splash-20s-capas-movil';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

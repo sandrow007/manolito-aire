@@ -11,4 +11,13 @@ wrangler.json
 .gitignore
 .gitignore.bak
 .vscode
+.assetsignore
+.venv
+.wrangler
+.kilo
+.agent-coder
+.env*
+.dev.vars*
+__pycache__
+*.pyc
 *.bak

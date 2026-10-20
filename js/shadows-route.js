@@ -7994,7 +7994,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // depender del dominio workers.dev). Lleva caché KV de 6 h: si la zona
       // ya se pidió, responde al instante aunque Overpass esté caído.
       // Si el Worker no tiene la ruta, cae a los espejos públicos de abajo.
-      '/arboles',
+      // En la vista local abierta como file:// no existe una ruta relativa
+      // /arboles; se consulta el mismo proxy público con CORS habilitado.
+      window.location.protocol === 'file:' ? 'https://manolitoaire.com/arboles' : '/arboles',
       // Espejos públicos de respaldo en Europa y Taiwán (nada de
       // infraestructura rusa). lz4/z.overpass-api.de son colas alternativas
       // del operador alemán, suelen ir menos saturadas que la principal.
@@ -8441,6 +8443,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function asegurarCapas() {
       if (!map.getSource('arboles-globales-sombra')) {
         map.addSource('arboles-globales-sombra', { type: 'geojson', data: turf.featureCollection([]) });
+      }
+      if (!map.getLayer('capa-sombra-arboles-globales')) {
         map.addLayer({
           id: 'capa-sombra-arboles-globales',
           type: 'fill',
@@ -8454,6 +8458,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       asegurarOrdenCapas();
       if (!map.getSource('arboles-globales-copas')) {
         map.addSource('arboles-globales-copas', { type: 'geojson', data: turf.featureCollection([]) });
+      }
+      if (!map.getLayer('capa-arboles-globales-3d')) {
         map.addLayer({
           id: 'capa-arboles-globales-3d',
           type: 'fill-extrusion',
@@ -8495,6 +8501,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       map.once('load', asegurarCapas);
       map.once('style.load', asegurarCapas);
     }
+    // Al cambiar la base MapLibre sustituye el estilo entero y elimina las
+    // capas personalizadas. Restaurarlas y volver a cargar la zona mantiene
+    // los árboles visibles tras cambiar de mapa base.
+    map.on('style.load', async () => {
+      try {
+        asegurarCapas();
+        await cargarArbolesDeLaVista();
+        recalcularSombrasArboles();
+      } catch (e) {
+        console.debug('[arboles-globales] No se pudieron restaurar las capas tras recargar el estilo:', e.message);
+      }
+    });
 
     let capaVisible = true;
     let overpassBackoffHasta = 0;
@@ -8599,17 +8617,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       let ultimoError = null;
       for (let i = 0; i < CONFIG.overpassUrls.length; i++) {
         const url = CONFIG.overpassUrls[i];
+        const esProxyArboles = url.startsWith('/') || url === 'https://manolitoaire.com/arboles';
+        let id = null;
         try {
           const controller = new AbortController();
-          // El proxy propio (/arboles) prueba varios espejos en cadena con
-          // timeout individual, así que le damos más margen (25 s); a los
-          // espejos públicos directos los cortamos antes (18 s).
-          const presupuestoMs = url.startsWith('/') ? 25000 : CONFIG.overpassTimeoutS * 1000 + 3000;
-          const id = setTimeout(() => controller.abort(), presupuestoMs);
+          // El proxy propio prueba sus espejos en paralelo y puede servir
+          // caché OSM antigua al instante; los espejos directos conservan
+          // el timeout histórico de 18 s.
+          const presupuestoMs = esProxyArboles ? 25000 : CONFIG.overpassTimeoutS * 1000 + 3000;
+          id = setTimeout(() => controller.abort(), presupuestoMs);
           const cabecerasOverpass = { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' };
-          // Modo frescos: el proxy /arboles salta su caché y pregunta en
-          // vivo a OpenStreetMap; además deja renovada la caché compartida.
-          if (frescosPendiente && url.startsWith('/')) cabecerasOverpass['X-Arboles-Fresca'] = '1';
+          if (frescosPendiente && esProxyArboles) cabecerasOverpass['X-Arboles-Fresca'] = '1';
           const r = await fetch(url, {
             method: 'POST',
             headers: cabecerasOverpass,
@@ -8617,7 +8635,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             signal: controller.signal,
           });
           clearTimeout(id);
+          id = null;
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          // Un 200 vacío del Worker marcado sin-datos es un fallo de fuente:
+          // se prueba el siguiente servidor OSM, como hacía la lógica anterior.
+          if (esProxyArboles && r.headers.get('X-Proxy-Aviso') === 'sin-datos') {
+            throw new Error('El proxy de árboles no tiene datos; se prueba el siguiente servidor.');
+          }
           const datos = await r.json();
           // Espejo corrupto: 200 con lista vacía y fecha basura (p. ej.
           // timestamp_osm_base:"116617"). Un vacío real tiene fecha válida.
@@ -8635,6 +8659,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             await new Promise((res) => setTimeout(res, 700 * (i + 1)));
           }
           continue;
+        } finally {
+          if (id) clearTimeout(id);
         }
       }
 

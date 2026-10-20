@@ -2,7 +2,8 @@
  * Capa independiente de fuentes públicas de agua.
  *
  * - No modifica ni llama a la lógica de árboles.
- * - Solicita datos solo cuando el switch está activado y zoom >= 15.
+ * - Solicita datos solo cuando el switch está activado y zoom >= 12.5,
+ *   igual que la capa de aparcamientos.
  * - Usa un único icono SVG como imagen de MapLibre; cada fuente es un punto
  *   de una única capa symbol, sin crear marcadores HTML.
  * - La cobertura OSM se cachea por celdas únicamente en memoria. Además del
@@ -21,11 +22,11 @@
   const SOURCE_ID = 'fuentes-agua-source';
   const LAYER_ID = 'fuentes-agua-symbols';
   const IMAGE_ID = 'fuentes-agua-svg';
-  const MIN_ZOOM = 15;
+  const MIN_ZOOM = 12.5;
   const MOVE_DEBOUNCE_MS = 600;
   const GRID_DEGREES = 0.02;
   const MAX_CACHED_CELLS = 180;
-  const MAX_CELLS_PER_REQUEST = 64;
+  const MAX_CELLS_PER_REQUEST = 256;
   const MAX_RETRIES = 3;
   const OVERPASS_TIMEOUT_MS = 18000;
   const OVERPASS_ENDPOINTS = [

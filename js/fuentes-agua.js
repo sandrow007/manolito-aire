@@ -177,6 +177,31 @@
     };
   }
 
+  function fuentesAguaDesdeTiles(bounds) {
+    try {
+      const poIs = map.querySourceFeatures('openmaptiles', { sourceLayer: 'poi' });
+      const features = new Map();
+      for (const poi of poIs) {
+        const properties = poi.properties || {};
+        if (properties.class !== 'drinking_water' && properties.subclass !== 'drinking_water') continue;
+        if (!poi.geometry || poi.geometry.type !== 'Point') continue;
+        const coordinates = poi.geometry.coordinates;
+        const [lon, lat] = coordinates;
+        if (!Number.isFinite(lon) || !Number.isFinite(lat) ||
+            lon < bounds.west || lon > bounds.east || lat < bounds.south || lat > bounds.north) continue;
+        const id = poi.id == null ? coordinateKey({ geometry: { coordinates } }) : poi.id;
+        const feature = featureFromOverpass({
+          type: 'node', id, lon, lat,
+          tags: { amenity: 'drinking_water', name: properties.name || properties.name_int || '' }
+        });
+        if (feature) features.set(coordinateKey(feature), feature);
+      }
+      return Array.from(features.values());
+    } catch (error) {
+      return [];
+    }
+  }
+
   function normalizeOfficialFeature(feature, sourceId) {
     if (!feature || !feature.geometry || feature.geometry.type !== 'Point') return null;
     const coordinates = feature.geometry.coordinates;
@@ -314,14 +339,20 @@
     const queryBounds = unionBounds(missing);
     if (!queryBounds) return;
     const queryCells = cellsForBounds(queryBounds);
+    // Reutiliza las entidades OSM de las teselas vectoriales ya visibles.
+    // Esto da respuesta inmediata; Overpass sigue siendo el respaldo global.
+    const tiledFeatures = fuentesAguaDesdeTiles(bounds);
+    if (tiledFeatures.length) {
+      const visibleCells = cellsForBounds(bounds);
+      cacheFeaturesByCell(osmCells, visibleCells, tiledFeatures);
+      trimCellCache(osmCells, visibleCells);
+      return;
+    }
+
     const bbox = [
       queryBounds.south.toFixed(6), queryBounds.west.toFixed(6),
       queryBounds.north.toFixed(6), queryBounds.east.toFixed(6)
     ].join(',');
-    // OSM por el visor + consulta explícita del área de Sevilla. La segunda
-    // rama cubre fuentes cartografiadas dentro del término municipal aunque
-    // el BBox visible solo roce una parte de la ciudad. La caché por celdas y
-    // la deduplicación posterior evitan pintar puntos repetidos.
     const query = '[out:json][timeout:15];' +
       'area["name"="Sevilla"]->.areaSevilla;' +
       '(node["amenity"="drinking_water"](' + bbox + ');' +
@@ -726,6 +757,13 @@ function nearbyDuplicate(feature, keySet) {
     }
   }
 
+  function asegurarCapaCuandoElMapaQuedeInactivo() {
+    if (!toggle.checked) return;
+    if (!enabled) activate();
+    if (!mapReady && map.isStyleLoaded()) mapReady = true;
+    if (mapReady) ensureGraphicLayer().then(refreshCurrentView);
+  }
+
   function activate() {
     enabled = true;
     generation++;
@@ -752,6 +790,7 @@ function nearbyDuplicate(feature, keySet) {
   });
 
   map.on('load', onMapReady);
+  map.on('idle', asegurarCapaCuandoElMapaQuedeInactivo);
   map.on('style.load', () => {
     if (!enabled) return;
     renderedFeatures.clear();

@@ -143,7 +143,7 @@
 // capas de agua y aparcamiento en el preview local.
 // Cambian index.html, js/shadows-route.js, js/fuentes-agua.js,
 // js/aparcamientos-viaje.js y sw.js.
-const VERSION = '2026-10-20-n-osm-global-restaurado';
+const VERSION = '2026-10-20-o-osm-map-capasyagua';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

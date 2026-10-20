@@ -629,6 +629,65 @@
     return { type: 'FeatureCollection', features: features };
   }
 
+  function osmMapParkingAGeojson(xmlText) {
+    var xml = new DOMParser().parseFromString(xmlText, 'application/xml');
+    if (xml.getElementsByTagName('parsererror').length) throw new Error('XML de OSM no válido');
+    var nodos = new Map();
+    var ways = new Map();
+    var elementos = [];
+    function tagsDe(elemento) {
+      var tags = {};
+      Array.prototype.forEach.call(elemento.children, function (hijo) {
+        if (hijo.tagName === 'tag') tags[hijo.getAttribute('k')] = hijo.getAttribute('v');
+      });
+      return tags;
+    }
+    function centro(coordenadas) {
+      if (!coordenadas.length) return null;
+      var latitudes = coordenadas.map(function (p) { return p.lat; });
+      var longitudes = coordenadas.map(function (p) { return p.lon; });
+      return {
+        lat: (Math.min.apply(null, latitudes) + Math.max.apply(null, latitudes)) / 2,
+        lon: (Math.min.apply(null, longitudes) + Math.max.apply(null, longitudes)) / 2,
+      };
+    }
+
+    Array.prototype.forEach.call(xml.getElementsByTagName('node'), function (node) {
+      var posicion = { lat: Number(node.getAttribute('lat')), lon: Number(node.getAttribute('lon')) };
+      nodos.set(node.getAttribute('id'), posicion);
+      var tags = tagsDe(node);
+      if (tags.amenity === 'parking') {
+        elementos.push({ type: 'node', id: node.getAttribute('id'), lat: posicion.lat, lon: posicion.lon, tags: tags });
+      }
+    });
+
+    Array.prototype.forEach.call(xml.getElementsByTagName('way'), function (way) {
+      var coordenadas = Array.prototype.map.call(way.getElementsByTagName('nd'), function (nd) {
+        return nodos.get(nd.getAttribute('ref'));
+      }).filter(Boolean);
+      ways.set(way.getAttribute('id'), coordenadas);
+      var tags = tagsDe(way);
+      var punto = centro(coordenadas);
+      if (tags.amenity === 'parking' && punto) {
+        elementos.push({ type: 'way', id: way.getAttribute('id'), center: punto, tags: tags });
+      }
+    });
+
+    Array.prototype.forEach.call(xml.getElementsByTagName('relation'), function (relation) {
+      var tags = tagsDe(relation);
+      if (tags.amenity !== 'parking') return;
+      var coordenadas = [];
+      Array.prototype.forEach.call(relation.getElementsByTagName('member'), function (member) {
+        if (member.getAttribute('type') !== 'way') return;
+        coordenadas = coordenadas.concat(ways.get(member.getAttribute('ref')) || []);
+      });
+      var punto = centro(coordenadas);
+      if (punto) elementos.push({ type: 'relation', id: relation.getAttribute('id'), center: punto, tags: tags });
+    });
+
+    return overpassAGeojson({ elements: elementos });
+  }
+
   function bboxConsulta() {
     var b = map.getBounds();
     var sur = b.getSouth(), oeste = b.getWest(), norte = b.getNorth(), este = b.getEast();
@@ -669,15 +728,30 @@
       ');out center ' + CONFIG.maxPuntos + ';';
 
     try {
-      var resp = await fetch(CONFIG.overpassUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: 'data=' + encodeURIComponent(query),
-        signal: controller.signal,
-      });
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      var datos = await resp.json();
-      var geojson = overpassAGeojson(datos);
+      var geojson = null;
+      var bboxOsm = [bbox[1], bbox[0], bbox[3], bbox[2]].map(function (n) { return n.toFixed(6); }).join(',');
+      try {
+        var osmResp = await fetch('https://api.openstreetmap.org/api/0.6/map?bbox=' + bboxOsm, {
+          signal: controller.signal,
+          cache: 'no-store',
+          credentials: 'omit',
+          referrerPolicy: 'no-referrer',
+        });
+        if (!osmResp.ok) throw new Error('OSM map HTTP ' + osmResp.status);
+        geojson = osmMapParkingAGeojson(await osmResp.text());
+        if (!geojson.features.length) throw new Error('OSM map sin aparcamientos para esta vista');
+      } catch (osmError) {
+        if (controller.signal.aborted) throw osmError;
+        var resp = await fetch(CONFIG.overpassUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: 'data=' + encodeURIComponent(query),
+          signal: controller.signal,
+        });
+        if (!resp.ok || resp.headers.get('X-Proxy-Aviso') === 'sin-datos') throw new Error('Fuentes OSM de aparcamiento no disponibles');
+        geojson = overpassAGeojson(await resp.json());
+      }
+      if (!geojson || !geojson.features.length) throw new Error('OSM no devolvió aparcamientos para esta vista');
       parking.cache.set(clave, { ts: Date.now(), geojson: geojson });
       if (parking.cache.size > 40) parking.cache.delete(parking.cache.keys().next().value);
       if (controller === parking.peticion) pintarAparcamientos(geojson);

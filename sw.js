@@ -136,7 +136,10 @@
 // VE al dar a Mi ubicacion y aguanta GPS lento de movil) y
 // js/microclima.js (respaldo directo a Open-Meteo si el worker aun no
 // tiene la ruta nueva).
-const VERSION = '2026-10-18-desktop-route-form';
+// 2026-10-20-splash-sombra-real: intro nuevo (MAN [logo] LIT∞ con la sombra
+// real del logo proyectada en el suelo). Cambia solo index.html; la
+// puerta de idiomas y la ciudad en sombra siguen igual.
+const VERSION = '2026-10-20-splash-sombra-real';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

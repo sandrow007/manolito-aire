@@ -52,7 +52,9 @@
   window.__manolitoParkingViaje = true;
 
   var CONFIG = {
-    overpassUrl: '/aparcamientos',
+    overpassUrl: window.location.protocol === 'file:'
+      ? 'https://manolitoaire.com/aparcamientos'
+      : '/aparcamientos',
     osrmCocheUrl: '/ruta-coche',
     geoUrl: '/geo',
     timeoutS: 15,

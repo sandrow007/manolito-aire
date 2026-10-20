@@ -1021,7 +1021,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }, 150);
   }
   map.on('load', inicializarMapaListo);
-  if (map.loaded() || map.isStyleLoaded()) queueMicrotask(inicializarMapaListo);
+  map.on('style.load', inicializarMapaListo);
+  if (map.isStyleLoaded()) queueMicrotask(inicializarMapaListo);
 
   const alTerminarMovimiento = crearDebounce(() => {
     if (!solarActivado || paseoActivo) return;
@@ -3334,10 +3335,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // Árboles: el módulo ya vive INTEGRADO al final de este mismo archivo,
     // así que el botón es un botón normal (lo "adopta" el módulo en cuanto
     // arranca). Nada de carga perezosa: cero puntos de fallo.
-    const btnArboles = document.createElement('button');
-    btnArboles.type = 'button';
-    btnArboles.id = 'rsBtnArboles';
-    btnArboles.textContent = t('treesBtn', 'Árboles');
+    let btnArboles = document.getElementById('rsBtnArboles');
+    if (!btnArboles) {
+      btnArboles = document.createElement('button');
+      btnArboles.type = 'button';
+      btnArboles.id = 'rsBtnArboles';
+      btnArboles.textContent = t('treesBtn', 'Árboles');
+    }
     // Irradiación Solar: sigue siendo un módulo aparte con carga perezosa.
     const btnIrradiacion = botonCapaFijo('rsBtnIrradiacion', t('irrLayerBtn', 'Irradiación Solar'), 'js/irradiacion-solar.js');
 
@@ -5698,7 +5702,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     inyectarControlesCamara();
   }
   map.on('load', inicializarControlesCamara);
-  if (map.loaded() || map.isStyleLoaded()) queueMicrotask(inicializarControlesCamara);
+  map.on('style.load', inicializarControlesCamara);
+  if (map.isStyleLoaded()) queueMicrotask(inicializarControlesCamara);
 
   mapEl.addEventListener('pointerdown', (e) => {
     if (!paseoActivo) return;
@@ -8436,8 +8441,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function asegurarCapas() {
       if (!map.getSource('arboles-globales-sombra')) {
         map.addSource('arboles-globales-sombra', { type: 'geojson', data: turf.featureCollection([]) });
-      }
-      if (!map.getLayer('capa-sombra-arboles-globales')) {
         map.addLayer({
           id: 'capa-sombra-arboles-globales',
           type: 'fill',
@@ -8451,8 +8454,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       asegurarOrdenCapas();
       if (!map.getSource('arboles-globales-copas')) {
         map.addSource('arboles-globales-copas', { type: 'geojson', data: turf.featureCollection([]) });
-      }
-      if (!map.getLayer('capa-arboles-globales-3d')) {
         map.addLayer({
           id: 'capa-arboles-globales-3d',
           type: 'fill-extrusion',
@@ -8493,17 +8494,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     } else {
       map.once('load', asegurarCapas);
     }
-    // Cambiar el mapa base sustituye el estilo completo. Recupera las fuentes,
-    // capas y datos de árboles para que sigan disponibles tras el cambio.
-    map.on('style.load', async () => {
-      try {
-        asegurarCapas();
-        await cargarArbolesDeLaVista();
-        recalcularSombrasArboles();
-      } catch (e) {
-        console.debug('[arboles-globales] No se pudieron restaurar las capas tras recargar el estilo:', e.message);
-      }
-    });
 
     let capaVisible = true;
     let overpassBackoffHasta = 0;
@@ -8512,16 +8502,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // El botón ya lo crea SIEMPRE shadows-route.js (fijo en el mapa); aquí
     // solo lo "adoptamos": le ponemos el texto traducido y la lógica.
     function inyectarToggle() {
-      let btn = document.getElementById('rsBtnArboles');
-      if (!btn) {
-        const destino = document.getElementById('rsMonteArboles') || document.getElementById('rsMapControls');
-        if (!destino) return false;
-        btn = document.createElement('button');
-        btn.type = 'button';
-        btn.id = 'rsBtnArboles';
-        destino.appendChild(btn);
-      }
-      if (btn.dataset.listo === '1') return false;
+      const btn = document.getElementById('rsBtnArboles');
+      if (!btn || btn.dataset.listo === '1') return false;
       btn.dataset.listo = '1';
       delete btn.dataset.cargando;
       btn.textContent = (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
@@ -8634,9 +8616,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           });
           clearTimeout(id);
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          if (url.startsWith('/') && r.headers.get('X-Proxy-Aviso') === 'sin-datos') {
-            throw new Error('El proxy de árboles no tiene datos; se prueba el siguiente servidor.');
-          }
           const datos = await r.json();
           // Espejo corrupto: 200 con lista vacía y fecha basura (p. ej.
           // timestamp_osm_base:"116617"). Un vacío real tiene fecha válida.

@@ -197,67 +197,72 @@
   }
   @keyframes splashSkyBreathe{ 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
 
-  #manolitoSplash .wind-field{ position:absolute; inset:0; width:100%; height:100%; overflow:hidden; pointer-events:none; opacity:0.8; }
-  #manolitoSplash .wind-line{
-    fill:none; stroke:var(--splash-dawn); stroke-linecap:round;
-    stroke-dasharray:80 400; animation: splashAeroBlow linear infinite; transition: stroke 1.2s ease;
+  /* ------------------------------------------------------------------
+     INTRO NUEVO (oct-2026): MAN [logo] LIT∞ con la sombra proyectada real
+     del logo sobre el suelo (canvas). Sustituye al intro anterior (logo,
+     viento y particulas). La ciudad en sombra y el sol que amanece siguen
+     siendo los de siempre: al salir, este bloque se desvanece y deja ver
+     el cielo, el sol y la ciudad. Todo va dentro de #manolitoSplash.
+     ------------------------------------------------------------------ */
+  #manolitoSplash .ni-intro{
+    --ni-fs:clamp(30px, min(16vmin, 12.5vw), 172px);
+    --ni-tracking:0.24em; --ni-gap:0.72em;
+    position:absolute; inset:0; z-index:2; overflow:hidden; background:#04050a; color:#e8e4dc;
+    font-family:'Helvetica Neue','SF Pro Display',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; opacity:1; transition:opacity 0.7s ease-out; pointer-events:none;
   }
-  #manolitoSplash .w-thin{ stroke-width:0.8; opacity:0.3; }
-  #manolitoSplash .w-mid{ stroke-width:1.5; opacity:0.5; }
-  #manolitoSplash .w-thick{ stroke-width:2.5; opacity:0.2; }
-  @keyframes splashAeroBlow{ 0%{ stroke-dashoffset:600; } 100%{ stroke-dashoffset:-200; } }
+  #manolitoSplash .ni-canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
 
-  #manolitoSplash .w1{ animation-duration:8s; }
-  #manolitoSplash .w2{ animation-duration:12s; animation-delay:-3s; stroke-dasharray:120 500; }
-  #manolitoSplash .w3{ animation-duration:9s; animation-delay:-5s; stroke-dasharray:60 300; }
-  #manolitoSplash .w4{ animation-duration:15s; animation-delay:-1s; }
-  #manolitoSplash .w5{ animation-duration:11s; animation-delay:-7s; stroke-dasharray:150 450; }
-  #manolitoSplash .w6{ animation-duration:14s; animation-delay:-4s; }
+  #manolitoSplash .ni-title{
+    position:absolute; top:44%; left:0; right:0; z-index:2; direction:ltr;
+    /* recentra el hueco tras cancelar el letter-spacing fantasma de la N */
+    transform:translate(0.12em, calc(-50% + 0.1em));
+    display:flex; align-items:center;
+    font-size:var(--ni-fs); font-weight:200; line-height:1; letter-spacing:var(--ni-tracking);
+    color:#f0ebe0; text-shadow:0 0 60px rgba(255,240,210,0.18); white-space:nowrap; opacity:0;
+  }
+  #manolitoSplash .ni-left{ flex:1; text-align:right; margin-right:calc(-1 * var(--ni-tracking)); }
+  #manolitoSplash .ni-gap{ flex:0 0 auto; width:var(--ni-gap); height:1em; }
+  #manolitoSplash .ni-right{ flex:1; text-align:left; }
+  #manolitoSplash .ni-inf{
+    display:inline-block; font-weight:100; color:#f7eedd; text-shadow:0 0 50px rgba(255,240,210,0.6);
+  }
+  #manolitoSplash.ni-run .ni-title{ animation:niTitleIn 1.8s ease 0.2s forwards; }
+  #manolitoSplash.ni-run .ni-inf{ animation:niInfSpin 9s linear infinite, niInfPulse 3.2s ease-in-out infinite; }
+  @keyframes niTitleIn{ from{ opacity:0; filter:blur(8px); } to{ opacity:0.95; filter:blur(0); } }
+  @keyframes niInfSpin{ 0%{ transform:perspective(500px) rotateY(0deg); } 100%{ transform:perspective(500px) rotateY(360deg); } }
+  @keyframes niInfPulse{
+    0%,100%{ text-shadow:0 0 45px rgba(255,240,210,0.35); filter:brightness(0.95); }
+    50%{ text-shadow:0 0 70px rgba(255,240,210,0.85), 0 0 110px rgba(255,230,180,0.35); filter:brightness(1.15); }
+  }
 
-  #manolitoSplash .particle{
-    position:absolute; border-radius:50%; background:var(--splash-dawn);
-    animation: splashFloatUp linear infinite, splashQuantumFlicker 0.25s ease-in-out infinite alternate;
-    box-shadow: 0 0 5px rgba(var(--splash-dawn-rgb), 0.6); pointer-events:none; transition: background 1.2s ease;
+  #manolitoSplash .ni-sub{
+    position:absolute; top:calc(44% + var(--ni-fs) / 2 + 22px + 5vmin); left:0; right:0; z-index:2;
+    text-align:center; font-size:clamp(9px, 1.1vw, 12px); font-weight:400;
+    letter-spacing:0.55em; padding-left:0.55em; text-transform:uppercase;
+    color:rgba(232,228,220,0.55); opacity:0;
   }
-  @keyframes splashFloatUp{
-    0%{ transform:translateY(20px) translateX(0); opacity:0; }
-    20%{ opacity:0.6; } 80%{ opacity:0.1; }
-    100%{ transform:translateY(-100vh) translateX(40px); opacity:0; }
-  }
-  @keyframes splashQuantumFlicker{ 0%{ opacity:0.1; } 100%{ opacity:0.9; } }
+  #manolitoSplash.ni-run .ni-sub{ animation:niFadeIn 1.4s ease 1s forwards; }
+  @keyframes niFadeIn{ to{ opacity:1; } }
 
-  #manolitoSplash .logo-wrap{ position:relative; z-index:2; text-align:center; pointer-events:none; }
-  #manolitoSplash #logo-container{
-    width:180px; height:180px; margin:0 auto 20px;
-    display:flex; align-items:center; justify-content:center;
-    transform-style:preserve-3d; transition: transform 0.1s ease-out;
+  #manolitoSplash .ni-terms{ position:absolute; left:0; right:0; bottom:5vh; z-index:2; height:100px; }
+  #manolitoSplash .ni-term{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+    opacity:0; transform:translateY(8px); transition:opacity 0.35s ease, transform 0.35s ease;
   }
-  #manolitoSplash #logo-svg{
-    width:100%; height:100%;
-    filter: drop-shadow(0 0 12px rgba(var(--splash-dawn-rgb), 0.4));
-    animation: splashLogoFloat 5s ease-in-out infinite;
+  #manolitoSplash .ni-term.active{ opacity:1; transform:translateY(0); transition:opacity 0.8s ease 0.2s, transform 0.8s ease 0.2s; }
+  #manolitoSplash .ni-term-name{
+    font-size:13px; font-weight:300; text-transform:lowercase; letter-spacing:0.14em; padding-left:0.14em;
+    color:rgba(240,235,224,0.92); text-shadow:0 0 40px rgba(255,240,210,0.25);
   }
-  @keyframes splashLogoFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
-
-  #manolitoSplash .brand{
-    font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-weight:600; font-size:clamp(1.6rem, 5vw, 2.4rem);
-    color:var(--splash-paper); letter-spacing:-0.01em; margin-top:5px;
+  #manolitoSplash .ni-term-desc{
+    font-size:12.5px; font-weight:300; letter-spacing:0.02em; line-height:1.4; text-align:center; padding:0 24px;
+    color:rgba(232,228,220,0.55);
   }
-  #manolitoSplash .brand span{ color:var(--splash-dawn); transition: color 1.2s ease; }
-  #manolitoSplash .sub-brand{
-    font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-weight:500; font-size:1.1rem; color:var(--splash-paper); margin-top:4px; opacity:0.85;
-  }
-  #manolitoSplash .tagline{
-    font-family:ui-monospace,SFMono-Regular,Consolas,'Liberation Mono',monospace; font-size:0.75rem; color:var(--splash-dawn);
-    margin-top:12px; letter-spacing:0.08em; opacity:0.8; transition: color 1.2s ease;
-  }
-  #manolitoSplash .sombra-msg{
-    font-family:ui-monospace,SFMono-Regular,Consolas,'Liberation Mono',monospace; font-size:0.65rem; color: rgba(251,250,247,0.5);
-    margin-top:8px; letter-spacing:0.05em; animation: splashFadeIn 2s ease forwards; opacity:0;
-  }
-  #manolitoSplash .clima-tag{
-    font-family:ui-monospace,SFMono-Regular,Consolas,'Liberation Mono',monospace; font-size:0.6rem; color: rgba(251,250,247,0.35);
-    margin-top:4px; letter-spacing:0.15em; text-transform:uppercase;
+  /* escrituras que no admiten tracking ni mayúsculas forzadas */
+  html[lang="ar"] #manolitoSplash .ni-sub, html[lang="ar"] #manolitoSplash .ni-term-name, html[lang="ar"] #manolitoSplash .ni-term-desc,
+  html[lang="ka"] #manolitoSplash .ni-sub, html[lang="ka"] #manolitoSplash .ni-term-name, html[lang="ka"] #manolitoSplash .ni-term-desc{
+    letter-spacing:0; padding-left:0; text-transform:none;
   }
 
   #manolitoSplash .entry-btn{
@@ -298,10 +303,8 @@
     100%{ opacity:0; transform:translateX(-50%) translateY(-20px) scale(1.05); filter:blur(8px); }
   }
 
-  #manolitoSplash.leaving .logo-wrap,
-  #manolitoSplash.leaving .wind-field,
-  #manolitoSplash.leaving .particle,
   #manolitoSplash.leaving .entry-btn{ opacity:0; transition: opacity 0.4s ease-out; }
+  #manolitoSplash.leaving .ni-intro{ opacity:0; }
 
   #manolitoSplash.leaving{ animation: splashFadeToBlack 2.4s ease-out forwards; }
   @keyframes splashFadeToBlack{
@@ -312,6 +315,8 @@
 
   @media (prefers-reduced-motion: reduce){
     #manolitoSplash, #manolitoSplash *{ animation:none !important; transition:none !important; }
+    #manolitoSplash .ni-title{ opacity:0.95; }
+    #manolitoSplash .ni-sub{ opacity:1; }
   }
   html.manolito-idioma-pendiente body{ overflow:hidden; }
   html.manolito-idioma-pendiente #manolitoSplash{ opacity:0; visibility:hidden; pointer-events:none; }
@@ -443,32 +448,23 @@
 
 <div id="manolitoSplash">
   <div class="sky-glow"></div>
-  <svg class="wind-field" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid slice">
-    <path class="wind-line w-mid w1" d="M -100,120 C 150,280 350,20 600,180 S 850,80 1100,140" />
-    <path class="wind-line w-thin w2" d="M 1100,220 C 800,80 600,320 350,150 S 100,280 -100,180" />
-    <path class="wind-line w-thick w3" d="M -100,180 C 200,350 450,-20 750,220 S 950,50 1100,160" />
-    <path class="wind-line w-thin w4" d="M 1100,100 C 900,20 650,300 400,180 S 150,320 -100,220" />
-    <path class="wind-line w-mid w5" d="M -100,280 C 250,150 400,380 650,200 S 900,300 1100,250" />
-    <path class="wind-line w-thin w6" d="M 1100,280 C 850,380 700,100 450,250 S 200,100 -100,150" />
-  </svg>
-
-  <div id="particles"></div>
-
-  <div class="logo-wrap">
-    <div id="logo-container">
-      <svg id="logo-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Manolit∞ Aire, logotipo">
-        <circle cx="100" cy="150" r="45" fill="#E6A100" />
-        <path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#007A87" stroke-width="4" stroke-linecap="round"/>
-        <path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#007A87" stroke-width="3" stroke-linecap="round"/>
-        <path d="M 100,150 C 75,125 75,175 100,150 C 125,125 125,175 100,150 Z" fill="none" stroke="#7A0016" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke="#7A0016" stroke-width="8" stroke-linejoin="round"/>
-      </svg>
+  <!-- Intro nuevo: MAN [logo] LIT∞ + sombra real proyectada (canvas) -->
+  <div class="ni-intro" id="niIntro">
+    <canvas class="ni-canvas" id="niCanvas" aria-hidden="true"></canvas>
+    <div class="ni-title" role="img" aria-label="Manolit∞ Aire">
+      <span class="ni-left" aria-hidden="true">MAN</span>
+      <span class="ni-gap" id="niGap" aria-hidden="true"></span>
+      <span class="ni-right" aria-hidden="true">LIT<span class="ni-inf">∞</span></span>
     </div>
-    <div class="brand"><span>Manolit∞</span> Aire</div>
-    <div class="sub-brand" data-i18n="subBrand">+ Sombras 3D</div>
-    <div class="tagline" data-i18n="splashTagline">Respira ∞ Camina ∞ Refúgiate ∞ Mapea ∞</div>
-    <div class="sombra-msg">∞ ∞ ∞ ∞ ∞ ∞ ∞</div>
-    <div class="clima-tag" id="climaTag"></div>
+    <p class="sub-brand ni-sub">Simulador de sombras</p>
+    <div class="ni-terms" aria-hidden="true">
+      <div class="ni-term active"><span class="ni-term-name">acimut</span><span class="ni-term-desc">el ángulo del sol · el giro que nos da forma</span></div>
+      <div class="ni-term"><span class="ni-term-name">cono de sombra</span><span class="ni-term-desc">la geometría del silencio</span></div>
+      <div class="ni-term"><span class="ni-term-name">umbra</span><span class="ni-term-desc">sombra total · la luz, ausente</span></div>
+      <div class="ni-term"><span class="ni-term-name">penumbra</span><span class="ni-term-desc">sombra parcial · la luz, apenas</span></div>
+      <div class="ni-term"><span class="ni-term-name">antumbra</span><span class="ni-term-desc">más allá de la umbra · la luz rodea</span></div>
+      <div class="ni-term"><span class="ni-term-name">proyección</span><span class="ni-term-desc">lo que el cuerpo deja atrás</span></div>
+    </div>
   </div>
 
   <button class="entry-btn" id="entryBtn"></button>
@@ -536,6 +532,464 @@
 
 <script>
   (function() {
+    // ------------------------------------------------------------------
+    // INTRO NUEVO: logo de Manolit∞ en el hueco del titulo y su sombra
+    // REAL proyectada sobre el suelo desde una luz puntual que barre.
+    // ------------------------------------------------------------------
+    const NI_TEXTOS = {
+      es: { sub: 'Simulador de sombras', t: [
+        ['acimut', 'el ángulo del sol · el giro que nos da forma'],
+        ['cono de sombra', 'la geometría del silencio'],
+        ['umbra', 'sombra total · la luz, ausente'],
+        ['penumbra', 'sombra parcial · la luz, apenas'],
+        ['antumbra', 'más allá de la umbra · la luz rodea'],
+        ['proyección', 'lo que el cuerpo deja atrás'] ] },
+      ca: { sub: "Simulador d'ombres", t: [
+        ['azimut', "l'angle del sol · el gir que ens dona forma"],
+        ["con d'ombra", 'la geometria del silenci'],
+        ['umbra', 'ombra total · la llum, absent'],
+        ['penombra', 'ombra parcial · la llum, a penes'],
+        ['antumbra', 'més enllà de la umbra · la llum envolta'],
+        ['projecció', 'allò que el cos deixa enrere'] ] },
+      gl: { sub: 'Simulador de sombras', t: [
+        ['acimut', 'o ángulo do sol · o xiro que nos dá forma'],
+        ['cono de sombra', 'a xeometría do silencio'],
+        ['umbra', 'sombra total · a luz, ausente'],
+        ['penumbra', 'sombra parcial · a luz, apenas'],
+        ['antumbra', 'máis aló da umbra · a luz rodea'],
+        ['proxección', 'o que o corpo deixa atrás'] ] },
+      eu: { sub: 'Itzalen simulagailua', t: [
+        ['azimuta', 'eguzkiaren angelua · forma ematen digun biraketa'],
+        ['itzal-konoa', 'isiltasunaren geometria'],
+        ['umbra', 'itzal osoa · argirik gabe'],
+        ['penumbra', 'itzal partziala · argia, ia ez'],
+        ['antumbra', 'umbratik haratago · argiak inguratzen du'],
+        ['proiekzioa', 'gorputzak atzean uzten duena'] ] },
+      en: { sub: 'Shadow simulator', t: [
+        ['azimuth', 'the angle of the sun · the turn that gives us form'],
+        ['shadow cone', 'the geometry of silence'],
+        ['umbra', 'total shadow · the light, absent'],
+        ['penumbra', 'partial shadow · the light, barely'],
+        ['antumbra', 'beyond the umbra · the light wraps around'],
+        ['projection', 'what the body leaves behind'] ] },
+      ka: { sub: 'ჩრდილების სიმულატორი', t: [
+        ['აზიმუტი', 'მზის კუთხე · შემობრუნება, რომელიც ფორმას გვაძლევს'],
+        ['ჩრდილის კონუსი', 'დუმილის გეომეტრია'],
+        ['უმბრა', 'სრული ჩრდილი · სინათლე არ არის'],
+        ['პენუმბრა', 'ნაწილობრივი ჩრდილი · სინათლე, ძლივს'],
+        ['ანტუმბრა', 'უმბრის მიღმა · სინათლე გარს ერტყმის'],
+        ['პროექცია', 'რასაც სხეული უკან ტოვებს'] ] },
+      ar: { sub: 'محاكي الظلال', t: [
+        ['السمت', 'زاوية الشمس · الدوران الذي يمنحنا شكلنا'],
+        ['مخروط الظل', 'هندسة الصمت'],
+        ['الظل الكلي', 'ظل كامل · الضوء غائب'],
+        ['شبه الظل', 'ظل جزئي · الضوء بالكاد'],
+        ['ما وراء الظل', 'ما وراء الظل الكلي · الضوء يحيط'],
+        ['الإسقاط', 'ما يتركه الجسد خلفه'] ] },
+    };
+    const NI_TEMAS = ['acimut', 'cono', 'umbra', 'penumbra', 'antumbra', 'proyeccion'];
+    const NI_OBJETIVOS = {
+      acimut:     { swingSpeed: 0.65, coneGlow: 0.05, umbraAlpha: 0.95, penumbraBlur: 12, floorLight: 0.9, antumbraGlow: 0 },
+      cono:       { swingSpeed: 0.15, coneGlow: 0.75, umbraAlpha: 0.90, penumbraBlur: 10, floorLight: 0.9, antumbraGlow: 0 },
+      umbra:      { swingSpeed: 0.12, coneGlow: 0.03, umbraAlpha: 1.00, penumbraBlur: 2,  floorLight: 1.2, antumbraGlow: 0 },
+      penumbra:   { swingSpeed: 0.10, coneGlow: 0.04, umbraAlpha: 0.55, penumbraBlur: 60, floorLight: 1.0, antumbraGlow: 0 },
+      antumbra:   { swingSpeed: 0.10, coneGlow: 0.05, umbraAlpha: 0.95, penumbraBlur: 12, floorLight: 0.9, antumbraGlow: 1 },
+      proyeccion: { swingSpeed: 0.08, coneGlow: 0.03, umbraAlpha: 1.00, penumbraBlur: 4,  floorLight: 3.0, antumbraGlow: 0 },
+    };
+
+    function iniciarIntroNuevo(overlay) {
+      const nada = { stop: function () {} };
+      const root = overlay.querySelector('#niIntro');
+      const canvas = overlay.querySelector('#niCanvas');
+      const gapEl = overlay.querySelector('#niGap');
+      const titleEl = overlay.querySelector('.ni-title');
+      if (!root || !canvas || !gapEl || !titleEl || !canvas.getContext) return nada;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return nada;
+
+      // ---- textos en el idioma elegido en la puerta inicial ----
+      let lang = window.__manolitoLangInicial;
+      if (!lang) { try { lang = localStorage.getItem('manolito_lang'); } catch (e) { lang = null; } }
+      const T = NI_TEXTOS[lang] || NI_TEXTOS.es;
+      const subEl = root.querySelector('.ni-sub');
+      // En el Sabado de la Salud, ambientes.js pone aqui su propio subtitulo: no se pisa.
+      if (subEl && !document.documentElement.classList.contains('modo-salud')) subEl.textContent = T.sub;
+      const termEls = root.querySelectorAll('.ni-term');
+      termEls.forEach(function (el, i) {
+        if (!T.t[i]) return;
+        el.querySelector('.ni-term-name').textContent = T.t[i][0];
+        el.querySelector('.ni-term-desc').textContent = T.t[i][1];
+      });
+
+      const reducido = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+      let W = 0, H = 0, DPR = 1;
+      let cx = 0, oy = 0, u = 1, anchorY = 0;           // u = alto del logo en px
+      let regX = 0, regY = 0, regW = 1, regH = 1, OFF = 0;
+      const Q = 0.46;                                    // aplastamiento del suelo en pantalla
+      const shA = document.createElement('canvas');      // sombra suave (lejos del contacto)
+      const shB = document.createElement('canvas');      // sombra nitida (cerca del contacto)
+      const cA = shA.getContext('2d');
+      const cB = shB.getContext('2d');
+
+      function layout() {
+        const ir = root.getBoundingClientRect();
+        const fs = parseFloat(getComputedStyle(titleEl).fontSize) || Math.min(W, H) * 0.16;
+        const r = gapEl.getBoundingClientRect();
+        cx = r.left - ir.left + r.width / 2;
+        oy = r.top - ir.top + r.height / 2 + fs * 0.005;
+        u = fs * 0.72;                                   // alto del logo = alto de las mayusculas
+        anchorY = oy + u / 2;                            // la punta del escudo apoya en el suelo
+        regX = cx - 2.5 * u;
+        regY = anchorY - 0.3 * u;
+        regW = 5 * u;
+        regH = 1.6 * u;
+        OFF = regW + 300;
+        shA.width = shB.width = Math.max(1, Math.round(regW * DPR));
+        shA.height = shB.height = Math.max(1, Math.round(regH * DPR));
+      }
+      function resize() {
+        const ir = root.getBoundingClientRect();
+        DPR = Math.min(window.devicePixelRatio || 1, 2);
+        W = Math.max(1, Math.round(ir.width)); H = Math.max(1, Math.round(ir.height));
+        canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        layout();
+      }
+      resize();
+
+      // ---- el logo: identico al icono de la app (en linea, sin sol relleno) ----
+      const P_SHIELD = new Path2D('M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z');
+      const P_INF    = new Path2D('M 100,146 C 75,121 75,171 100,146 C 125,121 125,171 100,146 Z');
+      const P_WAVE1  = new Path2D('M 60,165 Q 80,155 100,165 T 140,165');
+      const P_WAVE2  = new Path2D('M 65,175 Q 82.5,167 100,175 T 135,175');
+      const P_SUN    = new Path2D(); P_SUN.arc(100, 150, 45, 0, Math.PI * 2);
+      const PARTES = [
+        [P_SHIELD, '#ff2a4b', 4], [P_SUN, '#ffcc00', 3], [P_INF, '#ff2a4b', 5],
+        [P_WAVE1, '#00e5ff', 4], [P_WAVE2, '#00e5ff', 3],
+      ];
+
+      // Los mismos trazos en puntos, para proyectarlos al suelo
+      function cubic(p0, p1, p2, p3, n) {
+        const out = [];
+        for (let i = 0; i <= n; i++) {
+          const t = i / n, m = 1 - t;
+          out.push([
+            m*m*m*p0[0] + 3*m*m*t*p1[0] + 3*m*t*t*p2[0] + t*t*t*p3[0],
+            m*m*m*p0[1] + 3*m*m*t*p1[1] + 3*m*t*t*p2[1] + t*t*t*p3[1],
+          ]);
+        }
+        return out;
+      }
+      function quad(p0, p1, p2, n) {
+        const out = [];
+        for (let i = 0; i <= n; i++) {
+          const t = i / n, m = 1 - t;
+          out.push([m*m*p0[0] + 2*m*t*p1[0] + t*t*p2[0], m*m*p0[1] + 2*m*t*p1[1] + t*t*p2[1]]);
+        }
+        return out;
+      }
+      function unir() {
+        let a = [];
+        for (let i = 0; i < arguments.length; i++) a = a.concat(a.length ? arguments[i].slice(1) : arguments[i]);
+        return a;
+      }
+      const SHIELD = unir(cubic([100,30],[30,110],[30,210],[100,290],56), cubic([100,290],[170,210],[170,110],[100,30],56));
+      const SUN = [];
+      for (let i = 0; i <= 72; i++) { const a = i / 72 * Math.PI * 2; SUN.push([100 + 45 * Math.cos(a), 150 + 45 * Math.sin(a)]); }
+      const INF = unir(cubic([100,146],[75,121],[75,171],[100,146],28), cubic([100,146],[125,121],[125,171],[100,146],28));
+      const WAVE1 = unir(quad([60,165],[80,155],[100,165],24), quad([100,165],[120,175],[140,165],24));
+      const WAVE2 = unir(quad([65,175],[82.5,167],[100,175],24), quad([100,175],[117.5,183],[135,175],24));
+      const FORMAS = [
+        { pts: SHIELD, w: 4, closed: true }, { pts: SUN, w: 3, closed: true }, { pts: INF, w: 5, closed: true },
+        { pts: WAVE1, w: 4, closed: false }, { pts: WAVE2, w: 3, closed: false },
+      ];
+
+      // Proyeccion real: el logo esta de pie (plano z=0) con la punta en el origen
+      // del suelo; la luz es un punto (x, y, -z) detras y por encima. Cada punto
+      // (X, Y) cae por el rayo luz -> punto hasta el plano del suelo.
+      function floorPt(px, py, L) {
+        const X = (px - 100) / 260, Y = (290 - py) / 260;
+        const t = L.y / (L.y - Y);
+        return [L.x + t * (X - L.x), L.z * (t - 1), t];
+      }
+
+      const state = { swingSpeed: 0.22, coneGlow: 0.09, umbraAlpha: 0.97, penumbraBlur: 14, floorLight: 0.9, antumbraGlow: 0 };
+      let tema = 'acimut';
+
+      const particulas = [];
+      const nPart = W < 600 ? 55 : 90;
+      for (let i = 0; i < nPart; i++) {
+        particulas.push({
+          x: Math.random(), y: Math.random(),
+          vx: (Math.random() - 0.5) * 0.00008, vy: (Math.random() - 0.5) * 0.00008 + 0.00002,
+          r: Math.random() * 1.2 + 0.3, phase: Math.random() * Math.PI * 2,
+        });
+      }
+
+      function paintShadowLayer(c, polys, blur, glassA) {
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.clearRect(0, 0, c.canvas.width, c.canvas.height);
+        c.save();
+        c.setTransform(DPR * u, 0, 0, DPR * Q * u, (cx - regX - OFF) * DPR, (anchorY - regY) * DPR);
+        c.shadowColor = 'rgba(0,0,0,1)';
+        c.shadowBlur = blur * DPR;          // shadowBlur funciona en iOS Safari; ctx.filter no es fiable
+        c.shadowOffsetX = OFF * DPR;        // el trazo se dibuja fuera de la capa; solo entra su sombra
+        c.shadowOffsetY = 0;
+        c.lineJoin = 'round'; c.lineCap = 'round';
+        const sh = polys[0].pts;
+        c.beginPath();
+        c.moveTo(sh[0][0], sh[0][1]);
+        for (let i = 1; i < sh.length; i++) c.lineTo(sh[i][0], sh[i][1]);
+        c.closePath();
+        c.fillStyle = 'rgba(0,0,0,' + glassA + ')';
+        c.fill();
+        c.strokeStyle = '#000';
+        for (let k = 0; k < polys.length; k++) {
+          const p = polys[k];
+          c.lineWidth = p.lw;
+          c.beginPath();
+          c.moveTo(p.pts[0][0], p.pts[0][1]);
+          for (let i = 1; i < p.pts.length; i++) c.lineTo(p.pts[i][0], p.pts[i][1]);
+          if (p.closed) c.closePath();
+          c.stroke();
+        }
+        c.restore();
+      }
+      function fadeLayer(c, y0, y1, a0, a1) {
+        c.save();
+        c.setTransform(DPR, 0, 0, DPR, 0, 0);
+        c.globalCompositeOperation = 'destination-in';
+        const gr = c.createLinearGradient(0, y0, 0, y1);
+        gr.addColorStop(0, 'rgba(0,0,0,' + a0 + ')');
+        gr.addColorStop(1, 'rgba(0,0,0,' + a1 + ')');
+        c.fillStyle = gr;
+        c.fillRect(0, 0, regW, regH);
+        c.restore();
+      }
+      function drawLogo(alpha) {
+        const k = u / 260, minW = 1.3 / k, glow = Math.max(5, u * 0.05) * DPR;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(cx, oy); ctx.scale(k, k); ctx.translate(-100, -160);
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        ctx.fillStyle = 'rgba(255, 42, 75, 0.05)';
+        ctx.fill(P_SHIELD);
+        for (let i = 0; i < PARTES.length; i++) {
+          const path = PARTES[i][0], color = PARTES[i][1], w = PARTES[i][2];
+          ctx.lineWidth = Math.max(w, minW);
+          ctx.strokeStyle = color;
+          ctx.save(); ctx.shadowColor = color; ctx.shadowBlur = glow; ctx.stroke(path); ctx.restore();
+          ctx.stroke(path);
+        }
+        ctx.restore();
+      }
+
+      let phase = -1.2;
+      let t0 = null, last = null, parado = false, rafId = 0;
+      const timers = [];
+
+      function draw(now, tFijo) {
+        if (t0 === null) { t0 = now; last = now; }
+        const dt = Math.min((now - last) / 1000, 0.1);
+        last = now;
+        const t = tFijo !== undefined ? tFijo : (now - t0) / 1000;
+
+        const obj = NI_OBJETIVOS[tema];
+        const kk = Math.min(dt * 3.5, 1);
+        for (const key in state) state[key] = state[key] + (obj[key] - state[key]) * kk;
+        phase += dt * state.swingSpeed;
+
+        const ti = Math.min(Math.max((t - 0.2) / 1.6, 0), 1);
+        const intro = ti * ti * (3 - 2 * ti);
+
+        const bg = ctx.createRadialGradient(W * 0.5, H * 0.3, 0, W * 0.5, H * 0.3, Math.max(W, H) * 0.9);
+        bg.addColorStop(0, '#080a10'); bg.addColorStop(1, '#020305');
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+        const swing = Math.sin(phase);
+        const L = { x: swing * 1.5, y: 2.55 - Math.abs(swing) * 0.45, z: 2.0 };
+        const lx = cx + L.x * u, ly = anchorY - (L.y + L.z * Q) * u;
+
+        // resplandor del sol y su nucleo
+        const glowR = Math.max(W, H) * 0.6;
+        const glow = ctx.createRadialGradient(lx, ly, 0, lx, ly, glowR);
+        glow.addColorStop(0, 'rgba(255, 248, 230, 0.40)');
+        glow.addColorStop(0.12, 'rgba(255, 240, 210, 0.17)');
+        glow.addColorStop(0.4, 'rgba(200, 200, 220, 0.045)');
+        glow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+        {
+          const cr = Math.max(u * 0.55, 34);
+          const core = ctx.createRadialGradient(lx, ly, 0, lx, ly, cr);
+          core.addColorStop(0, 'rgba(255, 252, 240, 0.95)');
+          core.addColorStop(0.18, 'rgba(255, 246, 222, 0.55)');
+          core.addColorStop(0.5, 'rgba(255, 236, 200, 0.14)');
+          core.addColorStop(1, 'rgba(255, 236, 200, 0)');
+          ctx.fillStyle = core; ctx.beginPath(); ctx.arc(lx, ly, cr, 0, Math.PI * 2); ctx.fill();
+        }
+        const beam = ctx.createRadialGradient(lx, ly, 0, lx, ly, Math.max(W, H) * 0.75);
+        beam.addColorStop(0, 'rgba(255, 245, 220, 0.035)');
+        beam.addColorStop(0.5, 'rgba(255, 245, 220, 0.009)');
+        beam.addColorStop(1, 'rgba(255, 245, 220, 0)');
+        ctx.fillStyle = beam;
+        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx - W * 0.55, H + 120); ctx.lineTo(lx + W * 0.55, H + 120); ctx.closePath(); ctx.fill();
+
+        // suelo: charco de luz, linea base y anclaje bajo la punta
+        {
+          const g = state.floorLight;
+          const a = Math.min(0.5, 0.26 * g) * (0.35 + 0.65 * intro);
+          const prx = 3.4 * u, pry = 0.7 * u;
+          ctx.save();
+          ctx.translate(cx + L.x * u * 0.25, anchorY + pry * 0.43);
+          ctx.scale(1, pry / prx);
+          const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, prx);
+          fg.addColorStop(0, 'rgba(255, 235, 205, ' + a + ')');
+          fg.addColorStop(0.4, 'rgba(230, 210, 185, ' + (a * 0.45) + ')');
+          fg.addColorStop(0.75, 'rgba(200, 185, 170, ' + (a * 0.12) + ')');
+          fg.addColorStop(1, 'rgba(255, 240, 210, 0)');
+          ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(0, 0, prx, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+
+          const fl = ctx.createLinearGradient(0, 0, W, 0);
+          const la = 0.05 + g * 0.04;
+          fl.addColorStop(0, 'rgba(255, 240, 210, 0)');
+          fl.addColorStop(0.5, 'rgba(255, 240, 210, ' + la + ')');
+          fl.addColorStop(1, 'rgba(255, 240, 210, 0)');
+          ctx.fillStyle = fl; ctx.fillRect(0, anchorY - 0.5, W, 1);
+
+          ctx.save();
+          ctx.translate(cx, anchorY); ctx.scale(1, 0.25);
+          const an = ctx.createRadialGradient(0, 0, 0, 0, 0, u * 0.9);
+          an.addColorStop(0, 'rgba(0, 243, 255, ' + (0.2 * intro) + ')');
+          an.addColorStop(1, 'rgba(0, 243, 255, 0)');
+          ctx.fillStyle = an; ctx.beginPath(); ctx.arc(0, 0, u * 0.9, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+
+        // sombra real: silueta del logo proyectada desde la luz
+        const polys = FORMAS.map(function (s) {
+          const pts = s.pts.map(function (p) { return floorPt(p[0], p[1], L); });
+          let ts = 0;
+          for (let i = 0; i < pts.length; i++) ts += pts[i][2];
+          const tAvg = ts / pts.length;
+          return { pts: pts, closed: s.closed, lw: Math.max(s.w / 260 * 4.2 * Math.sqrt(tAvg), 2.2 / u) };
+        });
+        {
+          const bs = u / 110;
+          const nearB = 0.3 + state.penumbraBlur * 0.035 * bs;   // cerca del contacto: nitida
+          const farB = 0.8 + state.penumbraBlur * 0.16 * bs;     // lejos del contacto: difusa
+          paintShadowLayer(cA, polys, farB, 0.22);
+          paintShadowLayer(cB, polys, nearB, 0.22);
+          const y0 = anchorY - regY;
+          fadeLayer(cA, y0, y0 + 0.6 * u, 0.45, 1);
+          fadeLayer(cB, y0, y0 + 0.4 * u, 1, 0);
+          ctx.save();
+          ctx.globalAlpha = intro * Math.min(1, state.umbraAlpha);
+          ctx.drawImage(shA, regX, regY, regW, regH);
+          ctx.drawImage(shB, regX, regY, regW, regH);
+          ctx.restore();
+        }
+
+        if (state.antumbraGlow > 0.02) {
+          const c0 = floorPt(100, 160, L);
+          const hx = cx + c0[0] * u, hy = anchorY + c0[1] * Q * u, radius = 1.9 * u;
+          ctx.save();
+          ctx.translate(hx, hy); ctx.scale(1, 0.4);
+          const halo = ctx.createRadialGradient(0, 0, radius * 0.35, 0, 0, radius);
+          halo.addColorStop(0, 'rgba(255, 240, 210, 0)');
+          halo.addColorStop(0.68, 'rgba(255, 240, 210, 0)');
+          halo.addColorStop(0.85, 'rgba(255, 240, 210, ' + (0.28 * state.antumbraGlow * intro) + ')');
+          halo.addColorStop(1, 'rgba(255, 240, 210, 0)');
+          ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+
+        if (state.coneGlow > 0.02) {
+          let amin = Infinity, amax = -Infinity, pmin = null, pmax = null;
+          const sp = polys[0].pts;
+          for (let i = 0; i < sp.length; i++) {
+            const sx = cx + sp[i][0] * u, sy = anchorY + sp[i][1] * Q * u;
+            const a = Math.atan2(sy - ly, sx - lx);
+            if (a < amin) { amin = a; pmin = [sx, sy]; }
+            if (a > amax) { amax = a; pmax = [sx, sy]; }
+          }
+          const ca = state.coneGlow * intro;
+          ctx.lineWidth = 1 + state.coneGlow * 2.2;
+          [pmin, pmax].forEach(function (pe) {
+            const rg = ctx.createLinearGradient(lx, ly, pe[0], pe[1]);
+            rg.addColorStop(0, 'rgba(255, 240, 210, ' + (ca * 0.12) + ')');
+            rg.addColorStop(1, 'rgba(255, 240, 210, ' + (ca * 0.8) + ')');
+            ctx.strokeStyle = rg;
+            ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(pe[0], pe[1]); ctx.stroke();
+          });
+        }
+
+        for (let i = 0; i < particulas.length; i++) {
+          const p = particulas[i];
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0) p.x += 1; if (p.x > 1) p.x -= 1;
+          if (p.y < 0) p.y += 1; if (p.y > 1) p.y -= 1;
+          const px = p.x * W, py = p.y * H;
+          const lightFactor = Math.max(0, 1 - Math.hypot(px - lx, py - ly) / (Math.max(W, H) * 0.55));
+          const alpha = (0.04 + lightFactor * 0.55) * (0.7 + 0.3 * Math.sin(t * 2 + p.phase));
+          if (alpha < 0.01) continue;
+          ctx.fillStyle = 'rgba(255, 248, 230, ' + alpha + ')';
+          ctx.beginPath(); ctx.arc(px, py, p.r, 0, Math.PI * 2); ctx.fill();
+        }
+
+        drawLogo(intro);
+
+        const vig = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.78);
+        vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+        ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+      }
+
+      function mostrarTermino(idx) {
+        termEls.forEach(function (el, i) { el.classList.toggle('active', i === idx); });
+        tema = NI_TEMAS[idx] || 'acimut';
+      }
+
+      function bucle(now) {
+        if (parado) return;
+        draw(now);
+        rafId = requestAnimationFrame(bucle);
+      }
+
+      const onResize = function () { if (!parado) { resize(); if (reducido) draw(performance.now(), 6); } };
+      window.addEventListener('resize', onResize);
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (!parado) layout(); });
+
+      // arranca: las animaciones CSS del titulo solo empiezan ahora (no durante la puerta de idioma)
+      overlay.classList.add('ni-run');
+      if (reducido) {
+        mostrarTermino(0);
+        draw(performance.now(), 6);
+      } else {
+        rafId = requestAnimationFrame(bucle);
+        // los terminos van rotando mientras dura el intro (acimut, cono, umbra...)
+        const TERM_INICIO = 1700, TERM_DURACION = 2000;
+        let idx = 0;
+        const siguiente = function () {
+          idx = (idx + 1) % termEls.length;
+          mostrarTermino(idx);
+          timers.push(setTimeout(siguiente, TERM_DURACION));
+        };
+        timers.push(setTimeout(function () { mostrarTermino(0); timers.push(setTimeout(siguiente, TERM_DURACION)); }, TERM_INICIO));
+      }
+
+      return {
+        stop: function () {
+          parado = true;
+          if (rafId) cancelAnimationFrame(rafId);
+          timers.forEach(clearTimeout);
+          window.removeEventListener('resize', onResize);
+          if (window.visualViewport) window.visualViewport.removeEventListener('resize', onResize);
+        }
+      };
+    }
+
     function iniciarSplash() {
       if (window.__manolitoSplashIniciado) return;
       window.__manolitoSplashIniciado = true;
@@ -543,27 +997,7 @@
       if (!overlay) return;
       document.body.classList.add('manolito-splash-activo');
 
-      const field = document.getElementById('particles');
-      for (let i = 0; i < 28; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        const size = 1.5 + Math.random() * 2.5;
-        p.style.width = size + 'px';
-        p.style.height = size + 'px';
-        p.style.left = Math.random() * 100 + 'vw';
-        p.style.bottom = '-10px';
-        p.style.animationDuration = (5 + Math.random() * 7) + 's, ' + (0.15 + Math.random() * 0.3) + 's';
-        p.style.animationDelay = (Math.random() * 5) + 's, ' + (Math.random() * 0.2) + 's';
-        field.appendChild(p);
-      }
-
-      const logoContainer = document.getElementById('logo-container');
-      function tiltLogo(e) {
-        const x = e.clientX / window.innerWidth - 0.5;
-        const y = e.clientY / window.innerHeight - 0.5;
-        logoContainer.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
-      }
-      document.addEventListener('mousemove', tiltLogo);
+      const intro = iniciarIntroNuevo(overlay);
 
       // NUEVO: El tutorial SOLO arranca si ambas condiciones físicas se cumplen
       function evaluarArranqueTutorial() {
@@ -583,8 +1017,9 @@
         if (isLeaving) return;
         isLeaving = true;
         overlay.classList.add('leaving');
-        document.removeEventListener('mousemove', tiltLogo);
+        setTimeout(() => intro.stop(), 800);
         setTimeout(() => {
+          intro.stop();
           overlay.remove();
           document.body.classList.remove('manolito-splash-activo');
           // Evalúa el arranque justo en el instante en que el DOM elimina la portada

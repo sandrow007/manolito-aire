@@ -817,7 +817,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   addEventListener('keydown', e => keysDown.add(e.code));
   addEventListener('keyup', e => keysDown.delete(e.code));
 
-  map.on('load', () => {
+  let inicializacionPrincipalMapaHecha = false;
+  function inicializarMapaListo() {
+    if (inicializacionPrincipalMapaHecha) return;
+    inicializacionPrincipalMapaHecha = true;
     const capas = map.getStyle().layers || [];
     const capaEdificios = capas.find(
       (l) => l.type === 'fill-extrusion' && /building/i.test(l.id)
@@ -1016,7 +1019,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         essential: true,
       });
     }, 150);
-  });
+  }
+  map.on('load', inicializarMapaListo);
+  if (map.loaded() || map.isStyleLoaded()) queueMicrotask(inicializarMapaListo);
 
   const alTerminarMovimiento = crearDebounce(() => {
     if (!solarActivado || paseoActivo) return;
@@ -2563,7 +2568,40 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   function inyectarControlesMapa() {
-    if (document.getElementById('rsMapControls')) return;
+    if (document.getElementById('rsMapControls')) {
+      // Si la botonera ya se creó, repón también las dos capas que viven en
+      // anclajes distintos. Así una carga parcial no deja huecos en «Capas».
+      const monteArboles = document.getElementById('rsMonteArboles');
+      const monteIrradiacion = document.getElementById('rsMonteIrradiacion');
+      if (monteIrradiacion && !document.getElementById('rsBtnIrradiacion')) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'rsBtnIrradiacion';
+        btn.textContent = t('irrLayerBtn', 'Irradiación solar');
+        btn.addEventListener('click', () => {
+          if (btn.dataset.listo === '1' || btn.dataset.cargando === '1') return;
+          btn.dataset.cargando = '1';
+          btn.dataset.autoActivar = '1';
+          const script = document.createElement('script');
+          script.src = 'js/irradiacion-solar.js';
+          script.onload = () => delete btn.dataset.cargando;
+          script.onerror = () => {
+            delete btn.dataset.cargando;
+            delete btn.dataset.autoActivar;
+            mostrarEstado(t('layerLoadError', 'No se ha podido cargar la capa. Inténtalo de nuevo.'), 'error');
+          };
+          document.body.appendChild(script);
+        });
+        monteIrradiacion.appendChild(btn);
+      }
+      if (monteArboles && !document.getElementById('rsBtnArboles')) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'rsBtnArboles';
+        monteArboles.appendChild(btn);
+      }
+      return;
+    }
     inyectarEstilosMapaControles();
 
     const panelMapa = document.createElement('div');
@@ -5652,10 +5690,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     map.on('resize', programarAlineacionCapas);
   }
 
-  map.on('load', () => {
+  let controlesCamaraInyectados = false;
+  function inicializarControlesCamara() {
+    if (controlesCamaraInyectados) return;
+    controlesCamaraInyectados = true;
     inyectarJoystick();
     inyectarControlesCamara();
-  });
+  }
+  map.on('load', inicializarControlesCamara);
+  if (map.loaded() || map.isStyleLoaded()) queueMicrotask(inicializarControlesCamara);
 
   mapEl.addEventListener('pointerdown', (e) => {
     if (!paseoActivo) return;
@@ -8393,8 +8436,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function asegurarCapas() {
       if (!map.getSource('arboles-globales-sombra')) {
         map.addSource('arboles-globales-sombra', { type: 'geojson', data: turf.featureCollection([]) });
-      }
-      if (!map.getLayer('capa-sombra-arboles-globales')) {
         map.addLayer({
           id: 'capa-sombra-arboles-globales',
           type: 'fill',
@@ -8408,8 +8449,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       asegurarOrdenCapas();
       if (!map.getSource('arboles-globales-copas')) {
         map.addSource('arboles-globales-copas', { type: 'geojson', data: turf.featureCollection([]) });
-      }
-      if (!map.getLayer('capa-arboles-globales-3d')) {
         map.addLayer({
           id: 'capa-arboles-globales-3d',
           type: 'fill-extrusion',
@@ -8450,18 +8489,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     } else {
       map.once('load', asegurarCapas);
     }
-    // MapLibre elimina las fuentes y capas propias al sustituir el estilo
-    // base. Reponerlas y volver a dibujar la vista conserva los árboles
-    // después de cambiar de mapa base o recargar el estilo.
-    map.on('style.load', async () => {
-      try {
-        asegurarCapas();
-        await cargarArbolesDeLaVista();
-        recalcularSombrasArboles();
-      } catch (e) {
-        console.debug('[arboles-globales] No se pudieron restaurar las capas tras recargar el estilo:', e.message);
-      }
-    });
 
     let capaVisible = true;
     let overpassBackoffHasta = 0;
@@ -8470,8 +8497,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // El botón ya lo crea SIEMPRE shadows-route.js (fijo en el mapa); aquí
     // solo lo "adoptamos": le ponemos el texto traducido y la lógica.
     function inyectarToggle() {
-      const btn = document.getElementById('rsBtnArboles');
-      if (!btn || btn.dataset.listo === '1') return false;
+      let btn = document.getElementById('rsBtnArboles');
+      if (!btn) {
+        const destino = document.getElementById('rsMonteArboles') || document.getElementById('rsMapControls');
+        if (!destino) return false;
+        btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'rsBtnArboles';
+        destino.appendChild(btn);
+      }
+      if (btn.dataset.listo === '1') return false;
       btn.dataset.listo = '1';
       delete btn.dataset.cargando;
       btn.textContent = (typeof window.getMessages === 'function' ? (window.getMessages().treesBtn || 'Árboles') : 'Árboles');
@@ -8584,6 +8619,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           });
           clearTimeout(id);
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          if (url.startsWith('/') && r.headers.get('X-Proxy-Aviso') === 'sin-datos') {
+            throw new Error('El proxy de árboles no tiene datos; se prueba el siguiente servidor.');
+          }
           const datos = await r.json();
           // Espejo corrupto: 200 con lista vacía y fecha basura (p. ej.
           // timestamp_osm_base:"116617"). Un vacío real tiene fecha válida.

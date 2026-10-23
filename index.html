@@ -3327,15 +3327,9 @@
 :root{--bg:transparent;--fg:#eef1f6;--mut:#9aa3b5;}
 svg{background:transparent;font-family:'Inter',system-ui,-apple-system,sans-serif;font-weight:400}
 
-/* Elementos interactivos (Atrapan los clicks) */
-/* Panel: solo activo cuando está abierto (clase .o) */
-/* Panel cerrado no interfiere con el mapa */
-.w {pointer-events:none;}
+/* Elementos interactivos */
 .w.o {pointer-events:auto;}
-/* Logo siempre clickable */
 #mk {pointer-events:auto;}
-/* Con panel abierto, el rect hit-area del logo cede a la barra de horas */
-#mk.mk-open rect {pointer-events:none;}
 
 .cap{transition:opacity .2s;pointer-events:none}
 .cap.h{opacity:0}
@@ -3452,7 +3446,7 @@ svg{background:transparent;font-family:'Inter',system-ui,-apple-system,sans-seri
 <path d="M20 88H320" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1"/>
 <path id="bd" d="M20 88H320" stroke="url(#dia)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
 <g id="tk"></g>
-<g id="bb"><text id="bt" x="0" y="-70" font-size="11" fill="#cfd5e2" text-anchor="middle" style="font-variant-numeric:tabular-nums">16:20</text><text id="rl" x="0" y="-55" font-size="8.5" fill="rgba(255,255,255,0.40)" text-anchor="middle" style="font-variant-numeric:tabular-nums"></text></g>
+<g id="bb"><text id="bt" x="0" y="-70" font-size="11" fill="#cfd5e2" text-anchor="middle" style="font-variant-numeric:tabular-nums">16:20</text></g>
 </g>
 
 <g class="btn-cap" id="btn-capturar" role="button" tabindex="0">
@@ -3540,7 +3534,6 @@ var k=col(T);s1.style.stopColor=k;s2.style.stopColor=k;core.setAttribute("stroke
 bb.setAttribute("transform","translate("+x+" 88)");
 bd.setAttribute("d","M"+X(sr)+" 88H"+X(ss));
 bt.textContent=ft;t2.textContent=ft;
-(function(){var rl=document.getElementById("rl");if(!rl)return;var rem,h,m,s;if(T<sr){rem=sr-T;h=Math.floor(rem);m=Math.round((rem-h)*60);rl.textContent="sale en "+(h>0?h+"h ":"")+(m>0?m+"min":"");return;}if(T>=ss){rl.textContent="";return;}rem=ss-T;h=Math.floor(rem);m=Math.round((rem-h)*60);rl.textContent=(h>0?h+"h ":"")+(m>0?m+"min "":"")+"de sol";})();
 
 /* Lógica del modo Noche */
 if(p.alt > 0){
@@ -3560,10 +3553,7 @@ var a=T,s=performance.now();
 }
 
 function setOpen(v){
-open=v;w.classList.toggle("o",v);cap.classList.toggle("h",v);mk.classList.toggle("mk-open",v);
-/* Bloquear/desbloquear hijos internos del panel para no interferir con el mapa */
-var innerEls=w.querySelectorAll('rect[pointer-events="all"],rect.hit');
-for(var i=0;i<innerEls.length;i++){innerEls[i].style.pointerEvents=v?'auto':'none';}
+open=v;w.classList.toggle("o",v);cap.classList.toggle("h",v);
 if(!RM){mk.classList.add("fly");clearTimeout(ftm);ftm=setTimeout(function(){mk.classList.remove("fly")},460)}
 draw();
 }

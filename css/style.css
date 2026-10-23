@@ -121,7 +121,10 @@ main{ position:relative; isolation:isolate; }
 }
 .manolit-side-logo{
   display:block; width:100%; height:auto; flex:0 0 auto; overflow:visible;
-  pointer-events:auto; opacity:.28;
+  /* Era decoracion, pero con pointer-events:auto se comia TODOS los clics
+     de la columna izquierda del mapa (z-index alto del widget al margen):
+     el marcador de sombras nunca recibia el toque. */
+  pointer-events:none; opacity:.28;
   filter:drop-shadow(0 0 12px rgba(0,229,255,.17));
   transition:opacity 180ms ease, filter 180ms ease;
 }

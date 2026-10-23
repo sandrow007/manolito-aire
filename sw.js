@@ -143,7 +143,15 @@
 // capas de agua y aparcamiento en el preview local.
 // Cambian index.html, js/shadows-route.js, js/fuentes-agua.js,
 // js/aparcamientos-viaje.js y sw.js.
-const VERSION = '2026-10-20-o-osm-map-capasyagua';
+// 2026-10-23-a: arreglo del widget de sombra que no se abría al hacer click.
+// Se corrigen los pointer-events del marcador #mk y se ajustan los eventos
+// de click para que no interfieran con el pointerdown.
+// Cambia index.html.
+// 2026-10-23-b: FIX CRÍTICO - El SVG tiene pointer-events:none inline que
+// bloquea TODOS los eventos. Se sobrescribe con CSS más específico usando
+// svg#map #mk para que el marcador vuelva a ser clickeable.
+// Cambia index.html.
+const VERSION = '2026-10-23-b-fix-widget-svg-pointer-events';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

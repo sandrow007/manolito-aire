@@ -163,7 +163,12 @@
 // solo devuelve el id clásico si no choca con nadie. Sin tocar la franja de
 // colores de las horas de luz ni nada más del widget.
 // Cambian index.html, css/style.css y js/shadows-route.js.
-const VERSION = '2026-10-23-f-widget-sombra-id-unico';
+// 2026-10-23-g: el aviso de cookies salía siempre en castellano aunque
+// eligieras otro idioma en la puerta de entrada. Sus textos no existen en
+// i18n.js: ahora están en js/cookie-banner.js en los 6 idiomas de la web y se
+// elige por el idioma activo real (puerta inicial, getCurrentLang, guardado y
+// atributo lang). Cambia js/cookie-banner.js.
+const VERSION = '2026-10-23-g-cookies-idioma';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

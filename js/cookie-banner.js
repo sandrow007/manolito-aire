@@ -14,15 +14,85 @@ function initCookieBanner(){
   // Es un modal real (bloquea la página): aviso de consentimiento.
   gate.setAttribute('role', 'dialog');
   gate.setAttribute('aria-modal', 'true');
-  function t(clave, fallback) {
-    const fallbackAr = {
+  /* 23-oct-2026: los textos de este aviso no viven en i18n.js, asi que en
+     todos los idiomas menos el arabe salian en castellano aunque hubieras
+     elegido otro en la puerta de entrada. Ahora estan aqui, en los 6 idiomas
+     de la web, y se elige por el idioma activo de verdad: primero el que
+     eliges en la puerta inicial, luego el de getCurrentLang() y, si no hay
+     nada, el atributo lang del documento. */
+  const TEXTOS = {
+    es: {
+      cookieGateAria: 'Aviso de cookies',
+      cookieGateTitle: 'Antes de entrar',
+      cookieGateBody: 'Usamos lo minimo posible: recordar tu idioma y tema, y permitir que el chat de Manolito funcione. Nada de publicidad ni rastreo de terceros.',
+      cookieGatePolicy: 'Ver politica de cookies',
+      cookieGateReject: 'Rechazar',
+      cookieGateAccept: 'Aceptar'
+    },
+    ca: {
+      cookieGateAria: "Avís de galetes",
+      cookieGateTitle: "Abans d'entrar",
+      cookieGateBody: "Fem servir el mínim possible: recordar el teu idioma i tema, i permetre que el xat de Manolito funcioni. Sense publicitat ni rastreig de tercers.",
+      cookieGatePolicy: 'Veure la política de galetes',
+      cookieGateReject: 'Rebutjar',
+      cookieGateAccept: 'Acceptar'
+    },
+    gl: {
+      cookieGateAria: 'Aviso de cookies',
+      cookieGateTitle: 'Antes de entrar',
+      cookieGateBody: 'Usamos o mínimo posible: recordar o teu idioma e tema, e permitir que o chat de Manolito funcione. Sen publicidade nin rastrexo de terceiros.',
+      cookieGatePolicy: 'Ver política de cookies',
+      cookieGateReject: 'Rexeitar',
+      cookieGateAccept: 'Aceptar'
+    },
+    eu: {
+      cookieGateAria: 'Cookieen oharra',
+      cookieGateTitle: 'Sartu aurretik',
+      cookieGateBody: 'Ahalik eta gutxien erabiltzen dugu: zure hizkuntza eta gaia gogoratzea, eta Manolito txata funtziona dezan baimena ematea. Ez publizitaterik ez eta hirugarrenek jarraipenik ez.',
+      cookieGatePolicy: 'Ikusi cookieen politika',
+      cookieGateReject: 'Baztertu',
+      cookieGateAccept: 'Onartu'
+    },
+    en: {
+      cookieGateAria: 'Cookie notice',
+      cookieGateTitle: 'Before you go in',
+      cookieGateBody: 'We use as little as possible: remembering your language and theme, and letting the Manolito chat work. No advertising and no third-party tracking.',
+      cookieGatePolicy: 'See the cookie policy',
+      cookieGateReject: 'Decline',
+      cookieGateAccept: 'Accept'
+    },
+    ka: {
+      cookieGateAria: 'ქუქიების შეტყობინება',
+      cookieGateTitle: 'შესვლამდე',
+      cookieGateBody: 'ჩვენ მაქსიმალურად ცოტას ვიყენებთ: ვიმახსოვრებთ თქვენს ენასა და თემას და ვაძლევთ მანოლიტოს ჩატს მუშაობის საშუალებას. არავითარი რეკლამა და არავითარი მესამე მხარის თვალთვალი.',
+      cookieGatePolicy: 'ქუქიების პოლიტიკის ნახვა',
+      cookieGateReject: 'უარყოფა',
+      cookieGateAccept: 'მიღება'
+    },
+    ar: {
       cookieGateAria: 'إشعار ملفات تعريف الارتباط',
       cookieGateTitle: 'قبل الدخول',
       cookieGateBody: 'نستخدم الحد الأدنى فقط: تذكّر اللغة والمظهر، والسماح لدردشة مانوليتو بالعمل. بدون إعلانات وبدون تتبّع من أطراف ثالثة.',
       cookieGatePolicy: 'عرض سياسة ملفات تعريف الارتباط',
       cookieGateReject: 'رفض',
       cookieGateAccept: 'قبول'
-    };
+    }
+  };
+  function idiomaActivo() {
+    // 1) lo que eliges en la puerta de entrada de index
+    let l = window.__manolitoLangInicial;
+    // 2) lo que i18n.js tiene aplicado ahora mismo
+    if (!l && typeof window.getCurrentLang === 'function') {
+      try { l = window.getCurrentLang(); } catch (e) { }
+    }
+    // 3) lo guardado, por si acaso
+    if (!l) { try { l = localStorage.getItem('manolito_lang'); } catch (e) { } }
+    // 4) el atributo lang del documento
+    if (!l) l = document.documentElement.getAttribute('lang');
+    l = (l || 'es').toLowerCase().split('-')[0];
+    return TEXTOS[l] ? l : 'es';
+  }
+  function t(clave, fallback) {
     try {
       const fn = window.getMessages;
       if (typeof fn === 'function') {
@@ -30,8 +100,8 @@ function initCookieBanner(){
         if (m && m[clave] != null) return m[clave];
       }
     } catch (e) { }
-    const langHtml = (document.documentElement.getAttribute('lang') || '').toLowerCase();
-    if (langHtml.indexOf('ar') === 0 && fallbackAr[clave]) return fallbackAr[clave];
+    const dict = TEXTOS[idiomaActivo()] || TEXTOS.es;
+    if (dict[clave] != null) return dict[clave];
     return fallback;
   }
   const txtAria = t('cookieGateAria', 'Aviso de cookies');
@@ -130,6 +200,12 @@ function initCookieBannerCuandoIdiomaListo() {
     // cuando i18n.js ya ha cambiado los textos, y el banner sale en el idioma
     // correcto (árabe incluido) sin tocar diseño ni flujo.
     document.addEventListener('langChanged', () => setTimeout(initCookieBanner, 0), { once: true });
+    // 23-oct-2026: red de seguridad. Si por lo que sea el evento no llega
+    // (script externo caido, idioma sin guardar), el aviso sale igual con el
+    // idioma que haya activo, en vez de no salir nunca.
+    setTimeout(function () {
+      if (!document.getElementById('cookieGate') && !window.__manolitoEsperaIdioma) initCookieBanner();
+    }, 2500);
     return;
   }
   initCookieBanner();

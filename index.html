@@ -3606,7 +3606,7 @@ mk.addEventListener("pointerdown",function(e){if(!open)return;e.preventDefault()
 mk.addEventListener("pointermove",function(e){if(mdrag)go(tX(xOf(e)),0)});
 mk.addEventListener("pointerup",function(){mdrag=false;mk.classList.remove("dragging");});
 mk.addEventListener("pointercancel",function(){mdrag=false;mk.classList.remove("dragging");});
-mk.addEventListener("click",function(e){if(!open){e.preventDefault();e.stopPropagation();setOpen(true);}});
+mk.addEventListener("click",function(e){console.log('CLICK EN MK detectado! open=',open);if(!open){e.preventDefault();e.stopPropagation();console.log('Llamando a setOpen(true)');setOpen(true);}});
 
 /* Los "botones" del panel responden también a Enter y Espacio, como un button nativo */
 function press(el,fn){
@@ -3636,7 +3636,10 @@ window.addEventListener("load",function(){layout();place()});
 </script>
 </svg><style id="rsSolarSvgIntegration">
 svg#map{position:absolute!important;z-index:1125!important;background:transparent!important;max-width:none!important;pointer-events:none!important;touch-action:none!important}
-svg#map #mk{-webkit-tap-highlight-color:transparent;outline:none!important}
+svg#map #mk{-webkit-tap-highlight-color:transparent;outline:none!important;pointer-events:auto!important;cursor:pointer!important}
+svg#map #mk *{pointer-events:auto!important}
+svg#map #mk rect{pointer-events:all!important}
+svg#map #mk.mk-open rect{pointer-events:none!important}
 svg#map #mk:focus,svg#map #mk:focus-visible{outline:none!important}
 #rsTimeControls{display:none!important}
 </style>

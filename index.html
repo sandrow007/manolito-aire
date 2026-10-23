@@ -3453,7 +3453,7 @@ svg{background:transparent;font-family:'Inter',system-ui,-apple-system,sans-seri
 <path d="M20 88H320" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1"/>
 <path id="bd" d="M20 88H320" stroke="url(#dia)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
 <g id="tk"></g>
-<g id="bb"><text id="bt" x="0" y="-70" font-size="11" fill="#cfd5e2" text-anchor="middle" style="font-variant-numeric:tabular-nums">16:20</text></g>
+<g id="bb"><text id="bt" x="0" y="-70" font-size="11" fill="#cfd5e2" text-anchor="middle" style="font-variant-numeric:tabular-nums">16:20</text><text id="rl" x="0" y="-55" font-size="8.5" fill="rgba(255,255,255,0.42)" text-anchor="middle" style="font-variant-numeric:tabular-nums;letter-spacing:0.02em"></text></g>
 </g>
 
 <g class="btn-cap" id="btn-capturar" role="button" tabindex="0">
@@ -3541,6 +3541,30 @@ var k=col(T);s1.style.stopColor=k;s2.style.stopColor=k;core.setAttribute("stroke
 bb.setAttribute("transform","translate("+x+" 88)");
 bd.setAttribute("d","M"+X(sr)+" 88H"+X(ss));
 bt.textContent=ft;t2.textContent=ft;
+/* horas restantes de sol */
+(function(){
+  var rl=document.getElementById("rl");
+  if(!rl)return;
+  var rem,h,m,txt;
+  if(p.alt<=0&&T>=sr){
+    rl.textContent=T<sr?"":"☀️ sol poniendo";
+    rl.textContent="";
+    return;
+  }
+  if(T<sr){
+    rem=sr-T;
+    h=Math.floor(rem);m=Math.round((rem-h)*60);
+    rl.textContent="sale en "+(h>0?h+"h ":"")+(m>0?m+"min":"");
+    return;
+  }
+  if(T>=ss){rl.textContent="";return;}
+  rem=ss-T;
+  h=Math.floor(rem);m=Math.round((rem-h)*60);
+  if(h>0&&m>0) txt=h+"h "+m+"min de sol";
+  else if(h>0) txt=h+"h de sol";
+  else txt=m+"min de sol";
+  rl.textContent=txt;
+})();
 
 /* Lógica del modo Noche */
 if(p.alt > 0){

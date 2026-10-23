@@ -327,14 +327,6 @@
     opacity:1; visibility:visible; transition:opacity .2s ease, visibility .2s ease;
   }
   #idiomaInicioGate.cerrando{ opacity:0; visibility:hidden; pointer-events:none; }
-  /* Red de seguridad: si la puerta está oculta (opacity 0) o se ha quedado
-     colgada, nunca debe llevarse los clics. Antes tapaba el mapa con z-index
-     100001 y el marcador de sombras no recibía ningún toque. */
-  #idiomaInicioGate[hidden],
-  #idiomaInicioGate.cerrando,
-  #idiomaInicioGate[aria-hidden="true"]{
-    pointer-events:none !important;
-  }
   .idioma-inicio-card{
     width:min(360px,100%); color:#EAF1FF;
     padding:0;
@@ -1052,27 +1044,13 @@
         }, 2400);
       }
 
-      document.getElementById('entryBtn')?.addEventListener('click', (e) => {
+      document.getElementById('entryBtn').addEventListener('click', (e) => {
         e.stopPropagation();
         executeTransition();
       });
 
       overlay.addEventListener('dblclick', executeTransition);
-      // Cualquier toque o clic en la portada también la cierra: con solo
-      // "dblclick" (inexistente en táctil) o el botón, la portada se
-      // quedaba encima de la web con z-index 99999 y se comía TODOS los
-      // clics del mapa y del widget de sombras.
-      overlay.addEventListener('pointerdown', executeTransition);
-      // Límite duro: pase lo que pase, la portada desaparece.
       setTimeout(executeTransition, 20000);
-      setTimeout(function () {
-        if (overlay.parentNode) {
-          try { intro.stop(); } catch (e) {}
-          overlay.remove();
-          document.body.classList.remove('manolito-splash-activo');
-          evaluarArranqueTutorial();
-        }
-      }, 25000);
     }
     if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
       document.addEventListener('langChanged', () => {
@@ -2398,7 +2376,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=widget-sombra-20261023'))
+        .then(() => cargarScript('js/shadows-route.js?v=osm-global-restaurado-20261020'))
         .then(() => {
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
@@ -3340,36 +3318,23 @@
 })();
 </script>
 <script>
-/* Como en la version que funcionaba: el mapa del aire (div#map) se renombra
-   para que no choque con el SVG del widget. */
 (function(){var legacyMap=document.getElementById('map');if(legacyMap)legacyMap.id='rsLegacyAirMap';})();
-</script>
-<svg xmlns="http://www.w3.org/2000/svg" id="rsSolarMap" viewBox="0 0 390 460" width="390" height="460" style="overflow:visible;touch-action:none;max-width:100%;height:auto;box-sizing:border-box" xmlns:c2pa="http://c2pa.org/manifest"><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTphMTMyMGEwZS00NTYzLTQ0ZWYtYjM0Zi1kYTc1MTI3ODA4MDYAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaDuGge1LTG8SZqSK1dn+m10AAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDoyODRjMzVkYS1iYzI5LTRmYzktYjkxOC0xNDkwNDhjYWZjNDRscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNocTgpM7U8VX0Oz5IZqo4NtAAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggrJ6dI7LkRNnMXHI3IyujeAGVM54eQMKsEKudNgVRZj6kZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaMfir8FrpHp5hi7mxH95cssAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIIbKR+r+4ydUAB/6wttLqVGbvf7OYp9ZQzOY/pWEwcJUZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GQE2Zmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOmExMzIwYTBlLTQ1NjMtNDRlZi1iMzRmLWRhNzUxMjc4MDgwNi9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjUzOTdiOTNmLTZkNjktNDUzYi1hNjVjLWRiZDI0Nzk4OTkyMnJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCCsnp0jsuRE2cxccjcjK6N4AZUznh5AwqwQq502BVFmPqJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggbsZlTW+BSCrs58JXXNEDLzrTevUTqaNCevUMRTGhiwCiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggUXcxL3HlfmNIpKObIEKOV+8Qg4xe6uO03vlOaCudQ/R0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQNUgiTtJy6RRMI/rj7QkTBTeExSErP+KUPWBlyL90HPEotjLpqaHk3FEAAzLmteCUc3j+xl15ks9ufpdhRkb1xI=</c2pa:manifest></metadata>
+</script><svg xmlns="http://www.w3.org/2000/svg" id="map" viewBox="0 0 390 460" width="390" height="460" style="overflow:visible;pointer-events:none;touch-action:none;max-width:100%;height:auto;box-sizing:border-box" xmlns:c2pa="http://c2pa.org/manifest"><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTphMTMyMGEwZS00NTYzLTQ0ZWYtYjM0Zi1kYTc1MTI3ODA4MDYAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaDuGge1LTG8SZqSK1dn+m10AAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDoyODRjMzVkYS1iYzI5LTRmYzktYjkxOC0xNDkwNDhjYWZjNDRscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNocTgpM7U8VX0Oz5IZqo4NtAAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggrJ6dI7LkRNnMXHI3IyujeAGVM54eQMKsEKudNgVRZj6kZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaMfir8FrpHp5hi7mxH95cssAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIIbKR+r+4ydUAB/6wttLqVGbvf7OYp9ZQzOY/pWEwcJUZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GQE2Zmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOmExMzIwYTBlLTQ1NjMtNDRlZi1iMzRmLWRhNzUxMjc4MDgwNi9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjUzOTdiOTNmLTZkNjktNDUzYi1hNjVjLWRiZDI0Nzk4OTkyMnJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCCsnp0jsuRE2cxccjcjK6N4AZUznh5AwqwQq502BVFmPqJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggbsZlTW+BSCrs58JXXNEDLzrTevUTqaNCevUMRTGhiwCiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggUXcxL3HlfmNIpKObIEKOV+8Qg4xe6uO03vlOaCudQ/R0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQNUgiTtJy6RRMI/rj7QkTBTeExSErP+KUPWBlyL90HPEotjLpqaHk3FEAAzLmteCUc3j+xl15ks9ufpdhRkb1xI=</c2pa:manifest></metadata>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
 
 /* Fondo transparente para el mapa */
 :root{--bg:transparent;--fg:#eef1f6;--mut:#9aa3b5;}
 svg{background:transparent;font-family:'Inter',system-ui,-apple-system,sans-serif;font-weight:400}
-/* La regla genérica "svg" de arriba pisa los atributos width="390" height="460"
-   del propio SVG (los atributos de presentación pierden ante cualquier CSS):
-   el widget se quedaba en 0x0 px, invisible y sin caja que pulsar. Por eso
-   no se abría. Aquí se le devuelve su tamaño; el puente lo reescala en
-   móvil y en pantalla completa con width/height en línea. */
-svg#rsSolarMap{width:390px;height:460px}
 
 /* Elementos interactivos (Atrapan los clicks) */
 /* Panel: solo activo cuando está abierto (clase .o) */
-/* Panel cerrado: no atrapa toques, el dedo pasa al mapa */
-.w:not(.o) {pointer-events:none !important;}
-.w:not(.o) * {pointer-events:none !important;}
-/* Panel abierto: vuelve a usar sus propias zonas táctiles */
-.w.o {pointer-events:auto !important;}
-.w.o * {pointer-events:inherit;}
-/* Logo/marcador siempre activo */
-#mk {cursor:pointer;pointer-events:auto !important;}
+.w, .w *:not(#mk):not([id=mk] *) {pointer-events:none !important;}
+.w.o, .w.o * {pointer-events:auto !important;}
+/* Logo/marcador: siempre activo — debe ganar sobre .w * */
+#mk, svg #mk {pointer-events:auto !important;}
 /* Con el panel abierto, el rect de hit area cede; #st gestiona el arrastre */
-#mk.mk-open rect {pointer-events:none}
+#mk.mk-open rect, svg #mk.mk-open rect {pointer-events:none !important;}
 
 .cap{transition:opacity .2s;pointer-events:none}
 .cap.h{opacity:0}
@@ -3499,7 +3464,7 @@ svg#rsSolarMap{width:390px;height:460px}
 
 <!-- Marcador / logo -->
 <g id="mk" role="button" tabindex="0" aria-label="Abrir la sombra de Manolit∞" aria-expanded="false" style="transform:translate(24px,444px) scale(.34) translate(-100px,-290px)">
-<rect x="-110" y="-10" width="420" height="340" fill="transparent" pointer-events="all"/>
+<rect x="0" y="30" width="200" height="260" fill="transparent" pointer-events="all"/>
 <g id="sh" style="pointer-events:none"><g filter="url(#soft)" opacity="0.6"><use href="#escudo" fill="url(#gs)"/><use href="#wire" stroke="url(#gs)" stroke-width="8"/></g><use id="core" href="#wire" stroke="#c980dc" stroke-width="4" opacity="0.45"/></g>
 
 <!-- Aquí se han añadido las clases para que reaccionen a la magia CSS -->
@@ -3531,7 +3496,7 @@ function rgb(c){return "rgb("+c.map(Math.round).join(",")+")"}
 function col(t){var i,f,u,v;if(t<=9)return rgb(HC[0][1]);if(t>=18)return rgb(HC[3][1]);for(i=0;i<3;i++){if(t<=HC[i+1][0]){f=(t-HC[i][0])/(HC[i+1][0]-HC[i][0]);u=HC[i][1];v=HC[i+1][1];return rgb([0,1,2].map(function(k){return u[k]+(v[k]-u[k])*f}))}}}
 function fmt(t){var m=Math.round(t*60);return ("0"+Math.floor(m/60)).slice(-2)+":"+("0"+m%60).slice(-2)}
 
-var root=$("rsSolarMap"),w=$("w"),st=$("st"),mk=$("mk"),cap=$("cap"),sh=$("sh"),core=$("core"),s1=$("s1"),s2=$("s2"),bb=$("bb"),bt=$("bt"),bd=$("bd"),t2=$("t2"),cl=$("cl");
+var root=$("map"),w=$("w"),st=$("st"),mk=$("mk"),cap=$("cap"),sh=$("sh"),core=$("core"),s1=$("s1"),s2=$("s2"),bb=$("bb"),bt=$("bt"),bd=$("bd"),t2=$("t2"),cl=$("cl");
 var chips=[].slice.call(document.querySelectorAll(".seg .chip"));
 
 (function(){var h,c,x,g=$("tk"),p,t;
@@ -3565,28 +3530,6 @@ if(open){mk.setAttribute("role","slider");mk.setAttribute("aria-label","Hora del
 else{mk.setAttribute("role","button");mk.setAttribute("aria-label","Abrir la sombra de Manolit∞, "+ft);mk.setAttribute("aria-expanded","false")}
 }
 
-/* Texto de "horas de sol": función propia, fuera del bucle de dibujo. */
-function rlDeDraw(){return document.getElementById("rl")}
-function textoHorasSol(rl){
-  if(!rl)return;
-  var rem,h,m,txt;
-  if(T>=ss){rl.textContent="";return;}
-  /* Comparaciones con sr revisadas: se calculan con Math.min para no meter
-     un menor-que seguido de letra en el codigo del script. */
-  if(Math.min(T,sr)===T){
-    rem=sr-T;
-    h=Math.floor(rem);m=Math.round((rem-h)*60);
-    rl.textContent="sale en "+(h>0?h+"h ":"")+(m>0?m+"min":"");
-    return;
-  }
-  rem=ss-T;
-  h=Math.floor(rem);m=Math.round((rem-h)*60);
-  if(h>0&&m>0) txt=h+"h "+m+"min de sol";
-  else if(h>0) txt=h+"h de sol";
-  else txt=m+"min de sol";
-  rl.textContent=txt;
-}
-
 function draw(){
 var p=at(T),L=1/Math.tan(Math.max(p.alt,3*R)),x=X(T),alt=Math.round(p.alt/R),ft=fmt(T);
 var c=-Math.max(-1.1,Math.min(1.1,Math.sin(p.az)*L*0.55)),dd=-(0.07+0.075*Math.min(L,3));
@@ -3596,8 +3539,30 @@ var k=col(T);s1.style.stopColor=k;s2.style.stopColor=k;core.setAttribute("stroke
 bb.setAttribute("transform","translate("+x+" 88)");
 bd.setAttribute("d","M"+X(sr)+" 88H"+X(ss));
 bt.textContent=ft;t2.textContent=ft;
-/* Horas restantes de sol: se calcula en una funcion aparte. */
-textoHorasSol(rlDeDraw());
+/* horas restantes de sol */
+(function(){
+  var rl=document.getElementById("rl");
+  if(!rl)return;
+  var rem,h,m,txt;
+  if(p.alt<=0&&T>=sr){
+    rl.textContent=T<sr?"":"☀️ sol poniendo";
+    rl.textContent="";
+    return;
+  }
+  if(T<sr){
+    rem=sr-T;
+    h=Math.floor(rem);m=Math.round((rem-h)*60);
+    rl.textContent="sale en "+(h>0?h+"h ":"")+(m>0?m+"min":"");
+    return;
+  }
+  if(T>=ss){rl.textContent="";return;}
+  rem=ss-T;
+  h=Math.floor(rem);m=Math.round((rem-h)*60);
+  if(h>0&&m>0) txt=h+"h "+m+"min de sol";
+  else if(h>0) txt=h+"h de sol";
+  else txt=m+"min de sol";
+  rl.textContent=txt;
+})();
 
 /* Lógica del modo Noche */
 if(p.alt > 0){
@@ -3631,20 +3596,11 @@ st.addEventListener("pointermove",function(e){if(drag)go(tX(xOf(e)),0)});
 st.addEventListener("pointerup",function(){drag=false;mk.classList.remove("dragging");});
 st.addEventListener("pointercancel",function(){drag=false;mk.classList.remove("dragging");});
 
-mk.addEventListener("pointerdown",function(e){if(!open)return;e.preventDefault();mk.setPointerCapture(e.pointerId);mdrag=true;mk.classList.add("dragging");});
+mk.addEventListener("pointerdown",function(e){if(!open)return;mk.setPointerCapture(e.pointerId);mdrag=true;mk.classList.add("dragging");});
 mk.addEventListener("pointermove",function(e){if(mdrag)go(tX(xOf(e)),0)});
 mk.addEventListener("pointerup",function(){mdrag=false;mk.classList.remove("dragging");});
 mk.addEventListener("pointercancel",function(){mdrag=false;mk.classList.remove("dragging");});
-mk.addEventListener("click",function(e){if(!open){e.preventDefault();e.stopPropagation();setOpen(true);}});
-
-/* Apertura a prueba de todo (ratón, táctil y teclado). Si por lo que sea el
-   listener de arriba no llegara (táctil que no dispara click, etc.), la
-   delegación en el SVG y el Enter/Espacio lo abren igualmente. */
-function abrirWidget(e){if(e){e.preventDefault();e.stopPropagation();}if(!open)setOpen(true);}
-root.addEventListener("click",function(e){if(e.target&&e.target.closest&&e.target.closest("#mk"))abrirWidget(e);},true);
-root.addEventListener("touchend",function(e){if(e.target&&e.target.closest&&e.target.closest("#mk"))abrirWidget(e);},{passive:false});
-mk.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" ")abrirWidget(e);});
-window.manolitoAbrirSombra=abrirWidget;
+mk.addEventListener("click",function(){if(!open)setOpen(true)});
 
 /* Los "botones" del panel responden también a Enter y Espacio, como un button nativo */
 function press(el,fn){
@@ -3673,50 +3629,40 @@ window.addEventListener("load",function(){layout();place()});
 })();
 </script>
 </svg><style id="rsSolarSvgIntegration">
-/* El SVG captura clics solo donde hay algo interactivo. Ojo: poner
-   pointer-events:none en el propio <svg> desactiva el hit-test de TODO su
-   contenido en varios navegadores, aunque los hijos digan auto: era la
-   causa de que el marcador no recibiera nunca el clic. */
-svg#rsSolarMap{position:absolute!important;z-index:1125!important;background:transparent!important;max-width:none!important;touch-action:none!important;overflow:visible!important}
-/* Todo lo que no sea el marcador o el panel abierto, transparente al raton. */
-svg#rsSolarMap .w:not(.o),svg#rsSolarMap .w:not(.o) *{pointer-events:none!important}
-svg#rsSolarMap .w.o,svg#rsSolarMap .w.o *{pointer-events:auto!important}
-svg#rsSolarMap #cap{pointer-events:none!important}
-svg#rsSolarMap #mk *{pointer-events:none!important}
-svg#rsSolarMap #mk rect{pointer-events:auto!important}
-svg#rsSolarMap #mk{-webkit-tap-highlight-color:transparent;outline:none!important;pointer-events:auto!important;cursor:pointer!important}
-svg#rsSolarMap #mk:focus,svg#rsSolarMap #mk:focus-visible{outline:none!important}
+svg#map{position:absolute!important;z-index:1125!important;background:transparent!important;max-width:none!important;pointer-events:none!important;touch-action:none!important}
+svg#map #mk{-webkit-tap-highlight-color:transparent;outline:none!important}
+svg#map #mk:focus,svg#map #mk:focus-visible{outline:none!important}
 #rsTimeControls{display:none!important}
 </style>
 <script id="rsSolarWidgetBridge">
 (function(){
-  var root=document.querySelector('svg#rsSolarMap');
+  var legacyMap=document.getElementById('rsLegacyAirMap');
+  if(legacyMap)legacyMap.id='map';
+  var root=document.querySelector('svg#map');
   var routeMap=document.getElementById('shadowRouteMap');
   if(!root||!routeMap)return;
-  /* El SVG se mueve dentro de .map-wrap (que es position:relative): solo
-     asi su offsetParent existe y left/top se calculan respecto al mapa.
-     Suelto en <body> quedaba flotando (offsetParent=null, y=-53) y no
-     habia forma de pulsarlo. */
+  var overlayParent=root.parentNode;
+  var overlayNext=root.nextSibling;
   function syncOverlayParent(){
     var mapWrap=routeMap.parentElement;
-    if(!mapWrap)return false;
-    if(root.parentNode!==mapWrap)mapWrap.appendChild(root);
-    return document.fullscreenElement===mapWrap||document.body.classList.contains('manolito-fs');
+    var expanded=document.fullscreenElement===mapWrap||document.body.classList.contains('manolito-fs');
+    var target=expanded?mapWrap:overlayParent;
+    if(target&&root.parentNode!==target){
+      if(expanded)target.appendChild(root);
+      else target.insertBefore(root,overlayNext&&overlayNext.parentNode===target?overlayNext:null);
+    }
+    return expanded;
   }
   function positionOverlay(){
-    syncOverlayParent();
-    var mapWrap=routeMap.parentElement;
+    var expanded=syncOverlayParent();
     var r=routeMap.getBoundingClientRect();
-    var wr=mapWrap.getBoundingClientRect();
     var scale=Math.min(1,r.width/390,r.height/460);
-    var w=390*scale, h=460*scale;
-    root.style.width=w+'px';
-    root.style.height=h+'px';
-    /* Relative al .map-wrap. El marcador se dibuja desbordando ~91 px por la
-       izquierda del viewBox (translate(-100) con scale .34), asi que el SVG
-       se corre ese resto para que quede dentro y el clic lo alcance. */
-    root.style.left=((r.left-wr.left)-91*scale)+'px';
-    root.style.top=((r.top-wr.top)+Math.max(0,r.height-h))+'px';
+    var mapWrap=routeMap.parentElement;
+    var wrapRect=expanded?mapWrap.getBoundingClientRect():null;
+    root.style.width=(390*scale)+'px';
+    root.style.height=(460*scale)+'px';
+    root.style.left=(expanded?r.left-wrapRect.left:r.left+window.scrollX)+'px';
+    root.style.top=(expanded?r.bottom-wrapRect.top-460*scale:r.bottom+window.scrollY-460*scale)+'px';
     root.style.visibility='visible';
   }
   var queued=false;

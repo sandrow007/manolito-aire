@@ -7,3 +7,7 @@
 !.dev.vars.example
 .env*
 !.env.example
+
+# perfiles y registros de extensiones del editor (no son parte de la web)
+.agent-coder/
+.kilo/

@@ -168,7 +168,14 @@
 // i18n.js: ahora están en js/cookie-banner.js en los 6 idiomas de la web y se
 // elige por el idioma activo real (puerta inicial, getCurrentLang, guardado y
 // atributo lang). Cambia js/cookie-banner.js.
-const VERSION = '2026-10-23-g-cookies-idioma';
+// 2026-10-23-h: EL WIDGET DEL MAPA NO SE VEÍA NI SE ABRÍA. La regla genérica
+// `svg{...}` del bloque CSS interno (línea ~3326) pisaba los atributos
+// width="390" height="460" del SVG #rsSolarMap: los atributos de presentación
+// pierden ante cualquier CSS, así que el widget se quedaba en 0x0 px (invisible
+// y sin caja que pulsar). Se devuelve su tamaño con svg#rsSolarMap{width:390px;
+// height:460px}; el puente sigue reescalándolo en móvil y pantalla completa.
+// Cambia index.html.
+const VERSION = '2026-10-23-h-widget-rsSolarMap';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

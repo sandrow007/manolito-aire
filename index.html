@@ -3324,6 +3324,12 @@
 /* Fondo transparente para el mapa */
 :root{--bg:transparent;--fg:#eef1f6;--mut:#9aa3b5;}
 svg{background:transparent;font-family:'Inter',system-ui,-apple-system,sans-serif;font-weight:400}
+/* La regla genérica "svg" de arriba pisa los atributos width="390" height="460"
+   del propio SVG (los atributos de presentación pierden ante cualquier CSS):
+   el widget se quedaba en 0x0 px, invisible y sin caja que pulsar. Por eso
+   no se abría. Aquí se le devuelve su tamaño; el puente lo reescala en
+   móvil y en pantalla completa con width/height en línea. */
+svg#rsSolarMap{width:390px;height:460px}
 
 /* Elementos interactivos (Atrapan los clicks) */
 /* Panel: solo activo cuando está abierto (clase .o) */

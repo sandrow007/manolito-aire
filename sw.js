@@ -155,7 +155,7 @@
 // con pointer-events:none!important que sobrescribía todo. Ahora las reglas
 // del marcador #mk están en ese mismo bloque CSS para tener máxima prioridad.
 // Cambia index.html.
-const VERSION = '2026-10-23-d-debug-click';
+const VERSION = '2026-10-23-e-remove-pointer-events-none';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

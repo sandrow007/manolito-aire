@@ -155,7 +155,15 @@
 // con pointer-events:none!important que sobrescribía todo. Ahora las reglas
 // del marcador #mk están en ese mismo bloque CSS para tener máxima prioridad.
 // Cambia index.html.
-const VERSION = '2026-10-23-e-remove-pointer-events-none';
+// 2026-10-23-f: EL WIDGET DE SOMBRA NO ABRÍA (ni el marcador, ni las pestañas,
+// ni el cierre). El script del widget se cortaba nada más empezar: el SVG se
+// llamaba "map" pero rsSolarWidgetBridge devolvía ese mismo id al mapa viejo,
+// así que quedaban DOS #map y $("map") cogía el equivocado. Ahora el SVG del
+// widget se llama "rsSolarMap" (id único), el script lo busca así, y el puente
+// solo devuelve el id clásico si no choca con nadie. Sin tocar la franja de
+// colores de las horas de luz ni nada más del widget.
+// Cambian index.html, css/style.css y js/shadows-route.js.
+const VERSION = '2026-10-23-f-widget-sombra-id-unico';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

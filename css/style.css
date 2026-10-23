@@ -4715,8 +4715,8 @@ html[lang="ar"] #main-content #rsCamCtl{
 }
 
 /* El marcador queda quieto plegado y recupera sus animaciones al abrirse. */
-svg#map:not(:has(#w.o)) #mk,
-svg#map:not(:has(#w.o)) #mk *{
+svg#rsSolarMap:not(:has(#w.o)) #mk,
+svg#rsSolarMap:not(:has(#w.o)) #mk *{
   animation-play-state:paused !important;
   transition:none !important;
 }

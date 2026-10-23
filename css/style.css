@@ -4834,3 +4834,26 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
   #main-content .rs-form .rs-toggle-invierno input[type="checkbox"],
   #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]::after{ transition:none; }
 }
+/* ============================================================
+   PANEL DE RUTA — pulido fino en escritorio (≥901px)
+   Solo retoques de detalle sobre el diseño ya existente:
+   nada de estructura, color base ni layout se toca.
+   ============================================================ */
+@media (min-width: 901px) {
+  #main-content .rs-form {
+    box-shadow: 0 16px 40px rgba(0,0,0,0.30), 0 1px 0 rgba(255,255,255,0.05) inset;
+  }
+  #main-content .rs-form .rs-field input[type="text"] {
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+  }
+  #main-content .rs-form .rs-field input[type="text"]:hover {
+    background-color: rgba(255,255,255,0.07);
+  }
+  #main-content .rs-form #rsBuscarBtn:active {
+    transform: translateY(0);
+    filter: brightness(0.96);
+  }
+  #main-content .rs-form .rs-parking-action:active {
+    transform: translateY(0);
+  }
+}

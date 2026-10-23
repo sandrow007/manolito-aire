@@ -3329,8 +3329,8 @@ svg{background:transparent;font-family:'Inter',system-ui,-apple-system,sans-seri
 
 /* Elementos interactivos (Atrapan los clicks) */
 /* Panel: solo activo cuando está abierto (clase .o) */
-.w {pointer-events:none;}
-.w.o {pointer-events:auto;}
+.w, .w * {pointer-events:none !important;}
+.w.o, .w.o * {pointer-events:auto !important;}
 /* Logo/marcador: siempre activo (para poder abrirlo o arrastrarlo) */
 #mk {pointer-events:auto;}
 /* Cuando el panel está abierto, el logo actúa como slider y #st gestiona

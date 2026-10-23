@@ -887,6 +887,64 @@
   }
 
   /* ---------------- Popup al tocar una fuente ---------------------------- */
+  function crearBotonDireccion(nombreFuente, coords) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.setAttribute('aria-label', t('fountainGetDirections', 'Obtener dirección'));
+    boton.title = t('fountainGetDirections', 'Obtener dirección');
+    boton.style.cssText =
+      'display:inline-flex;align-items:center;justify-content:center;gap:7px;' +
+      'margin-top:9px;padding:7px 13px;border:1px solid rgba(18,52,61,0.16);' +
+      'border-radius:999px;background:linear-gradient(135deg,#12343D,#0E3B47);color:#fff;' +
+      'font:600 12px/1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;' +
+      '-webkit-tap-highlight-color:transparent;transition:transform .15s ease,box-shadow .15s ease';
+    boton.innerHTML =
+      '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>' +
+      '<span>' + t('fountainGetDirections', 'Dirección') + '</span>';
+    boton.addEventListener('mouseenter', () => { boton.style.transform = 'translateY(-1px)'; });
+    boton.addEventListener('mouseleave', () => { boton.style.transform = 'translateY(0)'; });
+    boton.addEventListener('focus', () => { boton.style.boxShadow = '0 0 0 3px rgba(255,107,26,0.35)'; });
+    boton.addEventListener('blur', () => { boton.style.boxShadow = 'none'; });
+    boton.addEventListener('click', (evento) => {
+      evento.stopPropagation();
+      obtenerRutaHaciaFuente(coords, nombreFuente);
+    });
+    return boton;
+  }
+
+  function obtenerRutaHaciaFuente(coords, nombre) {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (posicion) => {
+        const origen = {
+          lat: posicion.coords.latitude,
+          lon: posicion.coords.longitude,
+          nombre: t('routeMyLocation', 'Mi ubicación')
+        };
+        const destino = {
+          lat: coords[1],
+          lon: coords[0],
+          nombre: nombre
+        };
+        const inputOrigen = document.getElementById('rsOrigen');
+        const inputDestino = document.getElementById('rsDestino');
+        if (inputOrigen) inputOrigen.value = origen.nombre;
+        if (inputDestino) inputDestino.value = destino.nombre;
+        if (typeof window.manolitAireCalcularRutaAgua === 'function') {
+          try {
+            await window.manolitAireCalcularRutaAgua(origen, destino);
+          } catch (error) {
+            console.debug('No se pudo calcular la ruta hacia la fuente:', error);
+          }
+        }
+      },
+      (error) => {
+        console.debug('Permiso de ubicación no disponible para la ruta:', error);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+    );
+  }
+
   function onMapClick(event) {
     if (!enabled || typeof maplibregl === 'undefined') return;
     const capas = [LAYER_ID, DOT_ID].filter(id => map.getLayer(id));
@@ -898,16 +956,13 @@
     const coords = feature.geometry && feature.geometry.coordinates;
     if (!coords || coords.length < 2) return;
 
+    const nombre = String(props.name || t('fountainName', 'Fuente pública de agua'));
     const caja = document.createElement('div');
     caja.style.cssText = 'font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#12343D;max-width:220px';
     const titulo = document.createElement('strong');
-    titulo.textContent = String(props.name || t('fountainName', 'Fuente pública de agua'));
-    const detalle = document.createElement('div');
-    detalle.style.cssText = 'font-size:11px;color:#4a5c65;margin-top:3px';
-    detalle.textContent = String(props.category || 'Fuente pública de agua') +
-      ' · ' + (ORIGEN_DATO[props.source] || 'OpenStreetMap');
+    titulo.textContent = nombre;
     caja.appendChild(titulo);
-    caja.appendChild(detalle);
+    caja.appendChild(crearBotonDireccion(nombre, coords));
 
     if (popup) { try { popup.remove(); } catch (e) { /* sin popup */ } }
     popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '240px', offset: 10 })

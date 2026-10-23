@@ -294,6 +294,7 @@
       luna: '<path d="M19.5 15.5A8 8 0 0 1 8.5 4.5 8.5 8.5 0 1 0 19.5 15.5Z"/>',
       pin: '<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.2"/>',
       flecha: '<path d="M4 12h15M13 5l7 7-7 7"/>',
+      coche: '<path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11M6 11h12a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1M6 11a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1M7 17v2M17 17v2M7.5 13.5h.01M16.5 13.5h.01"/>',
     };
     return '<svg aria-hidden="true" focusable="false" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="' + tinta + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (dibujos[tipo] || dibujos.garaje) + '</svg>';
   }
@@ -333,6 +334,10 @@
       .mp-parking-data-item span{display:block;font-size:10px;line-height:1.3;color:#687a82;overflow-wrap:anywhere;margin-top:2px}
       .mp-parking-footer{border-top:1px solid #e9eff1;margin-top:8px;padding-top:7px;display:flex;align-items:flex-start;justify-content:space-between;gap:7px;font-size:9px;line-height:1.3;color:#647780}
       .mp-parking-footer strong{color:#425760}
+      .mp-parking-drive{display:inline-flex;align-items:center;justify-content:center;gap:7px;margin-top:9px;padding:8px 13px;border:0;border-radius:999px;background:linear-gradient(135deg,#12343D,#0E3B47);color:#fff;font:700 12px/1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+      .mp-parking-drive:hover{transform:translateY(-1px)}
+      .mp-parking-drive:focus-visible{outline:3px solid rgba(255,107,26,.5);outline-offset:2px}
+      .mp-parking-drive svg{flex:0 0 18px;width:18px;height:18px}
       .mp-parking-options{padding:10px 9px;background:#fbfcfd;border-left:1px solid #e2eaed;min-width:0}
       .mp-options-title{font-size:10px;font-weight:800;color:#52636b;text-transform:uppercase;letter-spacing:.035em;margin:0 0 4px}
       .mp-parking-options-list{min-width:0}
@@ -351,7 +356,7 @@
       .mp-option-distance{font-size:9px;color:#819098;white-space:nowrap;margin-top:2px}
       .mp-no-options{font-size:10px;line-height:1.4;color:#77868d;padding:5px 0}
       @media(max-width:580px){
-        .mp-parking-results{width:min(365px,calc(100vw - 16px));max-width:calc(100vw - 16px);max-height:min(53vh,410px);max-height:min(53dvh,410px)}
+        .mp-parking-results{width:min(340px,calc(100vw - 20px));max-width:calc(100vw - 20px);max-height:min(48vh,360px);max-height:min(48dvh,360px)}
         .mp-results-title{padding:8px 34px 7px 10px;font-size:10px}
         .mp-parking-grid{grid-template-columns:minmax(0,1fr)}
         .mp-selected-parking{padding:9px}
@@ -368,6 +373,7 @@
         .mp-parking-option:last-child{border-bottom:1px solid #e3e9ec}
         .mp-option-symbol{flex-basis:30px;width:30px;height:30px}
         .mp-parking-footer{margin-top:7px;padding-top:6px}
+        .mp-parking-drive{margin-top:8px;width:100%}
       }
       @media(prefers-reduced-motion:no-preference){.mp-parking-option{transition:color .15s ease,background .15s ease}}
     `;
@@ -498,6 +504,7 @@
       '<div class="mp-parking-data"><div class="mp-parking-data-item">' + svgIconoParking('plazas', 22, '#537481') + '<div><strong>Capacidad</strong><span>' + capacidad + '</span></div></div>' +
       '<div class="mp-parking-data-item">' + svgIconoParking('precio', 22, '#537481') + '<div><strong>Precio</strong><span>' + tarifa + '</span></div></div></div>' +
       '<div class="mp-parking-footer"><span><strong>Acceso:</strong> ' + escaparHtml(textoAcceso(p.acceso)) + '</span><span><strong>Horario:</strong> ' + horario + '</span></div>' +
+      '<button type="button" class="mp-parking-drive" data-drive-lon="' + coords[0] + '" data-drive-lat="' + coords[1] + '" data-drive-name="' + escaparHtml(p.nombre || t('parkingName', 'Aparcamiento')) + '">' + svgIconoParking('coche', 18, 'currentColor') + '<span>' + escaparHtml(t('parkingDriveDirections', 'En coche')) + '</span></button>' +
       '</section><aside class="mp-parking-options" aria-label="Otras opciones"><h4 class="mp-options-title">' + escaparHtml(t('parkingOtherOptions', 'Otras opciones')) + '</h4><div class="mp-parking-options-list">' + opcionesHtml + '</div></aside></div></section>';
   }
 
@@ -529,6 +536,18 @@
         }
       });
     });
+
+    var btnCoche = raiz.querySelector('.mp-parking-drive');
+    if (btnCoche) {
+      btnCoche.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var lon = parseFloat(btnCoche.getAttribute('data-drive-lon'));
+        var lat = parseFloat(btnCoche.getAttribute('data-drive-lat'));
+        var nombre = btnCoche.getAttribute('data-drive-name') || t('parkingName', 'Aparcamiento');
+        if (isFinite(lat) && isFinite(lon)) irEnCocheHasta({ lat: lat, lon: lon, nombre: nombre });
+      });
+    }
   }
 
   function abrirPopupParking(feature) {
@@ -1001,7 +1020,7 @@
         if (hecho) return;
         hecho = true;
         clearTimeout(temporizador);
-        resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, nombre: t('tripMyLocation', 'Mi ubicación') });
+        resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, nombre: t('myLocation', 'Mi ubicación') });
       }, function () {
         if (hecho) return;
         hecho = true;
@@ -1031,6 +1050,45 @@
       clearTimeout(temporizador);
       if (controller === viaje.peticion) viaje.peticion = null;
     }
+  }
+
+  function ubicacionActual() {
+    return new Promise(function (resolve) {
+      if (!('geolocation' in navigator)) { resolve(null); return; }
+      var hecho = false;
+      var temporizador = setTimeout(function () { if (!hecho) { hecho = true; resolve(null); } }, 6000);
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        if (hecho) return;
+        hecho = true;
+        clearTimeout(temporizador);
+        resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, nombre: t('myLocation', 'Mi ubicación') });
+      }, function () {
+        if (hecho) return;
+        hecho = true;
+        clearTimeout(temporizador);
+        resolve(null);
+      }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 });
+    });
+  }
+
+  async function irEnCocheHasta(destino) {
+    var origen = await ubicacionActual();
+    if (!origen) {
+      decirEstado(t('parkingDriveDenied', 'Sin permiso de ubicación.'));
+      return;
+    }
+    try {
+      if (map.getSource('ruta')) map.getSource('ruta').setData({ type: 'FeatureCollection', features: [] });
+    } catch (e) { /* la ruta a pie previa se limpia si existe */ }
+    limpiarViaje();
+    decirEstado(t('parkingDriveLocating', 'Buscando tu ubicación…'));
+    var ruta = await rutaEnCoche(origen, destino);
+    if (!ruta) {
+      decirEstado(t('parkingDriveNoRoute', 'No he podido trazar la ruta en coche.'));
+      return;
+    }
+    pintarRuta(ruta.geometry);
+    decirEstado('');
   }
 
   function asegurarCapasViaje() {

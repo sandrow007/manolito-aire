@@ -3329,14 +3329,12 @@ svg{background:transparent;font-family:'Inter',system-ui,-apple-system,sans-seri
 
 /* Elementos interactivos (Atrapan los clicks) */
 /* Panel: solo activo cuando está abierto (clase .o) */
-.w, .w * {pointer-events:none !important;}
+.w, .w *:not(#mk):not([id=mk] *) {pointer-events:none !important;}
 .w.o, .w.o * {pointer-events:auto !important;}
-/* Logo/marcador: siempre activo (para poder abrirlo o arrastrarlo) */
-#mk {pointer-events:auto;}
-/* Cuando el panel está abierto, el logo actúa como slider y #st gestiona
-   el arrastre; cuando está cerrado, solo el propio logo (no el rect fantasma)
-   debe responder. La clase mk-open la pone/quita setOpen() via JS. */
-#mk.mk-open rect {pointer-events:none;}
+/* Logo/marcador: siempre activo — debe ganar sobre .w * */
+#mk, svg #mk {pointer-events:auto !important;}
+/* Con el panel abierto, el rect de hit area cede; #st gestiona el arrastre */
+#mk.mk-open rect, svg #mk.mk-open rect {pointer-events:none !important;}
 
 .cap{transition:opacity .2s;pointer-events:none}
 .cap.h{opacity:0}

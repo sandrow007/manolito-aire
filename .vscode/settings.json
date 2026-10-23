@@ -9,5 +9,5 @@
     "gitlens.currentLine.enabled": true,
     "gitlens.hovers.currentLine.over": "line",
     "chat.agent.sandbox.network.allowLocalNetwork": true,
-    "CodeGPT.apiKey": "DeepSeek"
+    "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }

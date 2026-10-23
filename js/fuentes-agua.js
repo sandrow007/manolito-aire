@@ -900,7 +900,7 @@
       '-webkit-tap-highlight-color:transparent;transition:transform .15s ease,box-shadow .15s ease';
     boton.innerHTML =
       '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>' +
-      '<span>' + t('fountainGetDirections', 'Dirección') + '</span>';
+      '<span>' + t('fountainDirections', 'Dirección') + '</span>';
     boton.addEventListener('mouseenter', () => { boton.style.transform = 'translateY(-1px)'; });
     boton.addEventListener('mouseleave', () => { boton.style.transform = 'translateY(0)'; });
     boton.addEventListener('focus', () => { boton.style.boxShadow = '0 0 0 3px rgba(255,107,26,0.35)'; });
@@ -919,7 +919,7 @@
         const origen = {
           lat: posicion.coords.latitude,
           lon: posicion.coords.longitude,
-          nombre: t('routeMyLocation', 'Mi ubicación')
+          nombre: t('myLocation', 'Mi ubicación')
         };
         const destino = {
           lat: coords[1],

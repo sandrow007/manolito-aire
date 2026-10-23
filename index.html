@@ -182,7 +182,7 @@
   #manolitoSplash{
     --splash-sky-deep:#0E3B47; --splash-sky-mid:#17788A;
     --splash-dawn:#FF6B1A; --splash-dawn-rgb:244, 166, 107; --splash-paper:#FBFAF7;
-    position:fixed; inset:0; width:100vw; height:100vh; z-index:99999;
+    position:fixed; inset:0; width:100vw; height:100vh; height:100dvh; z-index:99999;
     overflow:hidden; background: radial-gradient(120% 140% at 50% 100%, var(--splash-sky-mid) 0%, var(--splash-sky-deep) 55%, #10202E 100%);
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     cursor:crosshair; transition: background 1.2s ease;
@@ -645,8 +645,12 @@
         regW = 5 * u;
         regH = 1.6 * u;
         OFF = regW + 300;
-        shA.width = shB.width = Math.max(1, Math.round(regW * DPR));
-        shA.height = shB.height = Math.max(1, Math.round(regH * DPR));
+        const _nw = Math.max(1, Math.round(regW * DPR));
+        const _nh = Math.max(1, Math.round(regH * DPR));
+        if (shA.width !== _nw || shA.height !== _nh) {
+          shA.width = shB.width = _nw;
+          shA.height = shB.height = _nh;
+        }
       }
       function resize() {
         const ir = root.getBoundingClientRect();
@@ -950,13 +954,25 @@
         tema = NI_TEMAS[idx] || 'acimut';
       }
 
+      let _cuadro = 0;
+      function sincronizar() {
+        const ir = root.getBoundingClientRect();
+        if (Math.abs(ir.width - W) > 1 || Math.abs(ir.height - H) > 1) { resize(); return; }
+        const r = gapEl.getBoundingClientRect();
+        const fs = parseFloat(getComputedStyle(titleEl).fontSize) || Math.min(W, H) * 0.16;
+        const ncx = r.left - ir.left + r.width / 2;
+        const noy = r.top - ir.top + r.height / 2 + fs * 0.005;
+        if (Math.abs(ncx - cx) > 0.5 || Math.abs(noy - oy) > 0.5) layout();
+      }
+
       function bucle(now) {
         if (parado) return;
+        if (_cuadro++ % 6 === 0) sincronizar();
         draw(now);
         rafId = requestAnimationFrame(bucle);
       }
 
-      const onResize = function () { if (!parado) { resize(); if (reducido) draw(performance.now(), 6); } };
+      const onResize = function () { if (!parado) { resize(); if (reducido) { sincronizar(); draw(performance.now(), 6); } } };
       window.addEventListener('resize', onResize);
       if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (!parado) layout(); });
@@ -966,6 +982,7 @@
       if (reducido) {
         mostrarTermino(0);
         draw(performance.now(), 6);
+        setTimeout(function () { if (!parado) { sincronizar(); draw(performance.now(), 6); } }, 400);
       } else {
         rafId = requestAnimationFrame(bucle);
         // los terminos van rotando mientras dura el intro (acimut, cono, umbra...)
@@ -3311,7 +3328,15 @@
 svg{background:transparent;font-family:'Inter',system-ui,-apple-system,sans-serif;font-weight:400}
 
 /* Elementos interactivos (Atrapan los clicks) */
-.w, #mk {pointer-events:auto;}
+/* Panel: solo activo cuando está abierto (clase .o) */
+/* Panel cerrado: no atrapa toques, el dedo pasa al mapa */
+.w:not(.o), .w:not(.o) * {pointer-events:none !important;}
+/* Panel abierto: vuelve a usar sus propias zonas táctiles */
+.w.o {pointer-events:auto;}
+/* Logo/marcador siempre activo */
+#mk {pointer-events:auto;}
+/* Con el panel abierto, el rect de hit area cede; #st gestiona el arrastre */
+#mk.mk-open rect {pointer-events:none;}
 
 .cap{transition:opacity .2s;pointer-events:none}
 .cap.h{opacity:0}
@@ -3428,7 +3453,7 @@ svg{background:transparent;font-family:'Inter',system-ui,-apple-system,sans-seri
 <path d="M20 88H320" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1"/>
 <path id="bd" d="M20 88H320" stroke="url(#dia)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
 <g id="tk"></g>
-<g id="bb"><text id="bt" x="0" y="-70" font-size="11" fill="#cfd5e2" text-anchor="middle" style="font-variant-numeric:tabular-nums">16:20</text></g>
+<g id="bb"><text id="bt" x="0" y="-70" font-size="11" fill="#cfd5e2" text-anchor="middle" style="font-variant-numeric:tabular-nums">16:20</text><text id="rl" x="0" y="-55" font-size="8.5" fill="rgba(255,255,255,0.42)" text-anchor="middle" style="font-variant-numeric:tabular-nums;letter-spacing:0.02em"></text></g>
 </g>
 
 <g class="btn-cap" id="btn-capturar" role="button" tabindex="0">
@@ -3516,6 +3541,30 @@ var k=col(T);s1.style.stopColor=k;s2.style.stopColor=k;core.setAttribute("stroke
 bb.setAttribute("transform","translate("+x+" 88)");
 bd.setAttribute("d","M"+X(sr)+" 88H"+X(ss));
 bt.textContent=ft;t2.textContent=ft;
+/* horas restantes de sol */
+(function(){
+  var rl=document.getElementById("rl");
+  if(!rl)return;
+  var rem,h,m,txt;
+  if(p.alt<=0&&T>=sr){
+    rl.textContent=T<sr?"":"☀️ sol poniendo";
+    rl.textContent="";
+    return;
+  }
+  if(T<sr){
+    rem=sr-T;
+    h=Math.floor(rem);m=Math.round((rem-h)*60);
+    rl.textContent="sale en "+(h>0?h+"h ":"")+(m>0?m+"min":"");
+    return;
+  }
+  if(T>=ss){rl.textContent="";return;}
+  rem=ss-T;
+  h=Math.floor(rem);m=Math.round((rem-h)*60);
+  if(h>0&&m>0) txt=h+"h "+m+"min de sol";
+  else if(h>0) txt=h+"h de sol";
+  else txt=m+"min de sol";
+  rl.textContent=txt;
+})();
 
 /* Lógica del modo Noche */
 if(p.alt > 0){
@@ -3535,7 +3584,7 @@ var a=T,s=performance.now();
 }
 
 function setOpen(v){
-open=v;w.classList.toggle("o",v);cap.classList.toggle("h",v);
+open=v;w.classList.toggle("o",v);cap.classList.toggle("h",v);mk.classList.toggle("mk-open",v);
 if(!RM){mk.classList.add("fly");clearTimeout(ftm);ftm=setTimeout(function(){mk.classList.remove("fly")},460)}
 draw();
 }

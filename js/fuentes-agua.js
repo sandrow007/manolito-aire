@@ -4,35 +4,68 @@
  * - No modifica ni llama a la lógica de árboles.
  * - Solicita datos solo cuando el switch está activado y zoom >= 12.5,
  *   igual que la capa de aparcamientos.
- * - Usa un único icono SVG como imagen de MapLibre; cada fuente es un punto
- *   de una única capa symbol, sin crear marcadores HTML.
- * - La cobertura OSM se cachea por celdas únicamente en memoria. Además del
- *   BBox visible, en Sevilla se consulta explícitamente el área OSM de la
- *   ciudad. En Valencia y Málaga se combina con conjuntos municipales
- *   oficiales catalogados en datos.gob.es. No se persisten consultas ni
- *   coordenadas.
+ * - Se pinta como el parking: una capa de círculos (que jamás se oculta por
+ *   colisión con etiquetas u otros iconos) y encima el icono de gota, con
+ *   allow-overlap. Una vez cargada, la fuente SIGUE ahí al hacer zoom.
+ * - La cobertura OSM se cachea por celdas en memoria. Las consultas a
+ *   Overpass van primero por el proxy same-origin /aparcamientos del worker
+ *   (caché KV y carrera de espejos) y, si falla, directas a los espejos.
+ *   En Valencia y Málaga se combina con conjuntos municipales oficiales
+ *   catalogados en datos.gob.es. No se persisten consultas ni coordenadas.
+ *
+ * ARREGLOS (20-oct-2026, «las fuentes no salen y deben salir sí o sí»):
+ *   1. El módulo ya no se rinde si window.manolitAireMap aún no existe al
+ *      cargar el script: espera al mapa como hace aparcamientos-viaje.js.
+ *   2. Se elimina el atajo de las teselas vectoriales: marcaba TODAS las
+ *      celdas visibles como "ya cubiertas" con un recorte parcial y Overpass
+ *      no se llamaba nunca más. Ahora las teselas solo suman puntos.
+ *   3. Se elimina la consulta pesada area["name"="Sevilla"], que se repetía
+ *      en cada petición (en cualquier ciudad) y provocaba timeouts.
+ *   4. Las celdas cubiertas se calculan por índices enteros. Antes, el
+ *      redondeo de decimales marcaba a veces una fila/columna vecina como
+ *      cubierta sin haberla pedido, y sus fuentes no salían jamás.
+ *   5. Si Overpass falla se reintenta solo, sin esperar a que se mueva el
+ *      mapa, y un fallo nunca se guarda como "zona sin fuentes".
+ *   6. Capa de símbolos con allow-overlap + círculos de respaldo + icono más
+ *      grande (antes ~11 px y ocultable por colisión).
+ *   7. Se buscan nodos, vías y relaciones (nwr) y las etiquetas habituales
+ *      de fuentes de agua potable, no solo amenity=drinking_water en nodos.
+ *   8. Clic en una fuente: popup sencillo (nombre y origen del dato).
  */
 (function () {
   'use strict';
 
-  const map = window.manolitAireMap;
-  const toggle = document.getElementById('rsToggleFuentesAgua');
-  if (!map || !toggle) return;
+  if (window.__manolitoFuentesAgua) return; // doble carga: jamás
+  window.__manolitoFuentesAgua = true;
+
+  let map = null;
+  let toggle = null;
 
   const SOURCE_ID = 'fuentes-agua-source';
+  const HALO_ID = 'fuentes-agua-halo';
+  const DOT_ID = 'fuentes-agua-puntos';
   const LAYER_ID = 'fuentes-agua-symbols';
   const IMAGE_ID = 'fuentes-agua-svg';
   const MIN_ZOOM = 12.5;
-  const MOVE_DEBOUNCE_MS = 600;
+  const MOVE_DEBOUNCE_MS = 500;
+  const MOVEEND_DEBOUNCE_MS = 120;
   const GRID_DEGREES = 0.02;
-  const MAX_CACHED_CELLS = 180;
+  const MAX_CACHED_CELLS = 400;
   const MAX_CELLS_PER_REQUEST = 256;
-  const MAX_RETRIES = 3;
-  const OVERPASS_TIMEOUT_MS = 18000;
+  const MAX_CELLS_PER_QUERY = 36;
+  const MAX_BATCHES = 4;
+  const MAX_AUTO_STEPS = 12;
+  const PROXY_TIMEOUT_MS = 25000;
+  const DIRECT_TIMEOUT_MS = 16000;
+  const OVERPASS_SERVICE = 'overpass-fuentes';
+  const NATURAL_SERVICE = 'overpass-natural-water';
+  const PROXY_URL = window.location.protocol === 'file:'
+    ? 'https://manolitoaire.com/aparcamientos'
+    : '/aparcamientos';
   const OVERPASS_ENDPOINTS = [
-    'https://overpass-api.de/api/interpreter',
     'https://lz4.overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter'
+    'https://z.overpass-api.de/api/interpreter',
+    'https://overpass.private.coffee/api/interpreter'
   ];
 
   // datos.gob.es cataloga los conjuntos municipales; no ofrece un servicio
@@ -53,6 +86,12 @@
     }
   ];
 
+  const ORIGEN_DATO = {
+    osm: 'OpenStreetMap',
+    valencia: 'Ayuntamiento de València',
+    malaga: 'Ayuntamiento de Málaga'
+  };
+
   const ATRIBUCION =
     'Datos de fuentes de agua por © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Colaboradores de OpenStreetMap (Licencia ODbL)</a> y el <a href="https://datos.gob.es/es/catalogo" target="_blank" rel="noopener">Portal de Datos Abiertos del Gobierno de España</a>. Datos municipales: Valencia (CC BY 4.0) y Málaga (CC BY-SA 4.0).';
 
@@ -63,7 +102,6 @@
     '</svg>';
 
   const osmCells = new Map(); // cell key -> { features: Map, touched }
-  const sevillaFeatures = new Map(); // cobertura OSM explícita del área de Sevilla
   const valenciaCells = new Map();
   const malagaFeatures = new Map();
   const naturalSearchCache = new Map(); // consultas del chat en memoria, con TTL
@@ -71,19 +109,40 @@
   const failuresByService = new Map();
   const activeControllers = new Set();
   let malagaLoaded = false;
-  let enabled = toggle.checked;
+  let enabled = false;
   let mapReady = false;
   let moveTimer = 0;
+  let retryTimer = 0;
   let requestRunning = false;
   let refreshQueued = false;
   let generation = 0;
+  let autoSteps = 0;
   let renderedFeatures = new Map();
   let svgImagePromise = null;
+  let popup = null;
+  let resolverListo = null;
+  const listo = new Promise(resolve => { resolverListo = resolve; });
 
   function abortException() {
     return new DOMException('La consulta de fuentes se ha cancelado.', 'AbortError');
   }
 
+  function esAbort(error) {
+    return !!error && error.name === 'AbortError';
+  }
+
+  function t(clave, fallback) {
+    try {
+      const fn = window.getMessages;
+      if (typeof fn === 'function') {
+        const msg = fn();
+        if (msg && msg[clave] != null) return msg[clave];
+      }
+    } catch (e) { /* seguimos con el fallback */ }
+    return fallback != null ? fallback : clave;
+  }
+
+  /* ---------------- Geometría y celdas ---------------------------------- */
   function boundsOfMap() {
     const bounds = map.getBounds();
     const west = Math.max(-180, bounds.getWest());
@@ -104,6 +163,20 @@
     return result.west < result.east && result.south < result.north ? result : null;
   }
 
+  function cellFromIndex(x, y) {
+    return {
+      key: x + ':' + y,
+      x,
+      y,
+      west: Math.max(-180, x * GRID_DEGREES),
+      south: Math.max(-85, y * GRID_DEGREES),
+      east: Math.min(180, (x + 1) * GRID_DEGREES),
+      north: Math.min(85, (y + 1) * GRID_DEGREES)
+    };
+  }
+
+  // Celdas que TOCAN el BBox (para leer). Pasarse por una celda de más aquí
+  // es inocuo: solo se leen datos de la caché.
   function cellsForBounds(bounds) {
     const west = Math.max(-180, bounds.west);
     const east = Math.min(180, bounds.east);
@@ -118,17 +191,35 @@
 
     const cells = [];
     for (let x = minX; x <= maxX; x++) {
-      for (let y = minY; y <= maxY; y++) {
-        cells.push({
-          key: x + ':' + y,
-          west: Math.max(-180, x * GRID_DEGREES),
-          south: Math.max(-85, y * GRID_DEGREES),
-          east: Math.min(180, (x + 1) * GRID_DEGREES),
-          north: Math.min(85, (y + 1) * GRID_DEGREES)
-        });
-      }
+      for (let y = minY; y <= maxY; y++) cells.push(cellFromIndex(x, y));
     }
     return cells;
+  }
+
+  // Rango de índices enteros que ocupa un lote de celdas. Marcar celdas como
+  // cubiertas SIEMPRE se hace desde este rango, nunca desde decimales.
+  function rangeOf(cells) {
+    return cells.reduce((r, c) => ({
+      minX: Math.min(r.minX, c.x), maxX: Math.max(r.maxX, c.x),
+      minY: Math.min(r.minY, c.y), maxY: Math.max(r.maxY, c.y)
+    }), { minX: cells[0].x, maxX: cells[0].x, minY: cells[0].y, maxY: cells[0].y });
+  }
+
+  function cellsInRange(range) {
+    const cells = [];
+    for (let x = range.minX; x <= range.maxX; x++) {
+      for (let y = range.minY; y <= range.maxY; y++) cells.push(cellFromIndex(x, y));
+    }
+    return cells;
+  }
+
+  function boundsOfRange(range) {
+    return {
+      west: Math.max(-180, range.minX * GRID_DEGREES),
+      south: Math.max(-85, range.minY * GRID_DEGREES),
+      east: Math.min(180, (range.maxX + 1) * GRID_DEGREES),
+      north: Math.min(85, (range.maxY + 1) * GRID_DEGREES)
+    };
   }
 
   function unionBounds(cells) {
@@ -159,26 +250,36 @@
     return Math.round(coordinates[0] * 100000) + ':' + Math.round(coordinates[1] * 100000);
   }
 
-  function featureFromOverpass(node) {
-    if (!node || node.type !== 'node' || !Number.isFinite(node.lon) || !Number.isFinite(node.lat)) return null;
-    const id = 'osm:' + node.id;
-    const name = node.tags && (node.tags.name || node.tags['name:es']);
+  /* ---------------- Normalización de datos ------------------------------ */
+  function featureFromOverpass(element) {
+    if (!element || !element.type) return null;
+    const position = element.type === 'node'
+      ? { lat: element.lat, lon: element.lon }
+      : element.center;
+    if (!position || !Number.isFinite(position.lon) || !Number.isFinite(position.lat)) return null;
+    const tags = element.tags || {};
+    if (tags.drinking_water === 'no') return null;
+    const id = 'osm:' + element.type + ':' + element.id;
+    const name = tags.name || tags['name:es'];
     return {
       type: 'Feature',
       id,
       properties: {
         cacheId: id,
         source: 'osm',
-        name: name || 'Fuente pública de agua',
+        name: name || t('fountainName', 'Fuente pública de agua'),
         category: 'Fuente pública de agua',
         potable: true
       },
-      geometry: { type: 'Point', coordinates: [node.lon, node.lat] }
+      geometry: { type: 'Point', coordinates: [position.lon, position.lat] }
     };
   }
 
+  // Las teselas vectoriales solo SUMAN puntos a lo ya cargado. Jamás sirven
+  // para dar una celda por cubierta: traen un recorte parcial por tesela.
   function fuentesAguaDesdeTiles(bounds) {
     try {
+      if (!map.getSource('openmaptiles')) return [];
       const poIs = map.querySourceFeatures('openmaptiles', { sourceLayer: 'poi' });
       const features = new Map();
       for (const poi of poIs) {
@@ -186,7 +287,8 @@
         if (properties.class !== 'drinking_water' && properties.subclass !== 'drinking_water') continue;
         if (!poi.geometry || poi.geometry.type !== 'Point') continue;
         const coordinates = poi.geometry.coordinates;
-        const [lon, lat] = coordinates;
+        const lon = coordinates[0];
+        const lat = coordinates[1];
         if (!Number.isFinite(lon) || !Number.isFinite(lat) ||
             lon < bounds.west || lon > bounds.east || lat < bounds.south || lat > bounds.north) continue;
         const id = poi.id == null ? coordinateKey({ geometry: { coordinates } }) : poi.id;
@@ -208,7 +310,7 @@
     if (!Array.isArray(coordinates) || !Number.isFinite(coordinates[0]) || !Number.isFinite(coordinates[1])) return null;
     const properties = feature.properties || {};
     const name = properties.name || properties.nombre || properties.Nombre ||
-      properties.NOMBRE || 'Fuente pública de agua';
+      properties.NOMBRE || t('fountainName', 'Fuente pública de agua');
     const sourceObjectId = feature.id ?? properties.OBJECTID ?? properties.objectid ??
       properties.ID ?? properties.id ?? properties.CODIGO ?? properties.codigo;
     const id = 'official:' + sourceId + ':' +
@@ -227,6 +329,7 @@
     };
   }
 
+  /* ---------------- Red -------------------------------------------------- */
   function getRetryDelay(error, attempt) {
     const exponential = Math.min(8000, 1000 * (2 ** attempt));
     return Math.max(exponential, Math.min(error.retryAfterMs || 0, 10000));
@@ -238,65 +341,126 @@
     return error.status === 429 || error.status === 502 || error.status === 503 || error.status === 504;
   }
 
-  async function fetchJsonWithBackoff(service, urlForAttempt, initForAttempt, timeoutMs) {
-    const now = Date.now();
-    const waitingUntil = cooldownUntil.get(service) || 0;
-    if (now < waitingUntil) throw new Error('Servicio en pausa temporal: ' + service);
+  function msHastaFinDePausa(service) {
+    return Math.max(0, (cooldownUntil.get(service) || 0) - Date.now());
+  }
+
+  function registrarFallo(service, maxMs) {
+    const failures = (failuresByService.get(service) || 0) + 1;
+    failuresByService.set(service, failures);
+    cooldownUntil.set(service, Date.now() + Math.min(maxMs, 5000 * (2 ** (failures - 1))));
+  }
+
+  function registrarExito(service) {
+    failuresByService.delete(service);
+    cooldownUntil.delete(service);
+  }
+
+  // Una sola petición con timeout. El controller se apunta en `grupo` (si lo
+  // hay) y en activeControllers, para poder cancelarla desde fuera.
+  function fetchJson(url, init, timeoutMs, grupo) {
+    const controller = new AbortController();
+    activeControllers.add(controller);
+    if (grupo) grupo.push(controller);
+    const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, {
+      ...init,
+      signal: controller.signal,
+      cache: 'no-store',
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer'
+    }).then(async response => {
+      if (!response.ok) {
+        const error = new Error('HTTP ' + response.status);
+        error.status = response.status;
+        throw error;
+      }
+      const aviso = response.headers.get('X-Proxy-Aviso');
+      const json = await response.json();
+      return { json, aviso };
+    }).finally(() => {
+      window.clearTimeout(timer);
+      activeControllers.delete(controller);
+    });
+  }
+
+  // Overpass en dos escalones: 1) proxy del worker (caché KV + carrera de
+  // espejos en servidor) y 2) carrera de espejos directa desde el navegador.
+  // El aviso 'sin-datos' del proxy significa "todos los espejos fallaron", no
+  // "zona vacía": se trata como fallo y jamás se cachea como cobertura.
+  async function overpassPost(service, query) {
+    if (msHastaFinDePausa(service) > 0) throw new Error('Servicio en pausa temporal: ' + service);
     const requestGeneration = generation;
+    const abortado = () => !enabled || requestGeneration !== generation;
+    const init = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: new URLSearchParams({ data: query }).toString()
+    };
+    const valido = json => !!json && Array.isArray(json.elements);
+    let ultimoError = null;
+
+    try {
+      const r = await fetchJson(PROXY_URL, init, PROXY_TIMEOUT_MS, null);
+      if (abortado()) throw abortException();
+      if (r.aviso !== 'sin-datos' && valido(r.json)) {
+        registrarExito(service);
+        return r.json;
+      }
+      ultimoError = new Error('El proxy no tenía datos');
+    } catch (error) {
+      if (abortado()) throw abortException();
+      ultimoError = error;
+    }
+
+    const grupo = [];
+    try {
+      const json = await Promise.any(OVERPASS_ENDPOINTS.map(endpoint =>
+        fetchJson(endpoint, init, DIRECT_TIMEOUT_MS, grupo).then(r => {
+          if (!valido(r.json)) throw new Error('Respuesta Overpass no válida');
+          return r.json;
+        })
+      ));
+      grupo.forEach(controller => { try { controller.abort(); } catch (e) { /* ya terminada */ } });
+      if (abortado()) throw abortException();
+      registrarExito(service);
+      return json;
+    } catch (error) {
+      grupo.forEach(controller => { try { controller.abort(); } catch (e) { /* ya terminada */ } });
+      if (abortado()) throw abortException();
+      registrarFallo(service, 60000);
+      throw ultimoError || error;
+    }
+  }
+
+  // Para las fuentes oficiales (GET con reintentos y pausa por servicio).
+  async function fetchJsonWithBackoff(service, urlForAttempt, initForAttempt, timeoutMs) {
+    if (msHastaFinDePausa(service) > 0) throw new Error('Servicio en pausa temporal: ' + service);
+    const requestGeneration = generation;
+    const maxRetries = 3;
     let lastError;
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
       if (!enabled || requestGeneration !== generation) throw abortException();
-      const controller = new AbortController();
-      let timedOut = false;
-      const timer = window.setTimeout(() => {
-        timedOut = true;
-        controller.abort();
-      }, timeoutMs);
-      activeControllers.add(controller);
-
       try {
-        const response = await fetch(urlForAttempt(attempt), {
-          ...initForAttempt(attempt),
-          signal: controller.signal,
-          cache: 'no-store',
-          credentials: 'omit',
-          referrerPolicy: 'no-referrer'
-        });
-        if (!response.ok) {
-          const error = new Error(service + ' HTTP ' + response.status);
-          error.status = response.status;
-          const retryAfter = Number(response.headers.get('Retry-After'));
-          if (Number.isFinite(retryAfter) && retryAfter > 0) error.retryAfterMs = retryAfter * 1000;
-          throw error;
-        }
-        const json = await response.json();
-        failuresByService.delete(service);
-        cooldownUntil.delete(service);
-        return json;
+        const r = await fetchJson(urlForAttempt(attempt), initForAttempt(attempt), timeoutMs, null);
+        registrarExito(service);
+        return r.json;
       } catch (error) {
         lastError = error;
-        const timedOutError = timedOut && error.name === 'AbortError';
-        if (!enabled || requestGeneration !== generation || (error.name === 'AbortError' && !timedOutError)) {
-          throw abortException();
-        }
-        if (!retryable(error) && !timedOutError) throw error;
-      } finally {
-        window.clearTimeout(timer);
-        activeControllers.delete(controller);
+        if (!enabled || requestGeneration !== generation) throw abortException();
+        if (!retryable(error) && !esAbort(error)) throw error;
       }
-
-      if (attempt < MAX_RETRIES - 1) {
+      if (attempt < maxRetries - 1) {
         await new Promise(resolve => window.setTimeout(resolve, getRetryDelay(lastError, attempt)));
       }
     }
 
-    const failures = (failuresByService.get(service) || 0) + 1;
-    failuresByService.set(service, failures);
-    cooldownUntil.set(service, Date.now() + Math.min(90000, 10000 * (2 ** (failures - 1))));
+    registrarFallo(service, 90000);
     throw lastError || new Error(service + ' no disponible');
   }
 
+  /* ---------------- Caché por celdas ------------------------------------- */
   function cellsMissing(cache, cells) {
     return cells.filter(cell => !cache.has(cell.key));
   }
@@ -327,61 +491,48 @@
     }
   }
 
-  async function loadOverpass(bounds, visibleCells) {
-    const missing = cellsMissing(osmCells, visibleCells);
-    if (!missing.length) {
-      for (const cell of visibleCells) {
-        const entry = osmCells.get(cell.key);
-        if (entry) entry.touched = Date.now();
-      }
-      return;
-    }
-    const queryBounds = unionBounds(missing);
-    if (!queryBounds) return;
-    const queryCells = cellsForBounds(queryBounds);
-    // Reutiliza las entidades OSM de las teselas vectoriales ya visibles.
-    // Esto da respuesta inmediata; Overpass sigue siendo el respaldo global.
-    const tiledFeatures = fuentesAguaDesdeTiles(bounds);
-    if (tiledFeatures.length) {
-      const visibleCells = cellsForBounds(bounds);
-      cacheFeaturesByCell(osmCells, visibleCells, tiledFeatures);
-      trimCellCache(osmCells, visibleCells);
-      return;
-    }
+  /* ---------------- Carga de datos -------------------------------------- */
+  function consultaFuentes(range) {
+    const b = boundsOfRange(range);
+    const bbox = [b.south, b.west, b.north, b.east].map(v => v.toFixed(6)).join(',');
+    return '[out:json][timeout:15];(' +
+      'nwr["amenity"="drinking_water"](' + bbox + ');' +
+      'nwr["man_made"="water_tap"]["drinking_water"="yes"](' + bbox + ');' +
+      'nwr["natural"="spring"]["drinking_water"="yes"](' + bbox + ');' +
+      'nwr["amenity"="fountain"]["drinking_water"="yes"](' + bbox + ');' +
+      ');out center qt;';
+  }
 
-    const bbox = [
-      queryBounds.south.toFixed(6), queryBounds.west.toFixed(6),
-      queryBounds.north.toFixed(6), queryBounds.east.toFixed(6)
-    ].join(',');
-    const query = '[out:json][timeout:15];' +
-      'area["name"="Sevilla"]->.areaSevilla;' +
-      '(node["amenity"="drinking_water"](' + bbox + ');' +
-      'node["amenity"="drinking_water"](area.areaSevilla);' +
-      ');out body qt;';
-    const form = new URLSearchParams({ data: query });
-    const data = await fetchJsonWithBackoff(
-      'overpass',
-      attempt => OVERPASS_ENDPOINTS[attempt % OVERPASS_ENDPOINTS.length],
-      () => ({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: form.toString()
-      }),
-      OVERPASS_TIMEOUT_MS
-    );
-    if (!data || !Array.isArray(data.elements)) throw new Error('Respuesta Overpass no válida');
-    const features = data.elements.map(featureFromOverpass).filter(Boolean);
-    const coveredCellKeys = new Set(queryCells.map(cell => cell.key));
-    // La rama del área de Sevilla puede devolver puntos fuera del BBox que
-    // disparó la petición. Los conservamos para cuando el visor llegue allí.
-    for (const feature of features) {
-      const [lon, lat] = feature.geometry.coordinates;
-      if (!coveredCellKeys.has(keyForPoint(lon, lat))) {
-        sevillaFeatures.set(String(feature.id), feature);
-      }
+  // Devuelve cuántas celdas visibles quedan por pedir (0 = todo cubierto).
+  async function loadOverpass(bounds, visibleCells) {
+    for (const cell of visibleCells) {
+      const entry = osmCells.get(cell.key);
+      if (entry) entry.touched = Date.now();
     }
-    cacheFeaturesByCell(osmCells, queryCells, features);
-    trimCellCache(osmCells, visibleCells);
+    const cx = (bounds.west + bounds.east) / 2;
+    const cy = (bounds.south + bounds.north) / 2;
+
+    for (let batch = 0; batch < MAX_BATCHES; batch++) {
+      const missing = cellsMissing(osmCells, visibleCells);
+      if (!missing.length) break;
+      const distancia = c => Math.hypot((c.west + c.east) / 2 - cx, (c.south + c.north) / 2 - cy);
+      missing.sort((a, b) => distancia(a) - distancia(b));
+
+      let lote = missing.slice(0, MAX_CELLS_PER_QUERY);
+      let range = rangeOf(lote);
+      let queryCells = cellsInRange(range);
+      if (queryCells.length > MAX_CELLS_PER_REQUEST) {
+        lote = [missing[0]];
+        range = rangeOf(lote);
+        queryCells = cellsInRange(range);
+      }
+
+      const data = await overpassPost(OVERPASS_SERVICE, consultaFuentes(range));
+      const features = data.elements.map(featureFromOverpass).filter(Boolean);
+      cacheFeaturesByCell(osmCells, queryCells, features);
+      trimCellCache(osmCells, visibleCells);
+    }
+    return cellsMissing(osmCells, visibleCells).length;
   }
 
   function arcGisUrl(bounds) {
@@ -406,9 +557,11 @@
     const localCells = cellsForBounds(localBounds);
     const missing = cellsMissing(valenciaCells, localCells);
     if (!missing.length) return;
-    const queryBounds = intersectBounds(unionBounds(missing), source.bounds);
+    const range = rangeOf(missing);
+    const queryCells = cellsInRange(range);
+    if (queryCells.length > MAX_CELLS_PER_REQUEST) return;
+    const queryBounds = intersectBounds(boundsOfRange(range), source.bounds);
     if (!queryBounds) return;
-    const queryCells = cellsForBounds(queryBounds).filter(cell => intersectBounds(cell, source.bounds));
     const data = await fetchJsonWithBackoff(
       'datos-valencia',
       () => arcGisUrl(queryBounds),
@@ -452,7 +605,7 @@
     }
   }
 
-function nearbyDuplicate(feature, keySet) {
+  function nearbyDuplicate(feature, keySet) {
     const key = coordinateKey(feature);
     if (keySet.has(key)) return true;
     keySet.add(key);
@@ -467,9 +620,7 @@ function nearbyDuplicate(feature, keySet) {
       if (pointInBounds(feature, bounds)) official.set(String(feature.id), feature);
     }
     featuresInCellCache(osmCells, cells, bounds, osm);
-    for (const feature of sevillaFeatures.values()) {
-      if (pointInBounds(feature, bounds)) osm.set(String(feature.id), feature);
-    }
+    for (const feature of fuentesAguaDesdeTiles(bounds)) osm.set(String(feature.id), feature);
 
     const result = new Map();
     const coordinateKeys = new Set();
@@ -482,6 +633,7 @@ function nearbyDuplicate(feature, keySet) {
     return Array.from(result.values());
   }
 
+  /* ---------------- Búsqueda de la fuente más cercana (chat) ------------- */
   function distanciaMetros(origen, feature) {
     const [lon, lat] = feature.geometry.coordinates;
     const rad = Math.PI / 180;
@@ -538,18 +690,7 @@ function nearbyDuplicate(feature, keySet) {
       'nwr["water"~"lake|pond"](' + bbox + ');' +
       'way["waterway"~"river|stream"](' + bbox + ');' +
       ');out center qt;';
-    const form = new URLSearchParams({ data: query });
-    const data = await fetchJsonWithBackoff(
-      'overpass-natural-water',
-      attempt => OVERPASS_ENDPOINTS[attempt % OVERPASS_ENDPOINTS.length],
-      () => ({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: form.toString()
-      }),
-      OVERPASS_TIMEOUT_MS
-    );
-    if (!data || !Array.isArray(data.elements)) throw new Error('Respuesta de aguas naturales no válida');
+    const data = await overpassPost(NATURAL_SERVICE, query);
     const features = data.elements.map(featureNaturalOverpass).filter(Boolean);
     naturalSearchCache.set(cacheKey, { features, touched: Date.now() });
     while (naturalSearchCache.size > 32) naturalSearchCache.delete(naturalSearchCache.keys().next().value);
@@ -577,7 +718,7 @@ function nearbyDuplicate(feature, keySet) {
     // Espera la descarga que haya iniciado el interruptor para no duplicar
     // una petición Overpass cuando se activa la búsqueda desde el chat.
     let waitedMs = 0;
-    while (requestRunning && waitedMs < OVERPASS_TIMEOUT_MS + 2000) {
+    while (requestRunning && waitedMs < PROXY_TIMEOUT_MS + 2000) {
       await new Promise(resolve => window.setTimeout(resolve, 100));
       waitedMs += 100;
     }
@@ -593,7 +734,8 @@ function nearbyDuplicate(feature, keySet) {
       .sort((a, b) => a.distanceMeters - b.distanceMeters);
 
     if (!candidates.length && results.some(result => result.status === 'rejected')) {
-      throw results[0].reason || new Error('Los servicios de fuentes de agua no están disponibles.');
+      const fallo = results.find(result => result.status === 'rejected');
+      throw fallo.reason || new Error('Los servicios de fuentes de agua no están disponibles.');
     }
     if (!candidates.length) return null;
 
@@ -602,7 +744,7 @@ function nearbyDuplicate(feature, keySet) {
     return {
       lat,
       lon,
-      nombre: nearest.feature.properties.name || 'Fuente pública de agua',
+      nombre: nearest.feature.properties.name || t('fountainName', 'Fuente pública de agua'),
       tipo: nearest.feature.properties.category || 'Fuente pública de agua',
       potable: nearest.feature.properties.potable === true,
       fuenteDatos: nearest.feature.properties.source,
@@ -610,57 +752,99 @@ function nearbyDuplicate(feature, keySet) {
     };
   }
 
-  window.manolitAireBuscarFuenteAguaCercana = buscarFuenteCercana;
+  // Definida desde el primer momento: si el chat la llama antes de que el
+  // mapa esté listo, espera (máx. 60 s) en vez de encontrarse con nada.
+  window.manolitAireBuscarFuenteAguaCercana = function (origen) {
+    return Promise.race([
+      listo,
+      new Promise((_, rechazar) => window.setTimeout(
+        () => rechazar(new Error('El mapa todavía no está listo para buscar fuentes.')), 60000))
+    ]).then(() => buscarFuenteCercana(origen));
+  };
 
-  function applyVisibleFeatures(features) {
+  /* ---------------- Pintado ---------------------------------------------- */
+  function aplicarFeatures(features) {
     const source = map.getSource(SOURCE_ID);
     if (!source) return;
     const next = new Map(features.map(feature => [String(feature.id), feature]));
-    const remove = [];
-    const add = [];
-    for (const id of renderedFeatures.keys()) {
-      if (!next.has(id)) remove.push(id);
+    let igual = next.size === renderedFeatures.size;
+    if (igual) {
+      for (const id of next.keys()) {
+        if (!renderedFeatures.has(id)) { igual = false; break; }
+      }
     }
-    for (const [id, feature] of next) {
-      if (!renderedFeatures.has(id)) add.push(feature);
-    }
-    if (!remove.length && !add.length) return;
+    if (igual) return;
     renderedFeatures = next;
+    source.setData({ type: 'FeatureCollection', features: Array.from(next.values()) });
+  }
 
-    if (typeof source.updateData === 'function') {
-      source.updateData({ remove, add }).catch(() => {
-        const currentSource = map.getSource(SOURCE_ID);
-        if (currentSource && enabled) {
-          currentSource.setData({ type: 'FeatureCollection', features: Array.from(renderedFeatures.values()) });
-        }
+  function pintarVista(bounds, cells) {
+    aplicarFeatures(featuresForView(bounds, cells));
+  }
+
+  function cargarIcono() {
+    if (!svgImagePromise) {
+      svgImagePromise = new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ICONO_SVG);
       });
-    } else {
-      source.setData({ type: 'FeatureCollection', features: Array.from(next.values()) });
+      svgImagePromise.catch(() => { svgImagePromise = null; });
     }
+    return svgImagePromise;
+  }
+
+  function capaCompleta() {
+    return !!(map.getSource(SOURCE_ID) && map.getLayer(HALO_ID) && map.getLayer(DOT_ID) &&
+      map.getLayer(LAYER_ID) && map.hasImage(IMAGE_ID));
   }
 
   async function ensureGraphicLayer() {
-    if (!enabled || !mapReady || !map.isStyleLoaded()) return;
+    if (!enabled || !mapReady) return;
+    if (capaCompleta()) return;
     try {
-      if (!svgImagePromise) {
-        svgImagePromise = new Promise((resolve, reject) => {
-          const image = new Image();
-          image.onload = () => resolve(image);
-          image.onerror = reject;
-          image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ICONO_SVG);
-        });
-      }
-      const iconImage = await svgImagePromise;
+      let iconImage = null;
+      try { iconImage = await cargarIcono(); } catch (error) { iconImage = null; }
       if (!enabled || !map.isStyleLoaded()) return;
-      if (!map.hasImage(IMAGE_ID)) map.addImage(IMAGE_ID, iconImage, { pixelRatio: 2 });
+
+      if (iconImage && !map.hasImage(IMAGE_ID)) map.addImage(IMAGE_ID, iconImage, { pixelRatio: 1 });
       if (!map.getSource(SOURCE_ID)) {
         map.addSource(SOURCE_ID, {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           attribution: ATRIBUCION
         });
+        renderedFeatures = new Map();
       }
-      if (!map.getLayer(LAYER_ID)) {
+      if (!map.getLayer(HALO_ID)) {
+        map.addLayer({
+          id: HALO_ID,
+          type: 'circle',
+          source: SOURCE_ID,
+          minzoom: MIN_ZOOM,
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 7, 16, 13],
+            'circle-color': '#12343D',
+            'circle-opacity': 0.22
+          }
+        });
+      }
+      if (!map.getLayer(DOT_ID)) {
+        map.addLayer({
+          id: DOT_ID,
+          type: 'circle',
+          source: SOURCE_ID,
+          minzoom: MIN_ZOOM,
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 7],
+            'circle-color': '#35C4D4',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff'
+          }
+        });
+      }
+      if (map.hasImage(IMAGE_ID) && !map.getLayer(LAYER_ID)) {
         map.addLayer({
           id: LAYER_ID,
           type: 'symbol',
@@ -668,18 +852,21 @@ function nearbyDuplicate(feature, keySet) {
           minzoom: MIN_ZOOM,
           layout: {
             'icon-image': IMAGE_ID,
-            'icon-size': 0.7,
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 12.5, 0.8, 17, 1.1],
             'icon-anchor': 'bottom',
-            'icon-allow-overlap': false,
-            'icon-ignore-placement': false,
-            'icon-padding': 2
+            'icon-offset': [0, -4],
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true
           }
         });
       }
-      if (!renderedFeatures.size) {
+      [HALO_ID, DOT_ID, LAYER_ID].forEach(id => { if (map.getLayer(id)) map.moveLayer(id); });
+
+      if (!renderedFeatures.size && map.getZoom() >= MIN_ZOOM) {
         const bounds = boundsOfMap();
-        if (bounds && map.getZoom() >= MIN_ZOOM) {
-          applyVisibleFeatures(featuresForView(bounds, cellsForBounds(bounds)));
+        if (bounds) {
+          const cells = cellsForBounds(bounds);
+          if (cells.length) pintarVista(bounds, cells);
         }
       }
     } catch (error) {
@@ -689,33 +876,81 @@ function nearbyDuplicate(feature, keySet) {
 
   function destroyGraphicLayer() {
     try {
-      if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
+      [LAYER_ID, DOT_ID, HALO_ID].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
       if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
       if (map.hasImage(IMAGE_ID)) map.removeImage(IMAGE_ID);
     } catch (error) {
       console.debug('[fuentes-agua] No se pudo liberar la capa:', error);
     }
-    renderedFeatures.clear();
+    renderedFeatures = new Map();
+    if (popup) { try { popup.remove(); } catch (e) { /* sin popup */ } popup = null; }
+  }
+
+  /* ---------------- Popup al tocar una fuente ---------------------------- */
+  function onMapClick(event) {
+    if (!enabled || typeof maplibregl === 'undefined') return;
+    const capas = [LAYER_ID, DOT_ID].filter(id => map.getLayer(id));
+    if (!capas.length) return;
+    const encontradas = map.queryRenderedFeatures(event.point, { layers: capas });
+    if (!encontradas.length) return;
+    const feature = encontradas[0];
+    const props = feature.properties || {};
+    const coords = feature.geometry && feature.geometry.coordinates;
+    if (!coords || coords.length < 2) return;
+
+    const caja = document.createElement('div');
+    caja.style.cssText = 'font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#12343D;max-width:220px';
+    const titulo = document.createElement('strong');
+    titulo.textContent = String(props.name || t('fountainName', 'Fuente pública de agua'));
+    const detalle = document.createElement('div');
+    detalle.style.cssText = 'font-size:11px;color:#4a5c65;margin-top:3px';
+    detalle.textContent = String(props.category || 'Fuente pública de agua') +
+      ' · ' + (ORIGEN_DATO[props.source] || 'OpenStreetMap');
+    caja.appendChild(titulo);
+    caja.appendChild(detalle);
+
+    if (popup) { try { popup.remove(); } catch (e) { /* sin popup */ } }
+    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '240px', offset: 10 })
+      .setLngLat([coords[0], coords[1]])
+      .setDOMContent(caja)
+      .addTo(map);
+  }
+
+  /* ---------------- Ciclo de refresco ------------------------------------ */
+  function cancelarPeticiones() {
+    generation++;
+    requestRunning = false;
+    refreshQueued = false;
+    for (const controller of activeControllers) controller.abort();
+    activeControllers.clear();
+  }
+
+  function programarSiguientePaso(ms) {
+    if (!enabled || autoSteps >= MAX_AUTO_STEPS) return;
+    autoSteps++;
+    window.clearTimeout(retryTimer);
+    retryTimer = window.setTimeout(refreshCurrentView, ms);
   }
 
   function refreshCurrentView() {
-    if (!enabled || !mapReady || !map.isStyleLoaded()) return;
+    if (!enabled || !mapReady) return;
+    if (!map.getSource(SOURCE_ID)) {
+      ensureGraphicLayer().then(() => {
+        if (enabled && map.getSource(SOURCE_ID)) refreshCurrentView();
+      });
+      return;
+    }
     if (map.getZoom() < MIN_ZOOM) {
-      if (requestRunning) {
-        generation++;
-        requestRunning = false;
-        refreshQueued = false;
-        for (const controller of activeControllers) controller.abort();
-        activeControllers.clear();
-      }
-      applyVisibleFeatures([]);
+      // Las capas llevan minzoom: los datos se quedan cargados y reaparecen
+      // al acercarse. Solo se cancela lo que esté en vuelo.
+      if (requestRunning) cancelarPeticiones();
       return;
     }
     const bounds = boundsOfMap();
     if (!bounds) return;
     const cells = cellsForBounds(bounds);
     if (!cells.length) return;
-    applyVisibleFeatures(featuresForView(bounds, cells));
+    pintarVista(bounds, cells);
 
     if (requestRunning) {
       refreshQueued = true;
@@ -727,12 +962,21 @@ function nearbyDuplicate(feature, keySet) {
       loadOverpass(bounds, cells),
       loadValencia(bounds, cells),
       loadMalaga(bounds)
-    ]).then(() => {
-      if (enabled && requestGeneration === generation) {
-        const currentBounds = boundsOfMap();
-        if (currentBounds && map.getZoom() >= MIN_ZOOM) {
-          applyVisibleFeatures(featuresForView(currentBounds, cellsForBounds(currentBounds)));
-        }
+    ]).then(resultados => {
+      if (!enabled || requestGeneration !== generation) return;
+      const vista = boundsOfMap();
+      if (vista && map.getZoom() >= MIN_ZOOM) {
+        const celdasVista = cellsForBounds(vista);
+        if (celdasVista.length) pintarVista(vista, celdasVista);
+      }
+      const osm = resultados[0];
+      if (osm.status === 'fulfilled') {
+        if (osm.value > 0) programarSiguientePaso(250); // quedan celdas por pedir
+        else autoSteps = 0;
+      } else if (!esAbort(osm.reason)) {
+        // Overpass ha fallado: reintento automático al acabar la pausa,
+        // sin esperar a que la persona mueva el mapa.
+        programarSiguientePaso(Math.max(4000, msHastaFinDePausa(OVERPASS_SERVICE)) + 500);
       }
     }).finally(() => {
       if (requestGeneration !== generation) return;
@@ -746,57 +990,88 @@ function nearbyDuplicate(feature, keySet) {
 
   function scheduleRefresh() {
     if (!enabled) return;
+    autoSteps = 0;
     window.clearTimeout(moveTimer);
     moveTimer = window.setTimeout(refreshCurrentView, MOVE_DEBOUNCE_MS);
   }
 
+  function onMoveEnd() {
+    if (!enabled) return;
+    autoSteps = 0;
+    window.clearTimeout(moveTimer);
+    moveTimer = window.setTimeout(refreshCurrentView, MOVEEND_DEBOUNCE_MS);
+  }
+
   function onMapReady() {
     mapReady = true;
-    if (enabled) {
-      ensureGraphicLayer().then(refreshCurrentView);
-    }
+    if (enabled) ensureGraphicLayer().then(refreshCurrentView);
   }
 
   function asegurarCapaCuandoElMapaQuedeInactivo() {
     if (!toggle.checked) return;
     if (!enabled) activate();
-    if (!mapReady && map.isStyleLoaded()) mapReady = true;
-    if (mapReady) ensureGraphicLayer().then(refreshCurrentView);
+    if (!mapReady) mapReady = true;
+    ensureGraphicLayer().then(refreshCurrentView);
   }
 
   function activate() {
+    if (enabled) return;
     enabled = true;
     generation++;
+    autoSteps = 0;
     if (!mapReady && map.isStyleLoaded()) mapReady = true;
     map.on('move', scheduleRefresh);
+    map.on('moveend', onMoveEnd);
+    map.on('click', onMapClick);
     if (mapReady) ensureGraphicLayer().then(refreshCurrentView);
   }
 
   function deactivate() {
     enabled = false;
-    generation++;
-    refreshQueued = false;
-    requestRunning = false;
+    cancelarPeticiones();
     window.clearTimeout(moveTimer);
+    window.clearTimeout(retryTimer);
     map.off('move', scheduleRefresh);
-    for (const controller of activeControllers) controller.abort();
-    activeControllers.clear();
+    map.off('moveend', onMoveEnd);
+    map.off('click', onMapClick);
     destroyGraphicLayer();
   }
 
-  toggle.addEventListener('change', () => {
+  function iniciar(mapa, interruptor) {
+    map = mapa;
+    toggle = interruptor;
+
+    toggle.addEventListener('change', () => {
+      if (toggle.checked) activate();
+      else deactivate();
+    });
+
+    map.on('load', onMapReady);
+    map.on('idle', asegurarCapaCuandoElMapaQuedeInactivo);
+    map.on('style.load', () => {
+      if (!enabled) return;
+      renderedFeatures = new Map();
+      ensureGraphicLayer().then(refreshCurrentView);
+    });
+
+    if (map.isStyleLoaded()) mapReady = true;
     if (toggle.checked) activate();
-    else deactivate();
-  });
+    if (resolverListo) resolverListo();
+  }
 
-  map.on('load', onMapReady);
-  map.on('idle', asegurarCapaCuandoElMapaQuedeInactivo);
-  map.on('style.load', () => {
-    if (!enabled) return;
-    renderedFeatures.clear();
-    ensureGraphicLayer().then(refreshCurrentView);
-  });
-
-  if (map.isStyleLoaded()) onMapReady();
-  if (enabled) activate();
+  // El mapa y el interruptor pueden no existir aún cuando carga este script:
+  // se espera (hasta 2 min), igual que aparcamientos-viaje.js.
+  (function esperarMapa(intentos) {
+    try {
+      const mapa = window.manolitAireMap;
+      const interruptor = document.getElementById('rsToggleFuentesAgua');
+      if (mapa && interruptor) {
+        iniciar(mapa, interruptor);
+        return;
+      }
+    } catch (error) {
+      console.debug('[fuentes-agua] Error al enganchar el mapa:', error);
+    }
+    if (intentos < 240) window.setTimeout(() => esperarMapa(intentos + 1), 500);
+  })(0);
 })();

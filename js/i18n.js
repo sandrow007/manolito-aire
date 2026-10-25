@@ -3657,6 +3657,11 @@ window.getCurrentLang = function () { return currentLang; };
 	document.addEventListener('langChanged', () => {
 		repintarGuardados();
 		repintarMT();
+	// Actualiza también el banner si ya está abierto; se crea antes de que
+	// i18n.js termine de cargar y no forma parte del HTML estático.
+	if (typeof window.actualizarIdiomaBannerCookies === 'function') {
+	window.actualizarIdiomaBannerCookies();
+	}
 		if (currentLang === 'ar') {
 			traducirMetadatosArabe();
 			traducirClavesArabe();

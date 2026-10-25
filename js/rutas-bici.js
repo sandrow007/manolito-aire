@@ -39,7 +39,7 @@
   var MAX_ALTERNATIVAS = 3;
   var MAX_KM_OVERBRIDGE = 20;      // carriles bici: bbox máximo ~20 km (barrio/ciudad)
   var CARRIL_TTL_MS = 15 * 60 * 1000;
-  var CARRIL_MIN_ZOOM = 12;
+  var CARRIL_MIN_ZOOM = 10;
 
   var map = null;
   var rutaSourceListo = false;
@@ -490,9 +490,10 @@
   var CARRIL_BORDE_DER = 'carriles-bici-borde-der';
   var CARRIL_SIMBOLO = 'carriles-bici-simbolo';
   var CARRIL_IMAGEN = 'carriles-bici-icono';
-  var CARRIL_MIN_ZOOM = 10; // Bajado para que funcione desde más lejos
   var carrilCapaLista = false; // Flag para saber si la capa está completamente inicializada
   var carrilInicializando = false; // Flag para evitar múltiples inicializaciones
+  var carrilRequestId = 0;
+  var carrilStyleHandler = null;
   
   // SVG del símbolo de bicicleta para carriles bici
   var BICI_ICONO_SVG =
@@ -513,11 +514,11 @@
 
   function consultaCarriles(bbox) {
     var bboxTxt = [bbox.south, bbox.west, bbox.north, bbox.east].map(function (v) { return v.toFixed(6); }).join(',');
-    return '[out:json][timeout:15];(' +
+    return '[out:json][timeout:25];(' +
       'way["highway"="cycleway"](' + bboxTxt + ');' +
       'way["cycleway"](' + bboxTxt + ');' +
       'way["bicycle"="designated"](' + bboxTxt + ');' +
-      ');out geom;';
+      ');out body geom;';
   }
 
   function wayToLineString(element) {
@@ -580,25 +581,33 @@
 
   async function cargarCarriles() {
     if (!carrilEnabled || !map) return;
-    var zoom = map.getZoom();
-    if (zoom < CARRIL_MIN_ZOOM) return;
-    
+    var requestId = ++carrilRequestId;
     var bbox = bboxVisible();
+    var zoom = map.getZoom();
     var ladoKm = Math.max(
       (bbox.east - bbox.west) * 111.32 * Math.cos((bbox.south + bbox.north) / 2 * Math.PI / 180),
       (bbox.north - bbox.south) * 111.32
     );
-    if (ladoKm > MAX_KM_OVERBRIDGE) return;
+
+    // Crear la capa aunque se haga zoom hacia fuera, para evitar que una
+    // consulta anterior deje datos en pantalla fuera del área/zoom válido.
+    var capaLista = await asegurarCapaCarril();
+    if (!capaLista || !carrilEnabled || requestId !== carrilRequestId) return;
+    if (zoom < CARRIL_MIN_ZOOM || ladoKm > MAX_KM_OVERBRIDGE) {
+      await pintarCarriles([]);
+      return;
+    }
 
     var clave = [bbox.west.toFixed(3), bbox.south.toFixed(3), bbox.east.toFixed(3), bbox.north.toFixed(3)].join(':');
     var cached = carrilCache.get(clave);
     if (cached && Date.now() - cached.touched < CARRIL_TTL_MS) {
-      pintarCarriles(cached.features);
+      await pintarCarriles(cached.features);
       return;
     }
 
     var falta = 1000 - (Date.now() - carrilUltima);
     if (falta > 0) await esperar(falta);
+    if (!carrilEnabled || requestId !== carrilRequestId) return;
     carrilUltima = Date.now();
 
     try {
@@ -608,39 +617,58 @@
         body: new URLSearchParams({ data: consultaCarriles(bbox) }).toString(),
         credentials: 'omit'
       });
-      if (!resp.ok) return;
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
       var datos = await resp.json();
       var features = (Array.isArray(datos.elements) ? datos.elements : [])
         .map(wayToLineString)
         .filter(Boolean);
       carrilCache.set(clave, { features: features, touched: Date.now() });
       while (carrilCache.size > 200) carrilCache.delete(carrilCache.keys().next().value);
-      pintarCarriles(features);
-    } catch (e) { /* sin datos: no rompe nada */ }
+      if (carrilEnabled && requestId === carrilRequestId) await pintarCarriles(features);
+    } catch (e) {
+      if (carrilEnabled && requestId === carrilRequestId) {
+        console.warn('[rutas-bici] No se pudieron cargar carriles bici:', e);
+      }
+    }
   }
 
+  var carrilIconoPromise = null;
   function cargarIconoBici() {
-    return new Promise(function (resolve, reject) {
-      var img = new Image();
-      img.onload = function () { resolve(img); };
-      img.onerror = reject;
-      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(BICI_ICONO_SVG);
-    });
+    if (!carrilIconoPromise) {
+      carrilIconoPromise = new Promise(function (resolve, reject) {
+        var img = new Image();
+        img.onload = function () { resolve(img); };
+        img.onerror = reject;
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(BICI_ICONO_SVG);
+      }).catch(function (error) { carrilIconoPromise = null; throw error; });
+    }
+    return carrilIconoPromise;
   }
 
   async function asegurarCapaCarril() {
     if (!map || !map.isStyleLoaded()) return false;
-    if (carrilCapaLista && map.getSource(CARRIL_SOURCE)) return true;
-    if (carrilInicializando) return false; // Ya se está inicializando
-    
+    if (carrilCapaLista && map.getSource(CARRIL_SOURCE) && map.getLayer(CARRIL_ROJO)) return true;
+    if (carrilInicializando) {
+      for (var intento = 0; intento < 40 && carrilInicializando; intento++) await esperar(50);
+      return !!(map && map.isStyleLoaded() && map.getSource(CARRIL_SOURCE) && map.getLayer(CARRIL_ROJO));
+    }
+
     carrilInicializando = true;
+    var mapaInicial = map;
+    var estiloInicial = map.getStyle();
     
     try {
-      // Cargar el icono de bicicleta
-      var iconImage = await cargarIconoBici();
-      if (iconImage && !map.hasImage(CARRIL_IMAGEN)) {
-        map.addImage(CARRIL_IMAGEN, iconImage, { pixelRatio: 1 });
+      // Cargar el icono de bicicleta. El carril rojo no depende del icono.
+      try {
+        var iconImage = await cargarIconoBici();
+        if (map !== mapaInicial || !mapaInicial.isStyleLoaded()) return false;
+        if (iconImage && !mapaInicial.hasImage(CARRIL_IMAGEN)) {
+          mapaInicial.addImage(CARRIL_IMAGEN, iconImage, { pixelRatio: 1 });
+        }
+      } catch (iconError) {
+        console.warn('[rutas-bici] El icono de bici no cargó; se dibujarán las líneas igualmente.', iconError);
       }
+      if (map !== mapaInicial || !mapaInicial.isStyleLoaded()) return false;
       
       // Crear la fuente de datos si no existe
       if (!map.getSource(CARRIL_SOURCE)) {
@@ -737,7 +765,7 @@
       }
 
       // 4. CAPA DE SÍMBOLOS DE BICICLETA (cada X metros)
-      if (!map.getLayer(CARRIL_SIMBOLO) && map.hasImage(CARRIL_IMAGEN)) {
+      if (map.hasImage(CARRIL_IMAGEN) && !map.getLayer(CARRIL_SIMBOLO)) {
         map.addLayer({
           id: CARRIL_SIMBOLO,
           type: 'symbol',
@@ -762,56 +790,50 @@
       }
       
       carrilCapaLista = true;
-      carrilInicializando = false;
       return true;
       
     } catch (e) {
       console.error('[rutas-bici] Error inicializando capa de carriles:', e);
-      carrilInicializando = false;
       return false;
+    } finally {
+      carrilInicializando = false;
     }
   }
 
   async function pintarCarriles(features) {
+    if (!carrilEnabled || !map || !map.isStyleLoaded()) return;
     var capaLista = await asegurarCapaCarril();
-    if (!capaLista) {
-      // Reintentar cuando el mapa esté listo
-      map.once('idle', function () { pintarCarriles(features); });
-      return;
-    }
-    
-    var source = map.getSource(CARRIL_SOURCE);
-    if (!source) return;
-    
-    // Separar líneas de los puntos de símbolo existentes
-    var lineas = features.filter(function(f) { return f.geometry.type === 'LineString'; });
-    var puntosSimbolo = generarPuntosSimbolos(lineas, 50); // cada 50 metros
-    
-    // Combinar líneas con puntos de símbolo
-    var todasFeatures = lineas.concat(puntosSimbolo);
-    
-    source.setData({ type: 'FeatureCollection', features: todasFeatures });
+    if (!capaLista || !carrilEnabled || !map || !map.getSource(CARRIL_SOURCE)) return;
+    var lineas = features.filter(function(f) { return f.geometry && f.geometry.type === 'LineString'; });
+    var puntosSimbolo = generarPuntosSimbolos(lineas, 100); // cada 100 metros
+    map.getSource(CARRIL_SOURCE).setData({ type: 'FeatureCollection', features: lineas.concat(puntosSimbolo) });
   }
 
   function destroyCarril() {
+    carrilRequestId++;
     try {
-      [CARRIL_SIMBOLO, CARRIL_BORDE_DER, CARRIL_BORDE_IZQ, CARRIL_ROJO].forEach(function(id) { 
-        if (map.getLayer(id)) map.removeLayer(id); 
+      [CARRIL_SIMBOLO, CARRIL_BORDE_DER, CARRIL_BORDE_IZQ, CARRIL_ROJO].forEach(function(id) {
+        if (map.getLayer(id)) map.removeLayer(id);
       });
       if (map.getSource(CARRIL_SOURCE)) map.removeSource(CARRIL_SOURCE);
       if (map.hasImage(CARRIL_IMAGEN)) map.removeImage(CARRIL_IMAGEN);
-      carrilCapaLista = false;
-      carrilInicializando = false;
-    } catch (e) { /* ya liberado */ }
+    } catch (e) { /* estilo reemplazado */ }
+    carrilCapaLista = false;
+    carrilInicializando = false;
   }
 
   function onCarrilToggle() {
-    carrilEnabled = carrilToggle && carrilToggle.checked;
+    carrilEnabled = !!(carrilToggle && carrilToggle.checked);
+    clearTimeout(carrilTimer);
     if (carrilEnabled) {
+      map.off('moveend', scheduleCarril);
       map.on('moveend', scheduleCarril);
+      map.off('zoomend', scheduleCarril);
+      map.on('zoomend', scheduleCarril);
       cargarCarriles();
     } else {
       map.off('moveend', scheduleCarril);
+      map.off('zoomend', scheduleCarril);
       destroyCarril();
     }
   }
@@ -819,7 +841,7 @@
   function scheduleCarril() {
     if (!carrilEnabled) return;
     clearTimeout(carrilTimer);
-    carrilTimer = setTimeout(cargarCarriles, 500);
+    carrilTimer = setTimeout(cargarCarriles, 350);
   }
 
   /* ---------------- Arranque -------------------------------------------- */
@@ -866,8 +888,17 @@
     carrilToggle = document.getElementById('rsToggleCarrilesBici');
     if (carrilToggle) {
       carrilToggle.addEventListener('change', onCarrilToggle);
-      // Si el usuario lo activó antes de que el mapa y este módulo terminaran
-      // de cargar, el cambio ya no vuelve a dispararse: hay que aplicarlo.
+      // Si se reemplaza el estilo del mapa, MapLibre elimina las fuentes y
+      // capas personalizadas: recrearlas y volver a pedir los datos.
+      carrilStyleHandler = function () {
+        carrilCapaLista = false;
+        carrilInicializando = false;
+        if (carrilEnabled) {
+          clearTimeout(carrilTimer);
+          carrilTimer = setTimeout(cargarCarriles, 150);
+        }
+      };
+      map.on('style.load', carrilStyleHandler);
       if (carrilToggle.checked) onCarrilToggle();
     }
 

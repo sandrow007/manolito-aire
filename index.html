@@ -2275,10 +2275,6 @@
     </div>
   </div>
 
-  <!-- La atribución del mapa IGN vive justo debajo de los escudos
-       (09-oct-2026, orden de Sandro) y sin la opacidad vieja, que dejaba
-       el texto por debajo del contraste mínimo WCAG AA (2,86:1). -->
-  <div class="footer-ign" style="margin-top:8px; font-size:0.75rem;" data-i18n="footerIgnTxt">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
   </div>
 
   <div class="footer-row footer-bottom">
@@ -2303,6 +2299,176 @@
   </div>
 
   </div>
+
+  <!-- Sello registral (parte más baja del pie): tarjeta fina con escudo ∞ y
+       los datos de Propiedad Intelectual. Texto legal fijo: translate="no"
+       para que el botón mágico de i18n no lo traduzca. CSS y JS inline, sin
+       dependencias ni recursos externos. -->
+  <style>
+    .reg-sello-registral{
+      order:4;
+      margin:26px auto calc(96px + env(safe-area-inset-bottom, 0px));
+      width:100%;
+      max-width:880px;
+      --reg-turquesa:var(--sky-mid);
+      --reg-granate:#7A0016;
+      color:var(--ink);
+      font-family:var(--font-body);
+      text-align:center;
+    }
+    html.modo-salud .reg-sello-registral{
+      --reg-granate:#0B6B44;
+    }
+    .reg-tarjeta{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:14px;
+      color:var(--ink);
+      font-size:0.78rem;
+      line-height:1.55;
+      overflow-wrap:anywhere;
+    }
+    .reg-escudo{ flex:0 0 auto; width:46px; height:46px; }
+    .reg-escudo svg{ display:block; width:100%; height:100%; }
+    .reg-escudo-fondo{ fill:var(--reg-granate); opacity:.3; }
+    .reg-escudo-trazo{ fill:none; stroke:var(--reg-granate); stroke-width:1.7; stroke-linejoin:round; }
+    .reg-infinito{ fill:none; stroke:var(--reg-turquesa); stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+    .reg-escritorio{ margin:0; }
+    .reg-marca{ font-weight:700; }
+    .reg-obra, .reg-datos{ opacity:.82; }
+    .reg-copiar{
+      appearance:none; -webkit-appearance:none;
+      background:transparent; border:1px solid var(--line);
+      color:var(--reg-turquesa); font:inherit; padding:0 6px; border-radius:6px;
+      cursor:pointer; text-decoration:underline; text-underline-offset:2px;
+      transition:background-color .16s ease, border-color .16s ease;
+    }
+    .reg-copiar:hover{ background:var(--accent-soft); border-color:var(--reg-turquesa); }
+    .reg-copiar:focus-visible{ outline:2px solid var(--reg-turquesa); outline-offset:2px; }
+    .reg-aviso{
+      margin:8px auto 0;
+      min-height:1.1em;
+      color:var(--reg-turquesa);
+      font-size:0.72rem;
+    }
+    .reg-compacto, .reg-detalle{ display:none; }
+
+    @media (max-width:600px){
+      .reg-sello-registral{ margin:22px auto calc(104px + env(safe-area-inset-bottom, 0px)); }
+      .reg-tarjeta{ flex-wrap:wrap; gap:10px; padding:12px 14px; }
+      .reg-escudo{ width:40px; height:40px; }
+      .reg-escritorio{ display:none; }
+      .reg-compacto{ display:block; margin:0; flex:1 1 auto; min-width:0; font-weight:600; font-size:0.8rem; }
+      .reg-detalle{
+        display:block; flex:1 1 100%; min-width:0;
+        border-top:1px dashed var(--line); padding-top:8px; margin-top:2px;
+      }
+      .reg-summary{
+        cursor:pointer; list-style:none;
+        display:flex; align-items:center; justify-content:center; gap:6px;
+        color:var(--ink); opacity:.85; font-size:0.72rem; min-height:44px;
+      }
+      .reg-summary::-webkit-details-marker{ display:none; }
+      .reg-summary:focus-visible{ outline:2px solid var(--reg-turquesa); outline-offset:2px; border-radius:6px; }
+      .reg-caret{ color:var(--reg-turquesa); font-size:0.9rem; line-height:1; transition:transform .18s ease; }
+      .reg-detalle[open] .reg-caret{ transform:rotate(45deg); }
+      .reg-detalle-cuerpo{ padding:6px 0 2px; display:flex; flex-direction:column; gap:6px; align-items:center; }
+      .reg-detalle-linea{ margin:0; font-size:0.74rem; opacity:.85; }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .reg-copiar, .reg-caret{ transition:none; }
+    }
+  </style>
+
+  <div class="reg-sello-registral" id="regSelloRegistral" translate="no">
+    <div class="reg-tarjeta">
+      <span class="reg-escudo" aria-hidden="true">
+        <svg viewBox="0 0 48 48" focusable="false" xmlns="http://www.w3.org/2000/svg">
+          <path class="reg-escudo-fondo" d="M24 3 C12 13 12 28 24 43 C36 28 36 13 24 3 Z"/>
+          <path class="reg-escudo-trazo" d="M24 3 C12 13 12 28 24 43 C36 28 36 13 24 3 Z"/>
+          <path class="reg-infinito" d="M24 22 C19 17 19 27 24 22 C29 17 29 27 24 22 Z"/>
+        </svg>
+      </span>
+
+      <p class="reg-escritorio">
+        <span class="reg-marca">Manolit∞ Aire © 2026 Sandro</span>
+        <span class="reg-obra"> · Obra registrada en Propiedad Intelectual, Junta de Andalucía, Consejería de Cultura y Deporte</span>
+        <span class="reg-datos"> · Nº Expediente: <button type="button" class="reg-copiar" data-reg-copiar="RTA-3147-26" aria-label="Copiar número de expediente RTA-3147-26">RTA-3147-26</button> · Nº Registro: <button type="button" class="reg-copiar" data-reg-copiar="2026999010353785" aria-label="Copiar número de registro 2026999010353785">2026999010353785</button> · <time datetime="2026-08-28">28/08/2026</time></span>
+      </p>
+
+      <p class="reg-compacto">Obra registrada en Propiedad Intelectual</p>
+
+      <details class="reg-detalle">
+        <summary class="reg-summary">Expediente, registro y fecha <span class="reg-caret" aria-hidden="true">+</span></summary>
+        <div class="reg-detalle-cuerpo">
+          <p class="reg-detalle-linea">Nº Expediente: <button type="button" class="reg-copiar" data-reg-copiar="RTA-3147-26" aria-label="Copiar número de expediente RTA-3147-26">RTA-3147-26</button></p>
+          <p class="reg-detalle-linea">Nº Registro: <button type="button" class="reg-copiar" data-reg-copiar="2026999010353785" aria-label="Copiar número de registro 2026999010353785">2026999010353785</button></p>
+          <p class="reg-detalle-linea"><time datetime="2026-08-28">28/08/2026</time></p>
+        </div>
+      </details>
+    </div>
+    <p class="reg-aviso" id="regAviso" role="status" aria-live="polite"></p>
+  </div>
+
+  <script>
+    (function () {
+      var aviso = document.getElementById('regAviso');
+      var botones = document.querySelectorAll('.reg-copiar');
+      if (!botones.length) return;
+      var temporizador = null;
+
+      function mostrarCopiado() {
+        if (!aviso) return;
+        aviso.textContent = 'Copiado';
+        if (temporizador) clearTimeout(temporizador);
+        temporizador = setTimeout(function () { aviso.textContent = ''; }, 2000);
+      }
+
+      function copiarFallback(texto) {
+        var area = document.createElement('textarea');
+        area.value = texto;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.top = '-9999px';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        var exito = false;
+        try {
+          area.focus();
+          area.select();
+          area.setSelectionRange(0, texto.length);
+          exito = document.execCommand('copy');
+        } catch (e) {
+          exito = false;
+        }
+        document.body.removeChild(area);
+        if (exito) mostrarCopiado();
+      }
+
+      function copiar(texto) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(texto).then(mostrarCopiado, function () {
+            copiarFallback(texto);
+          });
+        } else {
+          copiarFallback(texto);
+        }
+      }
+
+      Array.prototype.forEach.call(botones, function (btn) {
+        btn.addEventListener('click', function () {
+          var texto = btn.getAttribute('data-reg-copiar') || '';
+          if (texto) copiar(texto);
+        });
+      });
+    })();
+  </script>
 </footer>
 
 <button class="chat-fab" onclick="openChat()" aria-label="Pregúntale a Manolit∞" title="Pregúntale a Manolit∞">

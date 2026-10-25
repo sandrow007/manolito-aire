@@ -175,7 +175,12 @@
 // y sin caja que pulsar). Se devuelve su tamaño con svg#rsSolarMap{width:390px;
 // height:460px}; el puente sigue reescalándolo en móvil y pantalla completa.
 // Cambia index.html.
-const VERSION = '2026-10-23-h-widget-rsSolarMap';
+// 2026-10-23-i: sello registral al final del pie de index.html (obra
+// registrada en Propiedad Intelectual, números de expediente y registro
+// copiables, vista compacta en móvil) y retirada la línea de atribución
+// «Mapa IGN» del pie, que ya queda cubierta en aviso-legal.html.
+// Cambia index.html.
+const VERSION = '2026-10-23-i-sello-registral';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

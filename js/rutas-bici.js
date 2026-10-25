@@ -11,8 +11,11 @@
  *   same-origin /ruta-bici (nunca devuelve coche por error). Máximo una
  *   petición, alternativas=3, uso no comercial.
  * - Atribución: "BRouter" y "© OpenStreetMap contributors" visibles en el
- *   panel. Carriles bici: Overpass vía el proxy /aparcamientos (mismo que
- *   fuentes-agua y parking), solo infraestructura ciclista de OpenStreetMap.
+ *   panel. Carriles bici: Overpass vía el proxy /carriles-bici (ruta propia,
+ *   separada de /aparcamientos y de /arboles: cada capa tiene su propio
+ *   espacio de caché en el Worker para que nunca se devuelvan unos datos
+ *   por otros en el mismo bbox — 24-oct-2026, arreglo del carril que no
+ *   aparecía).
  * - "Más sombra" para bici NO se implementa: reutilizar el motor de sombra
  *   sobre la polilínea de bici no es trivial y se deja fuera para no tocar
  *   la lógica existente.
@@ -30,9 +33,13 @@
   var GEO_URL = window.location.protocol === 'file:'
     ? 'https://manolitoaire.com/geo'
     : '/geo';
+  // Ruta PROPIA para los carriles bici (ver nota de cabecera): antes
+  // reutilizaba '/aparcamientos' y, si esa misma zona ya tenía la caché de
+  // aparcamiento guardada en el Worker, el carril bici recibía esos mismos
+  // datos (nodos de parking, sin geometría de vía) y no dibujaba nada.
   var OVERPASS_URL = window.location.protocol === 'file:'
-    ? 'https://manolitoaire.com/aparcamientos'
-    : '/aparcamientos';
+    ? 'https://manolitoaire.com/carriles-bici'
+    : '/carriles-bici';
 
   var RUTA_TTL_MS = 60 * 1000;
   var MIN_GAP_MS = 1000;             // BRouter: 1 petición/segundo

@@ -3,14 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Shadow Map · Mapa de Sombras — El Google Maps de las sombras | Manolit∞</title>
-<!-- SEO global (reconfiguración): la portada ataca el
-     mercado internacional. «Shadow Map», «Shadow Metro» y «Shadow Finder»
-     son las búsquedas en inglés; «El Google Maps de las sombras» es el pilar
-     en español. La descripción deja claro que TODO es mundial (simulador 3D,
-     rutas sin sol, agua, parkings, nubes en vivo) y que SOLO las estaciones
-     físicas de calidad del aire están acotadas a España. -->
-<meta name="description" content="Shadow Map, Shadow Metro y Shadow Finder: simulador 3D de sombra, rutas sin sol, agua y parkings en cualquier ciudad. Nubes en vivo. Aire en España. Gratis.">
+<title>Manolit∞ Aire · Shade routes and hourly sun shadows in any hot city worldwide | Rutas por la sombra en cualquier ciudad del mundo</title>
+<meta name="description" content="EN: Manolit∞ Aire is a free, universal web app to walk in the shade in extreme-heat cities: Seville, Écija, Córdoba, Athens, Dubai, Doha, Riyadh, Marrakech, Delhi, Phoenix and anywhere else. Hourly sun shadows, coolest routes, drinking fountains and parking, worldwide. Born in Seville. ES: App gratuita y universal para caminar por la sombra en cualquier ciudad con calor extremo, no solo Sevilla ni España. Sombra solar por horas, rutas más frescas, fuentes de agua y aparcamiento en todo el mundo.">
 <!-- 28-sep-2026 (SEO): meta keywords eliminada, Google la
      ignora. Lo del agua y la publicidad se queda contado en su seccion de
      la pagina, no en la description. -->
@@ -21,32 +15,55 @@
      <meta name="google-site-verification" content="..." /> -->
 <link rel="canonical" href="https://manolitoaire.com/">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Manolit∞ Aire">
 <meta property="og:url" content="https://manolitoaire.com/">
-<meta property="og:title" content="Shadow Map · Mapa de Sombras — El Google Maps de las sombras | Manolit∞">
-<meta property="og:description" content="Shadow Map, Shadow Metro y Shadow Finder: simulador 3D de sombra, rutas sin sol, agua y parkings en cualquier ciudad. Nubes en vivo. Aire en España. Gratis.">
+<meta property="og:title" content="Manolit∞ Aire · Walk in the shade in any hot city worldwide | Camina por la sombra en cualquier ciudad del mundo">
+<meta property="og:description" content="Free, universal app: hourly sun shadows, coolest routes, drinking water fountains and parking in any extreme-heat city. Born in Seville, works worldwide. | App gratuita y universal: sombra por horas, rutas frescas, fuentes de agua y aparcamiento en cualquier ciudad con calor extremo. Nació en Sevilla, funciona en todo el mundo.">
 <meta property="og:image" content="https://manolitoaire.com/compartir.png">
 <meta property="og:image:alt" content="Mapa de sombras mundial con edificios en 3D, rutas sin sol, agua, parkings y nubes en vivo de Manolit∞">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": ["WebApplication", "Map"],
+  "@type": "WebApplication",
   "name": "Manolit∞ Aire",
-  "alternateName": ["Manolito Aire", "Manolit∞", "Shadow Map", "Shadow Metro", "Shadow Finder", "Mapa de Sombras", "El Google Maps de las Sombras", "Google Maps de las sombras"],
+  "alternateName": ["Manolito Aire", "Manolit Aire", "Manolitoaire", "Manolit Infinito Aire", "Manolit∞", "Shadow Map", "Shadow Metro", "Shadow Finder", "Mapa de Sombras", "El Google Maps de las Sombras", "Google Maps de las sombras"],
   "url": "https://manolitoaire.com/",
-  "applicationCategory": ["MapApplication", "NavigationApplication", "HealthApplication", "WeatherApplication"],
-  "operatingSystem": "Web",
-  "areaServed": "Worldwide",
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-  "inLanguage": ["es", "ca", "eu", "gl", "en", "ka", "ar"],
+  "description": [
+    {
+      "@language": "en",
+      "@value": "Free, universal web app to move through the shade in extreme-heat cities. It calculates hourly sun shadows and suggests the coolest route (not the shortest) in any city worldwide. It also includes public drinking water fountains and parking, globally. Born in Seville, but not limited to Spain."
+    },
+    {
+      "@language": "es",
+      "@value": "Aplicación web gratuita y universal para moverse por la sombra en ciudades con calor extremo. Calcula la sombra solar por horas y propone la ruta más fresca (no la más corta) en cualquier ciudad del mundo. Incluye fuentes públicas de agua potable y aparcamiento a nivel global. Nació en Sevilla, pero no está limitada a España."
+    }
+  ],
+  "applicationCategory": ["UtilitiesApplication", "MapApplication", "NavigationApplication", "HealthApplication", "WeatherApplication"],
+  "operatingSystem": "Web (iOS Safari, Android, desktop)",
   "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "areaServed": { "@type": "Place", "name": "Worldwide / Mundial" },
+  "inLanguage": ["es", "ca", "eu", "gl", "en", "ka", "ar"],
+  "audience": {
+    "@type": "Audience",
+    "audienceType": "Pedestrians, tourists and residents of extreme-heat cities worldwide / Peatones, turistas y vecinos de ciudades con calor extremo en todo el mundo"
+  },
+  "featureList": [
+    "Hourly sun shadows on the map / Sombra solar por horas sobre el mapa",
+    "Shade routing: coolest route, not the shortest / Ruta por la sombra: la más fresca, no la más corta",
+    "Public drinking water fountains worldwide / Fuentes públicas de agua potable a nivel global",
+    "Parking search worldwide / Búsqueda de aparcamiento a nivel global",
+    "3D buildings, trees, clouds and air quality / Edificios 3D, árboles, nubes y calidad del aire",
+    "Multiple map layers / Varias capas de mapa",
+    "Air quality from physical stations in Spain / Calidad del aire de estaciones físicas en España"
+  ],
   "author": { "@type": "Person", "name": "Sandro" },
   "publisher": { "@type": "Person", "name": "Sandro" },
   "codeRepository": "https://github.com/sandrow007/manolito-aire",
   "license": "https://www.gnu.org/licenses/agpl-3.0.html",
   "keywords": "shadow map, shadow metro, shadow finder, mapa de sombras, el google maps de las sombras, shade map, sunless routes, shadow simulator 3D, public water fountains, shaded parking, live clouds, air quality, shade routes, urban heat islands",
-  "featureList": "Global 3D shadow simulator, shade-optimized walking routes, sunless routes, public water fountains, shaded parking, live clouds and solar position. Air quality from physical stations in Spain.",
-  "description": "Shadow Map, Shadow Metro y Shadow Finder: simulador 3D de sombras global, rutas sin sol, fuentes de agua y parkings con sombra en cualquier ciudad del mundo. Nubes en vivo y posición del sol. Estaciones físicas de calidad del aire en España. Gratis, sin registro y sin publicidad."
+  "copyrightYear": 2026
 }
 </script>
 <script type="application/ld+json">
@@ -102,8 +119,9 @@
 <meta name="author" content="Sandro">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta property="og:locale" content="es_ES">
-<meta name="twitter:title" content="Shadow Map · Mapa de Sombras — El Google Maps de las sombras | Manolit∞">
-<meta name="twitter:description" content="Shadow Map, Shadow Metro y Shadow Finder: simulador 3D de sombra, rutas sin sol, agua y parkings en cualquier ciudad. Nubes en vivo. Aire en España. Gratis.">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:title" content="Manolit∞ Aire · Walk in the shade in any hot city worldwide | Camina por la sombra en cualquier ciudad del mundo">
+<meta name="twitter:description" content="Free, universal app against urban heat: hourly shade, cool routes, drinking fountains and parking. | App gratuita y universal contra el calor urbano.">
 
 <link rel="preconnect" href="https://unpkg.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -2109,6 +2127,117 @@
   </details>
 </section>
 </main>
+
+<style>
+  #que-es{
+    max-width:min(var(--seccion-ancho, 880px), 100%);
+    margin:0 auto;
+    padding:24px 20px 4px;
+    color:var(--ink);
+    font-family:var(--font-body);
+    overflow-wrap:anywhere;
+  }
+  #que-es h2{
+    font-family:var(--font-display);
+    font-size:1.35rem;
+    line-height:1.25;
+    color:var(--sky-deep);
+    margin:0 0 10px;
+  }
+  #que-es h3{
+    font-size:1rem;
+    color:var(--sky-deep);
+    margin:16px 0 8px;
+  }
+  #que-es p{
+    margin:0 0 10px;
+    line-height:1.6;
+    font-size:0.95rem;
+    max-width:62ch;
+  }
+  #que-es dl{ margin:0 0 12px; }
+  #que-es dt{ font-weight:700; margin-top:10px; font-size:0.95rem; }
+  #que-es dd{
+    margin:2px 0 0;
+    line-height:1.55;
+    font-size:0.92rem;
+    opacity:.92;
+    max-width:62ch;
+  }
+  #que-es details{
+    margin-top:14px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px 14px;
+    background:var(--surface);
+  }
+  #que-es summary{
+    cursor:pointer;
+    font-weight:600;
+    color:var(--sky-mid);
+    min-height:44px;
+    display:flex;
+    align-items:center;
+  }
+  #que-es details h2{ font-size:1.2rem; }
+</style>
+
+<section id="que-es" aria-labelledby="que-es-titulo">
+
+  <div lang="es">
+    <h2 id="que-es-titulo">Qué es Manolit∞ Aire</h2>
+    <p>
+      Manolit∞ Aire es una aplicación gratuita y universal para caminar por la
+      sombra. Funciona en cualquier ciudad del mundo y está pensada
+      especialmente para las que más sufren el calor: Sevilla, Écija, Córdoba,
+      Atenas, Roma, Dubái, Doha, Riad, Marrakech, El Cairo, Delhi, Phoenix o
+      Las Vegas, entre otras. Nació en Sevilla, pero su alcance es global,
+      igual que un mapa de uso general.
+    </p>
+    <p>
+      Calcula la sombra solar por horas y propone la ruta más fresca, no la
+      más corta. Además muestra fuentes públicas de agua potable y aparcamiento
+      a nivel global.
+    </p>
+    <h3>Preguntas frecuentes</h3>
+    <dl>
+      <dt>¿Solo funciona en Sevilla o en España?</dt>
+      <dd>No. Nació en Sevilla, pero es universal: sirve en cualquier ciudad del mundo.</dd>
+      <dt>¿Para qué ciudades está pensada?</dt>
+      <dd>Para cualquier ciudad con calor intenso, sea europea, de Oriente Medio, de Asia, de África o de América.</dd>
+      <dt>¿Es gratis?</dt>
+      <dd>Sí, es gratuita y funciona desde el navegador, también en el móvil.</dd>
+    </dl>
+  </div>
+
+  <details lang="en">
+    <summary>English</summary>
+    <h2>What is Manolit∞ Aire</h2>
+    <p>
+      Manolit∞ Aire is a free, universal app for walking in the shade. It works
+      in any city worldwide and is designed especially for the cities that
+      suffer the most from heat: Seville, Écija, Córdoba, Athens, Rome, Dubai,
+      Doha, Riyadh, Marrakech, Cairo, Delhi, Phoenix or Las Vegas, among
+      others. It was born in Seville, but its reach is global, just like a
+      general-purpose map.
+    </p>
+    <p>
+      It calculates hourly sun shadows and suggests the coolest route, not the
+      shortest one. It also shows public drinking water fountains and parking
+      worldwide.
+    </p>
+    <h3>Frequently asked questions</h3>
+    <dl>
+      <dt>Does it only work in Seville or Spain?</dt>
+      <dd>No. It was born in Seville, but it is universal: it works in any city in the world.</dd>
+      <dt>Which cities is it designed for?</dt>
+      <dd>Any city with intense heat, whether in Europe, the Middle East, Asia, Africa or the Americas.</dd>
+      <dt>Is it free?</dt>
+      <dd>Yes, it is free and runs in the browser, including on mobile.</dd>
+    </dl>
+  </details>
+
+</section>
 
 <footer class="footer">
   <!-- Apoyo, insignias y proyectos arriba; observatorios y enlaces legales debajo. -->

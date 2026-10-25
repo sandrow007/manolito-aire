@@ -50,7 +50,7 @@
 
 (function () {
   const CONFIG = {
-    // Vista de arranque (sep-2026, por orden directa de Sandro): la
+    // Vista de arranque (sep-2026, por): la
     // PENÍNSULA entera, plana y en claro, no Sevilla a pie de calle.
     // Además es el arranque más frío posible: a este zoom la capa de
     // edificios 3D ni se renderiza (minzoom del estilo ~13), así que la
@@ -595,7 +595,7 @@
     zoom: Math.max(CONFIG.zoomInicial - 2.3, 1),
     pitch: 0,
     bearing: 0,
-    // Mirar arriba SIN corte (sep-2026, orden de Sandro): el tope de
+    // Mirar arriba SIN corte (sep-2026): el tope de
     // inclinación sube de 60° (el de fábrica) a 85°, el máximo físico de
     // MapLibre. De cerca puedes levantar la vista hasta el horizonte y
     // las fachadas ya no se cortan a media altura.
@@ -649,7 +649,7 @@
 
 // AHORA SÍ: El mapa está creado, lo pasamos a global para que los árboles lo enganchen
 window.manolitAireMap = map;
-// Controles nativos de MapLibre retirados (sep-2026, orden de Sandro):
+// Controles nativos de MapLibre retirados (sep-2026):
 // el zoom salía dos veces y los mandos estaban esparcidos. Ahora TODO
 // el manejo del mapa vive en una única botonera (inyectarControlesCamara):
 // zoom, inclinación, norte y pantalla completa, juntos.
@@ -986,7 +986,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     inyectarSolVisual();
     inyectarBadgeSombra();
     conectarTogglesDeCapas();
-    // Capa de calidad del aire SOLO España (01-oct-2026, orden de Sandro)
+    // Capa de calidad del aire SOLO España (01-oct-2026)
     instalarCapaAireEspana();
     // Velo de sombra macro de las nubes + primera consulta de nubosidad real
     inyectarSombraNubes();
@@ -1154,7 +1154,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // La envolvente convexa RELLENABA los huecos de los edificios no
     // convexos: en bloques con patio interior, eses o uves pintaba
     // sombra eterna donde en realidad da el sol («la sombra no se va
-    // nunca», el fallo que reportó Sandro). Ahora:
+    // nunca», el fallo ). Ahora:
     //   1) El contorno es el BARRIDO real de la huella en la dirección
     //      de la sombra: cadena de silueta quieta + cadena desplazada.
     //      O(n), sin booleanos caros, exacto para convexos y fiel en
@@ -1260,7 +1260,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return { lat: c.lat, lon: c.lon ?? c.lng };
   };
 
-  // 09-oct-2026 (orden de Sandro, «Al sol ahora a las 20:13»): cualquier
+  // 09-oct-2026 («Al sol ahora a las 20:13»): cualquier
   // frase de «ahora» (el popup del parking, por ejemplo) necesita saber si
   // las sombras pintadas son una SIMULACIÓN del slider, porque entonces no
   // valen para «ahora». modoManual se declara con let más abajo; esta
@@ -2041,7 +2041,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const tramos = turf.lineChunk(rutaActual, 0.01, { units: 'kilometers' });
       const sombrasEdificios = (ultimaColeccionSombras && ultimaColeccionSombras.features) || [];
       const sombrasArboles = obtenerSombrasDeArboles();
-      // Rendimiento (sep-2026, brief "Mapa Eficiente y Elegante" de Sandro):
+      // Rendimiento (sep-2026, brief "Mapa Eficiente y Elegante"):
       // una ruta de 2 km son ~200 tramos × booleanPointInPolygon contra
       // TODAS las sombras de edificios + intersección con cada árbol, y
       // esto se dispara en CADA movimiento del slider de hora, en el hilo
@@ -2705,7 +2705,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     let esperandoSoloDestino = false;
     let origenParaAutoRuta = null;
 
-    /* ============ GPS FINO CON SIESTA (sep-2026, pliego de Sandro) ============
+    /* ============ GPS FINO CON SIESTA (sep-2026, pliego) ============
        1) PRIVACIDAD TOTAL: las coordenadas se procesan aquí, en el
           navegador del usuario. Ninguna posición sale del móvil por
           pedirla, ni se guarda historial en ningún sitio.
@@ -2741,13 +2741,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const aplicarPosicionGPS = (pos, opciones) => {
       const volar = !!(opciones && opciones.volar);
       const silenciosa = !!(opciones && opciones.silenciosa);
-      // soloPintar (sep-2026, queja de Sandro del tirón): la lectura tosca
+      // soloPintar (sep-2026,  del tirón): la lectura tosca
       // planta el punto YA para que veas respuesta, pero no resuelve el
       // puente del chat (para rutar hace falta la lectura calibrada).
       const soloPintar = !!(opciones && opciones.soloPintar);
       const lat = pos.coords.latitude, lon = pos.coords.longitude;
       const precisionM = Math.round(pos.coords.accuracy || 0);
-      // Memoria viva de tu posición (26-sep, orden de Sandro): cada
+      // Memoria viva de tu posición (26-sep): cada
       // lectura plantada actualiza el punto global que el chat hereda
       // al instante, sin volver a encender el GPS por su cuenta.
       try { window.__manolitUltimaPos = { lat, lon, precisionM, ts: Date.now() }; } catch (e) { }
@@ -2815,7 +2815,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       gpsWatchId = navigator.geolocation.watchPosition(
         (pos) => {
           // Filtro de calibración: margen mayor de 20 m, lectura descartada
-          // para rutar... pero YA NO en silencio (sep-2026, queja de Sandro
+          // para rutar... pero YA NO en silencio (sep-2026, 
           // del tirón): la primera lectura tosca (≤150 m) planta tu punto al
           // instante, con su círculo de precisión, para que veas que el GPS
           // responde. El puente del chat y el apagado fino siguen exigiendo
@@ -2848,7 +2848,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           // Lectura no disponible o tardía: se sigue esperando dentro del
           // plazo; el temporizador de abajo es quien decide el final.
         },
-        // maximumAge 2 s (sep-2026, queja de Sandro del tirón): si el
+        // maximumAge 2 s (sep-2026,  del tirón): si el
         // navegador tiene una lectura de hace un suspiro la entrega al
         // instante y el filtro de 20 m sigue mandando. Antes, el 0 forzaba
         // un arranque en frío de la radio cada vez.
@@ -2917,7 +2917,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       } catch (e) { }
       armarDetectorMovimiento();
       mostrarEstado(t('locationCalibrating', 'Calibrando el GPS, unos segundos…'));
-      // Por orden directa de Sandro (sep-2026): NADA de armar solo el
+      // Por (sep-2026): NADA de armar solo el
       // modo «elegir en el mapa». El GPS se enciende, se calibra, planta
       // tu punto como origen y se apaga. Tú decides el siguiente paso.
       despertarGPS(true);
@@ -2930,7 +2930,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // ('sin-geolocalizacion', 'denegado', 'sin-precision').
     window.manolitUbicacionParaRuta = () => new Promise((resolve, reject) => {
       if (!('geolocation' in navigator)) { reject(new Error('sin-geolocalizacion')); return; }
-      // Herencia directa (26-sep, orden de Sandro): si la web YA sabe
+      // Herencia directa (26-sep): si la web YA sabe
       // dónde estás, el chat usa esa misma posición al instante y no
       // vuelve a buscar desde cero. Fuentes, en este orden:
       // 1) la última lectura GPS plantada por el mapa;
@@ -2967,7 +2967,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       btnUbicacion.click();
     });
 
-    // Calentador del GPS (sep-2026, queja de Sandro del tirón): si el
+    // Calentador del GPS (sep-2026,  del tirón): si el
     // permiso YA estaba concedido de antes, una lectura silenciosa y de
     // bajo consumo al cargar el mapa deja la radio y la caché listas y el
     // botón responde al instante. Si el permiso no está concedido no se
@@ -3022,7 +3022,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       let ultimaCamaraCaminata = null;
       let ultimaSincroCaminataMs = 0;
       let ultimaLecturaGpsMs = 0;
-      // Arranque inmediato (sep-2026, queja de Sandro del tirón): si ya
+      // Arranque inmediato (sep-2026,  del tirón): si ya
       // conocemos tu punto (el GPS con siesta lo plantó antes), el
       // marcador sale YA y la primera lectura en vivo lo afina. Antes el
       // marcador no aparecía hasta la primera lectura y parecía colgado.
@@ -3067,7 +3067,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           }
         },
         () => mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error'),
-        // Batería (sep-2026, orden de Sandro: el móvil NO se calienta):
+        // Batería (sep-2026: el móvil NO se calienta):
         // enableHighAccuracy:true mantenía el chip GPS del iPhone a máxima
         // potencia durante TODA la caminata, es hardware de radio, la
         // fuente de calor nº 1 de cualquier móvil. Con localización por
@@ -3103,7 +3103,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       paseoJugador.x = 0;
       paseoJugador.y = 0;
       paseoJugador.bearing = map.getBearing() || 0;
-      // Mirada vertical LIBRE (sep-2026, orden de Sandro): el pitch ya no
+      // Mirada vertical LIBRE (sep-2026): el pitch ya no
       // está clavado, arrastra el dedo arriba/abajo para mirar al cielo
       // o a tus pies. 85° es el máximo físico de MapLibre; sin ese tope
       // la proyección se rompe. Los edificios ya no se cortan a media
@@ -3134,7 +3134,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       mostrarEstado(t('virtualWalkHint', 'Arrastra para mirar • Joystick para moverte • Esc para salir'));
 
       const joy = document.getElementById('rsJoystick');
-      // Joystick visible SIEMPRE en el paseo (sep-2026, orden de Sandro):
+      // Joystick visible SIEMPRE en el paseo (sep-2026):
       // antes solo salía en pantallas táctiles y en un ordenador no había
       // forma de caminar sin adivinar las teclas. Con ratón también se
       // arrastra el joystick, así el movimiento es libre para todos.
@@ -3345,11 +3345,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // Irradiación Solar: sigue siendo un módulo aparte con carga perezosa.
     const btnIrradiacion = botonCapaFijo('rsBtnIrradiacion', t('irrLayerBtn', 'Irradiación Solar'), 'js/irradiacion-solar.js');
 
-    // Botoncito "↻ Actualizar mapa" (sep-2026, orden de Sandro): fuerza la
+    // Botoncito "↻ Actualizar mapa" (sep-2026): fuerza la
     // descarga FRESCA de OpenStreetMap para la vista actual, lo que
     // acabáis de dibujar en OSM aparece al momento, sin esperar al
     // refresco automático de 12 h. El aviso de estado confirma el resultado.
-    /* Botón mini "Act. mapa" (2026-09-12, pedido de Sandro): FUERA del
+    /* Botón mini "Act. mapa" (2026-09-12): FUERA del
        panel de botones, arriba a la derecha, muy pequeño. Y que actualice
        DE VERDAD, antes solo renovaba los árboles, pero las TESELAS del
        mapa base las sirve el Service Worker con cache-first y los cambios
@@ -3462,7 +3462,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     // El botón de actualizar OSM ya NO va en el panel: vive fijo arriba a
     // la derecha, muy pequeño, para que la botonera quepa en una línea.
-    // 01-oct-2026 (rediseño del mapa, orden de Sandro): Árboles e
+    // 01-oct-2026 (rediseño del mapa): Árboles e
     // Irradiación ya NO son acciones de la barra, son capas y viven en el
     // panel unificado (anclajes #rsMonteArboles / #rsMonteIrradiacion del
     // index). Mismo botón, mismo id, mismo handler: solo cambia el sitio.
@@ -3472,7 +3472,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const monteIrradiacion = document.getElementById('rsMonteIrradiacion');
     if (monteArboles) monteArboles.appendChild(btnArboles); else panelMapa.appendChild(btnArboles);
     if (monteIrradiacion) monteIrradiacion.appendChild(btnIrradiacion); else panelMapa.appendChild(btnIrradiacion);
-    // (sep-2026, orden de Sandro) «Mi ubicación» sale de la barra de arriba:
+    // (sep-2026) «Mi ubicación» sale de la barra de arriba:
     // el botón SIGUE en el DOM porque el mini-Manolit de la pila de cámara
     // (rsCamUbicacion) le delega su click, pero ya no ocupa hueco en el banner.
     btnUbicacion.style.display = 'none';
@@ -3734,7 +3734,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
          invert() sobre el canvas WebGL es un pase de GPU a pantalla
          completa en CADA repintado del mapa, y antes se aplicaba SOLO
          al arrancar, porque la web nace en tema oscuro: el mapa salía
-         oscuro (Sandro lo pidió claro: "el inicio mapa claro, la
+         oscuro ("el inicio mapa claro, la
          península, en blanco") y el iPhone pagaba el filtro desde el
          primer frame. Ahora el mapa nace claro siempre y el filtro solo
          existe cuando el usuario pulsa el botón (sep-2026). */
@@ -3749,7 +3749,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'rsBtnMapaOscuro';
-    // 07-oct-2026 (orden directa de Sandro): los mapas base dejan de ser
+    // 07-oct-2026 (): los mapas base dejan de ser
     // tarjetas dentro de una caja con acordeón y pasan a un CONTROL
     // SEGMENTADO plano de dos botones: [Mapa claro] [Mapa IGN]. Uno
     // activo en naranja, el otro en gris, y el cambio es inmediato.
@@ -3841,7 +3841,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     });
     wrap.appendChild(btnIGN);
 
-    /* Segmento OSCURO (07-oct, orden directa de Sandro): la capa oscura
+    /* Segmento OSCURO (07-oct): la capa oscura
        del mapa vuelve a tener botón propio. Es el tercer segmento del
        control: [Mapa claro] [Mapa IGN] [Mapa oscuro]. Enciende el filtro
        oscuro sobre la base vectorial y apaga el WMS del IGN (invertir el
@@ -3865,7 +3865,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     });
     wrap.appendChild(btnOsc);
     // Pintado inicial del segmentado: claro activo, IGN apagado (el mapa
-    // nace claro siempre, sep-2026, orden de Sandro).
+    // nace claro siempre, sep-2026).
     sincronizarSegmentos();
 
     /* --- Catastro de España: densidad de alturas (fucsia/verde) ---
@@ -3940,13 +3940,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       btnCatastro.setAttribute('aria-pressed', catastroActivo ? 'true' : 'false');
     });
-    // Catastro 3D ya NO va con los mapas base (07-oct-2026, orden directa
-    // de Sandro): es una capa combinable y vive en su propia fila-toggle
+    // Catastro 3D ya NO va con los mapas base (07-oct-2026):
+    // es una capa combinable y vive en su propia fila-toggle
     // del grupo «Base e infraestructura», igual que Árboles e Intensidad
     // solar. El interruptor de la fila se pinta solo leyendo aria-pressed.
     (document.getElementById('rsMonteCatastro') || wrap).appendChild(btnCatastro);
     // El control segmentado [Mapa claro | Mapa IGN] DENTRO del widget de
-    // posición solar (sep-2026, orden de Sandro): ya no flota encima del
+    // posición solar (sep-2026): ya no flota encima del
     // mapa; vive en el planetario, junto a las casillas de capas. Si el
     // widget no estuviera en el HTML, se quedan donde estaba. La forma
     // (fila plana de dos botones) la pone el CSS, no estilos en línea.
@@ -4046,7 +4046,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     });
 
     /* ------------ Botón flotante de capas con panel desplegable ------------
-       (06-oct-2026, orden de Sandro)
+       (06-oct-2026)
 
        Solo presentación: la lógica de capas, los ids y el estado global
        no se tocan. El panel se traslada dentro del mapa y se gobierna
@@ -4135,7 +4135,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   /* ---------------- Capa de calidad del aire, SOLO España ----------------
-     (01-oct-2026, orden directa de Sandro)
+     (01-oct-2026)
 
      La casilla «Calidad del aire» vive en index.html (#rsCapaAireFila) y
      nace con hidden. Aquí solo decidimos CUÁNDO se enseña y qué pinta:
@@ -4341,7 +4341,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const enEspaña = hayEspaEnVista();
       fila.hidden = !enEspaña;
       if (!enEspaña && toggle.checked) {
-        // Regla de Sandro: fuera de España la capa se apaga y se avisa.
+        // Regla de  fuera de España la capa se apaga y se avisa.
         toggle.checked = false;
         if (map.getLayer(AIRE_ES.capaId)) {
           map.setLayoutProperty(AIRE_ES.capaId, 'visibility', 'none');
@@ -5246,8 +5246,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     try {
       const ruta = await calcularRutaConPrioridadSombra(origen, destino);
 
-      // Control manual total (sep-2026, corrección por orden directa de
-      // Sandro): NINGUNA casilla se auto-marca nunca. Al abrir la app solo
+      // Control manual total (sep-2026, corrección por ): NINGUNA casilla se auto-marca nunca. Al abrir la app solo
       // vienen marcadas «Edificios 3D» y «Nubes»; el resto se elige a mano.
       // Buscar una ruta ya ES una orden explícita, así que la ruta se
       // muestra igualmente, pero sin tocar las casillas: las capas se
@@ -5462,7 +5461,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     joy.addEventListener('lostpointercapture', limpiarJoystick);
   }
 
-  /* ----- Botonera única de cámara (sep-2026, orden de Sandro) -----
+  /* ----- Botonera única de cámara (sep-2026) -----
      TODOS los manejos del mapa en un mismo lugar: un mando compacto
      de dos columnas en el borde DERECHO del mapa, centrado en
      vertical, con botones grandes, oscuros y borde naranja. Pensado
@@ -5562,9 +5561,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // Flecha de brújula como la de MapLibre de siempre: punta naranja
     // al norte, cuerpo del color del texto del tema. Gira con el mapa.
     btnCamBrujula.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2l4.5 10-4.5 10-4.5-10z" fill="currentColor"/><path d="M12 2l4.5 10h-9z" fill="#FBFAF7"/></svg>';
-    // Mi ubicación JUNTO a los zooms, la inclinación y la N (orden de
-    // Sandro, sep-2026). El icono es el LOGO OFICIAL de Manolit∞, con la
-    // geometría exacta del splash (06-oct-2026, orden directa): gota
+    // Mi ubicación JUNTO a los zooms, la inclinación y la N (sep-2026). El icono es el LOGO OFICIAL de Manolit∞, con la
+    // geometría exacta del splash (06-oct-2026): gota
     // granate, sol dorado y las DOS ondas teal (agua y aire). Para que
     // las dos ondas se distingan en tamaño pequeño el trazo va engrosado
     // y la segunda onda un poco más separada, misma curva y colores.
@@ -6339,7 +6337,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           '¡Hasta luego, Mari... digo, hasta la próxima caminata, compare!',
           '¡Esto ya está hecho! Un aplauso pa nosotros, que lo vale.'
         ];
-        /* ---- VOZ DE ESTACIÓN (sep-2026, orden de Sandro) ----
+        /* ---- VOZ DE ESTACIÓN (sep-2026) ----
            Manolit comenta la estación del año real, como los árboles que
            cambian solos: en invierno se queja del frío, en otoño y en
            primavera suelta sus bromitas y en verano oficial (desde el 21
@@ -6663,7 +6661,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           // Quieto: saltamos _applyPose y el tic baja a 4 Hz (la detección
           // de "10 s aburrido" sigue funcionando igual, con margen de sobra).
           // En cuanto hay actividad, el tic vuelve a 66 ms y se ve IDÉNTICO.
-          // Calor bis (sep-2026, queja de Sandro): «explorando» y «sentado»
+          // Calor bis (sep-2026): «explorando» y «sentado»
           // ya NO cuentan como actividad, porque entre capricho y capricho
           // (y sentado) la pose no cambia y el tic a 15 fps solo repintaba
           // el SVG sin parar. Tic rápido solo con movimiento real de pose.
@@ -6679,7 +6677,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       _capricho() {
         if (!this._explorando || this._moving) return;
-        // La siesta de Manolit (sep-2026, queja de Sandro del calor): tras
+        // La siesta de Manolit (sep-2026,  del calor): tras
         // 4 minutos explorando sin que nadie le toque, se sienta y se echa
         // la siesta. Deja de animarse del todo (el tic baja a 4 Hz y la
         // batería descansa) hasta que lo toques o te muevas de verdad.
@@ -7216,7 +7214,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         fab.innerHTML = '';
         fab.appendChild(figura);
 
-        // Burbuja «¡Pregúntame!» (01-oct-2026, orden directa de Sandro,
+        // Burbuja «¡Pregúntame!» (01-oct-2026,
         // tarea 3): antes buscaba window.i18n.t, un objeto que i18n.js NO
         // expone (i18n.js cuelga window.translations + window.getMessages),
         // así que la burbuja salía SIEMPRE en español fuera cual fuese el
@@ -7526,7 +7524,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
      guía viven en el módulo js/a11y-guia.js, que adopta el botón
      #rsBtnGuiaVoz que nace con el panel. Nada que hacer aquí. */
 
-  /* ==================== CHAT → RUTA CON SOMBRA (sep-2026, pliego de Sandro) ====
+  /* ==================== CHAT → RUTA CON SOMBRA (sep-2026, pliego) ====
      Un chip pill dentro del chat («¿Calculo tu ruta con sombra desde aquí?»)
      pide tu ubicación REUTILIZANDO el GPS fino con siesta del mapa (alta
      precisión, filtro de 20 m y apagado inmediato: no se duplica lógica),
@@ -7648,8 +7646,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         return nombres;
       };
 
-      // Informe de aire para rutas fuera de España (sep-2026, orden de
-      // Sandro): la capa de aire del mapa es solo España, pero el chat
+      // Informe de aire para rutas fuera de España (sep-2026): la capa de aire del mapa es solo España, pero el chat
       // informa en texto de cualquier ruta del mundo. Las sombras son
       // mundiales y no llevan aviso. Si el país no tiene soporte de
       // datos de aire, se dice con seriedad.
@@ -7681,7 +7678,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         return typeof window.manolitUbicacionParaRuta === 'function';
       };
 
-      // «Ver un ejemplo» (sep-2026, orden de Sandro): ruta simulada con
+      // «Ver un ejemplo» (sep-2026): ruta simulada con
       // datos reales entre dos lugares del mundo. No toca tu GPS, el
       // origen es simulado. La ruta se dibuja de verdad en el mapa y el
       // informe de aire sigue las mismas reglas que una ruta real.
@@ -7794,7 +7791,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
       // Dibuja (o sustituye) la ruta: entra por manejarBusqueda(), que es
       // exactamente la puerta que usa el botón «Buscar ruta» del panel.
-      // Orden del flujo (sep-2026, orden de Sandro): PRIMERO el destino
+      // Orden del flujo (sep-2026): PRIMERO el destino
       // y DESPUÉS el GPS. Aquí llegas con el destino ya elegido; ahora
       // toca saber desde dónde sales.
       const confirmarDestino = async (destino) => {
@@ -7865,7 +7862,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         inputRuta.placeholder = t('chatRouteDestPlaceholder', 'Ir desde mi ubicación actual hasta…');
         inputRuta.setAttribute('aria-label', t('chatRouteDestPlaceholder', 'Ir desde mi ubicación actual hasta…'));
         fila.appendChild(inputRuta);
-        // «Ver un ejemplo» (sep-2026, orden de Sandro): ruta simulada por
+        // «Ver un ejemplo» (sep-2026): ruta simulada por
         // el mundo con datos reales, sin tocar tu GPS.
         const btnEjemplo = document.createElement('button');
         btnEjemplo.type = 'button';
@@ -7904,7 +7901,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (inputRuta) inputRuta.focus();
       };
 
-      // El chip (sep-2026, orden de Sandro): click → te pide el DESTINO
+      // El chip (sep-2026): click → te pide el DESTINO
       // primero (cualquier lugar del mundo) y solo después, al confirmar,
       // se enciende el GPS para salir desde donde estás. También ofrece
       // «Ver un ejemplo», una ruta simulada por el mundo con datos reales.
@@ -7926,7 +7923,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         qs.appendChild(chip);
       });
 
-      // Retraducción del chat de rutas (26-sep, orden de Sandro): estos
+      // Retraducción del chat de rutas (26-sep): estos
       // textos se crean a mano con t() en el idioma de ese momento y se
       // quedaban congelados si cambiabas de idioma con el chat abierto.
       // Ahora escuchan langChanged (lo emite i18n.js) y se vuelven a
@@ -8339,7 +8336,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       return {
         densidadHoja: 1,
         colorHoja: null,
-        // Naranjas VISIBLES todo el año (petición de Sandro, sep-2026): en
+        // Naranjas VISIBLES todo el año (sep-2026): en
         // Sevilla el naranjo amargo guarda fruto colgando casi siempre.
         conFruto: estacion !== 'primavera',
         // En verano además cuelgan las naranjas VERDES pequeñas de la
@@ -8811,7 +8808,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       let decoradosEstePase = 0;
       const MAX_ARBOLES_DECORADOS = 150;
 
-      // ------- DESCAMUFLAJE 3D (ADITIVO sep-2026, orden de Sandro) -------
+      // ------- DESCAMUFLAJE 3D (ADITIVO sep-2026) -------
       // En OSM a veces el MISMO árbol está dos veces: una con especie
       // (Citrus × … → modelo 3D real) y otra sin etiquetar a 2-3 m. Esa
       // segunda copia dibujaba su copa plana ATRAVESADA en la copa 3D: el
@@ -9484,7 +9481,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }, CONFIG.esperaMoveendMs);
     });
 
-    /* ---- Actualización de datos OSM cada 12 h (sep-2026, orden de Sandro) ----
+    /* ---- Actualización de datos OSM cada 12 h (sep-2026) ----
        Lo que la gente dibuja en OpenStreetMap debe verse en HORAS, no en
        una semana. Tres capas que trabajan juntas:
        1) WORKER: la caché compartida caduca a las 12 h (ver worker.js).
@@ -9573,7 +9570,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // (Este archivo tiene varios IIFE independientes: este bloque es
   // autosuficiente y no usa helpers de otros módulos.)
   (function mejoraCapasPlegables() {
-    // 07-oct-2026 (orden directa de Sandro): la caja contenedora y la
+    // 07-oct-2026 (): la caja contenedora y la
     // flecha del acordeón «Capas de mapa» se ELIMINAN por completo. Los
     // mapas base son ahora un control segmentado plano [Mapa claro |
     // Mapa IGN] sin cajas decorativas. Este bloque queda desactivado:
@@ -9589,7 +9586,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           if (!hijos.length) { delete grupo.dataset.rsPlegable; return; }
           hijos.forEach(function (b) {
             // Catastro 3D va siempre visible en su propia fila, debajo
-            // de Capas y Capas de mapa (orden de Sandro, sep-2026): el
+            // de Capas y Capas de mapa (sep-2026): el
             // 3D se tiene que ver sin abrir ningun desplegable.
             if (b.id === 'rsBtnCatastro') return;
             b.classList.add('rs-capa-hija');
@@ -9716,7 +9713,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
               yo._saluda();
             } catch (e) { }
           }, 14000);
-          // Charla de estación (sep-2026, orden de Sandro): además de hablar
+          // Charla de estación (sep-2026): además de hablar
           // cuando le tocas, Manolit comenta la estación por su cuenta cada
           // 100-180 segundos. Solo si la pestaña está visible, él está
           // quietecito y la voz YA tiene permiso (nunca abre él solo la

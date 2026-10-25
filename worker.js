@@ -208,7 +208,7 @@ export default {
         } catch (e) { /* sin clave: seguimos sin caché */ }
 
         const kv = env.AIR_QUALITY_CACHE || null;
-        // Actualización cada 12 h (sep-2026, orden de Sandro): antes una
+        // Actualización cada 12 h (sep-2026): antes una
         // copia se consideraba "fresca" durante 7 días, y lo que la gente
         // dibujaba en OpenStreetMap tardaba una semana en aparecer en la
         // web. Ahora la caché compartida caduca a las 12 horas; y el
@@ -430,7 +430,7 @@ export default {
     }
 
     // --- Proxy anti-CORS + caché KV para APARCAMIENTOS (Overpass / OSM) ---
-    // 07-oct-2026 (orden de Sandro, módulo parking): misma defensa en tres
+    // 07-oct-2026 (módulo parking): misma defensa en tres
     // capas que /arboles (KV con stale-while-revalidate, carrera de espejos
     // en paralelo, copia vieja de emergencia). Ruta aparte para que la caché
     // de aparcamientos no colisione con la de árboles en el mismo bbox.
@@ -715,7 +715,7 @@ export default {
     }
 
     // --- Proxy OSRM perfil COCHE (viaje largo entre ciudades) --------------
-    // 07-oct-2026 (orden de Sandro, planificador de viaje): mismo servidor
+    // 07-oct-2026 (planificador de viaje): mismo servidor
     // FOSSGIS que /ruta/ pero con el perfil routed-car. Lo usa viaje-largo.js
     // para el tramo de carretera (sin cálculo de sombra). Si falla devolvemos
     // {"code":"Error"} con 200 y el frontend decide el plan B sin manchar F12.

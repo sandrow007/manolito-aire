@@ -15,7 +15,7 @@
 
 const translations = {
 	es: {
-		// Modo salud de los sábados (sep-2026, orden de Sandro)
+		// Modo salud de los sábados (sep-2026)
 		saludBannerTexto: "En esta tierra, cuidar nuestro entorno es cuidar nuestro cuerpo.",
 		saludBannerCta: "Descubre por qué defendemos la salud ambiental y cada rincón de sombra.",
 		saludKicker: "Fin de semana de la salud",
@@ -39,7 +39,7 @@ const translations = {
 		saludRecursos: "Recursos oficiales",
 		saludLinkSanidad: "Consejería de Sanidad de la Junta",
 		saludLinkResponde: "Consultas y Gestión de Citas (Salud Responde)",
-		// Recursos por gama (26-sep, orden de Sandro, textos dictados).
+		// Recursos por gama (26-sep, textos dictados).
 		// Las dos keys andaluzas de arriba quedan en reserva, ya no se
 		// muestran: de Andalucía solo queda OSMAN.
 		saludGamaRegional: "Gama Regional (Andalucía)",
@@ -397,7 +397,7 @@ const translations = {
 		quantumBadge: "Manolit∞ Cuántico",
 		quantumSub: "pronóstico simulado para los próximos 5 días, contado sin humo",
 		quantumDisclaimer: "Esto NO es una predicción meteorológica oficial. Es una simulación matemática (formalismo cuántico simulado por software, sin hardware cuántico real) que calcula probabilidades a partir del pronóstico real de arriba. Para decisiones de salud, guíate por el dato del gráfico y por fuentes oficiales, no por este número.",
-		footerFamiliaTxt: "Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.",
+		footerFamiliaTxt: "Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de  herramientas gratuitas, sin registro y sin publicidad.",
 		footerEcoTxt: "Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.",
 		footerIgnTxt: "Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)",
 		donacionTxt: "Manolit∞ siempre será gratis.<br>Los servidores, por desgracia, no lo son...",
@@ -860,7 +860,7 @@ const translations = {
 		quantumBadge: "Manolit∞ Quàntic",
 		quantumSub: "pronòstic simulat per als propers 5 dies, explicat sense fum",
 		quantumDisclaimer: "Això NO és una predicció meteorològica oficial. És una simulació matemàtica (formalisme quàntic simulat per programari, sense maquinari quàntic real) que calcula probabilitats a partir del pronòstic real de dalt. Per a decisions de salut, guia't per la dada del gràfic i per fonts oficials, no per aquest número.",
-		footerFamiliaTxt: "Manolit∞ Aire forma part de la família de projectes ciutadans d'en Sandro: eines gratuïtes, sense registre i sense publicitat.",
+		footerFamiliaTxt: "Manolit∞ Aire forma part de la família de projectes ciutadans d'en  eines gratuïtes, sense registre i sense publicitat.",
 		footerEcoTxt: "Web frugal i sostenible, amb xifres mesurades: la telemetria real de 30 dies dona 0,38 MB i uns 2 mil·lilitres d'aigua per visita, menys que una sola pregunta a una intel·ligència artificial. I sense publicitat ni subhastes d'anuncis: la publicitat programàtica del món gasta uns 375 litres d'aigua cada segon; aquesta web sencera, un glop per visita.",
 		footerIgnTxt: "Capa base opcional «Mapa IGN»: cartografia © IGN / SCNE, CC BY 4.0 (scne.es)",
 		donacionTxt: "Manolit∞ sempre serà gratis.<br>Els servidors, per desgràcia, no ho són...",
@@ -1783,7 +1783,7 @@ const translations = {
 		quantumBadge: "Manolit∞ Cuántico",
 		quantumSub: "prognóstico simulado para os próximos 5 días, contado sen fume",
 		quantumDisclaimer: "Isto NON é unha predición meteorolóxica oficial. É unha simulación matemática (formalismo cuántico simulado por software, sen hardware cuántico real) que calcula probabilidades a partir do prognóstico real de arriba. Para decisións de saúde, guíate polo dato da gráfica e por fontes oficiais, non por este número.",
-		footerFamiliaTxt: "Manolit∞ Aire forma parte da familia de proxectos cidadáns de Sandro: ferramentas gratuitas, sen rexistro e sen publicidade.",
+		footerFamiliaTxt: "Manolit∞ Aire forma parte da familia de proxectos cidadáns de  ferramentas gratuitas, sen rexistro e sen publicidade.",
 		footerEcoTxt: "Web frugal e sostible, con números medidos: a telemetría real de 30 días dá 0,38 MB e uns 2 mililitros de auga por visita, menos ca unha soa pregunta a unha intelixencia artificial. E sen publicidade nin poxas de anuncios: a publicidade programática do mundo gasta uns 375 litros de auga cada segundo; esta web enteira, un sorbo por visita.",
 		footerIgnTxt: "Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)",
 		donacionTxt: "Manolit∞ sempre será de balde.<br>Os servidores, por desgraza, non o son...",
@@ -3079,7 +3079,7 @@ window.setLang = setLang;
 window.getCurrentLang = function () { return currentLang; };
 
 /* ============================================================
-   BOTÓN MÁGICO DE TRADUCCIÓN (01-oct-2026, orden directa de Sandro)
+   BOTÓN MÁGICO DE TRADUCCIÓN (01-oct-2026)
    "Dejad de traducir a mano elemento a elemento: que la página
    entera se traduzca sola, sin excepciones, sin romper lo que
    ya funciona."
@@ -3324,7 +3324,7 @@ window.getCurrentLang = function () { return currentLang; };
 		const sinMarca = n.replace(/manolit∞?(?:\s+aire)?/gi, '').trim();
 		if (!sinMarca) return false;                       // solo la marca no se toca
 		if (/^(https?:|www\.|#|\/)/i.test(n)) return false; // URLs y anclas
-		if (/^[\d\s.,:;%€$+\-–—/()'"¿?¡!]+$/.test(n)) return false; // sin letras reales
+		if (/^[\d\s.:;%€$+\-–—/()'"¿?¡!]+$/.test(n)) return false; // sin letras reales
 		return true;
 	}
 

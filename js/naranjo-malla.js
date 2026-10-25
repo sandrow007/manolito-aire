@@ -1,5 +1,5 @@
 /* ============================================================
-   naranjo-malla.js, LA MALLA REAL del naranjo de Sandro
+   naranjo-malla.js, LA MALLA REAL del naranjo
    Licencia: AGPL-3.0, igual que el resto del proyecto.
    ------------------------------------------------------------
    Datos extraidos BYTE-EXACTOS de su "naranjo real mesh v2.html"

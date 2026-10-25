@@ -1,6 +1,6 @@
 /* ============================================================================
    aparcamientos-viaje.js. APARCAMIENTOS + PLANIFICADOR DE VIAJE de Manolit∞
-   (ADITIVO, 07-oct-2026, orden directa de Sandro: TODO en UN solo archivo)
+   (ADITIVO, 07-oct-2026: TODO en UN solo archivo)
    ----------------------------------------------------------------------------
    - Nada de lo existente se toca. Este módulo se engancha al mapa por el
      hook público window.manolitAireMap (el mismo que usa arboles-3d.js) y
@@ -27,7 +27,7 @@
      'manolito:planificar-viaje' (detail {origen, destino}).
      Evento emitido: 'manolito:parking-cambiado' (detail {activo}).
    - Licencia: AGPL-3.0 como el resto del proyecto.
-   - ARREGLO URGENTE 08-oct-2026 (orden de Sandro, «el parking choca con
+   - ARREGLO URGENTE 08-oct-2026 («el parking choca con
      sombras»): querySourceFeatures fuera de TODA la lectura de datos.
      Esa llamada trocea por tiles y devolvía cero o un recorte, así que
      cada recálculo del motor de sombras vaciaba los puntos y los
@@ -36,7 +36,7 @@
      _data/serialize() de 'sombras' y 'arboles-globales-sombra'. Además
      las capas llevan minzoom 12,5: aparecen AL ACERCARTE, rollo
      edificios 3D, y de lejos ni se piden datos.
-   - ARREGLO SVG SOLAR 17-oct-2026 (orden de Sandro): el bloque
+   - ARREGLO SVG SOLAR 17-oct-2026 (): el bloque
      SVG_SOL_BASE64 traía un carácter de más (un espacio suelto dentro
      de la cadena, a mitad de un href) que rompía el base64 y además el
      símbolo de infinito llevaba un desplazamiento de 15 unidades en

@@ -303,7 +303,7 @@ async function fetchCurrentCity(){
   airRequestFailed = false;
   renderHero();
   try{
-    // Panel científico con más datos (sep-2026, orden de Sandro): se piden
+    // Panel científico con más datos (sep-2026): se piden
     // también SO₂, CO e índice UV. El Worker pasa la consulta tal cual a
     // Open-Meteo, así que no hay que tocar nada más del camino.
     const consultaAire = `latitude=${d.lat}&longitude=${d.lon}&current=pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,uv_index&timezone=auto`;
@@ -1093,8 +1093,7 @@ document.addEventListener('langChanged', () => {
 });
 
 /* ============================================================
-   ENTRADA AL JUEGO «ATRAPA A MANOLIT∞» (07-oct-2026, orden
-   directa de Sandro). Vive SOLO en la sección de niños: el botón
+   ENTRADA AL JUEGO «ATRAPA A MANOLIT∞» (07-oct-2026). Vive SOLO en la sección de niños: el botón
    está en el bloque .peque-actions del hero y la CSS lo mantiene
    oculto fuera del modo peque (.peque-juego-btn nace con
    display:none y solo body.mode-peque lo enseña). El juego y el

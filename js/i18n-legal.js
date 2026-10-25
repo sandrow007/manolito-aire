@@ -12,7 +12,7 @@
      - AR: se deja el original para que el traductor automático común
        lo traduzca por fragmentos, sin sustituir el texto legal oficial.
 =======
-     - AR (12-oct-2026, orden de Sandro): traducción jurídica árabe
+     - AR (12-oct-2026): traducción jurídica árabe
        completa (privacidad, aviso legal y cookies).
 >>>>>>> cadc8ff0e84b07e20dbcc47be5725feed3262eec
    ============================================================ */
@@ -104,7 +104,7 @@
     avis_44: 'For blind people using a <strong>screen reader</strong> (NVDA, VoiceOver, JAWS), the page provides correct semantic HTML and ARIA: a skip link to the main content, origin/destination search boxes with the full <i>combobox</i> pattern (arrow keys, Enter and Escape), a time slider that announces the time in a readable format, and —since the 3D map is an inherently inaccessible graphic canvas— a <b>live text region</b> that always mirrors the route summary (distance, duration, shade percentage) and the sun\u2019s position, using the very same data as the calculation. Keyboard focus is always visible (3&nbsp;px outline) and stays trapped inside the cookie notice while it is open. In addition, every calculated route generates <b>step-by-step text directions</b> ("Head out along Calle Feria towards the north, 120 metres — shaded stretch…"), readable by any screen reader and also aloud via the "Listen to directions" button, which uses the device\u2019s own voice (Web Speech API): nothing is sent to any server. Out of respect for screen-reader users, this site <b>does not use third-party accessibility widgets</b> (such as AccessiBe or UserWay), which interfere with their real tools. The design target is <b>WCAG 2.1 level AA</b>; if anything fails for you, write to <strong>SANDRO.A007@GMAIL.COM</strong> and I will fix it.',
   };
 
-  // ---------- العربية (12-oct-2026, orden de Sandro: traducción jurídica
+  // ---------- العربية (12-oct-2026: traducción jurídica
   // completa y revisada de Privacidad, Aviso legal y Cookies) ----------
   const ar = {
     "priv_1": "سياسة الخصوصية وأمن البيانات",
@@ -233,7 +233,7 @@
 };
 
   function aplicar(lang) {
-    // 12-oct-2026 (orden de Sandro): el árabe también tiene traducción
+    // 12-oct-2026 (): el árabe también tiene traducción
     // jurídica completa; ca/eu/gl/ka siguen con el castellano de referencia.
     const dict = lang === 'en' ? en : (lang === 'ar' ? ar : null); // resto de idiomas: castellano (texto legal de referencia)
     document.querySelectorAll('[data-i18n-legal]').forEach((el) => {

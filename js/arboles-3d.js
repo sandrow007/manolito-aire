@@ -3,7 +3,7 @@
    (ADITIVO, sep-2026; sustituye al borrador albizia-3d.js, que nunca se
    desplegó: un solo motor para ambas especies)
    ----------------------------------------------------------------------------
-   Petición de Sandro: los dos árboles emblemáticos de su mapa deben ser
+    los dos árboles emblemáticos de su mapa deben ser
    EXACTAMENTE los modelos 3D que él envió:
    - ALBIZIA: port valor a valor de su HTML (Three.js): tronco corto que se
      bifurca bajo, copa ancha de hojas finas (0.26 x 0.09), pompones rosas
@@ -42,7 +42,7 @@
   var N_VARIANTES = 4;        // variantes deterministas para que no haya clones
   var MAX_RACIMOS_ARBOL = 64; // tope de pompones por albizia
 
-  // Tabla de estaciones de la ALBIZIA: los MISMOS valores del HTML de Sandro.
+  // Tabla de estaciones de la ALBIZIA: los MISMOS valores del HTML.
   var ESTACIONES_ALBIZIA = {
     primavera: { hoja: 0x7fc54f, escala: 0.9,  densidad: 0.9, cayendo: false },
     verano:    { hoja: 0x5c9e3f, escala: 1.0,  densidad: 1.0, cayendo: false }, // 0x5c9e3f: verde EXACTO de su HTML (sep-2026)
@@ -52,8 +52,7 @@
 
   // Estado estacional del NARANJO (perenne), coherente con fenologiaArbol
   // de shadows-route.js: azahar en primavera y naranjas MADURAS (en su
-  // tono naranja) colgando el resto del año. sep-2026, orden directa de
-  // Sandro: "las naranjas deben estar NARANJAS, no verdosas", el verano
+  // tono naranja) colgando el resto del año. sep-2026: "las naranjas deben estar NARANJAS, no verdosas", el verano
   // también da fruto maduro, igual que la capa plana (conFruto todo el
   // año salvo primavera). La geometría de fruto verde se conserva intacta
   // por si algún día se reactiva esa cosecha.
@@ -188,7 +187,7 @@
   }
 
   // ==========================================================================
-  // ALBIZIA, PORT EXACTO del HTML de Sandro: cylinderBetween + branch()
+  // ALBIZIA, PORT EXACTO del HTML: cylinderBetween + branch()
   // ==========================================================================
   function construirEsqueletoAlbizia(rand) {
     var segs = [];   // {a, b, r0, r1}
@@ -322,7 +321,7 @@
   }
 
   // ==========================================================================
-  // NARANJO, el low-poly de la foto de Sandro
+  // NARANJO, el low-poly de la foto
   // Tronco único oscuro (~49% de la altura, su proporción aprobada), bola
   // densa de hojas con la silueta medida de la malla real (x≈1.49, z≈1.31,
   // 3 lóbulos suaves, sus valores), naranjas en la piel de la copa.
@@ -501,14 +500,14 @@
     var frutoMat = new THREE.MeshStandardMaterial({
       color: 0xffffff, flatShading: true, roughness: 0.55, metalness: 0.02,
       vertexColors: true,
-      // emissive naranja suave (sep-2026, orden de Sandro): el mapa se mira
+      // emissive naranja suave (sep-2026): el mapa se mira
       // DESDE ARRIBA y la naranja en la cara opuesta al sol se perdía en la
       // copa. Con un emisivo del mismo tono (0xE8792A) al 30% la fruta se
       // lee NARANJA desde cualquier pitch sin quemar el color.
       emissive: 0xE8792A, emissiveIntensity: 0.30,
     });
     // roughness 1.0 / metalness 0.0 (sep-2026): valores LITERALES del
-    // "naranjo real mesh v2.html" de Sandro, con rugosidad < 1 las hojas
+    // "naranjo real mesh v2.html", con rugosidad < 1 las hojas
     // en contraluz especular salían casi negras.
     // emissive verde medio de SU paleta (0x567f42 ≈ media de 0x4f7a3d,
     // 0x5e8c47, 0x3f6733, 0x6a9950): igual que en la albizia, evita la
@@ -516,7 +515,7 @@
     var hojaNaranjoMat = new THREE.MeshStandardMaterial({
       color: 0xffffff, flatShading: true, roughness: 1.0, metalness: 0.0,
       vertexColors: true,
-      // 0.45 (sep-2026, orden de Sandro: "de cerca brilla demasiado"): el
+      // 0.45 (sep-2026: "de cerca brilla demasiado"): el
       // emisivo anti-contraluz se mantiene, pero más bajo para que la copa
       // no se lave al acercar el zoom. De lejos sigue leyéndose verde.
       emissive: 0x567f42, emissiveIntensity: 0.45,
@@ -525,7 +524,7 @@
     // flatShading, roughness 1.0, metalness 0.0). El emisivo baja a 0.35:
     // al ser una malla cerrada con normales hacia fuera no sufre la hoja
     // negra en contraluz como los planos, y así el tronco conserva su marrón.
-    // (0.50 → 0.35, orden de Sandro: al acercar el zoom brillaba de más.)
+    // (0.50 → 0.35: al acercar el zoom brillaba de más.)
     var mallaNaranjoMat = new THREE.MeshStandardMaterial({
       color: 0xffffff, flatShading: true, roughness: 1.0, metalness: 0.0,
       vertexColors: true,
@@ -543,7 +542,7 @@
       }).filter(Boolean));
       geoMadera.computeBoundingBox();
 
-      // side: FrontSide (el defecto), EXACTAMENTE como el HTML de Sandro:
+      // side: FrontSide (el defecto), EXACTAMENTE como el HTML:
       // con doble cara las hojas que miran fuera del sol salen negras y la
       // copa parece un mosaico; con cara simple se descartan y el hueco lo
       // rellenan las hojas de detrás, que sí están iluminadas.
@@ -1042,7 +1041,7 @@
     }
   }
 
-  // Diagnóstico en vivo (solo lectura; lo usa el banco de pruebas y Sandro
+  // Diagnóstico en vivo (solo lectura; lo usa el banco de pruebas
   // si algún día quiere ver qué está pasando dentro).
   window.manolitAireArboles3DDebug = function () {
     return {

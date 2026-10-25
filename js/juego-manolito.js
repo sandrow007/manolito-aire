@@ -1,5 +1,5 @@
 /* ============================================================
-   «ATRAPA A MANOLIT∞» (07-oct-2026, orden directa de Sandro)
+   «ATRAPA A MANOLIT∞» (07-oct-2026)
    Juego educativo de la sección de niños (modo peque). Sustituye
    al antiguo «Atrapa el Sol»: ahora se atrapa a Manolit∞, no al
    sol, y cada nivel enseña de verdad uno de los 6 sellos de
@@ -7,7 +7,7 @@
    salud, agua, temp y prevención). Con los 6 se desbloquea el
    sello final de Simulador de Sombras y el diploma descargable.
 
-   Revisión 07-oct-2026 (segunda orden de Sandro):
+   Revisión 07-oct-2026 (segunda):
      - Todo el juego traducido a los 6 idiomas de la plataforma
        (es, ca, eu, gl, en, ka), interfaz y contenido educativo,
        con respaldo limpio al español si falta alguna clave.
@@ -37,7 +37,7 @@
 
 /* ---------------- configuración de niveles (sin textos) ----------------
    duracion en segundos, objetivo = Manolit∞ a atrapar.
-   Niveles 1-3: 28 s. Niveles 4-6: 45 s (orden de Sandro 07-oct-2026). */
+   Niveles 1-3: 28 s. Niveles 4-6: 45 s ( 07-oct-2026). */
 export const NIVELES = [
   { id: 'sol',        duracion: 28, objetivo: 8,  spawnMs: 750, caidaMs: 2600, probTema: 0.30, temaPuntos: 0,  correcta: 1 },
   { id: 'sombra',     duracion: 28, objetivo: 9,  spawnMs: 720, caidaMs: 2400, probTema: 0.30, temaPuntos: 15, correcta: 1 },
@@ -1814,10 +1814,10 @@ const SVG_ESCUDO = `<svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" 
 </svg>`;
 
 /* Glifo de SOMBRA DE VERDAD, el mismo del diploma original que
-   Sandro subió (diploma-manolit.svg): la forma blanca con contorno
+    (diploma-manolit.svg): la forma blanca con contorno
    teal sobre su sombra gris proyectada. Se usa en el muro de sellos
    y en las piezas de sombra que caen. La nube (SVG_NUBE) deja de
-   representar la sombra por orden expresa de Sandro (07-oct). */
+   representar la sombra por  (07-oct). */
 const SVG_SOMBRA = `<svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <ellipse cx="53" cy="67" rx="26" ry="7" fill="#26424B" opacity="0.35"/>
   <path d="M45 19 C31 19 19 31 19 45 C19 55 27 62 35 67 L55 67 C63 62 71 55 71 45 C71 31 59 19 45 19 Z" fill="#FFFFFF" stroke="${TEAL}" stroke-width="4"/>
@@ -2023,7 +2023,7 @@ export function iniciarJuegoManolit(contenedor, opciones = {}) {
       s.appendChild(nodo('span', null, txt ? txt.sello : cfg.id));
       muro.appendChild(s);
     }
-    // 07-oct (orden expresa de Sandro): fuera el icono «final» del
+    // 07-oct (): fuera el icono «final» del
     // muro. El muro muestra los 6 sellos de protección y nada más.
   }
 
@@ -2409,7 +2409,7 @@ export function iniciarJuegoManolit(contenedor, opciones = {}) {
       pack.resNivel(Math.min(estado.nivel + (completo ? 1 : 0), NIVELES.length), NIVELES.length),
       pack.resSellos(estado.sellos.length, NIVELES.length, estado.sellos.map(nombreSello).join(', '))
     ];
-    // 07-oct (orden expresa de Sandro): el sello final no se nombra ni se muestra.
+    // 07-oct (): el sello final no se nombra ni se muestra.
     for (const d of datos) lista.appendChild(nodo('li', null, d));
     const ultimaLeccion = textosDe(estado.lang, estado.modo).niveles[Math.max(0, estado.sellos.length - 1)].lecciones[0];
     const aprendido = nodo('p', 'jm-leccion', pack.aprendido(ultimaLeccion));

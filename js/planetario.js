@@ -89,7 +89,7 @@
   function $(id) { return document.getElementById(id); }
 
   function tt(clave, fallback) {
-    // 12-oct-2026 (orden de Sandro): la t() que esperaba este módulo no
+    // 12-oct-2026 (): la t() que esperaba este módulo no
     // existe como global (cada script la tiene encerrada en su propio
     // ámbito), así que el bloque de sol y luna salía siempre en castellano.
     // Ahora, si no hay t() global, se lee el diccionario de i18n.js por
@@ -277,7 +277,7 @@
     if (widget.getAttribute('data-cielo') !== cielo) widget.setAttribute('data-cielo', cielo);
 
     // Línea de información en tiempo real (cada segundo).
-    // 08-oct-2026 (orden directa de Sandro): nada de datos genéricos.
+    // 08-oct-2026 (): nada de datos genéricos.
     // - Capa Sombras APAGADA: el resultado se oculta por completo, así no
     //   salen alturas y azimuts que no le dicen nada a nadie.
     // - De noche (sol bajo el horizonte): la métrica se deshabilita sola,

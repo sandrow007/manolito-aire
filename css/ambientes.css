@@ -159,7 +159,7 @@
   --border:rgba(74,222,128,0.18);
 }
 
-/* ---------- SALUD (cada sábado, sep-2026, orden de Sandro) ----------
+/* ---------- SALUD (cada sábado, sep-2026) ----------
    Día de la Salud en Andalucía llevado a costumbre semanal. La web se
    pone en verde fresco de menta y esmeralda, colores de parque con
    agua y de sombra de árbol, que es de lo que va el día. Es distinto
@@ -210,7 +210,7 @@ html.modo-salud .salud-banner a{
 html.modo-salud .salud-banner a:focus-visible{
   outline:3px solid #FFFFFF; outline-offset:2px;
 }
-/* Aviso de reversión (01-oct-2026, ley nueva de Sandro): línea pequeña
+/* Aviso de reversión (01-oct-2026, ley nueva): línea pequeña
    dentro del propio banner que dice el día y la hora exacta en que el
    verde termina y la web vuelve a su piel. Lo escribe ambientes.js con
    la fecha de fin de la ventana activa. */
@@ -222,7 +222,7 @@ html.modo-salud .salud-banner-fin{
 }
 
 /* Sección reivindicativa de los sábados: DESPLEGABLE ESTRICTO
-   (25-sep, orden de Sandro). Nace cerrada y solo el usuario la abre.
+   (25-sep). Nace cerrada y solo el usuario la abre.
    La animación es max-height 0 → tope, barato para la GPU y respeta
    prefers-reduced-motion. (Antes era grid-template-rows 0fr → 1fr,
    pero Chrome lo congela al cerrar un details: ver nota de 26-sep
@@ -311,7 +311,7 @@ html.modo-salud .salud-section p{
 }
 html.modo-salud .salud-section p:last-child{ margin-bottom:0; }
 
-/* Stickers de salud INTERACTIVOS (26-sep, orden de Sandro): cada icono
+/* Stickers de salud INTERACTIVOS (26-sep): cada icono
    es un boton. Hover = tooltip rapido (solo donde hay raton), clic =
    panel fijo bajo la fila, reclic o Esc = cerrar. Todo CSS salvo el
    abrir/cerrar, que vive en js/ambientes.js. */
@@ -329,7 +329,7 @@ html.modo-salud .salud-stickers .sticker{
 html.modo-salud .salud-stickers .sticker svg{
   display:block; width:100%; height:auto;
 }
-/* Estado inicial = 6 iconos limpios, sin texto debajo (orden de Sandro,
+/* Estado inicial = 6 iconos limpios, sin texto debajo (
    26-sep): las etiquetas internas del SVG se ocultan siempre. El SVG
    sigue verbatim en el codigo; esto solo lo oculta en pantalla. El texto
    llega por tooltip (hover) o por panel fijo (clic). */
@@ -412,7 +412,7 @@ html.modo-salud .sticker-panel-texto{
   html.modo-salud .sticker-tip{ transition:none; }
 }
 
-/* Aviso de precision (25-sep, orden de Sandro): nota humana dentro del
+/* Aviso de precision (25-sep): nota humana dentro del
    desplegable, marcada con filete lateral para que se lea como aviso
    y no como parte del discurso. */
 html.modo-salud .salud-nota{
@@ -455,13 +455,13 @@ html.modo-salud .salud-recurso:focus-visible{
 @media (max-width:640px){
   html.modo-salud .salud-recursos-etiqueta{ width:100%; margin-right:0; }
 }
-/* Recursos por gama (26-sep, orden de Sandro): lista vertical de las 4
+/* Recursos por gama (26-sep): lista vertical de las 4
    instituciones (OSMAN, OSCC, Observatorio Europeo, ClimaHealth), cada
    fila entera es el enlace, con insignia-monograma SVG propia que
    hereda el verde del modo salud via currentColor. Y va PLEGADA: es un
    sub-desplegable que solo se abre al pulsar "Recursos oficiales",
    mismo truco de grid que el desplegable grande.
-   (26-sep, vuelta atras por orden de Sandro: las pastillas de antes,
+   (26-sep, vuelta atras: las pastillas de antes,
    .salud-recurso, VUELVEN a usarse con una unica pastilla, OSMAN. El
    sub-desplegable de las 4 gamas queda aparcado comentado en el index,
    guardado para el about. Por eso el display:block se limita a la
@@ -562,7 +562,7 @@ html.modo-salud .recurso-uso{
   html.modo-salud .salud-resumen-card::after{ transition:none; }
 }
 
-/* Sello oficial Manolit∞ (25-sep, orden de Sandro): colores por
+/* Sello oficial Manolit∞ (25-sep): colores por
    variables. Los corporativos son los de siempre; mientras dura el
    modo salud el sello se tiñe de verde, y al apagarse el modo (el
    domingo a las 18:00) vuelve solo a los corporativos. La geometría
@@ -592,7 +592,7 @@ html.modo-salud .salud-sello svg{
 .salud-section .s-agua, .sello-footer .s-agua{ stroke:var(--sello-agua); }
 .salud-section .s-tinta-fill, .sello-footer .s-tinta-fill{ fill:var(--sello-tinta); }
 
-/* Sello permanente del pie (25-sep, orden de Sandro): pequeño, en la
+/* Sello permanente del pie (25-sep): pequeño, en la
    esquina inferior derecha, sin estridencias. No se quita el domingo.
    Opacidad suave para integrarse, y al pasar el ratón o enfocar gana
    presencia. Mismo sistema de variables que el sello del bloque. */
@@ -618,7 +618,7 @@ html.modo-salud .salud-sello svg{
 }
 
 /* ============================================================
-   ESCUDOS DE SALUD AMBIENTAL DEL PIE (01-oct-2026, orden de Sandro)
+   ESCUDOS DE SALUD AMBIENTAL DEL PIE (01-oct-2026)
    Las cuatro insignias del fin de semana de la salud, rescatadas del
    comentario donde casi se pierden. Viven siempre junto al sello del
    pie, con la misma geometría SVG con la que nacieron (anillos y

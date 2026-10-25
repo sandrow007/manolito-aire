@@ -12,7 +12,7 @@
    sombra. Si no hay dato de UV no se bloquea nada: sale un
    consejo genérico de sol suave.
 
-   06-oct-2026 · orden directa de Sandro. Versión sin emojis:
+   06-oct-2026 ·. Versión sin emojis:
    regla de la casa (cero emojis en la interfaz) y además estos
    textos los lee en voz alta speechSynthesis y las regiones
    aria-live, donde los emojis suenan fatal.

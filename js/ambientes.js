@@ -20,7 +20,7 @@
   'use strict';
 
   /* ---------------- VENTANAS DEL MODO SALUD (01-oct-2026) ----------------
-     LEY NUEVA, orden directa de Sandro tras el susto del verde que seguía
+     LEY NUEVA tras el susto del verde que seguía
      puesto el viernes siguiente sin avisar:
 
      1) PROHIBIDAS las reglas recurrentes ("todos los sábados", "cada
@@ -30,8 +30,7 @@
         aquí abajo, cada una con su fecha de inicio y su fecha y hora de
         FIN. Al llegar el fin, la condición deja de cumplirse y la web
         vuelve sola a su piel de siempre, sin tocar nada.
-     3) AVISO PREVIO SIEMPRE: ninguna ventana existe sin orden expresa de
-        Sandro, así que él sabe de cada ventana antes de que se active.
+     3) AVISO PREVIO SIEMPRE: ninguna ventana existe sin orden expresa; el script conoce cada ventana antes de que se active.
         Además, una semana antes de cada ventana este script deja un aviso
         en la consola (F12) por si lo abre, y mientras la ventana está
         activa el banner verde enseña el día y la hora exacta en que
@@ -40,8 +39,7 @@
         nunca se resucita una regla semanal.
 
      La ventana de estreno (vie 25-sep-2026 → dom 27-sep-2026 18:00) ya
-     pasó y se queda aquí comentada como memoria. NO BORRAR (orden de
-     Sandro): todo el modo salud se guarda para reutilizarlo. */
+     pasó y se queda aquí comentada como memoria. NO BORRAR (): todo el modo salud se guarda para reutilizarlo. */
   var VENTANAS_SALUD = [
     // { desde: new Date(2026, 8, 25), hasta: new Date(2026, 8, 27, 18, 0) }, // estreno, ya pasó
   ];
@@ -86,10 +84,10 @@
     var mes = hoy.getMonth() + 1; // 1 = enero … 12 = diciembre
     var dia = hoy.getDate();
 
-    // 0) Salud (sep-2026, orden de Sandro; REGLA BLINDADA el 01-oct-2026):
+    // 0) Salud (sep-2026; REGLA BLINDADA el 01-oct-2026):
     //    solo manda la lista VENTANAS_SALUD de arriba, ventanas cerradas
     //    con fin escrito. La antigua regla semanal (sábado entero y
-    //    domingo hasta las 18:00) se eliminó por orden directa: era la
+    //    domingo hasta las 18:00) se eliminó : era la
     //    que volvía a poner la web en verde cada fin de semana sin
     //    avisar. Va lo primero y manda sobre el resto: si la ventana
     //    pisa otra fiesta, gana la salud mientras dure la ventana.
@@ -115,7 +113,7 @@
 
   var ambiente = ambienteDeHoy();
 
-  // Aviso previo en consola (01-oct-2026, ley nueva de Sandro): una semana
+  // Aviso previo en consola (01-oct-2026, ley nueva): una semana
   // antes de cada ventana de salud queda escrito aquí cuándo empieza y
   // cuándo acaba, y mientras dura, a qué hora vuelve la piel normal.
   // console.info no ensucia: no es warning ni error, el F12 sigue limpio.
@@ -133,7 +131,7 @@
   if (!ambiente) return; // día normal: ni un byte de cambio
   document.documentElement.setAttribute('data-ambiente', ambiente);
 
-  // Extras del modo salud (sep-2026, orden de Sandro). Clase global
+  // Extras del modo salud (sep-2026). Clase global
   // html.modo-salud que gobierna banner, sección y piel (el CSS la usa).
   // El banner y la sección salen solos por CSS; aquí solo quedan dos
   // toques que no se pueden hacer con CSS: el título de la pestaña y
@@ -153,7 +151,7 @@
       var sub = document.querySelector('#manolitoSplash .sub-brand');
       if (sub) sub.textContent = (msgSalud && msgSalud.saludSaturdaySub) || '+ Sábado de la Salud';
 
-      // Aviso de reversión visible (01-oct-2026, ley nueva de Sandro):
+      // Aviso de reversión visible (01-oct-2026, ley nueva):
       // mientras el verde está activo, el propio banner dice el día y la
       // hora exacta en que la web vuelve a su piel. Nadie vuelve a
       // encontrarse un tema puesto "porque sí" y sin fecha de fin.
@@ -252,7 +250,7 @@
       });
 
       // Frase de cierre del chat en fin de semana de salud (26-sep-2026,
-      // orden de Sandro): burbuja extra de Manolito justo tras la
+      //): burbuja extra de Manolito justo tras la
       // bienvenida, SOLO en modo salud. Lleva data-i18n, así que cambia
       // de idioma con el resto de la web. El lunes no se crea.
       var bienvenida = document.querySelector('.chat-msg.mano[data-i18n="chatWelcome"]');
@@ -272,7 +270,7 @@
         bienvenida.parentNode.insertBefore(burbuja, bienvenida.nextSibling);
       }
 
-      // Stickers interactivos de salud (26-sep-2026, orden de Sandro):
+      // Stickers interactivos de salud (26-sep-2026):
       // clic abre el panel fijo con el texto del icono (en el idioma
       // activo, leido de su propio tooltip ya traducido), reclic cierra,
       // otro sticker cambia el contenido, Esc cierra. El hover es CSS

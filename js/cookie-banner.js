@@ -205,7 +205,7 @@ function cookiesAccepted(){
 
 function initCookieBannerCuandoIdiomaListo() {
   if (window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto) {
-    // 12-oct-2026 (orden de Sandro): el banner se creaba en español al elegir
+    // 12-oct-2026 (): el banner se creaba en español al elegir
     // idioma en la pantalla de entrada. Este script se ejecuta antes de que
     // i18n.js registre su propio listener de langChanged, así que al dispararse
     // el evento el banner se pintaba ANTES de que i18n aplicara el idioma

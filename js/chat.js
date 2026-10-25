@@ -454,7 +454,7 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
     if (input) input.focus();
   }
 
-  /* ---- Aire internacional por chat (sep-2026, orden de Sandro) ----
+  /* ---- Aire internacional por chat (sep-2026) ----
      La capa de aire del mapa es solo España y así se queda, pero el chat
      responde de cualquier ciudad del mundo. Si la pregunta es del tipo
      "calidad del aire en X" y X está fuera de España, se contesta aquí
@@ -516,7 +516,7 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
     }
   }
 
-  // 07-oct-2026 (orden de Sandro): intents que EJECUTAN, no solo responden.
+  // 07-oct-2026 (): intents que EJECUTAN, no solo responden.
   // «Aparcamiento / dónde aparco» enciende la capa de aparcamientos (en la
   // zona visible o en el sitio que nombre la frase) por el evento público
   // 'manolito:activar-parking'. «Modo vago / busca la mejor sombra» enciende
@@ -538,7 +538,7 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
           }
         }
         document.dispatchEvent(new CustomEvent('manolito:activar-parking', { detail: detalle }));
-        // 09-oct-2026 (orden de Sandro): de noche no se habla de sombra
+        // 09-oct-2026 (): de noche no se habla de sombra
         // «ahora mismo», se dice la verdad, que no hay sol. Lo decide la
         // función única de js/sol.js con el sitio nombrado o el centro del
         // mapa. Si SunCalc aún no cargó, se queda la leyenda de siempre.
@@ -557,7 +557,7 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
         if (tSombras && !tSombras.checked) tSombras.click();
         const btnArboles = document.getElementById('rsBtnArboles');
         if (btnArboles && btnArboles.getAttribute('aria-pressed') !== 'true') btnArboles.click();
-        // 09-oct-2026 (orden de Sandro): de noche no hay zonas más oscuras
+        // 09-oct-2026 (): de noche no hay zonas más oscuras
         // porque no hay sol. Misma función única, mismo sitio.
         let colaSombra = 'Tienes las sombras y los árboles encendidos en el mapa, las zonas más oscuras son la mejor sombra ahora mismo.';
         try {
@@ -661,7 +661,7 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
     document.documentElement.style.setProperty('--chat-ink', v.ink);
   }
 
-  // Bienvenida larga eliminada (sep-2026, orden de Sandro): el chat es
+  // Bienvenida larga eliminada (sep-2026): el chat es
   // serio y directo. La única bienvenida es la frase corta del HTML
   // (clave chatWelcome de i18n.js), sin segundas burbujas a los 500 ms.
 

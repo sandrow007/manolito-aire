@@ -23,7 +23,7 @@
         el índice de nubosidad instantáneo (GHI/cielo despejado)
         y la exposición efectiva con la atenuación aplicada.
 
-   Novedades v4 (sep-2026, orden de Sandro):
+   Novedades v4 (sep-2026):
      D. LOCALIZACIÓN DINÁMICA REAL: el punto de consulta ya no está
         fijo en Sevilla, sigue al centro del mapa y a cada clic.
         NASA POWER se consulta con las coordenadas de LA CELDA de su
@@ -552,7 +552,7 @@
       const leyendaHora = document.createElement('div');
       leyendaHora.className = 'irr-leyenda';
       const spanHora = document.createElement('span');
-      // 12-oct-2026 (orden de Sandro): esta etiqueta estaba fija en
+      // 12-oct-2026 (): esta etiqueta estaba fija en
       // castellano; ahora sale del diccionario como el resto del panel.
       leyendaHora.append(t('irrHourOfDay', 'Hora del día') + ': ', spanHora);
 
@@ -663,7 +663,7 @@
         `${t('irrPenumbra', 'Penumbra (árbol)')} (×${ATENUACION.PENUMBRA.factor})<br>` +
         `${t('irrSol', 'Sol directo')} (×${ATENUACION.SOL.factor})`;
       onCambio(); // repinta etiquetas de día/hora y, si la capa está activa, recarga el estado
-      // 12-oct-2026 (orden de Sandro): dos huecos que quedaban en el idioma
+      // 12-oct-2026 (): dos huecos que quedaban en el idioma
       // de arranque si el panel se construyó antes de elegir idioma en la
       // pantalla de entrada (el mapa carga por scroll, la elección llega
       // después): la etiqueta fija de la hora y el «cargando resumen» que

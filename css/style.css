@@ -1591,7 +1591,7 @@ body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
 .sync-panel-btns button:hover{ border-color:var(--accent, #FFB85C); }
 
 /* ================================================================
-   Botonera fina + botón mini "Act. mapa" (2026-09-12, pedido de Sandro)
+   Botonera fina + botón mini "Act. mapa" (2026-09-12)
    "todo en una linea y dos, mas suave, mas fino, mas elegante, no tan
    bruto". Estas reglas van al FINAL del archivo y con !important para
    ganar a las reglas !important de tamaño grande de más arriba (que
@@ -1617,7 +1617,7 @@ body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
 }
 
 /* Botón mini de actualizar: FUERA del mapa, en la barra superior,
-   muy pequeño y discreto (pedido de Sandro 2026-09-12). */
+   muy pequeño y discreto ( 2026-09-12). */
 #rsBtnActualizarOSM{
   margin:0 0 0 auto; /* a la derecha de su fila en la barra superior */
   flex:none; white-space:nowrap; /* ni crece ni se parte: la barra no se re-envuelve al traducir */
@@ -1650,7 +1650,7 @@ body > #rsBtnActualizarOSM{ position:fixed; top:10px; right:48px; z-index:30; }
 
 
 /* ============================================================
-   MAPA EFICIENTE Y ELEGANTE (sep-2026, brief de Sandro)
+   MAPA EFICIENTE Y ELEGANTE (sep-2026)
    ------------------------------------------------------------
    BLOQUE 100% ADITIVO: no se ha borrado ni una línea del CSS
    original; estas reglas vienen al final y ganan por cascada
@@ -1872,7 +1872,7 @@ body.mode-peque .im-lost-btn{
 .faq-item p{ padding:0 4px 16px; color:var(--sky-mid); font-size:0.92rem; max-width:62ch; }
 
 /* ============================================================
-   CAPAS INTEGRADAS EN EL WIDGET SOLAR (sep-2026, orden de Sandro)
+   CAPAS INTEGRADAS EN EL WIDGET SOLAR (sep-2026)
    Las casillas de capas y los botones Mapa oscuro / Mapa IGN /
    Catastro 3D dejan de flotar sobre el mapa y viven dentro del
    planetario, en una fila elegante que se apila en móvil. La
@@ -1962,7 +1962,7 @@ body.mode-peque .im-lost-btn{
 }
 
 
-/* Widget solar ordenado (sep-2026, orden de Sandro): dos piezas claras
+/* Widget solar ordenado (sep-2026): dos piezas claras
    en vez de elementos esparcidos. A la izquierda el sol con su hora y
    el acceso LiDAR formando una sola pieza; a la derecha las capas y
    los botones de mapa, separados por una línea fina. En pantallas
@@ -1983,7 +1983,7 @@ body.mode-peque .im-lost-btn{
 }
 
 
-/* Widget solar compacto y centrado (sep-2026, orden de Sandro): las
+/* Widget solar compacto y centrado (sep-2026): las
    dos piezas van juntas en el centro en vez de estirarse a lo ancho,
    y los botones de mapa base forman una rejilla de tres columnas con
    su título encima ocupando toda la fila. */
@@ -2002,7 +2002,7 @@ body.mode-peque .im-lost-btn{
 }
 
 
-/* Widget en COLUMNA con orden lógico (sep-2026, orden de Sandro):
+/* Widget en COLUMNA con orden lógico (sep-2026):
    1) el planetario con su hora y la luna, 2) el acceso a Renderizado
    LiDAR, 3) las capas del mapa. Una cosa debajo de la otra, todo
    centrado, en móvil y en ordenador. */
@@ -2023,21 +2023,21 @@ body.mode-peque .im-lost-btn{
 .rs-planetario-capas{ border-top: none; padding-top: 0; }
 
 /* Catastro 3D siempre a la vista en su propia fila, justo debajo de
-   Capas y Capas de mapa (orden de Sandro, sep-2026). No se pliega. */
+   Capas y Capas de mapa (sep-2026). No se pliega. */
 #rsCapasMapas #rsBtnCatastro{ grid-column: 1 / -1; }
 
-/* Planetario (sep-2026, orden de Sandro): la hora y los datos del sol
+/* Planetario (sep-2026): la hora y los datos del sol
    van DEBAJO de la cúpula, centrados, nunca al lado. */
 .rs-planetario-sol{ flex-direction: column; flex-wrap: nowrap; gap: 10px; }
 .rs-planetario-lado{ align-items: center; text-align: center; }
 
-/* Reorden del widget (sep-2026, orden de Sandro): «¿No hay 3D en tu
+/* Reorden del widget (sep-2026): «¿No hay 3D en tu
    zona?» vive DENTRO del widget, justo debajo de las capas del mapa,
    nunca por encima de ellas. Centrado y sin el margen grande de sección. */
 .rs-planetario > #rsColaboraOSM{ margin:2px auto 0; width:min(680px, 94%); padding:0; }
 .rs-planetario > #rsColaboraOSM summary{ text-align:center; }
 
-/* Capas y Capas de mapa, una AL LADO de la otra (orden de Sandro,
+/* Capas y Capas de mapa, una AL LADO de la otra (
    sep-2026): los dos botones maestros comparten fila y su contenido
    desplegado cae debajo de cada uno. En pantallas muy estrechas se
    apilan solos gracias al wrap. */
@@ -2046,7 +2046,7 @@ body.mode-peque .im-lost-btn{
 .rs-planetario-capas .rs-layer-toggles-lista{ justify-content:center; }
 
 /* ============================================================
-   MODOS EN LA BARRA, versión tecla (sep-2026, orden de Sandro)
+   MODOS EN LA BARRA, versión tecla (sep-2026)
    El selector de modos vive arriba, nada más entrar, para que lo
    veas antes que nada. Son las mismas tarjetas de siempre (mismo
    HTML, mismo script) encogidas a teclas discretas con el número
@@ -2081,14 +2081,14 @@ body.mode-peque .im-lost-btn{
   gap:10px 22px; max-width:780px; margin:36px auto 0; padding:0 24px;
 }
 
-/* Capa de emojis del modo peque (sep-2026, orden de Sandro): cubre la
+/* Capa de emojis del modo peque (sep-2026): cubre la
    ventana entera, no la hero sola. Es fija, no se puede tocar (no tapa
    clics) y solo lleva animaciones CSS de transform y opacity, que es lo
    más barato para la GPU. Al salir del modo peque la capa se quita. */
 #pequeFxCapa{ position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:590; }
 @media (prefers-reduced-motion: reduce){ #pequeFxCapa{ display:none; } }
 
-/* Zoom de letra yayo en la barra (sep-2026, orden de Sandro): el control
+/* Zoom de letra yayo en la barra (sep-2026): el control
    se mudó del hero a la última fila del topbar, fija y siempre a mano.
    Sigue saliendo SOLO con el modo yayo (la regla vieja lo muestra) y
    fuera de ese modo no ocupa nada. Fila propia a todo lo ancho, con una
@@ -2106,7 +2106,7 @@ body.mode-peque .im-lost-btn{
   .topbar > .yayo-zoom-controls{ order:7; }
 }
 
-/* Cabecera del chat siempre visible (sep-2026, orden de Sandro): la X
+/* Cabecera del chat siempre visible (sep-2026): la X
    de cierre no se pierde hacia arriba cuando el historial crece. La
    cabecera se pega al techo del panel con márgenes negativos que cubren
    el relleno del panel, así el texto pasa por debajo sin asomar. */
@@ -2133,7 +2133,7 @@ body.mode-peque .im-lost-btn{
 .chat-water-result p{ margin:0 0 6px; }
 
 /* ============================================================
-   MODO OSCURO LEGIBLE (01-oct-2026, orden directa de Sandro)
+   MODO OSCURO LEGIBLE (01-oct-2026)
    "Cualquier texto de la web, en cualquier idioma y en cualquier
    sección, tiene que leerse perfectamente en modo oscuro igual que
    en modo claro." Mínimo AA de contraste, sin excepciones.
@@ -2279,7 +2279,7 @@ body.mode-peque .im-lost-btn{
   filter:none !important;
 }
 
-/* ============================================================   SISTEMA DE DISEÑO DEL MAPA (01-oct-2026, orden directa de Sandro)
+/* ============================================================   SISTEMA DE DISEÑO DEL MAPA (01-oct-2026)
    "Cliente impecable, sobrio y coherente, que no parezca generado
    por IA. Una sola fuente de verdad." Alcance: SOLO la interfaz del
    mapa (barra de acciones, botonera de cámara, panel de capas, tarjeta
@@ -2803,7 +2803,7 @@ body.mode-peque .im-lost-btn{
 
 /* ============================================================
    BOTÓN FLOTANTE DE CAPAS + PANEL DESPLEGABLE + MAPA A VIEWPORT
-   (06-oct-2026, orden directa de Sandro)
+   (06-oct-2026)
 
    Solo presentación: la lógica de capas, los ids y el estado global
    no se tocan. shadows-route.js traslada el panel dentro del mapa y
@@ -2826,7 +2826,7 @@ body.mode-peque .im-lost-btn{
 #main-content .rs-planetario > #rsColaboraOSM{ grid-column:1 / -1; justify-self:center; }
 #main-content .rs-planetario > a.rs-btn-lidar{ grid-column:1 / -1; justify-self:center; }
 
-/* 08-oct-2026 (orden de Sandro): la cúpula del planetario ya NO vive en
+/* 08-oct-2026 (): la cúpula del planetario ya NO vive en
    la columna lateral derecha. El widget bajo el mapa es una sola columna
    en flujo normal: capas, cúpula centrada, «¿No hay 3D en tu zona?» y
    LiDAR. Mismo orden en 360 px, tablet y escritorio, con el panel de
@@ -2992,7 +2992,7 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
 }
 
 /* ---------- Móvil: bottom sheet ----------
-   12-oct-2026 (orden de Sandro, rediseño del panel en móvil): la hoja
+   12-oct-2026 (rediseño del panel en móvil): la hoja
    era un flex en columna con flex-wrap:wrap heredado de la regla base;
    al superar el contenido la altura máxima, la lista se ENVOLVÍA a una
    segunda columna: cabecera sola a la izquierda (columna vacía debajo),
@@ -3059,7 +3059,7 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
 }
 
 /* ============================================================
-   REPARACIONES URGENTES (06-oct-2026, tarde, orden directa de Sandro)
+   REPARACIONES URGENTES (06-oct-2026, tarde)
    ============================================================ */
 
 /* ---------- 3. PLANETARIO RESTAURADO ----------
@@ -3073,7 +3073,7 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
 #main-content .rs-planetario svg{ filter:drop-shadow(0 6px 18px rgba(14,59,71,0.18)); }
 #main-content .rs-planetario-info{ font-size:0.62rem; color:var(--sky-mid); letter-spacing:0.02em; }
 
-/* --- Entrada al juego «Atrapa a Manolit∞» (07-oct-2026, orden de Sandro).
+/* --- Entrada al juego «Atrapa a Manolit∞» (07-oct-2026).
    El botón vive dentro de .peque-character, que ya es display:none fuera
    del modo peque: la entrada solo existe en la sección de niños. --- */
 .peque-juego-btn{ margin-top:12px; min-height:44px; padding:10px 18px; border-radius:14px;
@@ -3086,7 +3086,7 @@ body.rs-capas-pop #main-content #rsBtnCerrarCapas{
 body:not(.mode-peque) .juego-manolit-cont{ display:none; }
 
 /* ============================================================
-   MODO PEQUE — REDISEÑO VISUAL (07-oct-2026, orden de Sandro)
+   MODO PEQUE — REDISEÑO VISUAL (07-oct-2026)
    Jerarquía vertical clara de arriba abajo: ciudad, nube, titular,
    explicación, calidad del aire y botones de acción. Nada flota
    sobre nada. Sección aditiva: pisa solo lo que el rediseño cambia.
@@ -3185,7 +3185,7 @@ body.mode-peque .im-lost-btn:active{ transform:translateY(1px); box-shadow:none;
    hay contenido. Solo se pintan en pantallas anchas; con menos de
    1024px no hay margen lateral garantizado y no aparecen. Animación
    solo de transform, pausada con la pestaña oculta.
-   08-oct-2026 (ARREGLO URGENTE, orden de Sandro): la capa vuelve a ser
+   08-oct-2026 (ARREGLO URGENTE): la capa vuelve a ser
    FIJA A TODA LA VENTANA, como hace cuatro días. La versión absoluta
    dentro del hero encerraba los 90 emojis en ese cajón y se agolpaban
    de modo horrible. Al ir fija y con z-index 590 los emojis suben por
@@ -3208,14 +3208,14 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
 /* Emojis flotantes del modo peque: pocos, pegados a los bordes,
    detrás del contenido, solo transform y opacity, pausados con la
    pestaña oculta y apagados con prefers-reduced-motion.
-   07-oct (orden directa de Sandro, «recupéralos de verdad»):
+   07-oct («recupéralos de verdad»):
    visibilidad subida para que se VEAN. Siguen siendo 6 spans sin
    JS, animación solo transform/opacity: el coste es el mismo. */
 #pequeFxCapa .peque-emoji{ position:absolute; font-size:clamp(22px, 2.6vw, 32px); line-height:1; opacity:0.62; pointer-events:none; animation:pequeEmojiFlota 9s ease-in-out infinite alternate; }
 @keyframes pequeEmojiFlota{ from{ transform:translateY(-7px); opacity:0.5; } to{ transform:translateY(9px); opacity:0.72; } }
 .peque-fx-pausa .peque-emoji{ animation-play-state:paused; }
 
-/* 08-oct-2026 (orden de Sandro, punto 2): campo de más de 80 emojis
+/* 08-oct-2026 (punto 2): campo de más de 80 emojis
    pequeños movidos por UN solo requestAnimationFrame (la función
    iniciarPequeFxMotor del index). Solo transform/opacity, capa con
    pointer-events:none detrás del contenido, pausa con la pestaña
@@ -3231,7 +3231,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
 }
 @media (max-width:1023px){
   /* En pantallas sin margen lateral no caben los dibujos SVG, pero
-     los emojis SÍ se quedan todos (orden de Sandro 07-oct): van en
+     los emojis SÍ se quedan todos ( 07-oct): van en
      los bordes del hero, detrás del contenido, tamaño prudente. */
   #pequeFxCapa{ display:block; }
   #pequeFxCapa .peque-deco{ display:none; }
@@ -3263,7 +3263,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
 
 /* ============================================================
    PANEL DE CAPAS — CONTROL SEGMENTADO, SCROLLBAR Y Z-INDEX
-   (07-oct-2026, tarde, orden directa de Sandro)
+   (07-oct-2026, tarde)
 
    1) «Capas de mapa» deja de ser una caja con tarjetas y acordeón:
       es un control segmentado plano de dos botones, [Mapa claro]
@@ -3340,7 +3340,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
 }
 
 /* ==========================================================================
-   07-oct-2026 (orden de Sandro): tres retoques VISUALES y aditivos.
+   07-oct-2026 (): tres retoques VISUALES y aditivos.
 
    A) Los dos «cuadraditos» de antes (el plegador de la botonera, que hace
       de desglose, y el flotante de capas) se visten como los botones del
@@ -3394,7 +3394,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
   border-radius:var(--mui-r-panel); box-shadow:var(--mui-shadow);
   display:flex; flex-direction:column; gap:8px;
   font-family:inherit; color:var(--mui-text);
-  /* 08-oct-2026 (orden de Sandro): apertura fluida, nada de aparecer
+  /* 08-oct-2026 (): apertura fluida, nada de aparecer
      de golpe. Nace plegado y .rs-panel-viaje-abierto lo despliega. */
   opacity:0; transform:translateY(-6px);
   transition:opacity 0.26s ease, transform 0.26s ease;
@@ -3440,7 +3440,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
 #main-content .rs-panel-viaje-estado:empty{ display:none; }
 
 /* ==========================================================================
-   07-oct-2026 v2 (orden de Sandro): los tres mapas base (claro, IGN y
+   07-oct-2026 v2 (): los tres mapas base (claro, IGN y
    oscuro) dejan de ser pastillas segmentadas y pasan a ser FILAS con
    interruptor a la derecha, exactamente como Árboles, Catastro 3D o
    Buscar aparcamiento. Mismo alto táctil, icono a la izquierda e
@@ -3511,7 +3511,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
 }
 
 /* ---- 2b) Aparcamientos como fila-toggle: icono de plaza de parking ----
-   (07-oct-2026, orden de Sandro: misma mecánica visual que Catastro 3D,
+   (07-oct-2026: misma mecánica visual que Catastro 3D,
    solo se añade, no se toca nada de lo demás). */
 #main-content .rs-ico-parking::before{
   -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M9.5 17v-10h3.25a2.75 2.75 0 0 1 0 5.5H9.5'/%3E%3C/svg%3E");
@@ -3558,7 +3558,7 @@ body.mode-peque .hero > *:not(#pequeFxCapa){ position:relative; z-index:1; }
 }
 
 /* ================================================================
-   REORDENACIÓN Y ALINEACIÓN DE LA PORTADA (09-oct-2026, tarea de   Sandro). Bloque ADITIVO: no se toca ninguna regla vieja, estas van
+   REORDENACIÓN Y ALINEACIÓN DE LA PORTADA (09-oct-2026, tarea). Bloque ADITIVO: no se toca ninguna regla vieja, estas van
    al final del archivo y ganan por cascada.
 
    1) Una sola anchura de contenido (~960px) para tarjetas y bloques
@@ -3757,7 +3757,7 @@ h2.map-title, h2.quantum-badge{ margin:0; }
     align-items:center;
   }
 }
-/* 12-oct-2026 (orden de Sandro): en árabe (RTL) la tarjeta flotante de
+/* 12-oct-2026 (): en árabe (RTL) la tarjeta flotante de
    capas es un flex en columna con flex-wrap:wrap heredado, y Chromium con
    direction:rtl calcula mal el origen de las líneas de flex: la lista se
    desplazaba fuera de la tarjeta por la izquierda y los títulos de grupo
@@ -3767,7 +3767,7 @@ html.rtl body.rs-capas-pop #main-content .rs-layer-toggles{ flex-wrap:nowrap; }
 html.rtl #main-content .rs-capa-grupo-tit{ text-align:right; }
 
 /* ============================================================
-   12-oct-2026 (orden de Sandro, punto 3): los campos de origen y
+   12-oct-2026 (punto 3): los campos de origen y
    destino se visten con la misma piel que la consola del mapa
    (los botones y buscadores de arriba). Panel oscuro translúcido
    con blur, borde fino claro, radio de control, iconos con el

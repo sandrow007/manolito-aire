@@ -1,6 +1,6 @@
 /* ============================================================================
    sol.js. LA ÚNICA VERDAD SOBRE SI HAY SOL en Manolit∞ Aire
-   (09-oct-2026, orden directa de Sandro: el parking decía «Al sol ahora» a
+   (09-oct-2026: el parking decía «Al sol ahora» a
    las 20:13, de noche cerrada. La app no debe inventar nada.)
    ----------------------------------------------------------------------------
    - UNA sola función decide si el sol está sobre el horizonte, con SunCalc,

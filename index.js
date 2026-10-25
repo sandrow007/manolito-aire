@@ -30,7 +30,7 @@
 }
 </script>
 
-<!-- SEO de sostenibilidad (sep-2026, orden de Sandro): la huella hídrica
+<!-- SEO de sostenibilidad (sep-2026): la huella hídrica
      por visita se calculó con los bytes REALES servidos (≈2-4 ml, menos
      que una pregunta a un chatbot de IA). La web no lleva ni un píxel de
      publicidad programática: las subastas de anuncios en tiempo real
@@ -46,7 +46,7 @@
 <link rel="preconnect" href="https://tiles.openfreemap.org">
 <!-- Solo esta CSS bloquea el render: es la que afecta al primer pintado -->
 <!-- Fuentes web FUERA (2026-09-13, brief "Mapa Eficiente y Elegante" de
-     Sandro: system fonts en vez de webfonts). Antes se cargaban Fraunces,
+      system fonts en vez de webfonts). Antes se cargaban Fraunces,
      Karla e IBM Plex Mono de Google Fonts: 2 conexiones TLS y ~100 KB de
      woff2 por visita. Y solo 4 selectores del CSS las usaban; el resto de
      la web ya iba con la pila de sistema ('SF Pro Display','Segoe UI',
@@ -393,7 +393,7 @@
   })();
 </script>
 
-<!-- Banner del modo salud (sep-2026, orden de Sandro): cada sábado la web
+<!-- Banner del modo salud (sep-2026): cada sábado la web
      se pone en verde por la salud. Este banner vive oculto por CSS todos
      los días y solo js/ambientes.js, al detectar sábado, pone la clase
      html.modo-salud que lo enseña. El domingo desaparece solo. -->
@@ -415,7 +415,7 @@
          traduce el texto y refleja el estado guardado. -->
     <button type="button" id="btn-accesibilidad" class="acc-mode-btn" aria-pressed="false">♿ Modo accesible</button>
 
-    <!-- Modos de lectura ARRIBA (sep-2026, orden de Sandro): nada más entrar
+    <!-- Modos de lectura ARRIBA (sep-2026): nada más entrar
          eliges cómo te lo cuenta Manolit. Son las mismas tarjetas de siempre
          (mismo id, mismas clases, mismo script) pero en versión tecla,
          pequeñas, para vivir en la barra sin hacerse las dueñas. -->
@@ -472,7 +472,7 @@
             data-i18n="osmRefreshBtn" data-i18n-aria-label="osmRefreshTitle">↻ Act. mapa</button>
   </div>
 
-  <!-- Zoom de letra de abuela/abuelo ARRIBA (sep-2026, orden de Sandro):
+  <!-- Zoom de letra de abuela/abuelo ARRIBA (sep-2026):
        antes esperaba en el hero, abajo, y quien lo necesita no lo veía.
        Ahora vive como última fila de la barra, fija, a mano en cualquier
        punto del paseo. Solo aparece con el modo yayo (la regla CSS de
@@ -554,14 +554,13 @@
   </div>
 </div>
 
-<!-- Las casillas de capas ya no van sueltas aquí (sep-2026, orden de
-     Sandro): viven dentro del widget de posición solar, más abajo,
+<!-- Las casillas de capas ya no van sueltas aquí (sep-2026): viven dentro del widget de posición solar, más abajo,
      junto a los botones de mapa base (Mapa oscuro, Mapa IGN, Catastro
      3D). Nada flota encima del mapa. -->
 
 <div class="rs-planetario" id="rsPlanetario" data-cielo="dia">
   <!-- Capas del mapa integradas en el widget de posición solar (sep-2026,
-       orden de Sandro): las casillas de siempre y, debajo, los botones
+      ): las casillas de siempre y, debajo, los botones
        de mapa base que shadows-route.js trae aquí (Mapa oscuro, Mapa
        IGN y Catastro 3D). Todo en una fila elegante que se apila en
        móvil, sin cambiar el tamaño de la cúpula. -->
@@ -640,7 +639,7 @@
 </details>
 </section>
   <!-- Bloque sol: la cúpula y su hora van al final del widget,
-       como una sola pieza (sep-2026, orden de Sandro). -->
+       como una sola pieza (sep-2026). -->
   <div class="rs-planetario-sol">
   <svg id="rsPlanetarioSvg" viewBox="0 0 160 160" width="150" height="150" role="img" aria-label="Posición del sol y la luna">
     <defs>
@@ -689,7 +688,7 @@
   <!-- Botón de acceso a la herramienta de Renderizado LiDAR (nube de puntos 3D).
        Es un enlace externo de la familia Manolit∞, con estilo de botón para que
        no se vea la URL y quede integrado con el diseño de la página.
-       Orden lógico del widget (sep-2026, orden de Sandro): 1) planetario
+       Orden lógico del widget (sep-2026): 1) planetario
        1) las capas del mapa, 2) el planetario, 3) este acceso LiDAR. -->
   <a class="rs-btn-lidar" href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -772,7 +771,7 @@
   <button class="im-lost-btn" onclick="openChat()" data-i18n="imLost">No lo entiendo, explícamelo</button>
 </div>
 
-<!-- Los enlaces de familia bajan aquí (sep-2026, orden de Sandro): antes
+<!-- Los enlaces de familia bajan aquí (sep-2026): antes
      vivían en la barra de arriba y ahora que los modos ocupan ese sitio,
      ellos esperan tras el hero, centrados y con el mismo estilo de siempre. -->
 <nav class="family-zone" aria-label="La familia Manolit y por qué existe esto">
@@ -783,10 +782,10 @@
   <a class="family-link" href="https://islasdecalorsevilla.com/manolito" target="_blank" rel="noopener">Que es Manolit∞ ©</a>
 </nav>
 
-<!-- Sección reivindicativa de los sábados (sep-2026, orden de Sandro):
+<!-- Sección reivindicativa de los sábados (sep-2026):
      "en defensa de las sombras por la salud". Igual que el banner, solo
      se ve cuando js/ambientes.js pone html.modo-salud (cada sábado).
-     DESPLEGABLE ESTRICTO (25-sep, orden de Sandro): nace CERRADO y solo
+     DESPLEGABLE ESTRICTO (25-sep): nace CERRADO y solo
      el usuario lo abre pulsando el resumen; otro clic y se cierra del
      todo. La animación de apertura/cierre es CSS puro (grid rows). -->
 <details class="salud-section" id="defensa-sombras" aria-labelledby="saludH2">
@@ -797,7 +796,7 @@
   <div class="salud-contenido">
     <div class="salud-contenido-interno salud-card">
       <!-- Sello oficial "SIMULADOR DE SOMBRAS · MANOLIT∞" (25-sep-2026,
-           orden de Sandro). Geometría EXACTA del archivo original, solo
+          ). Geometría EXACTA del archivo original, solo
            los colores pasan a variables: corporativos por defecto y
            verdes mientras dure el modo salud (ambientes.css). No existe
            como archivo .svg suelto, va solo incrustado aquí. -->
@@ -825,7 +824,7 @@
           </g>
         </svg>
       </div>
-      <!-- Stickers de salud (26-sep-2026, archivo SVG que paso Sandro):
+      <!-- Stickers de salud (26-sep-2026, archivo SVG ):
            seis iconos circulares (sol, sombra, salud, agua, temp. y
            prevencion) con los colores de marca. Geometria verbatim del
            archivo, solo se quito el metadata c2pa (firma, no dibujo). -->
@@ -849,7 +848,7 @@
         <text x="45" y="108" style="fill:rgb(159, 184, 173);stroke:none;color:rgb(11, 11, 11);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;JetBrains Mono&quot;, monospace;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">sol</text>
         </g>
         <g transform="translate(145,20)">
-          <!-- Sticker "sombra" sustituido por el que paso Sandro (26-sep):
+          <!-- Sticker "sombra" sustituido por el  (26-sep):
                copa de arbol clara con su sombra proyectada en tres capas.
                El translate(0,-10) solo alinea su circulo y su etiqueta con
                los otros cinco stickers de la fila. Geometria verbatim. -->
@@ -900,7 +899,7 @@
       <p data-i18n="saludP1">Cruzar de la acera del sol a la de la sombra en pleno verano andaluz puede suponer diez grados de diferencia en tu cuerpo. Eso no es una anécdota, es salud ambiental. El asfalto y el hormigón retienen el calor y transforman nuestras calles en trampas térmicas que agreden al organismo.</p>
       <p data-i18n="saludP2">Ni siquiera Hércules, fundador mítico de Sevilla, era invencible. Era un semidiós y, como humano, tenía fragilidades físicas que debía proteger antes de caer. Nosotros no buscamos soluciones médicas tardías; buscamos prevención ambiental. Cada árbol y cada sombra es medicina urbana que modifica el clima de la calle para proteger a nuestra gente.</p>
       <!-- Aviso de precision y pie de recursos oficiales (25-sep-2026,
-           orden de Sandro). La nota recuerda que el simulador no es
+          ). La nota recuerda que el simulador no es
            exacto al 100% y que ante el sol manda el sentido comun;
            abajo, dos accesos directos a portales de la Junta de
            Andalucia por si hace falta consejo sanitario o una cita
@@ -1114,7 +1113,7 @@
 </section>
 
 <div class="footer">
-  <p>Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de Sandro: herramientas gratuitas, sin registro y sin publicidad.</p>
+  <p>Manolit∞ Aire forma parte de la familia de proyectos ciudadanos de  herramientas gratuitas, sin registro y sin publicidad.</p>
   <p class="footer-eco">Web frugal y sostenible, con números medidos: la telemetría real de 30 días da 0,38 MB y unos 2 mililitros de agua por visita, menos que una sola pregunta a una inteligencia artificial. Y sin publicidad ni subastas de anuncios: la publicidad programática del mundo gasta unos 375 litros de agua cada segundo; esta web entera, un sorbo por visita.</p>
   <div class="footer-family" data-i18n="footerFamily">Manolit∞ Forestal · Islas de Calor Sevilla · Manolit∞ Aire</div>
   <div class="footer-ign" style="margin-top:8px; font-size:0.75rem; opacity:0.7;">Capa base opcional «Mapa IGN»: cartografía © IGN / SCNE, CC BY 4.0 (scne.es)</div>
@@ -1196,10 +1195,10 @@
     </div>
   </div>
 
-  <!-- Sello oficial PERMANENTE (25-sep-2026, orden de Sandro). El bloque
+  <!-- Sello oficial PERMANENTE (25-sep-2026). El bloque
        de salud se retira solo el domingo a las 18:00, pero este sello se
        queda en la esquina inferior del pie todo el año. Misma geometria
-       exacta del archivo original que paso Sandro (solo cambian los ids
+       exacta del archivo original  (solo cambian los ids
        internos para no repetirlos en el documento). Los colores salen de
        las mismas variables --sello-* de ambientes.css: corporativos todo
        el año y verdes solo mientras dura el modo salud. -->
@@ -1243,7 +1242,7 @@
     </div>
     <div class="chat-msg mano" data-i18n="chatWelcome">Tranquilo/a, vamos con calma. Dime qué no entiendes, o elige una pregunta.</div>
     <div id="chatBody"></div>
-    <!-- Botones de inicio (sep-2026, orden de Sandro): solo estos dos,
+    <!-- Botones de inicio (sep-2026): solo estos dos,
          uno al lado del otro en horizontal compacto. El chip de la ruta
          con sombra que añade shadows-route.js ocupa la fila entera
          debajo. Las respuestas rápidas viejas siguen en i18n.js por si
@@ -1534,7 +1533,7 @@
       setVal('sciPM10', pm10 + ' µg/m³');
       setVal('sciNO2',  no2 + ' µg/m³');
       setVal('sciO3',   o3 + ' µg/m³');
-      // Datos extra del modo científico (sep-2026, orden de Sandro): solo se
+      // Datos extra del modo científico (sep-2026): solo se
       // escriben si la llamada los trajo; si faltan, la fila enseña '--'.
       if (so2 !== undefined) setVal('sciSO2', so2 + ' µg/m³');
       if (co  !== undefined) setVal('sciCO',  co  + ' µg/m³');
@@ -1543,7 +1542,7 @@
       setVal('sciUpdated', 'Actualizado: ' + hora);
     };
 
-    // Efecto mágico del modo peque (sep-2026, orden de Sandro): los emojis
+    // Efecto mágico del modo peque (sep-2026): los emojis
     // ya no se quedan solo en el hero, suben flotando por TODA la página.
     // Es una única capa fija con animaciones CSS (transform y opacity, lo
     // más barato que existe para la GPU): sin bucles JS, sin intervalos,
@@ -1555,7 +1554,7 @@
       if (capaVieja) capaVieja.remove();
       if (mode !== 'peque') return;
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      // Lista ampliada (23-sep-2026, orden de Sandro): unicornio, la flamenca
+      // Lista ampliada (23-sep-2026): unicornio, la flamenca
       // y toda la caja de juguetes. Con el pool grande, 16 spans no alcanzan
       // para ver la variedad, subimos a 24. Sigue siendo animación CSS pura.
       const emojis = [

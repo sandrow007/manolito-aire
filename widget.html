@@ -132,7 +132,7 @@ body:not(.embed) .maplibregl-ctrl-top-right { top: 104px; }
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js"></script>
-<script src="js/sol.js"></script><!-- la única verdad sobre si hay sol (09-oct-2026, orden de Sandro) -->
+<script src="js/sol.js"></script><!-- la única verdad sobre si hay sol (09-oct-2026) -->
 <script>
 (function () {
 'use strict';
@@ -612,7 +612,7 @@ function pintarRuta(linea) {
   $('badgeNum').textContent = pct + '%';
   $('badgeTxt').textContent = modo === 'sol' ? 'de la ruta con sol' : 'de la ruta por sombra';
   $('badge').hidden = false;
-  // 09-oct-2026 (orden de Sandro): de noche no hay sol, ni 0% ni 100%.
+  // 09-oct-2026 (): de noche no hay sol, ni 0% ni 100%.
   // Lo decide la función única de js/sol.js con la hora real y el origen
   // de la ruta. El porcentaje queda para el día, que es cuando significa.
   try {

@@ -1,6 +1,6 @@
 /* ============================================================
    CERTIFICADO DE PROTECCIÓN CLIMÁTICA MANOLIT∞
-   (07-oct-2026, NUEVA ORDEN de rediseño de Sandro)
+   (07-oct-2026, rediseño)
    Genera el certificado del juego "Atrapa a Manolit∞" ENTERO en el
    dispositivo. No se envía ni se guarda nada en ningún servidor:
    el nombre solo vive en la memoria de la página y se olvida al
@@ -21,7 +21,7 @@
      no existe registro ni verificación. Se mantiene al descargar
      otra vez en la misma sesión (lo fija el juego al emitir).
    - Diseño sobrio con curvas de nivel e isotermas muy tenues,
-     sello oficial de Manolit∞, firma original de Sandro y banda
+     sello oficial de Manolit∞, firma original y banda
      holográfica decorativa (símbolo de juego, no seguridad real).
 
    Dos formatos:
@@ -236,7 +236,7 @@ function glifoSello(id, cx, cy) {
     }
     case 'sombra':
       /* Glifo de sombra ORIGINAL DE VERDAD, copiado carácter a
-         carácter del diploma original que Sandro ha subido
+         carácter del diploma original 
          (diploma-manolit.svg): la forma blanca con contorno teal
          sobre su sombra gris. Este y ningún otro. */
       return `<ellipse cx="${cx + 8}" cy="${cy + 22}" rx="26" ry="7" fill="${TINTA}" opacity="0.35"/>
@@ -309,7 +309,7 @@ function bandaHolo() {
 }
 
 /* ---- Firma de Manolit∞. Geometría y colores copiados tal cual
-   del archivo original de Sandro (viewBox 0 0 1000 400): la
+   del archivo original (viewBox 0 0 1000 400): la
    palabra "Manolit" y el trazo de la 't' que muta hacia el
    infinito, con su sombra térmica azul. Se integra en su estado
    final, sin la animación de trazo (si se animara, el PDF la

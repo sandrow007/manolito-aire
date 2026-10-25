@@ -1,3 +1,5 @@
+<img width="2160" height="2700" alt="manolit_instagram_layers_EN_2160x2700" src="https://github.com/user-attachments/assets/591af2ba-cd28-47e5-8f21-616aa284a6a1" />
+
 # Manolit∞ Aire
 
 **The first turn-by-turn walking router that optimizes for shade, not distance — like Google Maps, but so you don't melt.**

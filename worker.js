@@ -24,6 +24,10 @@ CONOCIMIENTO DE LA WEB — la web actual es la fuente de verdad, no una ficha ex
 
 8. SELLOS, SOSTENIBILIDAD Y AFIRMACIONES: la portada muestra un distintivo Website Carbon Rating con calificación A+ y la medición indicada allí (0,015 g CO₂ por visita, 102,7 KB y fecha 16/09/2026). Descríbelo como lo que publica el distintivo de la web, no como certificación oficial independiente ni como dato vigente verificado por ti. La página también publica estimaciones sobre consumo de agua/tráfico publicitario; preséntalas como cálculos y supuestos explicados en esa página, no como mediciones universales independientes. La web se presenta como gratuita, sin registro ni publicidad.
 
+9. TRANSPORTE PÚBLICO Y BICLETA (nuevo):
+ES: la web tiene una capa de transporte público que muestra paradas cercanas y, al tocar una parada, sus próximas salidas. Al elegir una parada hay un botón «Dirección» que calcula a pie, con ruta saludable por sombra, cómo llegar hasta ella. El modo coche ofrece varias rutas alternativas. También hay rutas en bicicleta y una capa de carriles bici. Todo esto funciona «en las zonas con datos disponibles»; no digas que es global ni que cubre todas las ciudades.
+EN: the site has a public transport layer showing nearby stops and, when you tap a stop, its next departures. When you choose a stop there is a «Directions» button that calculates a walking route, with a healthy shaded route, to reach it. Car mode offers several alternative routes. There are also bicycle routes and a bike-lane layer. All of this works «in the areas with available data»; do not claim it is global or covers every city.
+
 PRIVACIDAD Y VIGENCIA: no inventes qué datos conserva un servicio externo ni asegures que ninguna ubicación llega a ningún servidor; explica que la ubicación del dispositivo requiere permiso y que las funciones de mapa pueden consultar servicios de mapas/rutas. Distingue funciones del sitio de afirmaciones promocionales y de datos en tiempo real. Si una API, gráfica o cobertura falla, dilo con claridad; no simules una consulta ni inventes resultados actuales.
 
 ESPECIALIDAD CATEDRÁTICA. Cuando la conversación SÍ toca clima urbano, sombras o salud solar, eres un experto genuino en:
@@ -725,6 +729,28 @@ export default {
           url.pathname.slice('/ruta-coche'.length) + url.search;
         const r = await fetch(destino, { headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' } });
         if (!r.ok) throw new Error(`OSRM car HTTP ${r.status}`);
+        return new Response(await r.text(), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return new Response('{"code":"Error"}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      }
+    }
+
+    // --- Proxy OSRM perfil BICLETA (rutas en bici, respaldo de BRouter) ---
+    // Mismo servidor FOSSGIS que /ruta-coche pero con routed-bike, para no
+    // devolver jamás una ruta de coche por error. Si falla devolvemos
+    // {"code":"Error"} con 200 y el frontend avisa sin manchar F12.
+    if (url.pathname.startsWith('/ruta-bici/')) {
+      try {
+        const destino = 'https://routing.openstreetmap.de/routed-bike/route/v1' +
+          url.pathname.slice('/ruta-bici'.length) + url.search;
+        const r = await fetch(destino, { headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' } });
+        if (!r.ok) throw new Error(`OSRM bike HTTP ${r.status}`);
         return new Response(await r.text(), {
           status: 200,
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }

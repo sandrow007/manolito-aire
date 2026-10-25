@@ -1414,7 +1414,9 @@
       <p class="rs-capa-grupo-tit" data-i18n="groupBaseInfra">Base e infraestructura</p>
       <div class="rs-capas-mapas" id="rsCapasMapas"></div>
       <label class="rs-capa-fila rs-ico-edificios"><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
+      <label class="rs-capa-fila rs-ico-carril-bici"><input type="checkbox" id="rsToggleCarrilesBici"> <span data-i18n="layerBikeLanes">Carriles bici</span></label>
       <label class="rs-capa-fila rs-ico-fuentes-agua"><input type="checkbox" id="rsToggleFuentesAgua"> <span data-i18n="layerWaterFountains">Fuentes de agua</span></label>
+      <label class="rs-capa-fila rs-ico-transporte"><input type="checkbox" id="rsToggleTransporte"> <span data-i18n="layerTransport">Transporte público</span></label>
       <label class="rs-capa-fila rs-ico-ruta"><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
       <!-- Catastro 3D (07-oct-2026): ya no va con los mapas
            base, es una capa combinable y se presenta como fila-toggle
@@ -1429,6 +1431,9 @@
            fila-botón que abre el panelito con origen y destino. Lo
            rellena js/aparcamientos-viaje.js, el mismo módulo del parking. -->
       <div class="rs-capa-fila rs-capa-fila-btn rs-ico-viaje" id="rsMonteViaje"></div>
+      <!-- Ruta en bicicleta (aditivo): fila-botón que abre el panel de bici.
+           La rellena js/rutas-bici.js, sin tocar el viaje en coche. -->
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-bici" id="rsMonteBici"></div>
       </div>
     </div>
   </div>
@@ -2415,6 +2420,9 @@
     <button type="button" id="btnSyncExport" class="footer-sync-toggle" data-i18n="syncLink"
             aria-expanded="false" aria-controls="syncPanel">Sincronizar / Exportar datos</button>
   </div>
+  <p class="footer-transporte-atribucion" style="margin:4px 0 0;font-size:0.68rem;opacity:0.8;text-align:center;">
+    Transporte público por <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous</a> · Cartografía © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Colaboradores de OpenStreetMap</a> · Contacto: manolitoaire.com
+  </p>
     <div id="syncPanel" class="sync-panel" hidden>
       <p class="sync-hint" data-i18n="syncHint">Guarda tus ajustes en un archivo y recupéralos en otro dispositivo. Sin cuentas ni servidores.</p>
       <div class="sync-panel-btns">
@@ -2697,6 +2705,11 @@
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
           cargarScript('js/fuentes-agua.js?v=osm-map-capasyagua-20261020').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));
+          // Capa de transporte público (Transitous). Aditiva; su fallo no
+          // detiene árboles, irradiación ni aparcamientos.
+          cargarScript('js/transporte-publico.js').catch((err) => console.error('No se ha podido cargar la capa de transporte público:', err));
+          // Capa de rutas en bici y carriles bici (BRouter + OSM). Aditiva.
+          cargarScript('js/rutas-bici.js').catch((err) => console.error('No se ha podido cargar la capa de rutas en bici:', err));
           return cargarScript('js/arboles-3d.js');
         })
         .then(() => cargarScript('js/irradiacion-solar.js'))

@@ -24,6 +24,20 @@ Sevilla en verano no es una ciudad, es un horno. Caminar 10 minutos por la calle
 - 🌬️ Calidad del aire (Copernicus CAMS vía Open-Meteo)
 - ☀️ Histórico de irradiación solar desde 1984 (NASA POWER)
 
+### Transporte público y bicicleta (capas y regiones)
+
+La capa de transporte público usa la API pública de [Transitous](https://transitous.org/api/) (sin clave). La capa de carriles bici usa la infraestructura ciclista de OpenStreetMap vía Overpass (ODbL), y las rutas en bicicleta usan [BRouter](https://brouter.de/brouter) con respaldo en OSRM/FOSSGIS. Las regiones se deciden por el centro del mapa desde el archivo `transit-regions.json` (compartido por transporte y bici).
+
+Para añadir una ciudad o país:
+
+1. Abre `transit-regions.json`.
+2. Añade una entrada en `regions` con `id`, `name`, `provider`, `attribution` y `polygons` (cada polígono es un array de pares `[lon, lat]`).
+3. Para un país usa un polígono simplificado real (no un rectángulo que invada vecinos); para una ciudad basta un polígono pequeño alrededor de su casco.
+4. Si la nueva región es española, su `id` debe empezar por `es-` para que se reconozca como tal.
+5. Guarda el JSON (válido) y recarga: la selección automática ya la tendrá en cuenta.
+
+Fuera de las regiones definidas, las capas usan la región por defecto (`defaultRegion`, normalmente `global`).
+
 ### Stack técnico
 
 - JavaScript (ES6+), sin frameworks pesados

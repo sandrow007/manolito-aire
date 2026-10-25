@@ -180,7 +180,11 @@
 // copiables, vista compacta en móvil) y retirada la línea de atribución
 // «Mapa IGN» del pie, que ya queda cubierta en aviso-legal.html.
 // Cambia index.html.
-const VERSION = '2026-10-23-i-sello-registral';
+// 2026-10-24-a: capa de transporte público (Transitous) y capa de rutas en
+// bici + carriles bici (BRouter, OSRM/FOSSGIS, Overpass). Cambian index.html,
+// css/style.css, js/i18n.js, js/transporte-publico.js, js/rutas-bici.js,
+// transit-regions.json y worker.js.
+const VERSION = '2026-10-24-a-transporte-y-bici';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

@@ -1,4 +1,4 @@
-﻿﻿const CORS_HEADERS = {
+const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
@@ -62,6 +62,14 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    // Redirect 301 a https y sin "www": evita que Google indexe la misma
+    // página por varias URLs con el mismo título (http/https, con/sin www).
+    if (url.protocol === 'http:' || url.hostname.startsWith('www.')) {
+      url.protocol = 'https:';
+      url.hostname = url.hostname.replace(/^www\./, '');
+      return Response.redirect(url.toString(), 301);
+    }
+
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
@@ -89,17 +97,13 @@ export default {
           .slice(-6)
           .filter(item => item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string')
           .map(item => ({ role: item.role, content: item.content.slice(0, 1200) }));
-        // chat.js ya incluye la pregunta actual en history; evita duplicarla.
         const lastMessage = recentMessages[recentMessages.length - 1];
         if (lastMessage?.role === 'user' && lastMessage.content.trim() === message.trim()) {
           recentMessages.pop();
         }
 
-        // --- Cadena de Fallback: Cloudflare AI -> OpenRouter ---
-
         let aiResponse = '';
 
-        // 1. Intentar con Cloudflare Workers AI
         try {
           const messages = [
             { role: 'system', content: systemPrompt },
@@ -110,10 +114,8 @@ export default {
           aiResponse = typeof response === 'string' ? response : (response.response || '');
         } catch (e) {
           console.error("Cloudflare AI failed:", e);
-          // Si falla, no hacemos nada y dejamos que el código siga hacia OpenRouter
         }
 
-        // 2. Si Cloudflare falló Y tenemos una clave de OpenRouter, usarla
         if (!aiResponse && env.OPENROUTER_API_KEY) {
           try {
             const orResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -155,19 +157,11 @@ export default {
     if (url.pathname.startsWith('/api/air-quality')) {
       const params = url.search || '';
       const targetUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality' + params;
-      // Regla de oro de esta casa: el navegador NUNCA ve un error en F12.
-      // Si Open-Meteo falla o nos limita (429), devolvemos 200 con objeto
-      // vacío y el frontend muestra "·" / "sin datos" sin ensuciar consola.
       const vacio = () => new Response('{}', {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
       });
       try {
-        // Caché en el edge de Cloudflare (10 min): las consultas van en TANDAS
-        // de ~40 estaciones (13 URLs únicas para toda España), así que casi
-        // todas las visitas se sirven de la caché sin tocar Open-Meteo. Esto
-        // es lo que evita el rate-limit del origen: el tráfico que sale hacia
-        // Open-Meteo pasa de ~500 peticiones por visita a ~13 cada 10 minutos.
         const resp = await fetch(targetUrl, {
           headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
           cf: { cacheTtl: 600, cacheEverything: true },
@@ -183,49 +177,20 @@ export default {
       }
     }
 
-    // --- Proxy anti-CORS + caché KV para los árboles (Overpass / OpenStreetMap) ---
-    // Los espejos públicos de Overpass se caen a menudo (502/504/silencio
-    // total), así que la defensa va en tres capas:
-    //   1) KV: si esta misma zona se pidió hace <7 días, se sirve al
-    //      instante sin tocar Overpass; si la copia es más vieja, se sirve
-    //      igualmente y se renueva EN SEGUNDO PLANO (stale-while-revalidate):
-    //      los árboles de OSM se actualizan solos cada semana, sin esperas.
-    //   2) Carrera de espejos: se lanzan todos EN PARALELO con 15 s de
-    //      timeout cada uno y gana el primero que responda bien. El Worker
-    //      nunca se cuelga (15 s máx.) ni espera a espejos muertos.
-    //   3) Si todos los espejos fallan, se sirve la copia del KV aunque sea
-    //      vieja (los árboles no se mueven: un dato de hace 2 días es
-    //      infinitamente mejor que ningún dato).
     if (url.pathname === '/arboles') {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
       }
       try {
         const rawBody = await request.text();
-
-        // Clave de caché = bbox de la consulta Overpass, redondeado a 3
-        // decimales (~100 m): la misma calle comparte caché entre usuarios.
         let claveKv = null;
         try {
           const m = decodeURIComponent(rawBody).match(/\(([-\d.,\s]+)\)/);
           if (m) claveKv = 'arboles:' + m[1].split(',').map((n) => parseFloat(n).toFixed(3)).join(',');
-        } catch (e) { /* sin clave: seguimos sin caché */ }
-
+        } catch (e) { }
         const kv = env.AIR_QUALITY_CACHE || null;
-        // Actualización cada 12 h (sep-2026): antes una
-        // copia se consideraba "fresca" durante 7 días, y lo que la gente
-        // dibujaba en OpenStreetMap tardaba una semana en aparecer en la
-        // web. Ahora la caché compartida caduca a las 12 horas; y el
-        // botón "↻ Actualizar" de la web (cabecera X-Arboles-Fresca) la
-        // renueva al momento para todo el mundo.
-        const FRESCA_MS = 12 * 3600 * 1000; // 12 horas
-        // Modo "frescos": la página puede pedir los datos recién bajados de
-        // OSM (p. ej. ?arboles=frescos tras plantar un árbol en el mapa). El
-        // bypass es por zona y además deja la caché compartida ya renovada
-        // para todo el mundo.
+        const FRESCA_MS = 12 * 3600 * 1000;
         const forzarFresca = request.headers.get('X-Arboles-Fresca') === '1';
-
-        // La copia del KV se lee UNA vez y se reutiliza en todas las ramas.
         let copiaKv = null;
         if (kv && claveKv) {
           try {
@@ -236,25 +201,15 @@ export default {
                 headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
               });
             }
-          } catch (e) { /* KV inaccesible: seguimos a los espejos */ }
+          } catch (e) { }
         }
-
         const espejos = [
-          // Espejos públicos de Overpass en Europa y Taiwán (nada de
-          // infraestructura rusa). DA IGUAL el orden: se lanzan TODOS EN
-          // PARALELO y gana el primero que responda con datos válidos
-          // (carrera), con 15 s de timeout por espejo. Así el Worker nunca
-          // se cuelga ni espera a un espejo muerto. Los tres dominios
-          // *.overpass-api.de son colas independientes del mismo operador
-          // alemán (el principal suele ser el más saturado).
           'https://lz4.overpass-api.de/api/interpreter',
           'https://z.overpass-api.de/api/interpreter',
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://overpass.private.coffee/api/interpreter',
           'https://overpass.nchc.org.tw/api/interpreter',
-          // OJO: overpass.osm.ch devuelve 200 con elements vacío y fecha
-          // basura (timestamp_osm_base:"116617"), corrupto y fuera.
         ];
         const obtenerBBoxConsulta = () => {
           const query = new URLSearchParams(rawBody).get('data') || '';
@@ -305,7 +260,6 @@ export default {
               }
               return tags;
             };
-
             for (const elemento of xml.matchAll(/<(node|way)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g)) {
               const tipo = elemento[1];
               const atributos = elemento[2];
@@ -326,7 +280,6 @@ export default {
                 filas.push({ id, refs, tags });
               }
             }
-
             for (const fila of filas) {
               const geometry = fila.refs.map((ref) => nodos.get(String(ref))).filter(Boolean);
               if (geometry.length >= 2) {
@@ -347,8 +300,6 @@ export default {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                // User-Agent identificativo: los espejos Overpass limitan o
-                // bloquean peticiones anónimas (técnica anti-bot).
                 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)',
               },
               body: rawBody,
@@ -356,7 +307,6 @@ export default {
             });
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const txt = await r.text();
-            // Validar el contenido: un 200 con JSON vacío corrupto no vale.
             let datos = null;
             try { datos = JSON.parse(txt); } catch (e) { throw new Error('no JSON'); }
             const ts = datos?.osm3s?.timestamp_osm_base;
@@ -371,40 +321,26 @@ export default {
             clearTimeout(temporizador);
           }
         };
-        // Stale-while-revalidate (sep-2026): si hay copia vieja (más de 7
-        // días) y NO se pidió refresco forzado, se sirve AL INSTANTE y se
-        // lanza la renovación contra Overpass en segundo plano. El usuario
-        // nunca espera; la próxima visita (la de cualquiera) ya verá los
-        // árboles nuevos. Así OSM se actualiza solo, semanalmente.
         if (copiaKv && !forzarFresca) {
           if (ctx && typeof ctx.waitUntil === 'function') {
             ctx.waitUntil(
               Promise.any(espejos.map(intentarEspejo))
                 .then((nueva) => kv.put(claveKv, nueva, { expirationTtl: 2592000, metadata: { ts: Date.now() } }))
-                .catch(() => { /* si la renovación falla, la copia vieja sigue sirviendo */ })
+                .catch(() => { })
             );
           }
           return new Response(copiaKv, {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'vieja-refrescando', ...CORS_HEADERS }
           });
         }
-
-        // Promise.any: el primer espejo bueno gana al instante; solo se
-        // espera a todos (máx. 15 s) si TODOS fallan.
         let respuesta = null;
         try {
-          // Mantiene Overpass como fuente original y usa la API de datos OSM
-          // por bbox si los espejos Overpass están caídos o devuelven vacío.
           respuesta = await Promise.any([
             ...espejos.map(intentarEspejo),
             intentarApiMapaOsm(),
           ]);
-        } catch (e) { /* AggregateError: todos fallaron */ }
-
+        } catch (e) { }
         if (respuesta) {
-          // Guardamos en KV en segundo plano (30 días de vida: la copia de
-          // emergencia aguanta aunque Overpass pase semanas caprichoso) sin
-          // retrasar la respuesta al navegador.
           if (kv && claveKv && ctx && typeof ctx.waitUntil === 'function') {
             ctx.waitUntil(
               kv.put(claveKv, respuesta, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {})
@@ -414,18 +350,13 @@ export default {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'nueva', ...CORS_HEADERS }
           });
         }
-
-        // Todos los espejos caídos: servimos la copia del KV aunque esté vieja.
         if (copiaKv) {
           return new Response(copiaKv, {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Arboles-Cache': 'vieja', ...CORS_HEADERS }
           });
         }
-
         throw new Error('Overpass no disponible en ningún espejo');
       } catch (err) {
-        // 200 con lista vacía: el mapa pinta la zona sin árboles y F12
-        // queda limpio (un 502 aparecería como error aunque la web funcione).
         return new Response(JSON.stringify({ elements: [] }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
@@ -433,11 +364,6 @@ export default {
       }
     }
 
-    // --- Proxy anti-CORS + caché KV para APARCAMIENTOS (Overpass / OSM) ---
-    // 07-oct-2026 (módulo parking): misma defensa en tres
-    // capas que /arboles (KV con stale-while-revalidate, carrera de espejos
-    // en paralelo, copia vieja de emergencia). Ruta aparte para que la caché
-    // de aparcamientos no colisione con la de árboles en el mismo bbox.
     if (url.pathname === '/aparcamientos') {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
@@ -448,12 +374,10 @@ export default {
         try {
           const m = decodeURIComponent(rawBody).match(/\(([-\d.,\s]+)\)/);
           if (m) claveKv = 'parking:' + m[1].split(',').map((n) => parseFloat(n).toFixed(3)).join(',');
-        } catch (e) { /* sin clave: seguimos sin caché */ }
-
+        } catch (e) { }
         const kv = env.AIR_QUALITY_CACHE || null;
-        const FRESCA_MS = 12 * 3600 * 1000; // 12 horas, como los árboles
+        const FRESCA_MS = 12 * 3600 * 1000;
         const forzarFresca = request.headers.get('X-Arboles-Fresca') === '1';
-
         let copiaKv = null;
         if (kv && claveKv) {
           try {
@@ -464,9 +388,8 @@ export default {
                 headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
               });
             }
-          } catch (e) { /* KV inaccesible: seguimos a los espejos */ }
+          } catch (e) { }
         }
-
         const espejos = [
           'https://lz4.overpass-api.de/api/interpreter',
           'https://z.overpass-api.de/api/interpreter',
@@ -515,12 +438,10 @@ export default {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'vieja-refrescando', ...CORS_HEADERS }
           });
         }
-
         let respuesta = null;
         try {
           respuesta = await Promise.any(espejos.map(intentarEspejo));
-        } catch (e) { /* todos fallaron */ }
-
+        } catch (e) { }
         if (respuesta) {
           if (kv && claveKv && ctx && typeof ctx.waitUntil === 'function') {
             ctx.waitUntil(
@@ -531,13 +452,11 @@ export default {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'nueva', ...CORS_HEADERS }
           });
         }
-
         if (copiaKv) {
           return new Response(copiaKv, {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Arboles-Cache': 'vieja', ...CORS_HEADERS }
           });
         }
-
         throw new Error('Overpass no disponible en ningún espejo');
       } catch (err) {
         return new Response(JSON.stringify({ elements: [] }), {
@@ -547,12 +466,117 @@ export default {
       }
     }
 
-    // GET /clima?lat=..&lon=.. -> { nubes: 0-100, descripcion, humedad }
-    // La API key vive SOLO aquí, como secret del Worker (nunca en el cliente):
-    //   npx wrangler secret put OPENWEATHER_API_KEY
+    // --- Proxy anti-CORS + caché KV para CARRILES BICI (Overpass / OSM) ---
+    // 24-oct-2026: ruta PROPIA, separada de /aparcamientos. Antes rutas-bici.js
+    // reutilizaba /aparcamientos y la caché del Worker clavaba por bbox sin
+    // mirar el contenido de la consulta: si alguien había cargado ya el
+    // aparcamiento de esa zona, el carril bici recibía esa misma caché (nodos
+    // de parking, sin geometría de vía) y no se dibujaba nunca ninguna línea.
+    // Misma defensa en tres capas que /arboles y /aparcamientos, con su
+    // propio espacio de claves ("carril:") para que nunca vuelva a chocar.
+    if (url.pathname === '/carriles-bici') {
+      if (request.method !== 'POST') {
+        return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
+      }
+      try {
+        const rawBody = await request.text();
+        let claveKv = null;
+        try {
+          const m = decodeURIComponent(rawBody).match(/\(([-\d.,\s]+)\)/);
+          if (m) claveKv = 'carril:' + m[1].split(',').map((n) => parseFloat(n).toFixed(3)).join(',');
+        } catch (e) { }
+        const kv = env.AIR_QUALITY_CACHE || null;
+        const FRESCA_MS = 12 * 3600 * 1000;
+        const forzarFresca = request.headers.get('X-Arboles-Fresca') === '1';
+        let copiaKv = null;
+        if (kv && claveKv) {
+          try {
+            const { value, metadata } = await kv.getWithMetadata(claveKv);
+            copiaKv = value || null;
+            if (!forzarFresca && value && metadata && metadata.ts && Date.now() - metadata.ts < FRESCA_MS) {
+              return new Response(value, {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
+              });
+            }
+          } catch (e) { }
+        }
+        const espejos = [
+          'https://lz4.overpass-api.de/api/interpreter',
+          'https://z.overpass-api.de/api/interpreter',
+          'https://overpass-api.de/api/interpreter',
+          'https://overpass.kumi.systems/api/interpreter',
+          'https://overpass.private.coffee/api/interpreter',
+          'https://overpass.nchc.org.tw/api/interpreter',
+        ];
+        const intentarEspejo = async (espejo) => {
+          const controller = new AbortController();
+          const temporizador = setTimeout(() => controller.abort(), 15000);
+          try {
+            const r = await fetch(espejo, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)',
+              },
+              body: rawBody,
+              signal: controller.signal,
+            });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const txt = await r.text();
+            let datos = null;
+            try { datos = JSON.parse(txt); } catch (e) { throw new Error('no JSON'); }
+            const ts = datos?.osm3s?.timestamp_osm_base;
+            const corrupto =
+              Array.isArray(datos?.elements) && datos.elements.length === 0 &&
+              typeof ts === 'string' && ts !== '' && !ts.includes('T');
+            if (corrupto) throw new Error('espejo corrupto');
+            if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
+            return txt;
+          } finally {
+            clearTimeout(temporizador);
+          }
+        };
+        if (copiaKv && !forzarFresca) {
+          if (ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(
+              Promise.any(espejos.map(intentarEspejo))
+                .then((nueva) => kv.put(claveKv, nueva, { expirationTtl: 2592000, metadata: { ts: Date.now() } }))
+                .catch(() => { })
+            );
+          }
+          return new Response(copiaKv, {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'vieja-refrescando', ...CORS_HEADERS }
+          });
+        }
+        let respuesta = null;
+        try {
+          respuesta = await Promise.any(espejos.map(intentarEspejo));
+        } catch (e) { }
+        if (respuesta) {
+          if (kv && claveKv && ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(
+              kv.put(claveKv, respuesta, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {})
+            );
+          }
+          return new Response(respuesta, {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'nueva', ...CORS_HEADERS }
+          });
+        }
+        if (copiaKv) {
+          return new Response(copiaKv, {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Arboles-Cache': 'vieja', ...CORS_HEADERS }
+          });
+        }
+        throw new Error('Overpass no disponible en ningún espejo');
+      } catch (err) {
+        return new Response(JSON.stringify({ elements: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      }
+    }
+
     if (url.pathname === '/clima') {
-      // Respuesta neutra 200 cuando falta la clave o falla OWM: el frontend
-      // asume cielo despejado y la consola (F12) queda limpia, sin errores.
       const cieloDespejado = () => new Response(JSON.stringify({ nubes: 0, descripcion: '', humedad: null, amanecer: null, atardecer: null, temperatura: null }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
@@ -575,8 +599,6 @@ export default {
           nubes: Math.max(0, Math.min(100, Number(d?.clouds?.all ?? 0))),
           descripcion: d?.weather?.[0]?.description || '',
           humedad: d?.main?.humidity ?? null,
-          // (sep-2026) Temperatura actual: la usa Manolit para contarla en
-          // sus frases de estación ("¡estamos a 12 grados, miarma!").
           temperatura: isFinite(Number(d?.main?.temp)) ? Number(d.main.temp) : null,
           amanecer: d?.sys?.sunrise ?? null,
           atardecer: d?.sys?.sunset ?? null,
@@ -589,14 +611,6 @@ export default {
       }
     }
 
-    // --- Previsión horaria (Open-Meteo Forecast) para el modo predictivo ---
-    // GET /prevision?lat=..&lon=.. -> JSON de Open-Meteo con temperatura,
-    // nubosidad y humedad hora a hora (ayer, hoy y mañana, en unixtime).
-    // La usa la capa de microclima cuando el reloj solar marca el futuro.
-    // Open-Meteo no pide clave y aguanta CORS, pero lo servimos same-origin
-    // por dos motivos: caché en el edge (10 min, la previsión no cambia
-    // antes) y la regla de la casa: si el origen falla o limita, devolvemos
-    // 200 con objeto vacío y F12 queda limpio.
     if (url.pathname === '/prevision') {
       const vacia = () => new Response('{}', {
         status: 200,
@@ -630,15 +644,8 @@ export default {
       }
     }
 
-    // --- Tiles de nubes reales (OpenWeatherMap) para pintarlas sobre el mapa ---
-    // GET /tiles/nubes/{z}/{x}/{y}.png -> PNG de la capa clouds_new de OWM.
-    // La API key vive SOLO aquí (secret del Worker): el navegador jamás la ve.
-    // Cloudflare edge cachea cada tesela 10 min (OWM las renueva ~cada 10 min),
-    // así que miles de visitas a la misma zona cuestan UNA llamada a OWM.
     const mNubes = url.pathname.match(/^\/tiles\/nubes\/(\d+)\/(\d+)\/(\d+)\.png$/);
     if (mNubes) {
-      // Tesela transparente de 1×1: si falta la clave o falla OWM, el mapa
-      // simplemente no pinta nubes ahí y F12 queda limpio (200, no error).
       const teselaVacia = () => {
         const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
         return new Response(transparente, {
@@ -674,9 +681,6 @@ export default {
       }
     }
 
-    // --- Proxy Nominatim (buscar calles / nombre de un punto) -------------
-    // GET /geo?q=calle -> [] si falla; GET /geo-reverso?lat&lon -> {} si falla.
-    // El navegador nunca ve un 4xx/5xx: F12 limpio y la web degrada en silencio.
     if (url.pathname === '/geo' || url.pathname === '/geo-reverso') {
       const vacio = url.pathname === '/geo' ? '[]' : '{}';
       try {
@@ -697,9 +701,6 @@ export default {
       }
     }
 
-    // --- Proxy OSRM (ruta a pie por calles reales) -------------------------
-    // GET /ruta/foot/{lon,lat;lon,lat}?... -> {"code":"Error"} si falla:
-    // el frontend ya tiene plan B (línea directa / Dijkstra) y F12 no se entera.
     if (url.pathname.startsWith('/ruta/')) {
       try {
         const destino = 'https://routing.openstreetmap.de/routed-foot/route/v1' +
@@ -718,11 +719,6 @@ export default {
       }
     }
 
-    // --- Proxy OSRM perfil COCHE (viaje largo entre ciudades) --------------
-    // 07-oct-2026 (planificador de viaje): mismo servidor
-    // FOSSGIS que /ruta/ pero con el perfil routed-car. Lo usa viaje-largo.js
-    // para el tramo de carretera (sin cálculo de sombra). Si falla devolvemos
-    // {"code":"Error"} con 200 y el frontend decide el plan B sin manchar F12.
     if (url.pathname.startsWith('/ruta-coche/')) {
       try {
         const destino = 'https://routing.openstreetmap.de/routed-car/route/v1' +
@@ -741,10 +737,6 @@ export default {
       }
     }
 
-    // --- Proxy OSRM perfil BICLETA (rutas en bici, respaldo de BRouter) ---
-    // Mismo servidor FOSSGIS que /ruta-coche pero con routed-bike, para no
-    // devolver jamás una ruta de coche por error. Si falla devolvemos
-    // {"code":"Error"} con 200 y el frontend avisa sin manchar F12.
     if (url.pathname.startsWith('/ruta-bici/')) {
       try {
         const destino = 'https://routing.openstreetmap.de/routed-bike/route/v1' +
@@ -763,10 +755,6 @@ export default {
       }
     }
 
-    // --- Proxy WMS del IGN (capa base opcional "Mapa IGN") ----------------
-    // El WMS del IGN no envía cabeceras CORS: llamado directo desde el
-    // navegador llenaría F12 de errores. Lo servimos same-origin, con caché
-    // en el edge 1 h, y si el IGN falla devolvemos tesela transparente 200.
     if (url.pathname === '/ign-wms') {
       const teselaVaciaIGN = () => {
         const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
@@ -793,11 +781,6 @@ export default {
       }
     }
 
-    // --- Proxy WMS del Catastro (capa opcional "Catastro 3D") -----------
-    // WMS INSPIRE oficial de la Sede Electrónica del Catastro: gratis, sin
-    // API key ni registro. No envía CORS, así que lo servimos same-origin
-    // con caché edge 1 h; si Catastro falla, tesela transparente 200 (F12
-    // limpio siempre).
     if (url.pathname === '/catastro-wms') {
       const teselaVaciaCatastro = () => {
         const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
@@ -824,12 +807,6 @@ export default {
       }
     }
 
-    // --- Traducción automática (MyMemory) para el "botón mágico" ---------
-    // GET /traduce?q=texto&a=en -> { ok:true, texto:"..." } o { ok:false }.
-    // Último recurso del i18n del cliente: solo llega aquí lo que no está
-    // en el diccionario. MyMemory es gratis, sin clave y con servidores en
-    // la UE. Si falla, se agota la cuota o tarda más de 6 s, devolvemos
-    // 200 con ok:false: el texto se queda en español y F12 no se entera.
     if (url.pathname === '/traduce') {
       const neutra = () => new Response(JSON.stringify({ ok: false, texto: '' }), {
         status: 200,
@@ -858,8 +835,6 @@ export default {
         const txt = d && d.responseData && typeof d.responseData.translatedText === 'string'
           ? d.responseData.translatedText.trim() : '';
         if (!txt || (estado && estado !== 200)) return neutra();
-        // Cuando se acaba la cuota diaria, MyMemory mete el aviso DENTRO
-        // del translatedText en mayúsculas: eso no es una traducción.
         if (/QUOTA|LIMIT|INVALID|MYMEMORY WARNING|EMAIL/i.test(txt)) return neutra();
         return new Response(JSON.stringify({ ok: true, texto: txt }), {
           status: 200,

@@ -458,9 +458,54 @@
     pintarRutas(rutas);
     pintarAlternativas(rutas);
     if (estado) estado.textContent = '';
+    return {
+      origen: origen,
+      destino: destino,
+      alternativas: rutas.length,
+      distanciaM: rutas[0].distanciaM,
+      duracionS: rutas[0].duracionS
+    };
   }
 
-  /* ---------------- Capa de carriles bici -------------------------------- */
+  // API pública acotada para que el chat use la misma geocodificación y
+  // el mismo motor/pintado que el panel, sin duplicar rutas ni acceder al DOM.
+  window.manolitAirePlanificarRutaBici = async function (origenTexto, destinoTexto) {
+    if (!map || !String(destinoTexto || '').trim()) return null;
+    if (panel && panel.hasAttribute('hidden')) panel.removeAttribute('hidden');
+    if (inputOrigen) inputOrigen.value = String(origenTexto || '');
+    if (inputDestino) inputDestino.value = String(destinoTexto || '');
+    try {
+      var resultado = await planificar();
+      return resultado || null;
+    } catch (error) {
+      console.debug('[rutas-bici] No se pudo planificar desde el chat:', error);
+      return null;
+    }
+  };
+
+  /* ---------------- Capa de carriles bici (roja con bandas blancas) -------- */
+  var CARRIL_SOURCE = 'carriles-bici-source';
+  var CARRIL_ROJO = 'carriles-bici-rojo';
+  var CARRIL_BORDE_IZQ = 'carriles-bici-borde-izq';
+  var CARRIL_BORDE_DER = 'carriles-bici-borde-der';
+  var CARRIL_SIMBOLO = 'carriles-bici-simbolo';
+  var CARRIL_IMAGEN = 'carriles-bici-icono';
+  var CARRIL_MIN_ZOOM = 10; // Bajado para que funcione desde más lejos
+  var carrilCapaLista = false; // Flag para saber si la capa está completamente inicializada
+  var carrilInicializando = false; // Flag para evitar múltiples inicializaciones
+  
+  // SVG del símbolo de bicicleta para carriles bici
+  var BICI_ICONO_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
+    '<g fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+    '<circle cx="9" cy="21" r="5"/>' +
+    '<circle cx="23" cy="21" r="5"/>' +
+    '<path d="M9 21 L16 11 L20 11"/>' +
+    '<path d="M16 11 L14 7 L11 7"/>' +
+    '<path d="M20 11 L18 7 L21 7"/>' +
+    '</g>' +
+    '</svg>';
+
   function bboxVisible() {
     var b = map.getBounds();
     return { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() };
@@ -481,8 +526,63 @@
     return { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } };
   }
 
+  // Genera puntos espaciados a lo largo de las líneas para los símbolos de bici
+  function generarPuntosSimbolos(features, espaciadoMetros) {
+    if (!espaciadoMetros) espaciadoMetros = 50; // cada 50 metros por defecto
+    var puntos = [];
+    var RADIO_TIERRA = 6371000; // metros
+    
+    function distanciaMetros(lon1, lat1, lon2, lat2) {
+      var dLat = (lat2 - lat1) * Math.PI / 180;
+      var dLon = (lon2 - lon1) * Math.PI / 180;
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return RADIO_TIERRA * c;
+    }
+    
+    features.forEach(function(feature) {
+      var coords = feature.geometry.coordinates;
+      if (!coords || coords.length < 2) return;
+      
+      var distanciaAcumulada = 0;
+      var siguientePunto = espaciadoMetros; // primer punto a los X metros
+      
+      for (var i = 1; i < coords.length; i++) {
+        var p1 = coords[i-1];
+        var p2 = coords[i];
+        var distSegmento = distanciaMetros(p1[0], p1[1], p2[0], p2[1]);
+        
+        // Añadir puntos dentro de este segmento
+        while (distanciaAcumulada + distSegmento >= siguientePunto) {
+          var distanciaRestante = siguientePunto - distanciaAcumulada;
+          var fraccion = distanciaRestante / distSegmento;
+          
+          var lon = p1[0] + (p2[0] - p1[0]) * fraccion;
+          var lat = p1[1] + (p2[1] - p1[1]) * fraccion;
+          
+          puntos.push({
+            type: 'Feature',
+            properties: { tipo: 'simbolo-bici' },
+            geometry: { type: 'Point', coordinates: [lon, lat] }
+          });
+          
+          siguientePunto += espaciadoMetros;
+        }
+        
+        distanciaAcumulada += distSegmento;
+      }
+    });
+    
+    return puntos;
+  }
+
   async function cargarCarriles() {
-    if (!carrilEnabled || !map || map.getZoom() < CARRIL_MIN_ZOOM) return;
+    if (!carrilEnabled || !map) return;
+    var zoom = map.getZoom();
+    if (zoom < CARRIL_MIN_ZOOM) return;
+    
     var bbox = bboxVisible();
     var ladoKm = Math.max(
       (bbox.east - bbox.west) * 111.32 * Math.cos((bbox.south + bbox.north) / 2 * Math.PI / 180),
@@ -519,46 +619,189 @@
     } catch (e) { /* sin datos: no rompe nada */ }
   }
 
-  var CARRIL_SOURCE = 'carriles-bici-source';
-  var CARRIL_LAYER = 'carriles-bici-line';
-
-  function asegurarCapaCarril() {
-    if (!map || !map.isStyleLoaded()) return false;
-    if (map.getSource(CARRIL_SOURCE)) return true;
-    map.addSource(CARRIL_SOURCE, {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-      attribution: 'Carriles bici © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Colaboradores de OpenStreetMap</a> (ODbL)'
+  function cargarIconoBici() {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = reject;
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(BICI_ICONO_SVG);
     });
-    map.addLayer({
-      id: CARRIL_LAYER,
-      type: 'line',
-      source: CARRIL_SOURCE,
-      minzoom: CARRIL_MIN_ZOOM,
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: {
-        'line-color': '#D500F9',
-        'line-width': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 8],
-        'line-opacity': 1,
-        'line-dasharray': [1.2, 1.8],
-        'line-blur': 0
-      }
-    });
-    return true;
   }
 
-  function pintarCarriles(features) {
-    if (!asegurarCapaCarril()) {
+  async function asegurarCapaCarril() {
+    if (!map || !map.isStyleLoaded()) return false;
+    if (carrilCapaLista && map.getSource(CARRIL_SOURCE)) return true;
+    if (carrilInicializando) return false; // Ya se está inicializando
+    
+    carrilInicializando = true;
+    
+    try {
+      // Cargar el icono de bicicleta
+      var iconImage = await cargarIconoBici();
+      if (iconImage && !map.hasImage(CARRIL_IMAGEN)) {
+        map.addImage(CARRIL_IMAGEN, iconImage, { pixelRatio: 1 });
+      }
+      
+      // Crear la fuente de datos si no existe
+      if (!map.getSource(CARRIL_SOURCE)) {
+        map.addSource(CARRIL_SOURCE, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+          attribution: 'Carriles bici © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Colaboradores de OpenStreetMap</a> (ODbL)'
+        });
+      }
+
+      // 1. CAPA ROJA DE FONDO (el carril bici rojo)
+      if (!map.getLayer(CARRIL_ROJO)) {
+        map.addLayer({
+          id: CARRIL_ROJO,
+          type: 'line',
+          source: CARRIL_SOURCE,
+          minzoom: CARRIL_MIN_ZOOM,
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': '#E31837', // Rojo carril bici oficial
+            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 
+              10, 2,     // A zoom 10, línea fina
+              12, 4,     // A zoom 12
+              14, 7,     // A zoom 14, ancho medio
+              16, 10,    // A zoom 16
+              18, 14,    // A zoom 18, muy ancho
+              20, 20     // A zoom 20, máximo ancho
+            ],
+            'line-opacity': 0.9
+          }
+        });
+      }
+
+      // 2. BORDE BLANCO IZQUIERDO (bandas blancas)
+      if (!map.getLayer(CARRIL_BORDE_IZQ)) {
+        map.addLayer({
+          id: CARRIL_BORDE_IZQ,
+          type: 'line',
+          source: CARRIL_SOURCE,
+          minzoom: CARRIL_MIN_ZOOM,
+          layout: { 'line-cap': 'butt', 'line-join': 'round' },
+          paint: {
+            'line-color': '#FFFFFF',
+            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 
+              10, 0.8,
+              12, 1.5,
+              14, 2.5,
+              16, 3.5,
+              18, 5,
+              20, 7
+            ],
+            'line-opacity': 0.95,
+            'line-offset': ['interpolate', ['exponential', 1.5], ['zoom'], 
+              10, -1.5,
+              12, -2.5,
+              14, -4,
+              16, -5.5,
+              18, -8,
+              20, -11
+            ]
+          }
+        });
+      }
+
+      // 3. BORDE BLANCO DERECHO (bandas blancas)
+      if (!map.getLayer(CARRIL_BORDE_DER)) {
+        map.addLayer({
+          id: CARRIL_BORDE_DER,
+          type: 'line',
+          source: CARRIL_SOURCE,
+          minzoom: CARRIL_MIN_ZOOM,
+          layout: { 'line-cap': 'butt', 'line-join': 'round' },
+          paint: {
+            'line-color': '#FFFFFF',
+            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 
+              10, 0.8,
+              12, 1.5,
+              14, 2.5,
+              16, 3.5,
+              18, 5,
+              20, 7
+            ],
+            'line-opacity': 0.95,
+            'line-offset': ['interpolate', ['exponential', 1.5], ['zoom'], 
+              10, 1.5,
+              12, 2.5,
+              14, 4,
+              16, 5.5,
+              18, 8,
+              20, 11
+            ]
+          }
+        });
+      }
+
+      // 4. CAPA DE SÍMBOLOS DE BICICLETA (cada X metros)
+      if (!map.getLayer(CARRIL_SIMBOLO) && map.hasImage(CARRIL_IMAGEN)) {
+        map.addLayer({
+          id: CARRIL_SIMBOLO,
+          type: 'symbol',
+          source: CARRIL_SOURCE,
+          minzoom: 13, // Los símbolos aparecen desde zoom 13
+          layout: {
+            'icon-image': CARRIL_IMAGEN,
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 
+              13, 0.6,   // Pequeño a zoom 13
+              15, 0.9,   // Medio a zoom 15
+              17, 1.2,   // Grande a zoom 17
+              19, 1.5    // Muy grande a zoom 19
+            ],
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+            'icon-rotate': 0
+          },
+          paint: {
+            'icon-opacity': 0.95
+          }
+        });
+      }
+      
+      carrilCapaLista = true;
+      carrilInicializando = false;
+      return true;
+      
+    } catch (e) {
+      console.error('[rutas-bici] Error inicializando capa de carriles:', e);
+      carrilInicializando = false;
+      return false;
+    }
+  }
+
+  async function pintarCarriles(features) {
+    var capaLista = await asegurarCapaCarril();
+    if (!capaLista) {
+      // Reintentar cuando el mapa esté listo
       map.once('idle', function () { pintarCarriles(features); });
       return;
     }
-    map.getSource(CARRIL_SOURCE).setData({ type: 'FeatureCollection', features: features });
+    
+    var source = map.getSource(CARRIL_SOURCE);
+    if (!source) return;
+    
+    // Separar líneas de los puntos de símbolo existentes
+    var lineas = features.filter(function(f) { return f.geometry.type === 'LineString'; });
+    var puntosSimbolo = generarPuntosSimbolos(lineas, 50); // cada 50 metros
+    
+    // Combinar líneas con puntos de símbolo
+    var todasFeatures = lineas.concat(puntosSimbolo);
+    
+    source.setData({ type: 'FeatureCollection', features: todasFeatures });
   }
 
   function destroyCarril() {
     try {
-      if (map.getLayer(CARRIL_LAYER)) map.removeLayer(CARRIL_LAYER);
+      [CARRIL_SIMBOLO, CARRIL_BORDE_DER, CARRIL_BORDE_IZQ, CARRIL_ROJO].forEach(function(id) { 
+        if (map.getLayer(id)) map.removeLayer(id); 
+      });
       if (map.getSource(CARRIL_SOURCE)) map.removeSource(CARRIL_SOURCE);
+      if (map.hasImage(CARRIL_IMAGEN)) map.removeImage(CARRIL_IMAGEN);
+      carrilCapaLista = false;
+      carrilInicializando = false;
     } catch (e) { /* ya liberado */ }
   }
 

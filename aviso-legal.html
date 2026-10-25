@@ -369,9 +369,44 @@
   La capa de aparcamientos muestra los parkings que voluntarios de todo el mundo han dibujado en
   <strong>OpenStreetMap</strong> (datos ODbL, consultados mediante la API pública Overpass), con su tipo,
   su acceso y su precio cuando constan. El planificador traza viajes en coche con el servicio público
-  de rutas OSRM del <strong>FOSSGIS</strong>. Toda esta información es orientativa y puede no estar
-  completa o haber cambiado. La señalización real de la calle y el código de circulación mandan siempre
-  sobre lo que diga cualquier mapa.
+  de rutas OSRM del <strong>FOSSGIS</strong>. Las direcciones introducidas para geocodificar y calcular
+  estos trayectos se envían a los servicios externos correspondientes; Manolit∞ Aire no las almacena
+  deliberadamente. Toda esta información es orientativa y puede no estar completa o haber cambiado.
+  La señalización real de la calle y el código de circulación mandan siempre sobre lo que diga cualquier mapa.
+</p>
+
+<h2>22. Rutas en bicicleta y carriles bici</h2>
+<p>
+  El módulo de <strong>rutas en bicicleta</strong> calcula itinerarios ciclistas mediante el servicio
+  público <strong>BRouter</strong> (brouter.de, datos mundiales de OpenStreetMap, perfil «trekking»),
+  mostrando hasta 3 alternativas con duración, distancia y desnivel estimado. Como respaldo, si BRouter
+  no está disponible, se usa el servicio OSRM de FOSSGIS con perfil de bicicleta. La capa de
+  <strong>carriles bici</strong> dibuja la infraestructura ciclista de OpenStreetMap (vías etiquetadas
+  como <code>highway=cycleway</code>, <code>cycleway=*</code> o <code>bicycle=designated</code>) con
+  el distintivo visual de carril bici: fondo rojo con bandas blancas laterales y símbolos de bicicleta
+  espaciados a lo largo del recorrido.
+</p>
+<p>
+  Tanto las rutas calculadas como los carriles mostrados son <strong>orientativos</strong>: la señalización
+  real, el estado del firme, las obras y la normativa de circulación vigente en cada momento tienen
+  siempre prioridad sobre cualquier indicación del mapa. Manolit∞ Aire no garantiza que un carril bici
+  exista físicamente, esté practicable o sea seguro en el momento de la consulta.
+</p>
+
+<h2>23. Transporte público en tiempo real</h2>
+<p>
+  La capa de <strong>transporte público</strong> muestra las paradas de autobús, metro, tranvía y tren
+  cercanas al área visible del mapa, junto con sus próximas salidas estimadas. Los datos proceden de la
+  API pública de <strong>Transitous</strong> (transitous.org), un agregador abierto de feeds GTFS de
+  operadores de transporte de todo el mundo. La región de consulta se selecciona automáticamente según
+  el centro del mapa (España o global), sin intervención manual.
+</p>
+<p>
+  Las horas de salida mostradas son <strong>estimaciones en tiempo real</strong> proporcionadas por los
+  operadores a través de Transitous; pueden sufrir retrasos, cancelaciones o modificaciones sin previo
+  aviso. Manolit∞ Aire no es responsable de la exactitud de los horarios ni de las incidencias del
+  servicio. Para información oficial, consulta siempre con el operador de transporte correspondiente.
+  Esta capa es aditiva y puede desactivarse en cualquier momento desde el panel de capas.
 </p>
 
 </div>

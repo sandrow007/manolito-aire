@@ -73,6 +73,9 @@ Eres Manolit∞, asistente de "Manolit∞ Aire" (manolitoaire.com), web de calid
 - Mapa de sombras 3D con MapLibre GL: TODOS los edificios visibles proyectan sombra real según la posición del sol (SunCalc); slider de hora, solsticios, hora dorada/azul, modo oscuro.
 - Árboles y palmeras 3D reales de OpenStreetMap con su sombra (la palmera también proyecta la del tronco).
 - Rutas con sombra sobre red peatonal real: % de sombra (edificios+árboles) en vivo, ruta "fresca" (Dijkstra térmico), indicaciones paso a paso plegables con lectura por voz y guía por voz GPS ("Iniciar caminata"). Buscador de calles centrado en España.
+- Rutas en bicicleta: se calculan con BRouter y, si no está disponible, se intenta el respaldo OSRM para bici; pueden mostrarse hasta 3 alternativas. La capa «Carriles bici» consulta OpenStreetMap y dibuja la infraestructura cartografiada. Son datos orientativos; no afirmes que la ruta o un carril son seguros, están abiertos o legalmente habilitados sin confirmación actual.
+- Transporte público: la capa «Transporte público» muestra paradas y próximas salidas disponibles en Transitous para la zona visible. Los horarios pueden cambiar; no inventes paradas, salidas ni conexiones.
+- Desde el chat se puede activar la capa de carriles bici, calcular y dibujar una ruta en bici cuando se indiquen destino (y opcionalmente origen), o buscar y centrar una parada nombrada dentro de la zona visible. Para rutas ciclistas usa la acción integrada; comunica datos solo si devuelve éxito. En transporte público se muestran paradas y salidas, pero no hay cálculo de itinerario ni de ruta peatonal hasta ellas: nunca afirmes que calculaste conexiones o caminos.
 - Nubes reales (OpenWeatherMap) que atenúan las sombras con luz difusa: pierden contraste pero nunca desaparecen.
 - Irradiación solar hora a hora con datos NASA POWER y atenuación umbra/penumbra.
 - Extras: planetario sol/luna en vivo, pantalla completa también en iPhone, paseo virtual 3D, captura, capas IGN y Catastro, idiomas es/ca/eu/gl/en/ka.
@@ -552,6 +555,40 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
         } catch (eSolChat) { /* queda la leyenda de siempre */ }
         return 'Capa de aparcamientos encendida. Verde es gratis, ámbar de pago, azul cubierto, violeta subterráneo y gris privado o de clientes. ' + colaParking;
       }
+      const bikeIntent = /\b(bici|bicicleta|ciclista|carril(?:es)? bici)\b/i.test(txt) && /\b(ruta|camino|ir|llevar|trazar|calcular|carril(?:es)?|buscar)\b/i.test(txt);
+      if (bikeIntent) {
+        const destinationMatch = txt.match(/\b(?:a|hasta|hacia|para)\s+(.+?)\s*$/i);
+        if (!destinationMatch || /\b(carril(?:es)? bici)\b/i.test(txt) && !/\b(ruta|camino|ir|llevar|trazar|calcular)\b/i.test(txt)) {
+          const lanes = document.getElementById('rsToggleCarrilesBici');
+          if (lanes && !lanes.checked) lanes.click();
+          return lanes ? 'He activado la capa de carriles bici. La infraestructura que aparece está cartografiada en OpenStreetMap y puede estar incompleta; revisa la señalización real.' : 'Activa «Carriles bici» en el panel «Capas» para ver la infraestructura ciclista cartografiada.';
+        }
+        const destination = destinationMatch[1].replace(/[?.!,;]+$/, '').trim();
+        const originMatch = txt.match(/\b(?:desde|salgo de)\s+(.+?)\s+(?:a|hasta|hacia)\s+.+$/i);
+        const origin = originMatch ? originMatch[1].trim() : '';
+        if (typeof window.manolitAirePlanificarRutaBici !== 'function') return 'El planificador de bici todavía está cargando. Abre «Ruta en bici» desde el panel de capas y vuelve a intentarlo.';
+        const result = await window.manolitAirePlanificarRutaBici(origin, destination);
+        if (!result) return 'No he podido calcular esa ruta en bici. Comprueba los lugares y vuelve a intentarlo desde «Ruta en bici».';
+        const km = (result.distanciaM / 1000).toLocaleString('es-ES', { maximumFractionDigits: 1 });
+        const mins = Math.max(1, Math.round(result.duracionS / 60));
+        return `He dibujado en el mapa la ruta en bici de ${result.origen.nombre} a ${result.destino.nombre}: ${km} km y unos ${mins} min. Hay ${result.alternativas} alternativa(s) disponible(s); la ruta y las condiciones reales deben verificarse en la calle.`;
+      }
+
+      const transitIntent = /\b(parada|paradas|autob[uú]s|bus|metro|tranv[ií]a|tren)\b/i.test(txt) && /\b(busca|buscar|encuentra|encontrar|mu[eé]strame|mostrar|ruta|llegar|lleva|cerca)\b/i.test(txt);
+      if (transitIntent) {
+        const stopToggle = document.getElementById('rsToggleTransporte');
+        const stopNameMatch = txt.match(/\b(?:parada(?:s)?\s+(?:de\s+)?(?:bus|autob[uú]s|metro|tranv[ií]a|tren)?\s*(?:llamada|de nombre)?|llamada)\s+(.+?)\s*$/i);
+        const stopName = stopNameMatch ? stopNameMatch[1].replace(/[?.!,;]+$/, '').trim() : '';
+        if (!stopName) {
+          if (stopToggle && !stopToggle.checked) stopToggle.click();
+          return stopToggle ? 'He activado el transporte público en el mapa. Acércate a tu zona y pulsa una parada para consultar las salidas disponibles. No puedo calcular un itinerario con transbordos.' : 'Activa «Transporte público» en «Capas», acerca el mapa y pulsa una parada para ver sus salidas.';
+        }
+        if (typeof window.manolitAireBuscarParada !== 'function') return 'La búsqueda de paradas todavía está cargando. Activa «Transporte público» y vuelve a intentarlo.';
+        const found = await window.manolitAireBuscarParada(stopName);
+        if (!found) return `No he encontrado una parada que coincida con «${stopName}» cerca del mapa. Prueba con otro nombre o mueve el mapa a la zona correcta.`;
+        return `He centrado el mapa en la parada «${found.name}». Pulsa el marcador para consultar las próximas salidas disponibles. No he calculado una ruta a pie ni una conexión de transporte.`;
+      }
+
       if (/\b(modo vago|busca la mejor sombra|mejor sombra|la mejor sombra)\b/i.test(txt)) {
         const tSombras = document.getElementById('rsToggleSombras');
         if (tSombras && !tSombras.checked) tSombras.click();

@@ -2308,13 +2308,19 @@
       width:100%;
       max-width:880px;
       --reg-turquesa:var(--sky-mid);
-      --reg-granate:#7A0016;
+      --sello-granate:#7A0016;
+      --sello-tinta:#26424B;
+      --sello-sol:#E6A100;
+      --sello-agua:#007A87;
       color:var(--ink);
       font-family:var(--font-body);
       text-align:center;
     }
     html.modo-salud .reg-sello-registral{
-      --reg-granate:#0B6B44;
+      --sello-granate:#0B6B44;
+      --sello-tinta:#064E3B;
+      --sello-sol:#E9A100;
+      --sello-agua:#0D9488;
     }
     .reg-tarjeta{
       background:var(--surface);
@@ -2332,12 +2338,13 @@
     }
     .reg-escudo{ flex:0 0 auto; width:46px; height:46px; }
     .reg-escudo svg{ display:block; width:100%; height:100%; }
-    .reg-escudo-fondo{ fill:var(--reg-granate); opacity:.3; }
-    .reg-escudo-trazo{ fill:none; stroke:var(--reg-granate); stroke-width:1.7; stroke-linejoin:round; }
-    .reg-infinito{ fill:none; stroke:var(--reg-turquesa); stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+    .reg-escudo .reg-sol{ fill:none; stroke:var(--sello-sol); }
+    .reg-escudo .reg-agua{ fill:none; stroke:var(--sello-agua); }
+    .reg-escudo .reg-granate{ fill:none; stroke:var(--sello-granate); }
     .reg-escritorio{ margin:0; }
     .reg-marca{ font-weight:700; }
     .reg-obra, .reg-datos{ opacity:.82; }
+    .reg-dato{ white-space:nowrap; }
     .reg-copiar{
       appearance:none; -webkit-appearance:none;
       background:transparent; border:1px solid var(--line);
@@ -2375,7 +2382,7 @@
       .reg-caret{ color:var(--reg-turquesa); font-size:0.9rem; line-height:1; transition:transform .18s ease; }
       .reg-detalle[open] .reg-caret{ transform:rotate(45deg); }
       .reg-detalle-cuerpo{ padding:6px 0 2px; display:flex; flex-direction:column; gap:6px; align-items:center; }
-      .reg-detalle-linea{ margin:0; font-size:0.74rem; opacity:.85; }
+      .reg-detalle-linea{ margin:0; font-size:0.74rem; opacity:.85; display:flex; flex-wrap:wrap; justify-content:center; column-gap:0.4em; }
     }
 
     @media (prefers-reduced-motion: reduce){
@@ -2386,17 +2393,19 @@
   <div class="reg-sello-registral" id="regSelloRegistral" translate="no">
     <div class="reg-tarjeta">
       <span class="reg-escudo" aria-hidden="true">
-        <svg viewBox="0 0 48 48" focusable="false" xmlns="http://www.w3.org/2000/svg">
-          <path class="reg-escudo-fondo" d="M24 3 C12 13 12 28 24 43 C36 28 36 13 24 3 Z"/>
-          <path class="reg-escudo-trazo" d="M24 3 C12 13 12 28 24 43 C36 28 36 13 24 3 Z"/>
-          <path class="reg-infinito" d="M24 22 C19 17 19 27 24 22 C29 17 29 27 24 22 Z"/>
+        <svg viewBox="0 0 200 320" preserveAspectRatio="xMidYMid meet" focusable="false" xmlns="http://www.w3.org/2000/svg">
+          <circle class="reg-sol" cx="100" cy="150" r="45" stroke-width="2.5"/>
+          <path class="reg-agua" d="M 60,165 Q 80,155 100,165 T 140,165" stroke-width="4" stroke-linecap="round"/>
+          <path class="reg-agua" d="M 65,175 Q 82.5,167 100,175 T 135,175" stroke-width="3" stroke-linecap="round"/>
+          <path class="reg-granate" d="M 100,149 C 75,124 75,174 100,149 C 125,124 125,174 100,149 Z" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="reg-granate" d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" stroke-width="5" stroke-linejoin="round"/>
         </svg>
       </span>
 
       <p class="reg-escritorio">
         <span class="reg-marca">Manolit∞ Aire © 2026 Sandro</span>
         <span class="reg-obra"> · Obra registrada en Propiedad Intelectual, Junta de Andalucía, Consejería de Cultura y Deporte</span>
-        <span class="reg-datos"> · Nº Expediente: <button type="button" class="reg-copiar" data-reg-copiar="RTA-3147-26" aria-label="Copiar número de expediente RTA-3147-26">RTA-3147-26</button> · Nº Registro: <button type="button" class="reg-copiar" data-reg-copiar="2026999010353785" aria-label="Copiar número de registro 2026999010353785">2026999010353785</button> · <time datetime="2026-08-28">28/08/2026</time></span>
+        <span class="reg-datos"> · <span class="reg-dato">Nº Expediente: <button type="button" class="reg-copiar" data-reg-copiar="RTA-3147-26" aria-label="Copiar número de expediente RTA-3147-26">RTA-3147-26</button></span> · <span class="reg-dato">Nº Registro: <button type="button" class="reg-copiar" data-reg-copiar="2026999010353785" aria-label="Copiar número de registro 2026999010353785">2026999010353785</button></span> · <time datetime="2026-08-28">28/08/2026</time></span>
       </p>
 
       <p class="reg-compacto">Obra registrada en Propiedad Intelectual</p>

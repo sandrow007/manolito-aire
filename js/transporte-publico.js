@@ -82,31 +82,35 @@
   }
 
   function toFeature(place) {
-    if (!place || !Number.isFinite(place.lat) || !Number.isFinite(place.lon)) return null;
+    const lat = Number(place && place.lat);
+    const lon = Number(place && place.lon);
+    if (!place || !Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
     return {
       type: 'Feature',
-      id: place.stopId != null ? String(place.stopId) : 'stop:' + place.lat + ':' + place.lon,
+      id: place.stopId != null ? String(place.stopId) : 'stop:' + lat + ':' + lon,
       properties: { stopId: place.stopId, name: place.name || t('transportStop', 'Parada') },
-      geometry: { type: 'Point', coordinates: [place.lon, place.lat] }
+      geometry: { type: 'Point', coordinates: [lon, lat] }
     };
   }
 
-  async function fetchApi(path) {
+  async function fetchApi(path, options) {
     const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
     controllers.add(controller);
     try {
-      const response = await fetch(API + path, { signal: controller.signal, cache: 'no-store', credentials: 'omit', referrerPolicy: 'origin', headers: { Accept: 'application/json' } });
+      const response = await fetch(API + path, Object.assign({ signal: controller.signal, cache: 'no-store', credentials: 'omit', headers: { Accept: 'application/json' } }, options || {}, { signal: controller.signal }));
       if (!response.ok) throw new Error('HTTP ' + response.status);
       return await response.json();
-    } finally { controllers.delete(controller); }
+    } finally { clearTimeout(timer); controllers.delete(controller); }
   }
 
   async function loadStops(bounds) {
     const key = cacheKey(bounds);
     if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS) return areaCache.features;
-    const min = bounds.south.toFixed(6) + ',' + bounds.east.toFixed(6);
-    const max = bounds.north.toFixed(6) + ',' + bounds.west.toFixed(6);
-    const data = await fetchApi('/v6/map/stops?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max));
+    // Transitous recibe min/max en formato latitud,longitud.
+    const min = bounds.south.toFixed(6) + ',' + bounds.west.toFixed(6);
+    const max = bounds.north.toFixed(6) + ',' + bounds.east.toFixed(6);
+    const data = await fetchApi('/v6/map/stops?min=' + min + '&max=' + max);
     const features = (Array.isArray(data) ? data : []).map(toFeature).filter(Boolean).slice(0, 400);
     areaCache = { key, features, touched: Date.now() };
     return features;
@@ -124,12 +128,14 @@
 
   async function ensureLayers() {
     if (!map || !map.isStyleLoaded()) return false;
-    if (map.getSource(SOURCE) && map.getLayer(SYMBOL)) return true;
+    if (map.getSource(SOURCE) && map.getLayer(SYMBOL) && map.getLayer(HALO)) return true;
+    const targetMap = map;
     const icon = await loadIcon();
-    if (!map.hasImage(IMAGE)) map.addImage(IMAGE, icon, { pixelRatio: 1 });
-    if (!map.getSource(SOURCE)) map.addSource(SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, attribution: ATTRIBUTION });
-    if (!map.getLayer(HALO)) map.addLayer({ id: HALO, type: 'circle', source: SOURCE, minzoom: MIN_ZOOM, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 3, 16, 8], 'circle-color': '#35C4D4', 'circle-opacity': 0.18 } });
-    if (!map.getLayer(SYMBOL)) map.addLayer({ id: SYMBOL, type: 'symbol', source: SOURCE, minzoom: MIN_ZOOM, layout: { 'icon-image': IMAGE, 'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.55, 17, 0.85], 'icon-anchor': 'bottom', 'icon-offset': [0, -2], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+    if (map !== targetMap || !targetMap.isStyleLoaded()) return false;
+    if (!targetMap.hasImage(IMAGE)) targetMap.addImage(IMAGE, icon, { pixelRatio: 1 });
+    if (!targetMap.getSource(SOURCE)) targetMap.addSource(SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, attribution: ATTRIBUTION });
+    if (!targetMap.getLayer(HALO)) targetMap.addLayer({ id: HALO, type: 'circle', source: SOURCE, minzoom: MIN_ZOOM, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 3, 16, 8], 'circle-color': '#35C4D4', 'circle-opacity': 0.18 } });
+    if (!targetMap.getLayer(SYMBOL)) targetMap.addLayer({ id: SYMBOL, type: 'symbol', source: SOURCE, minzoom: MIN_ZOOM, layout: { 'icon-image': IMAGE, 'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.55, 17, 0.85], 'icon-anchor': 'bottom', 'icon-offset': [0, -2], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
     return true;
   }
 
@@ -145,6 +151,7 @@
       evaluateRegion();
       const features = await loadStops(boundsOfMap());
       if (!enabled || currentGeneration !== generation) return;
+      await ensureLayers();
       const source = map.getSource(SOURCE);
       if (source) source.setData({ type: 'FeatureCollection', features });
       showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas' : t('transportNoData', 'Sin datos de transporte público en esta zona.'));
@@ -210,10 +217,11 @@
       ? { lon: Number(origin.lon), lat: Number(origin.lat) }
       : map.getCenter();
     const center = { lon: Number(rawCenter.lon), lat: Number(rawCenter.lat) };
-    if (Number.isFinite(center.lon) && Number.isFinite(center.lat)) map.easeTo({ center: [center.lon, center.lat], zoom: Math.max(13, map.getZoom()), duration: 500 });
-    if (!toggle.checked) toggle.click();
+    if (!Number.isFinite(center.lon) || !Number.isFinite(center.lat) || center.lon < -180 || center.lon > 180 || center.lat < -85 || center.lat > 85) return null;
+    map.easeTo({ center: [center.lon, center.lat], zoom: Math.max(13, map.getZoom()), duration: 500 });
+    if (toggle && !toggle.checked) toggle.click();
     if (!enabled) activate();
-    await ensureLayers();
+    if (!await ensureLayers()) return null;
     const bounds = {
       west: Math.max(-180, center.lon - 0.03), east: Math.min(180, center.lon + 0.03),
       south: Math.max(-85, center.lat - 0.025), north: Math.min(85, center.lat + 0.025)
@@ -232,6 +240,7 @@
       named.sort((a, b) => distance(a) - distance(b));
       const selected = named[0];
       const coords = selected.geometry.coordinates;
+      await ensureLayers();
       const source = map.getSource(SOURCE);
       if (source) source.setData({ type: 'FeatureCollection', features });
       map.easeTo({ center: coords, zoom: Math.max(15, map.getZoom()), duration: 700 });
@@ -274,8 +283,8 @@
   function start(m, tgl) {
     map = m; toggle = tgl;
     toggle.addEventListener('change', () => toggle.checked ? activate() : deactivate());
-    map.on('load', () => { ready = true; if (enabled) ensureLayers().then(refresh); });
-    map.on('style.load', () => { if (enabled) { ready = true; ensureLayers().then(refresh); } });
+    map.on('load', () => { ready = true; if (enabled) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error)); });
+    map.on('style.load', () => { ready = true; if (enabled) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error)); });
     fetch('transit-regions.json', { cache: 'no-store', credentials: 'omit' }).then(r => r.ok ? r.json() : null).then(data => {
       if (data && Array.isArray(data.regions)) { regions = data.regions; defaultRegion = data.defaultRegion || 'global'; }
     }).catch(() => {});

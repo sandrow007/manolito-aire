@@ -482,7 +482,9 @@ export default {
         const rawBody = await request.text();
         let claveKv = null;
         try {
-          const m = decodeURIComponent(rawBody).match(/\(([-\d.,\s]+)\)/);
+          const form = new URLSearchParams(rawBody);
+          const query = form.get('data') || decodeURIComponent(rawBody);
+          const m = query.match(/\(([-\d.,\s]+)\)/);
           if (m) claveKv = 'carril:' + m[1].split(',').map((n) => parseFloat(n).toFixed(3)).join(',');
         } catch (e) { }
         const kv = env.AIR_QUALITY_CACHE || null;

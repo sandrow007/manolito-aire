@@ -516,7 +516,10 @@
 
   function bboxVisible() {
     var b = map.getBounds();
-    return { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() };
+    return {
+      west: Math.max(-180, b.getWest()), south: Math.max(-85, b.getSouth()),
+      east: Math.min(180, b.getEast()), north: Math.min(85, b.getNorth())
+    };
   }
 
   function consultaCarriles(bbox) {
@@ -591,6 +594,7 @@
     var requestId = ++carrilRequestId;
     var bbox = bboxVisible();
     var zoom = map.getZoom();
+    if (bbox.east <= bbox.west || bbox.north <= bbox.south) return;
     var ladoKm = Math.max(
       (bbox.east - bbox.west) * 111.32 * Math.cos((bbox.south + bbox.north) / 2 * Math.PI / 180),
       (bbox.north - bbox.south) * 111.32
@@ -618,12 +622,18 @@
     carrilUltima = Date.now();
 
     try {
-      var resp = await fetch(OVERPASS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: new URLSearchParams({ data: consultaCarriles(bbox) }).toString(),
-        credentials: 'omit'
-      });
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function () { controller.abort(); }, 30000);
+      var resp;
+      try {
+        resp = await fetch(OVERPASS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'Accept': 'application/json' },
+          body: new URLSearchParams({ data: consultaCarriles(bbox) }).toString(),
+          credentials: 'omit',
+          signal: controller.signal
+        });
+      } finally { clearTimeout(timeoutId); }
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       var datos = await resp.json();
       var features = (Array.isArray(datos.elements) ? datos.elements : [])

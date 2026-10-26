@@ -41,6 +41,12 @@
     ? 'https://manolitoaire.com/carriles-bici'
     : '/carriles-bici';
 
+  // Fallback directo desde el navegador: el Worker no alcanza Overpass
+  // desde Cloudflare, pero el navegador sí (CORS abierto). Solo se usa
+  // cuando el proxy propio devuelve vacío.
+  var OVERPASS_DIRECTO = 'https://overpass-api.de/api/interpreter';
+  var OVERPASS_DIRECTO_2 = 'https://overpass.kumi.systems/api/interpreter';
+
   var RUTA_TTL_MS = 60 * 1000;
   var MIN_GAP_MS = 1000;             // BRouter: 1 petición/segundo
   var MAX_ALTERNATIVAS = 3;
@@ -589,6 +595,29 @@
     return puntos;
   }
 
+  async function pedirCarriles(url, bbox, timeoutMs) {
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function () { controller.abort(); }, timeoutMs);
+    try {
+      var resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: new URLSearchParams({ data: consultaCarriles(bbox) }).toString(),
+        credentials: 'omit',
+        signal: controller.signal
+      });
+      if (!resp.ok) return [];
+      var datos = await resp.json();
+      return (Array.isArray(datos.elements) ? datos.elements : [])
+        .map(wayToLineString)
+        .filter(Boolean);
+    } catch (e) {
+      return [];
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
   async function cargarCarriles() {
     if (!carrilEnabled || !map) return;
     var requestId = ++carrilRequestId;
@@ -622,26 +651,18 @@
     carrilUltima = Date.now();
 
     try {
-      var controller = new AbortController();
-      var timeoutId = setTimeout(function () { controller.abort(); }, 30000);
-      var resp;
-      try {
-        resp = await fetch(OVERPASS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'Accept': 'application/json' },
-          body: new URLSearchParams({ data: consultaCarriles(bbox) }).toString(),
-          credentials: 'omit',
-          signal: controller.signal
-        });
-      } finally { clearTimeout(timeoutId); }
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      var datos = await resp.json();
-      var features = (Array.isArray(datos.elements) ? datos.elements : [])
-        .map(wayToLineString)
-        .filter(Boolean);
-      carrilCache.set(clave, { features: features, touched: Date.now() });
-      while (carrilCache.size > 200) carrilCache.delete(carrilCache.keys().next().value);
-      if (carrilEnabled && requestId === carrilRequestId) await pintarCarriles(features);
+      // 1) Proxy propio (caché del Worker). No bloquear la capa más de 3 s.
+      var features = await pedirCarriles(OVERPASS_URL, bbox, 3000);
+      // 2) Fallback directo del navegador a Overpass.
+      if (!features.length) features = await pedirCarriles(OVERPASS_DIRECTO, bbox, 15000);
+      if (!features.length) features = await pedirCarriles(OVERPASS_DIRECTO_2, bbox, 15000);
+      if (!carrilEnabled || requestId !== carrilRequestId) return;
+      // No cachear vacío: un fallo temporal no debe ocultar el carril 15 min.
+      if (features.length) {
+        carrilCache.set(clave, { features: features, touched: Date.now() });
+        while (carrilCache.size > 200) carrilCache.delete(carrilCache.keys().next().value);
+      }
+      await pintarCarriles(features);
     } catch (e) {
       if (carrilEnabled && requestId === carrilRequestId) {
         console.warn('[rutas-bici] No se pudieron cargar carriles bici:', e);

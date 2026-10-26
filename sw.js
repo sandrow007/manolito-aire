@@ -184,7 +184,13 @@
 // bici + carriles bici (BRouter, OSRM/FOSSGIS, Overpass). Cambian index.html,
 // css/style.css, js/i18n.js, js/transporte-publico.js, js/rutas-bici.js,
 // transit-regions.json y worker.js.
-const VERSION = '2026-10-24-a-transporte-y-bici';
+// 2026-10-26-a: fix carriles bici: el Worker de Cloudflare no alcanzaba
+// Overpass y devolvía {elements:[]}. js/rutas-bici.js ahora hace fallback
+// directo al navegador (CORS abierto). Se sube VERSION para purgar la caché
+// y que los usuarios descarguen el JS nuevo; /carriles-bici pasa a
+// RUTAS_DINAMICAS para que su respuesta nunca quede cacheada en vacío.
+// Cambian js/rutas-bici.js e index.html.
+const VERSION = '2026-10-26-a-carril-bici-fallback';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
@@ -203,7 +209,7 @@ const HOSTS_REVALIDABLES = [
 ];
 
 /* Rutas propias con datos dinámicos (proxies del worker) */
-const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/manolito'];
+const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/manolito', '/carriles-bici'];
 
 /* Hosts de datos dinámicos externos */
 const HOSTS_DINAMICOS = [

@@ -2680,7 +2680,7 @@
           // detiene árboles, irradiación ni aparcamientos.
           cargarScript('js/transporte-publico.js').catch((err) => console.error('No se ha podido cargar la capa de transporte público:', err));
           // Capa de rutas en bici y carriles bici (BRouter + OSM). Aditiva.
-          cargarScript('js/rutas-bici.js').catch((err) => console.error('No se ha podido cargar la capa de rutas en bici:', err));
+          cargarScript('js/rutas-bici.js?v=carril-bici-20261026').catch((err) => console.error('No se ha podido cargar la capa de rutas en bici:', err));
           return cargarScript('js/arboles-3d.js');
         })
         .then(() => cargarScript('js/irradiacion-solar.js'))

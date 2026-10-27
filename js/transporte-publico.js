@@ -3,8 +3,7 @@
   if (window.__manolitoTransportePublico) return;
   window.__manolitoTransportePublico = true;
 
-  // El Worker del mismo dominio evita restricciones CORS y prueba versiones MOTIS.
-  const API = '';
+  // El Worker del mismo dominio evita restricciones CORS.
   const STOPS_API_FALLBACK = 'https://api.transitous.org/api/v1/map/stops';
   const DEPARTURES_API_FALLBACK = 'https://api.transitous.org/api/v5/stoptimes';
   const SOURCE = 'transporte-publico-source';
@@ -29,10 +28,7 @@
   const departuresCache = new Map();
   const controllers = new Set();
   let regions = [];
-  let defaultRegion = 'global';
   let currentRegion = 'global';
-  let pendingRegion = null;
-  let regionVotes = 0;
   let requestRunning = false;
   let refreshQueued = false;
   let searchToken = 0;
@@ -41,7 +37,9 @@
     try {
       const messages = typeof window.getMessages === 'function' ? window.getMessages() : null;
       if (messages && messages[key] != null) return messages[key];
-    } catch (e) { /* fallback local */ }
+    } catch (error) {
+      console.debug('[transporte-publico] No se pudieron cargar las traducciones:', error);
+    }
     return fallback == null ? key : fallback;
   }
 
@@ -57,27 +55,22 @@
 
   function regionAt(lon, lat) {
     for (const region of regions) {
-      if (!Array.isArray(region.polygons)) continue;
-      for (const polygon of region.polygons) if (pointInPolygon(lon, lat, polygon)) return region.id;
+      const polygons = Array.isArray(region.polygons) ? region.polygons : [];
+      for (const polygon of polygons) {
+        if (pointInPolygon(lon, lat, polygon)) return region.id;
+      }
     }
     return defaultRegion;
   }
 
   function evaluateRegion() {
     const center = map.getCenter();
-    const detected = regionAt(center.lng, center.lat);
-    if (currentRegion === 'global' || currentRegion === null || detected === currentRegion) {
-      currentRegion = detected;
-      pendingRegion = null;
-      regionVotes = 0;
-    } else if (pendingRegion === detected) {
-      if (++regionVotes >= 2) { currentRegion = detected; pendingRegion = null; regionVotes = 0; }
-    } else { pendingRegion = detected; regionVotes = 1; }
+    currentRegion = regionAt(center.lng, center.lat);
   }
 
   function boundsOfMap() {
     const b = map.getBounds();
-    return { west: Math.max(-180, b.getWest()), south: Math.max(-85, b.getSouth()), east: Math.min(180, b.getEast()), north: Math.min(85, b.getNorth()) };
+    return { west: b.getWest(), south: Math.max(-85, b.getSouth()), east: b.getEast(), north: Math.min(85, b.getNorth()) };
   }
 
   function cacheKey(b) {
@@ -100,30 +93,32 @@
     };
   }
 
-  async function fetchApi(path, options) {
+  async function fetchJson(url, credentials, timeoutMs) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     controllers.add(controller);
     try {
-      const response = await fetch(API + path, Object.assign({ signal: controller.signal, cache: 'no-store', credentials: 'same-origin', headers: { Accept: 'application/json' } }, options || {}, { signal: controller.signal }));
+      const response = await fetch(url, { signal: controller.signal, cache: 'no-store', credentials: credentials, headers: { Accept: 'application/json' } });
       if (!response.ok) {
         let detail = '';
-        try { const body = await response.json(); detail = body && (body.detail || body.error) || ''; } catch (e) { /* error sin JSON */ }
+        try { const body = await response.json(); detail = body && (body.detail || body.error) || ''; } catch (error) { /* respuesta de error no JSON */ }
         throw new Error('HTTP ' + response.status + (detail ? ': ' + detail : ''));
       }
       return await response.json();
     } finally { clearTimeout(timer); controllers.delete(controller); }
   }
 
-  async function fetchTransitFallback(url) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
-    controllers.add(controller);
+  async function fetchApi(path) {
     try {
-      const response = await fetch(url, { signal: controller.signal, cache: 'no-store', credentials: 'omit', headers: { Accept: 'application/json' } });
-      if (!response.ok) throw new Error('Transitous HTTP ' + response.status);
-      return await response.json();
-    } finally { clearTimeout(timer); controllers.delete(controller); }
+      return await fetchJson(path, 'same-origin', 15000);
+    } catch (proxyError) {
+      if (!(proxyError instanceof TypeError) && proxyError.name !== 'AbortError') throw proxyError;
+      throw new Error('No se pudo conectar con el Worker de transporte', { cause: proxyError });
+    }
+  }
+
+  async function fetchTransitFallback(url) {
+    return fetchJson(url, 'omit', 12000);
   }
 
   async function loadStops(bounds) {
@@ -131,9 +126,11 @@
     if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS) return areaCache.features;
     // El Worker recibe min/max como latitud,longitud y consulta MOTIS de forma segura.
     // Un bbox que cruza el antimeridiano se divide para no pedir longitudes invertidas.
-    const segmentos = bounds.west <= bounds.east
-      ? [{ west: bounds.west, east: bounds.east }]
-      : [{ west: bounds.west, east: 180 }, { west: -180, east: bounds.east }];
+    const west = ((bounds.west + 180) % 360 + 360) % 360 - 180;
+    const east = ((bounds.east + 180) % 360 + 360) % 360 - 180;
+    const segmentos = west <= east
+      ? [{ west: west, east: east }]
+      : [{ west: west, east: 180 }, { west: -180, east: east }];
     const coleccion = [];
     for (const segmento of segmentos) {
       if (segmento.west >= segmento.east) continue;
@@ -144,7 +141,7 @@
       try { raw = await fetchApi('/transporte-paradas' + query); }
       catch (proxyError) {
         try { raw = await fetchTransitFallback(STOPS_API_FALLBACK + query); }
-        catch (directError) { throw proxyError; }
+        catch (directError) { throw new AggregateError([proxyError, directError], 'Fallaron el proxy y la API directa de Transitous'); }
       }
       const data = Array.isArray(raw) ? raw
         : Array.isArray(raw && raw.stops) ? raw.stops
@@ -202,10 +199,12 @@
         console.debug('[transporte-publico] No se pudieron cargar paradas:', error);
         showStatus(t('transportError', 'No se pudo consultar el transporte público.'));
       }
-    } finally {
-      if (currentGeneration === generation) {
-        requestRunning = false;
-        if (enabled && refreshQueued) { refreshQueued = false; refresh(); }
+    }
+    if (currentGeneration === generation) {
+      requestRunning = false;
+      if (enabled && refreshQueued) {
+        refreshQueued = false;
+        window.setTimeout(refresh, 0);
       }
     }
   }
@@ -218,7 +217,7 @@
     try { data = await fetchApi('/transporte-salidas' + query); }
     catch (proxyError) {
       try { data = await fetchTransitFallback(DEPARTURES_API_FALLBACK + query); }
-      catch (directError) { throw proxyError; }
+      catch (directError) { throw new AggregateError([proxyError, directError], 'Fallaron el proxy y la API directa de Transitous'); }
     }
     const items = (data && Array.isArray(data.stopTimes) ? data.stopTimes : []).map(st => ({ name: st.displayName || st.routeShortName || 'Línea', headsign: st.headsign || '', departure: st.place && (st.place.departure || st.place.scheduledDeparture) || '', realTime: !!st.realTime }));
     departuresCache.set(stopId, { items, touched: Date.now() });
@@ -360,8 +359,8 @@
     map.on('load', () => { ready = true; if (enabled) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error)); });
     map.on('style.load', () => { ready = true; if (enabled) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error)); });
     fetch('transit-regions.json', { cache: 'no-store', credentials: 'omit' }).then(r => r.ok ? r.json() : null).then(data => {
-      if (data && Array.isArray(data.regions)) { regions = data.regions; defaultRegion = data.defaultRegion || 'global'; }
-    }).catch(() => {});
+      if (data && Array.isArray(data.regions)) regions = data.regions;
+    }).catch(error => console.debug('[transporte-publico] No se pudieron cargar las regiones:', error));
     ready = map.isStyleLoaded();
     if (toggle.checked) activate();
   }

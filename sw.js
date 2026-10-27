@@ -184,28 +184,26 @@
 // bici + carriles bici (BRouter, OSRM/FOSSGIS, Overpass). Cambian index.html,
 // css/style.css, js/i18n.js, js/transporte-publico.js, js/rutas-bici.js,
 // transit-regions.json y worker.js.
-// 2026-10-26-a: fix carriles bici: el Worker de Cloudflare no alcanzaba
-// Overpass y devolvía {elements:[]}. js/rutas-bici.js ahora hace fallback
-// directo al navegador (CORS abierto). Se sube VERSION para purgar la caché
-// y que los usuarios descarguen el JS nuevo; /carriles-bici pasa a
-// RUTAS_DINAMICAS para que su respuesta nunca quede cacheada en vacío.
-// Cambian js/rutas-bici.js e index.html.
-// 2026-10-27-a: fix transporte público + carriles bici v2.
-// - worker.js: proxy same-origin /transporte-paradas y /transporte-salidas;
-//   usa MOTIS de Transitous como intermediario para evitar CORS del navegador.
-// - js/transporte-publico.js: consume únicamente estos endpoints; toFeature
-//   acepta id o stopId y valida las coordenadas de las paradas.
-// - js/rutas-bici.js: consultaCarriles amplía tags OSM y usa out geom.
-// 2026-10-27-b: ruta bici prioriza el proxy same-origin routed-bike (sin CORS
-// externo de BRouter), no cachea respuestas vacías y conserva BRouter de reserva.
-// La carga de rutas-bici.js se separa del arranque de los demás módulos para
-// que un error de bici no los bloquee. Cambian index.html, js/rutas-bici.js,
-// worker.js y este SW.
-// 2026-10-27-d: transporte público consulta exclusivamente los endpoints same-origin
-// /transporte-paradas y /transporte-salidas; se quita el fallback directo que
-// podía generar peticiones duplicadas o problemas CORS. Esos endpoints siguen
-// en NETWORK-FIRST mediante RUTAS_DINAMICAS. Actualiza Worker, capa, index y SW.
-const VERSION = '2026-10-27-d-transporte-same-origin';
+// 2026-10-25-a: ARREGLO DE VERDAD de transporte público y carril bici, que
+// llevaban días sin funcionar pese a estar "ya subidos":
+//   (1) faltaban POR COMPLETO las rutas /transporte-paradas y
+//       /transporte-salidas en worker.js: transporte-publico.js las
+//       llamaba desde el primer día pero nunca existieron, así que cada
+//       petición caía en el 404 de los assets estáticos y la capa jamás
+//       pudo mostrar una sola parada. Ahora proxian a la API pública de
+//       Transitous (MOTIS), sin clave ni registro.
+//   (2) el carril bici ya tenía su arreglo (ruta /carriles-bici propia,
+//       separada de /aparcamientos) subido en GitHub, pero como esta
+//       VERSION no había cambiado, el Service Worker seguía sirviendo el
+//       js/rutas-bici.js VIEJO desde la caché del móvil/navegador: el
+//       código bueno nunca llegaba a ejecutarse. Subir VERSION purga esa
+//       caché y fuerza la descarga de todo lo nuevo.
+//   (3) la tarjeta de parada de transporte público (fondo claro) pasa a
+//       usar el mismo lenguaje visual oscuro y semitransparente que el
+//       widget de sombra (rgba(8,12,20,.94) + blur), responsive en web
+//       y móvil igual que éste.
+// Cambian worker.js y js/transporte-publico.js.
+const VERSION = '2026-10-25-a-arreglo-transporte-y-bici';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
@@ -224,7 +222,7 @@ const HOSTS_REVALIDABLES = [
 ];
 
 /* Rutas propias con datos dinámicos (proxies del worker) */
-const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/manolito', '/carriles-bici', '/transporte-paradas', '/transporte-salidas'];
+const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/carriles-bici', '/transporte-paradas', '/transporte-salidas', '/manolito'];
 
 /* Hosts de datos dinámicos externos */
 const HOSTS_DINAMICOS = [

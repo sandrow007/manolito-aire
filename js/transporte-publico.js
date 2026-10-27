@@ -78,11 +78,16 @@
 
   function toFeature(place) {
     if (!place) return null;
-    // MOTIS devuelve 'lat'/'lon'; algunas versiones usan 'latitude'/'longitude'
-    const lat = Number(place.lat != null ? place.lat : place.latitude);
-    const lon = Number(place.lon != null ? place.lon : place.longitude);
+    // MOTIS devuelve 'lat'/'lon'; algunas versiones usan 'latitude'/'longitude'.
+    // También puede responder coordenadas en notación científica (p. ej. 3.74E1).
+    // Number() las admite, pero varias versiones devuelven strings con coma
+    // decimal; normalízalas antes para no descartar todas las paradas.
+    const latRaw = place.lat != null ? place.lat : place.latitude;
+    const lonRaw = place.lon != null ? place.lon : place.longitude;
+    const lat = Number(typeof latRaw === 'string' ? latRaw.replace(',', '.') : latRaw);
+    const lon = Number(typeof lonRaw === 'string' ? lonRaw.replace(',', '.') : lonRaw);
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
-    // MOTIS usa 'id'; versiones antiguas usan 'stopId'
+    // MOTIS usa 'stopId'; algunas versiones antiguas usan 'id'.
     const stopId = place.stopId != null ? place.stopId : (place.id != null ? place.id : null);
     return {
       type: 'Feature',
@@ -172,6 +177,17 @@
     requestRunning = true;
     const currentGeneration = generation;
     try {
+      // Espera a que se cargue el JSON de regiones antes de consultar la zona;
+      // la carga inicial es asíncrona y puede coincidir con el primer refresh.
+      if (!regions.length) {
+        try {
+          const response = await fetch('transit-regions.json', { cache: 'no-store', credentials: 'same-origin' });
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data.regions)) regions = data.regions;
+          }
+        } catch (error) { console.debug('[transporte-publico] No se pudieron cargar las regiones:', error); }
+      }
       evaluateRegion();
       const features = await loadStops(boundsOfMap());
       if (!enabled || currentGeneration !== generation) return;

@@ -202,8 +202,11 @@
 //       usar el mismo lenguaje visual oscuro y semitransparente que el
 //       widget de sombra (rgba(8,12,20,.94) + blur), responsive en web
 //       y móvil igual que éste.
-// Cambian worker.js y js/transporte-publico.js.
-const VERSION = '2026-10-25-a-arreglo-transporte-y-bici';
+// 2026-10-27-a: las coordenadas MOTIS pueden llegar como texto con coma
+// decimal y la descarga de regiones podía competir con la primera consulta.
+// Se normalizan ambas situaciones y se invalida la caché de scripts del SW.
+// Cambian index.html y js/transporte-publico.js.
+const VERSION = '2026-10-27-a-arreglo-transporte-publico';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

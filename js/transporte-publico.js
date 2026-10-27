@@ -3,6 +3,11 @@
   if (window.__manolitoTransportePublico) return;
   window.__manolitoTransportePublico = true;
 
+  // El proxy Worker evita el bloqueo CORS de api.transitous.org.
+  // En local (file:) se llama directamente como fallback.
+  const API_PROXY = window.location.protocol === 'file:'
+    ? 'https://manolitoaire.com/transporte-paradas'
+    : '/transporte-paradas';
   const API = 'https://api.transitous.org/api';
   const SOURCE = 'transporte-publico-source';
   const HALO = 'transporte-publico-halo';
@@ -82,13 +87,17 @@
   }
 
   function toFeature(place) {
-    const lat = Number(place && place.lat);
-    const lon = Number(place && place.lon);
-    if (!place || !Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+    if (!place) return null;
+    // MOTIS devuelve 'lat'/'lon'; algunas versiones usan 'latitude'/'longitude'
+    const lat = Number(place.lat != null ? place.lat : place.latitude);
+    const lon = Number(place.lon != null ? place.lon : place.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+    // MOTIS usa 'id'; versiones antiguas usan 'stopId'
+    const stopId = place.stopId != null ? place.stopId : (place.id != null ? place.id : null);
     return {
       type: 'Feature',
-      id: place.stopId != null ? String(place.stopId) : 'stop:' + lat + ':' + lon,
-      properties: { stopId: place.stopId, name: place.name || t('transportStop', 'Parada') },
+      id: stopId != null ? String(stopId) : 'stop:' + lat + ':' + lon,
+      properties: { stopId: stopId, name: place.name || t('transportStop', 'Parada') },
       geometry: { type: 'Point', coordinates: [lon, lat] }
     };
   }
@@ -110,8 +119,42 @@
     // Transitous recibe min/max en formato latitud,longitud.
     const min = bounds.south.toFixed(6) + ',' + bounds.west.toFixed(6);
     const max = bounds.north.toFixed(6) + ',' + bounds.east.toFixed(6);
-    const data = await fetchApi('/v6/map/stops?min=' + min + '&max=' + max);
-    const features = (Array.isArray(data) ? data : []).map(toFeature).filter(Boolean).slice(0, 400);
+    const qs = '?min=' + min + '&max=' + max;
+
+    // 1) Proxy propio del Worker (evita CORS de api.transitous.org)
+    let data = null;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      try {
+        const r = await fetch(API_PROXY + qs, { signal: controller.signal, credentials: 'omit', headers: { Accept: 'application/json' } });
+        if (r.ok) {
+          const raw = await r.json();
+          data = Array.isArray(raw) ? raw : null;
+        }
+      } finally { clearTimeout(timer); }
+    } catch (e) { /* fallback */ }
+
+    // 2) Fallback directo a Transitous (si el proxy falla o devuelve vacío no es null)
+    if (!data) {
+      try {
+        const raw = await fetchApi('/v2/map/stops' + qs);
+        data = Array.isArray(raw) ? raw
+          : Array.isArray(raw && raw.stops) ? raw.stops
+          : Array.isArray(raw && raw.features) ? raw.features
+          : null;
+      } catch (e) { /* fallback v6 */ }
+    }
+    if (!data) {
+      try {
+        const raw = await fetchApi('/v6/map/stops' + qs);
+        data = Array.isArray(raw) ? raw
+          : Array.isArray(raw && raw.stops) ? raw.stops
+          : null;
+      } catch (e) { /* nada */ }
+    }
+
+    const features = (data || []).map(toFeature).filter(Boolean).slice(0, 400);
     areaCache = { key, features, touched: Date.now() };
     return features;
   }

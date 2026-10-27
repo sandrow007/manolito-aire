@@ -3,11 +3,7 @@
   if (window.__manolitoTransportePublico) return;
   window.__manolitoTransportePublico = true;
 
-  // El proxy Worker evita el bloqueo CORS de api.transitous.org.
-  // En local (file:) se llama directamente como fallback.
-  const API_PROXY = window.location.protocol === 'file:'
-    ? 'https://manolitoaire.com/transporte-paradas'
-    : '/transporte-paradas';
+  // Transitous expone su API pública con CORS, sin necesidad de un proxy.
   const API = 'https://api.transitous.org/api';
   const SOURCE = 'transporte-publico-source';
   const HALO = 'transporte-publico-halo';
@@ -121,21 +117,10 @@
     const max = bounds.north.toFixed(6) + ',' + bounds.east.toFixed(6);
     const qs = '?min=' + min + '&max=' + max;
 
-    // 1) Proxy propio del Worker (evita CORS de api.transitous.org)
+    // Consulta directa a Transitous primero. En producción el Worker de Cloudflare
+    // enruta rutas desconocidas al sitio estático, por lo que /transporte-paradas
+    // no es un proxy válido. El endpoint público también se intenta como respaldo.
     let data = null;
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 10000);
-      try {
-        const r = await fetch(API_PROXY + qs, { signal: controller.signal, credentials: 'omit', headers: { Accept: 'application/json' } });
-        if (r.ok) {
-          const raw = await r.json();
-          data = Array.isArray(raw) ? raw : null;
-        }
-      } finally { clearTimeout(timer); }
-    } catch (e) { /* fallback */ }
-
-    // 2) Fallback directo a Transitous (si el proxy falla o devuelve vacío no es null)
     if (!data) {
       try {
         const raw = await fetchApi('/v2/map/stops' + qs);

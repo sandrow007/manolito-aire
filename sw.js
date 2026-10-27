@@ -196,10 +196,13 @@
 //   MOTIS hasta obtener datos).
 // - js/transporte-publico.js: usa el proxy; toFeature acepta id o stopId;
 //   loadStops prueba proxy → /v2 → /v6 en cascada.
-// - js/rutas-bici.js: consultaCarriles amplía tags OSM (cycleway:left/right/
-//   both, shared_lane, share_busway…) y usa out geom (respuesta más ligera).
-// Cambian worker.js, js/transporte-publico.js, js/rutas-bici.js, index.html.
-const VERSION = '2026-10-27-a-transporte-y-carriles-fix';
+// - js/rutas-bici.js: consultaCarriles amplía tags OSM y usa out geom.
+// 2026-10-27-b: ruta bici prioriza el proxy same-origin routed-bike (sin CORS
+// externo de BRouter), no cachea respuestas vacías y conserva BRouter de reserva.
+// La carga de rutas-bici.js se separa del arranque de los demás módulos para
+// que un error de bici no los bloquee. Cambian index.html, js/rutas-bici.js,
+// worker.js y este SW.
+const VERSION = '2026-10-27-b-ruta-bici-proxy';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

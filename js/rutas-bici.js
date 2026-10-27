@@ -3,13 +3,10 @@
  *
  * - ADITIVO: no toca la lógica de coche (aparcamientos-viaje.js) ni la de
  *   sombra. Se engancha al mapa por window.manolitAireMap, como el resto.
- * - Motor global principal: BRouter (https://brouter.de/brouter, instancia
- *   pública, datos mundiales, perfil "trekking"). Se pide alternativeidx=0,
- *   1 y 2 (una petición por alternativa, máximo 1 petición/segundo) y se
- *   cachea 60 s por par origen/destino.
- * - Respaldo: OSRM de FOSSGIS con el prefijo routed-bike a través del proxy
- *   same-origin /ruta-bici (nunca devuelve coche por error). Máximo una
- *   petición, alternativas=3, uso no comercial.
+ * - Motor principal: OSRM bici de FOSSGIS por el proxy propio /ruta-bici.
+ *   El proxy usa routed-bike (no el perfil de coche ni el de paseo) y devuelve
+ *   una geometría para pintar la ruta sin depender del CORS de BRouter.
+ * - BRouter queda como alternativa independiente si el proxy no da ninguna ruta.
  * - Atribución: "BRouter" y "© OpenStreetMap contributors" visibles en el
  *   panel. Carriles bici: Overpass vía el proxy /carriles-bici (ruta propia,
  *   separada de /aparcamientos y de /arboles: cada capa tiene su propio
@@ -26,10 +23,12 @@
   if (window.__manolitoRutasBici) return; // doble carga: jamás
   window.__manolitoRutasBici = true;
 
-  var BROUTER_URL = 'https://brouter.de/brouter';
+  // El proxy del sitio usa el perfil routed-bike; ruta propia para no
+  // interferir con las rutas de paseo ni con las rutas en coche.
   var OSRM_BICI_URL = window.location.protocol === 'file:'
     ? 'https://manolitoaire.com/ruta-bici'
     : '/ruta-bici';
+  var BROUTER_URL = 'https://brouter.de/brouter';
   var GEO_URL = window.location.protocol === 'file:'
     ? 'https://manolitoaire.com/geo'
     : '/geo';
@@ -136,7 +135,7 @@
     });
   }
 
-  /* ---------------- BRouter --------------------------------------------- */
+  /* ---------------- BRouter de respaldo --------------------------------- */
   var ultimaBrouter = 0;
 
   async function pedirBrouter(lonlats, alternativeIdx) {
@@ -150,19 +149,16 @@
       '&format=geojson';
 
     var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, 15000);
+    var timer = setTimeout(function () { controller.abort(); }, 8000);
     try {
       var resp = await fetch(url, {
         signal: controller.signal,
-        headers: {
-          'User-Agent': 'manolitoaire.com bike routing (contacto: manolitoaire.com)',
-          'Referer': 'https://manolitoaire.com/',
-          'Accept': 'application/geojson, application/json'
-        }
+        mode: 'cors',
+        credentials: 'omit',
+        headers: { 'Accept': 'application/geo+json, application/json' }
       });
       if (!resp.ok) return null;
-      var datos = await resp.json();
-      return datos;
+      return await resp.json();
     } catch (e) {
       return null;
     } finally {
@@ -213,20 +209,22 @@
 
     var lonlats = origen.lon + ',' + origen.lat + '|' + destino.lon + ',' + destino.lat;
     var rutas = [];
-
-    // BRouter: una petición por alternativa, hasta 3, parando si una falla.
-    for (var i = 0; i < MAX_ALTERNATIVAS; i++) {
-      var datos = await pedirBrouter(lonlats, i);
-      var ruta = parseBrouter(datos);
-      if (!ruta) break;
-      ruta.indice = rutas.length;
-      rutas.push(ruta);
-    }
-
-    // Respaldo OSRM solo si BRouter no devolvió nada.
-    if (!rutas.length) {
+    try {
       rutas = await pedirOsrmBici(origen, destino);
-      rutas.forEach(function (r, idx) { r.indice = idx; });
+    } catch (e) {
+      console.warn('[rutas-bici] El proxy OSRM no respondió; se probará BRouter.', e);
+    }
+    rutas.forEach(function (r, idx) { r.indice = idx; });
+
+    // Si OSRM no devuelve una geometría, intenta BRouter en una petición
+    // independiente. Este fallo nunca afecta a las rutas a pie o en coche.
+    if (!rutas.length) {
+      var datos = await pedirBrouter(lonlats, 0);
+      var ruta = parseBrouter(datos);
+      if (ruta) {
+        ruta.indice = 0;
+        rutas.push(ruta);
+      }
     }
 
     lista.ultimaClave = clave;
@@ -301,7 +299,7 @@
 
   function pintarRutas(rutas) {
     if (!asegurarCapasRuta()) {
-      map.once('idle', function () { pintarRutas(rutas); });
+      map.once('style.load', function () { pintarRutas(rutas); });
       return;
     }
     var features = rutas.map(function (r, idx) {
@@ -532,16 +530,15 @@
     var s = bbox.south.toFixed(6), w = bbox.west.toFixed(6),
         n = bbox.north.toFixed(6), e = bbox.east.toFixed(6);
     var b = s + ',' + w + ',' + n + ',' + e;
-    // Tags OSM más usados para carriles bici. 'out geom' es más ligero que
-    // 'out body geom' porque no incluye tags (sólo geometría + id).
+    // La consulta devuelve geometría completa y cubre vías dedicadas y carriles señalizados.
     return '[out:json][timeout:30];(' +
       'way["highway"="cycleway"](' + b + ');' +
-      'way["cycleway"~"lane|track|opposite_lane|opposite_track|shared_lane|share_busway"](' + b + ');' +
-      'way["cycleway:left"~"lane|track"](' + b + ');' +
-      'way["cycleway:right"~"lane|track"](' + b + ');' +
-      'way["cycleway:both"~"lane|track"](' + b + ');' +
-      'way["bicycle"="designated"]["highway"~"path|footway|service"](' + b + ');' +
-      ');out geom;';
+      'way["cycleway"~"^(lane|track|opposite_lane|opposite_track|shared_lane|share_busway)$"](' + b + ');' +
+      'way["cycleway:left"~"^(lane|track)$"](' + b + ');' +
+      'way["cycleway:right"~"^(lane|track)$"](' + b + ');' +
+      'way["cycleway:both"~"^(lane|track)$"](' + b + ');' +
+      'way["bicycle"="designated"]["highway"~"^(path|footway|service)$"](' + b + ');' +
+      ');out body geom;';
   }
 
   function wayToLineString(element) {

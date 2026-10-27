@@ -2642,6 +2642,21 @@
 
     let cargado = false;
     let cargaMapaSombrasPromise = null;
+    let cargaRutasBiciPromise = null;
+    function cargarRutasBici() {
+      if (cargaRutasBiciPromise) return cargaRutasBiciPromise;
+      cargaRutasBiciPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'js/rutas-bici.js?v=ruta-bici-20261027-b';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.body.appendChild(s);
+      }).catch((error) => {
+        cargaRutasBiciPromise = null;
+        throw error;
+      });
+      return cargaRutasBiciPromise;
+    }
     function cargarMapaSombras() {
       if (cargado) return cargaMapaSombrasPromise || Promise.resolve();
       cargado = true;
@@ -2679,8 +2694,9 @@
           // Capa de transporte público (Transitous). Aditiva; su fallo no
           // detiene árboles, irradiación ni aparcamientos.
           cargarScript('js/transporte-publico.js?v=transporte-20261027').catch((err) => console.error('No se ha podido cargar la capa de transporte público:', err));
-          // Capa de rutas en bici y carriles bici (BRouter + OSM). Aditiva.
-          cargarScript('js/rutas-bici.js?v=carril-bici-20261027').catch((err) => console.error('No se ha podido cargar la capa de rutas en bici:', err));
+          // Asegurar rutas bici en una llamada propia: un fallo en esta capa no
+          // interrumpe el arranque de árboles, aire ni el planificador de coche.
+          cargarRutasBici().catch((err) => console.error('No se ha podido cargar la capa de rutas en bici:', err));
           return cargarScript('js/arboles-3d.js');
         })
         .then(() => cargarScript('js/irradiacion-solar.js'))

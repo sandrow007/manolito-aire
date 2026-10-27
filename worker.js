@@ -481,12 +481,19 @@ export default {
       try {
         const rawBody = await request.text();
         let claveKv = null;
+        let consulta = '';
         try {
           const form = new URLSearchParams(rawBody);
-          const query = form.get('data') || decodeURIComponent(rawBody);
-          const m = query.match(/\(([-\d.,\s]+)\)/);
+          consulta = form.get('data') || decodeURIComponent(rawBody);
+          const m = consulta.match(/\(([-\d.,\s]+)\)/);
           if (m) claveKv = 'carril:' + m[1].split(',').map((n) => parseFloat(n).toFixed(3)).join(',');
         } catch (e) { }
+        if (!consulta || !/\[out:json\]/i.test(consulta) || !/way\[/i.test(consulta)) {
+          return new Response(JSON.stringify({ elements: [] }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
+          });
+        }
         const kv = env.AIR_QUALITY_CACHE || null;
         const FRESCA_MS = 12 * 3600 * 1000;
         const forzarFresca = request.headers.get('X-Arboles-Fresca') === '1';
@@ -496,11 +503,15 @@ export default {
             const { value, metadata } = await kv.getWithMetadata(claveKv);
             copiaKv = value || null;
             if (!forzarFresca && value && metadata && metadata.ts && Date.now() - metadata.ts < FRESCA_MS) {
-              return new Response(value, {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
-              });
+              const cacheada = JSON.parse(value);
+              if (cacheada && Array.isArray(cacheada.elements) && cacheada.elements.every((elemento) => elemento.type !== 'way' || (Array.isArray(elemento.geometry) && elemento.geometry.length >= 2))) {
+                return new Response(value, {
+                  headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
+                });
+              }
+              copiaKv = null;
             }
-          } catch (e) { }
+          } catch (e) { copiaKv = null; }
         }
         const espejos = [
           'https://lz4.overpass-api.de/api/interpreter',
@@ -745,14 +756,18 @@ export default {
           url.pathname.slice('/ruta-bici'.length) + url.search;
         const r = await fetch(destino, { headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' } });
         if (!r.ok) throw new Error(`OSRM bike HTTP ${r.status}`);
-        return new Response(await r.text(), {
+        const datos = await r.json();
+        if (!datos || datos.code !== 'Ok' || !Array.isArray(datos.routes) || !datos.routes.length) {
+          throw new Error('OSRM bike sin rutas');
+        }
+        return new Response(JSON.stringify(datos), {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Ruta-Bici-Proxy': 'ok', ...CORS_HEADERS }
         });
       } catch (err) {
-        return new Response('{"code":"Error"}', {
+        return new Response(JSON.stringify({ code: 'Error', routes: [] }), {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Proxy-Aviso': 'sin-datos', 'X-Ruta-Bici-Proxy': 'fallo', ...CORS_HEADERS }
         });
       }
     }

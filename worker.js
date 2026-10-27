@@ -364,79 +364,6 @@ export default {
       }
     }
 
-    // Proxy same-origin para MOTIS de Transitous. map/stops está documentado
-    // en v1 y stoptimes en v5; se usan las versiones estables oficiales.
-    if (url.pathname === '/transporte-paradas' || url.pathname === '/transporte-salidas') {
-      if (request.method !== 'GET') {
-        return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-          status: 405,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
-        });
-      }
-      const esParadas = url.pathname === '/transporte-paradas';
-      const parametros = new URLSearchParams();
-      if (esParadas) {
-        const min = url.searchParams.get('min') || '';
-        const max = url.searchParams.get('max') || '';
-        const coordenada = /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/;
-        if (!coordenada.test(min) || !coordenada.test(max)) {
-          return new Response(JSON.stringify({ error: 'min/max inválidos' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
-          });
-        }
-        const [, minLat, minLon] = min.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/);
-        const [, maxLat, maxLon] = max.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/);
-        if (Math.abs(Number(minLat)) > 85 || Math.abs(Number(maxLat)) > 85 || Math.abs(Number(minLon)) > 180 || Math.abs(Number(maxLon)) > 180 || Number(minLat) >= Number(maxLat) || Number(minLon) >= Number(maxLon)) {
-          return new Response(JSON.stringify({ error: 'bbox fuera de rango' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
-          });
-        }
-        parametros.set('min', min);
-        parametros.set('max', max);
-      } else {
-        const stopId = url.searchParams.get('stopId') || '';
-        if (!stopId || stopId.length > 256) {
-          return new Response(JSON.stringify({ error: 'stopId inválido' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
-          });
-        }
-        parametros.set('stopId', stopId);
-        const n = Math.min(20, Math.max(1, Number(url.searchParams.get('n')) || 8));
-        parametros.set('n', String(n));
-      }
-      const version = esParadas ? 'v1' : 'v5';
-      const destino = 'https://api.transitous.org/api/' + version + (esParadas ? '/map/stops' : '/stoptimes') + '?' + parametros.toString();
-      const controller = new AbortController();
-      const temporizador = setTimeout(() => controller.abort(), 12000);
-      try {
-        const respuesta = await fetch(destino, {
-          headers: { Accept: 'application/json', 'User-Agent': 'ManolitoAire/1.0 (https://manolitoaire.com)' },
-          signal: controller.signal,
-          cf: { cacheTtl: esParadas ? 300 : 30, cacheEverything: true }
-        });
-        if (!respuesta.ok) throw new Error('Transitous HTTP ' + respuesta.status);
-        const texto = await respuesta.text();
-        let json;
-        try { json = JSON.parse(texto); } catch (e) { throw new Error('Transitous devolvió JSON inválido'); }
-        const esLista = Array.isArray(json) || Array.isArray(json?.stops) || Array.isArray(json?.features);
-        const esHorarios = Array.isArray(json?.stopTimes);
-        if (esParadas ? !esLista : !esHorarios) throw new Error('Formato de respuesta de Transitous no reconocido');
-        return new Response(texto, {
-          status: 200,
-          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': esParadas ? 'public, max-age=120' : 'public, max-age=20', 'X-Transit-API': version, ...CORS_HEADERS }
-        });
-      } catch (error) {
-        const detalle = error && error.name === 'AbortError' ? 'Transitous agotó el tiempo de espera' : String(error && error.message || error);
-        return new Response(JSON.stringify({ error: 'Transitous no disponible', detail: detalle }), {
-          status: 502,
-          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
-        });
-      } finally { clearTimeout(temporizador); }
-    }
-
     if (url.pathname === '/aparcamientos') {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
@@ -539,14 +466,6 @@ export default {
       }
     }
 
-    // --- Proxy anti-CORS + caché KV para CARRILES BICI (Overpass / OSM) ---
-    // 24-oct-2026: ruta PROPIA, separada de /aparcamientos. Antes rutas-bici.js
-    // reutilizaba /aparcamientos y la caché del Worker clavaba por bbox sin
-    // mirar el contenido de la consulta: si alguien había cargado ya el
-    // aparcamiento de esa zona, el carril bici recibía esa misma caché (nodos
-    // de parking, sin geometría de vía) y no se dibujaba nunca ninguna línea.
-    // Misma defensa en tres capas que /arboles y /aparcamientos, con su
-    // propio espacio de claves ("carril:") para que nunca vuelva a chocar.
     if (url.pathname === '/carriles-bici') {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
@@ -554,19 +473,10 @@ export default {
       try {
         const rawBody = await request.text();
         let claveKv = null;
-        let consulta = '';
         try {
-          const form = new URLSearchParams(rawBody);
-          consulta = form.get('data') || decodeURIComponent(rawBody);
-          const m = consulta.match(/\(([-\d.,\s]+)\)/);
+          const m = decodeURIComponent(rawBody).match(/\(([-\d.,\s]+)\)/);
           if (m) claveKv = 'carril:' + m[1].split(',').map((n) => parseFloat(n).toFixed(3)).join(',');
         } catch (e) { }
-        if (!consulta || !/\[out:json\]/i.test(consulta) || !/way\[/i.test(consulta)) {
-          return new Response(JSON.stringify({ elements: [] }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
-          });
-        }
         const kv = env.AIR_QUALITY_CACHE || null;
         const FRESCA_MS = 12 * 3600 * 1000;
         const forzarFresca = request.headers.get('X-Arboles-Fresca') === '1';
@@ -576,15 +486,11 @@ export default {
             const { value, metadata } = await kv.getWithMetadata(claveKv);
             copiaKv = value || null;
             if (!forzarFresca && value && metadata && metadata.ts && Date.now() - metadata.ts < FRESCA_MS) {
-              const cacheada = JSON.parse(value);
-              if (cacheada && Array.isArray(cacheada.elements) && cacheada.elements.every((elemento) => elemento.type !== 'way' || (Array.isArray(elemento.geometry) && elemento.geometry.length >= 2))) {
-                return new Response(value, {
-                  headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
-                });
-              }
-              copiaKv = null;
+              return new Response(value, {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Arboles-Cache': 'fresca', ...CORS_HEADERS }
+              });
             }
-          } catch (e) { copiaKv = null; }
+          } catch (e) { }
         }
         const espejos = [
           'https://lz4.overpass-api.de/api/interpreter',
@@ -658,6 +564,68 @@ export default {
         return new Response(JSON.stringify({ elements: [] }), {
           status: 200,
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      }
+    }
+
+    // --- Proxy anti-CORS para TRANSPORTE PÚBLICO (Transitous / MOTIS) ------
+    // 25-oct-2026: faltaban por completo. transporte-publico.js llamaba a
+    // estas dos rutas desde el primer día pero nunca existieron en el
+    // Worker: cualquier petición caía en el 404 de los assets estáticos
+    // (env.ASSETS.fetch) y la capa nunca pudo mostrar nada. Transitous es
+    // la instancia pública del motor MOTIS: no requiere clave ni registro.
+    if (url.pathname === '/transporte-paradas') {
+      try {
+        const destino = 'https://api.transitous.org/api/v1/map/stops' + url.search;
+        const controller = new AbortController();
+        const temporizador = setTimeout(() => controller.abort(), 12000);
+        let r;
+        try {
+          r = await fetch(destino, {
+            headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)', Accept: 'application/json' },
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(temporizador);
+        }
+        if (!r.ok) throw new Error(`Transitous HTTP ${r.status}`);
+        const texto = await r.text();
+        return new Response(texto, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return new Response('[]', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      }
+    }
+
+    if (url.pathname === '/transporte-salidas') {
+      try {
+        const destino = 'https://api.transitous.org/api/v1/stoptimes' + url.search;
+        const controller = new AbortController();
+        const temporizador = setTimeout(() => controller.abort(), 12000);
+        let r;
+        try {
+          r = await fetch(destino, {
+            headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)', Accept: 'application/json' },
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(temporizador);
+        }
+        if (!r.ok) throw new Error(`Transitous HTTP ${r.status}`);
+        const texto = await r.text();
+        return new Response(texto, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ stopTimes: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
         });
       }
     }
@@ -829,18 +797,14 @@ export default {
           url.pathname.slice('/ruta-bici'.length) + url.search;
         const r = await fetch(destino, { headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' } });
         if (!r.ok) throw new Error(`OSRM bike HTTP ${r.status}`);
-        const datos = await r.json();
-        if (!datos || datos.code !== 'Ok' || !Array.isArray(datos.routes) || !datos.routes.length) {
-          throw new Error('OSRM bike sin rutas');
-        }
-        return new Response(JSON.stringify(datos), {
+        return new Response(await r.text(), {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Ruta-Bici-Proxy': 'ok', ...CORS_HEADERS }
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
         });
       } catch (err) {
-        return new Response(JSON.stringify({ code: 'Error', routes: [] }), {
+        return new Response('{"code":"Error"}', {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Proxy-Aviso': 'sin-datos', 'X-Ruta-Bici-Proxy': 'fallo', ...CORS_HEADERS }
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
         });
       }
     }

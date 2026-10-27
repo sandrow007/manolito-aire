@@ -364,6 +364,79 @@ export default {
       }
     }
 
+    // Proxy same-origin para MOTIS de Transitous. map/stops está documentado
+    // en v1 y stoptimes en v5; se usan las versiones estables oficiales.
+    if (url.pathname === '/transporte-paradas' || url.pathname === '/transporte-salidas') {
+      if (request.method !== 'GET') {
+        return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+          status: 405,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
+        });
+      }
+      const esParadas = url.pathname === '/transporte-paradas';
+      const parametros = new URLSearchParams();
+      if (esParadas) {
+        const min = url.searchParams.get('min') || '';
+        const max = url.searchParams.get('max') || '';
+        const coordenada = /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/;
+        if (!coordenada.test(min) || !coordenada.test(max)) {
+          return new Response(JSON.stringify({ error: 'min/max inválidos' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
+          });
+        }
+        const [, minLat, minLon] = min.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/);
+        const [, maxLat, maxLon] = max.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/);
+        if (Math.abs(Number(minLat)) > 85 || Math.abs(Number(maxLat)) > 85 || Math.abs(Number(minLon)) > 180 || Math.abs(Number(maxLon)) > 180 || Number(minLat) >= Number(maxLat) || Number(minLon) >= Number(maxLon)) {
+          return new Response(JSON.stringify({ error: 'bbox fuera de rango' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
+          });
+        }
+        parametros.set('min', min);
+        parametros.set('max', max);
+      } else {
+        const stopId = url.searchParams.get('stopId') || '';
+        if (!stopId || stopId.length > 256) {
+          return new Response(JSON.stringify({ error: 'stopId inválido' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
+          });
+        }
+        parametros.set('stopId', stopId);
+        const n = Math.min(20, Math.max(1, Number(url.searchParams.get('n')) || 8));
+        parametros.set('n', String(n));
+      }
+      const version = esParadas ? 'v1' : 'v5';
+      const destino = 'https://api.transitous.org/api/' + version + (esParadas ? '/map/stops' : '/stoptimes') + '?' + parametros.toString();
+      const controller = new AbortController();
+      const temporizador = setTimeout(() => controller.abort(), 12000);
+      try {
+        const respuesta = await fetch(destino, {
+          headers: { Accept: 'application/json', 'User-Agent': 'ManolitoAire/1.0 (https://manolitoaire.com)' },
+          signal: controller.signal,
+          cf: { cacheTtl: esParadas ? 300 : 30, cacheEverything: true }
+        });
+        if (!respuesta.ok) throw new Error('Transitous HTTP ' + respuesta.status);
+        const texto = await respuesta.text();
+        let json;
+        try { json = JSON.parse(texto); } catch (e) { throw new Error('Transitous devolvió JSON inválido'); }
+        const esLista = Array.isArray(json) || Array.isArray(json?.stops) || Array.isArray(json?.features);
+        const esHorarios = Array.isArray(json?.stopTimes);
+        if (esParadas ? !esLista : !esHorarios) throw new Error('Formato de respuesta de Transitous no reconocido');
+        return new Response(texto, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': esParadas ? 'public, max-age=120' : 'public, max-age=20', 'X-Transit-API': version, ...CORS_HEADERS }
+        });
+      } catch (error) {
+        const detalle = error && error.name === 'AbortError' ? 'Transitous agotó el tiempo de espera' : String(error && error.message || error);
+        return new Response(JSON.stringify({ error: 'Transitous no disponible', detail: detalle }), {
+          status: 502,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      } finally { clearTimeout(temporizador); }
+    }
+
     if (url.pathname === '/aparcamientos') {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });

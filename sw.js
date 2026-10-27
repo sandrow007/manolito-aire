@@ -202,7 +202,9 @@
 // La carga de rutas-bici.js se separa del arranque de los demás módulos para
 // que un error de bici no los bloquee. Cambian index.html, js/rutas-bici.js,
 // worker.js y este SW.
-const VERSION = '2026-10-27-b-ruta-bici-proxy';
+// 2026-10-27-c: transporte consulta el proxy MOTIS same-origin (map/stops v1,
+// salidas v5), con validación y errores visibles. Actualiza Worker, capa y caché.
+const VERSION = '2026-10-27-c-transporte-proxy';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
@@ -221,7 +223,7 @@ const HOSTS_REVALIDABLES = [
 ];
 
 /* Rutas propias con datos dinámicos (proxies del worker) */
-const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/manolito', '/carriles-bici', '/transporte-paradas'];
+const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/manolito', '/carriles-bici', '/transporte-paradas', '/transporte-salidas'];
 
 /* Hosts de datos dinámicos externos */
 const HOSTS_DINAMICOS = [

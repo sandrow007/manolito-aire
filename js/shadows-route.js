@@ -5239,6 +5239,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
      permiso de voz, lista accesible) vive ahora en js/a11y-guia.js, un
      módulo propio. Aquí solo se le delega con window.ManolitA11y. */
 
+  window.manolitAireCalcularRutaParada = async function (destino) {
+    if (!destino || !Number.isFinite(Number(destino.lat)) || !Number.isFinite(Number(destino.lon))) return false;
+    const origenElegido = seleccionPorInput.get(inputOrigen);
+    const origen = origenElegido || await resolverPunto(inputOrigen);
+    const destinoParada = { lat: Number(destino.lat), lon: Number(destino.lon), nombre: destino.nombre || 'Parada', texto: destino.nombre || 'Parada' };
+    seleccionPorInput.set(inputDestino, destinoParada);
+    inputDestino.value = destinoParada.nombre;
+    return ejecutarBusquedaConPuntos(origen, destinoParada);
+  };
+
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
     mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));

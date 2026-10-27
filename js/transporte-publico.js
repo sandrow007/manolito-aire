@@ -3,9 +3,8 @@
   if (window.__manolitoTransportePublico) return;
   window.__manolitoTransportePublico = true;
 
-  // El Worker del mismo dominio evita restricciones CORS.
-  const STOPS_API_FALLBACK = 'https://api.transitous.org/api/v1/map/stops';
-  const DEPARTURES_API_FALLBACK = 'https://api.transitous.org/api/v5/stoptimes';
+  // Todas las peticiones de transporte pasan por el Worker del mismo origen.
+  // Así se evita CORS y esta capa no hace peticiones externas alternativas.
   const SOURCE = 'transporte-publico-source';
   const HALO = 'transporte-publico-halo';
   const SYMBOL = 'transporte-publico-symbols';
@@ -60,7 +59,7 @@
         if (pointInPolygon(lon, lat, polygon)) return region.id;
       }
     }
-    return defaultRegion;
+    return 'global';
   }
 
   function evaluateRegion() {
@@ -109,16 +108,7 @@
   }
 
   async function fetchApi(path) {
-    try {
-      return await fetchJson(path, 'same-origin', 15000);
-    } catch (proxyError) {
-      if (!(proxyError instanceof TypeError) && proxyError.name !== 'AbortError') throw proxyError;
-      throw new Error('No se pudo conectar con el Worker de transporte', { cause: proxyError });
-    }
-  }
-
-  async function fetchTransitFallback(url) {
-    return fetchJson(url, 'omit', 12000);
+    return fetchJson(path, 'same-origin', 15000);
   }
 
   async function loadStops(bounds) {
@@ -137,12 +127,7 @@
       const min = bounds.south.toFixed(6) + ',' + segmento.west.toFixed(6);
       const max = bounds.north.toFixed(6) + ',' + segmento.east.toFixed(6);
       const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
-      let raw;
-      try { raw = await fetchApi('/transporte-paradas' + query); }
-      catch (proxyError) {
-        try { raw = await fetchTransitFallback(STOPS_API_FALLBACK + query); }
-        catch (directError) { throw new AggregateError([proxyError, directError], 'Fallaron el proxy y la API directa de Transitous'); }
-      }
+      const raw = await fetchApi('/transporte-paradas' + query);
       const data = Array.isArray(raw) ? raw
         : Array.isArray(raw && raw.stops) ? raw.stops
         : Array.isArray(raw && raw.features) ? raw.features
@@ -213,12 +198,7 @@
     const cached = departuresCache.get(stopId);
     if (cached && Date.now() - cached.touched < DEPARTURES_MS) return cached.items;
     const query = '?stopId=' + encodeURIComponent(stopId) + '&n=8';
-    let data;
-    try { data = await fetchApi('/transporte-salidas' + query); }
-    catch (proxyError) {
-      try { data = await fetchTransitFallback(DEPARTURES_API_FALLBACK + query); }
-      catch (directError) { throw new AggregateError([proxyError, directError], 'Fallaron el proxy y la API directa de Transitous'); }
-    }
+    const data = await fetchApi('/transporte-salidas' + query);
     const items = (data && Array.isArray(data.stopTimes) ? data.stopTimes : []).map(st => ({ name: st.displayName || st.routeShortName || 'Línea', headsign: st.headsign || '', departure: st.place && (st.place.departure || st.place.scheduledDeparture) || '', realTime: !!st.realTime }));
     departuresCache.set(stopId, { items, touched: Date.now() });
     while (departuresCache.size > 80) departuresCache.delete(departuresCache.keys().next().value);
@@ -358,7 +338,7 @@
     toggle.addEventListener('change', () => toggle.checked ? activate() : deactivate());
     map.on('load', () => { ready = true; if (enabled) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error)); });
     map.on('style.load', () => { ready = true; if (enabled) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error)); });
-    fetch('transit-regions.json', { cache: 'no-store', credentials: 'omit' }).then(r => r.ok ? r.json() : null).then(data => {
+    fetch('transit-regions.json', { cache: 'no-store', credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(data => {
       if (data && Array.isArray(data.regions)) regions = data.regions;
     }).catch(error => console.debug('[transporte-publico] No se pudieron cargar las regiones:', error));
     ready = map.isStyleLoaded();

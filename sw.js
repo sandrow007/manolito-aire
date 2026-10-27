@@ -191,20 +191,21 @@
 // RUTAS_DINAMICAS para que su respuesta nunca quede cacheada en vacío.
 // Cambian js/rutas-bici.js e index.html.
 // 2026-10-27-a: fix transporte público + carriles bici v2.
-// - worker.js: nuevo proxy /transporte-paradas (Transitous no abre CORS al
-//   navegador; el Worker actúa de intermediario, prueba /v2 y /v6 del API
-//   MOTIS hasta obtener datos).
-// - js/transporte-publico.js: usa el proxy; toFeature acepta id o stopId;
-//   loadStops prueba proxy → /v2 → /v6 en cascada.
+// - worker.js: proxy same-origin /transporte-paradas y /transporte-salidas;
+//   usa MOTIS de Transitous como intermediario para evitar CORS del navegador.
+// - js/transporte-publico.js: consume únicamente estos endpoints; toFeature
+//   acepta id o stopId y valida las coordenadas de las paradas.
 // - js/rutas-bici.js: consultaCarriles amplía tags OSM y usa out geom.
 // 2026-10-27-b: ruta bici prioriza el proxy same-origin routed-bike (sin CORS
 // externo de BRouter), no cachea respuestas vacías y conserva BRouter de reserva.
 // La carga de rutas-bici.js se separa del arranque de los demás módulos para
 // que un error de bici no los bloquee. Cambian index.html, js/rutas-bici.js,
 // worker.js y este SW.
-// 2026-10-27-c: transporte consulta el proxy MOTIS same-origin (map/stops v1,
-// salidas v5), con validación y errores visibles. Actualiza Worker, capa y caché.
-const VERSION = '2026-10-27-c-transporte-proxy';
+// 2026-10-27-d: transporte público consulta exclusivamente los endpoints same-origin
+// /transporte-paradas y /transporte-salidas; se quita el fallback directo que
+// podía generar peticiones duplicadas o problemas CORS. Esos endpoints siguen
+// en NETWORK-FIRST mediante RUTAS_DINAMICAS. Actualiza Worker, capa, index y SW.
+const VERSION = '2026-10-27-d-transporte-same-origin';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

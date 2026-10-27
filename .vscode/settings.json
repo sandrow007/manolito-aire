@@ -1,3 +1,5 @@
 {
+    // Mantén la credencial beta existente de CodeGPT para sus funciones cloud.
+    // Qwen local se selecciona en la extensión como Local LLMs > Ollama.
     "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }

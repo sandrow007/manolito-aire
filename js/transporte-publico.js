@@ -76,25 +76,21 @@
     return [b.west, b.south, b.east, b.north].map(v => Math.round(v * 100)).join(':') + ':' + Math.floor(map.getZoom());
   }
 
-  function toFeature(place) {
-    if (!place) return null;
-    // MOTIS devuelve 'lat'/'lon'; algunas versiones usan 'latitude'/'longitude'.
-    // También puede responder coordenadas en notación científica (p. ej. 3.74E1).
-    // Number() las admite, pero varias versiones devuelven strings con coma
-    // decimal; normalízalas antes para no descartar todas las paradas.
-    const latRaw = place.lat != null ? place.lat : place.latitude;
-    const lonRaw = place.lon != null ? place.lon : place.longitude;
-    const lat = Number(typeof latRaw === 'string' ? latRaw.replace(',', '.') : latRaw);
-    const lon = Number(typeof lonRaw === 'string' ? lonRaw.replace(',', '.') : lonRaw);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
-    // MOTIS usa 'stopId'; algunas versiones antiguas usan 'id'.
-    const stopId = place.stopId != null ? place.stopId : (place.id != null ? place.id : null);
-    return {
-      type: 'Feature',
-      id: stopId != null ? String(stopId) : 'stop:' + lat + ':' + lon,
-      properties: { stopId: stopId, name: place.name || t('transportStop', 'Parada') },
-      geometry: { type: 'Point', coordinates: [lon, lat] }
-    };
+  // Conversión de paradas (MOTIS y GeoJSON) delegada a js/transporte-paradas.js.
+  function datosParadas() {
+    const api = window.ManolitoTransporteParadas;
+    if (!api) throw new Error('Módulo de paradas no disponible');
+    return api;
+  }
+
+  async function detalleError(response) {
+    try {
+      const body = await response.json();
+      return (body && (body.detail || body.error)) || '';
+    } catch (error) {
+      console.debug('[transporte-publico] La respuesta de error no era JSON:', error && error.message);
+      return '';
+    }
   }
 
   async function fetchJson(url, credentials, timeoutMs) {
@@ -104,8 +100,7 @@
     try {
       const response = await fetch(url, { signal: controller.signal, cache: 'no-store', credentials: credentials, headers: { Accept: 'application/json' } });
       if (!response.ok) {
-        let detail = '';
-        try { const body = await response.json(); detail = body && (body.detail || body.error) || ''; } catch (error) { /* respuesta de error no JSON */ }
+        const detail = await detalleError(response);
         throw new Error('HTTP ' + response.status + (detail ? ': ' + detail : ''));
       }
       return await response.json();
@@ -116,31 +111,31 @@
     return fetchJson(path, 'same-origin', 15000);
   }
 
+  function segmentosConsulta(bounds) {
+    // Un bbox que cruza el antimeridiano se divide para no pedir longitudes invertidas.
+    const west = ((bounds.west + 180) % 360 + 360) % 360 - 180;
+    const east = ((bounds.east + 180) % 360 + 360) % 360 - 180;
+    return west <= east
+      ? [{ west: west, east: east }]
+      : [{ west: west, east: 180 }, { west: -180, east: east }];
+  }
+
   async function loadStops(bounds) {
     const key = cacheKey(bounds);
     if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS) return areaCache.features;
     // El Worker recibe min/max como latitud,longitud y consulta MOTIS de forma segura.
-    // Un bbox que cruza el antimeridiano se divide para no pedir longitudes invertidas.
-    const west = ((bounds.west + 180) % 360 + 360) % 360 - 180;
-    const east = ((bounds.east + 180) % 360 + 360) % 360 - 180;
-    const segmentos = west <= east
-      ? [{ west: west, east: east }]
-      : [{ west: west, east: 180 }, { west: -180, east: east }];
+    const paradas = datosParadas();
     const coleccion = [];
-    for (const segmento of segmentos) {
+    for (const segmento of segmentosConsulta(bounds)) {
       if (segmento.west >= segmento.east) continue;
       const min = bounds.south.toFixed(6) + ',' + segmento.west.toFixed(6);
       const max = bounds.north.toFixed(6) + ',' + segmento.east.toFixed(6);
-      const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
-      const raw = await fetchApi('/transporte-paradas' + query);
-      const data = Array.isArray(raw) ? raw
-        : Array.isArray(raw && raw.stops) ? raw.stops
-        : Array.isArray(raw && raw.features) ? raw.features
-        : null;
+      const raw = await fetchApi('/transporte-paradas?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max));
+      const data = paradas.listaDeParadas(raw);
       if (!data) throw new Error('Transitous devolvió una respuesta de paradas inválida');
       coleccion.push(...data);
     }
-    const features = coleccion.map(toFeature).filter(Boolean).slice(0, 400);
+    const features = paradas.featuresDeParadas(coleccion, t('transportStop', 'Parada'));
     areaCache = { key, features, touched: Date.now() };
     return features;
   }
@@ -170,6 +165,49 @@
 
   function showStatus(text) { const el = document.getElementById('rsStatus'); if (el) el.textContent = text; }
 
+  function textoEstado(cantidad) {
+    if (!cantidad) return t('transportNoData', 'Sin datos de transporte público en esta zona.');
+    const zona = currentRegion.indexOf('es-') === 0 ? 'España' : 'Global';
+    return t('transportStatus', 'Transporte público: ') + zona + ' · ' + cantidad + ' paradas';
+  }
+
+  async function asegurarRegiones() {
+    if (regions.length) return;
+    // Espera a que se cargue el JSON de regiones antes de consultar la zona;
+    // la carga inicial es asíncrona y puede coincidir con el primer refresh.
+    try {
+      const response = await fetch('transit-regions.json', { cache: 'no-store', credentials: 'same-origin' });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.regions)) regions = data.regions;
+      }
+    } catch (error) { console.debug('[transporte-publico] No se pudieron cargar las regiones:', error); }
+  }
+
+  async function descargarParadas(currentGeneration) {
+    await asegurarRegiones();
+    evaluateRegion();
+    const features = await loadStops(boundsOfMap());
+    if (!enabled || currentGeneration !== generation) return;
+    await ensureLayers();
+    const source = map.getSource(SOURCE);
+    if (source) source.setData({ type: 'FeatureCollection', features });
+    showStatus(textoEstado(features.length));
+  }
+
+  function informarFallo(currentGeneration, error) {
+    if (!enabled || currentGeneration !== generation || error.name === 'AbortError') return;
+    console.debug('[transporte-publico] No se pudieron cargar paradas:', error);
+    showStatus(t('transportError', 'No se pudo consultar el transporte público.'));
+  }
+
+  function liberarPeticion() {
+    requestRunning = false;
+    if (!enabled || !refreshQueued) return;
+    refreshQueued = false;
+    window.setTimeout(refresh, 0);
+  }
+
   async function refresh() {
     if (!enabled || !ready) return;
     if (map.getZoom() < MIN_ZOOM) { showStatus(t('transportZoom', 'Acércate para ver las paradas de transporte público.')); return; }
@@ -177,116 +215,111 @@
     requestRunning = true;
     const currentGeneration = generation;
     try {
-      // Espera a que se cargue el JSON de regiones antes de consultar la zona;
-      // la carga inicial es asíncrona y puede coincidir con el primer refresh.
-      if (!regions.length) {
-        try {
-          const response = await fetch('transit-regions.json', { cache: 'no-store', credentials: 'same-origin' });
-          if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data.regions)) regions = data.regions;
-          }
-        } catch (error) { console.debug('[transporte-publico] No se pudieron cargar las regiones:', error); }
-      }
-      evaluateRegion();
-      const features = await loadStops(boundsOfMap());
-      if (!enabled || currentGeneration !== generation) return;
-      await ensureLayers();
-      const source = map.getSource(SOURCE);
-      if (source) source.setData({ type: 'FeatureCollection', features });
-      showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas' : t('transportNoData', 'Sin datos de transporte público en esta zona.'));
+      await descargarParadas(currentGeneration);
     } catch (error) {
-      if (enabled && currentGeneration === generation && error.name !== 'AbortError') {
-        console.debug('[transporte-publico] No se pudieron cargar paradas:', error);
-        showStatus(t('transportError', 'No se pudo consultar el transporte público.'));
-      }
+      informarFallo(currentGeneration, error);
     }
-    if (currentGeneration === generation) {
-      requestRunning = false;
-      if (enabled && refreshQueued) {
-        refreshQueued = false;
-        window.setTimeout(refresh, 0);
-      }
-    }
+    if (currentGeneration === generation) liberarPeticion();
+  }
+
+  function salidaNormalizada(st) {
+    const place = st.place || {};
+    return {
+      name: st.displayName || st.routeShortName || 'Línea',
+      headsign: st.headsign || '',
+      departure: place.departure || place.scheduledDeparture || '',
+      realTime: !!st.realTime
+    };
   }
 
   async function departures(stopId) {
     const cached = departuresCache.get(stopId);
     if (cached && Date.now() - cached.touched < DEPARTURES_MS) return cached.items;
-    const query = '?stopId=' + encodeURIComponent(stopId) + '&n=8';
-    const data = await fetchApi('/transporte-salidas' + query);
-    const items = (data && Array.isArray(data.stopTimes) ? data.stopTimes : []).map(st => ({ name: st.displayName || st.routeShortName || 'Línea', headsign: st.headsign || '', departure: st.place && (st.place.departure || st.place.scheduledDeparture) || '', realTime: !!st.realTime }));
+    const data = await fetchApi('/transporte-salidas?stopId=' + encodeURIComponent(stopId) + '&n=8');
+    const lista = data && Array.isArray(data.stopTimes) ? data.stopTimes : [];
+    const items = lista.map(salidaNormalizada);
     departuresCache.set(stopId, { items, touched: Date.now() });
     while (departuresCache.size > 80) departuresCache.delete(departuresCache.keys().next().value);
     return items;
   }
 
-  function onMapClick(event) {
-    if (!enabled || typeof maplibregl === 'undefined') return;
+  function comoLlegar(coords, name) {
+    const destination = { lon: Number(coords[0]), lat: Number(coords[1]), nombre: name || 'Parada' };
+    const routeToggle = document.getElementById('rsToggleRuta');
+    const destinationInput = document.getElementById('rsDestino');
+    if (routeToggle && !routeToggle.checked) routeToggle.click();
+    if (destinationInput) destinationInput.value = destination.nombre;
+    if (typeof window.manolitAireCalcularRutaParada === 'function') {
+      window.manolitAireCalcularRutaParada(destination).catch(error => console.debug('[transporte-publico] No se pudo calcular la ruta:', error));
+    } else {
+      map.easeTo({ center: coords, zoom: Math.max(15, map.getZoom()), duration: 700 });
+    }
+  }
+
+  function paradaBajoElPunto(point) {
+    if (!enabled || typeof maplibregl === 'undefined') return null;
     const layers = [SYMBOL, HALO].filter(id => map.getLayer(id));
-    if (!layers.length) return;
-    const matches = map.queryRenderedFeatures(event.point, { layers });
-    const feature = matches.find(item => item.properties && item.properties.stopId != null);
+    if (!layers.length) return null;
+    const matches = map.queryRenderedFeatures(point, { layers });
+    return matches.find(item => item.properties && item.properties.stopId != null) || null;
+  }
+
+  function mostrarSalidas(body, stopId) {
+    const tarjeta = window.ManolitoTransporteTarjeta;
+    if (!tarjeta) { body.textContent = 'No se pudieron consultar las salidas.'; return; }
+    departures(stopId).then(items => tarjeta.pintarSalidas(body, items)).catch(error => {
+      if (error.name !== 'AbortError') body.textContent = 'No se pudieron consultar las salidas.';
+    });
+  }
+
+  function onMapClick(event) {
+    const feature = paradaBajoElPunto(event.point);
     if (!feature) return;
+    const tarjeta = window.ManolitoTransporteTarjeta;
+    if (!tarjeta) return;
     const props = feature.properties;
     const coords = feature.geometry.coordinates;
-    const box = document.createElement('div');
-    box.className = 'tp-stop-card';
-    const handle = document.createElement('div'); handle.className = 'tp-sheet-handle';
-    const header = document.createElement('div'); header.className = 'tp-stop-header';
-    const headingWrap = document.createElement('div');
-    const eyebrow = document.createElement('span'); eyebrow.className = 'tp-eyebrow'; eyebrow.textContent = 'PARADA';
-    const title = document.createElement('strong'); title.className = 'tp-stop-title'; title.textContent = props.name || 'Parada';
-    headingWrap.append(eyebrow, title);
-    const directions = document.createElement('button'); directions.type = 'button'; directions.className = 'tp-directions';
-    directions.setAttribute('aria-label', 'Cómo llegar');
-    directions.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 21 12l-9 9.2-2-2 5.7-5.8H4v-2.8h11.7L10 4.8z" fill="currentColor"/></svg><span>Cómo llegar</span>';
-    directions.addEventListener('click', () => {
-      const destination = { lon: Number(coords[0]), lat: Number(coords[1]), nombre: props.name || 'Parada' };
-      const routeToggle = document.getElementById('rsToggleRuta');
-      const destinationInput = document.getElementById('rsDestino');
-      if (routeToggle && !routeToggle.checked) routeToggle.click();
-      if (destinationInput) destinationInput.value = destination.nombre;
-      if (typeof window.manolitAireCalcularRutaParada === 'function') {
-        window.manolitAireCalcularRutaParada(destination).catch(error => console.debug('[transporte-publico] No se pudo calcular la ruta:', error));
-      } else {
-        map.easeTo({ center: coords, zoom: Math.max(15, map.getZoom()), duration: 700 });
-      }
-    });
-    header.append(headingWrap, directions);
-    const body = document.createElement('div'); body.className = 'tp-departures'; body.textContent = 'Cargando salidas…';
-    box.append(handle, header, body);
+    const card = tarjeta.crearTarjetaParada(props, () => comoLlegar(coords, props.name));
     if (popup) popup.remove();
-    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '320px', offset: 12, className: 'tp-map-popup' }).setLngLat(coords).setDOMContent(box).addTo(map);
-    departures(String(props.stopId)).then(items => {
-      body.textContent = '';
-      if (!items.length) { body.textContent = 'Sin salidas próximas.'; return; }
-      const list = document.createElement('ul'); list.className = 'tp-departure-list';
-      items.forEach(item => {
-        const date = new Date(item.departure);
-        const departed = Number.isFinite(date.getTime()) && date.getTime() < Date.now();
-        const li = document.createElement('li'); li.className = 'tp-departure' + (departed ? ' is-past' : '');
-        const name = document.createElement('span'); name.className = 'tp-line-name'; name.textContent = item.name + (item.headsign ? ' · ' + item.headsign : '');
-        const lineNumber = /\b24\b/.test(item.name) ? '24' : '';
-        if (lineNumber) { const badge = document.createElement('span'); badge.className = 'tp-line-badge'; badge.textContent = lineNumber; li.appendChild(badge); name.textContent = item.headsign || 'Línea'; }
-        li.appendChild(name);
-        const time = document.createElement('span'); time.className = 'tp-time' + (item.realTime ? ' is-realtime' : '');
-        time.textContent = item.departure ? (item.realTime ? '● ' : '') + (Number.isFinite(date.getTime()) ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : item.departure) : '';
-        li.append(name, time); list.appendChild(li);
-      });
-      body.appendChild(list);
-    }).catch(error => { if (error.name !== 'AbortError') body.textContent = 'No se pudieron consultar las salidas.'; });
+    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '320px', offset: 12, className: 'tp-map-popup' }).setLngLat(coords).setDOMContent(card.box).addTo(map);
+    mostrarSalidas(card.body, String(props.stopId));
+  }
+
+  function centroBusqueda(origin) {
+    const valido = origin && Number.isFinite(Number(origin.lon)) && Number.isFinite(Number(origin.lat));
+    const rawCenter = valido ? { lon: Number(origin.lon), lat: Number(origin.lat) } : map.getCenter();
+    const center = { lon: Number(rawCenter.lon), lat: Number(rawCenter.lat) };
+    const dentro = Number.isFinite(center.lon) && Number.isFinite(center.lat) && center.lon >= -180 && center.lon <= 180 && center.lat >= -85 && center.lat <= 85;
+    return dentro ? center : null;
+  }
+
+  function distanciaA(center) {
+    return f => {
+      const c = f.geometry.coordinates;
+      const dx = (c[0] - center.lon) * Math.cos(center.lat * Math.PI / 180);
+      const dy = c[1] - center.lat;
+      return dx * dx + dy * dy;
+    };
+  }
+
+  async function abrirParada(selected, token) {
+    const coords = selected.geometry.coordinates;
+    await ensureLayers();
+    const source = map.getSource(SOURCE);
+    if (source) source.setData({ type: 'FeatureCollection', features: areaCache.features });
+    map.easeTo({ center: coords, zoom: Math.max(15, map.getZoom()), duration: 700 });
+    window.setTimeout(() => {
+      if (token === searchToken && map) onMapClick({ point: map.project(coords) });
+    }, 800);
+    return { name: selected.properties.name || 'Parada', lon: coords[0], lat: coords[1] };
   }
 
   async function searchStop(query, origin) {
     const needle = String(query || '').trim().toLocaleLowerCase();
     if (!needle || !map || !ready) return null;
     const token = ++searchToken;
-    const rawCenter = origin && Number.isFinite(Number(origin.lon)) && Number.isFinite(Number(origin.lat))
-      ? { lon: Number(origin.lon), lat: Number(origin.lat) }
-      : map.getCenter();
-    const center = { lon: Number(rawCenter.lon), lat: Number(rawCenter.lat) };
-    if (!Number.isFinite(center.lon) || !Number.isFinite(center.lat) || center.lon < -180 || center.lon > 180 || center.lat < -85 || center.lat > 85) return null;
+    const center = centroBusqueda(origin);
+    if (!center) return null;
     map.easeTo({ center: [center.lon, center.lat], zoom: Math.max(13, map.getZoom()), duration: 500 });
     if (toggle && !toggle.checked) toggle.click();
     if (!enabled) activate();
@@ -300,23 +333,8 @@
       if (token !== searchToken || !map) return null;
       const named = features.filter(f => String(f.properties.name || '').toLocaleLowerCase().includes(needle));
       if (!named.length) return null;
-      const distance = f => {
-        const c = f.geometry.coordinates;
-        const dx = (c[0] - center.lon) * Math.cos(center.lat * Math.PI / 180);
-        const dy = c[1] - center.lat;
-        return dx * dx + dy * dy;
-      };
-      named.sort((a, b) => distance(a) - distance(b));
-      const selected = named[0];
-      const coords = selected.geometry.coordinates;
-      await ensureLayers();
-      const source = map.getSource(SOURCE);
-      if (source) source.setData({ type: 'FeatureCollection', features });
-      map.easeTo({ center: coords, zoom: Math.max(15, map.getZoom()), duration: 700 });
-      window.setTimeout(() => {
-        if (token === searchToken) onMapClick({ point: map.project(coords) });
-      }, 800);
-      return { name: selected.properties.name || 'Parada', lon: coords[0], lat: coords[1] };
+      named.sort((a, b) => distanciaA(center)(a) - distanciaA(center)(b));
+      return await abrirParada(named[0], token);
     } catch (error) {
       console.debug('[transporte-publico] Búsqueda de parada fallida:', error);
       return null;
@@ -329,13 +347,19 @@
     return searchStop(query, origin);
   };
 
+  function traerCapa() {
+    if (!ready) return;
+    ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error));
+  }
+
   function activate() {
     if (enabled) { refresh(); return; }
     enabled = true; generation++;
     map.on('moveend', scheduleRefresh);
     map.on('click', onMapClick);
-    if (ready) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error));
+    traerCapa();
   }
+
   function deactivate() {
     enabled = false; generation++; refreshQueued = false; requestRunning = false; searchToken++;
     controllers.forEach(controller => controller.abort()); controllers.clear();
@@ -347,64 +371,31 @@
     if (popup) { popup.remove(); popup = null; }
     showStatus('');
   }
+
   function scheduleRefresh() { if (!enabled) return; clearTimeout(moveTimer); moveTimer = setTimeout(refresh, 500); }
+
+  function cargarRegiones() {
+    fetch('transit-regions.json', { cache: 'no-store', credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(data => {
+      if (data && Array.isArray(data.regions)) regions = data.regions;
+    }).catch(error => console.debug('[transporte-publico] No se pudieron cargar las regiones:', error));
+  }
 
   function start(m, tgl) {
     map = m; toggle = tgl;
     toggle.addEventListener('change', () => toggle.checked ? activate() : deactivate());
-    map.on('load', () => { ready = true; if (enabled) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error)); });
-    map.on('style.load', () => { ready = true; if (enabled) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error)); });
-    fetch('transit-regions.json', { cache: 'no-store', credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(data => {
-      if (data && Array.isArray(data.regions)) regions = data.regions;
-    }).catch(error => console.debug('[transporte-publico] No se pudieron cargar las regiones:', error));
+    map.on('load', () => { ready = true; if (enabled) traerCapa(); });
+    map.on('style.load', () => { ready = true; if (enabled) traerCapa(); });
+    cargarRegiones();
     ready = map.isStyleLoaded();
     if (toggle.checked) activate();
   }
 
-  (function waitForMap(tries) {
+  let intentos = 0;
+  function waitForMap() {
     const m = window.manolitAireMap;
     const tgl = document.getElementById('rsToggleTransporte');
     if (m && tgl) { start(m, tgl); return; }
-    if (tries < 240) setTimeout(() => waitForMap(tries + 1), 500);
-  })(0);
-})();
-
-
-(function installTransitStopStyles() {
-  if (document.getElementById('tp-stop-card-styles')) return;
-  const style = document.createElement('style');
-  style.id = 'tp-stop-card-styles';
-  style.textContent = `
-    .tp-map-popup .maplibregl-popup-content { padding:0; overflow:hidden; border-radius:24px; background:transparent; box-shadow:0 18px 54px rgba(15,35,45,.2); }
-    .tp-map-popup .maplibregl-popup-tip { display:none; }
-    .tp-map-popup .maplibregl-popup-close-button { z-index:3; top:12px; right:12px; width:30px; height:30px; border-radius:50%; background:rgba(17,39,48,.07); color:#18313a; font-size:20px; }
-    .tp-stop-card { box-sizing:border-box; width:min(320px, calc(100vw - 28px)); max-height:min(70vh, 520px); overflow:auto; padding:20px; border:1px solid rgba(255,255,255,.76); border-radius:24px; background:rgba(250,253,253,.82); color:#18313a; box-shadow:inset 0 1px rgba(255,255,255,.85); backdrop-filter:blur(28px) saturate(1.5); -webkit-backdrop-filter:blur(28px) saturate(1.5); font:14px/1.45 Inter,Montserrat,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
-    .tp-sheet-handle { display:none; }
-    .tp-stop-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-right:28px; }
-    .tp-eyebrow { display:block; margin-bottom:4px; color:#71858b; font-size:10px; font-weight:750; letter-spacing:.15em; }
-    .tp-stop-title { display:block; color:#18313a; font-size:19px; font-weight:700; letter-spacing:-.035em; line-height:1.2; }
-    .tp-directions { display:inline-flex; flex:none; align-items:center; gap:7px; min-height:38px; padding:0 13px; border:0; border-radius:13px; background:#183f49; color:#fff; font:650 12px/1 Inter,Montserrat,ui-sans-serif,system-ui,sans-serif; cursor:pointer; box-shadow:0 5px 13px rgba(24,63,73,.2); }
-    .tp-directions svg { width:14px; height:14px; transform:rotate(-45deg); }
-    .tp-directions:hover { background:#245c67; }
-    .tp-departures { margin-top:17px; }
-    .tp-departure-list { display:grid; gap:2px; margin:0; padding:0; list-style:none; }
-    .tp-departure { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:36px; border-top:1px solid rgba(23,56,65,.08); }
-    .tp-line-name { overflow:hidden; color:#52666c; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
-    .tp-line-badge { flex:none; min-width:20px; padding:4px 7px; border-radius:999px; background:#e8f5f4; color:#18525b; font-size:11px; font-weight:800; text-align:center; }
-    .tp-time { flex:none; padding:5px 9px; border-radius:999px; background:rgba(53,196,212,.16); color:#174e59; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; }
-    .tp-time.is-realtime { background:rgba(43,152,115,.13); color:#207957; }
-    .tp-departure.is-past { opacity:.28; }
-    @media (max-width:600px) {
-      .tp-map-popup { position:fixed !important; left:0 !important; right:0 !important; top:auto !important; bottom:0 !important; width:100vw; max-width:none !important; transform:none !important; pointer-events:none; }
-      .tp-map-popup .maplibregl-popup-content { width:100%; max-width:none; border-radius:26px 26px 0 0; box-shadow:0 -12px 40px rgba(16,38,46,.16); pointer-events:auto; }
-      .tp-map-popup .maplibregl-popup-content > div { max-width:none; }
-      .tp-map-popup-anchor-bottom, .tp-map-popup-anchor-top, .tp-map-popup-anchor-left, .tp-map-popup-anchor-right, .tp-map-popup-anchor-top-left, .tp-map-popup-anchor-top-right, .tp-map-popup-anchor-bottom-left, .tp-map-popup-anchor-bottom-right { transform:none !important; }
-      .tp-map-popup .maplibregl-popup-close-button { top:14px; right:18px; }
-      .tp-stop-card { width:100%; max-width:none; max-height:min(48vh, 420px); padding:10px 20px calc(18px + env(safe-area-inset-bottom)); border-width:1px 0 0; border-radius:26px 26px 0 0; pointer-events:auto; }
-      .tp-sheet-handle { display:block; width:38px; height:4px; margin:0 auto 14px; border-radius:9px; background:rgba(30,59,67,.22); }
-      .tp-stop-header { padding-right:34px; }
-    }
-    @media (prefers-reduced-motion:no-preference) { .tp-map-popup .maplibregl-popup-content { animation:tp-sheet-in .28s cubic-bezier(.2,.8,.2,1) both; } @keyframes tp-sheet-in { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
-  `;
-  document.head.appendChild(style);
+    if (intentos < 240) { intentos++; setTimeout(waitForMap, 500); }
+  }
+  waitForMap();
 })();

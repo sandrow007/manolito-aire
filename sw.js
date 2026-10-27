@@ -203,10 +203,11 @@
 //       widget de sombra (rgba(8,12,20,.94) + blur), responsive en web
 //       y móvil igual que éste.
 // 2026-10-27-a: las coordenadas MOTIS pueden llegar como texto con coma
-// decimal y la descarga de regiones podía competir con la primera consulta.
-// Se normalizan ambas situaciones y se invalida la caché de scripts del SW.
+// decimal, la descarga de regiones podía competir con la primera consulta y
+// Transitous puede responder GeoJSON además de arrays. Se normalizan respuestas
+// GeoJSON/MOTIS y se invalida la caché de scripts del SW.
 // Cambian index.html y js/transporte-publico.js.
-const VERSION = '2026-10-27-a-arreglo-transporte-publico';
+const VERSION = '2026-10-27-c-arreglo-transporte-publico';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

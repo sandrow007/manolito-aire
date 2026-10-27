@@ -190,7 +190,16 @@
 // y que los usuarios descarguen el JS nuevo; /carriles-bici pasa a
 // RUTAS_DINAMICAS para que su respuesta nunca quede cacheada en vacío.
 // Cambian js/rutas-bici.js e index.html.
-const VERSION = '2026-10-26-a-carril-bici-fallback';
+// 2026-10-27-a: fix transporte público + carriles bici v2.
+// - worker.js: nuevo proxy /transporte-paradas (Transitous no abre CORS al
+//   navegador; el Worker actúa de intermediario, prueba /v2 y /v6 del API
+//   MOTIS hasta obtener datos).
+// - js/transporte-publico.js: usa el proxy; toFeature acepta id o stopId;
+//   loadStops prueba proxy → /v2 → /v6 en cascada.
+// - js/rutas-bici.js: consultaCarriles amplía tags OSM (cycleway:left/right/
+//   both, shared_lane, share_busway…) y usa out geom (respuesta más ligera).
+// Cambian worker.js, js/transporte-publico.js, js/rutas-bici.js, index.html.
+const VERSION = '2026-10-27-a-transporte-y-carriles-fix';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
@@ -209,7 +218,7 @@ const HOSTS_REVALIDABLES = [
 ];
 
 /* Rutas propias con datos dinámicos (proxies del worker) */
-const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/manolito', '/carriles-bici'];
+const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/manolito', '/carriles-bici', '/transporte-paradas'];
 
 /* Hosts de datos dinámicos externos */
 const HOSTS_DINAMICOS = [

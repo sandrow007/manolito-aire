@@ -529,12 +529,19 @@
   }
 
   function consultaCarriles(bbox) {
-    var bboxTxt = [bbox.south, bbox.west, bbox.north, bbox.east].map(function (v) { return v.toFixed(6); }).join(',');
-    return '[out:json][timeout:25];(' +
-      'way["highway"="cycleway"](' + bboxTxt + ');' +
-      'way["cycleway"](' + bboxTxt + ');' +
-      'way["bicycle"="designated"](' + bboxTxt + ');' +
-      ');out body geom;';
+    var s = bbox.south.toFixed(6), w = bbox.west.toFixed(6),
+        n = bbox.north.toFixed(6), e = bbox.east.toFixed(6);
+    var b = s + ',' + w + ',' + n + ',' + e;
+    // Tags OSM más usados para carriles bici. 'out geom' es más ligero que
+    // 'out body geom' porque no incluye tags (sólo geometría + id).
+    return '[out:json][timeout:30];(' +
+      'way["highway"="cycleway"](' + b + ');' +
+      'way["cycleway"~"lane|track|opposite_lane|opposite_track|shared_lane|share_busway"](' + b + ');' +
+      'way["cycleway:left"~"lane|track"](' + b + ');' +
+      'way["cycleway:right"~"lane|track"](' + b + ');' +
+      'way["cycleway:both"~"lane|track"](' + b + ');' +
+      'way["bicycle"="designated"]["highway"~"path|footway|service"](' + b + ');' +
+      ');out geom;';
   }
 
   function wayToLineString(element) {

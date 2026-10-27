@@ -23,7 +23,7 @@
   let moveTimer = 0;
   let imagePromise = null;
   let popup = null;
-  let areaCache = { key: '', features: [], touched: 0 };
+  let areaCache = { key: '', features: [], touched: 0, pending: null };
   const departuresCache = new Map();
   const controllers = new Set();
   let regions = [];
@@ -123,21 +123,33 @@
   async function loadStops(bounds) {
     const key = cacheKey(bounds);
     if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS) return areaCache.features;
+    if (areaCache.key === key && areaCache.pending) return areaCache.pending;
     // El Worker recibe min/max como latitud,longitud y consulta MOTIS de forma segura.
     const paradas = datosParadas();
-    const coleccion = [];
-    for (const segmento of segmentosConsulta(bounds)) {
-      if (segmento.west >= segmento.east) continue;
-      const min = bounds.south.toFixed(6) + ',' + segmento.west.toFixed(6);
-      const max = bounds.north.toFixed(6) + ',' + segmento.east.toFixed(6);
-      const raw = await fetchApi('/transporte-paradas?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max));
-      const data = paradas.listaDeParadas(raw);
-      if (!data) throw new Error('Transitous devolvió una respuesta de paradas inválida');
-      coleccion.push(...data);
+    const peticion = (async () => {
+      const coleccion = [];
+      for (const segmento of segmentosConsulta(bounds)) {
+        if (segmento.west >= segmento.east) continue;
+        const min = bounds.south.toFixed(6) + ',' + segmento.west.toFixed(6);
+        const max = bounds.north.toFixed(6) + ',' + segmento.east.toFixed(6);
+        const raw = await fetchApi('/transporte-paradas?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max));
+        const data = paradas.listaDeParadas(raw);
+        if (!data) throw new Error('Transitous devolvió una respuesta de paradas inválida');
+        coleccion.push(...data);
+      }
+      return paradas.featuresDeParadas(coleccion, t('transportStop', 'Parada'));
+    })();
+    areaCache = { key, features: [], touched: 0, pending: peticion };
+    try {
+      const features = await peticion;
+      if (areaCache.key === key && areaCache.pending === peticion) {
+        areaCache = { key, features, touched: Date.now(), pending: null };
+      }
+      return features;
+    } catch (error) {
+      if (areaCache.key === key && areaCache.pending === peticion) areaCache = { key: '', features: [], touched: 0, pending: null };
+      throw error;
     }
-    const features = paradas.featuresDeParadas(coleccion, t('transportStop', 'Parada'));
-    areaCache = { key, features, touched: Date.now() };
-    return features;
   }
 
   function loadIcon() {
@@ -250,7 +262,7 @@
     if (routeToggle && !routeToggle.checked) routeToggle.click();
     if (destinationInput) destinationInput.value = destination.nombre;
     if (typeof window.manolitAireCalcularRutaParada === 'function') {
-      window.manolitAireCalcularRutaParada(destination).catch(error => console.debug('[transporte-publico] No se pudo calcular la ruta:', error));
+      Promise.resolve(window.manolitAireCalcularRutaParada(destination)).catch(error => console.debug('[transporte-publico] No se pudo calcular la ruta:', error));
     } else {
       map.easeTo({ center: coords, zoom: Math.max(15, map.getZoom()), duration: 700 });
     }
@@ -362,6 +374,7 @@
 
   function deactivate() {
     enabled = false; generation++; refreshQueued = false; requestRunning = false; searchToken++;
+    areaCache = { key: '', features: [], touched: 0, pending: null };
     controllers.forEach(controller => controller.abort()); controllers.clear();
     clearTimeout(moveTimer);
     map.off('moveend', scheduleRefresh); map.off('click', onMapClick);

@@ -230,18 +230,9 @@
     if (!feature) return;
     const props = feature.properties;
     const coords = feature.geometry.coordinates;
-    const box = document.createElement('div');
-    box.className = 'tp-stop-card';
-    const handle = document.createElement('div'); handle.className = 'tp-sheet-handle';
-    const header = document.createElement('div'); header.className = 'tp-stop-header';
-    const headingWrap = document.createElement('div');
-    const eyebrow = document.createElement('span'); eyebrow.className = 'tp-eyebrow'; eyebrow.textContent = 'PARADA';
-    const title = document.createElement('strong'); title.className = 'tp-stop-title'; title.textContent = props.name || 'Parada';
-    headingWrap.append(eyebrow, title);
-    const directions = document.createElement('button'); directions.type = 'button'; directions.className = 'tp-directions';
-    directions.setAttribute('aria-label', 'Cómo llegar');
-    directions.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 21 12l-9 9.2-2-2 5.7-5.8H4v-2.8h11.7L10 4.8z" fill="currentColor"/></svg><span>Cómo llegar</span>';
-    directions.addEventListener('click', () => {
+    const tarjeta = window.ManolitoTransporteTarjeta;
+    if (!tarjeta) return;
+    const tarjetaParada = tarjeta.crearTarjetaParada(props, () => {
       const destination = { lon: Number(coords[0]), lat: Number(coords[1]), nombre: props.name || 'Parada' };
       const routeToggle = document.getElementById('rsToggleRuta');
       const destinationInput = document.getElementById('rsDestino');
@@ -253,28 +244,13 @@
         map.easeTo({ center: coords, zoom: Math.max(15, map.getZoom()), duration: 700 });
       }
     });
-    header.append(headingWrap, directions);
-    const body = document.createElement('div'); body.className = 'tp-departures'; body.textContent = 'Cargando salidas…';
-    box.append(handle, header, body);
+    const box = tarjetaParada.box;
+    const body = tarjetaParada.body;
     if (popup) popup.remove();
     popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '320px', offset: 12, className: 'tp-map-popup' }).setLngLat(coords).setDOMContent(box).addTo(map);
     departures(String(props.stopId)).then(items => {
-      body.textContent = '';
-      if (!items.length) { body.textContent = 'Sin salidas próximas.'; return; }
-      const list = document.createElement('ul'); list.className = 'tp-departure-list';
-      items.forEach(item => {
-        const date = new Date(item.departure);
-        const departed = Number.isFinite(date.getTime()) && date.getTime() < Date.now();
-        const li = document.createElement('li'); li.className = 'tp-departure' + (departed ? ' is-past' : '');
-        const name = document.createElement('span'); name.className = 'tp-line-name'; name.textContent = item.name + (item.headsign ? ' · ' + item.headsign : '');
-        const lineNumber = /\b24\b/.test(item.name) ? '24' : '';
-        if (lineNumber) { const badge = document.createElement('span'); badge.className = 'tp-line-badge'; badge.textContent = lineNumber; li.appendChild(badge); name.textContent = item.headsign || 'Línea'; }
-        li.appendChild(name);
-        const time = document.createElement('span'); time.className = 'tp-time' + (item.realTime ? ' is-realtime' : '');
-        time.textContent = item.departure ? (item.realTime ? '● ' : '') + (Number.isFinite(date.getTime()) ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : item.departure) : '';
-        li.append(name, time); list.appendChild(li);
-      });
-      body.appendChild(list);
+      const tarjeta = window.ManolitoTransporteTarjeta;
+      if (tarjeta) tarjeta.pintarSalidas(body, items);
     }).catch(error => { if (error.name !== 'AbortError') body.textContent = 'No se pudieron consultar las salidas.'; });
   }
 

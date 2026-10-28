@@ -211,7 +211,11 @@
 // stopId compatibles con sus horarios; Overpass queda de respaldo. Evita la
 // antigua caché de paradas OSM y actualiza los scripts del navegador.
 // Cambian worker.js e index.html.
-const VERSION = '2026-10-28-a-transporte-transitous';
+// 2026-10-28-b: se unifica transporte-publico.js en un solo archivo (antes
+// estaba dividido en transporte-publico.js + transporte-tarjeta.js +
+// transporte-paradas.js). Se restaura la versión funcional completa.
+// Cambian js/transporte-publico.js e index.html.
+const VERSION = '2026-10-28-b-transporte-unificado';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

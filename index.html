@@ -2694,11 +2694,7 @@
           // Capa de transporte público (Transitous). Aditiva; su fallo no
           // detiene árboles, irradiación ni aparcamientos. Cambiar versión para
           // invalidar cualquier copia antigua guardada por navegador/CDN.
-          Promise.all([
-            cargarScript('js/transporte-paradas.js?v=transporte-20261028-a'),
-            cargarScript('js/transporte-tarjeta.js?v=transporte-20261028-a'),
-          ])
-            .then(() => cargarScript('js/transporte-publico.js?v=transporte-20261028-a'))
+          cargarScript('js/transporte-publico.js?v=transporte-20261028-b')
             .catch((err) => console.error('No se ha podido cargar la capa de transporte público:', err));
           // Asegurar rutas bici en una llamada propia: un fallo en esta capa no
           // interrumpe el arranque de árboles, aire ni el planificador de coche.

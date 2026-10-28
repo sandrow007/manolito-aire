@@ -149,8 +149,30 @@
     return imagePromise;
   }
 
+    // Espera a que el estilo esté listo. Si el toggle se activa nada más
+  // arrancar (o justo tras un style.load), isStyleLoaded() aún es false y
+  // antes se devolvía false en silencio: la capa no se creaba nunca y no
+  // aparecía ningún punto. Ahora esperamos al siguiente 'idle' (con tope).
+  function esperarEstilo() {
+    if (!map) return Promise.resolve(false);
+    if (map.isStyleLoaded()) return Promise.resolve(true);
+    return new Promise(resolve => {
+      let hecho = false;
+      let temporizador = 0;
+      const fin = () => {
+        if (hecho) return;
+        hecho = true;
+        clearTimeout(temporizador);
+        map.off('idle', fin);
+        resolve(!!map && map.isStyleLoaded());
+      };
+      temporizador = setTimeout(fin, 4000);
+      map.once('idle', fin);
+    });
+  }
+
   async function ensureLayers() {
-    if (!map || !map.isStyleLoaded()) return false;
+    if (!await esperarEstilo()) return false;
     if (map.getSource(SOURCE) && map.getLayer(SYMBOL) && map.getLayer(HALO)) return true;
     const targetMap = map;
     const icon = await loadIcon();
@@ -182,13 +204,21 @@
           }
         } catch (error) { console.debug('[transporte-publico] No se pudieron cargar las regiones:', error); }
       }
-      evaluateRegion();
-      const features = await loadStops(boundsOfMap());
+            evaluateRegion();
+      // Aseguramos la capa ANTES de pedir datos: si el estilo aún cargaba,
+      // ensureLayers ahora espera en vez de fallar y descargamos los puntos
+      // directamente a la fuente ya creada.
+      const capaLista = await ensureLayers();
       if (!enabled || currentGeneration !== generation) return;
-      await ensureLayers();
-      const source = map.getSource(SOURCE);
-      if (source) source.setData({ type: 'FeatureCollection', features });
-      showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas (OSM)' : t('transportNoData', 'Sin datos de transporte público en esta zona.'));
+      if (!capaLista) {
+        showStatus(t('transportError', 'No se pudo consultar el transporte público.'));
+      } else {
+        const features = await loadStops(boundsOfMap());
+        if (!enabled || currentGeneration !== generation) return;
+        const source = map.getSource(SOURCE);
+        if (source) source.setData({ type: 'FeatureCollection', features });
+        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas (OSM)' : t('transportNoData', 'Sin datos de transporte público en esta zona.'));
+      }
     } catch (error) {
       if (enabled && currentGeneration === generation && error.name !== 'AbortError') {
         console.debug('[transporte-publico] No se pudieron cargar paradas:', error);
@@ -392,3 +422,4 @@
     document.head.appendChild(style);
   }
 })();
+

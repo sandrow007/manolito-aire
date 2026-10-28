@@ -25,8 +25,8 @@ CONOCIMIENTO DE LA WEB — la web actual es la fuente de verdad, no una ficha ex
 8. SELLOS, SOSTENIBILIDAD Y AFIRMACIONES: la portada muestra un distintivo Website Carbon Rating con calificación A+ y la medición indicada allí (0,015 g CO₂ por visita, 102,7 KB y fecha 16/09/2026). Descríbelo como lo que publica el distintivo de la web, no como certificación oficial independiente ni como dato vigente verificado por ti. La página también publica estimaciones sobre consumo de agua/tráfico publicitario; preséntalas como cálculos y supuestos explicados en esa página, no como mediciones universales independientes. La web se presenta como gratuita, sin registro ni publicidad.
 
 9. TRANSPORTE PÚBLICO Y BICLETA (nuevo):
-ES: la web tiene una capa de transporte público que muestra paradas cercanas y, al tocar una parada, sus próximas salidas. Al elegir una parada hay un botón «Dirección» que calcula a pie, con ruta saludable por sombra, cómo llegar hasta ella. El modo coche ofrece varias rutas alternativas. También hay rutas en bicicleta y una capa de carriles bici. Todo esto funciona «en las zonas con datos disponibles»; no digas que es global ni que cubre todas las ciudades.
-EN: the site has a public transport layer showing nearby stops and, when you tap a stop, its next departures. When you choose a stop there is a «Directions» button that calculates a walking route, with a healthy shaded route, to reach it. Car mode offers several alternative routes. There are also bicycle routes and a bike-lane layer. All of this works «in the areas with available data»; do not claim it is global or covers every city.
+ES: la web tiene una capa de transporte público que muestra paradas cercanas (OpenStreetMap) y, cuando hay datos disponibles, sus próximas salidas (Transitous). Al elegir una parada hay un botón «Dirección» que calcula a pie, con ruta saludable por sombra, cómo llegar hasta ella. El modo coche ofrece varias rutas alternativas. También hay rutas en bicicleta y una capa de carriles bici. Todo esto funciona «en las zonas con datos disponibles»; no digas que es global ni que cubre todas las ciudades.
+EN: the site has a public transport layer showing nearby stops (OpenStreetMap) and, where available, their next departures (Transitous). When you choose a stop there is a «Directions» button that calculates a walking route, with a healthy shaded route, to reach it. Car mode offers several alternative routes. There are also bicycle routes and a bike-lane layer. All of this works «in the areas with available data»; do not claim it is global or covers every city.
 
 PRIVACIDAD Y VIGENCIA: no inventes qué datos conserva un servicio externo ni asegures que ninguna ubicación llega a ningún servidor; explica que la ubicación del dispositivo requiere permiso y que las funciones de mapa pueden consultar servicios de mapas/rutas. Distingue funciones del sitio de afirmaciones promocionales y de datos en tiempo real. Si una API, gráfica o cobertura falla, dilo con claridad; no simules una consulta ni inventes resultados actuales.
 
@@ -568,31 +568,124 @@ export default {
       }
     }
 
-    // --- Proxy anti-CORS para TRANSPORTE PÚBLICO (Transitous / MOTIS) ------
-    // 25-oct-2026: faltaban por completo. transporte-publico.js llamaba a
-    // estas dos rutas desde el primer día pero nunca existieron en el
-    // Worker: cualquier petición caía en el 404 de los assets estáticos
-    // (env.ASSETS.fetch) y la capa nunca pudo mostrar nada. Transitous es
-    // la instancia pública del motor MOTIS: no requiere clave ni registro.
+    // --- Proxy anti-CORS + caché KV para PARADAS DE TRANSPORTE PÚBLICO ----
+    // 28-oct-2026: reescrito por completo. La versión anterior proxiaba a
+    // Transitous (api.transitous.org/api/v1/map/stops), que es una API real
+    // pero cuya cobertura depende de qué feeds GTFS haya aportado la
+    // comunidad: si Sevilla (o la ciudad que sea) no tiene feed registrado,
+    // el endpoint responde con una lista vacía y la capa se queda sin nada
+    // que pintar, aunque todo el código esté bien. Para no depender de esa
+    // cobertura incierta, las PARADAS ahora salen de OpenStreetMap vía
+    // Overpass: el mismo sistema que YA funciona de verdad para aparcamiento,
+    // árboles y carriles bici en esta misma web. Misma defensa en tres capas
+    // (caché KV + carrera de espejos + copia vieja de emergencia), con su
+    // propio espacio de claves ("parada:"). El front (js/transporte-paradas.js)
+    // no cambia: ya sabe leer una lista plana de objetos {name, lat, lon}.
     if (url.pathname === '/transporte-paradas') {
       try {
-        const destino = 'https://api.transitous.org/api/v1/map/stops' + url.search;
-        const controller = new AbortController();
-        const temporizador = setTimeout(() => controller.abort(), 12000);
-        let r;
-        try {
-          r = await fetch(destino, {
-            headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)', Accept: 'application/json' },
-            signal: controller.signal,
+        const minParam = (url.searchParams.get('min') || '').split(',').map(Number);
+        const maxParam = (url.searchParams.get('max') || '').split(',').map(Number);
+        const south = minParam[0], west = minParam[1], north = maxParam[0], east = maxParam[1];
+        if (![south, west, north, east].every(Number.isFinite) || south >= north || west >= east) {
+          return new Response('[]', {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', ...CORS_HEADERS }
           });
-        } finally {
-          clearTimeout(temporizador);
         }
-        if (!r.ok) throw new Error(`Transitous HTTP ${r.status}`);
-        const texto = await r.text();
-        return new Response(texto, {
+
+        const claveKv = 'parada:' + [south, west, north, east].map((n) => n.toFixed(3)).join(',');
+        const kv = env.AIR_QUALITY_CACHE || null;
+        const FRESCA_MS = 12 * 3600 * 1000;
+
+        let copiaKv = null;
+        if (kv) {
+          try {
+            const { value, metadata } = await kv.getWithMetadata(claveKv);
+            copiaKv = value || null;
+            if (value && metadata && metadata.ts && Date.now() - metadata.ts < FRESCA_MS) {
+              return new Response(value, {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
+              });
+            }
+          } catch (e) { }
+        }
+
+        const bboxTxt = [south, west, north, east].map((v) => v.toFixed(6)).join(',');
+        const consulta = '[out:json][timeout:20];(' +
+          'node["highway"="bus_stop"](' + bboxTxt + ');' +
+          'node["railway"="tram_stop"](' + bboxTxt + ');' +
+          'nwr["public_transport"="station"](' + bboxTxt + ');' +
+          'nwr["amenity"="bus_station"](' + bboxTxt + ');' +
+          'node["railway"="station"](' + bboxTxt + ');' +
+          ');out center qt;';
+
+        const espejos = [
+          'https://lz4.overpass-api.de/api/interpreter',
+          'https://z.overpass-api.de/api/interpreter',
+          'https://overpass-api.de/api/interpreter',
+          'https://overpass.kumi.systems/api/interpreter',
+          'https://overpass.private.coffee/api/interpreter',
+          'https://overpass.nchc.org.tw/api/interpreter',
+        ];
+        const intentarEspejo = async (espejo) => {
+          const controller = new AbortController();
+          const temporizador = setTimeout(() => controller.abort(), 15000);
+          try {
+            const r = await fetch(espejo, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)',
+              },
+              body: new URLSearchParams({ data: consulta }).toString(),
+              signal: controller.signal,
+            });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const datos = await r.json();
+            if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
+            return datos;
+          } finally {
+            clearTimeout(temporizador);
+          }
+        };
+
+        let datos = null;
+        try {
+          datos = await Promise.any(espejos.map(intentarEspejo));
+        } catch (e) { }
+
+        if (datos) {
+          const paradas = datos.elements.map((el) => {
+            const punto = el.type === 'node' ? el : el.center;
+            if (!punto || !Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return null;
+            const tags = el.tags || {};
+            return {
+              name: tags.name || tags['name:es'] || 'Parada',
+              lat: punto.lat,
+              lon: punto.lon,
+              stopId: 'osm:' + el.type + ':' + el.id,
+            };
+          }).filter(Boolean);
+          const salida = JSON.stringify(paradas);
+          if (kv && ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(kv.put(claveKv, salida, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
+          }
+          return new Response(salida, {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
+          });
+        }
+
+        if (copiaKv) {
+          return new Response(copiaKv, {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', ...CORS_HEADERS }
+          });
+        }
+
+        return new Response('[]', {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
         });
       } catch (err) {
         return new Response('[]', {
@@ -602,9 +695,18 @@ export default {
       }
     }
 
+    // GET /transporte-salidas?stopId=...&n=8 -> próximas salidas (Transitous).
+    // 28-oct-2026: corregido /api/v1/stoptimes -> /api/v5/stoptimes, que es
+    // la ruta real de la API vigente (MOTIS 2, versionada); la v1 nunca
+    // respondía bien. Como ahora las paradas vienen de OSM y no de
+    // Transitous, el stopId "osm:node:123..." no coincidirá con el de
+    // Transitous para la inmensa mayoría de paradas: esta llamada seguirá
+    // fallando con elegancia (ver abajo) hasta que haya una forma de cruzar
+    // ambos identificadores. La parada en sí YA aparece en el mapa aunque
+    // esto no encuentre horarios.
     if (url.pathname === '/transporte-salidas') {
       try {
-        const destino = 'https://api.transitous.org/api/v1/stoptimes' + url.search;
+        const destino = 'https://api.transitous.org/api/v5/stoptimes' + url.search;
         const controller = new AbortController();
         const temporizador = setTimeout(() => controller.abort(), 12000);
         let r;

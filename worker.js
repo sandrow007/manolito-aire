@@ -25,8 +25,8 @@ CONOCIMIENTO DE LA WEB — la web actual es la fuente de verdad, no una ficha ex
 8. SELLOS, SOSTENIBILIDAD Y AFIRMACIONES: la portada muestra un distintivo Website Carbon Rating con calificación A+ y la medición indicada allí (0,015 g CO₂ por visita, 102,7 KB y fecha 16/09/2026). Descríbelo como lo que publica el distintivo de la web, no como certificación oficial independiente ni como dato vigente verificado por ti. La página también publica estimaciones sobre consumo de agua/tráfico publicitario; preséntalas como cálculos y supuestos explicados en esa página, no como mediciones universales independientes. La web se presenta como gratuita, sin registro ni publicidad.
 
 9. TRANSPORTE PÚBLICO Y BICLETA (nuevo):
-ES: la web tiene una capa de transporte público que muestra paradas cercanas (OpenStreetMap) y, cuando hay datos disponibles, sus próximas salidas (Transitous). Al elegir una parada hay un botón «Dirección» que calcula a pie, con ruta saludable por sombra, cómo llegar hasta ella. El modo coche ofrece varias rutas alternativas. También hay rutas en bicicleta y una capa de carriles bici. Todo esto funciona «en las zonas con datos disponibles»; no digas que es global ni que cubre todas las ciudades.
-EN: the site has a public transport layer showing nearby stops (OpenStreetMap) and, where available, their next departures (Transitous). When you choose a stop there is a «Directions» button that calculates a walking route, with a healthy shaded route, to reach it. Car mode offers several alternative routes. There are also bicycle routes and a bike-lane layer. All of this works «in the areas with available data»; do not claim it is global or covers every city.
+ES: la web tiene una capa de transporte público que muestra paradas cercanas cartografiadas en OpenStreetMap, servidas mediante Overpass. No ofrece horarios ni salidas GTFS. Al elegir una parada hay un botón «Dirección» que calcula a pie, con ruta saludable por sombra, cómo llegar hasta ella. Todo funciona según los datos disponibles en la zona; no afirmes que cubre todas las ciudades.
+EN: the site has a public transport layer showing nearby stops mapped in OpenStreetMap and served through Overpass. It does not provide GTFS timetables or departures. When you choose a stop there is a «Directions» button that calculates a walking route, with a healthy shaded route, to reach it. Coverage depends on available data; do not claim every city is covered.
 
 PRIVACIDAD Y VIGENCIA: no inventes qué datos conserva un servicio externo ni asegures que ninguna ubicación llega a ningún servidor; explica que la ubicación del dispositivo requiere permiso y que las funciones de mapa pueden consultar servicios de mapas/rutas. Distingue funciones del sitio de afirmaciones promocionales y de datos en tiempo real. Si una API, gráfica o cobertura falla, dilo con claridad; no simules una consulta ni inventes resultados actuales.
 
@@ -587,7 +587,7 @@ export default {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
           });
         }
-        const claveArea = [south, west, north, east].map((n) => n.toFixed(3)).join(',');
+
         const kv = env.AIR_QUALITY_CACHE || null;
 
 
@@ -656,7 +656,7 @@ export default {
               name: tags.name || tags['name:es'] || 'Parada',
               lat: punto.lat,
               lon: punto.lon,
-              stopId: el.type + ':' + el.id,
+              id: el.type + ':' + el.id,
             };
           }).filter(Boolean);
           if (kv && ctx && typeof ctx.waitUntil === 'function') {

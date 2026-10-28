@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   'use strict';
   if (window.__manolitoTransportePublico) return;
   window.__manolitoTransportePublico = true;
@@ -11,7 +11,7 @@
   const IMAGE = 'transporte-publico-icon';
   const MIN_ZOOM = 11;
   const CACHE_MS = 15 * 60 * 1000;
-  const DEPARTURES_MS = 60 * 1000;
+  const ATTRIBUTION = '© OpenStreetMap contributors';
   const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#35C4D4" stroke="#0E3B47" stroke-width="1.6"/><rect x="6" y="7" width="14" height="9" rx="2.5" fill="none" stroke="#0E3B47" stroke-width="1.5"/><path d="M8 10h7M8 12.5h9" stroke="#0E3B47" stroke-width="1.3" stroke-linecap="round"/><circle cx="9.5" cy="17.5" r="1.3" fill="#fff"/><circle cx="16.5" cy="17.5" r="1.3" fill="#fff"/></svg>';
   const ATTRIBUTION = '© OpenStreetMap contributors';
 
@@ -24,7 +24,6 @@
   let imagePromise = null;
   let popup = null;
   let areaCache = { key: '', features: [], touched: 0 };
-  const departuresCache = new Map();
   const controllers = new Set();
   let regions = [];
   let currentRegion = 'global';
@@ -78,21 +77,17 @@
 
   function toFeature(place) {
     if (!place) return null;
-    // MOTIS devuelve 'lat'/'lon'; algunas versiones usan 'latitude'/'longitude'.
-    // También puede responder coordenadas en notación científica (p. ej. 3.74E1).
-    // Number() las admite, pero varias versiones devuelven strings con coma
-    // decimal; normalízalas antes para no descartar todas las paradas.
+    // Overpass devuelve las coordenadas OSM como latitud y longitud numéricas.
     const latRaw = place.lat != null ? place.lat : place.latitude;
     const lonRaw = place.lon != null ? place.lon : place.longitude;
     const lat = Number(typeof latRaw === 'string' ? latRaw.replace(',', '.') : latRaw);
     const lon = Number(typeof lonRaw === 'string' ? lonRaw.replace(',', '.') : lonRaw);
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
-    // MOTIS usa 'stopId'; algunas versiones antiguas usan 'id'.
     const stopId = place.stopId != null ? place.stopId : (place.id != null ? place.id : null);
     return {
       type: 'Feature',
       id: stopId != null ? String(stopId) : 'stop:' + lat + ':' + lon,
-      properties: { stopId: stopId, name: place.name || t('transportStop', 'Parada') },
+      properties: { stopId: stopId, name: place.name || t('transportStop', 'Parada'), source: 'osm' },
       geometry: { type: 'Point', coordinates: [lon, lat] }
     };
   }
@@ -119,7 +114,7 @@
   async function loadStops(bounds) {
     const key = cacheKey(bounds);
     if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS) return areaCache.features;
-    // El Worker recibe min/max como latitud,longitud y consulta MOTIS de forma segura.
+    // El Worker recibe min/max como latitud,longitud y consulta OpenStreetMap vía Overpass.
     // Un bbox que cruza el antimeridiano se divide para no pedir longitudes invertidas.
     const west = ((bounds.west + 180) % 360 + 360) % 360 - 180;
     const east = ((bounds.east + 180) % 360 + 360) % 360 - 180;
@@ -210,13 +205,32 @@
     }
   }
 
-  async function departures(stopId) {
-    const cached = departuresCache.get(stopId);
-    if (cached && Date.now() - cached.touched < DEPARTURES_MS) return cached.items;
-    const items = [];
-    departuresCache.set(stopId, { items, touched: Date.now() });
-    while (departuresCache.size > 80) departuresCache.delete(departuresCache.keys().next().value);
-    return items;
+
+
+  // ---- Tarjeta visual de la parada (antes vivía en js/transporte-tarjeta.js;
+  // ese archivo se retiró al "unificar" y las funciones se quedaron huérfanas
+  // (window.ManolitoTransporteTarjeta nunca se definía) así que el click en
+  // una parada no hacía nada. Ahora van aquí dentro, sin depender de nadie.
+
+
+
+  function crearTarjetaParada(props, alPulsarComoLlegar) {
+    const box = document.createElement('div');
+    box.className = 'tp-stop-card';
+    const handle = document.createElement('div'); handle.className = 'tp-sheet-handle';
+    const header = document.createElement('div'); header.className = 'tp-stop-header';
+    const headingWrap = document.createElement('div');
+    const eyebrow = document.createElement('span'); eyebrow.className = 'tp-eyebrow'; eyebrow.textContent = t('transportStopLabel', 'PARADA');
+    const title = document.createElement('strong'); title.className = 'tp-stop-title'; title.textContent = props.name || t('transportStop', 'Parada');
+    headingWrap.append(eyebrow, title);
+    const directions = document.createElement('button'); directions.type = 'button'; directions.className = 'tp-directions';
+    directions.setAttribute('aria-label', t('transportDirections', 'Cómo llegar'));
+    directions.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 21 12l-9 9.2-2-2 5.7-5.8H4v-2.8h11.7L10 4.8z" fill="currentColor"/></svg><span>' + t('transportDirections', 'Cómo llegar') + '</span>';
+    directions.addEventListener('click', alPulsarComoLlegar);
+    header.append(headingWrap, directions);
+    const body = document.createElement('div'); body.className = 'tp-departures'; body.textContent = t('transportLoading', 'Cargando salidas…');
+    box.append(handle, header, body);
+    return { box, body };
   }
 
   function onMapClick(event) {
@@ -228,12 +242,9 @@
     if (!feature) return;
     const props = feature.properties;
     const coords = feature.geometry.coordinates;
-    const tarjeta = window.ManolitoTransporteTarjeta;
-    if (!tarjeta) return;
     const esOsmId = /^(node|way|relation):\d+$/.test(String(props.stopId || ''));
-    const propsTarjeta = esOsmId ? { ...props, sinHorarios: true } : props;
-    const tarjetaParada = tarjeta.crearTarjetaParada(propsTarjeta, () => {
-      const destination = { lon: Number(coords[0]), lat: Number(coords[1]), nombre: props.name || 'Parada' };
+    const tarjetaParada = crearTarjetaParada(props, () => {
+      const destination = { lon: Number(coords[0]), lat: Number(coords[1]), nombre: props.name || t('transportStop', 'Parada') };
       const routeToggle = document.getElementById('rsToggleRuta');
       const destinationInput = document.getElementById('rsDestino');
       if (routeToggle && !routeToggle.checked) routeToggle.click();
@@ -248,14 +259,7 @@
     const body = tarjetaParada.body;
     if (popup) popup.remove();
     popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '320px', offset: 12, className: 'tp-map-popup' }).setLngLat(coords).setDOMContent(box).addTo(map);
-    if (esOsmId) {
-      body.textContent = t('transportNoSchedules', 'Parada de OpenStreetMap. No hay horarios GTFS disponibles.');
-    } else {
-      departures(String(props.stopId)).then(items => {
-        const tarjeta = window.ManolitoTransporteTarjeta;
-        if (tarjeta) tarjeta.pintarSalidas(body, items);
-      }).catch(error => { if (error.name !== 'AbortError') body.textContent = 'No se pudieron consultar las salidas.'; });
-    }
+    body.textContent = t('transportNoSchedules', 'Parada de OpenStreetMap. No hay horarios GTFS disponibles.');
   }
 
   async function searchStop(query, origin) {
@@ -296,7 +300,7 @@
       window.setTimeout(() => {
         if (token === searchToken) onMapClick({ point: map.project(coords) });
       }, 800);
-      return { name: selected.properties.name || 'Parada', lon: coords[0], lat: coords[1] };
+      return { name: selected.properties.name || t('transportStop', 'Parada'), lon: coords[0], lat: coords[1] };
     } catch (error) {
       console.debug('[transporte-publico] Búsqueda de parada fallida:', error);
       return null;
@@ -347,44 +351,45 @@
     if (m && tgl) { start(m, tgl); return; }
     if (tries < 240) setTimeout(() => waitForMap(tries + 1), 500);
   })(0);
-})();
 
-
-(function installTransitStopStyles() {
-  if (document.getElementById('tp-stop-card-styles')) return;
-  const style = document.createElement('style');
-  style.id = 'tp-stop-card-styles';
-  style.textContent = `
-    .tp-map-popup .maplibregl-popup-content { padding:0; overflow:hidden; border-radius:24px; background:transparent; box-shadow:0 18px 54px rgba(15,35,45,.2); }
-    .tp-map-popup .maplibregl-popup-tip { display:none; }
-    .tp-map-popup .maplibregl-popup-close-button { z-index:3; top:12px; right:12px; width:30px; height:30px; border-radius:50%; background:rgba(17,39,48,.07); color:#18313a; font-size:20px; }
-    .tp-stop-card { box-sizing:border-box; width:min(320px, calc(100vw - 28px)); max-height:min(70vh, 520px); overflow:auto; padding:20px; border:1px solid rgba(255,255,255,.76); border-radius:24px; background:rgba(250,253,253,.82); color:#18313a; box-shadow:inset 0 1px rgba(255,255,255,.85); backdrop-filter:blur(28px) saturate(1.5); -webkit-backdrop-filter:blur(28px) saturate(1.5); font:14px/1.45 Inter,Montserrat,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
-    .tp-sheet-handle { display:none; }
-    .tp-stop-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-right:28px; }
-    .tp-eyebrow { display:block; margin-bottom:4px; color:#71858b; font-size:10px; font-weight:750; letter-spacing:.15em; }
-    .tp-stop-title { display:block; color:#18313a; font-size:19px; font-weight:700; letter-spacing:-.035em; line-height:1.2; }
-    .tp-directions { display:inline-flex; flex:none; align-items:center; gap:7px; min-height:38px; padding:0 13px; border:0; border-radius:13px; background:#183f49; color:#fff; font:650 12px/1 Inter,Montserrat,ui-sans-serif,system-ui,sans-serif; cursor:pointer; box-shadow:0 5px 13px rgba(24,63,73,.2); }
-    .tp-directions svg { width:14px; height:14px; transform:rotate(-45deg); }
-    .tp-directions:hover { background:#245c67; }
-    .tp-departures { margin-top:17px; }
-    .tp-departure-list { display:grid; gap:2px; margin:0; padding:0; list-style:none; }
-    .tp-departure { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:36px; border-top:1px solid rgba(23,56,65,.08); }
-    .tp-line-name { overflow:hidden; color:#52666c; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
-    .tp-line-badge { flex:none; min-width:20px; padding:4px 7px; border-radius:999px; background:#e8f5f4; color:#18525b; font-size:11px; font-weight:800; text-align:center; }
-    .tp-time { flex:none; padding:5px 9px; border-radius:999px; background:rgba(53,196,212,.16); color:#174e59; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; }
-    .tp-time.is-realtime { background:rgba(43,152,115,.13); color:#207957; }
-    .tp-departure.is-past { opacity:.28; }
-    @media (max-width:600px) {
-      .tp-map-popup { position:fixed !important; left:0 !important; right:0 !important; top:auto !important; bottom:0 !important; width:100vw; max-width:none !important; transform:none !important; pointer-events:none; }
-      .tp-map-popup .maplibregl-popup-content { width:100%; max-width:none; border-radius:26px 26px 0 0; box-shadow:0 -12px 40px rgba(16,38,46,.16); pointer-events:auto; }
-      .tp-map-popup .maplibregl-popup-content > div { max-width:none; }
-      .tp-map-popup-anchor-bottom, .tp-map-popup-anchor-top, .tp-map-popup-anchor-left, .tp-map-popup-anchor-right, .tp-map-popup-anchor-top-left, .tp-map-popup-anchor-top-right, .tp-map-popup-anchor-bottom-left, .tp-map-popup-anchor-bottom-right { transform:none !important; }
-      .tp-map-popup .maplibregl-popup-close-button { top:14px; right:18px; }
-      .tp-stop-card { width:100%; max-width:none; max-height:min(48vh, 420px); padding:10px 20px calc(18px + env(safe-area-inset-bottom)); border-width:1px 0 0; border-radius:26px 26px 0 0; pointer-events:auto; }
-      .tp-sheet-handle { display:block; width:38px; height:4px; margin:0 auto 14px; border-radius:9px; background:rgba(30,59,67,.22); }
-      .tp-stop-header { padding-right:34px; }
-    }
-    @media (prefers-reduced-motion:no-preference) { .tp-map-popup .maplibregl-popup-content { animation:tp-sheet-in .28s cubic-bezier(.2,.8,.2,1) both; } @keyframes tp-sheet-in { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
-  `;
-  document.head.appendChild(style);
+  // ---- Estilo de la tarjeta: lenguaje visual oscuro/semitransparente, igual
+  // que el widget de sombra (rgba(8,12,20,.94) + blur), responsive en web y
+  // móvil. Reemplaza el fondo claro anterior.
+  if (!document.getElementById('tp-stop-card-styles')) {
+    const style = document.createElement('style');
+    style.id = 'tp-stop-card-styles';
+    style.textContent = `
+      .tp-map-popup .maplibregl-popup-content { padding:0; overflow:hidden; border-radius:24px; background:transparent; box-shadow:0 18px 54px rgba(0,0,0,.45); }
+      .tp-map-popup .maplibregl-popup-tip { display:none; }
+      .tp-map-popup .maplibregl-popup-close-button { z-index:3; top:12px; right:12px; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.08); color:#e8e4dc; font-size:20px; }
+      .tp-map-popup .maplibregl-popup-close-button:hover { background:rgba(255,255,255,.16); }
+      .tp-stop-card { box-sizing:border-box; width:min(320px, calc(100vw - 28px)); max-height:min(70vh, 520px); overflow:auto; padding:20px; border:1px solid rgba(255,255,255,.08); border-radius:24px; background:rgba(8,12,20,.94); color:#e8e4dc; box-shadow:inset 0 1px rgba(255,255,255,.04); backdrop-filter:blur(28px) saturate(1.4); -webkit-backdrop-filter:blur(28px) saturate(1.4); font:14px/1.45 Inter,Montserrat,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+      .tp-sheet-handle { display:none; }
+      .tp-stop-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-right:28px; }
+      .tp-eyebrow { display:block; margin-bottom:4px; color:rgba(232,228,220,.55); font-size:10px; font-weight:750; letter-spacing:.15em; }
+      .tp-stop-title { display:block; color:#e8e4dc; font-size:19px; font-weight:700; letter-spacing:-.035em; line-height:1.2; }
+      .tp-directions { display:inline-flex; flex:none; align-items:center; gap:7px; min-height:38px; padding:0 13px; border:0; border-radius:13px; background:#35C4D4; color:#0e1420; font:650 12px/1 Inter,Montserrat,ui-sans-serif,system-ui,sans-serif; cursor:pointer; box-shadow:0 5px 13px rgba(53,196,212,.25); }
+      .tp-directions svg { width:14px; height:14px; transform:rotate(-45deg); }
+      .tp-directions:hover { background:#4dd8e8; }
+      .tp-departures { margin-top:17px; }
+      .tp-departure-list { display:grid; gap:2px; margin:0; padding:0; list-style:none; }
+      .tp-departure { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:36px; border-top:1px solid rgba(255,255,255,.08); }
+      .tp-line-name { overflow:hidden; color:rgba(232,228,220,.68); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+      .tp-time { flex:none; padding:5px 9px; border-radius:999px; background:rgba(53,196,212,.16); color:#8fe0ea; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; }
+      .tp-time.is-realtime { background:rgba(43,152,115,.18); color:#7ad9ae; }
+      .tp-departure.is-past { opacity:.28; }
+      @media (max-width:600px) {
+        .tp-map-popup { position:fixed !important; left:0 !important; right:0 !important; top:auto !important; bottom:0 !important; width:100vw; max-width:none !important; transform:none !important; pointer-events:none; }
+        .tp-map-popup .maplibregl-popup-content { width:100%; max-width:none; border-radius:26px 26px 0 0; box-shadow:0 -12px 40px rgba(0,0,0,.35); pointer-events:auto; }
+        .tp-map-popup .maplibregl-popup-content > div { max-width:none; }
+        .tp-map-popup-anchor-bottom, .tp-map-popup-anchor-top, .tp-map-popup-anchor-left, .tp-map-popup-anchor-right, .tp-map-popup-anchor-top-left, .tp-map-popup-anchor-top-right, .tp-map-popup-anchor-bottom-left, .tp-map-popup-anchor-bottom-right { transform:none !important; }
+        .tp-map-popup .maplibregl-popup-close-button { top:14px; right:18px; }
+        .tp-stop-card { width:100%; max-width:none; max-height:min(48vh, 420px); padding:10px 20px calc(18px + env(safe-area-inset-bottom)); border-width:1px 0 0; border-radius:26px 26px 0 0; pointer-events:auto; }
+        .tp-sheet-handle { display:block; width:38px; height:4px; margin:0 auto 14px; border-radius:9px; background:rgba(255,255,255,.22); }
+        .tp-stop-header { padding-right:34px; }
+      }
+      @media (prefers-reduced-motion:no-preference) { .tp-map-popup .maplibregl-popup-content { animation:tp-sheet-in .28s cubic-bezier(.2,.8,.2,1) both; } @keyframes tp-sheet-in { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } } }
+    `;
+    document.head.appendChild(style);
+  }
 })();

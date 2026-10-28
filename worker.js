@@ -569,11 +569,10 @@ export default {
     }
 
     // --- Proxy anti-CORS + caché KV para PARADAS DE TRANSPORTE PÚBLICO ----
-    // Transitous proporciona tanto las paradas como sus stopId compatibles
-    // con /stoptimes. Mantener esos IDs es esencial: los IDs OSM no identifican
-    // las paradas GTFS y por eso no devuelven salidas. OpenStreetMap queda como
-    // respaldo si Transitous no responde. La caché Transitous usa un espacio
-    // separado para no servir respuestas antiguas de paradas OSM.
+    // OpenStreetMap vía Overpass es la fuente principal de paradas; se usan
+    // varios espejos y caché KV como en árboles y aparcamientos. Transitous se
+    // conserva como respaldo. La caché OSM tiene espacio propio para no servir
+    // respuestas antiguas de Transitous.
     if (url.pathname === '/transporte-paradas') {
       try {
         const minParam = (url.searchParams.get('min') || '').split(',').map(Number);
@@ -587,7 +586,7 @@ export default {
         }
 
         const claveArea = [south, west, north, east].map((n) => n.toFixed(3)).join(',');
-        const claveKv = 'parada:transitous:' + claveArea;
+        const claveKv = 'parada:osm:' + claveArea;
         const kv = env.AIR_QUALITY_CACHE || null;
         const FRESCA_MS = 12 * 3600 * 1000;
 
@@ -604,35 +603,7 @@ export default {
           } catch (e) { }
         }
 
-        // Fuente primaria: devuelve IDs Transitous válidos también para horarios.
-        try {
-          const destino = 'https://api.transitous.org/api/v1/map/stops' + url.search;
-          const controller = new AbortController();
-          const temporizador = setTimeout(() => controller.abort(), 12000);
-          let respuesta;
-          try {
-            respuesta = await fetch(destino, {
-              headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)', Accept: 'application/json' },
-              signal: controller.signal,
-            });
-          } finally {
-            clearTimeout(temporizador);
-          }
-          if (!respuesta.ok) throw new Error(`Transitous HTTP ${respuesta.status}`);
-          const salida = await respuesta.text();
-          const datosTransitous = JSON.parse(salida);
-          const listaTransitous = Array.isArray(datosTransitous) ? datosTransitous
-            : (datosTransitous && (datosTransitous.stops || datosTransitous.features));
-          if (!Array.isArray(listaTransitous)) throw new Error('respuesta Transitous inválida');
-          if (!listaTransitous.length) throw new Error('Transitous no tiene paradas en esta vista');
-          if (kv && ctx && typeof ctx.waitUntil === 'function') {
-            ctx.waitUntil(kv.put(claveKv, salida, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
-          }
-          return new Response(salida, {
-            status: 200,
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
-          });
-        } catch (error) { }
+
 
         const bboxTxt = [south, west, north, east].map((v) => v.toFixed(6)).join(',');
         const consulta = '[out:json][timeout:20];(' +
@@ -692,13 +663,41 @@ export default {
           }).filter(Boolean);
           const salida = JSON.stringify(paradas);
           if (kv && ctx && typeof ctx.waitUntil === 'function') {
-            ctx.waitUntil(kv.put('parada:osm:' + claveArea, salida, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
+            ctx.waitUntil(kv.put(claveKv, salida, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
           }
           return new Response(salida, {
             status: 200,
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
           });
         }
+
+        // Respaldo de horarios GTFS si Overpass no tiene respuesta ni caché.
+        try {
+          const destino = 'https://api.transitous.org/api/v1/map/stops' + url.search;
+          const controller = new AbortController();
+          const temporizador = setTimeout(() => controller.abort(), 10000);
+          let respuesta;
+          try {
+            respuesta = await fetch(destino, {
+              headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)', Accept: 'application/json' },
+              signal: controller.signal,
+            });
+          } finally {
+            clearTimeout(temporizador);
+          }
+          if (respuesta.ok) {
+            const salida = await respuesta.text();
+            const datosTransitous = JSON.parse(salida);
+            const listaTransitous = Array.isArray(datosTransitous) ? datosTransitous
+              : (datosTransitous && (datosTransitous.stops || datosTransitous.features));
+            if (Array.isArray(listaTransitous) && listaTransitous.length) {
+              return new Response(salida, {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', ...CORS_HEADERS }
+              });
+            }
+          }
+        } catch (error) { }
 
         if (copiaKv) {
           return new Response(copiaKv, {

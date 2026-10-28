@@ -8,13 +8,7 @@
      - CA/EU/GL/KA: se mantiene el castellano, la versión legal
        de referencia (lenguas cooficiales plenamente comprensibles
        en España; el georgiano no es lengua de la normativa).
-<<<<<<< HEAD
-     - AR: se deja el original para que el traductor automático común
-       lo traduzca por fragmentos, sin sustituir el texto legal oficial.
-=======
-     - AR (12-oct-2026): traducción jurídica árabe
-       completa (privacidad, aviso legal y cookies).
->>>>>>> cadc8ff0e84b07e20dbcc47be5725feed3262eec
+     - AR: traducción jurídica árabe completa (privacidad, aviso legal y cookies).
    ============================================================ */
 
 'use strict';

@@ -13,7 +13,6 @@
   const CACHE_MS = 15 * 60 * 1000;
   const ATTRIBUTION = '© OpenStreetMap contributors';
   const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#35C4D4" stroke="#0E3B47" stroke-width="1.6"/><rect x="6" y="7" width="14" height="9" rx="2.5" fill="none" stroke="#0E3B47" stroke-width="1.5"/><path d="M8 10h7M8 12.5h9" stroke="#0E3B47" stroke-width="1.3" stroke-linecap="round"/><circle cx="9.5" cy="17.5" r="1.3" fill="#fff"/><circle cx="16.5" cy="17.5" r="1.3" fill="#fff"/></svg>';
-  const ATTRIBUTION = '© OpenStreetMap contributors';
 
   let map = null;
   let toggle = null;

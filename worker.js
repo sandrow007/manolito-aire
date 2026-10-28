@@ -569,18 +569,11 @@ export default {
     }
 
     // --- Proxy anti-CORS + caché KV para PARADAS DE TRANSPORTE PÚBLICO ----
-    // 28-oct-2026: reescrito por completo. La versión anterior proxiaba a
-    // Transitous (api.transitous.org/api/v1/map/stops), que es una API real
-    // pero cuya cobertura depende de qué feeds GTFS haya aportado la
-    // comunidad: si Sevilla (o la ciudad que sea) no tiene feed registrado,
-    // el endpoint responde con una lista vacía y la capa se queda sin nada
-    // que pintar, aunque todo el código esté bien. Para no depender de esa
-    // cobertura incierta, las PARADAS ahora salen de OpenStreetMap vía
-    // Overpass: el mismo sistema que YA funciona de verdad para aparcamiento,
-    // árboles y carriles bici en esta misma web. Misma defensa en tres capas
-    // (caché KV + carrera de espejos + copia vieja de emergencia), con su
-    // propio espacio de claves ("parada:"). El front (js/transporte-paradas.js)
-    // no cambia: ya sabe leer una lista plana de objetos {name, lat, lon}.
+    // Transitous proporciona tanto las paradas como sus stopId compatibles
+    // con /stoptimes. Mantener esos IDs es esencial: los IDs OSM no identifican
+    // las paradas GTFS y por eso no devuelven salidas. OpenStreetMap queda como
+    // respaldo si Transitous no responde. La caché Transitous usa un espacio
+    // separado para no servir respuestas antiguas de paradas OSM.
     if (url.pathname === '/transporte-paradas') {
       try {
         const minParam = (url.searchParams.get('min') || '').split(',').map(Number);
@@ -593,7 +586,8 @@ export default {
           });
         }
 
-        const claveKv = 'parada:' + [south, west, north, east].map((n) => n.toFixed(3)).join(',');
+        const claveArea = [south, west, north, east].map((n) => n.toFixed(3)).join(',');
+        const claveKv = 'parada:transitous:' + claveArea;
         const kv = env.AIR_QUALITY_CACHE || null;
         const FRESCA_MS = 12 * 3600 * 1000;
 
@@ -609,6 +603,36 @@ export default {
             }
           } catch (e) { }
         }
+
+        // Fuente primaria: devuelve IDs Transitous válidos también para horarios.
+        try {
+          const destino = 'https://api.transitous.org/api/v1/map/stops' + url.search;
+          const controller = new AbortController();
+          const temporizador = setTimeout(() => controller.abort(), 12000);
+          let respuesta;
+          try {
+            respuesta = await fetch(destino, {
+              headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)', Accept: 'application/json' },
+              signal: controller.signal,
+            });
+          } finally {
+            clearTimeout(temporizador);
+          }
+          if (!respuesta.ok) throw new Error(`Transitous HTTP ${respuesta.status}`);
+          const salida = await respuesta.text();
+          const datosTransitous = JSON.parse(salida);
+          const listaTransitous = Array.isArray(datosTransitous) ? datosTransitous
+            : (datosTransitous && (datosTransitous.stops || datosTransitous.features));
+          if (!Array.isArray(listaTransitous)) throw new Error('respuesta Transitous inválida');
+          if (!listaTransitous.length) throw new Error('Transitous no tiene paradas en esta vista');
+          if (kv && ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(kv.put(claveKv, salida, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
+          }
+          return new Response(salida, {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
+          });
+        } catch (error) { }
 
         const bboxTxt = [south, west, north, east].map((v) => v.toFixed(6)).join(',');
         const consulta = '[out:json][timeout:20];(' +
@@ -668,7 +692,7 @@ export default {
           }).filter(Boolean);
           const salida = JSON.stringify(paradas);
           if (kv && ctx && typeof ctx.waitUntil === 'function') {
-            ctx.waitUntil(kv.put(claveKv, salida, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
+            ctx.waitUntil(kv.put('parada:osm:' + claveArea, salida, { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
           }
           return new Response(salida, {
             status: 200,
@@ -695,15 +719,8 @@ export default {
       }
     }
 
-    // GET /transporte-salidas?stopId=...&n=8 -> próximas salidas (Transitous).
-    // 28-oct-2026: corregido /api/v1/stoptimes -> /api/v5/stoptimes, que es
-    // la ruta real de la API vigente (MOTIS 2, versionada); la v1 nunca
-    // respondía bien. Como ahora las paradas vienen de OSM y no de
-    // Transitous, el stopId "osm:node:123..." no coincidirá con el de
-    // Transitous para la inmensa mayoría de paradas: esta llamada seguirá
-    // fallando con elegancia (ver abajo) hasta que haya una forma de cruzar
-    // ambos identificadores. La parada en sí YA aparece en el mapa aunque
-    // esto no encuentre horarios.
+    // GET /transporte-salidas?stopId=...&n=8 -> próximas salidas.
+    // Los stopId proceden de Transitous para que se resuelvan aquí.
     if (url.pathname === '/transporte-salidas') {
       try {
         const destino = 'https://api.transitous.org/api/v5/stoptimes' + url.search;

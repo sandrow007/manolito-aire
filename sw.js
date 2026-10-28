@@ -207,7 +207,11 @@
 // Transitous puede responder GeoJSON además de arrays. Se normalizan respuestas
 // GeoJSON/MOTIS y se invalida la caché de scripts del SW.
 // Cambian index.html y js/transporte-publico.js.
-const VERSION = '2026-10-27-d-arreglo-transporte-publico';
+// 2026-10-28-a: se restaura Transitous como fuente de paradas para conservar
+// stopId compatibles con sus horarios; Overpass queda de respaldo. Evita la
+// antigua caché de paradas OSM y actualiza los scripts del navegador.
+// Cambian worker.js e index.html.
+const VERSION = '2026-10-28-a-transporte-transitous';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

@@ -13,7 +13,7 @@
   const CACHE_MS = 15 * 60 * 1000;
   const DEPARTURES_MS = 60 * 1000;
   const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#35C4D4" stroke="#0E3B47" stroke-width="1.6"/><rect x="6" y="7" width="14" height="9" rx="2.5" fill="none" stroke="#0E3B47" stroke-width="1.5"/><path d="M8 10h7M8 12.5h9" stroke="#0E3B47" stroke-width="1.3" stroke-linecap="round"/><circle cx="9.5" cy="17.5" r="1.3" fill="#fff"/><circle cx="16.5" cy="17.5" r="1.3" fill="#fff"/></svg>';
-  const ATTRIBUTION = 'Transitous';
+  const ATTRIBUTION = '© OpenStreetMap contributors';
 
   let map = null;
   let toggle = null;
@@ -137,7 +137,7 @@
         : Array.isArray(raw && raw.stops) ? raw.stops
         : Array.isArray(raw && raw.features) ? raw.features
         : null;
-      if (!data) throw new Error('Transitous devolvió una respuesta de paradas inválida');
+      if (!data) throw new Error('OpenStreetMap devolvió una respuesta de paradas inválida');
       coleccion.push(...data);
     }
     const features = coleccion.map(toFeature).filter(Boolean).slice(0, 400);
@@ -194,7 +194,7 @@
       await ensureLayers();
       const source = map.getSource(SOURCE);
       if (source) source.setData({ type: 'FeatureCollection', features });
-      showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas' : t('transportNoData', 'Sin datos de transporte público en esta zona.'));
+      showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas (OSM)' : t('transportNoData', 'Sin datos de transporte público en esta zona.'));
     } catch (error) {
       if (enabled && currentGeneration === generation && error.name !== 'AbortError') {
         console.debug('[transporte-publico] No se pudieron cargar paradas:', error);
@@ -213,9 +213,7 @@
   async function departures(stopId) {
     const cached = departuresCache.get(stopId);
     if (cached && Date.now() - cached.touched < DEPARTURES_MS) return cached.items;
-    const query = '?stopId=' + encodeURIComponent(stopId) + '&n=8';
-    const data = await fetchApi('/transporte-salidas' + query);
-    const items = (data && Array.isArray(data.stopTimes) ? data.stopTimes : []).map(st => ({ name: st.displayName || st.routeShortName || 'Línea', headsign: st.headsign || '', departure: st.place && (st.place.departure || st.place.scheduledDeparture) || '', realTime: !!st.realTime }));
+    const items = [];
     departuresCache.set(stopId, { items, touched: Date.now() });
     while (departuresCache.size > 80) departuresCache.delete(departuresCache.keys().next().value);
     return items;
@@ -232,7 +230,9 @@
     const coords = feature.geometry.coordinates;
     const tarjeta = window.ManolitoTransporteTarjeta;
     if (!tarjeta) return;
-    const tarjetaParada = tarjeta.crearTarjetaParada(props, () => {
+    const esOsmId = /^(node|way|relation):\d+$/.test(String(props.stopId || ''));
+    const propsTarjeta = esOsmId ? { ...props, sinHorarios: true } : props;
+    const tarjetaParada = tarjeta.crearTarjetaParada(propsTarjeta, () => {
       const destination = { lon: Number(coords[0]), lat: Number(coords[1]), nombre: props.name || 'Parada' };
       const routeToggle = document.getElementById('rsToggleRuta');
       const destinationInput = document.getElementById('rsDestino');
@@ -248,10 +248,14 @@
     const body = tarjetaParada.body;
     if (popup) popup.remove();
     popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '320px', offset: 12, className: 'tp-map-popup' }).setLngLat(coords).setDOMContent(box).addTo(map);
-    departures(String(props.stopId)).then(items => {
-      const tarjeta = window.ManolitoTransporteTarjeta;
-      if (tarjeta) tarjeta.pintarSalidas(body, items);
-    }).catch(error => { if (error.name !== 'AbortError') body.textContent = 'No se pudieron consultar las salidas.'; });
+    if (esOsmId) {
+      body.textContent = t('transportNoSchedules', 'Parada de OpenStreetMap. No hay horarios GTFS disponibles.');
+    } else {
+      departures(String(props.stopId)).then(items => {
+        const tarjeta = window.ManolitoTransporteTarjeta;
+        if (tarjeta) tarjeta.pintarSalidas(body, items);
+      }).catch(error => { if (error.name !== 'AbortError') body.textContent = 'No se pudieron consultar las salidas.'; });
+    }
   }
 
   async function searchStop(query, origin) {

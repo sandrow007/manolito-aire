@@ -215,7 +215,10 @@
 // estaba dividido en transporte-publico.js + transporte-tarjeta.js +
 // transporte-paradas.js). Se restaura la versión funcional completa.
 // Cambian js/transporte-publico.js e index.html.
-const VERSION = '2026-10-28-b-transporte-unificado';
+// 2026-10-28-c: la capa de transporte usa exclusivamente paradas OSM vía
+// Overpass; invalida la antigua caché Transitous del cliente.
+// Cambian worker.js e index.html.
+const VERSION = '2026-10-28-e-transporte-osm';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

@@ -125,6 +125,15 @@ function initCookieBanner(){
   }
   window.actualizarIdiomaBannerCookies = actualizarIdiomaBannerCookies;
   
+  // Textos del banner: deben existir en este ámbito porque la plantilla de
+  // gate.innerHTML los usa (antes solo existían dentro de
+  // actualizarIdiomaBannerCookies y lanzaban ReferenceError: txtTitle).
+  const txtTitle = t('cookieGateTitle', 'Antes de entrar');
+  const txtBody = t('cookieGateBody', 'Usamos lo mínimo posible: recordar tu idioma y tema, y permitir que el chat de Manolito funcione. Nada de publicidad ni rastreo de terceros.');
+  const txtPolicy = t('cookieGatePolicy', 'Ver política de cookies');
+  const txtReject = t('cookieGateReject', 'Rechazar');
+  const txtAccept = t('cookieGateAccept', 'Aceptar');
+
   gate.style.cssText = `
     position: fixed; inset: 0; z-index: 100000; background: rgba(1, 2, 3, 0.85);
     display: flex; align-items: center; justify-content: center; padding: 20px;

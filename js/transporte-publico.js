@@ -11,6 +11,7 @@
   const IMAGE = 'transporte-publico-icon';
   const MIN_ZOOM = 12.5;
   const MAX_CELLS_PER_REFRESH = 2;
+  const DEPARTURE_MIN_ZOOM = 15;
   const CACHE_MS = 15 * 60 * 1000;
   const MAX_BBOX_SPAN = 0.35;
   const GRID_DEGREES = 0.10;
@@ -28,6 +29,7 @@
   let popup = null;
   let areaCache = { key: '', features: [], touched: 0 };
   let lastFailedAt = 0;
+  let lastFailedKey = '';
   const stopCellCache = new Map();
   const controllers = new Set();
   let regions = [];
@@ -77,7 +79,7 @@
   }
 
   function cacheKey(b) {
-    return [b.west, b.south, b.east, b.north].map(v => Math.round(v * 100)).join(':') + ':' + Math.floor(map.getZoom());
+    return [b.west, b.south, b.east, b.north].map(v => Math.round(v * 10000)).join(':');
   }
 
   function boundsForRequest(bounds) {
@@ -169,15 +171,35 @@
   }
 
   async function fetchApi(path) {
-    return fetchJson(path, 'same-origin', 15000);
+    try {
+      return await fetchJson(path, 'same-origin', 15000);
+    } catch (error) {
+      try {
+        const names = await window.caches.keys();
+        for (const name of names) {
+          if (name.indexOf('manolito-dinamica-') !== 0) continue;
+          const cached = await (await window.caches.open(name)).match(new URL(path, window.location.href).toString());
+          if (cached && cached.ok) return cached.json();
+        }
+      } catch (cacheError) { /* la caché SW puede no estar disponible */ }
+      throw error;
+    }
+  }
+
+  function withTimeout(promise, timeoutMs) {
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Timeout consultando Overpass')), timeoutMs); })
+    ]).finally(() => clearTimeout(timer));
   }
 
   async function loadStops(bounds) {
-    // Divide el área en consultas pequeñas, como la cuadrícula de fuentes de agua,
-    // para evitar que Overpass rechace un bbox visible demasiado grande.
+    // Consulta el encuadre del mapa una vez; el proxy guarda el resultado por bbox.
     bounds = boundsForRequest(bounds);
     const key = cacheKey(bounds);
-    if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS && requestCells(bounds).every(cell => stopCellCache.has(cacheKey(cell)) && Date.now() - stopCellCache.get(cacheKey(cell)).touched < CACHE_MS)) return areaCache.features;
+    if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS) return areaCache.features;
+    if (lastFailedKey === key && Date.now() - lastFailedAt < 30000) return areaCache.features;
     // El Worker recibe min/max como latitud,longitud y consulta OpenStreetMap vía Overpass.
     // Un bbox que cruza el antimeridiano se divide para no pedir longitudes invertidas.
     const west = ((bounds.west + 180) % 360 + 360) % 360 - 180;
@@ -205,7 +227,8 @@
         const max = cell.north.toFixed(6) + ',' + cell.east.toFixed(6);
         if (Number(cell.south.toFixed(6)) >= Number(cell.north.toFixed(6)) || Number(cell.west.toFixed(6)) >= Number(cell.east.toFixed(6))) continue;
         const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
-        const raw = await fetchApi('/transporte-paradas' + query);
+        const raw = await withTimeout(fetchApi('/transporte-paradas' + query), 12000);
+        if (!enabled || !map) return [];
         const data = Array.isArray(raw) ? raw
           : Array.isArray(raw && raw.stops) ? raw.stops
           : Array.isArray(raw && raw.features) ? raw.features
@@ -220,6 +243,7 @@
     const features = Array.from(unique.values()).slice(0, 1500);
     areaCache = { key, features, touched: Date.now() };
     lastFailedAt = 0;
+    lastFailedKey = '';
     return features;
   }
 
@@ -310,16 +334,16 @@
         if (!enabled || currentGeneration !== generation) return;
         const source = map.getSource(SOURCE);
         if (source) source.setData({ type: 'FeatureCollection', features });
-        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas (OSM)' : (stopCellCache.size && requestCells(requestedBounds).some(cell => !stopCellCache.has(cacheKey(cell))) ? 'Cargando paradas cercanas…' : t('transportNoData', 'Sin datos de transporte público en esta zona.')));
-        if (requestCells(requestedBounds).some(cell => !stopCellCache.has(cacheKey(cell)))) {
-          window.setTimeout(() => { if (enabled && currentGeneration === generation) refresh(); }, 1000);
-        }
+        const quedanCeldas = requestCells(requestedBounds).some(cell => !stopCellCache.has(cacheKey(cell)));
+        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas (OSM)' : (quedanCeldas ? 'Cargando paradas cercanas…' : t('transportNoData', 'Sin datos de transporte público en esta zona.')));
+        if (quedanCeldas) refreshQueued = true;
       }
     } catch (error) {
       if (enabled && currentGeneration === generation && error.name !== 'AbortError') {
         console.debug('[transporte-publico] No se pudieron cargar paradas:', error);
         showStatus(t('transportError', 'No se pudo consultar el transporte público.'));
         lastFailedAt = Date.now();
+        lastFailedKey = cacheKey(boundsForRequest(boundsOfMap()));
       }
     }
     if (currentGeneration === generation) {
@@ -387,7 +411,9 @@
     const body = tarjetaParada.body;
     if (popup) popup.remove();
     popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '320px', offset: 12, className: 'tp-map-popup' }).setLngLat(coords).setDOMContent(box).addTo(map);
-    body.textContent = t('transportNoSchedules', 'Parada de OpenStreetMap. No hay horarios GTFS disponibles.');
+    body.textContent = map.getZoom() < DEPARTURE_MIN_ZOOM
+      ? 'Parada de OpenStreetMap. Acércate para consultar horarios si están disponibles.'
+      : t('transportNoSchedules', 'Parada de OpenStreetMap. No hay horarios GTFS disponibles.');
   }
 
   async function searchStop(query, origin) {

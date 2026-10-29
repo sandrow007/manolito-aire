@@ -589,17 +589,14 @@ export default {
         }
 
         const kv = env.AIR_QUALITY_CACHE || null;
-
-
-
         const bboxTxt = [south, west, north, east].map((v) => v.toFixed(6)).join(',');
         const claveKv = 'parada:osm:' + [south, west, north, east].map((v) => v.toFixed(3)).join(',');
         if (kv) {
           try {
             const { value, metadata } = await kv.getWithMetadata(claveKv);
-            if (value && metadata && metadata.ts && Date.now() - metadata.ts < 12 * 3600 * 1000) {
+            if (value && metadata && metadata.ts && Date.now() - metadata.ts < 30 * 60 * 1000) {
               return new Response(value, {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Transit-Fuente': 'OpenStreetMap-cache', ...CORS_HEADERS }
               });
             }
           } catch (error) { }
@@ -621,7 +618,6 @@ export default {
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://overpass.private.coffee/api/interpreter',
-          'https://overpass.nchc.org.tw/api/interpreter',
         ];
         const intentarEspejo = async (espejo) => {
           const controller = new AbortController();
@@ -646,16 +642,9 @@ export default {
           }
         };
 
-        // Consulta OSM mediante Overpass, fuente única de las paradas.
-        // Carrera escalonada: Promise.any esperaba a que todos los espejos
-        // fallaran si alguno nunca resolvía, bloqueando la capa hasta timeout.
-        let datos = null;
-        for (const espejo of espejos) {
-          try {
-            datos = await intentarEspejo(espejo);
-            if (datos) break;
-          } catch (error) { }
-        }
+        // Consulta los espejos en paralelo: una instancia caída no bloquea
+        // esperando su timeout antes de probar la siguiente.
+        try { datos = await Promise.any(espejos.map(intentarEspejo)); } catch (error) { }
         if (datos) {
           const paradas = datos.elements.map((el) => {
             const punto = el.type === 'node' ? el : (el.center || (el.geometry && el.geometry.reduce((sum, p) => ({ lat: sum.lat + p.lat / el.geometry.length, lon: sum.lon + p.lon / el.geometry.length }), { lat: 0, lon: 0 })));

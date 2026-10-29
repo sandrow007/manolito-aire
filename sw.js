@@ -225,8 +225,9 @@
 // Cambian index.html, worker.js y js/transporte-publico.js.
 // 2026-10-29-c: invalida copias antiguas de la capa y alinea la URL del script.
 // 2026-10-29-d: capa agrega estaciones y limita las consultas Overpass por vista.
+// 2026-10-29-g: reconecta y cachea las peticiones de parada por teselas del Worker.
 // Cambian index.html, worker.js y js/transporte-publico.js.
-const VERSION = '2026-10-29-f-transporte-osm';
+const VERSION = '2026-10-29-g-transporte-osm';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

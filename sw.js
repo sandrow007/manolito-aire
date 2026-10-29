@@ -218,7 +218,9 @@
 // 2026-10-28-c: la capa de transporte usa exclusivamente paradas OSM vía
 // Overpass; invalida la antigua caché Transitous del cliente.
 // Cambian worker.js e index.html.
-const VERSION = '2026-10-28-e-transporte-osm';
+// 2026-10-29-a: mejora tolerancia de Overpass y tamaño de consultas de paradas.
+// Cambian worker.js y js/transporte-publico.js.
+const VERSION = '2026-10-29-a-transporte-osm';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

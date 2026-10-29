@@ -606,12 +606,13 @@ export default {
         }
         const consulta = '[out:json][timeout:20];(' +
           'node["highway"="bus_stop"](' + bboxTxt + ');' +
-          'node["public_transport"="platform"]["bus"="yes"](' + bboxTxt + ');' +
-          'node["public_transport"="platform"]["tram"="yes"](' + bboxTxt + ');' +
+          'node["public_transport"="platform"](' + bboxTxt + ');' +
+          'way["public_transport"="platform"](' + bboxTxt + ');' +
+          'relation["public_transport"="platform"](' + bboxTxt + ');' +
           'node["railway"="tram_stop"](' + bboxTxt + ');' +
           'nwr["public_transport"="station"](' + bboxTxt + ');' +
           'nwr["amenity"="bus_station"](' + bboxTxt + ');' +
-          'node["railway"="station"](' + bboxTxt + ');' +
+          'nwr["railway"="station"](' + bboxTxt + ');' +
           ');out center qt;';
 
         const espejos = [
@@ -645,8 +646,15 @@ export default {
         };
 
         // Consulta OSM mediante Overpass, fuente única de las paradas.
+        // Carrera escalonada: Promise.any esperaba a que todos los espejos
+        // fallaran si alguno nunca resolvía, bloqueando la capa hasta timeout.
         let datos = null;
-        try { datos = await Promise.any(espejos.map(intentarEspejo)); } catch (error) { }
+        for (const espejo of espejos) {
+          try {
+            datos = await intentarEspejo(espejo);
+            if (datos) break;
+          } catch (error) { }
+        }
         if (datos) {
           const paradas = datos.elements.map((el) => {
             const punto = el.type === 'node' ? el : el.center;

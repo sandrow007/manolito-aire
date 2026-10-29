@@ -11,6 +11,7 @@
   const IMAGE = 'transporte-publico-icon';
   const MIN_ZOOM = 11;
   const CACHE_MS = 15 * 60 * 1000;
+  const MAX_BBOX_SPAN = 0.35;
   const ATTRIBUTION = '© OpenStreetMap contributors';
   const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#35C4D4" stroke="#0E3B47" stroke-width="1.6"/><rect x="6" y="7" width="14" height="9" rx="2.5" fill="none" stroke="#0E3B47" stroke-width="1.5"/><path d="M8 10h7M8 12.5h9" stroke="#0E3B47" stroke-width="1.3" stroke-linecap="round"/><circle cx="9.5" cy="17.5" r="1.3" fill="#fff"/><circle cx="16.5" cy="17.5" r="1.3" fill="#fff"/></svg>';
 
@@ -111,6 +112,16 @@
   }
 
   async function loadStops(bounds) {
+    // Limita cada consulta a una tesela manejable: los límites visibles a zoom
+    // bajo exceden la cuota/tamaño de Overpass y la capa acababa sin paradas.
+    const centerLat = (bounds.south + bounds.north) / 2;
+    const centerLon = (bounds.west + bounds.east) / 2;
+    const halfLat = Math.min((bounds.north - bounds.south) / 2, MAX_BBOX_SPAN);
+    const halfLon = Math.min((bounds.east - bounds.west) / 2, MAX_BBOX_SPAN);
+    bounds = {
+      west: Math.max(-180, centerLon - halfLon), east: Math.min(180, centerLon + halfLon),
+      south: Math.max(-85, centerLat - halfLat), north: Math.min(85, centerLat + halfLat)
+    };
     const key = cacheKey(bounds);
     if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS) return areaCache.features;
     // El Worker recibe min/max como latitud,longitud y consulta OpenStreetMap vía Overpass.

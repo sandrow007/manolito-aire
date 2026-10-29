@@ -227,7 +227,9 @@
 // 2026-10-29-d: capa agrega estaciones y limita las consultas Overpass por vista.
 // 2026-10-29-g: reconecta y cachea las peticiones de parada por teselas del Worker.
 // Cambian index.html, worker.js y js/transporte-publico.js.
-const VERSION = '2026-10-29-g-transporte-osm';
+// 2026-10-29-h: arreglo de /transporte-paradas en worker.js (variable `datos` sin declarar
+// lanzaba ReferenceError y el proxy devolvía siempre []). Cambia worker.js.
+const VERSION = '2026-10-29-h-transporte-fix';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

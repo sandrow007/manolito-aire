@@ -10,12 +10,13 @@
   const SYMBOL = 'transporte-publico-symbols';
   const IMAGE = 'transporte-publico-icon';
   const MIN_ZOOM = 12.5;
-  const MAX_CELLS_PER_REFRESH = 2;
+  const MAX_CELLS_PER_REFRESH = 24;
+  const MAX_AUTO_STEPS = 12;
   const DEPARTURE_MIN_ZOOM = 15;
   const CACHE_MS = 15 * 60 * 1000;
   const MAX_BBOX_SPAN = 0.35;
-  const GRID_DEGREES = 0.10;
-  const MAX_CELLS_PER_QUERY = 24;
+  const GRID_DEGREES = 0.02;
+  const MAX_CELLS_PER_QUERY = 36;
   const ATTRIBUTION = '© OpenStreetMap contributors';
   const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#35C4D4" stroke="#0E3B47" stroke-width="1.6"/><rect x="6" y="7" width="14" height="9" rx="2.5" fill="none" stroke="#0E3B47" stroke-width="1.5"/><path d="M8 10h7M8 12.5h9" stroke="#0E3B47" stroke-width="1.3" stroke-linecap="round"/><circle cx="9.5" cy="17.5" r="1.3" fill="#fff"/><circle cx="16.5" cy="17.5" r="1.3" fill="#fff"/></svg>';
 
@@ -29,13 +30,14 @@
   let popup = null;
   let areaCache = { key: '', features: [], touched: 0 };
   let lastFailedAt = 0;
-  let lastFailedKey = '';
   const stopCellCache = new Map();
   const controllers = new Set();
   let regions = [];
   let currentRegion = 'global';
   let requestRunning = false;
   let refreshQueued = false;
+  let autoSteps = 0;
+  let retryTimer = 0;
   let searchToken = 0;
 
   function t(key, fallback) {
@@ -94,63 +96,44 @@
   }
 
   function requestCells(bounds) {
-    const latStep = GRID_DEGREES;
-    const lonStep = GRID_DEGREES / Math.max(0.15, Math.cos((bounds.south + bounds.north) * Math.PI / 360));
+    const cellSize = GRID_DEGREES;
+    const minX = Math.floor(bounds.west / cellSize);
+    const maxX = Math.ceil(bounds.east / cellSize) - 1;
+    const minY = Math.floor(bounds.south / cellSize);
+    const maxY = Math.ceil(bounds.north / cellSize) - 1;
+    const count = (maxX - minX + 1) * (maxY - minY + 1);
+    if (count < 1 || count > 400) return [];
     const cells = [];
-    const startLat = Math.floor(bounds.south / latStep) * latStep;
-    const startLon = Math.floor(bounds.west / lonStep) * lonStep;
-    const cellsToBuild = Math.ceil((bounds.north - startLat) / latStep) * Math.ceil((bounds.east - startLon) / lonStep);
-    if (cellsToBuild > 2000 || (bounds.north - bounds.south) * (bounds.east - bounds.west) > 0.5) {
-      const rows = Math.max(1, Math.floor(Math.sqrt(MAX_CELLS_PER_QUERY * (bounds.north - bounds.south) / (bounds.east - bounds.west))));
-      const columns = Math.max(1, Math.floor(MAX_CELLS_PER_QUERY / rows));
-      const tileLat = (bounds.north - bounds.south) / rows;
-      const tileLon = (bounds.east - bounds.west) / columns;
-      const limited = [];
-      for (let row = 0; row < rows; row++) {
-        for (let column = 0; column < columns; column++) {
-          limited.push({ west: bounds.west + column * tileLon, east: bounds.west + (column + 1) * tileLon, south: bounds.south + row * tileLat, north: bounds.south + (row + 1) * tileLat });
-        }
-      }
-      return limited;
-    }
-    for (let south = startLat; south < bounds.north; south += latStep) {
-      for (let west = startLon; west < bounds.east; west += lonStep) {
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
         cells.push({
-          west: Math.max(bounds.west, west), east: Math.min(bounds.east, west + lonStep),
-          south: Math.max(bounds.south, south), north: Math.min(bounds.north, south + latStep)
+          x, y, key: x + ':' + y,
+          west: Math.max(bounds.west, x * cellSize), east: Math.min(bounds.east, (x + 1) * cellSize),
+          south: Math.max(bounds.south, y * cellSize), north: Math.min(bounds.north, (y + 1) * cellSize)
         });
       }
     }
-    if (cells.length <= MAX_CELLS_PER_QUERY) return cells;
-    const rows = Math.max(1, Math.floor(Math.sqrt(MAX_CELLS_PER_QUERY * (bounds.north - bounds.south) / (bounds.east - bounds.west))));
-    const columns = Math.max(1, Math.floor(MAX_CELLS_PER_QUERY / rows));
-    const tileLat = (bounds.north - bounds.south) / rows;
-    const tileLon = (bounds.east - bounds.west) / columns;
-    const limited = [];
-    for (let row = 0; row < rows; row++) {
-      for (let column = 0; column < columns; column++) {
-        limited.push({
-          west: bounds.west + column * tileLon, east: bounds.west + (column + 1) * tileLon,
-          south: bounds.south + row * tileLat, north: bounds.south + (row + 1) * tileLat
-        });
-      }
-    }
-    return limited;
+    return cells;
   }
+
+
 
   function toFeature(place) {
     if (!place) return null;
     // Overpass devuelve las coordenadas OSM como latitud y longitud numéricas.
-    const latRaw = place.lat != null ? place.lat : place.latitude;
-    const lonRaw = place.lon != null ? place.lon : place.longitude;
+    const coordinates = place.geometry && Array.isArray(place.geometry.coordinates) ? place.geometry.coordinates : null;
+    const latRaw = place.lat != null ? place.lat : (place.latitude != null ? place.latitude : (coordinates ? coordinates[1] : null));
+    const lonRaw = place.lon != null ? place.lon : (place.longitude != null ? place.longitude : (coordinates ? coordinates[0] : null));
     const lat = Number(typeof latRaw === 'string' ? latRaw.replace(',', '.') : latRaw);
     const lon = Number(typeof lonRaw === 'string' ? lonRaw.replace(',', '.') : lonRaw);
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
     const stopId = place.stopId != null ? place.stopId : (place.id != null ? place.id : null);
+    const props = place.properties || {};
+    const name = place.name || place['name:es'] || place.tags && (place.tags.name || place.tags['name:es']) || props.name || t('transportStop', 'Parada');
     return {
       type: 'Feature',
       id: stopId != null ? String(stopId) : 'stop:' + lat + ':' + lon,
-      properties: { stopId: stopId, name: place.name || t('transportStop', 'Parada'), source: 'osm' },
+      properties: { stopId: stopId, name: name, source: 'osm' },
       geometry: { type: 'Point', coordinates: [lon, lat] }
     };
   }
@@ -195,55 +178,58 @@
   }
 
   async function loadStops(bounds) {
-    // Consulta el encuadre del mapa una vez; el proxy guarda el resultado por bbox.
     bounds = boundsForRequest(bounds);
     const key = cacheKey(bounds);
-    if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS) return areaCache.features;
-    if (lastFailedKey === key && Date.now() - lastFailedAt < 30000) return areaCache.features;
-    // El Worker recibe min/max como latitud,longitud y consulta OpenStreetMap vía Overpass.
-    // Un bbox que cruza el antimeridiano se divide para no pedir longitudes invertidas.
-    const west = ((bounds.west + 180) % 360 + 360) % 360 - 180;
-    const east = ((bounds.east + 180) % 360 + 360) % 360 - 180;
-    const segmentos = west <= east
-      ? [{ west: west, east: east }]
-      : [{ west: west, east: 180 }, { west: -180, east: east }];
-    const coleccion = [];
-    for (const segmento of segmentos) {
-      if (segmento.west >= segmento.east) continue;
-      const cells = requestCells({ west: segmento.west, east: segmento.east, south: bounds.south, north: bounds.north });
-      const pending = cells.filter(cell => {
-        const cached = stopCellCache.get(cacheKey(cell));
-        return !cached || Date.now() - cached.touched >= CACHE_MS;
+    const cells = requestCells(bounds);
+    if (!cells.length) return areaCache.features;
+    const collection = [];
+    cells.forEach(cell => {
+      const cached = stopCellCache.get(cell.key);
+      if (cached && Date.now() - cached.touched < CACHE_MS) collection.push(...cached.places);
+    });
+    const pending = cells.filter(cell => {
+      const cached = stopCellCache.get(cell.key);
+      return !cached || Date.now() - cached.touched >= CACHE_MS;
+    });
+    const selected = pending.slice(0, MAX_CELLS_PER_REFRESH);
+    for (let i = 0; i < selected.length; i += MAX_CELLS_PER_QUERY) {
+      const batch = selected.slice(i, i + MAX_CELLS_PER_QUERY);
+      const batchBounds = {
+        west: Math.max(bounds.west, Math.min(...batch.map(cell => cell.west))),
+        east: Math.min(bounds.east, Math.max(...batch.map(cell => cell.east))),
+        south: Math.max(bounds.south, Math.min(...batch.map(cell => cell.south))),
+        north: Math.min(bounds.north, Math.max(...batch.map(cell => cell.north)))
+      };
+      const min = batchBounds.south.toFixed(6) + ',' + batchBounds.west.toFixed(6);
+      const max = batchBounds.north.toFixed(6) + ',' + batchBounds.east.toFixed(6);
+      const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
+      const raw = await withTimeout(fetchApi('/transporte-paradas' + query), 25000);
+      if (!enabled || !map) return [];
+      const data = Array.isArray(raw) ? raw
+        : Array.isArray(raw && raw.stops) ? raw.stops
+        : Array.isArray(raw && raw.features) ? raw.features
+        : Array.isArray(raw && raw.elements) ? raw.elements
+        : null;
+      if (!data) throw new Error('OpenStreetMap devolvió una respuesta de paradas inválida');
+      const placesByCell = new Map(batch.map(cell => [cell.key, []]));
+      data.forEach(place => {
+        const feature = toFeature(place);
+        if (!feature) return;
+        const coordinates = feature.geometry.coordinates;
+        const cellKey = Math.floor(coordinates[0] / GRID_DEGREES) + ':' + Math.floor(coordinates[1] / GRID_DEGREES);
+        if (placesByCell.has(cellKey)) placesByCell.get(cellKey).push(place);
       });
-      const selected = pending.slice(0, MAX_CELLS_PER_REFRESH);
-      for (const cell of cells) {
-        const cached = stopCellCache.get(cacheKey(cell));
-        if (cached && Date.now() - cached.touched < CACHE_MS) {
-          coleccion.push(...cached.places);
-          continue;
-        }
-        if (!selected.includes(cell)) continue;
-        const min = cell.south.toFixed(6) + ',' + cell.west.toFixed(6);
-        const max = cell.north.toFixed(6) + ',' + cell.east.toFixed(6);
-        if (Number(cell.south.toFixed(6)) >= Number(cell.north.toFixed(6)) || Number(cell.west.toFixed(6)) >= Number(cell.east.toFixed(6))) continue;
-        const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
-        const raw = await withTimeout(fetchApi('/transporte-paradas' + query), 12000);
-        if (!enabled || !map) return [];
-        const data = Array.isArray(raw) ? raw
-          : Array.isArray(raw && raw.stops) ? raw.stops
-          : Array.isArray(raw && raw.features) ? raw.features
-          : null;
-        if (!data) throw new Error('OpenStreetMap devolvió una respuesta de paradas inválida');
-        stopCellCache.set(cacheKey(cell), { places: data, touched: Date.now() });
-        coleccion.push(...data);
-      }
+      batch.forEach(cell => {
+        const places = placesByCell.get(cell.key) || [];
+        stopCellCache.set(cell.key, { places, touched: Date.now() });
+        collection.push(...places);
+      });
     }
     const unique = new Map();
-    coleccion.map(toFeature).filter(Boolean).forEach(feature => unique.set(String(feature.id), feature));
-    const features = Array.from(unique.values()).slice(0, 1500);
+    collection.map(toFeature).filter(Boolean).forEach(feature => unique.set(String(feature.id), feature));
+    const features = Array.from(unique.values()).slice(0, 3000);
     areaCache = { key, features, touched: Date.now() };
     lastFailedAt = 0;
-    lastFailedKey = '';
     return features;
   }
 
@@ -300,6 +286,13 @@
 
   function showStatus(text) { const el = document.getElementById('rsStatus'); if (el) el.textContent = text; }
 
+  function programarSiguientePaso(ms) {
+    if (!enabled || autoSteps >= MAX_AUTO_STEPS) return;
+    autoSteps++;
+    clearTimeout(retryTimer);
+    retryTimer = window.setTimeout(refresh, ms);
+  }
+
   async function refresh() {
     if (!enabled || !ready) return;
     if (requestRunning) { refreshQueued = true; return; }
@@ -334,25 +327,33 @@
         if (!enabled || currentGeneration !== generation) return;
         const source = map.getSource(SOURCE);
         if (source) source.setData({ type: 'FeatureCollection', features });
-        const quedanCeldas = requestCells(requestedBounds).some(cell => !stopCellCache.has(cacheKey(cell)));
+        areaCache = { key: cacheKey(requestedBounds), features, touched: Date.now() };
+        const quedanCeldas = requestCells(requestedBounds).some(cell => {
+          const cached = stopCellCache.get(cell.key);
+          return !cached || Date.now() - cached.touched >= CACHE_MS;
+        });
         showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas (OSM)' : (quedanCeldas ? 'Cargando paradas cercanas…' : t('transportNoData', 'Sin datos de transporte público en esta zona.')));
         if (quedanCeldas) refreshQueued = true;
+        else autoSteps = 0;
       }
     } catch (error) {
       if (enabled && currentGeneration === generation && error.name !== 'AbortError') {
         console.debug('[transporte-publico] No se pudieron cargar paradas:', error);
         showStatus(t('transportError', 'No se pudo consultar el transporte público.'));
         lastFailedAt = Date.now();
-        lastFailedKey = cacheKey(boundsForRequest(boundsOfMap()));
       }
     }
     if (currentGeneration === generation) {
       requestRunning = false;
       if (enabled && refreshQueued) {
         refreshQueued = false;
-        window.setTimeout(refresh, 0);
+        if (lastFailedAt && Date.now() - lastFailedAt < 30000) {
+          programarSiguientePaso(Math.max(5000, 30000 - (Date.now() - lastFailedAt)));
+        } else {
+          programarSiguientePaso(250);
+        }
       } else if (enabled && map.getZoom() >= MIN_ZOOM && !areaCache.features.length && Date.now() - lastFailedAt >= 30000) {
-        window.setTimeout(refresh, 5000);
+        programarSiguientePaso(5000);
       }
     }
   }
@@ -470,6 +471,7 @@
   function activate() {
     if (enabled) { refresh(); return; }
     enabled = true; generation++;
+    autoSteps = 0;
     map.on('moveend', scheduleRefresh);
     map.on('zoomend', scheduleRefresh);
     map.on('click', onMapClick);
@@ -477,8 +479,13 @@
   }
   function deactivate() {
     enabled = false; generation++; refreshQueued = false; requestRunning = false; searchToken++;
+    autoSteps = 0;
+    areaCache = { key: '', features: [], touched: 0 };
+    lastFailedAt = 0;
+    stopCellCache.clear();
     controllers.forEach(controller => controller.abort()); controllers.clear();
     clearTimeout(moveTimer);
+    clearTimeout(retryTimer);
     map.off('moveend', scheduleRefresh); map.off('zoomend', scheduleRefresh); map.off('click', onMapClick);
     [SYMBOL, HALO].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
     if (map.getSource(SOURCE)) map.removeSource(SOURCE);
@@ -486,7 +493,7 @@
     if (popup) { popup.remove(); popup = null; }
     showStatus('');
   }
-  function scheduleRefresh() { if (!enabled) return; clearTimeout(moveTimer); moveTimer = setTimeout(refresh, 500); }
+  function scheduleRefresh() { if (!enabled) return; autoSteps = 0; lastFailedAt = 0; clearTimeout(retryTimer); clearTimeout(moveTimer); moveTimer = setTimeout(refresh, 500); }
 
   function start(m, tgl) {
     map = m; toggle = tgl;

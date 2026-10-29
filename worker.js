@@ -644,6 +644,7 @@ export default {
 
         // Consulta los espejos en paralelo: una instancia caída no bloquea
         // esperando su timeout antes de probar la siguiente.
+        let datos = null;
         try { datos = await Promise.any(espejos.map(intentarEspejo)); } catch (error) { }
         if (datos) {
           const paradas = datos.elements.map((el) => {

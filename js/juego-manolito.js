@@ -1834,31 +1834,42 @@ function ponerEstilos() {
 .jm-panel{ width:min(680px,100%); margin:14px auto 0; padding:14px 14px 18px; box-sizing:border-box;
   background:var(--surface, rgba(255,255,255,0.92)); border:2px solid ${GRANATE}; border-radius:18px;
   color:var(--ink, #0D1F26); font-family:var(--font-body, system-ui, sans-serif); }
+[data-theme="dark"] .jm-panel{ --jm-text:#F3F7FF; --jm-muted:#C3D0E6; --jm-bubble:#11182B; --jm-edge:#43DCE8; --jm-button:#1A2740; }
 .jm-cab{ display:flex; align-items:center; gap:10px; }
 .jm-cab-mascota{ width:44px; flex:none; }
 .jm-cab-mascota svg{ width:100%; height:auto; display:block; }
 .jm-titulo{ font-size:1.25rem; font-weight:800; margin:0; color:${GRANATE}; flex:1; }
+[data-theme="dark"] .jm-titulo, [data-theme="dark"] .jm-h3{ color:#75EAF2; }
 .jm-x{ min-width:44px; min-height:44px; border-radius:12px; border:2px solid ${GRANATE}; background:#fff;
   color:${GRANATE}; font-size:1.15rem; font-weight:700; cursor:pointer; }
+[data-theme="dark"] .jm-x{ border-color:#43DCE8; background:#1A2740; color:#F3F7FF; }
 .jm-sellos{ display:flex; gap:6px; justify-content:center; margin:10px 0 4px; flex-wrap:wrap; }
 .jm-sello{ width:46px; text-align:center; font-family:var(--font-mono, monospace); font-size:10px;
   color:${GRANATE}; opacity:0.3; }
+[data-theme="dark"] .jm-sello{ color:#A9C4DD; }
+[data-theme="dark"] .jm-sello.jm-ok{ color:#75EAF2; }
 .jm-sello span{ display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .jm-sello svg{ width:40px; height:40px; display:block; margin:0 auto; }
 .jm-sello.jm-ok{ opacity:1; }
 .jm-burbuja{ position:relative; background:#fff; border:2px solid ${GRANATE}; border-radius:14px;
   padding:10px 12px; margin:8px 0 10px; font-size:0.98rem; line-height:1.45; min-height:44px; }
+[data-theme="dark"] .jm-burbuja{ background:var(--jm-bubble); border-color:var(--jm-edge); color:var(--jm-text); }
 .jm-burbuja::before{ content:''; position:absolute; top:-9px; left:26px; width:14px; height:14px;
   background:#fff; border-left:2px solid ${GRANATE}; border-top:2px solid ${GRANATE};
   transform:rotate(45deg); }
+[data-theme="dark"] .jm-burbuja::before{ background:var(--jm-bubble); border-color:var(--jm-edge); }
 .jm-cuerpo{ min-height:220px; }
 .jm-leccion{ font-size:1rem; line-height:1.5; margin:0 0 10px; }
+[data-theme="dark"] .jm-leccion{ color:var(--jm-text); }
 .jm-kicker{ font-family:var(--font-mono, monospace); font-size:0.8rem; letter-spacing:0.08em;
   color:${TEAL}; text-transform:uppercase; margin:0 0 6px; }
+[data-theme="dark"] .jm-kicker{ color:#75EAF2; }
 .jm-h3{ font-size:1.3rem; color:${GRANATE}; margin:2px 0 8px; }
 .jm-marc{ display:flex; justify-content:space-between; gap:8px; font-family:var(--font-mono, monospace);
   font-size:0.95rem; margin:0 0 6px; }
+[data-theme="dark"] .jm-marc{ color:var(--jm-text); }
 .jm-progreso{ height:8px; border-radius:6px; background:rgba(122,0,22,0.14); margin:0 0 8px; overflow:hidden; }
+[data-theme="dark"] .jm-progreso{ background:rgba(117,234,242,.18); }
 .jm-progreso-fill{ height:100%; width:0%; border-radius:6px;
   background:linear-gradient(90deg, ${TEAL}, ${DORADO}); transition:width .25s ease; }
 .jm-campo{ position:relative; height:clamp(240px, 42vh, 400px); overflow:hidden; border-radius:14px;
@@ -1877,7 +1888,10 @@ function ponerEstilos() {
 .jm-btn{ display:inline-block; min-height:44px; padding:10px 18px; margin:8px 8px 0 0; border-radius:12px;
   border:2px solid ${GRANATE}; background:${DORADO}; color:#2A1A05; font-weight:700; font-size:1rem;
   cursor:pointer; }
+[data-theme="dark"] .jm-btn{ border-color:#43DCE8; background:#1A2740; color:#F3F7FF; }
+[data-theme="dark"] .jm-adulto .jm-btn{ background:#1A2740; color:#F3F7FF; }
 .jm-btn.jm-sec{ background:#fff; color:${GRANATE}; }
+[data-theme="dark"] .jm-btn.jm-sec{ background:#10182B; color:#F3F7FF; }
 .jm-btn:focus-visible{ outline:3px solid ${TEAL}; outline-offset:2px; }
 .jm-ops{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
 .jm-ops .jm-btn{ width:100%; margin:0; text-align:left; }
@@ -1918,6 +1932,7 @@ function ponerEstilos() {
    acabado sobrio para adultos. Teal como acento de cabecera y
    progreso, burbuja con filo teal, sin perder la marca. */
 .jm-adulto .jm-titulo{ color:${TEAL}; }
+[data-theme="dark"] .jm-adulto .jm-titulo{ color:#75EAF2; }
 .jm-adulto .jm-x{ border-color:${TEAL}; color:${TEAL}; }
 .jm-adulto .jm-burbuja{ border-color:${TEAL}; }
 .jm-adulto .jm-burbuja::before{ border-left-color:${TEAL}; border-top-color:${TEAL}; }

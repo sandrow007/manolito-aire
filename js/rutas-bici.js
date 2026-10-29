@@ -501,6 +501,7 @@
   var CARRIL_BORDE_DER = 'carriles-bici-borde-der';
   var CARRIL_SIMBOLO = 'carriles-bici-simbolo';
   var CARRIL_IMAGEN = 'carriles-bici-icono';
+  var CARRIL_CACHE_VERSION = 'osm-cycleway-20261029';
   var carrilCapaLista = false; // Flag para saber si la capa está completamente inicializada
   var carrilInicializando = false; // Flag para evitar múltiples inicializaciones
   var carrilRequestId = 0;
@@ -530,21 +531,29 @@
     var s = bbox.south.toFixed(6), w = bbox.west.toFixed(6),
         n = bbox.north.toFixed(6), e = bbox.east.toFixed(6);
     var b = s + ',' + w + ',' + n + ',' + e;
-    // La consulta devuelve geometría completa y cubre vías dedicadas y carriles señalizados.
-    return '[out:json][timeout:30];(' +
-      'way["highway"="cycleway"](' + b + ');' +
-      'way["cycleway"~"^(lane|track|opposite_lane|opposite_track|shared_lane|share_busway)$"](' + b + ');' +
-      'way["cycleway:left"~"^(lane|track)$"](' + b + ');' +
-      'way["cycleway:right"~"^(lane|track)$"](' + b + ');' +
-      'way["cycleway:both"~"^(lane|track)$"](' + b + ');' +
-      'way["bicycle"="designated"]["highway"~"^(path|footway|service)$"](' + b + ');' +
+    // Etiquetas habituales de OSM: vías dedicadas, carriles y rutas señalizadas.
+    return '[out:json][timeout:20];(' +
+      'way["highway"="cycleway"](' + b + ');
+      'way["cycleway"](' + b + ');' +
+      'way["cycleway:left"](' + b + ');' +
+      'way["cycleway:right"](' + b + ');' +
+      'way["cycleway:both"](' + b + ');' +
+      'way["bicycle"="designated"](' + b + ');' +
+      'way["bicycle"="official"](' + b + ');' +
       ');out body geom;';
   }
 
   function wayToLineString(element) {
-    if (!element || !Array.isArray(element.geometry) || element.geometry.length < 2) return null;
-    var coords = element.geometry.map(function (p) { return [p.lon, p.lat]; });
-    return { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } };
+    if (!element) return null;
+    var coords = Array.isArray(element.geometry)
+      ? element.geometry.map(function (p) { return [Number(p.lon), Number(p.lat)]; })
+      : [];
+    if (coords.length < 2 && Array.isArray(element.nodes)) {
+      coords = element.nodes.map(function (node) { return [Number(node.lon), Number(node.lat)]; })
+        .filter(function (p) { return Number.isFinite(p[0]) && Number.isFinite(p[1]); });
+    }
+    if (coords.length < 2 || coords.some(function (p) { return !Number.isFinite(p[0]) || !Number.isFinite(p[1]); })) return null;
+    return { type: 'Feature', properties: element.tags || {}, geometry: { type: 'LineString', coordinates: coords } };
   }
 
   // Genera puntos espaciados a lo largo de las líneas para los símbolos de bici
@@ -605,7 +614,7 @@
     try {
       var resp = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'Accept': 'application/json' },
         body: new URLSearchParams({ data: consultaCarriles(bbox) }).toString(),
         credentials: 'omit',
         signal: controller.signal
@@ -642,7 +651,7 @@
       return;
     }
 
-    var clave = [bbox.west.toFixed(3), bbox.south.toFixed(3), bbox.east.toFixed(3), bbox.north.toFixed(3)].join(':');
+    var clave = CARRIL_CACHE_VERSION + ':' + [bbox.west.toFixed(3), bbox.south.toFixed(3), bbox.east.toFixed(3), bbox.north.toFixed(3)].join(':');
     var cached = carrilCache.get(clave);
     if (cached && Date.now() - cached.touched < CARRIL_TTL_MS) {
       await pintarCarriles(cached.features);
@@ -655,11 +664,8 @@
     carrilUltima = Date.now();
 
     try {
-      // 1) Proxy propio (caché del Worker). No bloquear la capa más de 3 s.
-      var features = await pedirCarriles(OVERPASS_URL, bbox, 3000);
-      // 2) Fallback directo del navegador a Overpass.
-      if (!features.length) features = await pedirCarriles(OVERPASS_DIRECTO, bbox, 15000);
-      if (!features.length) features = await pedirCarriles(OVERPASS_DIRECTO_2, bbox, 15000);
+      // Un solo proxy propio para evitar CORS del navegador y consultas repetidas.
+      var features = await pedirCarriles(OVERPASS_URL, bbox, 20000);
       if (!carrilEnabled || requestId !== carrilRequestId) return;
       // No cachear vacío: un fallo temporal no debe ocultar el carril 15 min.
       if (features.length) {
@@ -846,8 +852,9 @@
     if (!carrilEnabled || !map || !map.isStyleLoaded()) return;
     var capaLista = await asegurarCapaCarril();
     if (!capaLista || !carrilEnabled || !map || !map.getSource(CARRIL_SOURCE)) return;
-    var lineas = features.filter(function(f) { return f.geometry && f.geometry.type === 'LineString'; });
+    var lineas = features.filter(function(f) { return f.geometry && f.geometry.type === 'LineString' && Array.isArray(f.geometry.coordinates) && f.geometry.coordinates.length >= 2; });
     var puntosSimbolo = generarPuntosSimbolos(lineas, 100); // cada 100 metros
+    [CARRIL_ROJO, CARRIL_BORDE_IZQ, CARRIL_BORDE_DER].forEach(function(id) { if (map.getLayer(id)) map.moveLayer(id); });
     map.getSource(CARRIL_SOURCE).setData({ type: 'FeatureCollection', features: lineas.concat(puntosSimbolo) });
   }
 

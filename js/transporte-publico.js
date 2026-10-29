@@ -9,9 +9,12 @@
   const HALO = 'transporte-publico-halo';
   const SYMBOL = 'transporte-publico-symbols';
   const IMAGE = 'transporte-publico-icon';
-  const MIN_ZOOM = 11;
+  const MIN_ZOOM = 12.5;
+  const MAX_CELLS_PER_REFRESH = 2;
   const CACHE_MS = 15 * 60 * 1000;
   const MAX_BBOX_SPAN = 0.35;
+  const GRID_DEGREES = 0.10;
+  const MAX_CELLS_PER_QUERY = 24;
   const ATTRIBUTION = '© OpenStreetMap contributors';
   const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#35C4D4" stroke="#0E3B47" stroke-width="1.6"/><rect x="6" y="7" width="14" height="9" rx="2.5" fill="none" stroke="#0E3B47" stroke-width="1.5"/><path d="M8 10h7M8 12.5h9" stroke="#0E3B47" stroke-width="1.3" stroke-linecap="round"/><circle cx="9.5" cy="17.5" r="1.3" fill="#fff"/><circle cx="16.5" cy="17.5" r="1.3" fill="#fff"/></svg>';
 
@@ -24,6 +27,8 @@
   let imagePromise = null;
   let popup = null;
   let areaCache = { key: '', features: [], touched: 0 };
+  let lastFailedAt = 0;
+  const stopCellCache = new Map();
   const controllers = new Set();
   let regions = [];
   let currentRegion = 'global';
@@ -75,6 +80,62 @@
     return [b.west, b.south, b.east, b.north].map(v => Math.round(v * 100)).join(':') + ':' + Math.floor(map.getZoom());
   }
 
+  function boundsForRequest(bounds) {
+    const centerLat = (bounds.south + bounds.north) / 2;
+    const centerLon = (bounds.west + bounds.east) / 2;
+    const halfLat = Math.min((bounds.north - bounds.south) / 2, MAX_BBOX_SPAN);
+    const halfLon = Math.min((bounds.east - bounds.west) / 2, MAX_BBOX_SPAN);
+    return {
+      west: Math.max(-180, centerLon - halfLon), east: Math.min(180, centerLon + halfLon),
+      south: Math.max(-85, centerLat - halfLat), north: Math.min(85, centerLat + halfLat)
+    };
+  }
+
+  function requestCells(bounds) {
+    const latStep = GRID_DEGREES;
+    const lonStep = GRID_DEGREES / Math.max(0.15, Math.cos((bounds.south + bounds.north) * Math.PI / 360));
+    const cells = [];
+    const startLat = Math.floor(bounds.south / latStep) * latStep;
+    const startLon = Math.floor(bounds.west / lonStep) * lonStep;
+    const cellsToBuild = Math.ceil((bounds.north - startLat) / latStep) * Math.ceil((bounds.east - startLon) / lonStep);
+    if (cellsToBuild > 2000 || (bounds.north - bounds.south) * (bounds.east - bounds.west) > 0.5) {
+      const rows = Math.max(1, Math.floor(Math.sqrt(MAX_CELLS_PER_QUERY * (bounds.north - bounds.south) / (bounds.east - bounds.west))));
+      const columns = Math.max(1, Math.floor(MAX_CELLS_PER_QUERY / rows));
+      const tileLat = (bounds.north - bounds.south) / rows;
+      const tileLon = (bounds.east - bounds.west) / columns;
+      const limited = [];
+      for (let row = 0; row < rows; row++) {
+        for (let column = 0; column < columns; column++) {
+          limited.push({ west: bounds.west + column * tileLon, east: bounds.west + (column + 1) * tileLon, south: bounds.south + row * tileLat, north: bounds.south + (row + 1) * tileLat });
+        }
+      }
+      return limited;
+    }
+    for (let south = startLat; south < bounds.north; south += latStep) {
+      for (let west = startLon; west < bounds.east; west += lonStep) {
+        cells.push({
+          west: Math.max(bounds.west, west), east: Math.min(bounds.east, west + lonStep),
+          south: Math.max(bounds.south, south), north: Math.min(bounds.north, south + latStep)
+        });
+      }
+    }
+    if (cells.length <= MAX_CELLS_PER_QUERY) return cells;
+    const rows = Math.max(1, Math.floor(Math.sqrt(MAX_CELLS_PER_QUERY * (bounds.north - bounds.south) / (bounds.east - bounds.west))));
+    const columns = Math.max(1, Math.floor(MAX_CELLS_PER_QUERY / rows));
+    const tileLat = (bounds.north - bounds.south) / rows;
+    const tileLon = (bounds.east - bounds.west) / columns;
+    const limited = [];
+    for (let row = 0; row < rows; row++) {
+      for (let column = 0; column < columns; column++) {
+        limited.push({
+          west: bounds.west + column * tileLon, east: bounds.west + (column + 1) * tileLon,
+          south: bounds.south + row * tileLat, north: bounds.south + (row + 1) * tileLat
+        });
+      }
+    }
+    return limited;
+  }
+
   function toFeature(place) {
     if (!place) return null;
     // Overpass devuelve las coordenadas OSM como latitud y longitud numéricas.
@@ -112,18 +173,11 @@
   }
 
   async function loadStops(bounds) {
-    // Limita cada consulta a una tesela manejable: los límites visibles a zoom
-    // bajo exceden la cuota/tamaño de Overpass y la capa acababa sin paradas.
-    const centerLat = (bounds.south + bounds.north) / 2;
-    const centerLon = (bounds.west + bounds.east) / 2;
-    const halfLat = Math.min((bounds.north - bounds.south) / 2, MAX_BBOX_SPAN);
-    const halfLon = Math.min((bounds.east - bounds.west) / 2, MAX_BBOX_SPAN);
-    bounds = {
-      west: Math.max(-180, centerLon - halfLon), east: Math.min(180, centerLon + halfLon),
-      south: Math.max(-85, centerLat - halfLat), north: Math.min(85, centerLat + halfLat)
-    };
+    // Divide el área en consultas pequeñas, como la cuadrícula de fuentes de agua,
+    // para evitar que Overpass rechace un bbox visible demasiado grande.
+    bounds = boundsForRequest(bounds);
     const key = cacheKey(bounds);
-    if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS) return areaCache.features;
+    if (areaCache.key === key && Date.now() - areaCache.touched < CACHE_MS && requestCells(bounds).every(cell => stopCellCache.has(cacheKey(cell)) && Date.now() - stopCellCache.get(cacheKey(cell)).touched < CACHE_MS)) return areaCache.features;
     // El Worker recibe min/max como latitud,longitud y consulta OpenStreetMap vía Overpass.
     // Un bbox que cruza el antimeridiano se divide para no pedir longitudes invertidas.
     const west = ((bounds.west + 180) % 360 + 360) % 360 - 180;
@@ -134,19 +188,38 @@
     const coleccion = [];
     for (const segmento of segmentos) {
       if (segmento.west >= segmento.east) continue;
-      const min = bounds.south.toFixed(6) + ',' + segmento.west.toFixed(6);
-      const max = bounds.north.toFixed(6) + ',' + segmento.east.toFixed(6);
-      const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
-      const raw = await fetchApi('/transporte-paradas' + query);
-      const data = Array.isArray(raw) ? raw
-        : Array.isArray(raw && raw.stops) ? raw.stops
-        : Array.isArray(raw && raw.features) ? raw.features
-        : null;
-      if (!data) throw new Error('OpenStreetMap devolvió una respuesta de paradas inválida');
-      coleccion.push(...data);
+      const cells = requestCells({ west: segmento.west, east: segmento.east, south: bounds.south, north: bounds.north });
+      const pending = cells.filter(cell => {
+        const cached = stopCellCache.get(cacheKey(cell));
+        return !cached || Date.now() - cached.touched >= CACHE_MS;
+      });
+      const selected = pending.slice(0, MAX_CELLS_PER_REFRESH);
+      for (const cell of cells) {
+        const cached = stopCellCache.get(cacheKey(cell));
+        if (cached && Date.now() - cached.touched < CACHE_MS) {
+          coleccion.push(...cached.places);
+          continue;
+        }
+        if (!selected.includes(cell)) continue;
+        const min = cell.south.toFixed(6) + ',' + cell.west.toFixed(6);
+        const max = cell.north.toFixed(6) + ',' + cell.east.toFixed(6);
+        if (Number(cell.south.toFixed(6)) >= Number(cell.north.toFixed(6)) || Number(cell.west.toFixed(6)) >= Number(cell.east.toFixed(6))) continue;
+        const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
+        const raw = await fetchApi('/transporte-paradas' + query);
+        const data = Array.isArray(raw) ? raw
+          : Array.isArray(raw && raw.stops) ? raw.stops
+          : Array.isArray(raw && raw.features) ? raw.features
+          : null;
+        if (!data) throw new Error('OpenStreetMap devolvió una respuesta de paradas inválida');
+        stopCellCache.set(cacheKey(cell), { places: data, touched: Date.now() });
+        coleccion.push(...data);
+      }
     }
-    const features = coleccion.map(toFeature).filter(Boolean).slice(0, 400);
+    const unique = new Map();
+    coleccion.map(toFeature).filter(Boolean).forEach(feature => unique.set(String(feature.id), feature));
+    const features = Array.from(unique.values()).slice(0, 1500);
     areaCache = { key, features, touched: Date.now() };
+    lastFailedAt = 0;
     return features;
   }
 
@@ -184,14 +257,20 @@
 
   async function ensureLayers() {
     if (!await esperarEstilo()) return false;
-    if (map.getSource(SOURCE) && map.getLayer(SYMBOL) && map.getLayer(HALO)) return true;
+    if (map.getSource(SOURCE) && map.getLayer(SYMBOL) && map.getLayer(HALO)) {
+      map.moveLayer(HALO);
+      map.moveLayer(SYMBOL);
+      return true;
+    }
     const targetMap = map;
     const icon = await loadIcon();
     if (map !== targetMap || !targetMap.isStyleLoaded()) return false;
     if (!targetMap.hasImage(IMAGE)) targetMap.addImage(IMAGE, icon, { pixelRatio: 1 });
     if (!targetMap.getSource(SOURCE)) targetMap.addSource(SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, attribution: ATTRIBUTION });
-    if (!targetMap.getLayer(HALO)) targetMap.addLayer({ id: HALO, type: 'circle', source: SOURCE, minzoom: MIN_ZOOM, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 3, 16, 8], 'circle-color': '#35C4D4', 'circle-opacity': 0.18 } });
-    if (!targetMap.getLayer(SYMBOL)) targetMap.addLayer({ id: SYMBOL, type: 'symbol', source: SOURCE, minzoom: MIN_ZOOM, layout: { 'icon-image': IMAGE, 'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.55, 17, 0.85], 'icon-anchor': 'bottom', 'icon-offset': [0, -2], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+    if (!targetMap.getLayer(HALO)) targetMap.addLayer({ id: HALO, type: 'circle', source: SOURCE, minzoom: MIN_ZOOM, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12.5, 5, 16, 10], 'circle-color': '#35C4D4', 'circle-opacity': 0.75, 'circle-stroke-width': 2, 'circle-stroke-color': '#0E3B47' } });
+    if (!targetMap.getLayer(SYMBOL)) targetMap.addLayer({ id: SYMBOL, type: 'symbol', source: SOURCE, minzoom: MIN_ZOOM, layout: { 'icon-image': IMAGE, 'icon-size': ['interpolate', ['linear'], ['zoom'], 12.5, 0.75, 17, 1.05], 'icon-anchor': 'bottom', 'icon-offset': [0, -2], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+    targetMap.moveLayer(HALO);
+    targetMap.moveLayer(SYMBOL);
     return true;
   }
 
@@ -199,7 +278,6 @@
 
   async function refresh() {
     if (!enabled || !ready) return;
-    if (map.getZoom() < MIN_ZOOM) { showStatus(t('transportZoom', 'Acércate para ver las paradas de transporte público.')); return; }
     if (requestRunning) { refreshQueued = true; return; }
     requestRunning = true;
     const currentGeneration = generation;
@@ -223,17 +301,25 @@
       if (!enabled || currentGeneration !== generation) return;
       if (!capaLista) {
         showStatus(t('transportError', 'No se pudo consultar el transporte público.'));
+      } else if (map.getZoom() < MIN_ZOOM) {
+        showStatus(t('transportZoom', 'Acércate para ver las paradas de transporte público.'));
       } else {
-        const features = await loadStops(boundsOfMap());
+        const visibleBounds = boundsOfMap();
+        const requestedBounds = boundsForRequest(visibleBounds);
+        const features = await loadStops(visibleBounds);
         if (!enabled || currentGeneration !== generation) return;
         const source = map.getSource(SOURCE);
         if (source) source.setData({ type: 'FeatureCollection', features });
-        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas (OSM)' : t('transportNoData', 'Sin datos de transporte público en esta zona.'));
+        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas (OSM)' : (stopCellCache.size && requestCells(requestedBounds).some(cell => !stopCellCache.has(cacheKey(cell))) ? 'Cargando paradas cercanas…' : t('transportNoData', 'Sin datos de transporte público en esta zona.')));
+        if (requestCells(requestedBounds).some(cell => !stopCellCache.has(cacheKey(cell)))) {
+          window.setTimeout(() => { if (enabled && currentGeneration === generation) refresh(); }, 1000);
+        }
       }
     } catch (error) {
       if (enabled && currentGeneration === generation && error.name !== 'AbortError') {
         console.debug('[transporte-publico] No se pudieron cargar paradas:', error);
         showStatus(t('transportError', 'No se pudo consultar el transporte público.'));
+        lastFailedAt = Date.now();
       }
     }
     if (currentGeneration === generation) {
@@ -241,6 +327,8 @@
       if (enabled && refreshQueued) {
         refreshQueued = false;
         window.setTimeout(refresh, 0);
+      } else if (enabled && map.getZoom() >= MIN_ZOOM && !areaCache.features.length && Date.now() - lastFailedAt >= 30000) {
+        window.setTimeout(refresh, 5000);
       }
     }
   }
@@ -357,6 +445,7 @@
     if (enabled) { refresh(); return; }
     enabled = true; generation++;
     map.on('moveend', scheduleRefresh);
+    map.on('zoomend', scheduleRefresh);
     map.on('click', onMapClick);
     if (ready) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error));
   }
@@ -364,7 +453,7 @@
     enabled = false; generation++; refreshQueued = false; requestRunning = false; searchToken++;
     controllers.forEach(controller => controller.abort()); controllers.clear();
     clearTimeout(moveTimer);
-    map.off('moveend', scheduleRefresh); map.off('click', onMapClick);
+    map.off('moveend', scheduleRefresh); map.off('zoomend', scheduleRefresh); map.off('click', onMapClick);
     [SYMBOL, HALO].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
     if (map.getSource(SOURCE)) map.removeSource(SOURCE);
     if (map.hasImage(IMAGE)) map.removeImage(IMAGE);
@@ -378,6 +467,7 @@
     toggle.addEventListener('change', () => toggle.checked ? activate() : deactivate());
     map.on('load', () => { ready = true; if (enabled) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error)); });
     map.on('style.load', () => { ready = true; if (enabled) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error)); });
+    map.on('idle', () => { if (toggle && toggle.checked && !enabled) activate(); });
     fetch('transit-regions.json', { cache: 'no-store', credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(data => {
       if (data && Array.isArray(data.regions)) regions = data.regions;
     }).catch(error => console.debug('[transporte-publico] No se pudieron cargar las regiones:', error));

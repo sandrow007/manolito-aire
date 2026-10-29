@@ -632,6 +632,7 @@ export default {
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
                 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)',
+                'Accept': 'application/json',
               },
               body: new URLSearchParams({ data: consulta }).toString(),
               signal: controller.signal,
@@ -657,7 +658,7 @@ export default {
         }
         if (datos) {
           const paradas = datos.elements.map((el) => {
-            const punto = el.type === 'node' ? el : el.center;
+            const punto = el.type === 'node' ? el : (el.center || (el.geometry && el.geometry.reduce((sum, p) => ({ lat: sum.lat + p.lat / el.geometry.length, lon: sum.lon + p.lon / el.geometry.length }), { lat: 0, lon: 0 })));
             if (!punto || !Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return null;
             const tags = el.tags || {};
             return {

@@ -220,7 +220,13 @@
 // Cambian worker.js e index.html.
 // 2026-10-29-a: mejora tolerancia de Overpass y tamaño de consultas de paradas.
 // Cambian worker.js y js/transporte-publico.js.
-const VERSION = '2026-10-29-a-transporte-osm';
+// 2026-10-29-b: alinea zoom, cobertura en cuadrícula, reintentos y visibilidad
+// de transporte público con el patrón de la capa de fuentes de agua.
+// Cambian index.html, worker.js y js/transporte-publico.js.
+// 2026-10-29-c: invalida copias antiguas de la capa y alinea la URL del script.
+// 2026-10-29-d: capa agrega estaciones y limita las consultas Overpass por vista.
+// Cambian index.html, worker.js y js/transporte-publico.js.
+const VERSION = '2026-10-29-f-transporte-osm';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

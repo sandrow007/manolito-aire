@@ -636,6 +636,13 @@ export default {
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const datos = await r.json();
             if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
+            // Algunos espejos devuelven 200 con elements vacío y una marca de
+            // tiempo rota. Como Promise.any se queda con el primero que
+            // responde, ese vacío ganaba y no se dibujaba ninguna parada.
+            const ts = datos.osm3s && datos.osm3s.timestamp_osm_base;
+            if (datos.elements.length === 0 && typeof ts === 'string' && ts !== '' && !ts.includes('T')) {
+              throw new Error('espejo corrupto');
+            }
             return datos;
           } finally {
             clearTimeout(temporizador);
@@ -658,7 +665,7 @@ export default {
               id: el.type + ':' + el.id,
             };
           }).filter(Boolean);
-          if (kv && ctx && typeof ctx.waitUntil === 'function') {
+          if (kv && paradas.length && ctx && typeof ctx.waitUntil === 'function') {
             ctx.waitUntil(kv.put(claveKv, JSON.stringify(paradas), { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
           }
           return new Response(JSON.stringify(paradas), {
@@ -668,13 +675,13 @@ export default {
         }
 
         return new Response('[]', {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+          status: 503,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
         });
       } catch (err) {
         return new Response('[]', {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+          status: 503,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
         });
       }
     }

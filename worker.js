@@ -591,7 +591,8 @@ export default {
         const kv = env.AIR_QUALITY_CACHE || null;
         const bboxTxt = [south, west, north, east].map((v) => v.toFixed(6)).join(',');
         const claveKv = 'parada:osm:' + [south, west, north, east].map((v) => v.toFixed(3)).join(',');
-        if (kv) {
+        const modoDiagnostico = url.searchParams.get('debug') === '1';
+        if (kv && !modoDiagnostico) {
           try {
             const { value, metadata } = await kv.getWithMetadata(claveKv);
             if (value && metadata && metadata.ts && Date.now() - metadata.ts < 30 * 60 * 1000) {
@@ -651,6 +652,23 @@ export default {
 
         // Consulta los espejos en paralelo: una instancia caída no bloquea
         // esperando su timeout antes de probar la siguiente.
+        // Diagnóstico: /transporte-paradas?min=..&max=..&debug=1 muestra qué
+        // responde cada espejo de Overpass desde Cloudflare (sin datos sensibles).
+        if (modoDiagnostico) {
+          const informe = await Promise.all(espejos.map(async (espejo) => {
+            const t0 = Date.now();
+            try {
+              const d = await intentarEspejo(espejo);
+              return { espejo, ok: true, ms: Date.now() - t0, elementos: d.elements.length };
+            } catch (e) {
+              return { espejo, ok: false, ms: Date.now() - t0, error: String((e && e.message) || e) };
+            }
+          }));
+          return new Response(JSON.stringify({ bbox: bboxTxt, kv: !!kv, informe }, null, 2), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
+          });
+        }
         let datos = null;
         try { datos = await Promise.any(espejos.map(intentarEspejo)); } catch (error) { }
         if (datos) {

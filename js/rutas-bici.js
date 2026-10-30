@@ -533,7 +533,7 @@
     var b = s + ',' + w + ',' + n + ',' + e;
     // Etiquetas habituales de OSM: vías dedicadas, carriles y rutas señalizadas.
     return '[out:json][timeout:20];(' +
-      'way["highway"="cycleway"](' + b + ');
+      'way["highway"="cycleway"](' + b + ');' +
       'way["cycleway"](' + b + ');' +
       'way["cycleway:left"](' + b + ');' +
       'way["cycleway:right"](' + b + ');' +

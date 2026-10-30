@@ -177,6 +177,55 @@
     ]).finally(() => clearTimeout(timer));
   }
 
+  // Respaldo: si el Worker falla o devuelve vacío (no desplegado, Overpass
+  // bloqueando a Cloudflare...), el navegador consulta OpenStreetMap/Overpass
+  // directamente con la misma consulta. Overpass admite CORS.
+  const OVERPASS_DIRECTOS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://lz4.overpass-api.de/api/interpreter',
+    'https://z.overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter'
+  ];
+  async function fetchParadasDirecto(b) {
+    const bbox = [b.south, b.west, b.north, b.east].map(v => Number(v).toFixed(6)).join(',');
+    const consulta = '[out:json][timeout:20];(' +
+      'node["highway"="bus_stop"](' + bbox + ');' +
+      'node["public_transport"="platform"](' + bbox + ');' +
+      'way["public_transport"="platform"](' + bbox + ');' +
+      'node["railway"="tram_stop"](' + bbox + ');' +
+      'nwr["public_transport"="station"](' + bbox + ');' +
+      'nwr["amenity"="bus_station"](' + bbox + ');' +
+      'nwr["railway"="station"](' + bbox + ');' +
+      ');out center qt;';
+    const intentar = async (url) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 18000);
+      controllers.add(controller);
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: new URLSearchParams({ data: consulta }).toString(),
+          credentials: 'omit',
+          signal: controller.signal
+        });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const datos = await response.json();
+        if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
+        const ts = datos.osm3s && datos.osm3s.timestamp_osm_base;
+        if (!datos.elements.length && typeof ts === 'string' && ts !== '' && ts.indexOf('T') === -1) throw new Error('espejo corrupto');
+        return datos.elements;
+      } finally { clearTimeout(timer); controllers.delete(controller); }
+    };
+    const elementos = await Promise.any(OVERPASS_DIRECTOS.map(intentar));
+    return elementos.map(el => {
+      const punto = el.type === 'node' ? el : el.center;
+      if (!punto || !Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return null;
+      const tags = el.tags || {};
+      return { name: tags.name || tags['name:es'] || 'Parada', lat: punto.lat, lon: punto.lon, id: el.type + ':' + el.id };
+    }).filter(Boolean);
+  }
+
   async function loadStops(bounds) {
     bounds = boundsForRequest(bounds);
     const key = cacheKey(bounds);
@@ -203,8 +252,20 @@
       const min = batchBounds.south.toFixed(6) + ',' + batchBounds.west.toFixed(6);
       const max = batchBounds.north.toFixed(6) + ',' + batchBounds.east.toFixed(6);
       const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
-      const raw = await withTimeout(fetchApi('/transporte-paradas' + query), 25000);
+      let raw = null;
+      let errorWorker = null;
+      try { raw = await withTimeout(fetchApi('/transporte-paradas' + query), 25000); } catch (error) { errorWorker = error; }
       if (!enabled || !map) return [];
+      const workerVacio = !raw || (Array.isArray(raw) && raw.length === 0);
+      if (workerVacio) {
+        try {
+          const directo = await withTimeout(fetchParadasDirecto(batchBounds), 25000);
+          if (!enabled || !map) return [];
+          if (directo.length || errorWorker) raw = directo;
+        } catch (errorDirecto) {
+          if (errorWorker) throw errorWorker;
+        }
+      }
       const data = Array.isArray(raw) ? raw
         : Array.isArray(raw && raw.stops) ? raw.stops
         : Array.isArray(raw && raw.features) ? raw.features
@@ -556,4 +617,3 @@
     document.head.appendChild(style);
   }
 })();
-

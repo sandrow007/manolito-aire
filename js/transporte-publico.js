@@ -192,6 +192,7 @@
       'node["highway"="bus_stop"](' + bbox + ');' +
       'node["public_transport"="platform"](' + bbox + ');' +
       'way["public_transport"="platform"](' + bbox + ');' +
+      'relation["public_transport"="platform"](' + bbox + ');' +
       'node["railway"="tram_stop"](' + bbox + ');' +
       'nwr["public_transport"="station"](' + bbox + ');' +
       'nwr["amenity"="bus_station"](' + bbox + ');' +
@@ -258,12 +259,16 @@
       if (!enabled || !map) return [];
       const workerVacio = !raw || (Array.isArray(raw) && raw.length === 0);
       if (workerVacio) {
+        if (errorWorker) console.debug('[transporte-publico] Worker falló, probando Overpass directo:', errorWorker);
         try {
           const directo = await withTimeout(fetchParadasDirecto(batchBounds), 25000);
           if (!enabled || !map) return [];
+          console.debug('[transporte-publico] Overpass directo devolvió', directo.length, 'elementos para', batchBounds);
           if (directo.length || errorWorker) raw = directo;
         } catch (errorDirecto) {
+          console.debug('[transporte-publico] Overpass directo también falló:', errorDirecto);
           if (errorWorker) throw errorWorker;
+          throw errorDirecto;
         }
       }
       const data = Array.isArray(raw) ? raw

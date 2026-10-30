@@ -223,7 +223,7 @@
       const punto = el.type === 'node' ? el : el.center;
       if (!punto || !Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return null;
       const tags = el.tags || {};
-      return { name: tags.name || tags['name:es'] || 'Parada', lat: punto.lat, lon: punto.lon, id: el.type + ':' + el.id };
+      return { name: tags.name || tags['name:es'] || 'Parada', lat: punto.lat, lon: punto.lon, stopId: 'osm:' + el.type + ':' + el.id };
     }).filter(Boolean);
   }
 
@@ -398,7 +398,8 @@
           const cached = stopCellCache.get(cell.key);
           return !cached || Date.now() - cached.touched >= CACHE_MS;
         });
-        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas (OSM)' : (quedanCeldas ? 'Cargando paradas cercanas…' : t('transportNoData', 'Sin datos de transporte público en esta zona.')));
+        const esEspana = currentRegion.indexOf('es-') === 0;
+        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (esEspana ? 'España' : 'Global') + ' · ' + features.length + ' paradas (' + (esEspana ? 'Transitous + OSM' : 'OSM') + ')' : (quedanCeldas ? 'Cargando paradas cercanas…' : t('transportNoData', 'Sin datos de transporte público en esta zona.')));
         if (quedanCeldas) refreshQueued = true;
         else autoSteps = 0;
       }
@@ -461,7 +462,7 @@
     if (!feature) return;
     const props = feature.properties;
     const coords = feature.geometry.coordinates;
-    const esOsmId = /^(node|way|relation):\d+$/.test(String(props.stopId || ''));
+    const esTransitous = /^tt:/.test(String(props.stopId || ''));
     const tarjetaParada = crearTarjetaParada(props, () => {
       const destination = { lon: Number(coords[0]), lat: Number(coords[1]), nombre: props.name || t('transportStop', 'Parada') };
       const routeToggle = document.getElementById('rsToggleRuta');
@@ -478,9 +479,62 @@
     const body = tarjetaParada.body;
     if (popup) popup.remove();
     popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '320px', offset: 12, className: 'tp-map-popup' }).setLngLat(coords).setDOMContent(box).addTo(map);
-    body.textContent = map.getZoom() < DEPARTURE_MIN_ZOOM
-      ? 'Parada de OpenStreetMap. Acércate para consultar horarios si están disponibles.'
-      : t('transportNoSchedules', 'Parada de OpenStreetMap. No hay horarios GTFS disponibles.');
+    if (!esTransitous) {
+      body.textContent = t('transportNoSchedules', 'Parada de OpenStreetMap. No hay horarios GTFS disponibles.');
+      return;
+    }
+    if (map.getZoom() < DEPARTURE_MIN_ZOOM) {
+      body.textContent = 'Acércate para consultar horarios.';
+      return;
+    }
+    cargarSalidas(String(props.stopId), body);
+  }
+
+  function formatoHora(fechaIso) {
+    try {
+      const d = new Date(fechaIso);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    } catch (error) { return ''; }
+  }
+
+  function pintarSalidas(body, items) {
+    body.textContent = '';
+    if (!items.length) { body.textContent = t('transportNoSchedules', 'No hay próximas salidas disponibles.'); return; }
+    const lista = document.createElement('ul');
+    lista.className = 'tp-departure-list';
+    const ahora = Date.now();
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.className = 'tp-departure' + (item.timestamp && item.timestamp < ahora ? ' is-past' : '');
+      const linea = document.createElement('span'); linea.className = 'tp-line-name'; linea.textContent = item.linea || item.nombre || t('transportStop', 'Línea');
+      const hora = document.createElement('span'); hora.className = 'tp-time' + (item.tiempoReal ? ' is-realtime' : ''); hora.textContent = item.hora || '--:--';
+      li.append(linea, hora);
+      lista.appendChild(li);
+    });
+    body.appendChild(lista);
+  }
+
+  async function cargarSalidas(stopId, body) {
+    body.textContent = t('transportLoading', 'Cargando salidas…');
+    try {
+      const data = await withTimeout(fetchApi('/transporte-salidas?stopId=' + encodeURIComponent(stopId) + '&n=8'), 15000);
+      const crudos = Array.isArray(data) ? data : (data && Array.isArray(data.stopTimes) ? data.stopTimes : []);
+      const items = crudos.map(s => {
+        const hora = s.realtime || s.place && s.place.departure || s.departure || s.arrival;
+        const ts = hora ? Date.parse(hora) : NaN;
+        return {
+          linea: (s.routeShortName || (s.trip && s.trip.routeShortName) || s.headsign || s.tripHeadsign || '').toString(),
+          hora: hora ? formatoHora(hora) : '',
+          timestamp: Number.isFinite(ts) ? ts : null,
+          tiempoReal: !!(s.realTime || s.realtime),
+        };
+      }).filter(item => item.hora);
+      pintarSalidas(body, items);
+    } catch (error) {
+      console.debug('[transporte-publico] No se pudieron cargar las salidas:', error);
+      body.textContent = t('transportError', 'No se pudieron cargar los horarios.');
+    }
   }
 
   async function searchStop(query, origin) {

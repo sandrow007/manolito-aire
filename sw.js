@@ -1,972 +1,436 @@
-/*
- * Rutas en bicicleta + capa de carriles bici de Manolit∞ Aire.
- *
- * - ADITIVO: no toca la lógica de coche (aparcamientos-viaje.js) ni la de
- *   sombra. Se engancha al mapa por window.manolitAireMap, como el resto.
- * - Motor principal: OSRM bici de FOSSGIS por el proxy propio /ruta-bici.
- *   El proxy usa routed-bike (no el perfil de coche ni el de paseo) y devuelve
- *   una geometría para pintar la ruta sin depender del CORS de BRouter.
- * - BRouter queda como alternativa independiente si el proxy no da ninguna ruta.
- * - Atribución: "BRouter" y "© OpenStreetMap contributors" visibles en el
- *   panel. Carriles bici: Overpass vía el proxy /carriles-bici (ruta propia,
- *   separada de /aparcamientos y de /arboles: cada capa tiene su propio
- *   espacio de caché en el Worker para que nunca se devuelvan unos datos
- *   por otros en el mismo bbox — 24-oct-2026, arreglo del carril que no
- *   aparecía).
- * - "Más sombra" para bici NO se implementa: reutilizar el motor de sombra
- *   sobre la polilínea de bici no es trivial y se deja fuera para no tocar
- *   la lógica existente.
- */
-(function () {
-  'use strict';
-
-  if (window.__manolitoRutasBici) return; // doble carga: jamás
-  window.__manolitoRutasBici = true;
-
-  // El proxy del sitio usa el perfil routed-bike; ruta propia para no
-  // interferir con las rutas de paseo ni con las rutas en coche.
-  var OSRM_BICI_URL = window.location.protocol === 'file:'
-    ? 'https://manolitoaire.com/ruta-bici'
-    : '/ruta-bici';
-  var BROUTER_URL = 'https://brouter.de/brouter';
-  var GEO_URL = window.location.protocol === 'file:'
-    ? 'https://manolitoaire.com/geo'
-    : '/geo';
-  // Ruta PROPIA para los carriles bici (ver nota de cabecera): antes
-  // reutilizaba '/aparcamientos' y, si esa misma zona ya tenía la caché de
-  // aparcamiento guardada en el Worker, el carril bici recibía esos mismos
-  // datos (nodos de parking, sin geometría de vía) y no dibujaba nada.
-  var OVERPASS_URL = window.location.protocol === 'file:'
-    ? 'https://manolitoaire.com/carriles-bici'
-    : '/carriles-bici';
-
-  // Fallback directo desde el navegador: el Worker no alcanza Overpass
-  // desde Cloudflare, pero el navegador sí (CORS abierto). Solo se usa
-  // cuando el proxy propio devuelve vacío.
-  var OVERPASS_DIRECTO = 'https://overpass-api.de/api/interpreter';
-  var OVERPASS_DIRECTO_2 = 'https://overpass.kumi.systems/api/interpreter';
-
-  var RUTA_TTL_MS = 60 * 1000;
-  var MIN_GAP_MS = 1000;             // BRouter: 1 petición/segundo
-  var MAX_ALTERNATIVAS = 3;
-  var MAX_KM_OVERBRIDGE = 20;      // carriles bici: bbox máximo ~20 km (barrio/ciudad)
-  var CARRIL_TTL_MS = 15 * 60 * 1000;
-  var CARRIL_MIN_ZOOM = 10;
-
-  var map = null;
-  var rutaSourceListo = false;
-  var carrilEnabled = false;
-  var carrilToggle = null;
-  var carrilTimer = 0;
-  var carrilCache = new Map();
-  var carrilUltima = 0;
-
-  var lista = { ultimaClave: '', rutas: [], touched: 0 };
-
-  function t(clave, fallback) {
-    try {
-      var fn = window.getMessages;
-      if (typeof fn === 'function') {
-        var msg = fn();
-        if (msg && msg[clave] != null) return msg[clave];
-      }
-    } catch (e) {
-      // i18n no cargado todavía: usar el texto en español es intencional,
-      // no es un error de la capa.
-      console.debug('[rutas-bici] i18n no disponible, uso fallback:', e);
-    }
-    return fallback != null ? fallback : clave;
-  }
-
-  /* ---------------- Utilidades ------------------------------------------ */
-  function geoJson(geometry) { return { type: 'Feature', geometry: geometry, properties: {} }; }
-
-  function fmtMinutos(seg) {
-    var min = Math.round(seg / 60);
-    return min >= 60 ? Math.floor(min / 60) + ' h ' + (min % 60) + ' min' : min + ' min';
-  }
-
-  function fmtKm(m) {
-    var km = m / 1000;
-    return String(km >= 10 ? Math.round(km) : (Math.round(km * 10) / 10)).replace('.', ',');
-  }
-
-  function keyRuta(o, d) {
-    return o.lon.toFixed(5) + ',' + o.lat.toFixed(5) + '|' + d.lon.toFixed(5) + ',' + d.lat.toFixed(5);
-  }
-
-  function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-
-  /* ---------------- Geocodificación y ubicación ------------------------- */
-  async function geocodificar(consulta) {
-    try {
-      var resp = await fetch(GEO_URL + '/search?q=' + encodeURIComponent(consulta) + '&format=json&limit=1', { credentials: 'omit' });
-      if (!resp.ok) return null;
-      var datos = await resp.json();
-      if (Array.isArray(datos) && datos.length) {
-        return { lat: parseFloat(datos[0].lat), lon: parseFloat(datos[0].lon), nombre: datos[0].display_name || consulta };
-      }
-    } catch (e) { /* devuelve null */ }
-    return null;
-  }
-
-  function miPosicion() {
-    return new Promise(function (resolve) {
-      var porMapa = function () {
-        try {
-          var c = map.getCenter();
-          resolve({ lat: c.lat, lon: c.lng, nombre: t('tripMapCenter', 'Centro del mapa') });
-        } catch (e) { resolve(null); }
-      };
-      if (!('geolocation' in navigator)) { porMapa(); return; }
-      var hecho = false;
-      var temporizador = setTimeout(function () { if (!hecho) { hecho = true; porMapa(); } }, 4000);
-      navigator.geolocation.getCurrentPosition(function (pos) {
-        if (hecho) return;
-        hecho = true;
-        clearTimeout(temporizador);
-        resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, nombre: t('myLocation', 'Mi ubicación') });
-      }, function () {
-        if (hecho) return;
-        hecho = true;
-        clearTimeout(temporizador);
-        porMapa();
-      }, { timeout: 3500, maximumAge: 60000 });
-    });
-  }
-
-  /* ---------------- BRouter de respaldo --------------------------------- */
-  var ultimaBrouter = 0;
-
-  async function pedirBrouter(lonlats, alternativeIdx) {
-    var falta = MIN_GAP_MS - (Date.now() - ultimaBrouter);
-    if (falta > 0) await esperar(falta);
-    ultimaBrouter = Date.now();
-
-    var url = BROUTER_URL +
-      '?lonlats=' + encodeURIComponent(lonlats) +
-      '&profile=trekking&alternativeidx=' + alternativeIdx +
-      '&format=geojson';
-
-    var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, 8000);
-    try {
-      var resp = await fetch(url, {
-        signal: controller.signal,
-        mode: 'cors',
-        credentials: 'omit',
-        headers: { 'Accept': 'application/geo+json, application/json' }
-      });
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch (e) {
-      return null;
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  function parseBrouter(datos) {
-    var features = datos && datos.features;
-    if (!Array.isArray(features) || !features.length) return null;
-    var f = features[0];
-    var geom = f.geometry;
-    if (!geom || geom.type !== 'LineString' || !geom.coordinates || !geom.coordinates.length) return null;
-    var props = f.properties || {};
-    var distancia = parseFloat(props['track-length']) || 0;
-    var desnivel = parseFloat(props['filtered ascend']) || 0;
-    var duracion = parseFloat(props['total-time']) || 0;
-    return { geometry: geom, distanciaM: distancia, duracionS: duracion, desnivelM: desnivel };
-  }
-
-  /* ---------------- Respaldo OSRM bici ---------------------------------- */
-  async function pedirOsrmBici(origen, destino) {
-    var coords = origen.lon + ',' + origen.lat + ';' + destino.lon + ',' + destino.lat;
-    var url = OSRM_BICI_URL + '/driving/' + coords + '?overview=full&geometries=geojson&steps=false&alternatives=' + (MAX_ALTERNATIVAS - 1);
-    var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, 15000);
-    try {
-      var resp = await fetch(url, { signal: controller.signal, credentials: 'omit' });
-      if (!resp.ok) return [];
-      var datos = await resp.json();
-      if (!datos || datos.code !== 'Ok' || !Array.isArray(datos.routes)) return [];
-      return datos.routes.map(function (r) {
-        return { geometry: r.geometry, distanciaM: r.distance || 0, duracionS: r.duration || 0, desnivelM: null };
-      }).filter(function (r) { return r.geometry && r.geometry.coordinates && r.geometry.coordinates.length; });
-    } catch (e) {
-      return [];
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  /* ---------------- Cálculo de rutas ------------------------------------ */
-  async function calcularRutas(origen, destino) {
-    var clave = keyRuta(origen, destino);
-    if (lista.ultimaClave === clave && Date.now() - lista.touched < RUTA_TTL_MS) {
-      return lista.rutas;
-    }
-
-    var lonlats = origen.lon + ',' + origen.lat + '|' + destino.lon + ',' + destino.lat;
-    var rutas = [];
-    try {
-      rutas = await pedirOsrmBici(origen, destino);
-    } catch (e) {
-      console.warn('[rutas-bici] El proxy OSRM no respondió; se probará BRouter.', e);
-    }
-    rutas.forEach(function (r, idx) { r.indice = idx; });
-
-    // Si OSRM no devuelve una geometría, intenta BRouter en una petición
-    // independiente. Este fallo nunca afecta a las rutas a pie o en coche.
-    if (!rutas.length) {
-      var datos = await pedirBrouter(lonlats, 0);
-      var ruta = parseBrouter(datos);
-      if (ruta) {
-        ruta.indice = 0;
-        rutas.push(ruta);
-      }
-    }
-
-    lista.ultimaClave = clave;
-    lista.rutas = rutas;
-    lista.touched = Date.now();
-    return rutas;
-  }
-
-  /* ---------------- Pintado de rutas ------------------------------------ */
-  var SOURCE_ID = 'bici-rutas';
-  var OUTLINE_ID = 'bici-rutas-outline';
-  var LINE_ID = 'bici-rutas-line';
-  var ACCENT_COLOR = '#FF6B1A';
-  var SECONDARY_COLOR = '#5a6b78';
-
-  function asegurarCapasRuta() {
-    if (!map || !map.isStyleLoaded()) return false;
-    if (map.getSource(SOURCE_ID)) {
-      if (!map.getLayer(OUTLINE_ID)) {
-        map.addLayer({
-          id: OUTLINE_ID,
-          type: 'line',
-          source: SOURCE_ID,
-          layout: { 'line-cap': 'round', 'line-join': 'round' },
-          paint: {
-            'line-color': '#ffffff',
-            'line-width': ['interpolate', ['linear'], ['zoom'], 5, 3, 10, 7, 15, 11],
-            'line-opacity': 0.95
-          }
-        });
-      }
-      if (!map.getLayer(LINE_ID)) {
-        map.addLayer({
-          id: LINE_ID,
-          type: 'line',
-          source: SOURCE_ID,
-          layout: { 'line-cap': 'round', 'line-join': 'round' },
-          paint: {
-            'line-color': ['case', ['get', 'primaria'], ACCENT_COLOR, SECONDARY_COLOR],
-            'line-width': ['interpolate', ['linear'], ['zoom'], 5, 2.5, 10, 5, 15, 8],
-            'line-opacity': 1
-          }
-        });
-      }
-      return true;
-    }
-    map.addSource(SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-    map.addLayer({
-      id: OUTLINE_ID,
-      type: 'line',
-      source: SOURCE_ID,
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: {
-        'line-color': '#ffffff',
-        'line-width': ['interpolate', ['linear'], ['zoom'], 5, 3, 10, 7, 15, 11],
-        'line-opacity': 0.95
-      }
-    });
-    map.addLayer({
-      id: LINE_ID,
-      type: 'line',
-      source: SOURCE_ID,
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: {
-        'line-color': ['case', ['get', 'primaria'], ACCENT_COLOR, SECONDARY_COLOR],
-        'line-width': ['interpolate', ['linear'], ['zoom'], 5, 2.5, 10, 5, 15, 8],
-        'line-opacity': 1
-      }
-    });
-    return true;
-  }
-
-  function pintarRutas(rutas) {
-    if (!asegurarCapasRuta()) {
-      map.once('style.load', function () { pintarRutas(rutas); });
-      return;
-    }
-    var features = rutas.map(function (r, idx) {
-      var f = geoJson(r.geometry);
-      f.properties = { indice: idx, primaria: idx === 0 };
-      return f;
-    });
-    map.getSource(SOURCE_ID).setData({ type: 'FeatureCollection', features: features });
-    if (features.length) {
-      try {
-        var bounds = new maplibregl.LngLatBounds(features[0].geometry.coordinates[0], features[0].geometry.coordinates[0]);
-        for (var i = 0; i < features.length; i++) {
-          var coords = features[i].geometry.coordinates;
-          for (var j = 1; j < coords.length; j++) bounds.extend(coords[j]);
-        }
-        map.fitBounds(bounds, { padding: { top: 90, bottom: 90, left: 40, right: 40 }, duration: 900 });
-      } catch (e) { /* encuadre opcional */ }
-    }
-  }
-
-  function limpiarRuta() {
-    if (map && map.getSource(SOURCE_ID)) {
-      map.getSource(SOURCE_ID).setData({ type: 'FeatureCollection', features: [] });
-    }
-    lista.ultimaClave = '';
-    lista.rutas = [];
-  }
-
-  function seleccionarAlternativa(indice) {
-    var source = map && map.getSource(SOURCE_ID);
-    if (!source) return;
-    var data = source._data || { type: 'FeatureCollection', features: [] };
-    if (!Array.isArray(data.features)) return;
-    data.features.forEach(function (f) {
-      f.properties.primaria = (f.properties.indice === indice);
-    });
-    source.setData(data);
-  }
-
-  /* ---------------- Panel ------------------------------------------------- */
-  var panel = null;
-  var inputOrigen = null;
-  var inputDestino = null;
-  var estado = null;
-  var listaAlt = null;
-
-  function construirPanel() {
-    panel = document.createElement('div');
-    panel.id = 'rsPanelBici';
-    panel.className = 'rs-panel-viaje';
-    panel.setAttribute('hidden', '');
-
-    var titulo = document.createElement('p');
-    titulo.className = 'rs-panel-viaje-tit';
-    titulo.textContent = t('bikePanelTitle', 'Ruta en bicicleta');
-    panel.appendChild(titulo);
-
-    inputOrigen = document.createElement('input');
-    inputOrigen.type = 'text';
-    inputOrigen.setAttribute('placeholder', t('bikeOriginPh', 'Desde dónde sales (vacío = tu ubicación)'));
-    inputOrigen.setAttribute('aria-label', t('bikeOriginPh', 'Desde dónde sales (vacío = tu ubicación)'));
-    inputOrigen.autocomplete = 'off';
-    panel.appendChild(inputOrigen);
-
-    inputDestino = document.createElement('input');
-    inputDestino.type = 'text';
-    inputDestino.setAttribute('placeholder', t('bikeDestPh', 'A dónde vas'));
-    inputDestino.setAttribute('aria-label', t('bikeDestPh', 'A dónde vas'));
-    inputDestino.autocomplete = 'off';
-    panel.appendChild(inputDestino);
-
-    var filaBotones = document.createElement('div');
-    filaBotones.className = 'rs-panel-viaje-botones';
-    var btnCalcular = document.createElement('button');
-    btnCalcular.type = 'button';
-    btnCalcular.className = 'rs-panel-viaje-calcular';
-    btnCalcular.textContent = t('bikeCalcBtn', 'Trazar ruta');
-    btnCalcular.addEventListener('click', function () { planificar(); });
-    filaBotones.appendChild(btnCalcular);
-
-    var btnLimpiar = document.createElement('button');
-    btnLimpiar.type = 'button';
-    btnLimpiar.className = 'rs-panel-viaje-limpiar';
-    btnLimpiar.textContent = t('bikeClearBtn', 'Quitar ruta');
-    btnLimpiar.addEventListener('click', function () { limpiarRuta(); if (estado) estado.textContent = ''; });
-    filaBotones.appendChild(btnLimpiar);
-    panel.appendChild(filaBotones);
-
-    estado = document.createElement('p');
-    estado.className = 'rs-panel-viaje-estado';
-    estado.setAttribute('role', 'status');
-    panel.appendChild(estado);
-
-    listaAlt = document.createElement('div');
-    listaAlt.className = 'rs-panel-bici-alternativas';
-    panel.appendChild(listaAlt);
-
-    var attribution = document.createElement('small');
-    attribution.className = 'rs-panel-viaje-estado';
-    attribution.textContent = t('bikeAttribution', 'Ruta por BRouter y © Colaboradores de OpenStreetMap · Respaldo: OSRM/FOSSGIS');
-    panel.appendChild(attribution);
-
-    var mapaWrap = document.querySelector('.map-wrap');
-    if (mapaWrap && mapaWrap.parentNode) mapaWrap.parentNode.insertBefore(panel, mapaWrap.nextSibling);
-    else document.getElementById('main-content')?.appendChild(panel);
-
-    inputDestino.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); planificar(); } });
-    inputOrigen.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); planificar(); } });
-  }
-
-  function pintarAlternativas(rutas) {
-    if (!listaAlt) return;
-    listaAlt.textContent = '';
-    if (!rutas.length) return;
-
-    var cabecera = document.createElement('p');
-    cabecera.className = 'rs-panel-viaje-estado';
-    cabecera.textContent = t('bikeAlternatives', 'Alternativas');
-    listaAlt.appendChild(cabecera);
-
-    rutas.forEach(function (r, idx) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'rs-panel-bici-alt' + (idx === 0 ? ' activa' : '');
-      btn.setAttribute('aria-pressed', idx === 0 ? 'true' : 'false');
-
-      var fuerte = document.createElement('strong');
-      fuerte.textContent = fmtMinutos(r.duracionS) + ' · ' + fmtKm(r.distanciaM) + ' km';
-      btn.appendChild(fuerte);
-
-      if (r.desnivelM != null && r.desnivelM > 0) {
-        var sub = document.createElement('span');
-        sub.className = 'rs-panel-bici-sub';
-        sub.textContent = ' · ' + Math.round(r.desnivelM) + ' m ' + t('bikeElevation', 'desnivel');
-        btn.appendChild(sub);
-      }
-
-      btn.addEventListener('click', function () {
-        seleccionarAlternativa(idx);
-        var botones = listaAlt.querySelectorAll('.rs-panel-bici-alt');
-        for (var i = 0; i < botones.length; i++) {
-          botones[i].classList.toggle('activa', i === idx);
-          botones[i].setAttribute('aria-pressed', i === idx ? 'true' : 'false');
-        }
-      });
-      listaAlt.appendChild(btn);
-    });
-  }
-
-  async function planificar() {
-    if (!map) return;
-    if (panel && panel.hasAttribute('hidden')) panel.removeAttribute('hidden');
-
-    var dTxt = String(inputDestino ? inputDestino.value : '').trim();
-    var oTxt = String(inputOrigen ? inputOrigen.value : '').trim();
-    if (!dTxt) { if (estado) estado.textContent = t('tripNeedDest', 'Dime a dónde vas y te trazo el viaje.'); return; }
-
-    if (estado) estado.textContent = t('bikeSearching', 'Buscando la mejor ruta en bici…');
-    var destino = await geocodificar(dTxt);
-    if (!destino) { if (estado) estado.textContent = t('bikeNoGeocode', 'No encuentro ese destino. Prueba con el nombre de la ciudad.'); return; }
-    var origen = oTxt ? await geocodificar(oTxt) : await miPosicion();
-    if (!origen) { if (estado) estado.textContent = t('bikeNoOrigin', 'No encuentro ese origen. Déjalo vacío para salir de donde estás.'); return; }
-
-    var rutas = await calcularRutas(origen, destino);
-    if (!rutas.length) { if (estado) estado.textContent = t('bikeNoRoute', 'No he podido trazar la ruta en bici. Inténtalo en un momento.'); return; }
-
-    pintarRutas(rutas);
-    pintarAlternativas(rutas);
-    if (estado) estado.textContent = '';
-    return {
-      origen: origen,
-      destino: destino,
-      alternativas: rutas.length,
-      distanciaM: rutas[0].distanciaM,
-      duracionS: rutas[0].duracionS
-    };
-  }
-
-  // API pública acotada para que el chat use la misma geocodificación y
-  // el mismo motor/pintado que el panel, sin duplicar rutas ni acceder al DOM.
-  window.manolitAirePlanificarRutaBici = async function (origenTexto, destinoTexto) {
-    if (!map || !String(destinoTexto || '').trim()) return null;
-    if (panel && panel.hasAttribute('hidden')) panel.removeAttribute('hidden');
-    if (inputOrigen) inputOrigen.value = String(origenTexto || '');
-    if (inputDestino) inputDestino.value = String(destinoTexto || '');
-    try {
-      var resultado = await planificar();
-      return resultado || null;
-    } catch (error) {
-      console.debug('[rutas-bici] No se pudo planificar desde el chat:', error);
-      return null;
-    }
-  };
-
-  /* ---------------- Capa de carriles bici (roja con bandas blancas) -------- */
-  var CARRIL_SOURCE = 'carriles-bici-source';
-  var CARRIL_ROJO = 'carriles-bici-rojo';
-  var CARRIL_BORDE_IZQ = 'carriles-bici-borde-izq';
-  var CARRIL_BORDE_DER = 'carriles-bici-borde-der';
-  var CARRIL_SIMBOLO = 'carriles-bici-simbolo';
-  var CARRIL_IMAGEN = 'carriles-bici-icono';
-  var CARRIL_CACHE_VERSION = 'osm-cycleway-20261029';
-  var carrilCapaLista = false; // Flag para saber si la capa está completamente inicializada
-  var carrilInicializando = false; // Flag para evitar múltiples inicializaciones
-  var carrilRequestId = 0;
-  var carrilStyleHandler = null;
-  
-  // SVG del símbolo de bicicleta para carriles bici
-  var BICI_ICONO_SVG =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
-    '<g fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
-    '<circle cx="9" cy="21" r="5"/>' +
-    '<circle cx="23" cy="21" r="5"/>' +
-    '<path d="M9 21 L16 11 L20 11"/>' +
-    '<path d="M16 11 L14 7 L11 7"/>' +
-    '<path d="M20 11 L18 7 L21 7"/>' +
-    '</g>' +
-    '</svg>';
-
-  function bboxVisible() {
-    var b = map.getBounds();
-    return {
-      west: Math.max(-180, b.getWest()), south: Math.max(-85, b.getSouth()),
-      east: Math.min(180, b.getEast()), north: Math.min(85, b.getNorth())
-    };
-  }
-
-  function consultaCarriles(bbox) {
-    var s = bbox.south.toFixed(6), w = bbox.west.toFixed(6),
-        n = bbox.north.toFixed(6), e = bbox.east.toFixed(6);
-    var b = s + ',' + w + ',' + n + ',' + e;
-    // Etiquetas habituales de OSM: vías dedicadas, carriles y rutas señalizadas.
-    return '[out:json][timeout:20];(' +
-      'way["highway"="cycleway"](' + b + ');' +
-      'way["cycleway"](' + b + ');' +
-      'way["cycleway:left"](' + b + ');' +
-      'way["cycleway:right"](' + b + ');' +
-      'way["cycleway:both"](' + b + ');' +
-      'way["bicycle"="designated"](' + b + ');' +
-      'way["bicycle"="official"](' + b + ');' +
-      ');out body geom;';
-  }
-
-  function wayToLineString(element) {
-    if (!element) return null;
-    var coords = Array.isArray(element.geometry)
-      ? element.geometry.map(function (p) { return [Number(p.lon), Number(p.lat)]; })
-      : [];
-    if (coords.length < 2 && Array.isArray(element.nodes)) {
-      coords = element.nodes.map(function (node) { return [Number(node.lon), Number(node.lat)]; })
-        .filter(function (p) { return Number.isFinite(p[0]) && Number.isFinite(p[1]); });
-    }
-    if (coords.length < 2 || coords.some(function (p) { return !Number.isFinite(p[0]) || !Number.isFinite(p[1]); })) return null;
-    return { type: 'Feature', properties: element.tags || {}, geometry: { type: 'LineString', coordinates: coords } };
-  }
-
-  // Genera puntos espaciados a lo largo de las líneas para los símbolos de bici
-  function generarPuntosSimbolos(features, espaciadoMetros) {
-    if (!espaciadoMetros) espaciadoMetros = 50; // cada 50 metros por defecto
-    var puntos = [];
-    var RADIO_TIERRA = 6371000; // metros
-    
-    function distanciaMetros(lon1, lat1, lon2, lat2) {
-      var dLat = (lat2 - lat1) * Math.PI / 180;
-      var dLon = (lon2 - lon1) * Math.PI / 180;
-      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return RADIO_TIERRA * c;
-    }
-    
-    features.forEach(function(feature) {
-      var coords = feature.geometry.coordinates;
-      if (!coords || coords.length < 2) return;
-      
-      var distanciaAcumulada = 0;
-      var siguientePunto = espaciadoMetros; // primer punto a los X metros
-      
-      for (var i = 1; i < coords.length; i++) {
-        var p1 = coords[i-1];
-        var p2 = coords[i];
-        var distSegmento = distanciaMetros(p1[0], p1[1], p2[0], p2[1]);
-        
-        // Añadir puntos dentro de este segmento
-        while (distanciaAcumulada + distSegmento >= siguientePunto) {
-          var distanciaRestante = siguientePunto - distanciaAcumulada;
-          var fraccion = distanciaRestante / distSegmento;
-          
-          var lon = p1[0] + (p2[0] - p1[0]) * fraccion;
-          var lat = p1[1] + (p2[1] - p1[1]) * fraccion;
-          
-          puntos.push({
-            type: 'Feature',
-            properties: { tipo: 'simbolo-bici' },
-            geometry: { type: 'Point', coordinates: [lon, lat] }
-          });
-          
-          siguientePunto += espaciadoMetros;
-        }
-        
-        distanciaAcumulada += distSegmento;
-      }
-    });
-    
-    return puntos;
-  }
-
-  async function pedirCarriles(url, bbox, timeoutMs) {
-    var controller = new AbortController();
-    var timeoutId = setTimeout(function () { controller.abort(); }, timeoutMs);
-    try {
-      var resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'Accept': 'application/json' },
-        body: new URLSearchParams({ data: consultaCarriles(bbox) }).toString(),
-        credentials: 'omit',
-        signal: controller.signal
-      });
-      if (!resp.ok) return [];
-      var datos = await resp.json();
-      return (Array.isArray(datos.elements) ? datos.elements : [])
-        .map(wayToLineString)
-        .filter(Boolean);
-    } catch (e) {
-      return [];
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }
-
-  async function cargarCarriles() {
-    if (!carrilEnabled || !map) return;
-    var requestId = ++carrilRequestId;
-    var bbox = bboxVisible();
-    var zoom = map.getZoom();
-    if (bbox.east <= bbox.west || bbox.north <= bbox.south) return;
-    var ladoKm = Math.max(
-      (bbox.east - bbox.west) * 111.32 * Math.cos((bbox.south + bbox.north) / 2 * Math.PI / 180),
-      (bbox.north - bbox.south) * 111.32
-    );
-
-    // Crear la capa aunque se haga zoom hacia fuera, para evitar que una
-    // consulta anterior deje datos en pantalla fuera del área/zoom válido.
-    var capaLista = await asegurarCapaCarril();
-    if (!capaLista || !carrilEnabled || requestId !== carrilRequestId) return;
-    if (zoom < CARRIL_MIN_ZOOM || ladoKm > MAX_KM_OVERBRIDGE) {
-      await pintarCarriles([]);
-      return;
-    }
-
-    var clave = CARRIL_CACHE_VERSION + ':' + [bbox.west.toFixed(3), bbox.south.toFixed(3), bbox.east.toFixed(3), bbox.north.toFixed(3)].join(':');
-    var cached = carrilCache.get(clave);
-    if (cached && Date.now() - cached.touched < CARRIL_TTL_MS) {
-      await pintarCarriles(cached.features);
-      return;
-    }
-
-    var falta = 1000 - (Date.now() - carrilUltima);
-    if (falta > 0) await esperar(falta);
-    if (!carrilEnabled || requestId !== carrilRequestId) return;
-    carrilUltima = Date.now();
-
-    try {
-      // Un solo proxy propio para evitar CORS del navegador y consultas repetidas.
-      var features = await pedirCarriles(OVERPASS_URL, bbox, 20000);
-      if (!carrilEnabled || requestId !== carrilRequestId) return;
-      // No cachear vacío: un fallo temporal no debe ocultar el carril 15 min.
-      if (features.length) {
-        carrilCache.set(clave, { features: features, touched: Date.now() });
-        while (carrilCache.size > 200) carrilCache.delete(carrilCache.keys().next().value);
-      }
-      await pintarCarriles(features);
-    } catch (e) {
-      if (carrilEnabled && requestId === carrilRequestId) {
-        console.warn('[rutas-bici] No se pudieron cargar carriles bici:', e);
-      }
-    }
-  }
-
-  var carrilIconoPromise = null;
-  function cargarIconoBici() {
-    if (!carrilIconoPromise) {
-      carrilIconoPromise = new Promise(function (resolve, reject) {
-        var img = new Image();
-        img.onload = function () { resolve(img); };
-        img.onerror = reject;
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(BICI_ICONO_SVG);
-      }).catch(function (error) { carrilIconoPromise = null; throw error; });
-    }
-    return carrilIconoPromise;
-  }
-
-  async function asegurarCapaCarril() {
-    if (!map || !map.isStyleLoaded()) return false;
-    if (carrilCapaLista && map.getSource(CARRIL_SOURCE) && map.getLayer(CARRIL_ROJO)) return true;
-    if (carrilInicializando) {
-      for (var intento = 0; intento < 40 && carrilInicializando; intento++) await esperar(50);
-      return !!(map && map.isStyleLoaded() && map.getSource(CARRIL_SOURCE) && map.getLayer(CARRIL_ROJO));
-    }
-
-    carrilInicializando = true;
-    var mapaInicial = map;
-    var estiloInicial = map.getStyle();
-    
-    try {
-      // Cargar el icono de bicicleta. El carril rojo no depende del icono.
-      try {
-        var iconImage = await cargarIconoBici();
-        if (map !== mapaInicial || !mapaInicial.isStyleLoaded()) return false;
-        if (iconImage && !mapaInicial.hasImage(CARRIL_IMAGEN)) {
-          mapaInicial.addImage(CARRIL_IMAGEN, iconImage, { pixelRatio: 1 });
-        }
-      } catch (iconError) {
-        console.warn('[rutas-bici] El icono de bici no cargó; se dibujarán las líneas igualmente.', iconError);
-      }
-      if (map !== mapaInicial || !mapaInicial.isStyleLoaded()) return false;
-      
-      // Crear la fuente de datos si no existe
-      if (!map.getSource(CARRIL_SOURCE)) {
-        map.addSource(CARRIL_SOURCE, {
-          type: 'geojson',
-          data: { type: 'FeatureCollection', features: [] },
-          attribution: 'Carriles bici © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Colaboradores de OpenStreetMap</a> (ODbL)'
-        });
-      }
-
-      // 1. CAPA ROJA DE FONDO (el carril bici rojo)
-      if (!map.getLayer(CARRIL_ROJO)) {
-        map.addLayer({
-          id: CARRIL_ROJO,
-          type: 'line',
-          source: CARRIL_SOURCE,
-          minzoom: CARRIL_MIN_ZOOM,
-          layout: { 'line-cap': 'round', 'line-join': 'round' },
-          paint: {
-            'line-color': '#E31837', // Rojo carril bici oficial
-            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 
-              10, 2,     // A zoom 10, línea fina
-              12, 4,     // A zoom 12
-              14, 7,     // A zoom 14, ancho medio
-              16, 10,    // A zoom 16
-              18, 14,    // A zoom 18, muy ancho
-              20, 20     // A zoom 20, máximo ancho
-            ],
-            'line-opacity': 0.9
-          }
-        });
-      }
-
-      // 2. BORDE BLANCO IZQUIERDO (bandas blancas)
-      if (!map.getLayer(CARRIL_BORDE_IZQ)) {
-        map.addLayer({
-          id: CARRIL_BORDE_IZQ,
-          type: 'line',
-          source: CARRIL_SOURCE,
-          minzoom: CARRIL_MIN_ZOOM,
-          layout: { 'line-cap': 'butt', 'line-join': 'round' },
-          paint: {
-            'line-color': '#FFFFFF',
-            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 
-              10, 0.8,
-              12, 1.5,
-              14, 2.5,
-              16, 3.5,
-              18, 5,
-              20, 7
-            ],
-            'line-opacity': 0.95,
-            'line-offset': ['interpolate', ['exponential', 1.5], ['zoom'], 
-              10, -1.5,
-              12, -2.5,
-              14, -4,
-              16, -5.5,
-              18, -8,
-              20, -11
-            ]
-          }
-        });
-      }
-
-      // 3. BORDE BLANCO DERECHO (bandas blancas)
-      if (!map.getLayer(CARRIL_BORDE_DER)) {
-        map.addLayer({
-          id: CARRIL_BORDE_DER,
-          type: 'line',
-          source: CARRIL_SOURCE,
-          minzoom: CARRIL_MIN_ZOOM,
-          layout: { 'line-cap': 'butt', 'line-join': 'round' },
-          paint: {
-            'line-color': '#FFFFFF',
-            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 
-              10, 0.8,
-              12, 1.5,
-              14, 2.5,
-              16, 3.5,
-              18, 5,
-              20, 7
-            ],
-            'line-opacity': 0.95,
-            'line-offset': ['interpolate', ['exponential', 1.5], ['zoom'], 
-              10, 1.5,
-              12, 2.5,
-              14, 4,
-              16, 5.5,
-              18, 8,
-              20, 11
-            ]
-          }
-        });
-      }
-
-      // 4. CAPA DE SÍMBOLOS DE BICICLETA (cada X metros)
-      if (map.hasImage(CARRIL_IMAGEN) && !map.getLayer(CARRIL_SIMBOLO)) {
-        map.addLayer({
-          id: CARRIL_SIMBOLO,
-          type: 'symbol',
-          source: CARRIL_SOURCE,
-          minzoom: 13, // Los símbolos aparecen desde zoom 13
-          layout: {
-            'icon-image': CARRIL_IMAGEN,
-            'icon-size': ['interpolate', ['linear'], ['zoom'], 
-              13, 0.6,   // Pequeño a zoom 13
-              15, 0.9,   // Medio a zoom 15
-              17, 1.2,   // Grande a zoom 17
-              19, 1.5    // Muy grande a zoom 19
-            ],
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true,
-            'icon-rotate': 0
-          },
-          paint: {
-            'icon-opacity': 0.95
-          }
-        });
-      }
-      
-      carrilCapaLista = true;
-      return true;
-      
-    } catch (e) {
-      console.error('[rutas-bici] Error inicializando capa de carriles:', e);
-      return false;
-    } finally {
-      carrilInicializando = false;
-    }
-  }
-
-  async function pintarCarriles(features) {
-    if (!carrilEnabled || !map || !map.isStyleLoaded()) return;
-    var capaLista = await asegurarCapaCarril();
-    if (!capaLista || !carrilEnabled || !map || !map.getSource(CARRIL_SOURCE)) return;
-    var lineas = features.filter(function(f) { return f.geometry && f.geometry.type === 'LineString' && Array.isArray(f.geometry.coordinates) && f.geometry.coordinates.length >= 2; });
-    var puntosSimbolo = generarPuntosSimbolos(lineas, 100); // cada 100 metros
-    [CARRIL_ROJO, CARRIL_BORDE_IZQ, CARRIL_BORDE_DER].forEach(function(id) { if (map.getLayer(id)) map.moveLayer(id); });
-    map.getSource(CARRIL_SOURCE).setData({ type: 'FeatureCollection', features: lineas.concat(puntosSimbolo) });
-  }
-
-  function destroyCarril() {
-    carrilRequestId++;
-    try {
-      [CARRIL_SIMBOLO, CARRIL_BORDE_DER, CARRIL_BORDE_IZQ, CARRIL_ROJO].forEach(function(id) {
-        if (map.getLayer(id)) map.removeLayer(id);
-      });
-      if (map.getSource(CARRIL_SOURCE)) map.removeSource(CARRIL_SOURCE);
-      if (map.hasImage(CARRIL_IMAGEN)) map.removeImage(CARRIL_IMAGEN);
-    } catch (e) { /* estilo reemplazado */ }
-    carrilCapaLista = false;
-    carrilInicializando = false;
-  }
-
-  function onCarrilToggle() {
-    carrilEnabled = !!(carrilToggle && carrilToggle.checked);
-    clearTimeout(carrilTimer);
-    if (carrilEnabled) {
-      map.off('moveend', scheduleCarril);
-      map.on('moveend', scheduleCarril);
-      map.off('zoomend', scheduleCarril);
-      map.on('zoomend', scheduleCarril);
-      cargarCarriles();
-    } else {
-      map.off('moveend', scheduleCarril);
-      map.off('zoomend', scheduleCarril);
-      destroyCarril();
-    }
-  }
-
-  function scheduleCarril() {
-    if (!carrilEnabled) return;
-    clearTimeout(carrilTimer);
-    carrilTimer = setTimeout(cargarCarriles, 350);
-  }
-
-  /* ---------------- Arranque -------------------------------------------- */
-  function iniciar(mapa) {
-    map = mapa;
-    construirPanel();
-
-    var monteBici = document.getElementById('rsMonteBici');
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'rsBtnBici';
-    btn.setAttribute('aria-pressed', 'false');
-    btn.setAttribute('aria-controls', 'rsPanelBici');
-    btn.textContent = t('bikeBtn', 'Ruta en bici');
-    btn.addEventListener('click', function () {
-      if (!panel) return;
-      var abierto = !panel.hasAttribute('hidden');
-      if (!abierto) {
-        panel.removeAttribute('hidden');
-        void panel.offsetHeight;
-        panel.classList.add('rs-panel-viaje-abierto');
-        btn.setAttribute('aria-pressed', 'true');
-      } else {
-        panel.classList.remove('rs-panel-viaje-abierto');
-        btn.setAttribute('aria-pressed', 'false');
-        setTimeout(function () {
-          if (!panel.classList.contains('rs-panel-viaje-abierto')) panel.setAttribute('hidden', '');
-        }, 280);
-      }
-    });
-
-    if (monteBici) monteBici.appendChild(btn);
-    else {
-      var lista = document.getElementById('rsListaCapas');
-      if (lista) {
-        var fila = document.createElement('div');
-        fila.className = 'rs-capa-fila rs-capa-fila-btn rs-ico-bici';
-        fila.id = 'rsMonteBici';
-        fila.appendChild(btn);
-        lista.appendChild(fila);
-      }
-    }
-
-    carrilToggle = document.getElementById('rsToggleCarrilesBici');
-    if (carrilToggle) {
-      carrilToggle.addEventListener('change', onCarrilToggle);
-      // Si se reemplaza el estilo del mapa, MapLibre elimina las fuentes y
-      // capas personalizadas: recrearlas y volver a pedir los datos.
-      carrilStyleHandler = function () {
-        carrilCapaLista = false;
-        carrilInicializando = false;
-        if (carrilEnabled) {
-          clearTimeout(carrilTimer);
-          carrilTimer = setTimeout(cargarCarriles, 150);
-        }
-      };
-      map.on('style.load', carrilStyleHandler);
-      if (carrilToggle.checked) onCarrilToggle();
-    }
-
-    document.addEventListener('manolito:idioma-cambiado', function () {
-      btn.textContent = t('bikeBtn', 'Ruta en bici');
-      var tit = panel.querySelector('.rs-panel-viaje-tit');
-      if (tit) tit.textContent = t('bikePanelTitle', 'Ruta en bicicleta');
-      if (inputOrigen) inputOrigen.setAttribute('placeholder', t('bikeOriginPh', 'Desde dónde sales (vacío = tu ubicación)'));
-      if (inputDestino) inputDestino.setAttribute('placeholder', t('bikeDestPh', 'A dónde vas'));
-    });
-  }
-
-  (function esperarMapa(intentos) {
-    try {
-      var mapa = window.manolitAireMap;
-      if (mapa) { iniciar(mapa); return; }
-    } catch (e) {
-      console.debug('[rutas-bici] Error al enganchar el mapa:', e);
-    }
-    if (intentos < 240) setTimeout(function () { esperarMapa(intentos + 1); }, 500);
-  })(0);
-})();
+/* ============================================================
+   MANOLIT AIRE · sw.js (Service Worker)
+   Licencia: AGPL-3.0, igual que el resto del proyecto.
+   ------------------------------------------------------------
+   Objetivo: que la web cargue rápido y aguante cortes de red en
+   el móvil, SIN servicios nuevos ni de pago. Es un archivo
+   estático más; funciona igual en Cloudflare Workers/Pages free.
+
+   Política de caché:
+   - CACHE-FIRST (primero caché, luego red si falta):
+     tiles del mapa, librerías JS de CDN, fuentes y estáticos
+     propios (js/css/imágenes). Cambian poco: velocidad máxima.
+   - NETWORK-FIRST (primero red; si falla, caché):
+     páginas HTML y datos dinámicos (Open-Meteo, Overpass y los
+     proxies propios /api /geo /ruta /clima /prevision /arboles). Así los
+     datos están frescos cuando hay red y hay respaldo cuando
+     no la hay.
+   - NUNCA se cachean POST (el chat /manolito) ni otras APIs
+     que no sean GET.
+
+   Para publicar una versión nueva de los estáticos basta subir
+   el número VERSION de abajo: se borran las cachés viejas.
+   - 23-sep-c: about.html rehecho (textos humanizados, lema nuevo sin
+     'vende sombra', inglés y georgiano completos, LANGS con en).
+   - 23-sep-d: index.html, modo peque con 24 emojis flotantes
+   - 23-sep-e: modo salud los sábados (ambiente verde, banner y
+     sección defensa de las sombras, automático y reversible).
+   - 25-sep-a: el modo salud cubre sábado entero y domingo hasta las
+     18:00, y este primer finde arranca ya desde el viernes 25.
+     banner sin decir el día para que el estreno de viernes cuadre.
+   ============================================================ */
+'use strict';
+
+// 2026-09-12-a: botonera fina + botón mini "Act. mapa" con purga de cachés.
+// Subir VERSION hace que, al activarse, este SW borre las cachés viejas
+// (teselas incluidas) y los clientes reciban el JS/CSS nuevo.
+// 2026-09-13-c: las teselas de OpenFreeMap pasan de CACHE-FIRST a
+// STALE-WHILE-REVALIDATE. Motivo: con cache-first el estilo JSON cacheado
+// apuntaba SIEMPRE al planeta viejo (planet/AAAAMMDD.../) y los edificios
+// nuevos de OSM nunca aparecían aunque OpenFreeMap ya los llevaba. Ahora la
+// tesela se sirve al instante desde caché (misma velocidad) pero se
+// revalida en segundo plano: el mapa se auto-actualiza solo.
+// 2026-09-14-a: (1) descamuflaje: el árbol plano duplicado pegado a un
+// naranjo/albizia 3D ya no se pinta (adiós al "cubo verde" y al flash
+// negro al hacer zoom); (2) el naranjo 3D da naranjas MADURAS también en
+// brille de más de cerca. Cambian arboles-3d.js y shadows-route.js.
+// 2026-09-14-b: SEO de sostenibilidad en index.html (huella hídrica por
+// visita ~1-4 ml, sin publicidad programática; metas, OG, JSON-LD y línea
+// visible en el footer). Solo cambia index.html.
+// 2026-09-14-c: IRRADIACIÓN SOLAR GLOBAL REAL (irradiacion-solar.js v4 +
+// i18n.js). Antes TODAS las consultas a NASA POWER usaban lat/lon fijos de
+// Sevilla: el mismo dato en cualquier parte del mundo. Ahora el punto de
+// consulta sigue al centro del mapa y a cada clic, agrupado por la celda
+// real de la malla NASA (0.5°), cacheado por celda (memoria + 7 días):
+// Sevilla da Sevilla, Tokio da Tokio. Marcador naranja del punto, coords
+// en popup y panel, media anual del punto, y timeout de 12 s en red.
+// 2026-09-14-d: sección "El agua que no se ve" en manolito-aire-comparativa.html
+// (cuentas reales: ~3 ml/visita vs ~375 L/s de la publicidad programática
+// mundial, gráfica interactiva por periodos + contador en vivo, sin librerías)
+// y banda destacada del mismo dato en index.html antes del footer.
+// 2026-09-16-a: datos de agua ACTUALIZADOS con telemetría real de Cloudflare
+// (16 ago – 15 sep 2026: 176.444 peticiones, 1,80 GB, 4.819 visitas →
+// 0,38 MB y ~2 ml por visita medidos). Cambian index.html (banda, footer,
+// SEO: description/keywords/OG/JSON-LD) y manolito-aire-comparativa.html
+// (tarjetas con telemetría + franja de estadísticas reales).
+// 2026-09-16-b: (1) se eliminan TODOS los guiones largos de los textos de la
+// web (marca típica de texto de IA; ahora suena a persona); (2) contador vivo
+// en la cabecera del mapa: "Anuncios gastando agua a nivel mundial: N L" con
+// la fórmula en pequeño y el número subiendo de color por escalones. Coste:
+// una escritura de texto por segundo, sin animaciones; batería ~0.
+// Cambian index.html, js/i18n.js (6 idiomas) y textos de varios js.
+// 2026-09-16-c: (1) TODOS los contadores de agua comparten el mismo arranque
+// (sessionStorage, clave manolito_agua_inicio): el conteo sigue al pasar del
+// mapa a la comparativa dentro de la misma pestaña y vuelve a cero al cerrarla.
+// (2) La comparativa se abre en la misma pestaña (target _self en los enlaces).
+// (3) Nueva sección en la comparativa: "Cuánta agua gasta tu móvil" (guía
+// Android/iPhone + calculadora GB x 200 L) e indicador discreto de sesión.
+// 2026-09-16-d: cierre del pie en index.html: sello de eficiencia A+
+// (Website Carbon Rating, sin metadatos externos) y fila discreta de redes
+// sociales (TikTok e Instagram, iconos SVG en línea, sin peso extra).
+// Cambian index.html y style.css.
+// 2026-09-16-e: la barra superior deja de ser fija (sticky): al bajar por la
+// pagina se queda arriba y ya no tapa el mapa ni corta el contenido.
+// Cambia style.css.
+// 2026-09-16-f: se actualiza la pagina "Por que existe esto" (about.html) con
+// cero anuncios por coherencia y llamada a una futura ley), limpio de guiones
+// largos, punto y coma y dos puntos en los textos visibles.
+// Cambia about.html.
+// 2026-09-16-g: toda la navegacion interna se abre en la misma pestana
+// (script que anula el target _blank de la etiqueta base en index, about,
+// comparativa y las paginas legales). Los enlaces externos siguen abriendo
+// pestana nueva con rel noopener.
+// Cambian index.html, about.html, manolito-aire-comparativa.html,
+// aviso-legal.html, privacidad.html y cookies.html.
+// 2026-09-16-h: nueva seccion de preguntas frecuentes (FAQ) al final de
+// index.html, antes del pie. Hecha con details/summary, sin JavaScript,
+// Cambian index.html y style.css.
+// 2026-09-18-c: botonera de camara del mapa (zoom y mirar arriba o abajo
+// sin rueda de raton), pitch libre hasta 85 grados, joystick del paseo
+// virtual visible tambien en ordenador, y las capas de mapa (Mapa oscuro,
+// Mapa IGN, Catastro 3D y las casillas) integradas en el widget de
+// posicion solar en vez de flotar encima del mapa.
+// Cambian index.html, style.css y js/shadows-route.js.
+// 2026-09-18-d: vuelven los controles nativos del mapa (zoom, brujula y
+// el boton de pantalla completa, que llevaba tiempo sin verse). La web
+// no carga la hoja de estilos de MapLibre para ahorrar en el primer
+// pintado y sin ella esos botones se dibujaban debajo del mapa,
+// invisibles. Ahora se posicionan y se pintan sus iconos desde la
+// hoja propia, sin cargar nada extra. En iPhone el boton usa el modo
+// pantalla completa por CSS de siempre.
+// Cambian style.css y js/shadows-route.js.
+// sale dos veces: se retiran los controles nativos de MapLibre y todo
+// el manejo del mapa vive en una unica botonera a la izquierda (zoom,
+// mirar arriba o abajo, norte y pantalla completa juntos). El widget
+// de posicion solar se ordena en dos piezas claras: el sol con su hora
+// y el acceso LiDAR a la izquierda, las capas a la derecha con una
+// linea fina de separacion. Y el index traia la etiqueta base pegada
+// 7 veces: se queda en una, que es la unica que usa el navegador.
+// Cambian index.html, style.css y js/shadows-route.js.
+// 2026-09-18-f: la botonera unica del mapa pasa al borde DERECHO y se
+// compacta en un mando de dos columnas (+ -, arriba abajo, brujula y
+// pantalla completa). La letra N se cambia por una brujula de verdad,
+// con la punta naranja al norte, que gira con el mapa y vuelve al
+// norte al tocarla. El widget solar queda compacto y centrado, y los
+// botones de mapa base en rejilla de tres columnas.
+// Cambian style.css y js/shadows-route.js.
+// 2026-09-18-g: widget de posicion solar en COLUMNA con el orden
+// Renderizado LiDAR, 3 capas del mapa), centrado en movil y en
+// ordenador. Botonera del mapa mas pequena en movil (34 px). La
+// brujula, ademas de girar con el mapa, al tocarla vuelve al norte
+// y nivela la vista (si estabas mirando al cielo, te devuelve al
+// mapa plano).
+// (historial de versiones en los comentarios de abajo)
+// Cambian index.html (carga la CSS oficial de MapLibre, sin ella los
+// marcadores DOM no se veian NUNCA), js/shadows-route.js (Manolit ya se
+// VE al dar a Mi ubicacion y aguanta GPS lento de movil) y
+// js/microclima.js (respaldo directo a Open-Meteo si el worker aun no
+// tiene la ruta nueva).
+// 2026-10-20-splash-sombra-real: intro nuevo (MAN [logo] LIT∞ con la sombra
+// real del logo proyectada en el suelo). Cambia solo index.html; la
+// puerta de idiomas y la ciudad en sombra siguen igual.
+// 2026-10-20-l: recarga la lógica histórica de árboles y el estado de las
+// capas de agua y aparcamiento en el preview local.
+// Cambian index.html, js/shadows-route.js, js/fuentes-agua.js,
+// js/aparcamientos-viaje.js y sw.js.
+// 2026-10-23-a: arreglo del widget de sombra que no se abría al hacer click.
+// Se corrigen los pointer-events del marcador #mk y se ajustan los eventos
+// de click para que no interfieran con el pointerdown.
+// Cambia index.html.
+// 2026-10-23-b: FIX CRÍTICO - El SVG tiene pointer-events:none inline que
+// bloquea TODOS los eventos. Se sobrescribe con CSS más específico usando
+// svg#map #mk para que el marcador vuelva a ser clickeable.
+// Cambia index.html.
+// 2026-10-23-c: FIX DEFINITIVO - Había OTRO CSS al final del SVG (línea 3638)
+// con pointer-events:none!important que sobrescribía todo. Ahora las reglas
+// del marcador #mk están en ese mismo bloque CSS para tener máxima prioridad.
+// Cambia index.html.
+// 2026-10-23-f: EL WIDGET DE SOMBRA NO ABRÍA (ni el marcador, ni las pestañas,
+// ni el cierre). El script del widget se cortaba nada más empezar: el SVG se
+// llamaba "map" pero rsSolarWidgetBridge devolvía ese mismo id al mapa viejo,
+// así que quedaban DOS #map y $("map") cogía el equivocado. Ahora el SVG del
+// widget se llama "rsSolarMap" (id único), el script lo busca así, y el puente
+// solo devuelve el id clásico si no choca con nadie. Sin tocar la franja de
+// colores de las horas de luz ni nada más del widget.
+// Cambian index.html, css/style.css y js/shadows-route.js.
+// 2026-10-23-g: el aviso de cookies salía siempre en castellano aunque
+// eligieras otro idioma en la puerta de entrada. Sus textos no existen en
+// i18n.js: ahora están en js/cookie-banner.js en los 6 idiomas de la web y se
+// elige por el idioma activo real (puerta inicial, getCurrentLang, guardado y
+// atributo lang). Cambia js/cookie-banner.js.
+// 2026-10-23-h: EL WIDGET DEL MAPA NO SE VEÍA NI SE ABRÍA. La regla genérica
+// `svg{...}` del bloque CSS interno (línea ~3326) pisaba los atributos
+// width="390" height="460" del SVG #rsSolarMap: los atributos de presentación
+// pierden ante cualquier CSS, así que el widget se quedaba en 0x0 px (invisible
+// y sin caja que pulsar). Se devuelve su tamaño con svg#rsSolarMap{width:390px;
+// height:460px}; el puente sigue reescalándolo en móvil y pantalla completa.
+// Cambia index.html.
+// 2026-10-23-i: sello registral al final del pie de index.html (obra
+// registrada en Propiedad Intelectual, números de expediente y registro
+// copiables, vista compacta en móvil) y retirada la línea de atribución
+// «Mapa IGN» del pie, que ya queda cubierta en aviso-legal.html.
+// Cambia index.html.
+// 2026-10-24-a: capa de transporte público (Transitous) y capa de rutas en
+// bici + carriles bici (BRouter, OSRM/FOSSGIS, Overpass). Cambian index.html,
+// css/style.css, js/i18n.js, js/transporte-publico.js, js/rutas-bici.js,
+// transit-regions.json y worker.js.
+// 2026-10-25-a: ARREGLO DE VERDAD de transporte público y carril bici, que
+// llevaban días sin funcionar pese a estar "ya subidos":
+//   (1) faltaban POR COMPLETO las rutas /transporte-paradas y
+//       /transporte-salidas en worker.js: transporte-publico.js las
+//       llamaba desde el primer día pero nunca existieron, así que cada
+//       petición caía en el 404 de los assets estáticos y la capa jamás
+//       pudo mostrar una sola parada. Ahora proxian a la API pública de
+//       Transitous (MOTIS), sin clave ni registro.
+//   (2) el carril bici ya tenía su arreglo (ruta /carriles-bici propia,
+//       separada de /aparcamientos) subido en GitHub, pero como esta
+//       VERSION no había cambiado, el Service Worker seguía sirviendo el
+//       js/rutas-bici.js VIEJO desde la caché del móvil/navegador: el
+//       código bueno nunca llegaba a ejecutarse. Subir VERSION purga esa
+//       caché y fuerza la descarga de todo lo nuevo.
+//   (3) la tarjeta de parada de transporte público (fondo claro) pasa a
+//       usar el mismo lenguaje visual oscuro y semitransparente que el
+//       widget de sombra (rgba(8,12,20,.94) + blur), responsive en web
+//       y móvil igual que éste.
+// 2026-10-27-a: las coordenadas MOTIS pueden llegar como texto con coma
+// decimal, la descarga de regiones podía competir con la primera consulta y
+// Transitous puede responder GeoJSON además de arrays. Se normalizan respuestas
+// GeoJSON/MOTIS y se invalida la caché de scripts del SW.
+// Cambian index.html y js/transporte-publico.js.
+// 2026-10-28-a: se restaura Transitous como fuente de paradas para conservar
+// stopId compatibles con sus horarios; Overpass queda de respaldo. Evita la
+// antigua caché de paradas OSM y actualiza los scripts del navegador.
+// Cambian worker.js e index.html.
+// 2026-10-28-b: se unifica transporte-publico.js en un solo archivo (antes
+// estaba dividido en transporte-publico.js + transporte-tarjeta.js +
+// transporte-paradas.js). Se restaura la versión funcional completa.
+// Cambian js/transporte-publico.js e index.html.
+// 2026-10-28-c: la capa de transporte usa exclusivamente paradas OSM vía
+// Overpass; invalida la antigua caché Transitous del cliente.
+// Cambian worker.js e index.html.
+// 2026-10-29-a: mejora tolerancia de Overpass y tamaño de consultas de paradas.
+// Cambian worker.js y js/transporte-publico.js.
+// 2026-10-29-b: alinea zoom, cobertura en cuadrícula, reintentos y visibilidad
+// de transporte público con el patrón de la capa de fuentes de agua.
+// Cambian index.html, worker.js y js/transporte-publico.js.
+// 2026-10-29-c: invalida copias antiguas de la capa y alinea la URL del script.
+// 2026-10-29-d: capa agrega estaciones y limita las consultas Overpass por vista.
+// 2026-10-29-g: reconecta y cachea las peticiones de parada por teselas del Worker.
+// Cambian index.html, worker.js y js/transporte-publico.js.
+// 2026-10-29-h: arreglo de /transporte-paradas en worker.js (variable `datos` sin declarar
+// lanzaba ReferenceError y el proxy devolvía siempre []). Cambia worker.js.
+// 2026-10-30-a: rutas-bici.js tenia una comilla sin cerrar (SyntaxError) y el SW podia
+// seguir sirviendo la copia rota. Cambia js/rutas-bici.js.
+const VERSION = '2026-10-30-a-rutas-bici-fix';
+const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
+const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
+const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
+
+/* Hosts de contenido casi inmutable: librerías y fuentes */
+const HOSTS_ESTATICOS = [
+	'cdn.jsdelivr.net',
+	'unpkg.com',
+	'fonts.googleapis.com',
+	'fonts.gstatic.com',
+];
+
+/* Hosts con STALE-WHILE-REVALIDATE: rápidos Y auto-actualizados */
+const HOSTS_REVALIDABLES = [
+	'tiles.openfreemap.org',
+];
+
+/* Rutas propias con datos dinámicos (proxies del worker) */
+const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/carriles-bici', '/transporte-paradas', '/transporte-salidas', '/manolito'];
+
+/* Hosts de datos dinámicos externos */
+const HOSTS_DINAMICOS = [
+	'api.open-meteo.com',
+	'overpass-api.de',
+	'lz4.overpass-api.de',
+	'overpass.kumi.systems',
+	'overpass.nchc.org.tw',
+];
+
+/* Respuestas geográficas de fuentes: uso en memoria de la página, sin caché
+   Cache API persistente. Las llamadas POST ya quedan fuera de este handler. */
+const HOSTS_SOLO_MEMORIA = [
+	'geoportal.valencia.es',
+	'datosabiertos.malaga.eu',
+];
+
+/* ---------------- install / activate ---------------- */
+self.addEventListener('install', function(ev) {
+	// Activar cuanto antes; no precacheamos nada para no fallar
+	// nunca la instalación por un recurso concreto.
+	self.skipWaiting();
+});
+
+self.addEventListener('activate', function(ev) {
+	ev.waitUntil(
+		caches.keys()
+		.then(function(claves) {
+			return Promise.all(
+				claves
+				.filter(function(c) {
+					return c.indexOf('manolito-') === 0 && c.indexOf(VERSION) === -1;
+				})
+				.map(function(c) {
+					return caches.delete(c);
+				})
+			);
+		})
+		.then(function() {
+			return self.clients.claim();
+		})
+	);
+});
+
+/* ---------------- utilidades ---------------- */
+function esEstatico(url) {
+	if (HOSTS_ESTATICOS.indexOf(url.hostname) !== -1) return true;
+	if (url.origin === self.location.origin) {
+		return /\.(js|css|png|jpe?g|svg|ico|webp|woff2?|ttf|webmanifest|geojson)(\?.*)?$/i.test(url.pathname);
+	}
+	return false;
+}
+
+function esDinamico(url) {
+	if (HOSTS_DINAMICOS.indexOf(url.hostname) !== -1) return true;
+	if (url.origin === self.location.origin) {
+		return RUTAS_DINAMICAS.some(function(r) {
+			return url.pathname.indexOf(r) === 0;
+		});
+	}
+	return false;
+}
+
+function recortarCache(nombreCache, maximo) {
+	// Borra las entradas más antiguas si nos pasamos del tope.
+	return caches.open(nombreCache).then(function(cache) {
+		return cache.keys().then(function(claves) {
+			if (claves.length <= maximo) return;
+			const sobrantes = claves.length - maximo;
+			return Promise.all(claves.slice(0, sobrantes).map(function(k) {
+				return cache.delete(k);
+			}));
+		});
+	}).catch(function() {
+		/* recortar es opcional */ });
+}
+
+function cacheFirst(peticion) {
+	return caches.match(peticion).then(function(guardada) {
+		if (guardada) return guardada;
+		return fetch(peticion).then(function(respuesta) {
+			// Solo guardamos respuestas válidas (u opacas de CDNs de tiles)
+			if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
+				const copia = respuesta.clone();
+				caches.open(CACHE_ESTATICA).then(function(cache) {
+						cache.put(peticion, copia);
+					})
+					.then(function() {
+						recortarCache(CACHE_ESTATICA, MAX_ENTRADAS_ESTATICAS);
+					})
+					.catch(function() {
+						/* caché llena o no disponible */ });
+			}
+			return respuesta;
+		});
+	});
+}
+
+// Sirve la copia cacheada al instante (si existe) y SIEMPRE pide a red en
+// segundo plano para refrescarla: velocidad de cache-first sin congelar
+// el contenido. Así el planeta nuevo de OpenFreeMap entra solo.
+function staleWhileRevalidate(peticion) {
+	return caches.open(CACHE_ESTATICA).then(function(cache) {
+		return cache.match(peticion).then(function(guardada) {
+			const promesaRed = fetch(peticion).then(function(respuesta) {
+				if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
+					cache.put(peticion, respuesta.clone())
+						.then(function() {
+							recortarCache(CACHE_ESTATICA, MAX_ENTRADAS_ESTATICAS);
+						})
+						.catch(function() {
+							/* caché llena o no disponible */ });
+				}
+				return respuesta;
+			}).catch(function() {
+				return guardada || Response.error();
+			});
+			return guardada || promesaRed;
+		});
+	});
+}
+
+function networkFirst(peticion) {
+	return fetch(peticion).then(function(respuesta) {
+		if (respuesta && respuesta.ok) {
+			const copia = respuesta.clone();
+			caches.open(CACHE_DINAMICA).then(function(cache) {
+					cache.put(peticion, copia);
+				})
+				.catch(function() {
+					/* sin caché */ });
+		}
+		return respuesta;
+	}).catch(function() {
+		return caches.match(peticion).then(function(guardada) {
+			// Si no hay red ni caché, devolvemos error de red estándar.
+			return guardada || Response.error();
+		});
+	});
+}
+
+/* ---------------- fetch ---------------- */
+self.addEventListener('fetch', function(ev) {
+	const peticion = ev.request;
+
+	// Solo GET: el chat (/manolito) y cualquier POST van directos a red.
+	if (peticion.method !== 'GET') return;
+
+	let url;
+	try {
+		url = new URL(peticion.url);
+	} catch (e) {
+		return;
+	}
+	if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+	if (HOSTS_SOLO_MEMORIA.indexOf(url.hostname) !== -1) return;
+
+	// Navegaciones (entrar a la web): frescura primero.
+	if (peticion.mode === 'navigate') {
+		ev.respondWith(networkFirst(peticion));
+		return;
+	}
+
+	if (esDinamico(url)) {
+		ev.respondWith(networkFirst(peticion));
+		return;
+	}
+
+	// Teselas del mapa: al instante desde caché + revalidación en segundo
+	// plano (que los edificios nuevos de OSM lleguen sin tocar nada).
+	if (HOSTS_REVALIDABLES.indexOf(url.hostname) !== -1) {
+		ev.respondWith(staleWhileRevalidate(peticion));
+		return;
+	}
+
+	if (esEstatico(url)) {
+		ev.respondWith(cacheFirst(peticion));
+		return;
+	}
+
+	// Resto (mayoría same-origin): network-first suave con respaldo.
+	ev.respondWith(networkFirst(peticion));
+});

@@ -231,7 +231,10 @@
 // lanzaba ReferenceError y el proxy devolvía siempre []). Cambia worker.js.
 // 2026-10-30-a: rutas-bici.js tenia una comilla sin cerrar (SyntaxError) y el SW podia
 // seguir sirviendo la copia rota. Cambia js/rutas-bici.js.
-const VERSION = '2026-10-30-a-rutas-bici-fix';
+// 2026-10-30-b: los JS de transporte y carriles bici ahora se piden primero a la red
+// (antes cache-first: aunque se subiera un arreglo, el navegador seguia ejecutando la
+// copia vieja guardada con la misma URL ?v=...). Cambia sw.js.
+const VERSION = '2026-10-30-b-transporte-red-primero';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
@@ -415,6 +418,14 @@ self.addEventListener('fetch', function(ev) {
 	}
 
 	if (esDinamico(url)) {
+		ev.respondWith(networkFirst(peticion));
+		return;
+	}
+
+	// Capas en desarrollo activo: red primero para que un arreglo llegue al
+	// momento (con caché como respaldo sin conexión).
+	if (url.origin === self.location.origin &&
+		/\/js\/(transporte-publico|rutas-bici|fuentes-agua)\.js$/i.test(url.pathname)) {
 		ev.respondWith(networkFirst(peticion));
 		return;
 	}

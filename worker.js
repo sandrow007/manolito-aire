@@ -568,7 +568,11 @@ export default {
       }
     }
 
-    // --- Proxy de paradas de transporte público desde OpenStreetMap/Overpass ---
+    // --- Proxy de paradas de transporte público: Transitous (GTFS, buena
+    // cobertura y horarios reales en España) + OpenStreetMap/Overpass
+    // (mundial, respaldo y relleno donde Transitous no llega). Se piden las
+    // dos fuentes EN PARALELO y se combinan, sin que el fallo de una bloquee
+    // a la otra.
     if (url.pathname === '/transporte-paradas') {
       try {
         const minParam = (url.searchParams.get('min') || '').split(',').map(Number);
@@ -590,18 +594,48 @@ export default {
 
         const kv = env.AIR_QUALITY_CACHE || null;
         const bboxTxt = [south, west, north, east].map((v) => v.toFixed(6)).join(',');
-        const claveKv = 'parada:osm:' + [south, west, north, east].map((v) => v.toFixed(3)).join(',');
+        const claveKv = 'parada:combinada:' + [south, west, north, east].map((v) => v.toFixed(3)).join(',');
         const modoDiagnostico = url.searchParams.get('debug') === '1';
         if (kv && !modoDiagnostico) {
           try {
             const { value, metadata } = await kv.getWithMetadata(claveKv);
             if (value && metadata && metadata.ts && Date.now() - metadata.ts < 30 * 60 * 1000) {
               return new Response(value, {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Transit-Fuente': 'OpenStreetMap-cache', ...CORS_HEADERS }
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Transit-Fuente': 'cache', ...CORS_HEADERS }
               });
             }
           } catch (error) { }
         }
+
+        // --- Fuente 1: Transitous (GTFS real, api.transitous.org) ---
+        const obtenerTransitous = async () => {
+          const destino = 'https://api.transitous.org/api/v1/map/stops?min=' +
+            encodeURIComponent(south.toFixed(6) + ',' + west.toFixed(6)) +
+            '&max=' + encodeURIComponent(north.toFixed(6) + ',' + east.toFixed(6));
+          const controller = new AbortController();
+          const temporizador = setTimeout(() => controller.abort(), 12000);
+          try {
+            const r = await fetch(destino, {
+              headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)', Accept: 'application/json' },
+              signal: controller.signal,
+            });
+            if (!r.ok) throw new Error(`Transitous HTTP ${r.status}`);
+            const datos = await r.json();
+            const lista = Array.isArray(datos) ? datos : (datos && (datos.stops || datos.features)) || [];
+            return lista.map((parada) => {
+              const coords = parada.geometry && Array.isArray(parada.geometry.coordinates) ? parada.geometry.coordinates : null;
+              const propiedades = parada.properties || parada;
+              const lat = Number(propiedades.lat != null ? propiedades.lat : (coords ? coords[1] : propiedades.latitude));
+              const lon = Number(propiedades.lon != null ? propiedades.lon : (coords ? coords[0] : propiedades.longitude));
+              const id = propiedades.id != null ? propiedades.id : parada.id;
+              if (!Number.isFinite(lat) || !Number.isFinite(lon) || id == null) return null;
+              return { name: propiedades.name || 'Parada', lat, lon, stopId: 'tt:' + String(id) };
+            }).filter(Boolean);
+          } finally {
+            clearTimeout(temporizador);
+          }
+        };
+
         const consulta = '[out:json][timeout:20];(' +
           'node["highway"="bus_stop"](' + bboxTxt + ');' +
           'node["public_transport"="platform"](' + bboxTxt + ');' +
@@ -650,51 +684,72 @@ export default {
           }
         };
 
-        // Consulta los espejos en paralelo: una instancia caída no bloquea
-        // esperando su timeout antes de probar la siguiente.
         // Diagnóstico: /transporte-paradas?min=..&max=..&debug=1 muestra qué
-        // responde cada espejo de Overpass desde Cloudflare (sin datos sensibles).
+        // responde cada espejo de Overpass Y Transitous desde Cloudflare
+        // (sin datos sensibles).
         if (modoDiagnostico) {
-          const informe = await Promise.all(espejos.map(async (espejo) => {
-            const t0 = Date.now();
-            try {
-              const d = await intentarEspejo(espejo);
-              return { espejo, ok: true, ms: Date.now() - t0, elementos: d.elements.length };
-            } catch (e) {
-              return { espejo, ok: false, ms: Date.now() - t0, error: String((e && e.message) || e) };
-            }
-          }));
-          return new Response(JSON.stringify({ bbox: bboxTxt, kv: !!kv, informe }, null, 2), {
+          const [informeOverpass, informeTransitous] = await Promise.all([
+            Promise.all(espejos.map(async (espejo) => {
+              const t0 = Date.now();
+              try {
+                const d = await intentarEspejo(espejo);
+                return { espejo, ok: true, ms: Date.now() - t0, elementos: d.elements.length };
+              } catch (e) {
+                return { espejo, ok: false, ms: Date.now() - t0, error: String((e && e.message) || e) };
+              }
+            })),
+            (async () => {
+              const t0 = Date.now();
+              try {
+                const d = await obtenerTransitous();
+                return { ok: true, ms: Date.now() - t0, elementos: d.length };
+              } catch (e) {
+                return { ok: false, ms: Date.now() - t0, error: String((e && e.message) || e) };
+              }
+            })(),
+          ]);
+          return new Response(JSON.stringify({ bbox: bboxTxt, kv: !!kv, overpass: informeOverpass, transitous: informeTransitous }, null, 2), {
             status: 200,
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS_HEADERS }
           });
         }
-        let datos = null;
-        try { datos = await Promise.any(espejos.map(intentarEspejo)); } catch (error) { }
-        if (datos) {
-          const paradas = datos.elements.map((el) => {
-            const punto = el.type === 'node' ? el : (el.center || (el.geometry && el.geometry.reduce((sum, p) => ({ lat: sum.lat + p.lat / el.geometry.length, lon: sum.lon + p.lon / el.geometry.length }), { lat: 0, lon: 0 })));
-            if (!punto || !Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return null;
-            const tags = el.tags || {};
-            return {
-              name: tags.name || tags['name:es'] || 'Parada',
-              lat: punto.lat,
-              lon: punto.lon,
-              id: el.type + ':' + el.id,
-            };
-          }).filter(Boolean);
-          if (kv && paradas.length && ctx && typeof ctx.waitUntil === 'function') {
-            ctx.waitUntil(kv.put(claveKv, JSON.stringify(paradas), { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
-          }
-          return new Response(JSON.stringify(paradas), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', 'X-Transit-Fuente': 'OpenStreetMap', ...CORS_HEADERS }
+
+        // Las dos fuentes se piden en paralelo; cada una se resuelve a [] si
+        // falla, así una no bloquea ni tumba a la otra.
+        const [resultadoTransitous, resultadoOverpass] = await Promise.all([
+          obtenerTransitous().catch(() => []),
+          (async () => {
+            let datos = null;
+            try { datos = await Promise.any(espejos.map(intentarEspejo)); } catch (error) { return []; }
+            if (!datos) return [];
+            return datos.elements.map((el) => {
+              const punto = el.type === 'node' ? el : (el.center || (el.geometry && el.geometry.reduce((sum, p) => ({ lat: sum.lat + p.lat / el.geometry.length, lon: sum.lon + p.lon / el.geometry.length }), { lat: 0, lon: 0 })));
+              if (!punto || !Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return null;
+              const tags = el.tags || {};
+              return { name: tags.name || tags['name:es'] || 'Parada', lat: punto.lat, lon: punto.lon, stopId: 'osm:' + el.type + ':' + el.id };
+            }).filter(Boolean);
+          })(),
+        ]);
+
+        // Fusión: Transitous primero (trae stopId con horarios reales), OSM
+        // rellena el resto. Se descarta una parada OSM si ya hay una de
+        // Transitous a menos de ~25 m (misma parada vista por las dos fuentes).
+        const vistas = resultadoTransitous.map((p) => ({ lat: p.lat, lon: p.lon }));
+        const cercaDeVista = (lat, lon) => vistas.some((v) => Math.abs(v.lat - lat) < 0.00025 && Math.abs(v.lon - lon) < 0.00025);
+        const paradas = resultadoTransitous.concat(resultadoOverpass.filter((p) => !cercaDeVista(p.lat, p.lon)));
+
+        if (!paradas.length) {
+          return new Response('[]', {
+            status: 503,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
           });
         }
-
-        return new Response('[]', {
-          status: 503,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        if (kv && ctx && typeof ctx.waitUntil === 'function') {
+          ctx.waitUntil(kv.put(claveKv, JSON.stringify(paradas), { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
+        }
+        return new Response(JSON.stringify(paradas), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', 'X-Transit-Fuente': 'Transitous+OpenStreetMap', ...CORS_HEADERS }
         });
       } catch (err) {
         return new Response('[]', {
@@ -704,12 +759,37 @@ export default {
       }
     }
 
-    // GET /transporte-salidas: OSM no incluye horarios GTFS; no se consulta otro proveedor.
+    // GET /transporte-salidas?stopId=...&n=8 -> próximas salidas reales.
+    // Solo las paradas con stopId de Transitous (prefijo "tt:") tienen
+    // horarios GTFS; las paradas "osm:..." no llevan horarios en OSM.
     if (url.pathname === '/transporte-salidas') {
       try {
-        return new Response(JSON.stringify({ stopTimes: [] }), {
+        const stopIdBruto = url.searchParams.get('stopId') || '';
+        if (!stopIdBruto.startsWith('tt:')) {
+          return new Response(JSON.stringify({ stopTimes: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS }
+          });
+        }
+        const stopIdTransitous = stopIdBruto.slice(3);
+        const n = url.searchParams.get('n') || '8';
+        const destino = 'https://api.transitous.org/api/v5/stoptimes?stopId=' + encodeURIComponent(stopIdTransitous) + '&n=' + encodeURIComponent(n);
+        const controller = new AbortController();
+        const temporizador = setTimeout(() => controller.abort(), 12000);
+        let r;
+        try {
+          r = await fetch(destino, {
+            headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)', Accept: 'application/json' },
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(temporizador);
+        }
+        if (!r.ok) throw new Error(`Transitous HTTP ${r.status}`);
+        const texto = await r.text();
+        return new Response(texto, {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30', ...CORS_HEADERS }
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', ...CORS_HEADERS }
         });
       } catch (err) {
         return new Response(JSON.stringify({ stopTimes: [] }), {

@@ -533,7 +533,7 @@
     var b = s + ',' + w + ',' + n + ',' + e;
     // Etiquetas habituales de OSM: vías dedicadas, carriles y rutas señalizadas.
     return '[out:json][timeout:20];(' +
-      'way["highway"="cycleway"](' + b + ');
+      'way["highway"="cycleway"](' + b + ');' +
       'way["cycleway"](' + b + ');' +
       'way["cycleway:left"](' + b + ');' +
       'way["cycleway:right"](' + b + ');' +
@@ -664,8 +664,12 @@
     carrilUltima = Date.now();
 
     try {
-      // Un solo proxy propio para evitar CORS del navegador y consultas repetidas.
+      // 1) Proxy propio (evita CORS y cachea en el Worker).
       var features = await pedirCarriles(OVERPASS_URL, bbox, 20000);
+      // 2) Si el proxy no da nada (Overpass rechaza a Cloudflare con 406 o
+      // timeout), el navegador pregunta directo a los espejos de Overpass.
+      if (!features.length) features = await pedirCarriles(OVERPASS_DIRECTO, bbox, 15000);
+      if (!features.length) features = await pedirCarriles(OVERPASS_DIRECTO_2, bbox, 15000);
       if (!carrilEnabled || requestId !== carrilRequestId) return;
       // No cachear vacío: un fallo temporal no debe ocultar el carril 15 min.
       if (features.length) {

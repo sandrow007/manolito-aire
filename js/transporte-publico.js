@@ -177,20 +177,54 @@
     ]).finally(() => clearTimeout(timer));
   }
 
-  // 31-oct-2026: Overpass empezó a rechazar las peticiones (HTTP 406 y
-  // timeouts en todos los espejos) y la capa dejó de dibujarse. Volvemos a
-  // Transitous (MOTIS) como fuente principal: responde rápido y con CORS
-  // abierto, así que el navegador puede llamarlo directo aunque el Worker
-  // desplegado sea antiguo. El proxy propio queda de respaldo.
-  async function cargarParadas(batchBounds) {
-    const min = batchBounds.south.toFixed(6) + ',' + batchBounds.west.toFixed(6);
-    const max = batchBounds.north.toFixed(6) + ',' + batchBounds.east.toFixed(6);
-    const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
-    try {
-      const directo = await withTimeout(fetchJson('https://api.transitous.org/api/v1/map/stops' + query, 'omit', 12000), 15000);
-      if (Array.isArray(directo)) return directo;
-    } catch (error) { /* se prueba el proxy propio */ }
-    return withTimeout(fetchApi('/transporte-paradas' + query), 25000);
+  // Respaldo: si el Worker falla o devuelve vacío (no desplegado, Overpass
+  // bloqueando a Cloudflare...), el navegador consulta OpenStreetMap/Overpass
+  // directamente con la misma consulta. Overpass admite CORS.
+  const OVERPASS_DIRECTOS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://lz4.overpass-api.de/api/interpreter',
+    'https://z.overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter'
+  ];
+  async function fetchParadasDirecto(b) {
+    const bbox = [b.south, b.west, b.north, b.east].map(v => Number(v).toFixed(6)).join(',');
+    const consulta = '[out:json][timeout:20];(' +
+      'node["highway"="bus_stop"](' + bbox + ');' +
+      'node["public_transport"="platform"](' + bbox + ');' +
+      'way["public_transport"="platform"](' + bbox + ');' +
+      'relation["public_transport"="platform"](' + bbox + ');' +
+      'node["railway"="tram_stop"](' + bbox + ');' +
+      'nwr["public_transport"="station"](' + bbox + ');' +
+      'nwr["amenity"="bus_station"](' + bbox + ');' +
+      'nwr["railway"="station"](' + bbox + ');' +
+      ');out center qt;';
+    const intentar = async (url) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 18000);
+      controllers.add(controller);
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: new URLSearchParams({ data: consulta }).toString(),
+          credentials: 'omit',
+          signal: controller.signal
+        });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const datos = await response.json();
+        if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
+        const ts = datos.osm3s && datos.osm3s.timestamp_osm_base;
+        if (!datos.elements.length && typeof ts === 'string' && ts !== '' && ts.indexOf('T') === -1) throw new Error('espejo corrupto');
+        return datos.elements;
+      } finally { clearTimeout(timer); controllers.delete(controller); }
+    };
+    const elementos = await Promise.any(OVERPASS_DIRECTOS.map(intentar));
+    return elementos.map(el => {
+      const punto = el.type === 'node' ? el : el.center;
+      if (!punto || !Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return null;
+      const tags = el.tags || {};
+      return { name: tags.name || tags['name:es'] || 'Parada', lat: punto.lat, lon: punto.lon, stopId: 'osm:' + el.type + ':' + el.id };
+    }).filter(Boolean);
   }
 
   async function loadStops(bounds) {
@@ -216,8 +250,40 @@
         south: Math.max(bounds.south, Math.min(...batch.map(cell => cell.south))),
         north: Math.min(bounds.north, Math.max(...batch.map(cell => cell.north)))
       };
-      const raw = await cargarParadas(batchBounds);
+      const min = batchBounds.south.toFixed(6) + ',' + batchBounds.west.toFixed(6);
+      const max = batchBounds.north.toFixed(6) + ',' + batchBounds.east.toFixed(6);
+      const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
+      let raw = null;
+      let errorWorker = null;
+      try { raw = await withTimeout(fetchApi('/transporte-paradas' + query), 25000); } catch (error) { errorWorker = error; }
       if (!enabled || !map) return [];
+      const workerVacio = !raw || (Array.isArray(raw) && raw.length === 0);
+      if (workerVacio) {
+        if (errorWorker) console.debug('[transporte-publico] Worker falló, probando fuentes directas:', errorWorker);
+        // 1) Transitous directo desde el navegador (CORS abierto y rápido):
+        // salva la capa aunque el Worker desplegado sea antiguo y Overpass
+        // esté rechazando peticiones.
+        try {
+          const tt = await withTimeout(fetchJson('https://api.transitous.org/api/v1/map/stops' + query, 'omit', 12000), 15000);
+          if (!enabled || !map) return [];
+          if (Array.isArray(tt) && tt.length) raw = tt;
+        } catch (errorTt) {
+          console.debug('[transporte-publico] Transitous directo falló:', errorTt);
+        }
+        // 2) Overpass directo (cobertura mundial OSM) si Transitous no dio nada.
+        if (!raw || (Array.isArray(raw) && !raw.length)) {
+          try {
+            const directo = await withTimeout(fetchParadasDirecto(batchBounds), 25000);
+            if (!enabled || !map) return [];
+            console.debug('[transporte-publico] Overpass directo devolvió', directo.length, 'elementos para', batchBounds);
+            if (directo.length || errorWorker) raw = directo;
+          } catch (errorDirecto) {
+            console.debug('[transporte-publico] Overpass directo también falló:', errorDirecto);
+            if (errorWorker) throw errorWorker;
+            throw errorDirecto;
+          }
+        }
+      }
       const data = Array.isArray(raw) ? raw
         : Array.isArray(raw && raw.stops) ? raw.stops
         : Array.isArray(raw && raw.features) ? raw.features
@@ -346,7 +412,8 @@
           const cached = stopCellCache.get(cell.key);
           return !cached || Date.now() - cached.touched >= CACHE_MS;
         });
-        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas' : (quedanCeldas ? 'Cargando paradas cercanas…' : t('transportNoData', 'Sin datos de transporte público en esta zona.')));
+        const esEspana = currentRegion.indexOf('es-') === 0;
+        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (esEspana ? 'España' : 'Global') + ' · ' + features.length + ' paradas (' + (esEspana ? 'Transitous + OSM' : 'OSM') + ')' : (quedanCeldas ? 'Cargando paradas cercanas…' : t('transportNoData', 'Sin datos de transporte público en esta zona.')));
         if (quedanCeldas) refreshQueued = true;
         else autoSteps = 0;
       }
@@ -409,7 +476,7 @@
     if (!feature) return;
     const props = feature.properties;
     const coords = feature.geometry.coordinates;
-    const esOsmId = /^(node|way|relation):\d+$/.test(String(props.stopId || ''));
+    const esTransitous = /^tt:/.test(String(props.stopId || ''));
     const tarjetaParada = crearTarjetaParada(props, () => {
       const destination = { lon: Number(coords[0]), lat: Number(coords[1]), nombre: props.name || t('transportStop', 'Parada') };
       const routeToggle = document.getElementById('rsToggleRuta');
@@ -426,9 +493,62 @@
     const body = tarjetaParada.body;
     if (popup) popup.remove();
     popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '320px', offset: 12, className: 'tp-map-popup' }).setLngLat(coords).setDOMContent(box).addTo(map);
-    body.textContent = map.getZoom() < DEPARTURE_MIN_ZOOM
-      ? 'Parada de OpenStreetMap. Acércate para consultar horarios si están disponibles.'
-      : t('transportNoSchedules', 'Parada de OpenStreetMap. No hay horarios GTFS disponibles.');
+    if (!esTransitous) {
+      body.textContent = t('transportNoSchedules', 'Parada de OpenStreetMap. No hay horarios GTFS disponibles.');
+      return;
+    }
+    if (map.getZoom() < DEPARTURE_MIN_ZOOM) {
+      body.textContent = 'Acércate para consultar horarios.';
+      return;
+    }
+    cargarSalidas(String(props.stopId), body);
+  }
+
+  function formatoHora(fechaIso) {
+    try {
+      const d = new Date(fechaIso);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    } catch (error) { return ''; }
+  }
+
+  function pintarSalidas(body, items) {
+    body.textContent = '';
+    if (!items.length) { body.textContent = t('transportNoSchedules', 'No hay próximas salidas disponibles.'); return; }
+    const lista = document.createElement('ul');
+    lista.className = 'tp-departure-list';
+    const ahora = Date.now();
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.className = 'tp-departure' + (item.timestamp && item.timestamp < ahora ? ' is-past' : '');
+      const linea = document.createElement('span'); linea.className = 'tp-line-name'; linea.textContent = item.linea || item.nombre || t('transportStop', 'Línea');
+      const hora = document.createElement('span'); hora.className = 'tp-time' + (item.tiempoReal ? ' is-realtime' : ''); hora.textContent = item.hora || '--:--';
+      li.append(linea, hora);
+      lista.appendChild(li);
+    });
+    body.appendChild(lista);
+  }
+
+  async function cargarSalidas(stopId, body) {
+    body.textContent = t('transportLoading', 'Cargando salidas…');
+    try {
+      const data = await withTimeout(fetchApi('/transporte-salidas?stopId=' + encodeURIComponent(stopId) + '&n=8'), 15000);
+      const crudos = Array.isArray(data) ? data : (data && Array.isArray(data.stopTimes) ? data.stopTimes : []);
+      const items = crudos.map(s => {
+        const hora = s.realtime || s.place && s.place.departure || s.departure || s.arrival;
+        const ts = hora ? Date.parse(hora) : NaN;
+        return {
+          linea: (s.routeShortName || (s.trip && s.trip.routeShortName) || s.headsign || s.tripHeadsign || '').toString(),
+          hora: hora ? formatoHora(hora) : '',
+          timestamp: Number.isFinite(ts) ? ts : null,
+          tiempoReal: !!(s.realTime || s.realtime),
+        };
+      }).filter(item => item.hora);
+      pintarSalidas(body, items);
+    } catch (error) {
+      console.debug('[transporte-publico] No se pudieron cargar las salidas:', error);
+      body.textContent = t('transportError', 'No se pudieron cargar los horarios.');
+    }
   }
 
   async function searchStop(query, origin) {
@@ -570,4 +690,3 @@
     document.head.appendChild(style);
   }
 })();
-

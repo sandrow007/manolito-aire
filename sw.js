@@ -229,15 +229,22 @@
 // Cambian index.html, worker.js y js/transporte-publico.js.
 // 2026-10-29-h: arreglo de /transporte-paradas en worker.js (variable `datos` sin declarar
 // lanzaba ReferenceError y el proxy devolvía siempre []). Cambia worker.js.
+// 2026-10-30-a: rutas-bici.js tenia una comilla sin cerrar (SyntaxError) y el SW podia
+// seguir sirviendo la copia rota. Cambia js/rutas-bici.js.
+// 2026-10-30-b: los JS de transporte y carriles bici ahora se piden primero a la red
+// (antes cache-first: aunque se subiera un arreglo, el navegador seguia ejecutando la
+// copia vieja guardada con la misma URL ?v=...). Cambia sw.js.
 // 2026-10-31-a: la capa de transporte dejó de dibujarse porque los espejos de
 // Overpass rechazan las peticiones (HTTP 406 y timeouts) y el cliente dependía
-// solo del proxy. Se vuelve a Transitous (MOTIS /api/v1/map/stops, CORS abierto)
-// como fuente principal en js/transporte-publico.js (llamada directa desde el
-// navegador) y en el proxy /transporte-paradas de worker.js, con Overpass como
-// respaldo. Además, si el estilo del mapa aún no está listo al activar la capa,
-// se reintenta en vez de rendirse. Cambian index.html, worker.js y
-// js/transporte-publico.js.
-const VERSION = '2026-10-31-a-transporte-transitous';
+// solo del proxy. El navegador prueba ahora Transitous directo
+// (api.transitous.org/api/v1/map/stops, CORS abierto) antes que Overpass, y el
+// proxy /transporte-paradas combina Transitous + Overpass en paralelo. Además,
+// si el estilo del mapa aún no está listo al activar la capa, se reintenta en
+// vez de rendirse. Cambian index.html, worker.js y js/transporte-publico.js.
+// 2026-10-31-b: fusión de ambas líneas y corrección en worker.js (MOTIS devuelve
+// "stopId", no "id": se descartaban todas las paradas de Transitous). Además se
+// retiran las 3 etiquetas <base> duplicadas de index.html.
+const VERSION = '2026-10-31-b-transporte-bici-base';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad
@@ -421,6 +428,14 @@ self.addEventListener('fetch', function(ev) {
 	}
 
 	if (esDinamico(url)) {
+		ev.respondWith(networkFirst(peticion));
+		return;
+	}
+
+	// Capas en desarrollo activo: red primero para que un arreglo llegue al
+	// momento (con caché como respaldo sin conexión).
+	if (url.origin === self.location.origin &&
+		/\/js\/(transporte-publico|rutas-bici|fuentes-agua)\.js$/i.test(url.pathname)) {
 		ev.respondWith(networkFirst(peticion));
 		return;
 	}

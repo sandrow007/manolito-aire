@@ -596,6 +596,11 @@ export default {
         const bboxTxt = [south, west, north, east].map((v) => v.toFixed(6)).join(',');
         const claveKv = 'parada:combinada:' + [south, west, north, east].map((v) => v.toFixed(3)).join(',');
         const modoDiagnostico = url.searchParams.get('debug') === '1';
+        // Transitous cubre actualmente los horarios y paradas de Sevilla. No
+        // esperes hasta 15 s a todos los espejos OSM antes de mostrar los datos:
+        // una respuesta buena de Transitous debe bastar por sí sola. Overpass
+        // seguirá rellenando las zonas sin cobertura cuando responda rápido.
+        const MAX_ESPERA_OVERPASS_CON_TRANSITOUS_MS = 2500;
         if (kv && !modoDiagnostico) {
           try {
             const { value, metadata } = await kv.getWithMetadata(claveKv);
@@ -716,21 +721,25 @@ export default {
           });
         }
 
-        // Las dos fuentes se piden en paralelo; cada una se resuelve a [] si
-        // falla, así una no bloquea ni tumba a la otra.
+        // Transitous es la fuente rápida de paradas y horarios. No bloquear
+        // su respuesta por espejos Overpass caídos o lentos: se esperan como
+        // máximo 2,5 s para enriquecer, y luego se continúa con Transitous.
+        const promesaTransitous = obtenerTransitous().catch(() => []);
+        const promesaOverpass = (async () => {
+          let datos = null;
+          try { datos = await Promise.any(espejos.map(intentarEspejo)); } catch (error) { return []; }
+          if (!datos) return [];
+          return datos.elements.map((el) => {
+            const punto = el.type === 'node' ? el : (el.center || (el.geometry && el.geometry.reduce((sum, p) => ({ lat: sum.lat + p.lat / el.geometry.length, lon: sum.lon + p.lon / el.geometry.length }), { lat: 0, lon: 0 })));
+            if (!punto || !Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return null;
+            const tags = el.tags || {};
+            return { name: tags.name || tags['name:es'] || 'Parada', lat: punto.lat, lon: punto.lon, stopId: 'osm:' + el.type + ':' + el.id };
+          }).filter(Boolean);
+        })();
+        const esperarOverpass = new Promise((resolve) => setTimeout(() => resolve([]), MAX_ESPERA_OVERPASS_CON_TRANSITOUS_MS));
         const [resultadoTransitous, resultadoOverpass] = await Promise.all([
-          obtenerTransitous().catch(() => []),
-          (async () => {
-            let datos = null;
-            try { datos = await Promise.any(espejos.map(intentarEspejo)); } catch (error) { return []; }
-            if (!datos) return [];
-            return datos.elements.map((el) => {
-              const punto = el.type === 'node' ? el : (el.center || (el.geometry && el.geometry.reduce((sum, p) => ({ lat: sum.lat + p.lat / el.geometry.length, lon: sum.lon + p.lon / el.geometry.length }), { lat: 0, lon: 0 })));
-              if (!punto || !Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return null;
-              const tags = el.tags || {};
-              return { name: tags.name || tags['name:es'] || 'Parada', lat: punto.lat, lon: punto.lon, stopId: 'osm:' + el.type + ':' + el.id };
-            }).filter(Boolean);
-          })(),
+          promesaTransitous,
+          Promise.race([promesaOverpass, esperarOverpass]),
         ]);
 
         // Fusión: Transitous primero (trae stopId con horarios reales), OSM

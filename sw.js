@@ -244,7 +244,11 @@
 // 2026-10-31-b: fusión de ambas líneas y corrección en worker.js (MOTIS devuelve
 // "stopId", no "id": se descartaban todas las paradas de Transitous). Además se
 // retiran las 3 etiquetas <base> duplicadas de index.html.
-const VERSION = '2026-10-31-c-festejos';
+// 2026-10-31-d: no esperar hasta 15 s a los espejos Overpass caídos si Transitous
+// ya tiene paradas; el proxy da prioridad a la respuesta rápida y limita el
+// enriquecimiento OSM a 2,5 s. Se invalida la caché para aplicar el arreglo.
+// Cambia worker.js.
+const VERSION = '2026-10-31-d-transporte';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

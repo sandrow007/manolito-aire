@@ -12,7 +12,6 @@
   const MIN_ZOOM = 12.5;
   const MAX_CELLS_PER_REFRESH = 24;
   const MAX_AUTO_STEPS = 12;
-  const DEPARTURE_MIN_ZOOM = 15;
   const CACHE_MS = 15 * 60 * 1000;
   const MAX_BBOX_SPAN = 0.35;
   const GRID_DEGREES = 0.02;
@@ -262,11 +261,16 @@
         if (errorWorker) console.debug('[transporte-publico] Worker falló, probando fuentes directas:', errorWorker);
         // 1) Transitous directo desde el navegador (CORS abierto y rápido):
         // salva la capa aunque el Worker desplegado sea antiguo y Overpass
-        // esté rechazando peticiones.
+        // esté rechazando peticiones. Se normaliza el stopId con prefijo
+        // "tt:" para que la tarjeta de la parada sepa que tiene horarios.
         try {
           const tt = await withTimeout(fetchJson('https://api.transitous.org/api/v1/map/stops' + query, 'omit', 12000), 15000);
           if (!enabled || !map) return [];
-          if (Array.isArray(tt) && tt.length) raw = tt;
+          if (Array.isArray(tt) && tt.length) {
+            raw = tt.map(p => (p && p.stopId != null && String(p.stopId).indexOf('tt:') !== 0)
+              ? Object.assign({}, p, { stopId: 'tt:' + p.stopId })
+              : p);
+          }
         } catch (errorTt) {
           console.debug('[transporte-publico] Transitous directo falló:', errorTt);
         }
@@ -497,10 +501,8 @@
       body.textContent = t('transportNoSchedules', 'Parada de OpenStreetMap. No hay horarios GTFS disponibles.');
       return;
     }
-    if (map.getZoom() < DEPARTURE_MIN_ZOOM) {
-      body.textContent = 'Acércate para consultar horarios.';
-      return;
-    }
+    // Las salidas se piden por stopId (una petición pequeña), no por vista
+    // del mapa: no hace falta acercarse para consultarlas.
     cargarSalidas(String(props.stopId), body);
   }
 
@@ -532,13 +534,33 @@
   async function cargarSalidas(stopId, body) {
     body.textContent = t('transportLoading', 'Cargando salidas…');
     try {
-      const data = await withTimeout(fetchApi('/transporte-salidas?stopId=' + encodeURIComponent(stopId) + '&n=8'), 15000);
-      const crudos = Array.isArray(data) ? data : (data && Array.isArray(data.stopTimes) ? data.stopTimes : []);
-      const items = crudos.map(s => {
-        const hora = s.realtime || s.place && s.place.departure || s.departure || s.arrival;
+      let data = null;
+      try {
+        data = await withTimeout(fetchApi('/transporte-salidas?stopId=' + encodeURIComponent(stopId) + '&n=8'), 15000);
+      } catch (errorProxy) {
+        console.debug('[transporte-publico] El proxy de salidas falló, se prueba Transitous directo:', errorProxy);
+      }
+      let crudos = data && (Array.isArray(data.stopTimes) ? data.stopTimes : (Array.isArray(data) ? data : []));
+      // Respaldo directo: si el proxy devolvió vacío (p. ej. un Worker
+      // desplegado que aún no tiene la ruta nueva) y la parada es de
+      // Transitous, el navegador pregunta a la API directo (CORS abierto).
+      if ((!crudos || !crudos.length) && stopId.indexOf('tt:') === 0) {
+        try {
+          const directo = await withTimeout(fetchJson('https://api.transitous.org/api/v5/stoptimes?stopId=' + encodeURIComponent(stopId.slice(3)) + '&n=8', 'omit', 12000), 15000);
+          if (directo && Array.isArray(directo.stopTimes) && directo.stopTimes.length) crudos = directo.stopTimes;
+        } catch (errorDirecto) {
+          console.debug('[transporte-publico] Transitous directo de salidas falló:', errorDirecto);
+        }
+      }
+      const items = (crudos || []).map(s => {
+        const lugar = s.place || {};
+        const hora = lugar.departure || lugar.scheduledDeparture || s.departure || s.arrival || s.realtime;
         const ts = hora ? Date.parse(hora) : NaN;
+        const corto = s.routeShortName || (s.trip && s.trip.routeShortName) || s.displayName || '';
+        const destino = s.headsign || (s.trip && s.trip.headsign) || '';
+        const nombre = corto ? (destino ? corto + ' → ' + destino : corto) : (destino || t('transportStop', 'Línea'));
         return {
-          linea: (s.routeShortName || (s.trip && s.trip.routeShortName) || s.headsign || s.tripHeadsign || '').toString(),
+          linea: nombre,
           hora: hora ? formatoHora(hora) : '',
           timestamp: Number.isFinite(ts) ? ts : null,
           tiempoReal: !!(s.realTime || s.realtime),

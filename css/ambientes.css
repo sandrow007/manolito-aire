@@ -702,3 +702,114 @@ html.modo-salud .escudo-insignia{ color:#0B6B44; }
 @media (prefers-reduced-motion: reduce){
   .escudo{ transition:none; }
 }
+
+/* ---------- FESTEJOS CON DECORACIÓN (31-oct-2026) ----------
+   Capa fija de adornos para Halloween y Navidad. SVG en línea (sin red ni
+   imágenes nuevas), pocas animaciones largas de transform/background única-
+   mente y TODO estático con prefers-reduced-motion. No intercepta eventos
+   (pointer-events:none), no tapa nada interactivo y no se imprime. */
+
+#festijo-decor{
+  position:fixed; inset:0; pointer-events:none; z-index:1500;
+  overflow:hidden;
+}
+#festijo-decor .festijo-fig{ position:absolute; }
+@media print{ #festijo-decor, #festijo-anuncio{ display:none !important; } }
+
+/* Telarañas: color morado en tema claro, blanco en oscuro (currentColor) */
+.festijo-web{ color:rgba(109,40,135,0.40); }
+[data-theme="dark"] .festijo-web{ color:rgba(255,255,255,0.30); }
+.festijo-web-izq{ top:0; left:0; }
+.festijo-web-der{ top:0; right:0; }
+@media (max-width:640px){ .festijo-web{ width:84px; height:84px; } }
+
+/* Gorro de bruja colgando del borde superior */
+.festijo-gorro{ top:0; left:20%; }
+@media (max-width:640px){ .festijo-gorro{ left:8%; width:54px; height:44px; } }
+
+/* Murciélagos: vuelo lento a lo ancho de la pantalla (transform solamente) */
+.festijo-murcielago{ top:12%; left:0; }
+.festijo-m1{ animation:festijo-vuelo 26s linear infinite; }
+.festijo-m2{ top:22%; animation:festijo-vuelo 34s linear infinite; animation-delay:-14s; }
+@keyframes festijo-vuelo{
+  from{ transform:translateX(-10vw) translateY(0); }
+  50%{ transform:translateX(50vw) translateY(-3vh); }
+  to{ transform:translateX(110vw) translateY(0); }
+}
+
+/* Fantasmas: levitan suave en la zona baja */
+.festijo-fantasma{ bottom:6%; }
+.festijo-fantasma path{ stroke:rgba(109,40,135,0.30); stroke-width:1; }
+.festijo-f1{ right:18%; animation:festijo-levita 8s ease-in-out infinite alternate; }
+.festijo-f2{ right:6%; bottom:12%; animation:festijo-levita 11s ease-in-out infinite alternate; animation-delay:-4s; }
+@keyframes festijo-levita{
+  from{ transform:translateY(0); }
+  to{ transform:translateY(-22px); }
+}
+@media (max-width:640px){ .festijo-f1{ right:34%; } .festijo-f2{ right:6%; } }
+
+.festijo-calabaza{ left:18px; bottom:14px; }
+.festijo-monstruo{ right:18px; bottom:0; }
+
+/* ---- Navidad ---- */
+
+/* Nieve cayendo: dos capas de puntos repetidos en UN solo elemento animado;
+   la capa grande cae lento, la pequeña algo más rápida. En tema claro los
+   copos van en gris pizarra para que se vean sobre el fondo crema. */
+.festijo-nieve{
+  position:absolute; inset:-140px 0 0 0;
+  background-image:
+    radial-gradient(circle, rgba(148,163,184,0.75) 1.4px, transparent 1.7px),
+    radial-gradient(circle, rgba(148,163,184,0.5) 1.1px, transparent 1.4px);
+  background-size:120px 120px, 70px 70px;
+  animation:festijo-nieve-cae 34s linear infinite;
+}
+[data-theme="dark"] .festijo-nieve{
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.9) 1.4px, transparent 1.7px),
+    radial-gradient(circle, rgba(255,255,255,0.55) 1.1px, transparent 1.4px);
+}
+@keyframes festijo-nieve-cae{
+  from{ background-position:0 -120px, 0 -70px; }
+  to{ background-position:0 120px, 35px 70px; }
+}
+
+/* Bolas colgando del borde superior: columpio suave */
+.festijo-bola{ top:0; transform-origin:12px 0; }
+.festijo-b1{ left:12%; animation:festijo-columpio 6s ease-in-out infinite alternate; }
+.festijo-b2{ left:46%; animation:festijo-columpio 7.5s ease-in-out infinite alternate; animation-delay:-3s; }
+.festijo-b3{ left:72%; animation:festijo-columpio 5.4s ease-in-out infinite alternate; animation-delay:-1.5s; }
+@keyframes festijo-columpio{
+  from{ transform:rotate(-4deg); }
+  to{ transform:rotate(4deg); }
+}
+
+.festijo-gorropapa{ top:0; right:10px; }
+.festijo-nieve-muneco{ left:16px; bottom:12px; }
+.festijo-regalo{ right:16px; bottom:12px; }
+@media (max-width:640px){
+  .festijo-nieve-muneco, .festijo-regalo{ width:48px; height:auto; }
+}
+
+/* Movimiento reducido: la decoración se queda montada pero QUIETA:
+   ni un frame animado, batería intacta, nada se mueve por el usuario. */
+@media (prefers-reduced-motion: reduce){
+  #festijo-decor *, #festijo-anuncio{ animation:none !important; }
+}
+
+/* Anuncio de fin de año (31 de diciembre, dentro del modo Navidad) */
+#festijo-anuncio{
+  display:flex; flex-wrap:wrap; gap:4px 14px; align-items:baseline; justify-content:center;
+  padding:12px 18px; text-align:center;
+  background:linear-gradient(90deg,#7f1d1d,#166534 50%,#7f1d1d);
+  background-size:200% 100%;
+  animation:festijo-anuncio-brillo 12s ease-in-out infinite alternate;
+  color:#fef3c7;
+  font:600 15px/1.4 Inter,Montserrat,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+#festijo-anuncio strong{ font-size:17px; }
+#festijo-anuncio span{ opacity:.92; }
+@keyframes festijo-anuncio-brillo{
+  from{ background-position:0 0; }
+  to{ background-position:100% 0; }
+}

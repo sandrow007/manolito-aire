@@ -244,7 +244,16 @@
 // 2026-10-31-b: fusión de ambas líneas y corrección en worker.js (MOTIS devuelve
 // "stopId", no "id": se descartaban todas las paradas de Transitous). Además se
 // retiran las 3 etiquetas <base> duplicadas de index.html.
-const VERSION = '2026-10-31-b-transporte-bici-base';
+const VERSION = '2026-10-31-c-festejos';
+// 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
+// y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
+// ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo
+// consumo, estáticas con prefers-reduced-motion) y css/ambientes.css la
+// dibuja. Además ?ambiente=halloween|navidad|anonuevo fuerza un tema para
+// verlo en cualquier fecha y ?ambiente=off lo apaga. También se regenera
+// compartir.png (0 bytes: era la og:image rota de Bing/tarjetas sociales) y
+// se retiran 3 <base> duplicadas del <head> de index.html.
+// Cambian index.html, css/ambientes.css, js/ambientes.js y compartir.png.
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

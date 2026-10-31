@@ -229,7 +229,15 @@
 // Cambian index.html, worker.js y js/transporte-publico.js.
 // 2026-10-29-h: arreglo de /transporte-paradas en worker.js (variable `datos` sin declarar
 // lanzaba ReferenceError y el proxy devolvía siempre []). Cambia worker.js.
-const VERSION = '2026-10-29-h-transporte-fix';
+// 2026-10-31-a: la capa de transporte dejó de dibujarse porque los espejos de
+// Overpass rechazan las peticiones (HTTP 406 y timeouts) y el cliente dependía
+// solo del proxy. Se vuelve a Transitous (MOTIS /api/v1/map/stops, CORS abierto)
+// como fuente principal en js/transporte-publico.js (llamada directa desde el
+// navegador) y en el proxy /transporte-paradas de worker.js, con Overpass como
+// respaldo. Además, si el estilo del mapa aún no está listo al activar la capa,
+// se reintenta en vez de rendirse. Cambian index.html, worker.js y
+// js/transporte-publico.js.
+const VERSION = '2026-10-31-a-transporte-transitous';
 const CACHE_ESTATICA = 'manolito-estatica-' + VERSION;
 const CACHE_DINAMICA = 'manolito-dinamica-' + VERSION;
 const MAX_ENTRADAS_ESTATICAS = 600; // tiles incluidos; tope de seguridad

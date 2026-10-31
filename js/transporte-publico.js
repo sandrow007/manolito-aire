@@ -17,7 +17,7 @@
   const MAX_BBOX_SPAN = 0.35;
   const GRID_DEGREES = 0.02;
   const MAX_CELLS_PER_QUERY = 36;
-  const ATTRIBUTION = '© OpenStreetMap contributors';
+  const ATTRIBUTION = '© <a href="https://transitous.org" target="_blank" rel="noopener">Transitous</a> · OpenStreetMap contributors';
   const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#35C4D4" stroke="#0E3B47" stroke-width="1.6"/><rect x="6" y="7" width="14" height="9" rx="2.5" fill="none" stroke="#0E3B47" stroke-width="1.5"/><path d="M8 10h7M8 12.5h9" stroke="#0E3B47" stroke-width="1.3" stroke-linecap="round"/><circle cx="9.5" cy="17.5" r="1.3" fill="#fff"/><circle cx="16.5" cy="17.5" r="1.3" fill="#fff"/></svg>';
 
   let map = null;
@@ -177,6 +177,22 @@
     ]).finally(() => clearTimeout(timer));
   }
 
+  // 31-oct-2026: Overpass empezó a rechazar las peticiones (HTTP 406 y
+  // timeouts en todos los espejos) y la capa dejó de dibujarse. Volvemos a
+  // Transitous (MOTIS) como fuente principal: responde rápido y con CORS
+  // abierto, así que el navegador puede llamarlo directo aunque el Worker
+  // desplegado sea antiguo. El proxy propio queda de respaldo.
+  async function cargarParadas(batchBounds) {
+    const min = batchBounds.south.toFixed(6) + ',' + batchBounds.west.toFixed(6);
+    const max = batchBounds.north.toFixed(6) + ',' + batchBounds.east.toFixed(6);
+    const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
+    try {
+      const directo = await withTimeout(fetchJson('https://api.transitous.org/api/v1/map/stops' + query, 'omit', 12000), 15000);
+      if (Array.isArray(directo)) return directo;
+    } catch (error) { /* se prueba el proxy propio */ }
+    return withTimeout(fetchApi('/transporte-paradas' + query), 25000);
+  }
+
   async function loadStops(bounds) {
     bounds = boundsForRequest(bounds);
     const key = cacheKey(bounds);
@@ -200,17 +216,14 @@
         south: Math.max(bounds.south, Math.min(...batch.map(cell => cell.south))),
         north: Math.min(bounds.north, Math.max(...batch.map(cell => cell.north)))
       };
-      const min = batchBounds.south.toFixed(6) + ',' + batchBounds.west.toFixed(6);
-      const max = batchBounds.north.toFixed(6) + ',' + batchBounds.east.toFixed(6);
-      const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
-      const raw = await withTimeout(fetchApi('/transporte-paradas' + query), 25000);
+      const raw = await cargarParadas(batchBounds);
       if (!enabled || !map) return [];
       const data = Array.isArray(raw) ? raw
         : Array.isArray(raw && raw.stops) ? raw.stops
         : Array.isArray(raw && raw.features) ? raw.features
         : Array.isArray(raw && raw.elements) ? raw.elements
         : null;
-      if (!data) throw new Error('OpenStreetMap devolvió una respuesta de paradas inválida');
+      if (!data) throw new Error('El servicio de paradas devolvió una respuesta inválida');
       const placesByCell = new Map(batch.map(cell => [cell.key, []]));
       data.forEach(place => {
         const feature = toFeature(place);
@@ -317,7 +330,8 @@
       const capaLista = await ensureLayers();
       if (!enabled || currentGeneration !== generation) return;
       if (!capaLista) {
-        showStatus(t('transportError', 'No se pudo consultar el transporte público.'));
+        showStatus(t('transportLoading', 'Cargando paradas…'));
+        refreshQueued = true;
       } else if (map.getZoom() < MIN_ZOOM) {
         showStatus(t('transportZoom', 'Acércate para ver las paradas de transporte público.'));
       } else {
@@ -332,7 +346,7 @@
           const cached = stopCellCache.get(cell.key);
           return !cached || Date.now() - cached.touched >= CACHE_MS;
         });
-        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas (OSM)' : (quedanCeldas ? 'Cargando paradas cercanas…' : t('transportNoData', 'Sin datos de transporte público en esta zona.')));
+        showStatus(features.length ? t('transportStatus', 'Transporte público: ') + (currentRegion.indexOf('es-') === 0 ? 'España' : 'Global') + ' · ' + features.length + ' paradas' : (quedanCeldas ? 'Cargando paradas cercanas…' : t('transportNoData', 'Sin datos de transporte público en esta zona.')));
         if (quedanCeldas) refreshQueued = true;
         else autoSteps = 0;
       }

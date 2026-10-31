@@ -568,7 +568,10 @@ export default {
       }
     }
 
-    // --- Proxy de paradas de transporte público desde OpenStreetMap/Overpass ---
+    // --- Proxy de paradas de transporte público ---
+    // 31-oct-2026: fuente principal Transitous (MOTIS /api/v1/map/stops), que
+    // responde rápido y con CORS abierto. Los espejos de Overpass quedan solo
+    // como respaldo porque empezaron a devolver HTTP 406 y timeouts.
     if (url.pathname === '/transporte-paradas') {
       try {
         const minParam = (url.searchParams.get('min') || '').split(',').map(Number);
@@ -589,18 +592,57 @@ export default {
         }
 
         const kv = env.AIR_QUALITY_CACHE || null;
-        const bboxTxt = [south, west, north, east].map((v) => v.toFixed(6)).join(',');
-        const claveKv = 'parada:osm:' + [south, west, north, east].map((v) => v.toFixed(3)).join(',');
+        const claveKv = 'parada:motis:' + [south, west, north, east].map((v) => v.toFixed(3)).join(',');
         if (kv) {
           try {
             const { value, metadata } = await kv.getWithMetadata(claveKv);
             if (value && metadata && metadata.ts && Date.now() - metadata.ts < 30 * 60 * 1000) {
               return new Response(value, {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Transit-Fuente': 'OpenStreetMap-cache', ...CORS_HEADERS }
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Transit-Fuente': 'cache', ...CORS_HEADERS }
               });
             }
           } catch (error) { }
         }
+
+        const responder = (paradas, fuente, maxAge) => {
+          if (kv && paradas.length && ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(kv.put(claveKv, JSON.stringify(paradas), { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
+          }
+          return new Response(JSON.stringify(paradas), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=' + maxAge, 'X-Transit-Fuente': fuente, ...CORS_HEADERS }
+          });
+        };
+
+        // 1) Transitous (MOTIS): rápido y estable.
+        try {
+          const controller = new AbortController();
+          const temporizador = setTimeout(() => controller.abort(), 10000);
+          try {
+            const consulta = 'https://api.transitous.org/api/v1/map/stops?min=' + south.toFixed(6) + ',' + west.toFixed(6) + '&max=' + north.toFixed(6) + ',' + east.toFixed(6);
+            const r = await fetch(consulta, {
+              headers: { 'Accept': 'application/json', 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+              signal: controller.signal,
+            });
+            if (r.ok) {
+              const datos = await r.json();
+              if (Array.isArray(datos)) {
+                const paradas = datos.map((p) => {
+                  const lat = Number(p.lat != null ? p.lat : p.latitude);
+                  const lon = Number(p.lon != null ? p.lon : p.longitude);
+                  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+                  return { name: p.name || 'Parada', lat, lon, id: p.stopId != null ? String(p.stopId) : (p.id != null ? String(p.id) : null) };
+                }).filter(Boolean);
+                return responder(paradas, 'Transitous', 300);
+              }
+            }
+          } finally {
+            clearTimeout(temporizador);
+          }
+        } catch (error) { }
+
+        // 2) Respaldo: Overpass (OpenStreetMap).
+        const bboxTxt = [south, west, north, east].map((v) => v.toFixed(6)).join(',');
         const consulta = '[out:json][timeout:20];(' +
           'node["highway"="bus_stop"](' + bboxTxt + ');' +
           'node["public_transport"="platform"](' + bboxTxt + ');' +
@@ -658,13 +700,7 @@ export default {
               id: el.type + ':' + el.id,
             };
           }).filter(Boolean);
-          if (kv && ctx && typeof ctx.waitUntil === 'function') {
-            ctx.waitUntil(kv.put(claveKv, JSON.stringify(paradas), { expirationTtl: 2592000, metadata: { ts: Date.now() } }).catch(() => {}));
-          }
-          return new Response(JSON.stringify(paradas), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', 'X-Transit-Fuente': 'OpenStreetMap', ...CORS_HEADERS }
-          });
+          return responder(paradas, 'OpenStreetMap', 300);
         }
 
         return new Response('[]', {

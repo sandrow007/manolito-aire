@@ -1871,6 +1871,18 @@ body.mode-peque .im-lost-btn{
 .faq-item summary:hover{ color:var(--accent); }
 .faq-item p{ padding:0 4px 16px; color:var(--sky-mid); font-size:0.92rem; max-width:62ch; }
 
+/* Intro global (SEO, 31-oct-2026): el bloque «El Google Maps de las sombras»
+   gana jerarquía propia. El lead se lee como entrada (color de tinta, algo
+   mayor) y los dos párrafos técnicos van más comedidos y respirados. */
+#seoGlobal .faq-intro{
+  max-width:58ch; margin:10px auto 0;
+  color:var(--ink); font-size:1.02rem; line-height:1.65; opacity:.92;
+}
+#seoGlobal .faq-seo-p{
+  color:var(--sky-mid); font-size:0.95rem; line-height:1.7;
+  max-width:62ch; margin:14px auto 0;
+}
+
 /* ============================================================
    CAPAS INTEGRADAS EN EL WIDGET SOLAR (sep-2026)
    Las casillas de capas y los botones Mapa oscuro / Mapa IGN /

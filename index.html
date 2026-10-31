@@ -144,8 +144,8 @@
      El mapa 2D del aire esta al final de la pagina y el tutorial solo
      sale una vez: app.js y tutorial.js cargan estas librerias bajo
      demanda, justo cuando hacen falta. Ahorro: 4 peticiones y unos
-     60 KB en el primer pintado. -->
-</noscript>
+     60 KB en el primer pintado. (El </noscript> que habia aqui quedo
+     huerfano al retirar el preload; se elimina 31-oct-2026.) -->
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
 <link rel="stylesheet" href="css/style.css?v=busqueda-agua-1">
@@ -1579,7 +1579,7 @@
   <!-- h1 unico con la busqueda principal y la marca sin simbolo (28-sep, SEO).
        Visible pero discreto para no tocar el diseño del hero.
        Traducido a los 6 idiomas (clave heroH1 en js/i18n.js). -->
-  <h1 id="heroTitulo" data-i18n="tagline" style="font-size:15px;font-weight:600;color:var(--sky-mid,#9fb3c8);text-align:center;margin:0 0 10px;">El aire y la sombra de tu calle, en vivo</h1>
+  <h1 id="heroTitulo" data-i18n="tagline" style="font-size:clamp(18px,2.6vw,24px);font-weight:700;letter-spacing:-0.01em;color:var(--sky-deep,#1b2a38);text-align:center;margin:0 0 14px;">El aire y la sombra de tu calle, en vivo</h1>
   <div class="air-hero-card" id="airHeroCard">
   <div class="city-picker" id="cityPickerContainer">
     <button class="city-dropdown-btn" id="cityDropdownBtn" aria-haspopup="listbox" aria-expanded="false">Sevilla</button>
@@ -2061,8 +2061,8 @@
 <section class="faq" id="seoGlobal" aria-labelledby="seoGlobalTitulo">
   <h2 id="seoGlobalTitulo" data-i18n="seoGlobalTit">El Google Maps de las sombras, en cualquier ciudad del mundo</h2>
   <p class="faq-intro" data-i18n="seoGlobalLead">Manolit∞ es un navegador 3D global de infraestructura urbana: un mapa de sombras interactivo, gratuito y sin registro para huir del sol, encontrar agua y aparcar a la sombra en cualquier rincón del planeta.</p>
-  <p style="color:var(--sky-mid,#8ba3b8); font-size:0.95rem; line-height:1.65; max-width:62ch; margin:14px auto 0;" data-i18n="seoGlobalP1">El simulador de sombras en 3D (Shadow Map) calcula, minuto a minuto, qué calles y plazas están en sombra usando los edificios y árboles reales de OpenStreetMap. Con el Shadow Finder trazas rutas sin sol, localizas fuentes de agua pública y parkings con sombra, y consultas las nubes en vivo antes de salir. Funciona en cualquier ciudad del mundo gracias a los datos abiertos.</p>
-  <p style="color:var(--sky-mid,#8ba3b8); font-size:0.95rem; line-height:1.65; max-width:62ch; margin:12px auto 0;" data-i18n="seoGlobalP2">La capa global de nubes, el sol y las sombras cubren todo el planeta. Lo único acotado a España son las estaciones físicas de calidad del aire, que alimentan el mapa de aire calle a calle.</p>
+  <p class="faq-seo-p" data-i18n="seoGlobalP1">El simulador de sombras en 3D (Shadow Map) calcula, minuto a minuto, qué calles y plazas están en sombra usando los edificios y árboles reales de OpenStreetMap. Con el Shadow Finder trazas rutas sin sol, localizas fuentes de agua pública y parkings con sombra, y consultas las nubes en vivo antes de salir. Funciona en cualquier ciudad del mundo gracias a los datos abiertos.</p>
+  <p class="faq-seo-p" data-i18n="seoGlobalP2">La capa global de nubes, el sol y las sombras cubren todo el planeta. Lo único acotado a España son las estaciones físicas de calidad del aire, que alimentan el mapa de aire calle a calle.</p>
 </section>
 
 <!-- Preguntas frecuentes: con details/summary, sin JavaScript, bateria cero -->
@@ -2130,88 +2130,10 @@
 </section>
 </main>
 
-<style>
-  #que-es{
-    max-width:min(var(--seccion-ancho, 880px), 100%);
-    margin:0 auto;
-    padding:24px 20px 4px;
-    color:var(--ink);
-    font-family:var(--font-body);
-    overflow-wrap:anywhere;
-  }
-  #que-es h2{
-    font-family:var(--font-display);
-    font-size:1.35rem;
-    line-height:1.25;
-    color:var(--sky-deep);
-    margin:0 0 10px;
-  }
-  #que-es h3{
-    font-size:1rem;
-    color:var(--sky-deep);
-    margin:16px 0 8px;
-  }
-  #que-es p{
-    margin:0 0 10px;
-    line-height:1.6;
-    font-size:0.95rem;
-    max-width:62ch;
-  }
-  #que-es dl{ margin:0 0 12px; }
-  #que-es dt{ font-weight:700; margin-top:10px; font-size:0.95rem; }
-  #que-es dd{
-    margin:2px 0 0;
-    line-height:1.55;
-    font-size:0.92rem;
-    opacity:.92;
-    max-width:62ch;
-  }
-  #que-es details{
-    margin-top:14px;
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:12px 14px;
-    background:var(--surface);
-  }
-  #que-es summary{
-    cursor:pointer;
-    font-weight:600;
-    color:var(--sky-mid);
-    min-height:44px;
-    display:flex;
-    align-items:center;
-  }
-  #que-es details h2{ font-size:1.2rem; }
-</style>
-
-<section id="que-es" aria-labelledby="que-es-titulo">
-
-  <h2 id="que-es-titulo" data-i18n="queEsTitulo">Qué es Manolit∞ Aire</h2>
-  <p data-i18n="queEsP1">
-    Manolit∞ Aire es una aplicación gratuita y universal para caminar por la
-    sombra. Funciona en cualquier ciudad del mundo y está pensada
-    especialmente para las que más sufren el calor: Sevilla, Écija, Córdoba,
-    Atenas, Roma, Dubái, Doha, Riad, Marrakech, El Cairo, Delhi, Phoenix o
-    Las Vegas, entre otras. Nació en Sevilla, pero su alcance es global,
-    igual que un mapa de uso general.
-  </p>
-  <p data-i18n="queEsP2">
-    Calcula la sombra solar por horas y propone la ruta más fresca, no la
-    más corta. Además muestra fuentes públicas de agua potable y aparcamiento
-    a nivel global.
-  </p>
-  <h3 data-i18n="queEsFaqTitulo">Preguntas frecuentes</h3>
-  <dl>
-    <dt data-i18n="queEsFaq1Q">¿Solo funciona en Sevilla o en España?</dt>
-    <dd data-i18n="queEsFaq1A">No. Nació en Sevilla, pero es universal: sirve en cualquier ciudad del mundo.</dd>
-    <dt data-i18n="queEsFaq2Q">¿Para qué ciudades está pensada?</dt>
-    <dd data-i18n="queEsFaq2A">Para cualquier ciudad con calor intenso, sea europea, de Oriente Medio, de Asia, de África o de América.</dd>
-    <dt data-i18n="queEsFaq3Q">¿Es gratis?</dt>
-    <dd data-i18n="queEsFaq3A">Sí, es gratuita y funciona desde el navegador, también en el móvil.</dd>
-  </dl>
-
-</section>
-
+<!-- 31-oct-2026: el bloque «Qué es Manolit∞ Aire» con su mini-FAQ de 3
+     preguntas se eliminó por duplicado: su texto de presentación repetía al
+     de #seoGlobal (dentro de <main>) y sus preguntas repetían a #faq. Una sola
+     fuente de verdad: intro en #seoGlobal y preguntas en #faq. -->
 <footer class="footer">
   <!-- Apoyo, insignias y proyectos arriba; observatorios y enlaces legales debajo. -->
 

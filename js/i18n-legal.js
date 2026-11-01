@@ -3,12 +3,9 @@
    ------------------------------------------------------------
    Mecanismo: al cargar, guarda el HTML original (castellano,
    texto legal de referencia) de cada elemento [data-i18n-legal].
-   Al cambiar el idioma (evento 'langChanged' de i18n.js):
-     - EN: aplica la traducción inglesa completa.
-     - CA/EU/GL/KA: se mantiene el castellano, la versión legal
-       de referencia (lenguas cooficiales plenamente comprensibles
-       en España; el georgiano no es lengua de la normativa).
-     - AR: traducción jurídica árabe completa (privacidad, aviso legal y cookies).
+   Al cambiar el idioma (evento 'langChanged' de i18n.js), aplica
+   traducciones jurídicas estáticas en inglés, árabe, catalán,
+   euskera y gallego, además de las etiquetas del selector.
    ============================================================ */
 
 'use strict';
@@ -46,7 +43,23 @@
     priv_18: 'Because the technical architecture of Manolit∞ Aire is designed not to store any personal data in its own databases, there is no profile or record associated with you that we could extract, modify, transfer or delete from our systems. For any technical, legal or software-project-related query, you can contact the website developer directly at: <strong>SANDRO.A007@GMAIL.COM</strong>.',
     priv_19: '5 bis. Real-Time Cloud Cover Data (OpenWeatherMap)',
     priv_20: 'To paint shadows with physical realism according to the current sky and to draw the visible cloud layer over the map, the website queries the cloud-cover percentage and the cloud map tiles from <b>OpenWeatherMap</b>. Both requests travel through our own <b>Cloudflare Workers</b> proxy: your browser only sends the proxy the coordinates of the map centre (or your reference point, if you used "My location") rounded to three decimal places — roughly 100&nbsp;m precision — plus the tile coordinates of the visible area, with no personal data attached; the API key stays on the server, never on your device. Results are cached for about 10 minutes and are not stored on any server of our own. OpenWeatherMap processes those requests under its own privacy policy; if you prefer not to send any coordinates at all, note that the map always uses the centre of the current view and never your GPS, unless you explicitly enable location.',
-
+    priv_21: 'Where your data goes, at a glance', priv_22: 'Service', priv_23: 'What leaves your browser', priv_24: 'What NEVER leaves',
+    priv_25: 'Your settings', priv_26: 'Nothing. Language, theme and reading mode are stored only in your browser using localStorage.', priv_27: 'Everything. Neither we nor anyone else receives it.',
+    priv_28: 'Manolit∞ chat', priv_29: 'Only the text you type, to Cloudflare Workers AI and, if it fails, to OpenRouter.', priv_30: 'Your name, location or conversation history.',
+    priv_31: 'Air quality', priv_32: 'Coordinates of the area you query, to Open-Meteo and Copernicus.', priv_33: 'Your identity. There are no accounts or profiles.',
+    priv_34: 'Searches and routes', priv_35: 'The street you search for to OpenStreetMap Nominatim and route coordinates to OSRM.', priv_36: 'Saved routes. We do not save any.',
+    priv_37: 'Clouds and land registry', priv_38: 'Only rounded coordinates of the visible map area, through our Cloudflare proxy.', priv_39: 'Your exact GPS. The API key never reaches your device.',
+    priv_40: '3D shadows and sun', priv_41: 'Nothing. All calculations happen on your own phone or computer.', priv_42: 'Your coordinates are never sent to a server to calculate shadows.',
+    priv_43: '7. Spain’s Land Registry Layer (Plots and Heights)',
+    priv_44: 'When you enable “3D Land Registry”, your browser requests cadastral images through this site’s Cloudflare Workers proxy, which queries the public WMS service of the Spanish Land Registry. The only information sent is the coordinates of the map tiles you are viewing, not your GPS position or personal data. Responses are cached for one hour and no query history is stored.',
+    priv_45: '8. Web Fonts (Google Fonts)',
+    priv_46: 'Website text uses Google Fonts. When a page loads, your browser downloads fonts from Google servers, which receive the usual technical request (IP address and user agent), without cookies or identifiers associated by us. Google processes that data under its own privacy policy.',
+    priv_47: '9. Game and Climate Protection Certificate',
+    priv_48: 'The “Catch Manolit∞” game and its Climate Protection Certificate run entirely in your browser. Your score, badges and certificate name <strong>never leave your device</strong> and disappear when you close the page.',
+    priv_49: '10. Parking and trip planner',
+    priv_50: 'The parking layer and trip planner query OpenStreetMap open data through Manolit∞’s proxy, and car routes are calculated by the public FOSSGIS OSRM service. Searches are not associated with your name or account and are not stored. If you leave the origin blank, your GPS may be used with your permission for that route request.',
+    priv_51: '11. How to protect yourself further',
+    priv_52: 'If you do not want to share your GPS, type your city manually. Do not enter personal or health information in the chat, because the text is sent to AI services to generate a reply. Clearing your browser data removes your locally stored preferences.',
     priv_53: '13. Public water fountains and location privacy',
     priv_54: 'When you enable “Water fountains”, the browser calculates the visible map bounding box and keeps it in memory only. This layer does not request GPS. The box is sent directly to Overpass and, only where its coverage applies, to Valencia’s municipal data service; in Málaga, the public municipal dataset is downloaded and filtered locally. We do not save the box or a query history in localStorage or on our own servers, and the application does not attach your name, account or user identifiers. Direct requests to third parties also expose the connection IP address and usual technical metadata; providers may retain logs under their own policies. We therefore do not describe the request as anonymous to those providers.',
     /* 01-nov-2026: carril bici y transporte público (privacidad) */
@@ -59,6 +72,17 @@
     priv_61: '14. Bike lanes, cycling routes and public transport',
     priv_62: 'Cycling routes are calculated with the OSRM bicycle profile, the public FOSSGIS service, through the own Manolit∞ proxy on Cloudflare Workers. If that proxy returns no route, BRouter is tried, another open service based on OpenStreetMap. The bike lane layer draws the cycling infrastructure mapped in OpenStreetMap, queried through Overpass via the same proxy, and only when the proxy does not answer does the query go directly from your browser to Overpass. The only thing that travels in these requests is the coordinates of the journey or of the visible map area, never your name, your account or any identifier of yours.',
     priv_63: 'The public transport layer shows stops and their upcoming departures. Our proxy aggregates open data from Transitous, a non-profit aggregator with the GTFS schedules published by transport operators, and OpenStreetMap stops for the areas Transitous does not cover yet. When the proxy is unavailable, the browser can query Transitous or Overpass directly, and those services receive the IP address and the usual technical metadata of any connection, under their own policies. Responses are kept in an in-memory cache for about 15 minutes to avoid repeated requests, and no history of your queries is stored on any server of ours.',
+    cook_1: 'Cookies and Local Storage Policy', cook_2: 'Manolit∞ Aire does not use advertising cookies or commercial tracking systems. We use <code>localStorage</code>, which is technically not a cookie but works similarly by storing data in your browser. Here is a transparent explanation.',
+    cook_3: 'The only technical preferences we store', cook_4: 'Setting (key)', cook_5: 'Technical purpose', cook_6: 'Is it sent to external servers?',
+    cook_7: '<strong>Chosen language</strong>', cook_8: 'Remember your preferred language for future visits.', cook_9: 'No, 100% local storage.',
+    cook_10: '<strong>Light/dark theme</strong>', cook_11: 'Remember your visual contrast preference.', cook_12: '<strong>Colour palette</strong>', cook_13: 'Remember your custom 3D urban map settings.',
+    cook_14: '<strong>Reading mode</strong>', cook_15: 'Remember your platform mode (citizen, scientist, grandparent or child).', cook_16: '<strong>Notice acceptance</strong>', cook_17: 'Avoid showing the information banner every time you open the map.',
+    cook_18: 'Why don’t we show a complex settings panel?', cook_19: 'Complex rejection mechanisms are required when third-party cookies, tracking pixels or advertising tools monitor your activity. Manolit∞ Aire processes only <strong>technical, essential and personalisation</strong> data, so we show a simple consent banner for transparency.', cook_20: 'Last updated: 22 August 2026', cook_21: 'Legal notice', cook_22: 'Privacy', cook_23: 'Cookies', cook_24: 'COOKIES',
+    priv_53: '13. Public water fountains and location privacy', priv_54: 'When you enable “Water fountains”, your browser calculates the visible map area; this layer does not request GPS. The area is queried through Overpass and, where covered, municipal data services in Valencia and Málaga. These third parties receive your IP address and usual technical metadata.',
+    priv_55: 'Cycling routes and bike lanes', priv_56: 'The origin and destination points you enter and the visible map area are sent to our Cloudflare proxy, which queries FOSSGIS OSRM, BRouter and Overpass to trace routes and lanes.', priv_57: 'Your identity, name and account. Nothing is stored.',
+    priv_58: 'Public transport', priv_59: 'The visible map area and the code of the stop you select are sent to our Cloudflare proxy, which queries Transitous and OpenStreetMap for stops and upcoming departures.', priv_60: 'Your name, account and query history.',
+    priv_61: '14. Bike lanes, cycling routes and public transport', priv_62: 'Cycling routes use the bicycle profile of FOSSGIS OSRM through Manolit∞’s Cloudflare Workers proxy, with BRouter as a fallback. Bike lanes come from OpenStreetMap and are queried through Overpass via the same proxy. Only route or map-area coordinates are transmitted, never your name or account.',
+    priv_63: 'The public transport layer shows stops and upcoming departures. Our proxy combines data from Transitous and OpenStreetMap. If the proxy is unavailable, your browser may contact those services directly; they receive your IP address and standard technical metadata. Responses are cached in memory for about 15 minutes, and we do not store query history on our servers.',
 
     /* ---------- AVISO LEGAL ---------- */
     avis_1: 'Legal notice',
@@ -130,7 +154,11 @@
     "priv_17": "12. حقوق المستخدمين واللائحة العامة لحماية البيانات (RGPD)",
     "priv_18": "نظرًا لأن البنية التقنية لـ Manolit∞ Aire مصممة بحيث لا تخزن أي بيانات ذات طابع شخصي في قواعد بيانات خاصة، فلا يوجد أي ملف تعريف أو سجل مرتبط بشخصك يمكننا استخراجه أو تعديله أو نقله أو حذفه من أنظمتنا. ولأي استفسار تقني أو قانوني أو متعلق بمشروع البرنامج، يمكنك التواصل مباشرة مع مطوّر الموقع عبر البريد الإلكتروني <strong>SANDRO.A007@GMAIL.COM</strong>.",
     "priv_19": "6. بيانات الغيوم في الوقت الحقيقي (OpenWeatherMap)",
-    "priv_20": "لرسم الظلال بواقعية فيزيائية وفق حالة السماء الحالية ورسم طبقة السحب المرئية على الخريطة، تستعلم الصفحة عن نسبة الغطاء السحابي وعن بلاطات خريطة السحب من <b>OpenWeatherMap</b>. ويسافر كلا الطلبين عبر وسيط (proxy) خاص بنا على <b>Cloudflare Workers</b>. متصفحك لا يرسل إلى ذلك الوسيط سوى إحداثيات مركز الخريطة (أو نقطة مرجعيتك إذا استخدمت \"موقعي\") مقرّبة إلى ثلاث خانات عشرية، أي بدقة نحو 100&nbsp;متر، وإحداثيات بلاطة المنطقة المرئية، من دون أي بيانات شخصية مرفقة. يبقى مفتاح API في الخادم ولا يكون في جهازك أبدًا. تُحفَظ النتائج في ذاكرة مؤقتة نحو 10 دقائق ولا تُخزَّن في أي خادم خاص بنا. تعالج OpenWeatherMap تلك الطلبات وفق سياستها الخاصة بالخصوصية. وإذا فضّلت ألا تُرسَل أي إحداثية، فاعلم أن الخريطة تستخدم دائمًا مركز العرض ولا تستخدم GPS الخاص بك أبدًا، ما لم تفعّل الموقع يدويًا.",
+    "priv_20": "لرسم الظلال وفق حالة السماء الحالية، تستعلم الصفحة من <b>OpenWeatherMap</b> عن نسبة الغيوم وبلاطات الخريطة عبر وسيطنا على <b>Cloudflare Workers</b>. لا يرسل المتصفح سوى إحداثيات الخريطة المقرّبة، من دون بيانات شخصية. يبقى مفتاح API على الخادم، وتُخزَّن النتائج مؤقتًا نحو 10 دقائق.",
+    "priv_21": "إلى أين تذهب بياناتك، في لمحة",
+    "priv_22": "الخدمة",
+    "priv_23": "ما الذي يغادر متصفحك",
+    "priv_24": "ما الذي لا يغادر أبدًا",
     "priv_21": "إلى أين تذهب بياناتك، في لمحة",
     "priv_22": "الخدمة",
     "priv_23": "ما الذي يغادر متصفحك",
@@ -163,6 +191,18 @@
     "priv_50": "تستعلم طبقة مواقف السيارات ومخطط الرحلات عن البيانات المفتوحة من <strong>OpenStreetMap</strong> عبر وسيط Manolit∞ الخاص، ويحسب تتبّع القيادة بالسيارة خدمة OSRM العامة التابعة لـ <strong>FOSSGIS</strong>. تنتقل عمليات البحث من دون اسمك ومن دون حسابك ومن دون أي سجل لك. وإذا كتبت مدينة أصل أو وجهة، فإن ذلك النص يُستخدم فقط لتحديد موقعها ولا يُحفَظ في أي خادم. وإذا تركت الأصل فارغًا يُستخدم موقع GPS لحظتها، بالإذن المعتاد نفسه ومن دون أن يغادر ذلك الموضع جهازك خارج طلب المسار نفسه.",
     "priv_51": "11. كيف تحمي نفسك أكثر",
     "priv_52": "مع أن الموقع مصمم أصلًا ليجمع الحد الأدنى، هناك ما يمكنك فعله للمضي خطوة أبعد. إذا لم ترد مشاركة GPS الخاص بك، فاكتب مدينتك يدويًا وسيعمل المحاكي بالجودة نفسها. وفي الدردشة، لا تكتب بيانات شخصية كاسمك الكامل أو عنوانك أو بياناتك الصحية، لأن ذلك النص ينتقل إلى خدمات الذكاء الاصطناعي لتتمكن من الرد عليك. وإذا أردت يومًا أن ينساك Manolit∞ تمامًا، فيكفي أن تمسح بيانات التصفح من متصفحك، فلا يبقى أي شيء محفوظًا في أي مكان آخر.",
+    "priv_21": "إلى أين تذهب بياناتك، في لمحة", "priv_22": "الخدمة", "priv_23": "ما الذي يغادر متصفحك", "priv_24": "ما الذي لا يغادر أبدًا",
+    "priv_25": "إعداداتك", "priv_26": "لا شيء. اللغة والسمة ووضع القراءة تُحفظ فقط في متصفحك عبر localStorage.", "priv_27": "كل شيء. لا نستلمها نحن ولا أي شخص آخر.",
+    "priv_28": "دردشة Manolit∞", "priv_29": "فقط النص الذي تكتبه، إلى Cloudflare Workers AI أو OpenRouter عند تعذّر الخدمة.", "priv_30": "اسمك وموقعك وسجل محادثاتك.",
+    "priv_31": "جودة الهواء", "priv_32": "إحداثيات المنطقة التي تستعلم عنها، إلى Open-Meteo وCopernicus.", "priv_33": "هويتك. لا توجد حسابات ولا ملفات تعريف.",
+    "priv_34": "عمليات البحث والمسارات", "priv_35": "الشارع الذي تبحث عنه إلى OpenStreetMap Nominatim، وإحداثيات المسار إلى OSRM.", "priv_36": "مساراتك المحفوظة. لا نحفظ أيًا منها.",
+    "priv_37": "الغيوم والسجل العقاري", "priv_38": "إحداثيات المنطقة المرئية من الخريطة بعد تقريبها، عبر وسيطنا في Cloudflare.", "priv_39": "موقع GPS الدقيق ومفتاح API.",
+    "priv_40": "الظلال ثلاثية الأبعاد والشمس", "priv_41": "لا شيء. كل الحسابات تُجرى على جهازك.", "priv_42": "لا تُرسل إحداثياتك إلى خادم لحساب الظلال.",
+    "priv_43": "7. طبقة السجل العقاري الإسباني (القطع والارتفاعات)", "priv_44": "عند تفعيل «Catastro 3D»، تُطلب صور القطع عبر وسيط Cloudflare Workers الخاص بالموقع. لا تنتقل إلا إحداثيات بلاطات الخريطة المرئية، لا موقع GPS ولا بيانات شخصية. تُخزّن الإجابات مؤقتًا لمدة ساعة ولا يُحفظ سجل للاستعلامات.",
+    "priv_45": "8. خطوط الويب (Google Fonts)", "priv_46": "تستخدم نصوص الموقع خطوط Google Fonts. عند تحميل الصفحة، يتلقى Google الطلب التقني المعتاد (عنوان IP ووكيل المستخدم)، من دون ملفات تعريف ارتباط أو معرّفات مرتبطة من جانبنا.",
+    "priv_47": "9. اللعبة وشهادة الحماية المناخية", "priv_48": "تعمل لعبة «أمسك Manolit∞» وشهادة الحماية المناخية بالكامل في متصفحك. النتيجة والاسم الذي تكتبه <strong>لا يغادران جهازك</strong>.",
+    "priv_49": "10. مواقف السيارات ومخطط الرحلات", "priv_50": "تستعلم طبقة المواقف ومخطط الرحلات عن بيانات OpenStreetMap عبر وسيط Manolit∞، وتحسب خدمة OSRM التابعة لـFOSSGIS مسارات السيارة. لا تُحفظ عمليات البحث أو تُربط بحسابك.",
+    "priv_51": "11. كيف تحمي نفسك أكثر", "priv_52": "يمكنك كتابة اسم مدينتك يدويًا بدل مشاركة GPS. لا تكتب بيانات شخصية أو صحية في الدردشة، لأن النص يُرسل إلى خدمات الذكاء الاصطناعي لتوليد الرد. ومسح بيانات التصفح يحذف تفضيلاتك المحلية.",
     "avis_1": "تنبيه قانوني",
     "avis_2": "1. صاحب الموقع",
     "avis_3": "المالك: Sandro<br> التواصل: SANDRO.A007@GMAIL.COM<br> الموطن: إسبانيا<br>",
@@ -231,6 +271,13 @@
     "cook_22": "الخصوصية",
     "cook_23": "ملفات تعريف الارتباط",
     "cook_24": "ملفات الارتباط",
+    "cook_1": "سياسة ملفات تعريف الارتباط والتخزين المحلي",
+    "cook_2": "لا يستخدم Manolit∞ Aire ملفات تعريف ارتباط إعلانية ولا أنظمة تتبّع تجارية. نستخدم تقنية <code>localStorage</code>، وهي ليست ملف ارتباط تقنيًا لكنها تخزّن البيانات في متصفحك بطريقة مشابهة. نشرح ذلك بشفافية.",
+    "cook_3": "التفضيلات التقنية الوحيدة التي نحفظها", "cook_4": "المعامل (المفتاح)", "cook_5": "الغرض التقني", "cook_6": "هل تُرسل إلى خوادم خارجية؟",
+    "cook_7": "<strong>اللغة المختارة</strong>", "cook_8": "تذكّر لغتك المفضلة في الزيارات القادمة.", "cook_9": "لا، تخزين محلي بالكامل.",
+    "cook_10": "<strong>السمة الفاتحة/الداكنة</strong>", "cook_11": "تذكّر تفضيل التباين البصري في الواجهة.", "cook_12": "<strong>لوحة الألوان</strong>", "cook_13": "تذكّر إعداداتك المخصصة للخريطة ثلاثية الأبعاد.",
+    "cook_14": "<strong>وضع القراءة</strong>", "cook_15": "تذكّر وضعك في المنصة (مواطن أو عالم أو جدة/جد أو طفل).", "cook_16": "<strong>قبول الإشعار</strong>", "cook_17": "تجنّب عرض الشريط الإخباري في كل مرة تفتح فيها الخريطة.",
+    "cook_18": "لماذا لا نعرض لوحة إعدادات معقدة؟", "cook_19": "تُلزم آليات الرفض المعقدة عند استخدام ملفات ارتباط من أطراف ثالثة أو أدوات تتبّع وإعلانات. وبما أن Manolit∞ Aire لا يعالج إلا بيانات <strong>تقنية وأساسية وللتخصيص</strong>، نعرض شريط موافقة بسيطًا من باب الشفافية.", "cook_20": "آخر تحديث: 22 أغسطس 2026",
     "priv_53": "١٣. نوافير مياه الشرب وخصوصية الموقع",
     "priv_54": "عند تفعيل «مصادر المياه»، يحسب المتصفح صندوق الإحداثيات للمنطقة الظاهرة من الخريطة ويحفظه في الذاكرة فقط. لا تطلب هذه الطبقة إذن GPS. تُرسل الإحداثيات مباشرة إلى Overpass، وإلى خدمة بيانات بلدية فالنسيا فقط ضمن نطاق تغطيتها؛ وفي مالقة يُنزّل الملف البلدي العام ثم تُفلتر النقاط محليًا. لا نخزن الصندوق أو سجل الاستعلامات في localStorage أو خوادمنا، ولا نرفق اسمًا أو حسابًا أو معرّفًا للمستخدم. وبما أن الطلبات مباشرة إلى جهات خارجية، فإنها تتلقى عنوان IP والبيانات التقنية المعتادة للاتصال وقد تحتفظ بسجلات وفق سياساتها. لذلك لا نصف الاستعلام بأنه مجهول لدى تلك الجهات.",
     "priv_55": "مسارات الدراجات وممراتها",
@@ -242,24 +289,267 @@
     "priv_61": "١٤. ممرات الدراجات ومساراتها والنقل العام",
     "priv_62": "تُحسب مسارات الدراجات بملف الدراجات في OSRM، خدمة FOSSGIS العامة، عبر وسيط Manolit∞ الخاص على Cloudflare Workers. وإذا لم يُرجع الوسيط أي مسار، نجرب BRouter، خدمة مفتوحة أخرى مبنية على OpenStreetMap. ترسم طبقة ممرات الدراجات البنية التحتية المرقومة في OpenStreetMap، المستعلمة عبر Overpass من خلال الوسيط نفسه، ولا تخرج الاستعلامات من متصفحك مباشرة إلى Overpass إلا عندما لا يستجيب الوسيط. الشيء الوحيد الذي يسافر في هذه الطلبات هو إحداثيات الرحلة أو المنطقة الظاهرة من الخريطة، وليس اسمك أو حسابك أو أي معرف خاص بك.",
     "priv_63": "تعرض طبقة النقل العام المحطات ومواعيد مغادرتها القادمة. يجمع وسيطنا البيانات المفتوحة من Transitous، وهو مجمّع غير ربحي لجداول GTFS التي تنشرها شركات النقل، ومحطات OpenStreetMap للمناطق التي لا يغطيها Transitous بعد. وعندما يتعذر الوصول إلى الوسيط، يمكن للمتصفح الاستعلام مباشرة من Transitous أو Overpass، وتتلقى تلك الخدمات عنوان IP وبيانات الاتصال التقنية المعتادة، وفق سياساتها الخاصة. وتُحفظ الردود في ذاكرة مؤقتة داخلية نحو ١٥ دقيقة لتجنب تكرار الطلبات، ولا نخزن أي سجل لاستعلاماتك على أي خادم من خوادمنا.",
-    "avis_60": "تستعلم طبقة «نوافير المياه» عن عقد OpenStreetMap الموسومة <code>amenity=drinking_water</code> وتدمجها، ضمن التغطية البلدية فقط، مع مجموعتي البيانات الرسميتين لبلديتي فالنسيا ومالقة المدرجتين في <a href=\"https://datos.gob.es/es/catalogo/l01462508-fuentes-de-agua-publica\" target=\"_blank\" rel=\"noopener\">datos.gob.es</a> و<a href=\"https://datos.gob.es/es/catalogo/l01290672-fuentes-de-agua-potable1\" target=\"_blank\" rel=\"noopener\">datos.gob.es</a>. خارج هاتين المنطقتين تستخدم الطبقة OpenStreetMap. ينشر الفهرس الوطني بيانات وصفية وتوزيعات، وليس خدمة وطنية للاستعلام الجغرافي عن النوافير العامة؛ لذلك فالتغطية الرسمية بلدية وقد تكون ناقصة أو قديمة. بيانات نوافير المياه من © مساهمي OpenStreetMap (رخصة ODbL) ومن بوابة البيانات المفتوحة لحكومة إسبانيا. وللتوزيعات البلدية تراخيصها الخاصة: CC BY 4.0 (فالنسيا) وCC BY-SA 4.0 (مالقة)."
+    "avis_60": "تستعلم طبقة «نوافير المياه» عن عقد OpenMap الموسومة <code>amenity=drinking_water</code> وتدمجها، ضمن التغطية البلدية فقط، مع مجموعتي البيانات الرسميتين لبلديتي فالنسيا ومالقة المدرجتين في <a href=\"https://datos.gob.es/es/catalogo/l01462508-fuentes-de-agua-publica\" target=\"_blank\" rel=\"noopener\">datos.gob.es</a> و<a href=\"https://datos.gob.es/es/catalogo/l01290672-fuentes-de-agua-potable1\" target=\"_blank\" rel=\"noopener\">datos.gob.es</a>. خارج هاتين المنطقتين تستخدم الطبقة OpenStreetMap. ينشر الفهرس الوطني بيانات وصفية وتوزيعات، وليس خدمة وطنية للاستعلام الجغرافي عن النوافير العامة؛ لذلك فالتغطية الرسمية بلدية وقد تكون ناقصة أو قديمة. بيانات نوافير المياه من © مساهمي OpenStreetMap (رخصة ODbL) ومن بوابة البيانات المفتوحة لحكومة إسبانيا. وللتوزيعات البلدية تراخيصها الخاصة: CC BY 4.0 (فالنسيا) وCC BY-SA 4.0 (مالقة).",
+    "cook_1": "سياسة ملفات تعريف الارتباط والتخزين المحلي", "cook_2": "لا يستخدم Manolit∞ Aire ملفات تعريف ارتباط إعلانية ولا أنظمة تتبّع تجارية. نستخدم تقنية <code>localStorage</code>، وهي ليست ملف ارتباط تقنيًا لكنها تخزّن البيانات في متصفحك بطريقة مشابهة. نشرح ذلك بشفافية.",
+    "cook_3": "التفضيلات التقنية الوحيدة التي نحفظها", "cook_4": "المعامل (المفتاح)", "cook_5": "الغرض التقني", "cook_6": "هل تُرسل إلى خوادم خارجية؟",
+    "cook_7": "<strong>اللغة المختارة</strong>", "cook_8": "تذكّر لغتك المفضلة في الزيارات القادمة.", "cook_9": "لا، تخزين محلي بالكامل.",
+    "cook_10": "<strong>السمة الفاتحة/الداكنة</strong>", "cook_11": "تذكّر تفضيل التباين البصري في الواجهة.", "cook_12": "<strong>لوحة الألوان</strong>", "cook_13": "تذكّر إعداداتك المخصصة للخريطة ثلاثية الأبعاد.",
+    "cook_14": "<strong>وضع القراءة</strong>", "cook_15": "تذكّر وضعك في المنصة (مواطن أو عالم أو جدة/جد أو طفل).", "cook_16": "<strong>قبول الإشعار</strong>", "cook_17": "تجنّب عرض الشريط الإخباري في كل مرة تفتح فيها الخريطة.",
+    "cook_18": "لماذا لا نعرض لوحة إعدادات معقدة؟", "cook_19": "تُلزم آليات الرفض المعقدة عند استخدام ملفات ارتباط من أطراف ثالثة أو أدوات تتبّع وإعلانات. وبما أن Manolit∞ Aire لا يعالج إلا بيانات <strong>تقنية وأساسية وللتخصيص</strong>، نعرض شريط موافقة بسيطًا من باب الشفافية.", "cook_20": "آخر تحديث: 22 أغسطس 2026"
 };
 
+  // Legal text for languages offered by the site. Keep the HTML markup of
+  // each original element where practical; translations are text-only here.
+  const ca = {
+    priv_1: 'Política de privacitat i seguretat de les dades',
+    priv_2: 'Resum fonamental. La teva privacitat és el primer. No cal registrar-se, no hi ha comptes ni es creen perfils. Les dades de configuració es desen localment al teu navegador, mai en un servidor extern.',
+    priv_3: '1. Què NO recopilem (zero dades personals)',
+    priv_4: 'Aquesta plataforma no demana correus electrònics, noms, contrasenyes ni números de telèfon. No hi ha cap sistema de comptes d’usuari ni s’utilitzen identificadors publicitaris per seguir la teva activitat a internet. Navegues de manera 100% anònima.',
+    priv_5: '2. Emmagatzematge local al teu navegador (Local Storage)',
+    priv_6: 'Les teves preferències, com ara l’idioma triat, el mode clar/fosc, la paleta de colors del mapa 3D i el mode de lectura adaptat (ciutadà, científic, àvia/avi o infant), es desen exclusivament amb <code>localStorage</code>, una memòria local del teu navegador. No rebem, veiem ni emmagatzem aquesta informació: es queda al teu dispositiu i s’elimina si esborres les dades de navegació.',
+    priv_7: '3. L’assistent Manolit∞ (privacitat en les consultes amb IA)',
+    priv_8: 'Quan escrius una pregunta al xat, el text <b>s’envia a un servei extern d’intel·ligència artificial</b> únicament per processar-la i generar la resposta climàtica. Per oferir el servei fem servir dos proveïdors de confiança, per aquest ordre:',
+    priv_9: '1) <b>Cloudflare Workers AI</b> · entorn segur operat directament per Cloudflare amb el nostre compte tècnic, que processa el text als seus servidors per retornar-te la resposta.<br>2) <b>OpenRouter</b> · servei d’IA alternatiu i gratuït de tercers, utilitzat com a recurs de reserva si el servidor principal no està disponible.',
+    priv_10: 'En tots dos casos, el text de la consulta surt temporalment d’aquest web cap als servidors dels proveïdors. Per seguretat, et recomanem que <strong>no incloguis dades personals sensibles</strong> al xat, com ara el nom complet, l’adreça exacta, contrasenyes o dades mèdiques. No fem servir el text per identificar-te, no l’associem a cap perfil ni desem l’historial de converses en cap base de dades externa més enllà de la sessió actual.',
+    priv_11: '4. Ubicació GPS, hora local i posició del sol',
+    priv_12: 'Per oferir la previsió ambiental i de contaminació de la teva zona i mostrar el panell de posició solar, el web pot utilitzar la teva ubicació geogràfica (només si dones permís al navegador) i l’hora configurada al dispositiu.',
+    priv_13: 'La consulta de qualitat de l’aire s’envia directament als models d’Open-Meteo i Copernicus. Tanmateix, <b>tots els càlculs del sol i de les ombres 3D s’executen localment al teu dispositiu</b>. Manolit∞ Aire no segueix ni desa als seus servidors les coordenades GPS, l’adreça IP ni la zona horària. També pots escriure manualment el nom de la ciutat sense activar el GPS.',
+    priv_14: '5. Cerca d’adreces i rutes amb ombra 3D',
+    priv_15: 'Quan cerques un carrer o trajecte a «Ruta i ombres 3D», el text s’envia a <b>OpenStreetMap Nominatim</b> per trobar-lo al mapa i les coordenades resultants es processen amb <b>OSRM</b> per calcular el recorregut pels carrers. La geometria i els edificis 3D es carreguen des de <b>OpenFreeMap</b>.',
+    priv_16: 'Són serveis públics i oberts independents de Manolit∞ Aire. Només reben les coordenades necessàries per dibuixar el recorregut i mostrar les façanes 3D. No desem les cerques ni les rutes als nostres servidors. Evita introduir dades que t’identifiquin als camps de cerca.',
+    priv_17: '12. Drets dels usuaris i RGPD',
+    priv_18: 'Com que l’arquitectura de Manolit∞ Aire no desa dades personals en bases de dades pròpies, no hi ha cap perfil associat a tu que puguem extreure, modificar, transferir o esborrar. Per a consultes tècniques o legals, pots contactar amb el desenvolupador a <strong>SANDRO.A007@GMAIL.COM</strong>.',
+    priv_19: '5 bis. Dades de nuvolositat en temps real (OpenWeatherMap)',
+    priv_20: 'Per representar les ombres segons el cel actual, el web consulta la nuvolositat i les imatges de núvols d’<b>OpenWeatherMap</b> mitjançant un proxy propi a <b>Cloudflare Workers</b>. El navegador només hi envia les coordenades arrodonides del centre del mapa i de les zones visibles, sense dades personals. La clau API es manté al servidor. Els resultats es guarden a la memòria cau uns 10 minuts i OpenWeatherMap els tracta segons la seva política de privacitat.',
+    cook_1: 'Política de galetes i emmagatzematge local', cook_2: 'Manolit∞ Aire no utilitza galetes publicitàries ni sistemes de seguiment comercial. Utilitzem <code>localStorage</code>, que tècnicament no és una galeta però emmagatzema dades al teu navegador d’una manera semblant. T’ho expliquem amb transparència.',
+    cook_3: 'Les úniques preferències tècniques que desem', cook_4: 'Paràmetre (clau)', cook_5: 'Finalitat tècnica', cook_6: 'S’envia a servidors externs?',
+    cook_7: '<strong>Idioma triat</strong>', cook_8: 'Recordar l’idioma preferit per a les visites següents.', cook_9: 'No, emmagatzematge 100% local.',
+    cook_10: '<strong>Tema clar/fosc</strong>', cook_11: 'Recordar la preferència de contrast visual de la interfície.', cook_12: '<strong>Paleta de colors</strong>', cook_13: 'Recordar la configuració personalitzada del mapa urbà 3D.',
+    cook_14: '<strong>Mode de lectura</strong>', cook_15: 'Recordar el teu mode (ciutadà, científic, àvia/avi o infant).', cook_16: '<strong>Acceptació de l’avís</strong>', cook_17: 'Evitar que es mostri el bàner informatiu cada vegada que accedeixes al mapa.',
+    cook_18: 'Per què no mostrem un panell de configuració complex?', cook_19: 'La llei exigeix mecanismes de rebuig complexos quan s’utilitzen galetes de tercers, píxels de seguiment o eines publicitàries. Com que Manolit∞ Aire només tracta dades <strong>tècniques, essencials i de personalització</strong>, mostrem un bàner senzill per transparència.', cook_20: 'Darrera actualització: 22 d’agost de 2026', cook_21: 'Avís legal', cook_22: 'Privacitat', cook_23: 'Galetes', cook_24: 'GALETES',
+    cook_1: 'Política de galetes i emmagatzematge local', cook_2: 'Manolit∞ Aire no utilitza galetes publicitàries ni sistemes de seguiment comercial. Utilitzem <code>localStorage</code>, que tècnicament no és una galeta però desa dades al navegador d’una manera semblant. T’ho expliquem amb transparència.',
+    cook_3: 'Les úniques preferències tècniques que desem', cook_4: 'Paràmetre (clau)', cook_5: 'Finalitat tècnica', cook_6: 'S’envia a servidors externs?',
+    cook_7: '<strong>Idioma triat</strong>', cook_8: 'Recordar l’idioma preferit per a les visites següents.', cook_9: 'No, emmagatzematge 100% local.',
+    cook_10: '<strong>Tema clar/fosc</strong>', cook_11: 'Recordar la preferència visual de contrast.', cook_12: '<strong>Paleta de colors</strong>', cook_13: 'Recordar la configuració personalitzada del mapa urbà 3D.',
+    cook_14: '<strong>Mode de lectura</strong>', cook_15: 'Recordar el teu mode (ciutadà, científic, àviaavi o infant).', cook_16: '<strong>Acceptació de l’avís</strong>', cook_17: 'Evitar que es mostri el bàner informatiu cada vegada que accedeixes al mapa.',
+    cook_18: 'Per què no mostrem un panell de configuració complex?', cook_19: 'Els mecanismes complexos de rebuig són necessaris quan s’utilitzen galetes de tercers, píxels de seguiment o eines publicitàries. Manolit∞ Aire només tracta dades <strong>tècniques, essencials i de personalització</strong>, de manera que mostrem un bàner senzill per transparència.', cook_20: 'Darrera actualització: 22 d’agost de 2026', cook_21: 'Avís legal', cook_22: 'Privacitat', cook_23: 'Galetes', cook_24: 'GALETES',
+    priv_21: 'On van les teves dades, d’un cop d’ull', priv_22: 'Servei', priv_23: 'Què surt del navegador', priv_24: 'Què NO surt mai',
+    priv_25: 'La teva configuració', priv_26: 'Res. L’idioma, el tema i el mode de lectura només es desen al navegador amb localStorage.', priv_27: 'Tot. Ni nosaltres ni ningú més no la rep.',
+    priv_28: 'Xat de Manolit∞', priv_29: 'Només el text que escrius, a Cloudflare Workers AI i, si falla, a OpenRouter.', priv_30: 'El teu nom, la ubicació i l’historial de converses.',
+    priv_31: 'Qualitat de l’aire', priv_32: 'Les coordenades de la zona consultada, a Open-Meteo i Copernicus.', priv_33: 'La teva identitat. No hi ha comptes ni perfils.',
+    priv_34: 'Cerques i rutes', priv_35: 'El carrer cercat a OpenStreetMap Nominatim i les coordenades del trajecte a OSRM.', priv_36: 'Les rutes desades. No en desem cap.',
+    priv_37: 'Núvols i cadastre', priv_38: 'Només les coordenades arrodonides de la zona visible del mapa, mitjançant el nostre proxy de Cloudflare.', priv_39: 'El teu GPS exacte. La clau API no arriba mai al dispositiu.',
+    priv_40: 'Ombres 3D i sol', priv_41: 'Res. Tots els càlculs es fan al teu mòbil o ordinador.', priv_42: 'Les coordenades no s’envien mai a un servidor per calcular les ombres.',
+    priv_43: '7. Capa del Cadastre d’Espanya (parcel·les i alçades)', priv_44: 'En activar «Cadastre 3D», el navegador demana les imatges cadastrals a través del nostre proxy de Cloudflare Workers, que consulta el servei WMS públic del Cadastre. Només s’envien les coordenades de les rajoles del mapa visibles, no la teva posició GPS ni dades personals. Les respostes es desen a la memòria cau durant una hora i no es conserva l’historial.',
+    priv_45: '8. Tipografies web (Google Fonts)', priv_46: 'Els textos del web utilitzen tipografies de Google Fonts. En carregar-les, Google rep la petició tècnica habitual (adreça IP i agent d’usuari), sense galetes ni identificadors associats per part nostra. Google tracta aquestes dades segons la seva política de privacitat.',
+    priv_47: '9. Joc i certificat de protecció climàtica', priv_48: 'El joc «Atrapa Manolit∞» i el certificat funcionen íntegrament al navegador. La puntuació, els segells i el nom del certificat <strong>no surten del dispositiu</strong> i desapareixen en tancar la pàgina.',
+    priv_49: '10. Aparcaments i planificador de viatges', priv_50: 'La capa d’aparcaments i el planificador consulten dades obertes d’OpenStreetMap mitjançant el nostre proxy; les rutes en cotxe les calcula OSRM de FOSSGIS. Les cerques no s’associen a cap nom o compte ni es desen. Si deixes l’origen buit, es pot utilitzar el GPS amb el permís corresponent.',
+    priv_51: '11. Com protegir-te encara més', priv_52: 'Pots escriure la ciutat manualment si no vols compartir la ubicació GPS. Al xat, no hi introdueixis dades personals o de salut, perquè el text s’envia als serveis d’IA per generar la resposta. Si esborres les dades de navegació, s’eliminaran les preferències locals.',
+    priv_53: '13. Fonts d’aigua i privacitat de la ubicació', priv_54: 'En activar «Fonts d’aigua», el navegador calcula i manté en memòria la zona visible del mapa; aquesta capa no demana el GPS. La zona es consulta a Overpass i, segons la cobertura, als serveis de dades municipals de València i Màlaga. No desem la zona ni l’historial. Aquests tercers reben l’adreça IP i les metadades tècniques habituals segons les seves polítiques.',
+    priv_55: 'Rutes en bicicleta i carrils bici', priv_56: 'Els punts d’origen i destinació que introdueixes i la zona visible del mapa s’envien al nostre proxy de Cloudflare, que consulta OSRM de FOSSGIS, BRouter i Overpass per traçar la ruta o els carrils.', priv_57: 'La teva identitat, el nom i el compte. No es desa res.',
+    priv_58: 'Transport públic', priv_59: 'La zona visible del mapa i el codi de la parada que selecciones s’envien al proxy de Cloudflare, que consulta Transitous i OpenStreetMap per mostrar parades i sortides pròximes.', priv_60: 'El teu nom, el compte i l’historial de consultes.',
+    priv_61: '14. Carrils bici, rutes en bicicleta i transport públic', priv_62: 'Les rutes en bicicleta es calculen amb el perfil de bicicleta d’OSRM de FOSSGIS a través del proxy de Manolit∞ a Cloudflare Workers. Si no hi ha ruta, es prova BRouter. Els carrils bici provenen d’OpenStreetMap i es consulten amb Overpass a través del mateix proxy; només si aquest no respon, el navegador consulta Overpass directament. Només es transmeten les coordenades del trajecte o de la zona visible, mai el teu nom, compte o identificadors.',
+    priv_63: 'La capa de transport públic mostra parades i sortides pròximes. El proxy agrega dades de Transitous i OpenStreetMap. Si el proxy no està disponible, el navegador pot consultar directament aquests serveis, que reben l’adreça IP i les metadades habituals de connexió. Les respostes es desen a la memòria durant uns 15 minuts; no es conserva cap historial als nostres servidors.'
+  };
+
+  const eu = {
+    priv_1: 'Pribatutasun- eta datu-segurtasun politika',
+    priv_2: 'Oinarrizko laburpena: zure pribatutasuna da lehena. Ez dago erabiltzaile-erregistrorik, konturik edo profilik. Konfigurazio-datuak zure nabigatzailean gordetzen dira, ez kanpoko zerbitzari batean.',
+    priv_3: '1. Zer EZ dugun biltzen (datu pertsonalik ez)',
+    priv_4: 'Plataforma honek ez du helbide elektronikorik, izenik, pasahitzik edo telefono-zenbakirik eskatzen. Ez dago erabiltzaile-konturik eta ez da publizitate-identifikatzailerik erabiltzen zure jarduera jarraitzeko.',
+    priv_5: '2. Tokiko biltegiratzea zure nabigatzailean (Local Storage)',
+    priv_6: 'Hautatutako hizkuntza, gai argia/iluna, 3D maparen kolore-paleta eta irakurketa-modua <code>localStorage</code> bidez gordetzen dira soilik zure nabigatzailean. Ez dugu informazio hori jasotzen, ikusten edo gordetzen.',
+    priv_7: '3. Manolit∞ laguntzailea (IA kontsulten pribatutasuna)',
+    priv_8: 'Txatean galdera bat idazten duzunean, testua <b>kanpoko adimen artifizialeko zerbitzu batera bidaltzen da</b>, erantzuna sortzeko soilik.',
+    priv_9: '1) <b>Cloudflare Workers AI</b> · testua prozesatu eta erantzuna itzultzen duen ingurune segurua.<br>2) <b>OpenRouter</b> · ordezko IA zerbitzua, nagusia erabilgarri ez dagoenean.',
+    priv_10: 'Kontsultaren testua hornitzaileen zerbitzarietara bidaltzen da aldi baterako. Ez sartu <strong>datu pertsonal sentikorrik</strong>, hala nola izen-abizenak, helbide zehatza, pasahitzak edo osasun-datuak. Ez dugu testua identifikatzeko erabiltzen, ezta elkarrizketen historia gordetzen ere.',
+    priv_11: '4. GPS kokapena, tokiko ordua eta eguzkiaren posizioa',
+    priv_12: 'Zure inguruko ingurumen- eta kutsadura-iragarpena eskaintzeko, webguneak zure kokapen geografikoa erabil dezake, nabigatzailean baimena ematen baduzu.',
+    priv_13: 'Airearen kalitatearen eskaera Open-Meteo eta Copernicus ereduei bidaltzen zaie. Hala ere, <b>eguzkiaren eta 3D itzalen kalkulu guztiak zure gailuan egiten dira</b>. Manolit∞ Airek ez ditu GPS koordenatuak, IP helbideak edo ordu-eremuak gordetzen.',
+    priv_14: '5. Helbide-bilaketa eta 3D itzal-ibilbideak',
+    priv_15: '«Ibilbidea eta 3D itzalak» atalean kale bat bilatzean, testua <b>OpenStreetMap Nominatim</b>-era bidaltzen da eta koordenatuak <b>OSRM</b>-ekin prozesatzen dira ibilbidea kalkulatzeko. Maparen geometria eta 3D eraikinak <b>OpenFreeMap</b>-etik datoz.',
+    priv_16: 'Manolit∞ Airetik independenteak diren zerbitzu publiko eta irekiak dira. Ibilbidea marrazteko behar diren koordenatuak soilik jasotzen dituzte. Ez ditugu bilaketak edo ibilbideak gordetzen.',
+    priv_17: '12. Erabiltzaileen eskubideak eta GDPR',
+    priv_18: 'Ez dugu datu pertsonalik gordetzen gure datu-baseetan; beraz, ez dago gure sistemetatik atera, aldatu, transferitu edo ezaba dezakegun profilik. Kontsultak: <strong>SANDRO.A007@GMAIL.COM</strong>.',
+    priv_19: '5 bis. Hodei-estalduraren denbora errealeko datuak (OpenWeatherMap)',
+    priv_20: '<b>OpenWeatherMap</b>-i hodei-estaldura eta mapako hodei-irudiak eskatzen zaizkio <b>Cloudflare Workers</b> proxyaren bidez. Nabigatzaileak maparen koordenatu biribilduak soilik bidaltzen ditu, datu pertsonalik gabe. Emaitzak 10 minutuz gordetzen dira cachean.',
+    cook_1: 'Cookieen eta tokiko biltegiratzearen politika', cook_2: 'Manolit∞ Airek ez du publizitate-cookierik edo jarraipen komertzialik erabiltzen. <code>localStorage</code> erabiltzen dugu; teknikoki ez da cookie bat, baina antzera gordetzen ditu datuak zure nabigatzailean. Gardentasunez azaltzen dizugu.',
+    cook_3: 'Gordetzen ditugun hobespen tekniko bakarrak', cook_4: 'Parametroa (gakoa)', cook_5: 'Helburu teknikoa', cook_6: 'Kanpoko zerbitzarietara bidaltzen da?',
+    cook_7: '<strong>Hautatutako hizkuntza</strong>', cook_8: 'Zure hizkuntza gogokoena gogoratzea hurrengo bisitetarako.', cook_9: 'Ez, tokiko biltegiratzea soilik.',
+    cook_10: '<strong>Gai argia/iluna</strong>', cook_11: 'Interfazearen kontraste-hobespena gogoratzea.', cook_12: '<strong>Kolore-paleta</strong>', cook_13: '3D hiri-maparen konfigurazio pertsonalizatua gogoratzea.',
+    cook_14: '<strong>Irakurketa-modua</strong>', cook_15: 'Zure plataforma-modua gogoratzea (herritarra, zientzialaria, aitona-amona edo haurra).', cook_16: '<strong>Oharra onartzea</strong>', cook_17: 'Mapa irekitzean informazio-banda berriro ez erakustea.',
+    cook_18: 'Zergatik ez dugu ezarpen-panel konplexurik?', cook_19: 'Hirugarrenen cookieak, jarraipen-pixelak edo publizitate-tresnak erabiltzen direnean behar dira errefusatzeko mekanismo konplexuak. Manolit∞ Airek datu <strong>tekniko, funtsezko eta pertsonalizazio-datuak</strong> soilik erabiltzen ditu; horregatik erakusten dugu gardentasunerako ohar sinple bat.', cook_20: 'Azken eguneratzea: 2026ko abuztuaren 22a', cook_21: 'Lege-oharra', cook_22: 'Pribatutasuna', cook_23: 'Cookieak', cook_24: 'COOKIEAK',
+    priv_21: 'Nora doaz zure datuak, begirada batean', priv_22: 'Zerbitzua', priv_23: 'Zer ateratzen da nabigatzailetik', priv_24: 'Zer EZ da inoiz ateratzen',
+    priv_25: 'Zure konfigurazioa', priv_26: 'Ezer ez. Hizkuntza, gaia eta irakurketa-modua zure nabigatzailean soilik gordetzen dira.', priv_27: 'Dena. Ez dugu jasotzen.',
+    priv_28: 'Manolit∞ txata', priv_29: 'Idazten duzun testua soilik, Cloudflare Workers AI-ra edo, huts egiten badu, OpenRouter-era.', priv_30: 'Zure izena, kokapena edo elkarrizketen historia.',
+    priv_31: 'Airearen kalitatea', priv_32: 'Kontsultatzen duzun eremuaren koordenatuak, Open-Meteo eta Copernicus-era.', priv_33: 'Zure identitatea. Ez dago konturik edo profilik.',
+    priv_34: 'Bilaketak eta ibilbideak', priv_35: 'Bilatutako kalea OpenStreetMap Nominatim-era eta ibilbidearen koordenatuak OSRM-era.', priv_36: 'Gordetako ibilbideak. Ez dugu gordetzen.',
+    priv_37: 'Hodeiak eta katastroa', priv_38: 'Mapan ikusgai dagoen eremuaren koordenatu biribilduak soilik, Cloudflare proxyaren bidez.', priv_39: 'Zure GPS zehatza edo API gakoa.',
+    priv_40: '3D itzalak eta eguzkia', priv_41: 'Ezer ez. Kalkulu guztiak zure gailuan egiten dira.', priv_42: 'Koordenatuak ez dira zerbitzari batera bidaltzen itzalak kalkulatzeko.',
+    priv_43: '7. Espainiako Katastroaren geruza (lursailak eta altuerak)', priv_44: '«Katastro 3D» aktibatzean, ikusgai dauden maparen lauzaren koordenatuak soilik bidaltzen dira Cloudflare Workers proxyaren bidez. Ez da GPS kokapenik edo datu pertsonalik bidaltzen. Erantzunak ordubetez gordetzen dira cachean.',
+    priv_45: '8. Web tipografiak (Google Fonts)', priv_46: 'Webguneak Google Fonts erabiltzen du. Letra-tipoak kargatzean, Google-k ohiko datu teknikoak jasotzen ditu, hala nola IP helbidea eta erabiltzaile-agentea, gure aldetik cookierik gabe.',
+    priv_47: '9. Jokoa eta klima-babesaren ziurtagiria', priv_48: '«Harrapatu Manolit∞» jokoa eta ziurtagiria zure nabigatzailean bakarrik dabiltza. Puntuazioa eta ziurtagiriaren izena <strong>ez dira gailutik ateratzen</strong>.',
+    priv_49: '10. Aparkalekuak eta bidaia-antolatzailea', priv_50: 'Aparkaleku-geruzak OpenStreetMap-eko datuak kontsultatzen ditu proxyaren bidez; auto-ibilbideak FOSSGISeko OSRMk kalkulatzen ditu. Bilaketak ez dira gordetzen.',
+    priv_51: '11. Nola babestu gehiago', priv_52: 'GPSa partekatu nahi ez baduzu, idatzi hiria eskuz. Ez idatzi datu pertsonalik txatean; IA zerbitzuetara bidaltzen dira erantzuna sortzeko. Nabigazio-datuak ezabatuz gero, tokiko hobespenak ezabatuko dira.',
+    priv_53: '13. Ur-iturriak eta kokapenaren pribatutasuna', priv_54: '«Ur-iturriak» geruzak maparen ikus-eremua kalkulatzen du, GPSa eskatu gabe. Eremua Overpass-i eta, estalduraren arabera, Valentziako eta Malagako udal-zerbitzuei kontsultatzen zaie. Hirugarren horiek IP helbidea eta konexioaren metadatu teknikoak jasotzen dituzte.',
+    priv_55: 'Bizikleta-ibilbideak eta bidegorriak', priv_56: 'Idatzitako jatorri- eta helmuga-puntuak eta maparen ikus-eremua Cloudflare proxyari bidaltzen zaizkio; proxyak FOSSGIS OSRM, BRouter eta Overpass kontsultatzen ditu.', priv_57: 'Zure identitatea, izena edo kontua. Ez da ezer gordetzen.',
+    priv_58: 'Garraio publikoa', priv_59: 'Maparen ikus-eremua eta hautatutako geltokiaren kodea Cloudflare proxyari bidaltzen zaizkio, Transitous eta OpenStreetMap kontsulta ditzan.', priv_60: 'Zure izena, kontua edo kontsulten historia.',
+    priv_61: '14. Bidegorriak, bizikleta-ibilbideak eta garraio publikoa', priv_62: 'Bizikleta-ibilbideak FOSSGISeko OSRMren bizikleta-profilarekin kalkulatzen dira Cloudflare Workers proxyaren bidez; beharrezkoa bada BRouter erabiltzen da. Bidegorriak OpenStreetMap-etik datoz eta Overpass bidez kontsultatzen dira. Koordenatuak soilik bidaltzen dira, inoiz ez zure izena edo kontua.',
+    priv_63: 'Garraio publikoaren geruzak geltokiak eta hurrengo irteerak erakusten ditu. Proxyak Transitous eta OpenStreetMap-eko datuak biltzen ditu. Proxyak huts egiten badu, nabigatzaileak zerbitzu horiei zuzenean deitu diezaieke; haiek IP helbidea jasoko dute. Erantzunak 15 minutuz gordetzen dira memorian; ez dugu kontsulten historiarik gordetzen.'
+  };
+
+  const gl = {
+    priv_1: 'Política de privacidade e seguridade dos datos',
+    priv_2: 'Resumo fundamental: a túa privacidade é o primeiro. Non hai rexistro de usuarios, contas nin se crean perfís. Os datos de configuración gárdanse localmente no teu navegador, nunca nun servidor externo.',
+    priv_3: '1. Que NON recompilamos (cero datos persoais)',
+    priv_4: 'Esta plataforma non solicita correos electrónicos, nomes, contrasinais nin números de teléfono. Non hai sistema de contas nin identificadores publicitarios para seguir a túa actividade en internet.',
+    priv_5: '2. Almacenamento local no teu navegador (Local Storage)',
+    priv_6: 'As preferencias, como o idioma, o tema claro/escuro, a paleta do mapa 3D e o modo de lectura, gárdanse exclusivamente mediante <code>localStorage</code> no teu navegador. Non recibimos nin almacenamos esta información.',
+    priv_7: '3. O asistente Manolit∞ (privacidade nas consultas con IA)',
+    priv_8: 'Cando escribes unha pregunta no chat, o texto <b>envíase a un servizo externo de intelixencia artificial</b> só para procesala e xerar a resposta.',
+    priv_9: '1) <b>Cloudflare Workers AI</b> · contorno seguro que procesa o texto e devolve a resposta.<br>2) <b>OpenRouter</b> · servizo de IA alternativo, usado se o principal non está dispoñible.',
+    priv_10: 'O texto envíase temporalmente aos servidores destes provedores. Recomendámosche <strong>non incluír datos persoais sensibles</strong>, como o nome completo, o enderezo exacto, contrasinais ou datos médicos. Non usamos o texto para identificarte nin gardamos o historial das conversas.',
+    priv_11: '4. Localización GPS, hora local e posición do sol',
+    priv_12: 'Para ofrecer a previsión ambiental da túa zona, o sitio pode utilizar a localización xeográfica se lle dás permiso ao navegador.',
+    priv_13: 'A consulta da calidade do aire envíase a Open-Meteo e Copernicus. Porén, <b>todos os cálculos do sol e das sombras 3D execútanse localmente no teu dispositivo</b>. Manolit∞ Aire non garda as coordenadas GPS nin os fusos horarios nos seus servidores.',
+    priv_14: '5. Busca de enderezos e rutas con sombra 3D',
+    priv_15: 'Ao buscar unha rúa ou ruta en «Ruta e sombras 3D», o texto envíase a <b>OpenStreetMap Nominatim</b> e as coordenadas procésanse con <b>OSRM</b>. A xeometría do mapa e os edificios 3D cárganse desde <b>OpenFreeMap</b>.',
+    priv_16: 'Son servizos públicos e abertos independentes de Manolit∞ Aire. Só reciben as coordenadas necesarias para debuxar a ruta. Non gardamos buscas nin rutas.',
+    priv_17: '12. Dereitos dos usuarios e RGPD',
+    priv_18: 'Como non gardamos datos persoais en bases de datos propias, non hai ningún perfil que poidamos extraer, modificar, transferir ou eliminar. Para consultas, contacta en <strong>SANDRO.A007@GMAIL.COM</strong>.',
+    priv_19: '5 bis. Datos de nubosidade en tempo real (OpenWeatherMap)',
+    priv_20: 'O sitio consulta a nubosidade e as teselas de nubes de <b>OpenWeatherMap</b> mediante un proxy propio en <b>Cloudflare Workers</b>. O navegador envía só coordenadas arredondadas do mapa, sen datos persoais. Os resultados almacénanse en caché uns 10 minutos.',
+    priv_21: 'Onde van os teus datos, dunha ollada', priv_22: 'Servizo', priv_23: 'Que sae do navegador', priv_24: 'Que NON sae nunca',
+    priv_25: 'A túa configuración', priv_26: 'Nada. O idioma, o tema e o modo de lectura só se gardan no navegador con localStorage.', priv_27: 'Todo. Nin nós nin ninguén máis a recibe.',
+    priv_28: 'Chat de Manolit∞', priv_29: 'Só o texto que escribes, a Cloudflare Workers AI ou, se falla, a OpenRouter.', priv_30: 'O teu nome, localización ou historial de conversas.',
+    priv_31: 'Calidade do aire', priv_32: 'As coordenadas da zona consultada, a Open-Meteo e Copernicus.', priv_33: 'A túa identidade. Non hai contas nin perfís.',
+    priv_34: 'Buscas e rutas', priv_35: 'A rúa que buscas a OpenStreetMap Nominatim e as coordenadas da ruta a OSRM.', priv_36: 'Rutas gardadas. Non gardamos ningunha.',
+    priv_37: 'Nubes e Catastro', priv_38: 'Só as coordenadas arredondadas da zona visible do mapa, a través do proxy de Cloudflare.', priv_39: 'O teu GPS exacto nin a clave da API.',
+    priv_40: 'Sombras 3D e sol', priv_41: 'Nada. Todos os cálculos fanse no teu móbil ou ordenador.', priv_42: 'As coordenadas nunca se envían a un servidor para calcular sombras.',
+    priv_43: '7. Capa do Catastro de España (parcelas e alturas)', priv_44: 'Ao activar «Catastro 3D», só se envían as coordenadas das teselas visibles mediante o proxy de Cloudflare Workers. Non se envía a posición GPS nin datos persoais. As respostas gárdanse na caché durante unha hora.',
+    priv_45: '8. Tipografías web (Google Fonts)', priv_46: 'O sitio usa tipografías de Google Fonts. Ao cargalas, Google recibe a petición técnica habitual (IP e axente de usuario), sen cookies nin identificadores asociados por nós.',
+    priv_47: '9. Xogo e certificado de protección climática', priv_48: 'O xogo «Atrapa a Manolit∞» e o certificado funcionan integramente no navegador. A puntuación e o nome do certificado <strong>non saen do dispositivo</strong>.',
+    priv_49: '10. Aparcadoiros e planificador de viaxes', priv_50: 'A capa de aparcadoiros consulta datos abertos de OpenStreetMap polo noso proxy; OSRM de FOSSGIS calcula as rutas en coche. As buscas non se gardan nin se asocian a unha conta.',
+    priv_51: '11. Como protexerte aínda máis', priv_52: 'Podes escribir a cidade manualmente se non queres compartir o GPS. Non escribas datos persoais nin de saúde no chat, xa que o texto se envía aos servizos de IA. Se borras os datos de navegación, eliminaranse as preferencias locais.',
+    priv_53: '13. Fontes de auga e privacidade da localización', priv_54: 'Ao activar «Fontes de auga», o navegador calcula a zona visible do mapa sen solicitar o GPS. A zona consúltase en Overpass e, segundo a cobertura, nos servizos municipais de Valencia e Málaga. Estes terceiros reciben a IP e os metadatos técnicos habituais.',
+    priv_55: 'Rutas en bicicleta e carrís bici', priv_56: 'Os puntos de orixe e destino e a zona visible do mapa envíanse ao noso proxy de Cloudflare, que consulta OSRM de FOSSGIS, BRouter e Overpass.', priv_57: 'A túa identidade, nome ou conta. Non se garda nada.',
+    priv_58: 'Transporte público', priv_59: 'A zona visible e o código da parada que seleccionas envíanse ao proxy de Cloudflare, que consulta Transitous e OpenStreetMap.', priv_60: 'O teu nome, conta ou historial de consultas.',
+    priv_61: '14. Carrís bici, rutas en bicicleta e transporte público', priv_62: 'As rutas en bicicleta calcúlanse co perfil ciclista de OSRM de FOSSGIS a través do proxy de Cloudflare; se non hai ruta, inténtase con BRouter. Os carrís bici proveñen de OpenStreetMap e consúltanse mediante Overpass. Só se transmiten coordenadas, nunca o teu nome nin a conta.',
+    priv_63: 'A capa de transporte público mostra paradas e próximas saídas. O proxy agrega datos de Transitous e OpenStreetMap. Se non está dispoñible, o navegador pode consultar directamente eses servizos, que reciben a IP e os metadatos técnicos. As respostas mantéñense na memoria uns 15 minutos; non gardamos historial.',
+    cook_1: 'Política de cookies e almacenamento local', cook_2: 'Manolit∞ Aire non utiliza cookies publicitarias nin sistemas de seguimento comercial. Usamos <code>localStorage</code>, que tecnicamente non é unha cookie pero almacena datos no teu navegador dun xeito semellante. Explicámolo con transparencia.',
+    cook_3: 'As únicas preferencias técnicas que gardamos', cook_4: 'Parámetro (chave)', cook_5: 'Finalidade técnica', cook_6: 'Envíase a servidores externos?',
+    cook_7: '<strong>Idioma escollido</strong>', cook_8: 'Lembrar o idioma preferido para as próximas visitas.', cook_9: 'Non, almacenamento 100% local.',
+    cook_10: '<strong>Tema claro/escuro</strong>', cook_11: 'Lembrar a preferencia visual de contraste.', cook_12: '<strong>Paleta de cores</strong>', cook_13: 'Lembrar a configuración personalizada do mapa 3D.',
+    cook_14: '<strong>Modo de lectura</strong>', cook_15: 'Lembrar o teu modo (cidadán, científico, avoa/avó ou neno).', cook_16: '<strong>Aceptación do aviso</strong>', cook_17: 'Evitar mostrar o banner informativo cada vez que accedes ao mapa.',
+    cook_18: 'Por que non mostramos un panel de configuración complexo?', cook_19: 'Os mecanismos complexos de rexeitamento son necesarios cando se usan cookies de terceiros, píxeles de seguimento ou ferramentas publicitarias. Manolit∞ Aire só procesa datos <strong>técnicos, esenciais e de personalización</strong>, así que mostramos un banner sinxelo por transparencia.', cook_20: 'Última actualización: 22 de agosto de 2026', cook_21: 'Aviso legal', cook_22: 'Privacidade', cook_23: 'Cookies', cook_24: 'COOKIES'
+  };
+
+
+
+  const ka = {
+    priv_1: 'კონფიდენციალურობისა და მონაცემთა უსაფრთხოების პოლიტიკა',
+    priv_2: 'მთავარი შეჯამება: თქვენი კონფიდენციალურობა უპირველესია. მომხმარებლის რეგისტრაცია, ანგარიშები და პროფილები არ არსებობს. პარამეტრები ინახება მხოლოდ თქვენს ბრაუზერში და არა გარე სერვერზე.',
+    priv_3: '1. რას არ ვაგროვებთ (პერსონალური მონაცემების გარეშე)',
+    priv_4: 'პლატფორმა არ ითხოვს ელფოსტას, სახელს, პაროლს ან ტელეფონის ნომერს. მომხმარებლის ანგარიშები და სარეკლამო იდენტიფიკატორები არ გამოიყენება თქვენი ინტერნეტაქტივობის თვალყურის დევნებისთვის.',
+    priv_5: '2. ლოკალური შენახვა თქვენს ბრაუზერში (Local Storage)',
+    priv_6: 'თქვენი ენის, ღია/მუქი თემის, 3D რუკის ფერთა პალიტრისა და კითხვის რეჟიმის არჩევანი ინახება მხოლოდ თქვენს ბრაუზერში <code>localStorage</code>-ის საშუალებით. ჩვენ ამ ინფორმაციას არ ვიღებთ და არ ვინახავთ.',
+    priv_7: '3. Manolit∞ ასისტენტი (AI შეკითხვების კონფიდენციალურობა)',
+    priv_8: 'ჩატში შეკითხვის აკრეფისას ტექსტი <b>იგზავნება გარე ხელოვნური ინტელექტის სერვისთან</b> მხოლოდ პასუხის დასამუშავებლად და შესაქმნელად.',
+    priv_9: '1) <b>Cloudflare Workers AI</b> · უსაფრთხო გარემო, რომელიც ტექსტს ამუშავებს და პასუხს აბრუნებს.<br>2) <b>OpenRouter</b> · ალტერნატიული AI სერვისი, რომელიც გამოიყენება ძირითადი სერვის მიუწვდომლობისას.',
+    priv_10: 'შეკითხვის ტექსტი დროებით იგზავნება ამ მომწოდებლების სერვერებზე. გთხოვთ, ჩატში არ შეიყვანოთ <strong>მგრძნობიარე პერსონალური მონაცემები</strong>, მაგალითად სრული სახელი, ზუსტი მისამართი, პაროლები ან სამედიცინო ინფორმაცია. ტექსტი თქვენი იდენტიფიცირებისთვის არ გამოიყენება და საუბრის ისტორია არ ინახება.',
+    priv_11: '4. GPS მდებარეობა, ადგილობრივი დრო და მზის პოზიცია',
+    priv_12: 'თქვენი რეგიონის გარემოსა და დაბინძურების პროგნოზისთვის საიტმა შეიძლება გამოიყენოს თქვენი გეოგრაფიული მდებარეობა, თუ ბრაუზერს ნებართვას მისცემთ.',
+    priv_13: 'ჰაერის ხარისხის მოთხოვნა იგზავნება Open-Meteo-სა და Copernicus-ის მოდელებთან. თუმცა, <b>მზისა და 3D ჩრდილების ყველა გამოთვლა თქვენს მოწყობილობაზე სრულდება</b>. Manolit∞ Aire არ ინახავს GPS კოორდინატებს ან დროის სარტყლებს საკუთარ სერვერებზე.',
+    priv_14: '5. მისამართებისა და 3D ჩრდილიანი მრუტების ძიება',
+    priv_15: '«მარშრუტი და 3D ჩრდილები» განყოფილებაში ქუჩის ძიებისას ტექსტი იგზავნება <b>OpenStreetMap Nominatim</b>-თან, ხოლო კოორდინატები მარშრუტის გამოსათვლელად მუშავდება <b>OSRM</b>-ით. რუკის გეომეტრია და 3D შენობები იტვირთება <b>OpenFreeMap</b>-იდან.',
+    priv_16: 'ეს Manolit∞ Aire-სგან დამოუკიდებელი საჯარო და ღია სერვისებია. ისინი იღებენ მხოლოდ მარშრუტის გამოსახვისთვის საჭირო კოორდინატებს. ძიებებსა და მარშრუტებს ჩვენს სერვერებზე არ ვინახავთ.',
+    priv_17: '12. მომხმარებელთა უფლებები და GDPR',
+    priv_18: 'რადგან ჩვენს მონაცემთა ბაზებში პერსონალურ მონაცემებს არ ვინახავთ, არ არსებობს პროფილი, რომლის ამოღება, შეცვლა, გადაცემა ან წაშლა შეგვეძლება. ტექნიკური ან სამართლებრივი შეკითხვებისთვის მოგვწერეთ: <strong>SANDRO.A007@GMAIL.COM</strong>.',
+    priv_19: '5 bis. ღრუბლიანობის რეალურ დროში მონაცემები (OpenWeatherMap)',
+    priv_20: 'რუკაზე ღრუბლების გამოსახვისთვის საიტი <b>OpenWeatherMap</b>-ს მიმართავს <b>Cloudflare Workers</b>-ის პროქსის მეშვეობით. ბრაუზერი აგზავნის მხოლოდ რუკის დამრგვალებულ კოორდინატებს, პერსონალური მონაცემების გარეშე. შედეგები დაახლოებით 10 წუთით ქეშდება.',
+    priv_21: 'სად მიდის თქვენი მონაცემები — მოკლედ', priv_22: 'სერვისი', priv_23: 'რა გადის ბრაუზერიდან', priv_24: 'რა არასდროს გადის',
+    priv_25: 'თქვენი პარამეტრები', priv_26: 'არაფერი. ენა, თემა და კითხვის რეჟიმი მხოლოდ ბრაუზერში ინახება.', priv_27: 'ყველაფერი. ჩვენ ან სხვა პირები მას არ ვიღებთ.',
+    priv_28: 'Manolit∞ ჩატი', priv_29: 'მხოლოდ თქვენ მიერ აკრეფილი ტექსტი იგზავნება Cloudflare Workers AI-სთან ან, შეფერხებისას, OpenRouter-თან.', priv_30: 'თქვენი სახელი, მდებარეობა ან საუბრის ისტორია.',
+    priv_31: 'ჰაერის ხარისხი', priv_32: 'მოთხოვნილი არეალის კოორდინატები იგზავნება Open-Meteo-სა და Copernicus-თან.', priv_33: 'თქვენი ვინაობა. ანგარიშები და პროფილები არ არსებობს.',
+    priv_34: 'ძიება და მარშრუტები', priv_35: 'მოძიებული ქუჩა OpenStreetMap Nominatim-ს, მარშრუტის კოორდინატები კი OSRM-ს ეგზავნება.', priv_36: 'შენახული მარშრუტები. არცერთს არ ვინახავთ.',
+    priv_37: 'ღრუბლები და კადასტრი', priv_38: 'რუკის ხილული ნაწილის დამრგვალებული კოორდინატები იგზავნება ჩვენი Cloudflare პროქსის მეშვეობით.', priv_39: 'თქვენი ზუსტი GPS ან API გასაღები.',
+    priv_40: '3D ჩრდილები და მზე', priv_41: 'არაფერი. ყველა გამოთვლა თქვენს მოწყობილობაზე სრულდება.', priv_42: 'ჩრდილების გამოსათვლელად კოორდინატები სერვერზე არასდროს იგზავნება.',
+    priv_43: '7. ესპანეთის კადასტრის ფენა (ნაკვეთები და სიმაღლეები)', priv_44: '«Catastro 3D»-ის ჩართვისას Cloudflare Workers-ის პროქსის მეშვეობით იგზავნება მხოლოდ ხილული რუკის ფილების კოორდინატები. GPS მდებარეობა და პერსონალური მონაცემები არ იგზავნება. პასუხები ერთი საათით ქეშდება.',
+    priv_45: '8. ვებშრიფტები (Google Fonts)', priv_46: 'საიტი იყენებს Google Fonts-ს. შრიფტების ჩატვირთვისას Google იღებს ჩვეულებრივ ტექნიკურ მოთხოვნას (IP მისამართსა და მომხმარებლის აგენტს); ჩვენ cookies-ს ან იდენტიფიკატორებს არ ვურთავთ.',
+    priv_47: '9. თამაში და კლიმატის დაცვის სერტიფიკატი', priv_48: 'თამაში «დაიჭირე Manolit∞» და სერტიფიკატი მთლიანად თქვენს ბრაუზერში მუშაობს. ქულა და სერტიფიკატზე შეყვანილი სახელი <strong>მოწყობილობას არ ტოვებს</strong>.',
+    priv_49: '10. პარკინგი და მოგზაურობის დამგეგმავი', priv_50: 'პარკინგის ფენა და მოგზაურობის დამგეგმავი OpenStreetMap-ის ღია მონაცემებს ჩვენი პროქსის გავლით იყენებს; მანქანის მარშრუტებს FOSSGIS-ის OSRM ითვლის. ძიებები არ ინახება და ანგარიშს არ უკავშირდება.',
+    priv_51: '11. როგორ დაიცვათ თავი უკეთ', priv_52: 'GPS-ის გაზიარების ნაცვლად შეგიძლიათ ქალაქი ხელით ჩაწეროთ. ჩატში ნუ შეიყვანთ პერსონალურ ან ჯანმრთელობის მონაცემებს, რადგან ტექსტი AI სერვისებს ეგზავნება პასუხის შესაქმნელად. ბრაუზერის მონაცემების წაშლა ადგილობრივ პარამეტრებსაც წაშლის.',
+    priv_53: '13. წყლის შადრევნები და მდებარეობის კონფიდენციალურობა', priv_54: '«წყლის შადრევნების» ჩართვისას ბრაუზერი რუკის ხილულ არეალს ითვლის და GPS-ს არ ითხოვს. არეალი იგზავნება Overpass-თან და, დაფარვის მიხედვით, ვალენსიისა და მალაგის მუნიციპალურ სერვისებთან. მესამე მხარეები იღებენ IP მისამართსა და ჩვეულებრივ ტექნიკურ მეტამონაცემებს.',
+    priv_55: 'ველოსიპედის მარშრუტები და ბილიკები', priv_56: 'თქვენ მიერ შეყვანილი საწყისი და საბოლოო წერტილები და რუკის ხილული არეალი იგზავნება Cloudflare-ის პროქსისთან, რომელიც მარშრუტისა და ბილიკებისთვის FOSSGIS OSRM-ს, BRouter-სა და Overpass-ს მიმართავს.', priv_57: 'თქვენი ვინაობა, სახელი და ანგარიში. არაფერი ინახება.',
+    priv_58: 'საზოგადოებრივი ტრანსპორტი', priv_59: 'რუკის ხილული არეალი და თქვენ მიერ არჩეული გაჩერების კოდი იგზავნება Cloudflare-ის პროქსისთან, რომელიც Transitous-სა და OpenStreetMap-ს მიმართავს.', priv_60: 'თქვენი სახელი, ანგარიში ან მოთხოვნების ისტორია.',
+    priv_61: '14. ველობილიკები, ველოსიპედის მარშრუტები და საზოგადოებრივი ტრანსპორტი', priv_62: 'ველოსიპედის მარშრუტები Cloudflare Workers-ის პროქსის გავლით FOSSGIS OSRM-ის ველოსიპედის პროფილით ითვლება; საჭიროების შემთხვევაში გამოიყენება BRouter. ველობილიკები OpenStreetMap-იდან მოდის და Overpass-ით მოიძებნება. იგზავნება მხოლოდ კოორდინატები და არა თქვენი სახელი ან ანგარიში.',
+    priv_63: 'საზოგადოებრივი ტრანსპორტის ფენა გაჩერებებსა და უახლოეს რეისებს აჩვენებს. პროქსი Transitous-ისა და OpenStreetMap-ის მონაცემებს აერთიანებს. პროქსის მიუწვდომლობისას ბრაუზერმა შეიძლება ამ სერვისებს პირდაპირ მიმართოს, რის შედეგადაც ისინი IP მისამართსა და ტექნიკურ მეტამონაცემებს მიიღებენ. პასუხები მეხსიერებაში დაახლოებით 15 წუთით ინახება; მოთხოვნების ისტორიას ჩვენს სერვერებზე არ ვინახავთ.',
+    cook_1: 'Cookies-ისა და ლოკალური შენახვის პოლიტიკა', cook_2: 'Manolit∞ Aire არ იყენებს სარეკლამო cookies-ს ან კომერციული თვალთვალის სისტემებს. ვიყენებთ <code>localStorage</code>-ს, რომელიც ტექნიკურად cookie არ არის, თუმცა მონაცემებს თქვენს ბრაუზერში მსგავსად ინახავს.',
+    cook_3: 'ერთადერთი ტექნიკური პარამეტრები, რომლებსაც ვინახავთ', cook_4: 'პარამეტრი (გასაღები)', cook_5: 'ტექნიკური მიზანი', cook_6: 'იგზავნება გარე სერვერებზე?',
+    cook_7: '<strong>არჩეული ენა</strong>', cook_8: 'სასურველი ენის დამახსოვრება მომავალი ვიზიტებისთვის.', cook_9: 'არა, მხოლოდ ლოკალურად.',
+    cook_10: '<strong>ღია/მუქი თემა</strong>', cook_11: 'ინტერფეის კონტრასტის არჩევანის დამახსოვრება.', cook_12: '<strong>ფერების პალიტრა</strong>', cook_13: '3D რუკის პერსონალური პარამეტრების დამახსოვრება.',
+    cook_14: '<strong>კითხვის რეჟიმი</strong>', cook_15: 'პლატფორმის სასურველი რეჟიმის დამახსოვრება.', cook_16: '<strong>შეტყობინების მიღება</strong>', cook_17: 'რუკაზე ყოველი შესვლისას საინფორმაციო ბანერის ხელახლა ჩვენების თავიდან აცილება.',
+    cook_18: 'რატომ არ გვაქვს რთული პარამეტრების პანელი?', cook_19: 'რთული უარის მექანიზმები საჭიროა მესამე მხარის cookies-ის, თვალთვალის პიქსელების ან სარეკლამო ინსტრუმენტების გამოყენებისას. Manolit∞ Aire მხოლოდ <strong>ტექნიკურ, აუცილებელ და პერსონალიზაციის</strong> მონაცემებს ამუშავებს, ამიტომ გამჭვირვალობისთვის მარტივ ბანერს აჩვენებს.', cook_20: 'ბოლო განახლება: 2026 წლის 22 აგვისტო', cook_21: 'სამართლებრივი შეტყობინება', cook_22: 'კონფიდენციალურობა', cook_23: 'Cookies', cook_24: 'COOKIES',
+    priv_53: '13. წყლის შადრევნები და მდებარეობის კონფიდენციალურობა', priv_54: '«წყლის შადრევნების» ჩართვისას ბრაუზერი რუკის ხილულ არეალს ითვლის და GPS-ს არ ითხოვს. არეალი იგზავნება Overpass-თან და, დაფარვის მიხედვით, ვალენსიისა და მალაგის მუნიციპალურ სერვისებთან. მესამე მხარეები იღებენ IP მისამართსა და ჩვეულებრივ ტექნიკურ მეტამონაცემებს.',
+    priv_55: 'ველოსიპედის მარშრუტები და ბილიკები', priv_56: 'თქვენ მიერ შეყვანილი საწყისი და საბოლოო წერტილები და რუკის ხილული არეალი იგზავნება Cloudflare-ის პროქსისთან, რომელიც მარშრუტისა და ბილიკებისთვის FOSSGIS OSRM-ს, BRouter-სა და Overpass-ს მიმართავს.', priv_57: 'თქვენი ვინაობა, სახელი და ანგარიში. არაფერი ინახება.',
+    priv_58: 'საზოგადოებრივი ტრანსპორტი', priv_59: 'რუკის ხილული არეალი და თქვენ მიერ არჩეული გაჩერების კოდი იგზავნება Cloudflare-ის პროქსისთან, რომელიც Transitous-სა და OpenStreetMap-ს მიმართავს.', priv_60: 'თქვენი სახელი, ანგარიში ან მოთხოვნების ისტორია.',
+    priv_61: '14. ველობილიკები, ველოსიპედის მარშრუტები და საზოგადოებრივი ტრანსპორტი', priv_62: 'ველოსიპედის მარშრუტები Cloudflare Workers-ის პროქსის გავლით FOSSGIS OSRM-ის ველოსიპედის პროფილით ითვლება; საჭიროების შემთხვევაში გამოიყენება BRouter. ველობილიკები OpenStreetMap-იდან მოდის და Overpass-ით მოიძებნება. იგზავნება მხოლოდ კოორდინატები და არა თქვენი სახელი ან ანგარიში.',
+    priv_63: 'საზოგადოებრივი ტრანსპორტის ფენა გაჩერებებსა და უახლოეს რეისებს აჩვენებს. პროქსი Transitous-ისა და OpenStreetMap-ის მონაცემებს აერთიანებს. პროქსის მიუწვდომლობისას ბრაუზერმა შეიძლება ამ სერვისებს პირდაპირ მიმართოს; ისინი მიიღებენ IP მისამართსა და ტექნიკურ მეტამონაცემებს. პასუხები დაახლოებით 15 წუთით ინახება მეხსიერებაში; მოთხოვნების ისტორიას ჩვენს სერვერებზე არ ვინახავთ.'
+  };
+
+  const ui = {
+    es: { titleLegal: 'Aviso legal', titlePrivacy: 'Privacidad', privacyHeading: 'Política de Privacidad y Seguridad de Datos', titleCookies: 'Cookies', back: '← Volver al mapa', cookieTitle: 'Política de Cookies y Almacenamiento Local' },
+    ca: { titleLegal: 'Avís legal', titlePrivacy: 'Privacitat', privacyHeading: 'Política de privacitat i seguretat de les dades', titleCookies: 'Galetes', back: '← Torna al mapa', cookieTitle: 'Política de galetes i emmagatzematge local' },
+    eu: { titleLegal: 'Lege-oharra', titlePrivacy: 'Pribatutasuna', privacyHeading: 'Pribatutasun- eta datu-segurtasun politika', titleCookies: 'Cookieak', back: '← Itzuli mapara', cookieTitle: 'Cookieen eta tokiko biltegiratzearen politika' },
+    gl: { titleLegal: 'Aviso legal', titlePrivacy: 'Privacidade', privacyHeading: 'Política de privacidade e seguridade dos datos', titleCookies: 'Cookies', back: '← Volver ao mapa', cookieTitle: 'Política de cookies e almacenamento local' },
+    en: { titleLegal: 'Legal notice', titlePrivacy: 'Privacy', privacyHeading: 'Privacy Policy and Data Security', titleCookies: 'Cookies', back: '← Back to the map', cookieTitle: 'Cookies and Local Storage Policy' },
+    ka: { titleLegal: 'სამართლებრივი შეტყობინება', titlePrivacy: 'კონფიდენციალურობა', privacyHeading: 'კონფიდენციალურობისა და მონაცემთა დაცვის პოლიტიკა', titleCookies: 'ქუქი-ფაილები', back: '← რუკაზე დაბრუნება', cookieTitle: 'ქუქი-ფაილებისა და ლოკალური შენახვის პოლიტიკა' },
+    ar: { titleLegal: 'إشعار قانوني', titlePrivacy: 'الخصوصية', privacyHeading: 'سياسة الخصوصية وأمن البيانات', titleCookies: 'ملفات تعريف الارتباط', back: '← العودة إلى الخريطة', cookieTitle: 'سياسة ملفات تعريف الارتباط والتخزين المحلي' }
+  };
+
+
+  const dictionaries = { en, ar, ca, eu, gl, ka };
   function aplicar(lang) {
-    // 12-oct-2026 (): el árabe también tiene traducción
-    // jurídica completa; ca/eu/gl/ka siguen con el castellano de referencia.
-    const dict = lang === 'en' ? en : (lang === 'ar' ? ar : null); // resto de idiomas: castellano (texto legal de referencia)
+    const dict = dictionaries[lang];
+    const labels = ui[lang] || ui.es;
     document.querySelectorAll('[data-i18n-legal]').forEach((el) => {
-      const clave = el.getAttribute('data-i18n-legal');
-      const original = originales.get(clave);
-      el.innerHTML = (dict && dict[clave] != null) ? dict[clave] : (original != null ? original : el.innerHTML);
+      const key = el.getAttribute('data-i18n-legal');
+      const original = originales.get(key);
+      el.innerHTML = (dict && dict[key] != null) ? dict[key] : (original != null ? original : el.innerHTML);
     });
+    const footerLinks = document.querySelectorAll('.footer a[data-i18n-legal]');
+    if (footerLinks.length >= 3) {
+      footerLinks[0].textContent = labels.titleLegal;
+      footerLinks[1].textContent = labels.titlePrivacy;
+      footerLinks[2].textContent = labels.titleCookies;
+    }
+    const footerEl = document.querySelector('.footer');
+    if (footerEl) footerEl.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+    const brandLabel = document.querySelector('.topbar .wordmark [data-i18n-legal]');
+    if (brandLabel) {
+      const currentPath = location.pathname.toLowerCase();
+      brandLabel.textContent = /privacidad/.test(currentPath) ? labels.titlePrivacy : (/cookies/.test(currentPath) ? labels.titleCookies : labels.titleLegal);
+    }
+    const heading = document.querySelector('.content h1');
+    const path = location.pathname.toLowerCase();
+    const contentEl = document.querySelector('.content');
+    if (contentEl) contentEl.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+    if (heading && /privacidad/.test(path)) heading.textContent = labels.privacyHeading;
+    if (heading && /cookies/.test(path)) heading.textContent = labels.cookieTitle;
+    if (heading && /aviso-legal/.test(path)) heading.textContent = labels.titleLegal;
+    const pageSuffix = /privacidad/.test(path) ? ' · ' + labels.titlePrivacy : (/cookies/.test(path) ? ' · ' + labels.titleCookies : ' · ' + labels.titleLegal);
+    document.title = 'Manolit∞ Aire' + pageSuffix;
+    document.querySelectorAll('[data-i18n="backToMap"]').forEach((el) => { el.textContent = labels.back; });
+    document.documentElement.setAttribute('lang', lang || 'es');
+    document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+    document.querySelectorAll('#langToggle button').forEach((button) => button.classList.toggle('active', button.dataset.lang === lang));
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     capturarOriginales();
-    // Por si llegamos con un idioma ya elegido en otra página
-    aplicar(localStorage.getItem('manolito_lang') || 'en');
+    let lang = 'es';
+    try { lang = localStorage.getItem('manolito_lang') || 'es'; } catch (e) {}
+    aplicar(lang);
   });
-  document.addEventListener('langChanged', (e) => aplicar(e.detail?.lang || 'en'));
+  document.addEventListener('langChanged', (e) => aplicar((e.detail && e.detail.lang) || 'es'));
 })();

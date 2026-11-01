@@ -3645,7 +3645,7 @@ window.getCurrentLang = function () { return currentLang; };
 	function encolarMT(item) {
 		if (currentLang === 'es' || !MT_IDIOMAS[currentLang]) return;
 		if (item.soloAr && currentLang !== 'ar') return;
-		if (esPaginaLegal && currentLang !== 'ar') return;
+	if (esPaginaLegal && currentLang !== 'ar' && item.legalTraducido) return;
 		if (!esTraducibleMT(item.original)) return;
 		mtItems.add(item);
 		const enCache = mtCacheLeer(currentLang, item.original);
@@ -3702,11 +3702,12 @@ window.getCurrentLang = function () { return currentLang; };
 
 	function ofrecerMTNodo(nodo, n, opciones) {
 		if (currentLang === 'es' || mtNodosReg.has(nodo)) return;
+	const legalTraducido = Boolean(esPaginaLegal && nodo.parentElement && nodo.parentElement.closest('[data-i18n-legal]'));
+	const soloAr = Boolean(opciones && opciones.soloAr);
 		mtNodosReg.add(nodo);
 		const v = nodo.nodeValue;
 		const cabeza = /^\s*/.exec(v)[0], cola = /\s*$/.exec(v)[0];
 		const fuente = opciones && typeof opciones.fuente === 'string' ? opciones.fuente : n;
-		const soloAr = Boolean(opciones && opciones.soloAr);
 		const partes = dividirMT(fuente);
 		const traducidas = new Array(partes.length);
 		const pintarCompleto = () => {
@@ -3719,6 +3720,7 @@ window.getCurrentLang = function () { return currentLang; };
 			encolarMT({
 				original: parte,
 				soloAr,
+				legalTraducido,
 				conectado: () => nodo.isConnected,
 				aplicar: (txt, lang) => {
 					if (lang !== currentLang) return;
@@ -3737,6 +3739,7 @@ window.getCurrentLang = function () { return currentLang; };
 
 	function ofrecerMTAtributo(el, attr, n, opciones) {
 		if (currentLang === 'es') return;
+	const legalTraducido = Boolean(esPaginaLegal && el.closest('[data-i18n-legal]'));
 		let reg = mtAttrsReg.get(el);
 		if (reg && reg.has(attr)) return;
 		if (!reg) { reg = new Set(); mtAttrsReg.set(el, reg); }
@@ -3745,6 +3748,7 @@ window.getCurrentLang = function () { return currentLang; };
 		encolarMT({
 			original: fuente,
 			soloAr: Boolean(opciones && opciones.soloAr),
+			legalTraducido,
 			conectado: () => el.isConnected,
 			aplicar: (txt, lang) => {
 				if (lang !== currentLang) return;
@@ -3907,7 +3911,7 @@ window.getCurrentLang = function () { return currentLang; };
 			if (!item.conectado()) { mtItems.delete(item); return; }
 			if (currentLang === 'es') { item.restaurar(); return; }
 			if (item.soloAr && currentLang !== 'ar') { item.restaurar(); return; }
-			if (esPaginaLegal && currentLang !== 'ar') { item.restaurar(); return; }
+			if (esPaginaLegal && item.legalTraducido && currentLang !== 'ar') { item.restaurar(); return; }
 			const enCache = mtCacheLeer(currentLang, item.original);
 			if (enCache) item.aplicar(enCache, currentLang);
 			else encolarMT(item);

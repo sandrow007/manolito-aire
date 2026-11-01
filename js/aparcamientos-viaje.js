@@ -1296,11 +1296,21 @@
     viaje.estado.setAttribute('role', 'status');
     viaje.panel.appendChild(viaje.estado);
 
-    var mapaWrap = document.querySelector('.map-wrap');
-    if (mapaWrap && mapaWrap.parentNode) mapaWrap.parentNode.insertBefore(viaje.panel, mapaWrap.nextSibling);
+    // Buscador unificado (nov-2026): el panel vive DENTRO del formulario de
+    // ruta, oculto, y solo se enseña al calcular el viaje: estado y controles
+    // en la misma tarjeta del buscador, sin paneles flotantes aparte.
+    var contenedorForm = document.querySelector('#main-content .rs-form');
+    if (contenedorForm) contenedorForm.appendChild(viaje.panel);
+    else if (mapaWrap && mapaWrap.parentNode) mapaWrap.parentNode.insertBefore(viaje.panel, mapaWrap.nextSibling);
     else document.getElementById('main-content')?.appendChild(viaje.panel);
 
     viaje.btn.addEventListener('click', function () {
+      // Buscador unificado (nov-2026): este botón ya no abre un panel
+      // propio; activa el modo coche del buscador único y enfoca el destino.
+      if (window.manolitAireElegirModoRuta) {
+        window.manolitAireElegirModoRuta('coche', { enfocarDestino: true });
+        return;
+      }
       var abierto = !viaje.panel.hasAttribute('hidden');
       if (!abierto) {
         viaje.panel.removeAttribute('hidden');

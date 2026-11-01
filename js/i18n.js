@@ -553,6 +553,11 @@ const translations = {
 		saludBannerFinTpl: "El verde es temporal, el {f} la web vuelve a su piel de siempre.",
 		escudosTitulo: "Escudos que nos cuidan",
 		escudosPorque: "Cuatro observatorios públicos de salud ambiental, de tu tierra al planeta. Publican los datos y los umbrales de calor en los que se apoya esta web, y su trabajo nos protege a todos.",
+		// Selector de modo del buscador unificado (caminar / bici / coche).
+		modoRutaLabel: "Modo de ruta",
+		modoCaminar: "A pie",
+		modoBici: "Bici",
+		modoCoche: "Coche",
 	},
 	ca: {
 		queEsTitulo: "Què és Manolit∞ Aire",
@@ -1052,6 +1057,11 @@ const translations = {
 		saludBannerFinTpl: "El verd és temporal, el {f} el web torna a la seva pell de sempre.",
 		escudosTitulo: "Escuts que ens cuiden",
 		escudosPorque: "Quatre observatoris públics de salut ambiental, de la teva terra al planeta. Publiquen les dades i els llindars de calor en què es recolza aquest web, i la seva feina ens protegeix a tots.",
+		// Selector de modo del buscador unificado (caminar / bici / coche).
+		modoRutaLabel: "Mode de ruta",
+		modoCaminar: "A peu",
+		modoBici: "Bici",
+		modoCoche: "Cotxe",
 	},
 	eu: {
 		queEsTitulo: "Zer da Manolit∞ Aire",
@@ -1551,6 +1561,11 @@ const translations = {
 		saludBannerFinTpl: "Berdea aldiberekoa da, {f} webguneak bere itxura ohikoa berreskuratzen du.",
 		escudosTitulo: "Zaintzen gaituzten babeslekuak",
 		escudosPorque: "Osasun ambientalaren lau behatoki publiko, zure herritik planetara. Webgune honek oinarri hartzen dituen datuak eta bero-atalaseak argitaratzen dituzte, eta haien lanak guztiok babesten gaitu.",
+		// Selector de modo del buscador unificado (caminar / bici / coche).
+		modoRutaLabel: "Ibilbide-modua",
+		modoCaminar: "Oinez",
+		modoBici: "Bizikletaz",
+		modoCoche: "Kotxez",
 	},
 	gl: {
 		queEsTitulo: "Que é Manolit∞ Aire",
@@ -2051,6 +2066,11 @@ const translations = {
 		saludBannerFinTpl: "O verde é temporal, o {f} a web volve á súa pel de sempre.",
 		escudosTitulo: "Escudos que nos coidan",
 		escudosPorque: "Catro observatorios públicos de saúde ambiental, da túa terra ao planeta. Publican os datos e os limiares de calor nos que se apoia esta web, e o seu traballo protéxenos a todos.",
+		// Selector de modo del buscador unificado (caminar / bici / coche).
+		modoRutaLabel: "Modo de ruta",
+		modoCaminar: "A pé",
+		modoBici: "Bici",
+		modoCoche: "Coche",
 	},
 	en: {
 		queEsTitulo: "What is Manolit∞ Aire",
@@ -2578,6 +2598,11 @@ const translations = {
 		saludBannerFinTpl: "The green is temporary, on {f} the web returns to its usual look.",
 		escudosTitulo: "Shields that look after us",
 		escudosPorque: "Four public environmental health observatories, from your homeland to the planet. They publish the data and heat thresholds this website relies on, and their work protects us all.",
+		// Selector de modo del buscador unificado (caminar / bici / coche).
+		modoRutaLabel: "Route mode",
+		modoCaminar: "Walking",
+		modoBici: "Bike",
+		modoCoche: "Car",
 	},
 	ka: {
 		queEsTitulo: "რა არის Manolit∞ Aire",
@@ -3075,6 +3100,11 @@ const translations = {
 		saludBannerFinTpl: "მწვანე დროებითია, {f} ვებგვერდი თავის ჩვეულ იერს დაუბრუნდება.",
 		escudosTitulo: "ფარები, რომლებიც გვიცავენ",
 		escudosPorque: "გარემოს ჯანმრთელობის ოთხი საჯარო ობსერვატორია, შენი მხრიდან პლანეტამდე. ისინი აქვეყნებენ მონაცემებსა და სიცხის ზღურბლებს, რომლებზეც ეს ვებგვერდი ეყრდნობა, და მათი მუშაობა ყველას გვიცავს.",
+		// Selector de modo del buscador unificado (caminar / bici / coche).
+		modoRutaLabel: "მარშრუტის რეჟიმი",
+		modoCaminar: "ფეხით",
+		modoBici: "ველოსიპედით",
+		modoCoche: "მანქანით",
 	},
 	// Traducciones locales para la interfaz principal; el fallback MT queda
 	// reservado para frases largas que aún no tienen una traducción propia.
@@ -3195,7 +3225,12 @@ const translations = {
 		sunPosition: "موضع الشمس",
 		sunBelow: "الشمس تحت الأفق في ذلك الوقت؛ لا توجد ظلال لإسقاطها.",
 		faqTitle: "الأسئلة الشائعة",
-		faqIntro: "إجابات مباشرة عن الأسئلة التي تطرحونها فعلًا."
+		faqIntro: "إجابات مباشرة عن الأسئلة التي تطرحونها فعلًا.",
+		// Selector de modo del buscador unificado (caminar / bici / coche).
+		modoRutaLabel: "وضع المسار",
+		modoCaminar: "مشيًا",
+		modoBici: "بالدراجة",
+		modoCoche: "بالسيارة"
 	}
 };
 

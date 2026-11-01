@@ -3914,8 +3914,8 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   height:17px;
   flex:0 0 auto;
   background:currentColor;
-  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42'/%3E%3C/svg%3E") no-repeat center/contain;
-          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42'/%3E%3C/svg%3E") no-repeat center/contain;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M9.5 17v-10h3.25a2.75 2.75 0 0 1 0 5.5H9.5'/%3E%3C/svg%3E") no-repeat center/contain;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M9.5 17v-10h3.25a2.75 2.75 0 0 1 0 5.5H9.5'/%3E%3C/svg%3E") no-repeat center/contain;
 }
 #main-content .rs-form .rs-parking-action[aria-pressed="true"]{
   background:rgba(53,196,212,.24);
@@ -3925,6 +3925,41 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 #main-content .rs-form .rs-parking-action:focus-visible{
   outline:2px solid var(--mui-accent);
   outline-offset:2px;
+}
+/* ---- Selector de modo del buscador unificado (nov-2026): una sola
+   pareja origen/destino para andar, bici y coche. ---- */
+#main-content .rs-form .rs-modo-ruta{
+  grid-column:1/-1; display:flex; flex-wrap:wrap; gap:6px;
+}
+#main-content .rs-form .rs-modo-ruta button{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 12px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--line); background:var(--surface); color:var(--ink);
+  font:600 .82rem/1.2 var(--font-body); touch-action:manipulation;
+  transition:border-color .15s ease, background .15s ease, color .15s ease;
+}
+#main-content .rs-form .rs-modo-ruta button svg{ width:16px; height:16px; flex:0 0 auto; }
+#main-content .rs-form .rs-modo-ruta button:hover{ border-color:var(--accent); }
+#main-content .rs-form .rs-modo-ruta button.activa{
+  background:var(--accent); border-color:var(--accent); color:#fff;
+}
+/* Los paneles de bici y viaje viven DENTRO del formulario: se enseñan solo
+   cuando su motor calcula, jamás como paneles flotantes aparte. */
+#main-content .rs-form .rs-panel-viaje{
+  grid-column:1/-1; width:100%; margin:0; box-sizing:border-box;
+}
+/* ---- Buscador flotante «glass» a pantalla completa (nov-2026): al entrar
+   en fullscreen (nativo o plan B de iPhone) shadows-route.js traslada el
+   formulario dentro de .map-wrap y le pone esta clase: se queda como una
+   tarjeta de cristal flotante sobre el mapa (hereda el blur oscuro de la
+   base de .rs-form), para buscar sin salir de la pantalla completa. ---- */
+.map-wrap{ position:relative; }
+#main-content .rs-form.rs-form-flotante{
+  position:absolute; top:10px; left:10px; right:10px; z-index:30;
+  max-width:640px; margin:0 auto;
+  border-radius:16px;
+  background:rgba(22,26,32,0.82);
+  box-shadow:0 10px 32px rgba(10,25,35,.28);
 }
 #main-content .rs-form .rs-toggle-invierno{ grid-column:1/-1; justify-self:start; }
 @media (max-width:700px){
@@ -4202,8 +4237,8 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
     block-size:20px;
     flex:0 0 20px;
     background:currentColor;
-    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='4'/%3E%3Cpath d='M9 17V7h3.5a3 3 0 0 1 0 6H9'/%3E%3Cpath d='M13 19.5l6.5-6.5M16.5 19.5l3-3'/%3E%3C/svg%3E") no-repeat center/contain;
-    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='4'/%3E%3Cpath d='M9 17V7h3.5a3 3 0 0 1 0 6H9'/%3E%3Cpath d='M13 19.5l6.5-6.5M16.5 19.5l3-3'/%3E%3C/svg%3E") no-repeat center/contain;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M9.5 17v-10h3.25a2.75 2.75 0 0 1 0 5.5H9.5'/%3E%3C/svg%3E") no-repeat center/contain;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M9.5 17v-10h3.25a2.75 2.75 0 0 1 0 5.5H9.5'/%3E%3C/svg%3E") no-repeat center/contain;
   }
   #main-content .rs-form .rs-parking-action[aria-pressed="true"]{
     background:rgba(53,196,212,.10) !important;

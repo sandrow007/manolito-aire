@@ -462,7 +462,18 @@
       if (autoCierre) clearTimeout(autoCierre);
       setTimeout(() => {
         gate.remove();
-        document.dispatchEvent(new CustomEvent('langChanged', { detail: { lang } }));
+        // Aplicar el idioma de verdad: setLang (i18n.js, cargado con defer
+        // antes de que nadie pueda pulsar) actualiza currentLang, traduce la
+        // página, guarda la preferencia y dispara langChanged. Si solo se
+        // lanza el evento, currentLang sigue en 'es' y toda la web queda en
+        // español aunque se haya elegido otro idioma. Si el gate se cerró
+        // solo (autoCierre sin elección) no se persiste nada: se avisa igual
+        // por compatibilidad y el gate se volverá a ofrecer la próxima vez.
+        if (guardar && typeof window.setLang === 'function') {
+          window.setLang(lang);
+        } else {
+          document.dispatchEvent(new CustomEvent('langChanged', { detail: { lang } }));
+        }
       }, 190);
     }
     gate.addEventListener('click', (e) => {
@@ -1344,6 +1355,25 @@
   </div>
 
 <div class="rs-form">
+  <!-- Selector de modo del buscador UNIFICADO (nov-2026): un solo par de
+       campos origen/destino para los tres motores (andar, bici, coche).
+       El botón «Buscar ruta» despacha al motor del modo activo y los
+       paneles de bici/viaje viven OCULTOS dentro de este mismo formulario:
+       no se crea ni se despliega ningún buscador nuevo. -->
+  <div class="rs-modo-ruta" id="rsModoRuta" role="group" data-i18n-aria-label="modoRutaLabel" aria-label="Modo de ruta">
+    <button type="button" data-modo-ruta="caminar" class="activa" aria-pressed="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4.2" r="1.7"/><path d="M13 7.5 10.2 9 8.8 13.2M13 7.5l2.6 2.2 2.1 1.3M13 7.5l-.6 5.2-2.6 6.3M13 7.5l1.7 5 1.6 6.5"/></svg>
+      <span data-i18n="modoCaminar">A pie</span>
+    </button>
+    <button type="button" data-modo-ruta="bici" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="16" r="3"/><circle cx="18" cy="16" r="3"/><path d="M6 16l3-6 5 2 3 3M14 10l-1.5 2"/></svg>
+      <span data-i18n="modoBici">Bici</span>
+    </button>
+    <button type="button" data-modo-ruta="coche" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-3l1.8-5h12.4L20 13v3"/><path d="M4 16h16"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/><path d="M9.3 16.5h5.4"/></svg>
+      <span data-i18n="modoCoche">Coche</span>
+    </button>
+  </div>
   <div class="rs-field">
     <label for="rsOrigen" class="visually-hidden" data-i18n="origin">Origen</label>
     <input type="text" id="rsOrigen" name="origen" placeholder="Punto de origen" data-i18n-placeholder="originPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasOrigen" aria-autocomplete="list">
@@ -1358,7 +1388,7 @@
   <div id="rsParkingAction"></div>
 </div>
     <label class="rs-status-toggle">
-      <input class="rs-status-expand visually-hidden" type="checkbox" aria-controls="rsOrigen rsDestino rsBuscarBtn">
+      <input class="rs-status-expand visually-hidden" type="checkbox" aria-controls="rsModoRuta rsOrigen rsDestino rsBuscarBtn rsPanelBici rsPanelViaje">
       <span id="rsStatus" class="chat-status" style="margin:8px 0 14px;" role="status" aria-live="polite" aria-atomic="true"></span>
     </label>
     <!-- Resumen accesible de la ruta: el mapa es un canvas y un lector de

@@ -760,12 +760,48 @@ class ManolitoPantallaCompleta {
   }
 }
 const controlPantallaCompleta = new ManolitoPantallaCompleta();
+
+// Buscador unificado a pantalla completa (nov-2026): el formulario de ruta
+// vive en el flujo de la pagina, fuera del lienzo. Al entrar en fullscreen
+// (nativo o plan B CSS de iPhone) se traslada DENTRO de .map-wrap con la
+// clase .rs-form-flotante (cristal translucido en css/style.css), para
+// buscar y trazar rutas sin salir del mapa. Al salir vuelve a su sitio.
+// El plan B solo conmuta una clase en <body>: la vigila un MutationObserver;
+// el fullscreen nativo avisa con fullscreenchange (mas abajo).
+let buscadorAnclaFlotante = null;
+function sincronizarBuscadorFlotante() {
+  const form = document.querySelector('#main-content .rs-form');
+  const wrap = document.querySelector('.map-wrap');
+  if (!form || !wrap) return;
+  const expandido = !!(document.fullscreenElement || document.body.classList.contains('manolito-fs'));
+  if (expandido && form.parentElement !== wrap) {
+    if (!buscadorAnclaFlotante) buscadorAnclaFlotante = { padre: form.parentElement, siguiente: form.nextSibling };
+    wrap.appendChild(form);
+    form.classList.add('rs-form-flotante');
+    // Si el formulario estaba plegado (resumen de ruta calculada), se
+    // despliega: a pantalla completa el buscador debe quedar usable ya.
+    const expandir = document.querySelector('#main-content .rs-status-expand');
+    if (expandir) expandir.checked = true;
+  } else if (!expandido && form.classList.contains('rs-form-flotante')) {
+    const ancla = buscadorAnclaFlotante;
+    buscadorAnclaFlotante = null;
+    if (ancla && ancla.padre) {
+      ancla.padre.insertBefore(form, (ancla.siguiente && ancla.siguiente.parentNode === ancla.padre) ? ancla.siguiente : null);
+    }
+    form.classList.remove('rs-form-flotante');
+  }
+}
+if (window.MutationObserver) {
+  new MutationObserver(() => sincronizarBuscadorFlotante())
+    .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+}
 // Ya no se añade como control aparte de MapLibre: su botón vive en la
 // botonera única de cámara (inyectarControlesCamara), que le pasa el
 // mapa y el botón a mano. La clase y sus dos caminos (nativo y plan B
 // CSS para iPhone) son los mismos de siempre.
 document.addEventListener('fullscreenchange', () => {
   try { map.resize(); } catch (e) { /* mapa a medio crear */ }
+  sincronizarBuscadorFlotante();
   // El icono del botón también cambia cuando el fullscreen es nativo
   // (Android y ordenador), incluido salir con ESC.
   const enNativo = !!document.fullscreenElement;
@@ -2670,6 +2706,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
 
     btnReiniciar.addEventListener('click', reiniciarTodo);
+
+    // Limpieza parcial (nov-2026) para el buscador unificado: al cambiar de
+    // modo se desconecta la ruta peatonal del mapa SIN borrar lo que el
+    // usuario escribió en los campos (eso solo lo hace «Reiniciar»).
+    window.manolitAireLimpiarRutaPeatonal = function () {
+      try {
+        map.getSource('ruta')?.setData(turf.featureCollection([]));
+        map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
+        if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
+        if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
+        rutaActual = null;
+        origenParaAutoRuta = null;
+        limpiarTramoRecorrido();
+        mostrarBadgeSombra(null);
+        if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
+        if (window.ManolitCO2) window.ManolitCO2.ocultar();
+      } catch (e) {}
+    };
 
     function salirDeModoClick() {
       modoClickMapa = false;
@@ -5183,7 +5237,37 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     const textoOrigen = inputOrigen.value.trim();
     const textoDestino = inputDestino.value.trim();
-    if (!textoOrigen || !textoDestino) {
+    if (!textoDestino) {
+      mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
+      return;
+    }
+    // Origen vacio = «desde mi ubicacion», como en Google Maps: se usa la
+    // ultima posicion GPS conocida o, si no hay, se pide una vez (pulsar
+    // «Buscar ruta» ya es el gesto explicito que justifica el permiso).
+    if (!textoOrigen) {
+      const ultima = window.__manolitUltimaPos;
+      if (ultima && Number.isFinite(Number(ultima.lat)) && Number.isFinite(Number(ultima.lon))) {
+        const nombreUbicacion = t('myLocation', 'Mi ubicación');
+        seleccionPorInput.set(inputOrigen, { lat: Number(ultima.lat), lon: Number(ultima.lon), nombre: nombreUbicacion, texto: nombreUbicacion });
+        inputOrigen.value = nombreUbicacion;
+        return manejarBusqueda();
+      }
+      if (navigator.geolocation) {
+        mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicación…'));
+        return new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              try { window.__manolitUltimaPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, precisionM: pos.coords.accuracy, ts: Date.now() }; } catch (e) {}
+              const nombreUbicacion = t('myLocation', 'Mi ubicación');
+              seleccionPorInput.set(inputOrigen, { lat: pos.coords.latitude, lon: pos.coords.longitude, nombre: nombreUbicacion, texto: nombreUbicacion });
+              inputOrigen.value = nombreUbicacion;
+              resolve(manejarBusqueda());
+            },
+            () => { mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error'); resolve(null); },
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 }
+          );
+        });
+      }
       mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
       return;
     }
@@ -5344,12 +5428,121 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   const tituloRuta = document.getElementById('rsRouteMapTitle');
   if (tituloRuta) tituloRuta.textContent = t('routeMapTitle', tituloRuta.textContent);
 
-  btnBuscar.addEventListener('click', manejarBusqueda);
+  /* ---------------- Buscador UNIFICADO (nov-2026) ----------------
+     Una sola pareja origen/destino para los tres motores. El modo activo
+     decide a cuál se despacha: caminar (este archivo), bici
+     (window.manolitAirePlanificarRutaBici) o coche (window.manolitoViaje).
+     Los paneles de bici y viaje viven ocultos dentro del propio formulario
+     y solo se enseñan al calcular: no hay buscadores flotantes aparte y
+     al cambiar de modo el anterior se desconecta (panel oculto y ruta
+     limpiada del mapa). */
+  window.__manolitoModoRuta = 'caminar';
+
+  function sincronizarBotonesModo() {
+    const modo = window.__manolitoModoRuta || 'caminar';
+    document.querySelectorAll('.rs-modo-ruta button[data-modo-ruta]').forEach((b) => {
+      const activo = b.dataset.modoRuta === modo;
+      b.classList.toggle('activa', activo);
+      b.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    });
+    const btnBiciCapas = document.getElementById('rsBtnBici');
+    if (btnBiciCapas) btnBiciCapas.setAttribute('aria-pressed', modo === 'bici' ? 'true' : 'false');
+    const btnViajeCapas = document.getElementById('rsBtnViaje');
+    if (btnViajeCapas) btnViajeCapas.setAttribute('aria-pressed', modo === 'coche' ? 'true' : 'false');
+  }
+
+  function elegirModoRuta(modo, opciones) {
+    if (!['caminar', 'bici', 'coche'].includes(modo)) return;
+    const anterior = window.__manolitoModoRuta || 'caminar';
+    if (anterior !== modo) {
+      window.__manolitoModoRuta = modo;
+      // Desconectar el modo anterior: ocultar su panel y limpiar su ruta.
+      if (anterior === 'caminar') {
+        try { if (window.manolitAireLimpiarRutaPeatonal) window.manolitAireLimpiarRutaPeatonal(); } catch (e) {}
+      }
+      if (anterior === 'bici') {
+        const p = document.getElementById('rsPanelBici');
+        if (p) { p.classList.remove('rs-panel-viaje-abierto'); p.setAttribute('hidden', ''); }
+        try { if (window.manolitAireLimpiarRutaBici) window.manolitAireLimpiarRutaBici(); } catch (e) {}
+      }
+      if (anterior === 'coche') {
+        const p = document.getElementById('rsPanelViaje');
+        if (p) { p.classList.remove('rs-panel-viaje-abierto'); p.setAttribute('hidden', ''); }
+        try { if (window.manolitoViaje) window.manolitoViaje.limpiar(); } catch (e) {}
+      }
+    }
+    sincronizarBotonesModo();
+    if (opciones && opciones.enfocarDestino && inputDestino) inputDestino.focus();
+  }
+  window.manolitAireElegirModoRuta = elegirModoRuta;
+
+  document.querySelectorAll('.rs-modo-ruta button[data-modo-ruta]').forEach((b) => {
+    b.addEventListener('click', () => elegirModoRuta(b.dataset.modoRuta));
+  });
+  sincronizarBotonesModo();
+
+  async function manejarBusquedaUnificada(origenDirecto, destinoDirecto) {
+    const modo = window.__manolitoModoRuta || 'caminar';
+
+    if (modo === 'bici') {
+      const textoDestino = inputDestino.value.trim();
+      if (!textoDestino) {
+        mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
+        if (inputDestino) inputDestino.focus();
+        return;
+      }
+      if (typeof window.manolitAirePlanificarRutaBici !== 'function') {
+        mostrarEstado(t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+        return;
+      }
+      mostrarEstado(t('bikeSearching', 'Buscando la mejor ruta en bici…'));
+      ponerCargando(true);
+      try {
+        const res = await window.manolitAirePlanificarRutaBici(inputOrigen.value.trim(), textoDestino);
+        mostrarEstado(res ? '' : t('bikeNoRoute', 'No he podido trazar la ruta en bici. Inténtalo en un momento.'), res ? 'ok' : 'error');
+      } catch (err) {
+        console.debug(err);
+        mostrarEstado(t('bikeNoRoute', 'No he podido trazar la ruta en bici. Inténtalo en un momento.'), 'error');
+      } finally {
+        ponerCargando(false);
+      }
+      return;
+    }
+
+    if (modo === 'coche') {
+      const textoDestino = inputDestino.value.trim();
+      if (!textoDestino) {
+        mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
+        if (inputDestino) inputDestino.focus();
+        return;
+      }
+      if (!window.manolitoViaje || typeof window.manolitoViaje.planificar !== 'function') {
+        mostrarEstado(t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+        return;
+      }
+      mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
+      ponerCargando(true);
+      try {
+        await window.manolitoViaje.planificar(inputOrigen.value.trim(), textoDestino);
+        mostrarEstado('');
+      } catch (err) {
+        console.debug(err);
+        mostrarEstado(t('errorSearch', 'No he podido trazar la ruta. Prueba otra vez en un ratito.'), 'error');
+      } finally {
+        ponerCargando(false);
+      }
+      return;
+    }
+
+    return manejarBusqueda(origenDirecto, destinoDirecto);
+  }
+
+  btnBuscar.addEventListener('click', () => manejarBusquedaUnificada());
   const btnEscucharPasos = document.getElementById('rsBtnEscucharPasos');
   // El botón "Escuchar indicaciones" lo enlaza el módulo A11Y (js/a11y-guia.js).
   [inputOrigen, inputDestino].forEach((input) => {
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); manejarBusqueda(); }
+      if (e.key === 'Enter') { e.preventDefault(); manejarBusquedaUnificada(); }
     });
   });
 

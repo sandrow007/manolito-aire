@@ -4821,3 +4821,545 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
     transform: translateY(0);
   }
 }
+
+
+/* ============================================================
+   02-nov-2026. Buscador transparente y fino, aditivo.
+   La lógica, los ids, los textos y el orden del DOM no cambian.
+   Una fila para origen, destino y acciones. Solo los tres modos
+   ocupan su propia fila. Sin tarjetas, rellenos, blur ni sombras
+   de caja. El mapa queda visible entre todos los controles.
+   ============================================================ */
+#main-content .map-wrap{
+  --rs-flotante-texto:#18333B;
+  --rs-flotante-sombra:0 1px 2px rgba(255,255,255,.94),0 0 5px rgba(255,255,255,.72);
+}
+[data-theme="dark"] #main-content .map-wrap,
+#main-content .map-wrap:has(.rs-mapa-oscuro-activo){
+  --rs-flotante-texto:#EDF4F2;
+  --rs-flotante-sombra:0 1px 2px rgba(0,0,0,.94),0 0 5px rgba(0,0,0,.72);
+}
+
+/* Acciones superiores. Una línea, sin cápsula ni botones rellenos. */
+#main-content #rsMapControls{
+  top:calc(6px + env(safe-area-inset-top,0px)) !important;
+  inset-inline-start:calc(6px + env(safe-area-inset-left,0px)) !important;
+  inset-inline-end:auto !important;
+  flex-wrap:nowrap !important;
+  gap:0 !important;
+  width:auto;
+  max-width:calc(100% - 12px);
+  max-inline-size:calc(100% - 12px);
+  padding:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:none !important;
+  box-shadow:none !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  color:var(--rs-flotante-texto) !important;
+  text-shadow:var(--rs-flotante-sombra);
+}
+#main-content #rsMapControls button{
+  flex:0 0 auto;
+  min-width:0;
+  min-height:32px;
+  height:32px;
+  padding:2px 7px !important;
+  gap:4px;
+  border:0 !important;
+  border-bottom:1px solid transparent !important;
+  border-radius:0 !important;
+  background:none !important;
+  color:inherit !important;
+  box-shadow:none !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  font-size:11px !important;
+  font-weight:500 !important;
+  line-height:1 !important;
+  letter-spacing:0 !important;
+  white-space:nowrap;
+  text-shadow:inherit;
+  opacity:.82;
+  transition:opacity 160ms ease,border-color 160ms ease;
+}
+#main-content #rsMapControls button::before{
+  width:14px;
+  height:14px;
+  color:inherit !important;
+}
+#main-content #rsMapControls button:hover,
+#main-content #rsMapControls button.rs-activo,
+#main-content #rsMapControls:not(.rs-plegado) #rsBtnPlegarControles{
+  background:none !important;
+  color:inherit !important;
+  border-color:transparent !important;
+  border-bottom-color:currentColor !important;
+  box-shadow:none !important;
+  opacity:1;
+}
+#main-content #rsMapControls button:active{ transform:none !important; }
+#main-content #rsMapControls button:focus-visible{
+  outline:1px solid currentColor !important;
+  outline-offset:1px;
+  opacity:1;
+}
+#main-content #rsBtnPlegarControles{ min-width:28px; }
+
+/* El buscador flota también en móvil. Ya no añade altura al mapa. */
+#main-content .rs-form,
+#main-content .rs-form.rs-form-flotante{
+  position:absolute;
+  top:44px;
+  left:50%;
+  transform:translateX(-50%);
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto 30px;
+  grid-auto-rows:auto;
+  align-items:center;
+  column-gap:6px;
+  row-gap:2px;
+  width:calc(100% - 16px);
+  max-width:920px;
+  max-block-size:none;
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  border:0 !important;
+  border-radius:0 !important;
+  background:none !important;
+  box-shadow:none !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  overflow:visible;
+  z-index:30;
+  color:var(--rs-flotante-texto) !important;
+  text-shadow:var(--rs-flotante-sombra);
+}
+
+/* Los tres modos son la única excepción a la línea principal. */
+#main-content .rs-form .rs-modo-ruta{
+  grid-column:1/-1;
+  grid-row:1;
+  justify-self:center;
+  display:flex;
+  flex-wrap:nowrap;
+  gap:8px;
+  padding:0;
+  background:none;
+}
+#main-content .rs-form .rs-modo-ruta button{
+  min-width:0;
+  min-height:24px;
+  height:24px;
+  padding:1px 6px !important;
+  gap:4px;
+  border:0 !important;
+  border-bottom:1px solid transparent !important;
+  border-radius:0 !important;
+  background:none !important;
+  color:inherit !important;
+  box-shadow:none !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  font-size:11px !important;
+  font-weight:500 !important;
+  line-height:1 !important;
+  white-space:nowrap;
+  text-shadow:inherit;
+  opacity:.72;
+  transition:opacity 160ms ease,border-color 160ms ease;
+}
+#main-content .rs-form .rs-modo-ruta button svg{
+  width:13px;
+  height:13px;
+}
+#main-content .rs-form .rs-modo-ruta button:hover,
+#main-content .rs-form .rs-modo-ruta button.activa{
+  border-color:transparent !important;
+  border-bottom-color:currentColor !important;
+  background:none !important;
+  color:inherit !important;
+  opacity:1;
+}
+#main-content .rs-form .rs-modo-ruta button:focus-visible{
+  outline:1px solid currentColor !important;
+  outline-offset:1px;
+}
+
+/* Campos sin caja. Los dibujos quedan en el mismo color del texto. */
+#main-content .rs-form .rs-field,
+#main-content .rs-form .rs-field:first-child,
+#main-content .rs-form .rs-field:nth-child(2){
+  min-width:0;
+  width:100%;
+  padding:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:none !important;
+  box-shadow:none !important;
+}
+#main-content .rs-form .rs-field:nth-child(2){ grid-column:1; grid-row:2; }
+#main-content .rs-form .rs-field:nth-child(3){ grid-column:2; grid-row:2; }
+#main-content .rs-form .rs-field input[type="text"]{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  height:40px;
+  min-height:40px;
+  max-height:40px;
+  padding:4px 6px 4px 27px;
+  border:0 !important;
+  border-bottom:1px solid color-mix(in srgb,currentColor 42%,transparent) !important;
+  border-radius:0 !important;
+  background-color:transparent !important;
+  background-position:6px center;
+  background-size:15px 15px;
+  color:inherit !important;
+  caret-color:currentColor;
+  box-shadow:none !important;
+  text-shadow:inherit;
+  font-size:13px !important;
+  font-weight:500;
+  line-height:1.2;
+  transition:border-color 160ms ease;
+}
+#main-content .rs-form #rsOrigen{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2318333B' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E") !important;
+}
+#main-content .rs-form #rsDestino{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2318333B' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E") !important;
+}
+#main-content .rs-form .rs-field input[type="text"]::placeholder{
+  color:inherit !important;
+  opacity:.74;
+  text-shadow:inherit;
+  text-overflow:ellipsis;
+}
+#main-content .rs-form .rs-field input[type="text"]:hover,
+#main-content .rs-form .rs-field input[type="text"]:focus{
+  border-color:currentColor !important;
+  background-color:transparent !important;
+  box-shadow:none !important;
+}
+#main-content .rs-form .rs-field input[type="text"]:focus-visible{
+  outline:1px solid currentColor !important;
+  outline-offset:1px;
+}
+
+/* Buscar, aparcamiento y cierre comparten la fila de los campos. */
+#main-content .rs-form #rsBuscarBtn{
+  grid-column:3;
+  grid-row:2;
+  width:auto;
+  min-width:0;
+  height:40px;
+  min-height:40px !important;
+  max-height:40px;
+  box-sizing:border-box;
+  margin:0;
+  padding:4px 8px !important;
+  gap:5px;
+  border:0 !important;
+  border-bottom:1px solid transparent !important;
+  border-radius:0 !important;
+  background:none !important;
+  color:inherit !important;
+  box-shadow:none !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  font-size:12px !important;
+  font-weight:600 !important;
+  line-height:1 !important;
+  white-space:nowrap;
+  text-shadow:inherit;
+  transition:border-color 160ms ease,opacity 160ms ease;
+}
+#main-content .rs-form #rsBuscarBtn::before{
+  width:15px;
+  height:15px;
+  background:currentColor !important;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat center/contain;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat center/contain;
+}
+#main-content .rs-form #rsBuscarBtn:hover,
+#main-content .rs-form #rsBuscarBtn:active{
+  transform:none !important;
+  filter:none !important;
+  border-color:transparent !important;
+  border-bottom-color:currentColor !important;
+  background:none !important;
+  color:inherit !important;
+  box-shadow:none !important;
+}
+#main-content .rs-form #rsParkingAction{
+  grid-column:4;
+  grid-row:2;
+  display:block;
+  width:auto;
+  min-width:0;
+  margin:0;
+}
+#main-content .rs-form .rs-parking-action{
+  width:auto;
+  min-width:0;
+  height:40px;
+  min-height:40px !important;
+  max-height:40px;
+  box-sizing:border-box;
+  margin:0;
+  padding:4px 8px !important;
+  gap:5px;
+  border:0 !important;
+  border-bottom:1px solid transparent !important;
+  border-radius:0 !important;
+  background:none !important;
+  color:inherit !important;
+  box-shadow:none !important;
+  font-size:12px !important;
+  font-weight:600 !important;
+  line-height:1 !important;
+  white-space:nowrap;
+  text-shadow:inherit;
+  transition:border-color 160ms ease,opacity 160ms ease;
+}
+#main-content .rs-form .rs-parking-action::before{
+  width:15px;
+  height:15px;
+  flex-basis:15px;
+}
+#main-content .rs-form .rs-parking-action:hover,
+#main-content .rs-form .rs-parking-action:active,
+#main-content .rs-form .rs-parking-action[aria-pressed="true"]{
+  transform:none !important;
+  border-color:transparent !important;
+  border-bottom-color:currentColor !important;
+  background:none !important;
+  color:inherit !important;
+  box-shadow:none !important;
+}
+#main-content .rs-form #rsBuscarBtn:focus-visible,
+#main-content .rs-form .rs-parking-action:focus-visible{
+  outline:1px solid currentColor !important;
+  outline-offset:1px;
+}
+#main-content .rs-form #rsBtnCerrarForm{
+  position:static !important;
+  grid-column:5;
+  grid-row:2;
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+  width:30px;
+  min-width:30px;
+  height:40px;
+  min-height:40px;
+  padding:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:none !important;
+  color:inherit !important;
+  box-shadow:none !important;
+  text-shadow:inherit;
+  opacity:.78;
+}
+#main-content .rs-form #rsBtnCerrarForm:hover{
+  background:none !important;
+  color:inherit !important;
+  opacity:1;
+}
+#main-content .rs-form #rsBtnCerrarForm:focus-visible{
+  outline:1px solid currentColor !important;
+  outline-offset:1px;
+}
+#main-content #rsBtnAbrirForm{
+  top:44px;
+  height:32px;
+  padding:0 8px;
+  border:0 !important;
+  border-bottom:1px solid currentColor !important;
+  border-radius:0 !important;
+  background:none !important;
+  color:var(--rs-flotante-texto) !important;
+  box-shadow:none !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  text-shadow:var(--rs-flotante-sombra);
+  font-size:11px;
+}
+#main-content #rsBtnAbrirForm:hover{ background:none !important; }
+
+/* En árabe los iconos y el relleno cambian de lado sin romper la fila. */
+html.rtl #main-content .rs-form .rs-field input[type="text"],
+html[lang="ar"] #main-content .rs-form .rs-field input[type="text"]{
+  background-position:calc(100% - 6px) center;
+  padding:4px 27px 4px 6px;
+}
+
+/* En pantallas estrechas las acciones conservan su nombre accesible,
+   pero ocupan solo su icono. Nada salta a otra línea. */
+@media (max-width:900px){
+  #main-content #rsMapControls button{
+    width:32px;
+    min-width:32px;
+    padding:4px 7px !important;
+    font-size:0 !important;
+  }
+  #main-content #rsMapControls button::before{ width:15px; height:15px; }
+}
+@media (max-width:760px){
+  #main-content .rs-form,
+  #main-content .rs-form.rs-form-flotante{
+    top:44px;
+    width:calc(100% - 8px);
+    max-width:none;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) 34px 34px 28px;
+    column-gap:2px;
+  }
+  #main-content .rs-form .rs-field input[type="text"]{
+    height:42px;
+    min-height:42px;
+    max-height:42px;
+    padding-inline-start:23px;
+    padding-inline-end:3px;
+    background-position:4px center;
+    background-size:14px 14px;
+    font-size:16px !important;
+  }
+  html.rtl #main-content .rs-form .rs-field input[type="text"],
+  html[lang="ar"] #main-content .rs-form .rs-field input[type="text"]{
+    background-position:calc(100% - 4px) center;
+    padding-inline-start:3px;
+    padding-inline-end:23px;
+  }
+  #main-content .rs-form #rsBuscarBtn,
+  #main-content .rs-form .rs-parking-action{
+    width:34px;
+    min-width:34px;
+    height:42px;
+    min-height:42px !important;
+    max-height:42px;
+    padding:0 !important;
+    font-size:0 !important;
+  }
+  #main-content .rs-form #rsParkingAction{ width:34px; }
+  #main-content .rs-form #rsBtnCerrarForm{
+    width:28px;
+    min-width:28px;
+    height:42px;
+    min-height:42px;
+  }
+  #main-content .rs-form .rs-modo-ruta{ gap:6px; }
+}
+
+/* Área táctil cómoda sin engordar el dibujo de los controles. */
+@media (pointer:coarse){
+  #main-content #rsMapControls button{ height:40px; min-height:40px; }
+  #main-content .rs-form,
+  #main-content .rs-form.rs-form-flotante{ top:50px; }
+  #main-content .rs-form .rs-modo-ruta button{ height:30px; min-height:30px; }
+  #main-content .rs-form .rs-field input[type="text"],
+  #main-content .rs-form #rsBuscarBtn,
+  #main-content .rs-form .rs-parking-action,
+  #main-content .rs-form #rsBtnCerrarForm{
+    height:44px;
+    min-height:44px !important;
+    max-height:44px;
+  }
+}
+
+/* El modo accesible mantiene su contraste máximo por encima del acabado. */
+body.modo-accesible #main-content #rsMapControls,
+body.modo-accesible #main-content .rs-form,
+body.modo-accesible #main-content #rsBtnAbrirForm{
+  color:#000 !important;
+  text-shadow:none;
+}
+body.modo-accesible #main-content .rs-form .rs-field input[type="text"]{
+  background-color:#fff !important;
+  border-color:#000 !important;
+  text-shadow:none;
+}
+@media (prefers-reduced-motion:reduce){
+  #main-content #rsMapControls button,
+  #main-content .rs-form .rs-modo-ruta button,
+  #main-content .rs-form .rs-field input[type="text"],
+  #main-content .rs-form #rsBuscarBtn,
+  #main-content .rs-form .rs-parking-action{ transition:none !important; }
+}
+
+
+/* La X ya forma parte de la línea también en móvil. Su cierre y la
+   reapertura conservan el mismo comportamiento que en escritorio. */
+#main-content .rs-form.rs-form-plegado{ display:none !important; }
+@media (max-width:760px){
+  #main-content #rsBtnAbrirForm.rs-visible{ display:inline-flex !important; }
+}
+
+
+/* Adaptación a la barra interna presente en la última versión del repo.
+   Los divisores desaparecen y cada control conserva su sitio en la fila. */
+#main-content .rs-form .rs-barra{
+  grid-column:1/-1;
+  grid-row:2;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto 30px;
+  align-items:center;
+  gap:6px;
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  padding:0;
+  border:0 !important;
+  border-radius:0 !important;
+  background:none !important;
+  box-shadow:none !important;
+}
+#main-content .rs-form .rs-barra .rs-vdiv{ display:none !important; }
+#main-content .rs-form .rs-barra .rs-field:nth-child(1){ grid-column:1; grid-row:1; }
+#main-content .rs-form .rs-barra .rs-field:nth-child(3){ grid-column:2; grid-row:1; }
+#main-content .rs-form .rs-fila-botones{ display:contents; }
+#main-content .rs-form .rs-barra #rsBuscarBtn{ grid-column:3; grid-row:1; }
+#main-content .rs-form .rs-barra #rsParkingAction{ grid-column:4; grid-row:1; }
+#main-content .rs-form .rs-barra #rsBtnCerrarForm{ grid-column:5; grid-row:1; }
+@media (max-width:760px){
+  #main-content .rs-form .rs-barra{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) 34px 34px 28px;
+    gap:2px;
+  }
+}
+
+/* El color sigue al lienzo del mapa, no al tema general de la web. */
+#main-content .map-wrap.rs-mapa-oscuro-activo{
+  --rs-flotante-texto:#EDF4F2;
+  --rs-flotante-sombra:0 1px 2px rgba(0,0,0,.94),0 0 5px rgba(0,0,0,.72);
+}
+[data-theme="dark"] #main-content .map-wrap:not(.rs-mapa-oscuro-activo){
+  --rs-flotante-texto:#18333B;
+  --rs-flotante-sombra:0 1px 2px rgba(255,255,255,.94),0 0 5px rgba(255,255,255,.72);
+}
+
+/* Los dos iconos acompañan al texto cuando el mapa pasa a oscuro. */
+[data-theme="dark"] #main-content .rs-form #rsOrigen,
+#main-content .map-wrap:has(.rs-mapa-oscuro-activo) .rs-form #rsOrigen,
+#main-content .map-wrap.rs-mapa-oscuro-activo .rs-form #rsOrigen{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EDF4F2' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E") !important;
+}
+[data-theme="dark"] #main-content .rs-form #rsDestino,
+#main-content .map-wrap:has(.rs-mapa-oscuro-activo) .rs-form #rsDestino,
+#main-content .map-wrap.rs-mapa-oscuro-activo .rs-form #rsDestino{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EDF4F2' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E") !important;
+}
+[data-theme="dark"] #main-content .map-wrap:not(.rs-mapa-oscuro-activo) .rs-form #rsOrigen{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2318333B' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E") !important;
+}
+[data-theme="dark"] #main-content .map-wrap:not(.rs-mapa-oscuro-activo) .rs-form #rsDestino{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2318333B' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E") !important;
+}
+body.modo-accesible #main-content .rs-form #rsOrigen{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E") !important;
+}
+body.modo-accesible #main-content .rs-form #rsDestino{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E") !important;
+}

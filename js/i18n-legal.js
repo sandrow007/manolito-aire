@@ -49,6 +49,16 @@
 
     priv_53: '13. Public water fountains and location privacy',
     priv_54: 'When you enable “Water fountains”, the browser calculates the visible map bounding box and keeps it in memory only. This layer does not request GPS. The box is sent directly to Overpass and, only where its coverage applies, to Valencia’s municipal data service; in Málaga, the public municipal dataset is downloaded and filtered locally. We do not save the box or a query history in localStorage or on our own servers, and the application does not attach your name, account or user identifiers. Direct requests to third parties also expose the connection IP address and usual technical metadata; providers may retain logs under their own policies. We therefore do not describe the request as anonymous to those providers.',
+    /* 01-nov-2026: carril bici y transporte público (privacidad) */
+    priv_55: 'Cycling routes and bike lanes',
+    priv_56: 'The origin and destination points you type and the visible map bounding box, to our Cloudflare proxy, which queries FOSSGIS OSRM, BRouter and Overpass to trace the route or the lanes.',
+    priv_57: 'Your identity, your name and your account. Nothing is stored.',
+    priv_58: 'Public transport',
+    priv_59: 'The visible map bounding box and the code of the stop you tap, to our Cloudflare proxy, which queries Transitous and OpenStreetMap to show stops and upcoming departures.',
+    priv_60: 'Your name, your account, your query history.',
+    priv_61: '14. Bike lanes, cycling routes and public transport',
+    priv_62: 'Cycling routes are calculated with the OSRM bicycle profile, the public FOSSGIS service, through the own Manolit∞ proxy on Cloudflare Workers. If that proxy returns no route, BRouter is tried, another open service based on OpenStreetMap. The bike lane layer draws the cycling infrastructure mapped in OpenStreetMap, queried through Overpass via the same proxy, and only when the proxy does not answer does the query go directly from your browser to Overpass. The only thing that travels in these requests is the coordinates of the journey or of the visible map area, never your name, your account or any identifier of yours.',
+    priv_63: 'The public transport layer shows stops and their upcoming departures. Our proxy aggregates open data from Transitous, a non-profit aggregator with the GTFS schedules published by transport operators, and OpenStreetMap stops for the areas Transitous does not cover yet. When the proxy is unavailable, the browser can query Transitous or Overpass directly, and those services receive the IP address and the usual technical metadata of any connection, under their own policies. Responses are kept in an in-memory cache for about 15 minutes to avoid repeated requests, and no history of your queries is stored on any server of ours.',
 
     /* ---------- AVISO LEGAL ---------- */
     avis_1: 'Legal notice',
@@ -223,6 +233,15 @@
     "cook_24": "ملفات الارتباط",
     "priv_53": "١٣. نوافير مياه الشرب وخصوصية الموقع",
     "priv_54": "عند تفعيل «مصادر المياه»، يحسب المتصفح صندوق الإحداثيات للمنطقة الظاهرة من الخريطة ويحفظه في الذاكرة فقط. لا تطلب هذه الطبقة إذن GPS. تُرسل الإحداثيات مباشرة إلى Overpass، وإلى خدمة بيانات بلدية فالنسيا فقط ضمن نطاق تغطيتها؛ وفي مالقة يُنزّل الملف البلدي العام ثم تُفلتر النقاط محليًا. لا نخزن الصندوق أو سجل الاستعلامات في localStorage أو خوادمنا، ولا نرفق اسمًا أو حسابًا أو معرّفًا للمستخدم. وبما أن الطلبات مباشرة إلى جهات خارجية، فإنها تتلقى عنوان IP والبيانات التقنية المعتادة للاتصال وقد تحتفظ بسجلات وفق سياساتها. لذلك لا نصف الاستعلام بأنه مجهول لدى تلك الجهات.",
+    "priv_55": "مسارات الدراجات وممراتها",
+    "priv_56": "نقاط الانطلاق والوصول التي تكتبها وصندوق الإحداثيات الظاهر من الخريطة، إلى وسيطنا على Cloudflare، الذي يستعلم عن OSRM التابع لـFOSSGIS وBRouter وOverpass لرسم المسار أو الممرات.",
+    "priv_57": "هويتك واسمك وحسابك. لا نخزن شيئًا.",
+    "priv_58": "النقل العام",
+    "priv_59": "صندوق الإحداثيات الظاهر من الخريطة ورمز المحطة التي تضغطها، إلى وسيطنا على Cloudflare، الذي يستعلم عن Transitous وOpenStreetMap لعرض المحطات ومواعيد المغادرة القادمة.",
+    "priv_60": "اسمك وحسابك وسجل استعلاماتك.",
+    "priv_61": "١٤. ممرات الدراجات ومساراتها والنقل العام",
+    "priv_62": "تُحسب مسارات الدراجات بملف الدراجات في OSRM، خدمة FOSSGIS العامة، عبر وسيط Manolit∞ الخاص على Cloudflare Workers. وإذا لم يُرجع الوسيط أي مسار، نجرب BRouter، خدمة مفتوحة أخرى مبنية على OpenStreetMap. ترسم طبقة ممرات الدراجات البنية التحتية المرقومة في OpenStreetMap، المستعلمة عبر Overpass من خلال الوسيط نفسه، ولا تخرج الاستعلامات من متصفحك مباشرة إلى Overpass إلا عندما لا يستجيب الوسيط. الشيء الوحيد الذي يسافر في هذه الطلبات هو إحداثيات الرحلة أو المنطقة الظاهرة من الخريطة، وليس اسمك أو حسابك أو أي معرف خاص بك.",
+    "priv_63": "تعرض طبقة النقل العام المحطات ومواعيد مغادرتها القادمة. يجمع وسيطنا البيانات المفتوحة من Transitous، وهو مجمّع غير ربحي لجداول GTFS التي تنشرها شركات النقل، ومحطات OpenStreetMap للمناطق التي لا يغطيها Transitous بعد. وعندما يتعذر الوصول إلى الوسيط، يمكن للمتصفح الاستعلام مباشرة من Transitous أو Overpass، وتتلقى تلك الخدمات عنوان IP وبيانات الاتصال التقنية المعتادة، وفق سياساتها الخاصة. وتُحفظ الردود في ذاكرة مؤقتة داخلية نحو ١٥ دقيقة لتجنب تكرار الطلبات، ولا نخزن أي سجل لاستعلاماتك على أي خادم من خوادمنا.",
     "avis_60": "تستعلم طبقة «نوافير المياه» عن عقد OpenStreetMap الموسومة <code>amenity=drinking_water</code> وتدمجها، ضمن التغطية البلدية فقط، مع مجموعتي البيانات الرسميتين لبلديتي فالنسيا ومالقة المدرجتين في <a href=\"https://datos.gob.es/es/catalogo/l01462508-fuentes-de-agua-publica\" target=\"_blank\" rel=\"noopener\">datos.gob.es</a> و<a href=\"https://datos.gob.es/es/catalogo/l01290672-fuentes-de-agua-potable1\" target=\"_blank\" rel=\"noopener\">datos.gob.es</a>. خارج هاتين المنطقتين تستخدم الطبقة OpenStreetMap. ينشر الفهرس الوطني بيانات وصفية وتوزيعات، وليس خدمة وطنية للاستعلام الجغرافي عن النوافير العامة؛ لذلك فالتغطية الرسمية بلدية وقد تكون ناقصة أو قديمة. بيانات نوافير المياه من © مساهمي OpenStreetMap (رخصة ODbL) ومن بوابة البيانات المفتوحة لحكومة إسبانيا. وللتوزيعات البلدية تراخيصها الخاصة: CC BY 4.0 (فالنسيا) وCC BY-SA 4.0 (مالقة)."
 };
 

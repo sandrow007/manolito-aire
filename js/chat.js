@@ -73,8 +73,9 @@ Eres Manolit∞, asistente de "Manolit∞ Aire" (manolitoaire.com), web de calid
 - Mapa de sombras 3D con MapLibre GL: TODOS los edificios visibles proyectan sombra real según la posición del sol (SunCalc); slider de hora, solsticios, hora dorada/azul, modo oscuro.
 - Árboles y palmeras 3D reales de OpenStreetMap con su sombra (la palmera también proyecta la del tronco).
 - Rutas con sombra sobre red peatonal real: % de sombra (edificios+árboles) en vivo, ruta "fresca" (Dijkstra térmico), indicaciones paso a paso plegables con lectura por voz y guía por voz GPS ("Iniciar caminata"). Buscador de calles centrado en España.
-- Rutas en bicicleta: se calculan con BRouter y, si no está disponible, se intenta el respaldo OSRM para bici; pueden mostrarse hasta 3 alternativas. La capa «Carriles bici» consulta OpenStreetMap y dibuja la infraestructura cartografiada. Son datos orientativos; no afirmes que la ruta o un carril son seguros, están abiertos o legalmente habilitados sin confirmación actual.
-- Transporte público: la capa «Transporte público» muestra paradas y próximas salidas disponibles en Transitous para la zona visible. Los horarios pueden cambiar; no inventes paradas, salidas ni conexiones.
+- Rutas en bicicleta: se calculan con el perfil de bicicleta de OSRM (FOSSGIS) a través del proxy propio y, si no devuelve ruta, con BRouter como alternativa; hasta 3 alternativas con distancia y minutos. La capa «Carriles bici» consulta OpenStreetMap (Overpass) vía el proxy propio y, una vez cargada una zona, se mantiene dibujada aunque te muevas por ella. Son datos orientativos; no afirmes que la ruta o un carril son seguros, están abiertos o legalmente habilitados sin confirmación actual.
+- Transporte público: la capa «Transporte público» muestra paradas y próximas salidas en vivo. El proxy propio agrega Transitous (feeds GTFS abiertos) y OpenStreetMap (Overpass) para las zonas que Transitous no cubre, con consulta directa a ambos como respaldo; la región se elige sola según el centro del mapa. Los horarios pueden cambiar; no inventes paradas, salidas ni conexiones.
+- COMPARATIVA andar / bici / transporte público: andando es la única opción con porcentaje de sombra medido sobre edificios y árboles y con la ruta fresca (Dijkstra térmico); en bici tienes distancia, minutos, hasta 3 alternativas y la capa de carriles, pero sin medir sombra; en transporte público ves paradas y próximas salidas en vivo, pero no hay itinerario, transbordos ni ruta a pie calculada. Si piden comparar opciones para ir a un sitio, expón estas diferencias con claridad y ofrece activar lo que proceda (ruta en bici desde el chat si dan destino, capa de transporte, o la ruta andando desde «Ruta y sombras»).
 - Desde el chat se puede activar la capa de carriles bici, calcular y dibujar una ruta en bici cuando se indiquen destino (y opcionalmente origen), o buscar y centrar una parada nombrada dentro de la zona visible. Para rutas ciclistas usa la acción integrada; comunica datos solo si devuelve éxito. En transporte público se muestran paradas y salidas, pero no hay cálculo de itinerario ni de ruta peatonal hasta ellas: nunca afirmes que calculaste conexiones o caminos.
 - Nubes reales (OpenWeatherMap) que atenúan las sombras con luz difusa: pierden contraste pero nunca desaparecen.
 - Irradiación solar hora a hora con datos NASA POWER y atenuación umbra/penumbra.
@@ -554,6 +555,19 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
           if (haySolChat === false) colaParking = 'Ahora es de noche y no hay sol, así que el anillo teal no sale hasta que amanezca.';
         } catch (eSolChat) { /* queda la leyenda de siempre */ }
         return 'Capa de aparcamientos encendida. Verde es gratis, ámbar de pago, azul cubierto, violeta subterráneo y gris privado o de clientes. ' + colaParking;
+      }
+      // 01-nov-2026 (): comparativa de opciones con las capas nuevas.
+      // «Cómo voy a X», «qué me conviene más, bici o bus»… enciende las
+      // capas de carriles bici y transporte y responde con la comparativa
+      // honesta de lo que mide la web en cada modo. Aditivo y seguro: si
+      // los toggles no existen, la respuesta sigue siendo correcta.
+      const comparativaIntent = /\b(comparativa|comparar|comparame|qu[eé] me conviene|mejor opci[oó]n|c[oó]mo voy|como voy)\b/i.test(txt) && /\b(bici|bicicleta|bus|autob[uú]s|metro|tranv[ií]a|tren|andar|caminando|andando|p[uú]blico|transporte)\b/i.test(txt);
+      if (comparativaIntent) {
+        const capaCarriles = document.getElementById('rsToggleCarrilesBici');
+        if (capaCarriles && !capaCarriles.checked) capaCarriles.click();
+        const capaTransporte = document.getElementById('rsToggleTransporte');
+        if (capaTransporte && !capaTransporte.checked) capaTransporte.click();
+        return 'Ahí van las tres opciones con lo que la web mide de verdad. Andando, la ruta te da el porcentaje de sombra sobre edificios y árboles y la opción de ruta fresca. En bici te calculo la ruta desde aquí si me dices destino, y la capa de carriles ya está encendida. En transporte público ves paradas y próximas salidas en vivo, aunque no calculo itinerarios ni transbordos. Dime destino y te dibujo la ruta en bici, o abre «Ruta y sombras» para la de andar.';
       }
       const bikeIntent = /\b(bici|bicicleta|ciclista|carril(?:es)? bici)\b/i.test(txt) && /\b(ruta|camino|ir|llevar|trazar|calcular|carril(?:es)?|buscar)\b/i.test(txt);
       if (bikeIntent) {

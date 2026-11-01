@@ -106,7 +106,19 @@
     { "@type": "Question", "name": "¿Qué es una isla de calor?",
       "acceptedAnswer": { "@type": "Answer", "text": "Una zona de la ciudad varios grados más caliente que las de al lado, por culpa del asfalto, el tráfico y la falta de árboles. El mapa de sombras y el aire en vivo te ayudan a esquivarla, y en una ola de calor caminar por la sombra marca la diferencia." } },
     { "@type": "Question", "name": "¿Puedo ver la sombra a otra hora o en otra fecha?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Sí. Mueve el control de hora y el mapa recalcula las sombras al momento, con el sol donde estaría de verdad. También puedes saltar al solsticio de verano o al de invierno para comparar." } }
+      "acceptedAnswer": { "@type": "Answer", "text": "Sí. Mueve el control de hora y el mapa recalcula las sombras al momento, con el sol donde estaría de verdad. También puedes saltar al solsticio de verano o al de invierno para comparar." } },
+    { "@type": "Question", "name": "¿Cómo funcionan las rutas en bici y los carriles?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Las rutas se calculan con el perfil de bicicleta de OSRM, el servicio público de FOSSGIS, a través de nuestro proxy. Si no devuelve ruta, se intenta con BRouter. Puedes ver hasta tres alternativas con distancia y tiempo. La capa de carriles dibuja la infraestructura que voluntarios han cartografiado en OpenStreetMap, y una vez cargada se queda en el mapa aunque te muevas por la zona. Todo es orientativo, la señalización real manda." } },
+    { "@type": "Question", "name": "¿Y el transporte público, cómo va?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Muestra las paradas cercanas al mapa y sus próximas salidas en vivo. Los datos los agrega nuestro proxy desde Transitous, un servicio abierto con los horarios GTFS que publican los operadores, y desde OpenStreetMap para las paradas que faltan. La región se elige sola según dónde estés mirando. No calcula itinerarios ni transbordos, para eso sigue haciendo falta la app del operador." } },
+    { "@type": "Question", "name": "¿Las fuentes de agua que salen son potables?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Las fuentes públicas cartografiadas vienen de OpenStreetMap y, en Valencia y Málaga, también de datos abiertos de sus ayuntamientos. Que una fuente aparezca no garantiza que esté funcionando ni que el agua sea potable. Si no hay placa que lo confirme, mejor no beber." } },
+    { "@type": "Question", "name": "¿Los árboles del mapa son de verdad?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Sí. Cada árbol y palmera sale de OpenStreetMap, puesto a mano por vecinos y voluntarios, y proyecta su sombra como los edificios. En una ola de calor, cambiar de acera por un árbol de verdad baja la sensación térmica. Si falta alguno en tu calle, puedes añadirlo en OpenStreetMap y aparecerá en la web." } },
+    { "@type": "Question", "name": "¿Qué me conviene más, andar, bici o bus?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Depende del día y del trayecto. Andando tienes la ruta con porcentaje de sombra medido sobre los edificios y los árboles, y la opción de ruta fresca. En bici llegas antes y ves los carriles, pero no medimos su sombra. En transporte público ves paradas y salidas en vivo, aunque no calculamos itinerarios. La web te da los datos de cada opción y tú decides." } },
+    { "@type": "Question", "name": "¿El juego y el certificado guardan mis datos?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. El juego de Manolit∞ y el certificado de protección climática funcionan enteros en tu navegador. La puntuación y el nombre que escribas no salen de tu dispositivo ni se asocian a ninguna cuenta. Si borras los datos de navegación, desaparecen." } }
   ]
 }
 </script>
@@ -389,6 +401,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit∞ 3D">
+<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 </head>
@@ -2150,6 +2163,39 @@
     <summary data-i18n="faqQ11">¿Puedo ver la sombra a otra hora o en otra fecha?</summary>
     <p data-i18n="faqA11">Sí. Mueve el control de hora y el mapa recalcula las sombras al momento, con el sol donde estaría de verdad. También puedes saltar al solsticio de verano o al de invierno para comparar.</p>
   </details>
+
+  <!-- 01-nov-2026: seis preguntas más con las integraciones nuevas (bici,
+       transporte público, agua, árboles, comparativa de modos y juego).
+       El JSON-LD FAQPage del head lleva estas mismas seis. -->
+  <details class="faq-item">
+    <summary data-i18n="faqQ12">¿Cómo funcionan las rutas en bici y los carriles?</summary>
+    <p data-i18n="faqA12">Las rutas se calculan con el perfil de bicicleta de OSRM, el servicio público de FOSSGIS, a través de nuestro proxy. Si no devuelve ruta, se intenta con BRouter. Puedes ver hasta tres alternativas con distancia y tiempo. La capa de carriles dibuja la infraestructura que voluntarios han cartografiado en OpenStreetMap, y una vez cargada se queda en el mapa aunque te muevas por la zona. Todo es orientativo, la señalización real manda.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ13">¿Y el transporte público, cómo va?</summary>
+    <p data-i18n="faqA13">Muestra las paradas cercanas al mapa y sus próximas salidas en vivo. Los datos los agrega nuestro proxy desde Transitous, un servicio abierto con los horarios GTFS que publican los operadores, y desde OpenStreetMap para las paradas que faltan. La región se elige sola según dónde estés mirando. No calcula itinerarios ni transbordos, para eso sigue haciendo falta la app del operador.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ14">¿Las fuentes de agua que salen son potables?</summary>
+    <p data-i18n="faqA14">Las fuentes públicas cartografiadas vienen de OpenStreetMap y, en Valencia y Málaga, también de datos abiertos de sus ayuntamientos. Que una fuente aparezca no garantiza que esté funcionando ni que el agua sea potable. Si no hay placa que lo confirme, mejor no beber.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ15">¿Los árboles del mapa son de verdad?</summary>
+    <p data-i18n="faqA15">Sí. Cada árbol y palmera sale de OpenStreetMap, puesto a mano por vecinos y voluntarios, y proyecta su sombra como los edificios. En una ola de calor, cambiar de acera por un árbol de verdad baja la sensación térmica. Si falta alguno en tu calle, puedes añadirlo en OpenStreetMap y aparecerá en la web.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ16">¿Qué me conviene más, andar, bici o bus?</summary>
+    <p data-i18n="faqA16">Depende del día y del trayecto. Andando tienes la ruta con porcentaje de sombra medido sobre los edificios y los árboles, y la opción de ruta fresca. En bici llegas antes y ves los carriles, pero no medimos su sombra. En transporte público ves paradas y salidas en vivo, aunque no calculamos itinerarios. La web te da los datos de cada opción y tú decides.</p>
+  </details>
+
+  <details class="faq-item">
+    <summary data-i18n="faqQ17">¿El juego y el certificado guardan mis datos?</summary>
+    <p data-i18n="faqA17">No. El juego de Manolit∞ y el certificado de protección climática funcionan enteros en tu navegador. La puntuación y el nombre que escribas no salen de tu dispositivo ni se asocian a ninguna cuenta. Si borras los datos de navegación, desaparecen.</p>
+  </details>
 </section>
 </main>
 
@@ -2561,7 +2607,7 @@
 
 <!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
 <script src="js/theme.js" defer></script>
-<script src="js/i18n.js?v=carril-cristal-20261101-a" defer></script>
+<script src="js/i18n.js?v=faq-integraciones-20261101-a" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
 <script src="js/cookie-banner.js" defer></script>
@@ -2570,7 +2616,7 @@
      cuando alguien le pregunta a ella. La usan parking, planetario y el
      widget; nadie más decide por su cuenta si es de día o de noche. -->
 <script src="js/sol.js" defer></script>
-<script src="js/chat.js?v=busqueda-agua-1" defer></script>
+<script src="js/chat.js?v=chat-comparativa-20261101-a" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
 <script src="js/planetario.js" defer></script>

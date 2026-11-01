@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manolit∞ Aire — Aviso legal</title>
-<script type="text/javascript" nonce="9ab117842feb4fb78886e865c67" src="//local.adguard.org?ts=1791825564148&amp;type=content-script&amp;dmn=prod-chat-kimi.tos-cn-beijing.volces.com&amp;url=https%3A%2F%2Fprod-chat-kimi.tos-cn-beijing.volces.com%2Fkimi-fs%2Fokc%2Fihncbtda66ona%2Foutput%2Faviso-legal.html%3FX-Tos-Algorithm%3DTOS4-HMAC-SHA256%26X-Tos-Credential%3DAKLTYTJlNjgwMjY2ZDBkNDFiYmI5YWNiZDBlZmFmYjIzZTA%252F20261012%252Fcn-beijing%252Ftos%252Frequest%26X-Tos-Date%3D20261012T172622Z%26X-Tos-Expires%3D518400%26X-Tos-Signature%3Dc4ba88d36247f84ab3d21e6257b0fbf7fc44eb50401457db87a534f415187ff8%26X-Tos-SignedHeaders%3Dhost%26response-content-disposition%3Dattachment%253B%2Bfilename%252A%253DUTF-8%2527%2527aviso-legal.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1&amp;stealth=1&amp;st-dnt"></script><script type="text/javascript" nonce="9ab117842feb4fb78886e865c67" src="//local.adguard.org?ts=1791825564148&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="icon" type="image/png" href="/favicon.png">
@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit 3D">
+<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 </head>
@@ -377,14 +378,17 @@
 
 <h2>22. Rutas en bicicleta y carriles bici</h2>
 <p>
-  El módulo de <strong>rutas en bicicleta</strong> calcula itinerarios ciclistas mediante el servicio
-  público <strong>BRouter</strong> (brouter.de, datos mundiales de OpenStreetMap, perfil «trekking»),
-  mostrando hasta 3 alternativas con duración, distancia y desnivel estimado. Como respaldo, si BRouter
-  no está disponible, se usa el servicio OSRM de FOSSGIS con perfil de bicicleta. La capa de
+  El módulo de <strong>rutas en bicicleta</strong> calcula itinerarios ciclistas con el servicio público
+  <strong>OSRM del FOSSGIS</strong> usando su perfil de bicicleta, consultado a través del proxy propio
+  de esta web en Cloudflare Workers. Si el proxy no devuelve ninguna ruta, se intenta con
+  <strong>BRouter</strong> (brouter.de, datos mundiales de OpenStreetMap), que queda como alternativa
+  independiente. Se muestran hasta 3 alternativas con distancia, duración y desnivel estimado. La capa de
   <strong>carriles bici</strong> dibuja la infraestructura ciclista de OpenStreetMap (vías etiquetadas
-  como <code>highway=cycleway</code>, <code>cycleway=*</code> o <code>bicycle=designated</code>) con
-  el distintivo visual de carril bici: fondo rojo con bandas blancas laterales y símbolos de bicicleta
-  espaciados a lo largo del recorrido.
+  como <code>highway=cycleway</code>, <code>cycleway=*</code> o <code>bicycle=designated</code>),
+  consultada mediante la API Overpass a través del proxy propio, con conexión directa a Overpass solo
+  como último recurso cuando el proxy no responde. El trazo usa un rojo coral translúcido con símbolos
+  de bicicleta a lo largo del recorrido, y una vez cargada la capa se mantiene visible aunque te desplaces
+  por la zona.
 </p>
 <p>
   Tanto las rutas calculadas como los carriles mostrados son <strong>orientativos</strong>: la señalización
@@ -396,10 +400,13 @@
 <h2>23. Transporte público en tiempo real</h2>
 <p>
   La capa de <strong>transporte público</strong> muestra las paradas de autobús, metro, tranvía y tren
-  cercanas al área visible del mapa, junto con sus próximas salidas estimadas. Los datos proceden de la
-  API pública de <strong>Transitous</strong> (transitous.org), un agregador abierto de feeds GTFS de
-  operadores de transporte de todo el mundo. La región de consulta se selecciona automáticamente según
-  el centro del mapa (España o global), sin intervención manual.
+  cercanas al área visible del mapa, junto con sus próximas salidas. Los datos los agrega el proxy propio
+  de esta web desde la API pública de <strong>Transitous</strong> (transitous.org), un agregador abierto
+  y sin ánimo de lucro de feeds GTFS de operadores de transporte de todo el mundo, y desde
+  <strong>OpenStreetMap</strong> (API Overpass) para completar las paradas que Transitous aún no cubre.
+  Si el proxy no está disponible, el navegador consulta directamente a Transitous o a Overpass. La región
+  de consulta se elige automáticamente según el centro del mapa a partir del archivo de regiones del
+  sitio, sin intervención manual.
 </p>
 <p>
   Las horas de salida mostradas son <strong>estimaciones en tiempo real</strong> proporcionadas por los
@@ -416,7 +423,7 @@
 </div>
 
 <script src="js/i18n.js"></script>
-<script src="js/i18n-legal.js?v=fuentes-agua-1"></script>
+<script src="js/i18n-legal.js?v=legal-bici-transporte-20261101-a"></script>
 <script src="js/theme.js"></script>
 
 

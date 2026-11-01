@@ -248,7 +248,15 @@
 // ya tiene paradas; el proxy da prioridad a la respuesta rápida y limita el
 // enriquecimiento OSM a 2,5 s. Se invalida la caché para aplicar el arreglo.
 // Cambia worker.js.
-const VERSION = '2026-10-31-d-transporte';
+// 2026-11-01-a: transporte público y carriles bici cargan ya EN PARALELO
+// (el Worker, Transitous directo y los espejos Overpass compiten y gana el
+// primero con datos, como hace la capa de fuentes de agua). El carril bici
+// reintenta solo con espera creciente y avisa en la barra de estado de lo
+// que está pasando, y las dos capas ya no se quedan mudas si el estilo del
+// mapa aún estaba cargando al activarlas. Cambian js/transporte-publico.js,
+// js/rutas-bici.js, js/i18n.js (5 claves nuevas en 7 idiomas) e index.html
+// (versiones de los dos scripts).
+const VERSION = '2026-11-01-a-transporte-bici';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

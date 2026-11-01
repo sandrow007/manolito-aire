@@ -13,7 +13,10 @@
   const MAX_CELLS_PER_REFRESH = 24;
   const MAX_AUTO_STEPS = 12;
   const CACHE_MS = 15 * 60 * 1000;
-  const MAX_BBOX_SPAN = 0.35;
+  // 01-nov-2026: 0,19° por eje como máximo por petición. Con la rejilla de
+  // 0,02° ninguna vista supera las 400 celdas; antes (0,35) una pantalla
+  // grande a zoom bajo devolvía 0 celdas y no se pedía ninguna parada.
+  const MAX_BBOX_SPAN = 0.19;
   const GRID_DEGREES = 0.02;
   const MAX_CELLS_PER_QUERY = 36;
   const ATTRIBUTION = '© <a href="https://transitous.org" target="_blank" rel="noopener">Transitous</a> · OpenStreetMap contributors';
@@ -226,6 +229,53 @@
     }).filter(Boolean);
   }
 
+  // Núcleo de descarga (01-nov-2026). Antes era una cadena: primero el
+  // Worker (hasta 25 s), luego Transitous directo, luego Overpass directo.
+  // Con los espejos Overpass rechazando al proxy (406 y timeouts) la primera
+  // parada podía tardar medio minuto en aparecer. Ahora el Worker y
+  // Transitous directo compiten EN PARALELO (gana el primero que traiga
+  // datos, el patrón de la capa de fuentes de agua) y Overpass directo
+  // queda como respaldo mundial cuando ninguno de los dos tiene nada.
+  async function pedirParadas(batchBounds) {
+    const min = batchBounds.south.toFixed(6) + ',' + batchBounds.west.toFixed(6);
+    const max = batchBounds.north.toFixed(6) + ',' + batchBounds.east.toFixed(6);
+    const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
+    // Transitous directo desde el navegador (CORS abierto y rápido). El
+    // stopId se normaliza con prefijo "tt:" para que la tarjeta de la
+    // parada sepa que esa parada tiene horarios GTFS.
+    const prefijarTt = (lista) => lista.map(p => (p && p.stopId != null && String(p.stopId).indexOf('tt:') !== 0)
+      ? Object.assign({}, p, { stopId: 'tt:' + p.stopId })
+      : p);
+    const delWorker = withTimeout(fetchApi('/transporte-paradas' + query), 20000)
+      .then(d => Array.isArray(d) ? d : (d && (Array.isArray(d.stops) ? d.stops : Array.isArray(d.features) ? d.features : Array.isArray(d.elements) ? d.elements : null)) || [])
+      .catch(error => { console.debug('[transporte-publico] Worker falló, compiten Transitous y Overpass:', error); return null; });
+    const deTransitous = withTimeout(fetchJson('https://api.transitous.org/api/v1/map/stops' + query, 'omit', 12000), 15000)
+      .then(d => Array.isArray(d) ? prefijarTt(d) : [])
+      .catch(error => { console.debug('[transporte-publico] Transitous directo falló:', error); return null; });
+    // Promise.any ignora los rechazos: un vacío NO gana, solo gana traer datos.
+    const conDatos = (d) => (d && d.length) ? d : Promise.reject(new Error('sin datos'));
+    let raw = await Promise.any([delWorker.then(conDatos), deTransitous.then(conDatos)]).catch(() => null);
+    if (!enabled || !map) return [];
+    if (!raw) {
+      // Ni Worker ni Transitous trajeron nada: respaldo mundial OSM.
+      try {
+        raw = await withTimeout(fetchParadasDirecto(batchBounds), 22000);
+        if (!enabled || !map) return [];
+        console.debug('[transporte-publico] Overpass directo devolvió', raw.length, 'elementos para', batchBounds);
+      } catch (errorDirecto) {
+        console.debug('[transporte-publico] Overpass directo también falló:', errorDirecto);
+        const [w, tt] = await Promise.all([delWorker, deTransitous]);
+        if (Array.isArray(w) || Array.isArray(tt)) {
+          // Algún servicio respondió de verdad: la zona está vacía, no caída.
+          raw = (w && w.length ? w : null) || (tt && tt.length ? tt : null) || [];
+        } else {
+          throw errorDirecto; // todo caído a la vez: la lógica de refresh reintenta
+        }
+      }
+    }
+    return raw;
+  }
+
   async function loadStops(bounds) {
     bounds = boundsForRequest(bounds);
     const key = cacheKey(bounds);
@@ -249,45 +299,8 @@
         south: Math.max(bounds.south, Math.min(...batch.map(cell => cell.south))),
         north: Math.min(bounds.north, Math.max(...batch.map(cell => cell.north)))
       };
-      const min = batchBounds.south.toFixed(6) + ',' + batchBounds.west.toFixed(6);
-      const max = batchBounds.north.toFixed(6) + ',' + batchBounds.east.toFixed(6);
-      const query = '?min=' + encodeURIComponent(min) + '&max=' + encodeURIComponent(max);
-      let raw = null;
-      let errorWorker = null;
-      try { raw = await withTimeout(fetchApi('/transporte-paradas' + query), 25000); } catch (error) { errorWorker = error; }
+      const raw = await pedirParadas(batchBounds);
       if (!enabled || !map) return [];
-      const workerVacio = !raw || (Array.isArray(raw) && raw.length === 0);
-      if (workerVacio) {
-        if (errorWorker) console.debug('[transporte-publico] Worker falló, probando fuentes directas:', errorWorker);
-        // 1) Transitous directo desde el navegador (CORS abierto y rápido):
-        // salva la capa aunque el Worker desplegado sea antiguo y Overpass
-        // esté rechazando peticiones. Se normaliza el stopId con prefijo
-        // "tt:" para que la tarjeta de la parada sepa que tiene horarios.
-        try {
-          const tt = await withTimeout(fetchJson('https://api.transitous.org/api/v1/map/stops' + query, 'omit', 12000), 15000);
-          if (!enabled || !map) return [];
-          if (Array.isArray(tt) && tt.length) {
-            raw = tt.map(p => (p && p.stopId != null && String(p.stopId).indexOf('tt:') !== 0)
-              ? Object.assign({}, p, { stopId: 'tt:' + p.stopId })
-              : p);
-          }
-        } catch (errorTt) {
-          console.debug('[transporte-publico] Transitous directo falló:', errorTt);
-        }
-        // 2) Overpass directo (cobertura mundial OSM) si Transitous no dio nada.
-        if (!raw || (Array.isArray(raw) && !raw.length)) {
-          try {
-            const directo = await withTimeout(fetchParadasDirecto(batchBounds), 25000);
-            if (!enabled || !map) return [];
-            console.debug('[transporte-publico] Overpass directo devolvió', directo.length, 'elementos para', batchBounds);
-            if (directo.length || errorWorker) raw = directo;
-          } catch (errorDirecto) {
-            console.debug('[transporte-publico] Overpass directo también falló:', errorDirecto);
-            if (errorWorker) throw errorWorker;
-            throw errorDirecto;
-          }
-        }
-      }
       const data = Array.isArray(raw) ? raw
         : Array.isArray(raw && raw.stops) ? raw.stops
         : Array.isArray(raw && raw.features) ? raw.features
@@ -327,24 +340,33 @@
   }
 
     // Espera a que el estilo esté listo. Si el toggle se activa nada más
-  // arrancar (o justo tras un style.load), isStyleLoaded() aún es false y
-  // antes se devolvía false en silencio: la capa no se creaba nunca y no
-  // aparecía ningún punto. Ahora esperamos al siguiente 'idle' (con tope).
+  // arrancar (o justo tras un style.load), isStyleLoaded() aún es false.
+  // Antes se esperaba a UN solo evento 'idle' con tope de 4 s: si ese evento
+  // se perdía o el estilo tardaba más, la capa no se creaba nunca y no
+  // aparecía ningún punto. 01-nov-2026: sondeo cada 250 ms + escucha de
+  // 'idle' durante hasta 15 s, lo primero que confirme el estilo gana.
   function esperarEstilo() {
     if (!map) return Promise.resolve(false);
     if (map.isStyleLoaded()) return Promise.resolve(true);
     return new Promise(resolve => {
       let hecho = false;
-      let temporizador = 0;
-      const fin = () => {
+      const t0 = Date.now();
+      const fin = (ok) => {
         if (hecho) return;
         hecho = true;
+        clearInterval(sondeo);
         clearTimeout(temporizador);
-        map.off('idle', fin);
-        resolve(!!map && map.isStyleLoaded());
+        try { map.off('idle', alOcio); } catch (error) { /* sin mapa */ }
+        resolve(!!(ok && map && map.isStyleLoaded()));
       };
-      temporizador = setTimeout(fin, 4000);
-      map.once('idle', fin);
+      const alOcio = () => { if (map && map.isStyleLoaded()) fin(true); };
+      const sondeo = setInterval(() => {
+        if (!map) return fin(false);
+        if (map.isStyleLoaded()) return fin(true);
+        if (Date.now() - t0 > 15000) fin(false);
+      }, 250);
+      const temporizador = setTimeout(() => fin(!!map && map.isStyleLoaded()), 15000);
+      try { map.on('idle', alOcio); } catch (error) { /* sin mapa */ }
     });
   }
 
@@ -377,7 +399,17 @@
   }
 
   async function refresh() {
-    if (!enabled || !ready) return;
+    if (!enabled || !map) return;
+    if (!ready) {
+      // El estilo aún cargaba al activar la capa: esperar a que termine en
+      // vez de rendirse (01-nov-2026, capa que se encendía y no pintaba).
+      const listo = await esperarEstilo();
+      if (!enabled) return;
+      // Si el estilo sigue cargando tras la espera, se reintenta solo
+      // (hasta MAX_AUTO_STEPS veces) en lugar de quedarse mudo.
+      if (!listo) { programarSiguientePaso(2000); return; }
+      ready = true;
+    }
     if (requestRunning) { refreshQueued = true; return; }
     requestRunning = true;
     const currentGeneration = generation;
@@ -628,10 +660,16 @@
     if (enabled) { refresh(); return; }
     enabled = true; generation++;
     autoSteps = 0;
+    // Aviso inmediato en la barra de estado: la capa ya está trabajando
+    // (01-nov-2026: antes no se decía nada hasta que algo fallaba).
+    showStatus(t('transportLoadingStops', 'Cargando paradas…'));
     map.on('moveend', scheduleRefresh);
     map.on('zoomend', scheduleRefresh);
     map.on('click', onMapClick);
-    if (ready) ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error));
+    // Sin la guarda "if (ready)": ensureLayers ya espera al estilo dentro
+    // (esperarEstilo). Antes, activar la capa con el estilo a medias la
+    // dejaba encendida pero sin pintar hasta mover el mapa.
+    ensureLayers().then(refresh).catch(error => console.debug('[transporte-publico] Capa no disponible:', error));
   }
   function deactivate() {
     enabled = false; generation++; refreshQueued = false; requestRunning = false; searchToken++;

@@ -608,7 +608,21 @@
     return puntos;
   }
 
-  async function pedirCarriles(url, bbox, timeoutMs) {
+  // 01-nov-2026: el proxy y los espejos compiten EN PARALELO. Antes era una
+  // cadena (proxy 20 s -> overpass-api.de 15 s -> kumi 15 s): con Overpass
+  // rechazando al Worker (406 y timeouts) el primer carril podía tardar
+  // ~50 s en pintarse o no pintarse nunca y nadie avisaba. Ahora gana el
+  // primero que responda con una respuesta válida, como en la capa de
+  // fuentes de agua, y el carril de Sevilla (y el de cualquier ciudad)
+  // aparece en 1-3 s.
+  var OVERPASS_ESPEJOS_CARRIL = [
+    OVERPASS_DIRECTO,
+    'https://lz4.overpass-api.de/api/interpreter',
+    OVERPASS_DIRECTO_2,
+    'https://overpass.private.coffee/api/interpreter'
+  ];
+
+  async function pedirCarriles(url, bbox, timeoutMs, esProxy) {
     var controller = new AbortController();
     var timeoutId = setTimeout(function () { controller.abort(); }, timeoutMs);
     try {
@@ -619,16 +633,39 @@
         credentials: 'omit',
         signal: controller.signal
       });
-      if (!resp.ok) return [];
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      // El proxy responde 200 con elements vacío cuando TODOS sus espejos
+      // han fallado: eso no es "zona sin carriles", es un fallo. Se lee la
+      // cabecera X-Proxy-Aviso y se trata como error para que otro gane.
+      if (esProxy && resp.headers.get('X-Proxy-Aviso') === 'sin-datos') throw new Error('proxy sin-datos');
       var datos = await resp.json();
-      return (Array.isArray(datos.elements) ? datos.elements : [])
-        .map(wayToLineString)
-        .filter(Boolean);
-    } catch (e) {
-      return [];
+      if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
+      return datos.elements.map(wayToLineString).filter(Boolean);
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  function pedirCarrilesCarrera(bbox) {
+    var participantes = [pedirCarriles(OVERPASS_URL, bbox, 18000, true)]
+      .concat(OVERPASS_ESPEJOS_CARRIL.map(function (url) { return pedirCarriles(url, bbox, 15000, false); }));
+    // Promise.any: el primero que resuelve (aunque sea una lista vacía de
+    // verdad) gana; los errores y el "sin-datos" del proxy se descartan.
+    return Promise.any(participantes);
+  }
+
+  var carrilFallosSeguidos = 0;
+  var carrilStatusPropio = false;
+  function mostrarEstadoCarril(texto) {
+    var el = document.getElementById('rsStatus');
+    if (!el) return;
+    el.textContent = texto;
+    carrilStatusPropio = !!texto;
+  }
+  function limpiarEstadoCarril() {
+    // Solo borramos lo que escribió esta capa: el estado puede estar
+    // mostrando un aviso de la capa de transporte o de las fuentes.
+    if (carrilStatusPropio) mostrarEstadoCarril('');
   }
 
   async function cargarCarriles() {
@@ -645,6 +682,25 @@
     // Crear la capa aunque se haga zoom hacia fuera, para evitar que una
     // consulta anterior deje datos en pantalla fuera del área/zoom válido.
     var capaLista = await asegurarCapaCarril();
+    if (!capaLista && carrilEnabled && requestId === carrilRequestId) {
+      // 01-nov-2026: el estilo aún cargaba. Antes se devolvía false en
+      // silencio y la capa no aparecía hasta mover el mapa. Ahora se espera
+      // (sondeo de 250 ms, tope de 12 s) y se intenta de nuevo.
+      capaLista = await new Promise(function (resolve) {
+        var t0 = Date.now();
+        var sondeo = setInterval(function () {
+          if (!carrilEnabled || requestId !== carrilRequestId || Date.now() - t0 > 12000) {
+            clearInterval(sondeo);
+            resolve(false);
+            return;
+          }
+          if (map && map.isStyleLoaded()) {
+            clearInterval(sondeo);
+            asegurarCapaCarril().then(resolve, function () { resolve(false); });
+          }
+        }, 250);
+      });
+    }
     if (!capaLista || !carrilEnabled || requestId !== carrilRequestId) return;
     if (zoom < CARRIL_MIN_ZOOM || ladoKm > MAX_KM_OVERBRIDGE) {
       await pintarCarriles([]);
@@ -664,12 +720,10 @@
     carrilUltima = Date.now();
 
     try {
-      // 1) Proxy propio (evita CORS y cachea en el Worker).
-      var features = await pedirCarriles(OVERPASS_URL, bbox, 20000);
-      // 2) Si el proxy no da nada (Overpass rechaza a Cloudflare con 406 o
-      // timeout), el navegador pregunta directo a los espejos de Overpass.
-      if (!features.length) features = await pedirCarriles(OVERPASS_DIRECTO, bbox, 15000);
-      if (!features.length) features = await pedirCarriles(OVERPASS_DIRECTO_2, bbox, 15000);
+      mostrarEstadoCarril(t('bikeLaneLoading', 'Cargando carriles bici…'));
+      // Proxy propio y espejos Overpass directos, todos a la vez: gana el
+      // primero con respuesta válida (ver nota de pedirCarrilesCarrera).
+      var features = await pedirCarrilesCarrera(bbox);
       if (!carrilEnabled || requestId !== carrilRequestId) return;
       // No cachear vacío: un fallo temporal no debe ocultar el carril 15 min.
       if (features.length) {
@@ -677,9 +731,20 @@
         while (carrilCache.size > 200) carrilCache.delete(carrilCache.keys().next().value);
       }
       await pintarCarriles(features);
+      carrilFallosSeguidos = 0;
+      mostrarEstadoCarril(features.length
+        ? t('bikeLaneStatus', 'Carriles bici · {n} tramos').replace('{n}', String(features.length))
+        : t('bikeLaneNoData', 'Sin carriles bici mapeados en esta zona.'));
     } catch (e) {
       if (carrilEnabled && requestId === carrilRequestId) {
         console.warn('[rutas-bici] No se pudieron cargar carriles bici:', e);
+        // Reintento con espera creciente mientras la capa siga activa: un
+        // espejo caído o un 429 puntual se curan solos, sin tocar el toggle.
+        carrilFallosSeguidos++;
+        var esperaMs = Math.min(45000, 4000 * Math.pow(2, carrilFallosSeguidos - 1));
+        mostrarEstadoCarril(t('bikeLaneError', 'No se pudieron cargar los carriles bici. Reintento en marcha.'));
+        clearTimeout(carrilTimer);
+        carrilTimer = setTimeout(cargarCarriles, esperaMs);
       }
     }
   }
@@ -879,6 +944,9 @@
     carrilEnabled = !!(carrilToggle && carrilToggle.checked);
     clearTimeout(carrilTimer);
     if (carrilEnabled) {
+      carrilFallosSeguidos = 0;
+      // Aviso inmediato: la capa ya está trabajando (01-nov-2026).
+      mostrarEstadoCarril(t('bikeLaneLoading', 'Cargando carriles bici…'));
       map.off('moveend', scheduleCarril);
       map.on('moveend', scheduleCarril);
       map.off('zoomend', scheduleCarril);
@@ -888,6 +956,7 @@
       map.off('moveend', scheduleCarril);
       map.off('zoomend', scheduleCarril);
       destroyCarril();
+      limpiarEstadoCarril();
     }
   }
 

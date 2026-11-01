@@ -140,7 +140,7 @@
   --border:rgba(251,146,60,0.20);
 }
 
-/* ---------- NAVIDAD (24-31 de diciembre) ----------
+/* ---------- NAVIDAD (10 dic - 15 ene, con 1 de enero = año nuevo) ----------
    Rojo de lazo, verde pino y dorado de belén. */
 [data-ambiente="navidad"]{
   --paper:#FDF9F4; --mist:#F3EAE0;
@@ -812,4 +812,74 @@ html.modo-salud .escudo-insignia{ color:#0B6B44; }
 @keyframes festijo-anuncio-brillo{
   from{ background-position:0 0; }
   to{ background-position:100% 0; }
+}
+
+/* ============================================================
+   GORRO DE PAPÁ NOEL EN EL LOGO (01-nov-2026)
+   Del 10 de diciembre al 15 de enero (la ventana exacta del
+   modo Navidad, contando el 1 de enero, que viaja con
+   data-ambiente="anonuevo") el logo de Manolit∞ se pone el
+   gorro en TODAS sus apariciones de la página:
+
+     - la marca de la barra superior (.wordmark)
+     - el botón flotante del chat (.chat-fab)
+     - el mini logo de la cabecera del chat (.chat-logo)
+     - el sello oficial del pie (.sello-footer)
+     - el logo animado de la pantalla de entrada (ese se pinta
+       en el canvas, dentro de drawLogo en index.html)
+
+   Todo va con pseudo-elementos y UN solo SVG en línea (data
+   URI), vectorial puro: escala perfecto a cualquier tamaño y
+   no hace falta tocar ni una etiqueta del HTML. Fuera de las
+   fechas (o con ?ambiente=off) estas reglas no se aplican y
+   el logo es el de siempre. El gorro no intercepta clics, no
+   se mueve y no gasta batería.
+   ============================================================ */
+
+html[data-ambiente="navidad"] .wordmark,
+html[data-ambiente="anonuevo"] .wordmark,
+html[data-ambiente="navidad"] .chat-logo,
+html[data-ambiente="anonuevo"] .chat-logo,
+html[data-ambiente="navidad"] .sello-footer,
+html[data-ambiente="anonuevo"] .sello-footer{
+  position:relative;
+}
+html[data-ambiente="navidad"] .wordmark::after,
+html[data-ambiente="anonuevo"] .wordmark::after,
+html[data-ambiente="navidad"] .chat-fab::after,
+html[data-ambiente="anonuevo"] .chat-fab::after,
+html[data-ambiente="navidad"] .chat-logo::after,
+html[data-ambiente="anonuevo"] .chat-logo::after,
+html[data-ambiente="navidad"] .sello-footer::after,
+html[data-ambiente="anonuevo"] .sello-footer::after{
+  content:"";
+  position:absolute;
+  background:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2056'%3E%3Cpath%20d='M10%2038C12%2020%2020%208%2030%205c10-3%2022%203%2024%2011%201%205-3%207-6%2010-3%203-2%208%202%2012z'%20fill='%23C41E3A'/%3E%3Ccircle%20cx='54'%20cy='16'%20r='7'%20fill='%23FFFFFF'%20stroke='%23D9DEE4'%20stroke-width='1.6'/%3E%3Crect%20x='6'%20y='37'%20width='48'%20height='14'%20rx='7'%20fill='%23FFFFFF'%20stroke='%23D9DEE4'%20stroke-width='1.6'/%3E%3C/svg%3E") no-repeat center/contain;
+  pointer-events:none;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,0.35));
+}
+/* La marca de la barra: el gorro corona la M de Manolit∞. */
+html[data-ambiente="navidad"] .wordmark::after,
+html[data-ambiente="anonuevo"] .wordmark::after{
+  width:26px; height:23px; left:-6px; top:-9px;
+  transform:rotate(-14deg);
+}
+/* El botón del chat: gorro ladeado sobre el anillo de color. */
+html[data-ambiente="navidad"] .chat-fab::after,
+html[data-ambiente="anonuevo"] .chat-fab::after{
+  width:34px; height:30px; left:2px; top:-12px;
+  transform:rotate(-20deg);
+}
+/* El mini logo de la cabecera del chat, el más pequeño de todos. */
+html[data-ambiente="navidad"] .chat-logo::after,
+html[data-ambiente="anonuevo"] .chat-logo::after{
+  width:19px; height:17px; left:-3px; top:-6px;
+  transform:rotate(-18deg);
+}
+/* El sello del pie: el gorro cae sobre la punta del escudo
+   interior, que en su viewBox 400x400 vive en (200,122). */
+html[data-ambiente="navidad"] .sello-footer::after,
+html[data-ambiente="anonuevo"] .sello-footer::after{
+  width:27px; height:24px; left:50%; top:9px;
+  transform:translateX(-50%) rotate(-10deg);
 }

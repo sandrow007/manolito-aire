@@ -167,7 +167,7 @@
 <noscript><link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"></noscript>
 <!-- Ambientes automáticos por fecha (sep-2026): Semana Santa, Día del
      Clima, Orgullo, Halloween... Los días normales no cambian nada. -->
-<link rel="stylesheet" href="css/ambientes.css">
+<link rel="stylesheet" href="css/ambientes.css?v=gorro-navidad-20261101-a">
 <!-- Va SIN defer y en el <head>: es diminuto, no usa el DOM y así el
      ambiente se aplica antes del primer pintado (sin destello de la
      paleta normal al cargar un día señalado). -->
@@ -694,6 +694,20 @@
         [P_WAVE1, '#00e5ff', 4], [P_WAVE2, '#00e5ff', 3],
       ];
 
+      // ---- gorro de Papá Noel (modo Navidad: 10 dic - 15 ene) ----
+      // Se apoya en la punta del escudo (100,30), ladeado 8 grados. Solo se
+      // dibuja cuando js/ambientes.js ha puesto data-ambiente="navidad" o
+      // "anonuevo" en <html> (ese rango cubre del 10 de diciembre al 15 de
+      // enero, con el 1 de enero como año nuevo): entra y sale solo, y con
+      // ?ambiente=off no aparece. Vectorial puro (Path2D), escala con el logo.
+      const GORRO_NAV = (function () {
+        const a = document.documentElement.getAttribute('data-ambiente');
+        return a === 'navidad' || a === 'anonuevo';
+      })();
+      const P_GORRO_CONO   = new Path2D('M 65.23,19.74 C 64.45,-7.42 73.82,-26.91 88.05,-33.45 C 102.28,-40 121.36,-33.59 126,-22.13 C 128.53,-14.91 123,-11.1 119.17,-6.02 C 115.34,-0.94 117.87,6.28 124.65,11.39 Z');
+      const P_GORRO_POMPON = new Path2D('M 126,-32.63 A 10.5,10.5 0 1 0 126,-11.63 A 10.5,10.5 0 1 0 126,-32.63 Z');
+      const P_GORRO_ALA    = new Path2D('M 69.48,17.63 L 119.98,10.53 C 125.73,9.72 131.04,13.72 131.84,19.47 C 132.65,25.21 128.65,30.52 122.91,31.32 L 72.4,38.42 C 66.66,39.23 61.35,35.23 60.54,29.49 C 59.74,23.74 63.74,18.43 69.48,17.63 Z');
+
       // Los mismos trazos en puntos, para proyectarlos al suelo
       function cubic(p0, p1, p2, p3, n) {
         const out = [];
@@ -806,6 +820,14 @@
           ctx.strokeStyle = color;
           ctx.save(); ctx.shadowColor = color; ctx.shadowBlur = glow; ctx.stroke(path); ctx.restore();
           ctx.stroke(path);
+        }
+        if (GORRO_NAV) {
+          ctx.fillStyle = '#C41E3A';
+          ctx.save(); ctx.shadowColor = '#C41E3A'; ctx.shadowBlur = glow * 0.8; ctx.fill(P_GORRO_CONO); ctx.restore();
+          ctx.fill(P_GORRO_CONO);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.save(); ctx.shadowColor = '#FFFFFF'; ctx.shadowBlur = glow * 0.55; ctx.fill(P_GORRO_POMPON); ctx.fill(P_GORRO_ALA); ctx.restore();
+          ctx.fill(P_GORRO_POMPON); ctx.fill(P_GORRO_ALA);
         }
         ctx.restore();
       }

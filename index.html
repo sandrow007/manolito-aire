@@ -2539,7 +2539,7 @@
 
 <!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
 <script src="js/theme.js" defer></script>
-<script src="js/i18n.js?v=busqueda-agua-1" defer></script>
+<script src="js/i18n.js?v=carril-cristal-20261101-a" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
 <script src="js/cookie-banner.js" defer></script>
@@ -2567,7 +2567,7 @@
       if (cargaRutasBiciPromise) return cargaRutasBiciPromise;
       cargaRutasBiciPromise = new Promise((resolve, reject) => {
         const s = document.createElement('script');
-           s.src = 'js/rutas-bici.js?v=ruta-bici-20261101-a';
+           s.src = 'js/rutas-bici.js?v=ruta-bici-20261101-b';
         s.onload = resolve;
         s.onerror = reject;
         document.body.appendChild(s);

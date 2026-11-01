@@ -49,9 +49,17 @@
   var RUTA_TTL_MS = 60 * 1000;
   var MIN_GAP_MS = 1000;             // BRouter: 1 petición/segundo
   var MAX_ALTERNATIVAS = 3;
-  var MAX_KM_OVERBRIDGE = 20;      // carriles bici: bbox máximo ~20 km (barrio/ciudad)
+  var MAX_KM_OVERBRIDGE = 30;      // carriles bici: bbox máximo ~30 km (antes 20: con la carrera en paralelo sobra margen y la vista amplia de ciudad sí busca)
   var CARRIL_TTL_MS = 15 * 60 * 1000;
-  var CARRIL_MIN_ZOOM = 10;
+  var CARRIL_MIN_ZOOM = 10;        // por debajo de z10 no se PIDEN zonas nuevas...
+  // ...pero lo ya pintado PERMANECE (01-nov-2026 b). Antes al alejarse se
+  // ejecutaba pintarCarriles([]) y el carril desaparecía del mapa. Ahora las
+  // capas solo se ocultan por debajo de CARRIL_ZOOM_OCULTAR y los datos
+  // siguen en memoria: al acercarte otra vez reaparecen al instante, como
+  // el resto de capas.
+  var CARRIL_ZOOM_OCULTAR = 7;
+  var CARRIL_ACUMULADO_MAX = 6000;  // tope de tramos guardados (recorte FIFO, móvil ligero)
+  var CARRIL_PUNTOS_MAX = 20000;    // tope de señales de bici guardadas
 
   var map = null;
   var rutaSourceListo = false;
@@ -59,6 +67,8 @@
   var carrilToggle = null;
   var carrilTimer = 0;
   var carrilCache = new Map();
+  var carrilAcumulado = new Map(); // id OSM -> tramo pintado, en orden de llegada
+  var carrilPuntos = new Map();    // idTramo#n -> señal de bici, mismo orden
   var carrilUltima = 0;
 
   var lista = { ultimaClave: '', rutas: [], touched: 0 };
@@ -496,7 +506,9 @@
 
   /* ---------------- Capa de carriles bici (roja con bandas blancas) -------- */
   var CARRIL_SOURCE = 'carriles-bici-source';
+  var CARRIL_HALO = 'carriles-bici-halo';
   var CARRIL_ROJO = 'carriles-bici-rojo';
+  var CARRIL_BRILLO = 'carriles-bici-brillo';
   var CARRIL_BORDE_IZQ = 'carriles-bici-borde-izq';
   var CARRIL_BORDE_DER = 'carriles-bici-borde-der';
   var CARRIL_SIMBOLO = 'carriles-bici-simbolo';
@@ -507,10 +519,14 @@
   var carrilRequestId = 0;
   var carrilStyleHandler = null;
   
-  // SVG del símbolo de bicicleta para carriles bici
+  // SVG del símbolo de bicicleta para carriles bici.
+  // 01-nov-2026 (b): la bici blanca va ahora sobre una pastilla de cristal
+  // translúcido con aro coral, acorde al tubo glass del trazado.
   var BICI_ICONO_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
-    '<g fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+    '<circle cx="16" cy="16" r="15" fill="#FFFFFF" fill-opacity="0.26" stroke="#E4574C" stroke-opacity="0.6" stroke-width="1.4"/>' +
+    '<circle cx="11" cy="10" r="5" fill="#FFFFFF" fill-opacity="0.16"/>' +
+    '<g fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(2.4 3) scale(0.85)">' +
     '<circle cx="9" cy="21" r="5"/>' +
     '<circle cx="23" cy="21" r="5"/>' +
     '<path d="M9 21 L16 11 L20 11"/>' +
@@ -553,7 +569,10 @@
         .filter(function (p) { return Number.isFinite(p[0]) && Number.isFinite(p[1]); });
     }
     if (coords.length < 2 || coords.some(function (p) { return !Number.isFinite(p[0]) || !Number.isFinite(p[1]); })) return null;
-    return { type: 'Feature', properties: element.tags || {}, geometry: { type: 'LineString', coordinates: coords } };
+    var props = element.tags || {};
+    // id estable del elemento OSM: permite acumular zonas sin duplicar tramos
+    props.__cid = (element.type || 'way') + '/' + element.id;
+    return { type: 'Feature', properties: props, geometry: { type: 'LineString', coordinates: coords } };
   }
 
   // Genera puntos espaciados a lo largo de las líneas para los símbolos de bici
@@ -703,14 +722,20 @@
     }
     if (!capaLista || !carrilEnabled || requestId !== carrilRequestId) return;
     if (zoom < CARRIL_MIN_ZOOM || ladoKm > MAX_KM_OVERBRIDGE) {
-      await pintarCarriles([]);
+      // 01-nov-2026 (b): aquí antes se hacía pintarCarriles([]) y el carril
+      // se BORRABA entero al alejarse o con vista amplia. Ahora lo pintado
+      // permanece en el mapa: solo se pausa la búsqueda de zonas nuevas y
+      // se avisa en la barra de estado.
+      mostrarEstadoCarril(t('bikeLaneZoomIn', 'Acércate un poco para cargar más carriles.'));
       return;
     }
 
     var clave = CARRIL_CACHE_VERSION + ':' + [bbox.west.toFixed(3), bbox.south.toFixed(3), bbox.east.toFixed(3), bbox.north.toFixed(3)].join(':');
     var cached = carrilCache.get(clave);
     if (cached && Date.now() - cached.touched < CARRIL_TTL_MS) {
-      await pintarCarriles(cached.features);
+      incorporarCarriles(cached.features);
+      repintarCarrilAcumulado();
+      mostrarEstadoCarril(t('bikeLaneStatus', 'Carriles bici · {n} tramos').replace('{n}', String(carrilAcumulado.size)));
       return;
     }
 
@@ -730,10 +755,13 @@
         carrilCache.set(clave, { features: features, touched: Date.now() });
         while (carrilCache.size > 200) carrilCache.delete(carrilCache.keys().next().value);
       }
-      await pintarCarriles(features);
+      // (b) Los tramos nuevos se SUMAN a los ya pintados (nunca se borra lo
+      // que ya se veía al moverse por el mapa) y se repinta el conjunto.
+      incorporarCarriles(features);
+      repintarCarrilAcumulado();
       carrilFallosSeguidos = 0;
-      mostrarEstadoCarril(features.length
-        ? t('bikeLaneStatus', 'Carriles bici · {n} tramos').replace('{n}', String(features.length))
+      mostrarEstadoCarril(carrilAcumulado.size
+        ? t('bikeLaneStatus', 'Carriles bici · {n} tramos').replace('{n}', String(carrilAcumulado.size))
         : t('bikeLaneNoData', 'Sin carriles bici mapeados en esta zona.'));
     } catch (e) {
       if (carrilEnabled && requestId === carrilRequestId) {
@@ -796,92 +824,145 @@
         });
       }
 
-      // 1. CAPA ROJA DE FONDO (el carril bici rojo)
+      // 1. HALO DE CRISTAL (aura translúcida bajo el tubo, efecto glass)
+      if (!map.getLayer(CARRIL_HALO)) {
+        map.addLayer({
+          id: CARRIL_HALO,
+          type: 'line',
+          source: CARRIL_SOURCE,
+          minzoom: CARRIL_ZOOM_OCULTAR,
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': '#FF6B5E',
+            'line-opacity': 0.18,
+            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'],
+              7, 5,
+              10, 7,
+              12, 10,
+              14, 14,
+              16, 19,
+              18, 25,
+              20, 34
+            ]
+          }
+        });
+      }
+
+      // 2. TUBO PRINCIPAL (coral suave translúcido; antes rojo puro #E31837)
       if (!map.getLayer(CARRIL_ROJO)) {
         map.addLayer({
           id: CARRIL_ROJO,
           type: 'line',
           source: CARRIL_SOURCE,
-          minzoom: CARRIL_MIN_ZOOM,
+          minzoom: CARRIL_ZOOM_OCULTAR,
           layout: { 'line-cap': 'round', 'line-join': 'round' },
           paint: {
-            'line-color': '#E31837', // Rojo carril bici oficial
-            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 
-              10, 2,     // A zoom 10, línea fina
-              12, 4,     // A zoom 12
-              14, 7,     // A zoom 14, ancho medio
-              16, 10,    // A zoom 16
-              18, 14,    // A zoom 18, muy ancho
-              20, 20     // A zoom 20, máximo ancho
+            'line-color': '#E4574C', // coral glass, rojo menos chillón (petición de Sandro 01-nov-2026)
+            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'],
+              7, 1.8,
+              10, 2.4,
+              12, 3.6,
+              14, 6,
+              16, 9,
+              18, 13,
+              20, 18
             ],
-            'line-opacity': 0.9
+            'line-opacity': 0.6
           }
         });
       }
 
-      // 2. BORDE BLANCO IZQUIERDO (bandas blancas)
+      // 3. BRILLO CENTRAL (reflejo interior del cristal)
+      if (!map.getLayer(CARRIL_BRILLO)) {
+        map.addLayer({
+          id: CARRIL_BRILLO,
+          type: 'line',
+          source: CARRIL_SOURCE,
+          minzoom: CARRIL_ZOOM_OCULTAR,
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': '#FFE9E4',
+            'line-opacity': 0.38,
+            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'],
+              7, 0.5,
+              10, 0.7,
+              12, 1.1,
+              14, 1.7,
+              16, 2.5,
+              18, 3.4,
+              20, 4.6
+            ]
+          }
+        });
+      }
+
+      // 4. BORDE IZQUIERDO (filo de cristal; antes banda blanca dura)
       if (!map.getLayer(CARRIL_BORDE_IZQ)) {
         map.addLayer({
           id: CARRIL_BORDE_IZQ,
           type: 'line',
           source: CARRIL_SOURCE,
-          minzoom: CARRIL_MIN_ZOOM,
+          minzoom: CARRIL_ZOOM_OCULTAR,
           layout: { 'line-cap': 'butt', 'line-join': 'round' },
           paint: {
             'line-color': '#FFFFFF',
-            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 
-              10, 0.8,
-              12, 1.5,
-              14, 2.5,
-              16, 3.5,
-              18, 5,
-              20, 7
+            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'],
+              7, 0.5,
+              10, 0.7,
+              12, 1,
+              14, 1.6,
+              16, 2.2,
+              18, 3,
+              20, 4.2
             ],
-            'line-opacity': 0.95,
-            'line-offset': ['interpolate', ['exponential', 1.5], ['zoom'], 
-              10, -1.5,
-              12, -2.5,
-              14, -4,
-              16, -5.5,
-              18, -8,
-              20, -11
+            'line-opacity': 0.4,
+            'line-offset': ['interpolate', ['exponential', 1.5], ['zoom'],
+              7, -1.4,
+              10, -1.9,
+              12, -2.8,
+              14, -4.2,
+              16, -6,
+              18, -8.5,
+              20, -12
             ]
           }
         });
       }
 
-      // 3. BORDE BLANCO DERECHO (bandas blancas)
+      // 5. BORDE DERECHO (filo de cristal; antes banda blanca dura)
       if (!map.getLayer(CARRIL_BORDE_DER)) {
         map.addLayer({
           id: CARRIL_BORDE_DER,
           type: 'line',
           source: CARRIL_SOURCE,
-          minzoom: CARRIL_MIN_ZOOM,
+          minzoom: CARRIL_ZOOM_OCULTAR,
           layout: { 'line-cap': 'butt', 'line-join': 'round' },
           paint: {
             'line-color': '#FFFFFF',
-            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 
-              10, 0.8,
-              12, 1.5,
-              14, 2.5,
-              16, 3.5,
-              18, 5,
-              20, 7
+            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'],
+              7, 0.5,
+              10, 0.7,
+              12, 1,
+              14, 1.6,
+              16, 2.2,
+              18, 3,
+              20, 4.2
             ],
-            'line-opacity': 0.95,
-            'line-offset': ['interpolate', ['exponential', 1.5], ['zoom'], 
-              10, 1.5,
-              12, 2.5,
-              14, 4,
-              16, 5.5,
-              18, 8,
-              20, 11
+            'line-opacity': 0.4,
+            'line-offset': ['interpolate', ['exponential', 1.5], ['zoom'],
+              7, 1.4,
+              10, 1.9,
+              12, 2.8,
+              14, 4.2,
+              16, 6,
+              18, 8.5,
+              20, 12
             ]
           }
         });
       }
 
-      // 4. CAPA DE SÍMBOLOS DE BICICLETA (cada X metros)
+      // 6. CAPA DE SÍMBOLOS DE BICICLETA (cada X metros)
       if (map.hasImage(CARRIL_IMAGEN) && !map.getLayer(CARRIL_SIMBOLO)) {
         map.addLayer({
           id: CARRIL_SIMBOLO,
@@ -917,20 +998,71 @@
     }
   }
 
+  // 01-nov-2026 (b): acumulador de zonas. Antes cada consulta REEMPLAZABA
+  // lo pintado: al moverte a otro barrio el carril anterior desaparecía, y
+  // al alejarte se borraba todo. Ahora los tramos se suman por su id de OSM
+  // (sin duplicar), las señales solo se calculan para los tramos nuevos y
+  // el conjunto se recorta en FIFO si supera el tope, para que el móvil
+  // siga ligero.
+  function borrarPuntosDeTramo(idTramo) {
+    var prefijo = idTramo + '#';
+    var claves = [];
+    carrilPuntos.forEach(function (v, k) { if (k.indexOf(prefijo) === 0) claves.push(k); });
+    claves.forEach(function (k) { carrilPuntos.delete(k); });
+  }
+
+  function incorporarCarriles(features) {
+    var nuevos = [];
+    (features || []).forEach(function (f) {
+      if (!f || !f.geometry || f.geometry.type !== 'LineString') return;
+      var id = f.properties && f.properties.__cid;
+      if (!id) {
+        var c = f.geometry.coordinates || [];
+        var p1 = c[0] || [0, 0];
+        var p2 = c[c.length - 1] || p1;
+        id = 'geo/' + p1[0].toFixed(5) + ',' + p1[1].toFixed(5) + '/' + p2[0].toFixed(5) + ',' + p2[1].toFixed(5) + '/' + c.length;
+      }
+      if (carrilAcumulado.has(id)) carrilAcumulado.delete(id); // al final: más reciente
+      carrilAcumulado.set(id, f);
+      nuevos.push([id, f]);
+    });
+    while (carrilAcumulado.size > CARRIL_ACUMULADO_MAX) {
+      var viejo = carrilAcumulado.keys().next().value;
+      carrilAcumulado.delete(viejo);
+      borrarPuntosDeTramo(viejo);
+    }
+    nuevos.forEach(function (par) {
+      generarPuntosSimbolos([par[1]], 100).forEach(function (p, idx) {
+        carrilPuntos.set(par[0] + '#' + idx, p);
+      });
+    });
+    while (carrilPuntos.size > CARRIL_PUNTOS_MAX) carrilPuntos.delete(carrilPuntos.keys().next().value);
+    return carrilAcumulado.size;
+  }
+
+  function repintarCarrilAcumulado() {
+    if (!map || !map.getSource(CARRIL_SOURCE)) return;
+    // Orden de apilado: el último movido queda por encima.
+    [CARRIL_HALO, CARRIL_ROJO, CARRIL_BRILLO, CARRIL_BORDE_IZQ, CARRIL_BORDE_DER].forEach(function (id) { if (map.getLayer(id)) map.moveLayer(id); });
+    map.getSource(CARRIL_SOURCE).setData({
+      type: 'FeatureCollection',
+      features: Array.from(carrilAcumulado.values()).concat(Array.from(carrilPuntos.values()))
+    });
+  }
+
   async function pintarCarriles(features) {
     if (!carrilEnabled || !map || !map.isStyleLoaded()) return;
     var capaLista = await asegurarCapaCarril();
     if (!capaLista || !carrilEnabled || !map || !map.getSource(CARRIL_SOURCE)) return;
-    var lineas = features.filter(function(f) { return f.geometry && f.geometry.type === 'LineString' && Array.isArray(f.geometry.coordinates) && f.geometry.coordinates.length >= 2; });
-    var puntosSimbolo = generarPuntosSimbolos(lineas, 100); // cada 100 metros
-    [CARRIL_ROJO, CARRIL_BORDE_IZQ, CARRIL_BORDE_DER].forEach(function(id) { if (map.getLayer(id)) map.moveLayer(id); });
-    map.getSource(CARRIL_SOURCE).setData({ type: 'FeatureCollection', features: lineas.concat(puntosSimbolo) });
+    // (b) Pintar ya nunca sustituye: suma al acumulado y repinta el conjunto.
+    incorporarCarriles(features);
+    repintarCarrilAcumulado();
   }
 
   function destroyCarril() {
     carrilRequestId++;
     try {
-      [CARRIL_SIMBOLO, CARRIL_BORDE_DER, CARRIL_BORDE_IZQ, CARRIL_ROJO].forEach(function(id) {
+      [CARRIL_SIMBOLO, CARRIL_BORDE_DER, CARRIL_BORDE_IZQ, CARRIL_BRILLO, CARRIL_ROJO, CARRIL_HALO].forEach(function(id) {
         if (map.getLayer(id)) map.removeLayer(id);
       });
       if (map.getSource(CARRIL_SOURCE)) map.removeSource(CARRIL_SOURCE);
@@ -938,6 +1070,8 @@
     } catch (e) { /* estilo reemplazado */ }
     carrilCapaLista = false;
     carrilInicializando = false;
+    carrilAcumulado.clear();
+    carrilPuntos.clear();
   }
 
   function onCarrilToggle() {

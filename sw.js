@@ -256,7 +256,14 @@
 // mapa aún estaba cargando al activarlas. Cambian js/transporte-publico.js,
 // js/rutas-bici.js, js/i18n.js (5 claves nuevas en 7 idiomas) e index.html
 // (versiones de los dos scripts).
-const VERSION = '2026-11-01-a-transporte-bici';
+// 2026-11-01-b: el carril bici ya NO se borra al alejarse ni al moverse a
+// otro barrio. Lo pintado permanece (como el resto de capas), las zonas se
+// acumulan sin duplicar tramos y solo se pausa la búsqueda cuando estás
+// muy lejos, avisando en la barra de estado. Nuevo acabado glass: tubo
+// coral translúcido con halo, brillo interior y señales de bici sobre
+// pastilla de cristal. Cambian js/rutas-bici.js, js/i18n.js (clave nueva
+// bikeLaneZoomIn en 7 idiomas) e index.html (versiones de scripts).
+const VERSION = '2026-11-01-b-carril-cristal';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

@@ -1449,53 +1449,35 @@
            caja con tarjetas y el acordeón «Capas de mapa» se eliminaron)
            y Catastro 3D pasa a ser una fila-toggle individual más, como
            Árboles e Intensidad solar. -->
-      <p class="rs-capa-grupo-tit" data-i18n="groupIluminacionSol">Iluminación y sol</p>
-      <!-- Sombras y Ruta APAGADAS por defecto (sep-2026): el motor de sombras
-           es lo que más calienta el móvil; ahora solo arranca si el usuario
-           lo enciende a mano. El mapa se ve igual (edificios 3D, nubes),
-           pero la CPU está en reposo hasta que tú decidas. -->
+      <p class="rs-capa-grupo-tit" data-i18n="grupoSombrasSol">Sombras y Sol</p>
+      <!-- Grupo 1 (nov-2026): el núcleo de la app primero. «Modo invierno»
+           lo inyecta shadows-route.js justo detrás de «Posición del sol»
+           como una fila estándar más. Sombras y Ruta siguen APAGADAS por
+           defecto: el motor de sombras es lo que más calienta el móvil y
+           solo arranca si el usuario lo enciende a mano. -->
       <label class="rs-capa-fila rs-ico-sombras"><input type="checkbox" id="rsToggleSombras"> <span data-i18n="layerShadows">Sombras</span></label>
       <label class="rs-capa-fila rs-ico-sol"><input type="checkbox" id="rsToggleSol"> <span data-i18n="layerSun">Posición del sol</span></label>
       <div class="rs-capa-fila rs-capa-fila-btn rs-ico-irradiacion" id="rsMonteIrradiacion"></div>
       <p class="rs-capa-grupo-tit" data-i18n="groupEntornoClima">Entorno y clima</p>
       <div class="rs-capa-fila rs-capa-fila-btn rs-ico-arboles" id="rsMonteArboles"></div>
-      <!-- Calidad del aire (01-oct-2026): capa SOLO
-           para España, porque fuera no tenemos fuente de datos fiable. La fila
-           nace OCULTA (hidden) y shadows-route.js la enseña solo cuando tu
-           ubicación, el punto elegido o el centro del mapa caen dentro de
-           territorio español (polígono de la península + Baleares, Canarias,
-           Ceuta y Melilla). Si sales de España con la capa encendida, se
-           apaga y se oculta sola con un aviso. -->
-      <label class="rs-capa-fila rs-ico-aire" id="rsCapaAireFila" hidden><input type="checkbox" id="rsToggleAire"> <span data-i18n="layerAirQuality">Calidad del aire</span></label>
-      <!-- Microclima: capa OPCIONAL de temperatura de superficie estimada.
-           Apagada por defecto para no saturar el móvil; la enciende el usuario.
-           (Verificado el 07-oct-2026: el toggle SÍ es interactivo, enciende
-           y apaga la capa en js/microclima.js; por eso se queda como toggle
-           y la etiqueta «Estimado» sigue siendo solo informativa.) -->
-      <label class="rs-capa-fila rs-ico-microclima"><input type="checkbox" id="rsToggleMicroclima"> <span data-i18n="layerMicroclimate">Microclima</span> <em class="rs-capa-tag" data-i18n="microTag">Estimado</em></label>
       <label class="rs-capa-fila rs-ico-nubes"><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
-      <p class="rs-capa-grupo-tit" data-i18n="groupBaseInfra">Base e infraestructura</p>
+      <!-- Calidad del aire: SOLO España (fuera no hay fuente fiable). La fila
+           nace oculta y la enseña shadows-route.js cuando el punto cae en
+           territorio español. -->
+      <label class="rs-capa-fila rs-ico-aire" id="rsCapaAireFila" hidden><input type="checkbox" id="rsToggleAire"> <span data-i18n="layerAirQuality">Calidad del aire</span></label>
+      <label class="rs-capa-fila rs-ico-microclima"><input type="checkbox" id="rsToggleMicroclima"> <span data-i18n="layerMicroclimate">Microclima</span> <em class="rs-capa-tag" data-i18n="microTag">Estimado</em></label>
+      <p class="rs-capa-grupo-tit" data-i18n="groupBase">Mapa base</p>
+      <!-- Control segmentado [Mapa claro | Mapa IGN | Mapa oscuro] -->
       <div class="rs-capas-mapas" id="rsCapasMapas"></div>
       <label class="rs-capa-fila rs-ico-edificios"><input type="checkbox" id="rsToggleEdificios" checked> <span data-i18n="layerBuildings">Edificios 3D</span></label>
-      <label class="rs-capa-fila rs-ico-carril-bici"><input type="checkbox" id="rsToggleCarrilesBici"> <span data-i18n="layerBikeLanes">Carriles bici</span></label>
-      <label class="rs-capa-fila rs-ico-fuentes-agua"><input type="checkbox" id="rsToggleFuentesAgua"> <span data-i18n="layerWaterFountains">Fuentes de agua</span></label>
-      <label class="rs-capa-fila rs-ico-transporte"><input type="checkbox" id="rsToggleTransporte"> <span data-i18n="layerTransport">Transporte público</span></label>
-      <label class="rs-capa-fila rs-ico-ruta"><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
-      <!-- Catastro 3D (07-oct-2026): ya no va con los mapas
-           base, es una capa combinable y se presenta como fila-toggle
-           individual con su interruptor a la derecha. Mismo botón y mismo
-           id de siempre (rsBtnCatastro), solo cambia el anclaje. -->
       <div class="rs-capa-fila rs-capa-fila-btn rs-ico-catastro" id="rsMonteCatastro"></div>
-      <!-- Aparcamientos (07-oct-2026): fila-botón como
-           Árboles o Catastro. La rellena js/aparcamientos-viaje.js, un
-           módulo nuevo y aditivo que consulta Overpass por el bbox visible. -->
-      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-parking" id="rsMonteParking"></div>
-      <!-- Planificador de viaje largo (07-oct-2026):
-           fila-botón que abre el panelito con origen y destino. Lo
-           rellena js/aparcamientos-viaje.js, el mismo módulo del parking. -->
+      <p class="rs-capa-grupo-tit" data-i18n="grupoRutasMovilidad">Rutas y movilidad</p>
+      <label class="rs-capa-fila rs-ico-ruta"><input type="checkbox" id="rsToggleRuta"> <span data-i18n="layerRoute">Ruta</span></label>
       <div class="rs-capa-fila rs-capa-fila-btn rs-ico-viaje" id="rsMonteViaje"></div>
-      <!-- Ruta en bicicleta (aditivo): fila-botón que abre el panel de bici.
-           La rellena js/rutas-bici.js, sin tocar el viaje en coche. -->
+      <div class="rs-capa-fila rs-capa-fila-btn rs-ico-parking" id="rsMonteParking"></div>
+      <label class="rs-capa-fila rs-ico-fuentes-agua"><input type="checkbox" id="rsToggleFuentesAgua"> <span data-i18n="layerWaterFountains">Fuentes de agua</span></label>
+      <label class="rs-capa-fila rs-ico-carril-bici"><input type="checkbox" id="rsToggleCarrilesBici"> <span data-i18n="layerBikeLanes">Carriles bici</span></label>
+      <label class="rs-capa-fila rs-ico-transporte"><input type="checkbox" id="rsToggleTransporte"> <span data-i18n="layerTransport">Transporte público</span></label>
       <div class="rs-capa-fila rs-capa-fila-btn rs-ico-bici" id="rsMonteBici"></div>
       </div>
     </div>

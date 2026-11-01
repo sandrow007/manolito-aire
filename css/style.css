@@ -1237,7 +1237,6 @@ body.manolito-fs #shadowRouteMap{
     para que el usuario pueda activar/desactivar layers en fullscreen. */
 body.manolito-fs .rs-planetario,
 body.manolito-fs .rs-layer-toggles,
-body.manolito-fs .rs-form,
 body.manolito-fs #rsStatus,
 body.manolito-fs .rs-pasos,
 body.manolito-fs #rsAqiPanel,
@@ -1247,7 +1246,11 @@ body.manolito-fs .chat-fab{ display:none !important; }
    No se fuerza la visibilidad del panel cuando lleva .rs-capas-cerrada. */
 body.manolito-fs .rs-planetario-capas,
 body.manolito-fs .rs-layer-toggles{ display:flex !important; }
-body.manolito-fs #rsBtnCapasFlotante{
+/* Con el panel abierto el botón flotante sigue oculto: la X de la
+   cabecera del panel es el único cierre (nov-2026: este !important
+   enseñaba el botón expandido —naranja, con X— encima de la X pequeña
+   del panel y se veían dos X superpuestas en pantalla completa). */
+body.manolito-fs #rsBtnCapasFlotante:not([aria-expanded="true"]){
   display:flex !important; visibility:visible !important;
   opacity:1 !important; pointer-events:auto !important; z-index:1120 !important;
 }
@@ -1330,21 +1333,6 @@ body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat center / contain;
 }
 
-/* --- Modo invierno: pastilla con sol dibujado (adiós al emoji) --- */
-.rs-toggle-invierno{
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 8px 14px;
-  width: fit-content;
-  box-shadow: 0 2px 8px rgba(14,59,71,0.08);
-}
-.rs-toggle-invierno.rs-invierno-activo{
-  border-color: #d98a00;
-  background: rgba(217,138,0,0.08);
-}
-.rs-icono-sol{ display: inline-flex; align-items: center; color: #d98a00; }
-.rs-icono-sol svg{ width: 18px; height: 18px; }
 
 /* --- Capas de mapa plegables (Mapa claro / IGN / Catastro 3D) --- */
 #rsBtnCapasMapa{ display: inline-flex; align-items: center; gap: 6px; }
@@ -1380,7 +1368,6 @@ body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
     display:block; width:100%; min-width:0;
   }
   #main-content .rs-form #rsBuscarBtn{ width:100%; min-height:44px; }
-  #main-content .rs-form .rs-toggle-invierno{ margin:0 auto; }
 }
 
 /* En móviles anchos/tabletas pequeñas el formulario aprovecha el ancho:
@@ -1395,12 +1382,7 @@ body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
   #main-content .rs-form #rsBuscarBtn{
     grid-column:1; width:100%; min-width:0; padding:8px 10px;
   }
-  #main-content .rs-form .rs-toggle-invierno{
-    grid-column:2; width:100%; min-width:0; margin:0; padding:8px 10px;
-    justify-content:center; font-size:.78rem; line-height:1.2;
-  }
 }
-
 
 /* --- RENDIMIENTO sep-2026: el balanceo de Manolit lo escribe el propio
    reloj del muñeco (66 ms) desde JS; una animación CSS infinita obligaba
@@ -2591,7 +2573,7 @@ body.mode-peque .im-lost-btn{
    cuando una acción está activa. */
 #main-content #rsMapControls{
   gap:2px !important; padding:4px; max-width:calc(100% - 24px);
-  background:rgba(22,26,32,0.94); border:1px solid var(--mui-line);
+  background:rgba(22,26,32,0.78); border:1px solid var(--mui-line);
   border-radius:var(--mui-r-panel); box-shadow:var(--mui-shadow);
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
 }
@@ -2973,7 +2955,7 @@ body.rs-capas-pop #main-content .rs-capas-cabecera{ border-bottom:1px solid var(
 body.rs-capas-pop #main-content #rsBtnPlegarCapas{ flex:1 1 auto; border-bottom-color:transparent; }
 body.rs-capas-pop #main-content #rsBtnPlegarCapas::after{ content:none; }
 body.rs-capas-pop #main-content #rsBtnCerrarCapas{
-  margin:0 6px 0 auto; width:32px; height:32px; flex:0 0 auto;
+  margin:0 6px 0 auto; width:40px; height:40px; flex:0 0 auto;
   display:flex; align-items:center; justify-content:center;
   background:transparent; border:none; border-radius:var(--mui-r-ctl);
   color:var(--mui-soft); cursor:pointer; padding:0; font-family:inherit;
@@ -3961,15 +3943,12 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   background:rgba(22,26,32,0.82);
   box-shadow:0 10px 32px rgba(10,25,35,.28);
 }
-#main-content .rs-form .rs-toggle-invierno{ grid-column:1/-1; justify-self:start; }
 @media (max-width:700px){
   #main-content .rs-form{ grid-template-columns:minmax(0,1fr); }
   #main-content .rs-form .rs-field,
   #main-content .rs-form #rsBuscarBtn,
-  #rsParkingAction,
-  #main-content .rs-form .rs-toggle-invierno{ grid-column:1; width:100%; }
+  #rsParkingAction{ grid-column:1; width:100%; }
   #main-content .rs-form .rs-parking-action{ min-height:48px; }
-  #main-content .rs-form .rs-toggle-invierno{ justify-self:stretch; }
 }
 @media (min-width:480px) and (max-width:700px){
   #main-content .rs-form{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
@@ -3977,7 +3956,6 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   #main-content .rs-form .rs-field:nth-child(2){ grid-column:2; }
   #main-content .rs-form #rsBuscarBtn{ grid-column:1; }
   #rsParkingAction{ grid-column:2; }
-  #main-content .rs-form .rs-toggle-invierno{ grid-column:1/-1; }
 }
 
 /* Control horario más cómodo: slider ancho y números estables. */
@@ -4089,22 +4067,6 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
     line-height:1.15;
     white-space:nowrap;
     transition-duration:240ms;
-  }
-  #main-content .rs-form .rs-toggle-invierno{
-    grid-column:1 / -1;
-    justify-self:stretch;
-    min-block-size:44px;
-    margin:0;
-    padding:6px 10px;
-    border-radius:var(--mui-r-ctl,12px);
-    background:rgba(255,255,255,.045);
-    font-size:.82rem;
-    line-height:1.25;
-  }
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]{
-    inline-size:20px;
-    block-size:20px;
-    flex:0 0 auto;
   }
   #main-content .rs-form button:focus-visible,
   #main-content .rs-form input:focus-visible{
@@ -4244,82 +4206,6 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
     background:rgba(53,196,212,.10) !important;
     border-color:#35C4D4;
     color:var(--sky-deep);
-  }
-  #main-content .rs-form .rs-toggle-invierno{
-    box-sizing:border-box;
-    grid-column:1 / -1;
-    display:flex;
-    align-items:center;
-    justify-self:stretch;
-    min-block-size:44px;
-    margin-block:8px 0 !important;
-    margin-inline:0;
-    padding-block:0;
-    padding-inline:8px;
-    border:0;
-    border-radius:0;
-    background:transparent !important;
-    color:var(--ink,#0D1F26) !important;
-    font-size:15px !important;
-    line-height:1.25;
-    gap:8px;
-  }
-  #main-content .rs-form .rs-toggle-invierno.rs-invierno-activo{
-    color:var(--ink,#0D1F26) !important;
-  }
-  #main-content .rs-form .rs-toggle-invierno .rs-icono-sol{
-    order:0;
-    display:inline-flex;
-    color:#FF6B1A;
-  }
-  #main-content .rs-form .rs-toggle-invierno .rs-icono-sol svg{
-    inline-size:18px;
-    block-size:18px;
-    stroke-width:1.8;
-  }
-  #main-content .rs-form .rs-toggle-invierno > span:last-child{ order:1; }
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]{
-    appearance:none;
-    -webkit-appearance:none;
-    position:relative;
-    order:2;
-    inline-size:44px;
-    block-size:26px;
-    flex:0 0 44px;
-    margin-block:0;
-    margin-inline-start:auto;
-    margin-inline-end:0;
-    border:1px solid var(--line);
-    border-radius:999px;
-    background:var(--line);
-    cursor:pointer;
-    transition:background-color 240ms ease,border-color 240ms ease;
-  }
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]::after{
-    content:"";
-    position:absolute;
-    inset-inline-start:3px;
-    inset-block-start:3px;
-    inline-size:18px;
-    block-size:18px;
-    border-radius:50%;
-    background:var(--paper);
-    transition:transform 240ms ease,background-color 240ms ease;
-  }
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:checked{
-    background:#FF6B1A;
-    border-color:#FF6B1A;
-  }
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:checked::after{
-    background:var(--paper);
-    transform:translateX(18px);
-  }
-  html[lang="ar"] #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]{
-    margin-inline-start:auto;
-    margin-inline-end:0;
-  }
-  html[lang="ar"] #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:checked::after{
-    transform:translateX(-18px);
   }
   #main-content #rsStatus.rs-status-ruta{
     min-block-size:44px;
@@ -4495,96 +4381,6 @@ html[lang="ar"] #main-content #rsCamCtl{
   }
 }
 
-@media (max-width:640px){
-  #main-content #rsListaCapas .rs-toggle-en-capas{
-    display:flex !important;
-    align-items:center;
-    box-sizing:border-box;
-    inline-size:100%;
-    min-block-size:44px;
-    margin-block:0 !important;
-    padding-block:4px;
-    padding-inline:10px;
-    border:0;
-    border-radius:var(--mui-r-ctl,12px);
-    background:transparent !important;
-    box-shadow:none;
-    color:var(--mui-text) !important;
-    font-size:13px !important;
-    line-height:1.15;
-    gap:10px;
-    transition:background-color 240ms ease,border-color 240ms ease,color 240ms ease;
-  }
-  #main-content #rsListaCapas .rs-toggle-en-capas:hover{
-    background:rgba(255,255,255,.05) !important;
-  }
-  #main-content #rsListaCapas .rs-toggle-en-capas .rs-icono-sol{
-    display:inline-flex;
-    flex:0 0 auto;
-    color:#FF6B1A;
-    order:0;
-  }
-  #main-content #rsListaCapas .rs-toggle-en-capas .rs-icono-sol svg{
-    inline-size:14px;
-    block-size:14px;
-    stroke-width:1.8;
-  }
-  #main-content #rsListaCapas .rs-toggle-en-capas > span:last-child{
-    order:1;
-    flex:1 1 auto;
-    min-inline-size:0;
-  }
-  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]{
-    appearance:none !important;
-    -webkit-appearance:none !important;
-    position:relative;
-    order:2;
-    inline-size:36px !important;
-    block-size:22px !important;
-    flex:0 0 36px;
-    margin-block:0 !important;
-    margin-inline-start:auto !important;
-    margin-inline-end:0 !important;
-    border:1px solid var(--mui-line-2);
-    border-radius:999px;
-    background:rgba(255,255,255,.08) !important;
-    background-image:none !important;
-    cursor:pointer;
-    transition:background-color 240ms ease,border-color 240ms ease;
-  }
-  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]::after{
-    content:"";
-    position:absolute;
-    inset-inline-start:3px;
-    inset-block-start:3px;
-    inline-size:14px;
-    block-size:14px;
-    border-radius:50%;
-    background:var(--mui-text);
-    transition:transform 240ms ease,background-color 240ms ease;
-  }
-  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]:checked{
-    background:#FF6B1A !important;
-    border-color:#FF6B1A;
-  }
-  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]:checked::after{
-    background:#fff;
-    transform:translateX(16px);
-  }
-  html[lang="ar"] #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]:checked::after{
-    transform:translateX(-16px);
-  }
-  #main-content #rsListaCapas .rs-toggle-en-capas:focus-within{
-    outline:2px solid var(--mui-accent);
-    outline-offset:2px;
-  }
-}
-
-@media (max-width:640px) and (prefers-reduced-motion:reduce){
-  #main-content #rsListaCapas .rs-toggle-en-capas,
-  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"],
-  #main-content #rsListaCapas .rs-toggle-en-capas input[type="checkbox"]::after{ transition:none !important; }
-}
 
 /* Panel solar flotante: misma información y controles, nueva composición. */
 #main-content #rsTimeControls{
@@ -4848,72 +4644,8 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
     background:rgba(53,196,212,.18);
     border-color:#35C4D4;
   }
-  #main-content .rs-form .rs-toggle-invierno{
-    display:inline-flex;
-    align-items:center;
-    gap:9px;
-    min-height:42px;
-    margin:0;
-    padding:5px 12px;
-    border:1px solid rgba(255,255,255,.11);
-    border-radius:999px;
-    background:rgba(255,255,255,.035);
-    box-shadow:none;
-    color:var(--mui-text,#E8EDF5);
-    font-size:.86rem;
-    transition:border-color 180ms ease,background-color 180ms ease;
-  }
-  #main-content .rs-form .rs-toggle-invierno:hover,
-  #main-content .rs-form .rs-toggle-invierno.rs-invierno-activo{
-    border-color:rgba(255,180,93,.48);
-    background:rgba(255,180,93,.09);
-  }
-  #main-content .rs-form .rs-toggle-invierno .rs-icono-sol{ order:0; color:#FFB45D; }
-  #main-content .rs-form .rs-toggle-invierno > span:last-child{ order:1; }
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]{
-    appearance:none;
-    -webkit-appearance:none;
-    position:relative;
-    order:2;
-    width:42px;
-    height:24px;
-    flex:0 0 42px;
-    margin:0 0 0 4px;
-    border:1px solid rgba(255,255,255,.22);
-    border-radius:999px;
-    background:#303946;
-    cursor:pointer;
-    transition:background-color 180ms ease,border-color 180ms ease;
-  }
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]::after{
-    content:"";
-    position:absolute;
-    inset-inline-start:3px;
-    inset-block-start:3px;
-    width:16px;
-    height:16px;
-    border-radius:50%;
-    background:#E8EDF5;
-    transition:transform 180ms ease,background-color 180ms ease;
-  }
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:checked{
-    border-color:#FFB45D;
-    background:#FF9A3D;
-  }
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:checked::after{
-    background:#171B22;
-    transform:translateX(18px);
-  }
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]:focus-visible{
-    outline:2px solid #FFB45D;
-    outline-offset:3px;
-  }
 }
-@media (min-width:701px) and (prefers-reduced-motion:reduce){
-  #main-content .rs-form .rs-toggle-invierno,
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"],
-  #main-content .rs-form .rs-toggle-invierno input[type="checkbox"]::after{ transition:none; }
-}
+
 /* ============================================================
    PANEL DE RUTA — pulido fino en escritorio (≥901px)
    Solo retoques de detalle sobre el diseño ya existente:

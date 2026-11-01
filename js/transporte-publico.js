@@ -729,10 +729,14 @@
       .tp-directions svg { width:14px; height:14px; transform:rotate(-45deg); }
       .tp-directions:hover { background:#4dd8e8; }
       .tp-departures { margin-top:17px; }
-      .tp-departure-list { display:grid; gap:2px; margin:0; padding:0; list-style:none; }
-      .tp-departure { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:36px; border-top:1px solid rgba(255,255,255,.08); }
-      .tp-line-name { overflow:hidden; color:rgba(232,228,220,.68); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
-      .tp-time { flex:none; padding:5px 9px; border-radius:999px; background:rgba(53,196,212,.16); color:#8fe0ea; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; }
+      /* Cada fila tiene su propio espacio vertical (min-height + padding) y
+         la hora ocupa un ancho mínimo propio con caja incluida: nada de
+         solapes ni cortes entre filas en ningún tamaño de pantalla
+         (nov-2026, bug de la lista de paradas). */
+      .tp-departure-list { display:grid; grid-template-columns:minmax(0,1fr); gap:2px; margin:0; padding:0; list-style:none; }
+      .tp-departure { display:flex; align-items:center; justify-content:space-between; gap:12px; box-sizing:border-box; min-height:40px; padding-block:6px; border-top:1px solid rgba(255,255,255,.08); }
+      .tp-line-name { flex:1 1 auto; min-width:0; overflow:hidden; color:rgba(232,228,220,.68); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+      .tp-time { flex:0 0 auto; box-sizing:border-box; min-width:54px; text-align:center; padding:5px 9px; border-radius:999px; background:rgba(53,196,212,.16); color:#8fe0ea; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; }
       .tp-time.is-realtime { background:rgba(43,152,115,.18); color:#7ad9ae; }
       .tp-departure.is-past { opacity:.28; }
       @media (max-width:600px) {

@@ -558,6 +558,8 @@ const translations = {
 		modoCaminar: "A pie",
 		modoBici: "Bici",
 		modoCoche: "Coche",
+		grupoSombrasSol: "Sombras y Sol",
+		grupoRutasMovilidad: "Rutas y movilidad",
 	},
 	ca: {
 		queEsTitulo: "Què és Manolit∞ Aire",
@@ -1062,6 +1064,8 @@ const translations = {
 		modoCaminar: "A peu",
 		modoBici: "Bici",
 		modoCoche: "Cotxe",
+		grupoSombrasSol: "Ombres i Sol",
+		grupoRutasMovilidad: "Rutes i mobilitat",
 	},
 	eu: {
 		queEsTitulo: "Zer da Manolit∞ Aire",
@@ -1566,6 +1570,8 @@ const translations = {
 		modoCaminar: "Oinez",
 		modoBici: "Bizikletaz",
 		modoCoche: "Kotxez",
+		grupoSombrasSol: "Itzalak eta Eguzkia",
+		grupoRutasMovilidad: "Ibilbideak eta mugikortasuna",
 	},
 	gl: {
 		queEsTitulo: "Que é Manolit∞ Aire",
@@ -2071,6 +2077,8 @@ const translations = {
 		modoCaminar: "A pé",
 		modoBici: "Bici",
 		modoCoche: "Coche",
+		grupoSombrasSol: "Sombras e Sol",
+		grupoRutasMovilidad: "Rutas e mobilidade",
 	},
 	en: {
 		queEsTitulo: "What is Manolit∞ Aire",
@@ -2603,6 +2611,8 @@ const translations = {
 		modoCaminar: "Walking",
 		modoBici: "Bike",
 		modoCoche: "Car",
+		grupoSombrasSol: "Shadows and Sun",
+		grupoRutasMovilidad: "Routes and mobility",
 	},
 	ka: {
 		queEsTitulo: "რა არის Manolit∞ Aire",
@@ -3105,6 +3115,8 @@ const translations = {
 		modoCaminar: "ფეხით",
 		modoBici: "ველოსიპედით",
 		modoCoche: "მანქანით",
+		grupoSombrasSol: "ჩრდილები და მზე",
+		grupoRutasMovilidad: "მარშრუტები და მობილობა",
 	},
 	// Traducciones locales para la interfaz principal; el fallback MT queda
 	// reservado para frases largas que aún no tienen una traducción propia.
@@ -3230,7 +3242,9 @@ const translations = {
 		modoRutaLabel: "وضع المسار",
 		modoCaminar: "مشيًا",
 		modoBici: "بالدراجة",
-		modoCoche: "بالسيارة"
+		modoCoche: "بالسيارة",
+		grupoSombrasSol: "الظلال والشمس",
+		grupoRutasMovilidad: "المسارات والتنقل"
 	}
 };
 

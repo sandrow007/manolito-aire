@@ -6117,52 +6117,34 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   // ---- Interruptor «Modo invierno: ruta por el sol» ----
-  // Se inyecta al final del formulario de ruta (junto a «Buscar
-  // ruta») sin tocar el HTML ni el código de búsqueda existente.
+  // Fila ESTANDAR del panel de Capas (nov-2026): el mismo componente visual
+  // que el resto de toggles (rs-capa-fila + icono rs-ico-sol + interruptor
+  // estandar de .rs-layer-toggles), sin tratamiento especial de fondo,
+  // tamano ni tipografia. Vive en el grupo «Sombras y Sol», justo detras
+  // de «Posicion del sol». La logica (Dijkstra solar) no cambia.
   let modoInviernoRuta = false;
 
   function inyectarToggleRutaSol() {
-    const form = document.querySelector('.rs-form');
-    if (!form || document.getElementById('rsToggleRutaSol')) return;
-
-    if (!document.getElementById('rsToggleRutaSolEstilos')) {
-      const estilo = document.createElement('style');
-      estilo.id = 'rsToggleRutaSolEstilos';
-      estilo.textContent = [
-        '.rs-toggle-invierno{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:0.92em;cursor:pointer;user-select:none;}',
-        '.rs-toggle-invierno.rs-invierno-activo{color:#d98a00;font-weight:600;}'
-      ].join('\n');
-      document.head.appendChild(estilo);
-    }
+    if (document.getElementById('rsToggleRutaSol')) return;
 
     const etiqueta = document.createElement('label');
-    etiqueta.className = 'rs-toggle-invierno';
+    etiqueta.className = 'rs-capa-fila rs-ico-sol';
     const caja = document.createElement('input');
     caja.type = 'checkbox';
     caja.id = 'rsToggleRutaSol';
     const texto = document.createElement('span');
     texto.textContent = t('winterSunRoute', 'Modo invierno: ruta por el sol');
-    const iconoSol = document.createElement('span');
-    iconoSol.className = 'rs-icono-sol';
-    iconoSol.setAttribute('aria-hidden', 'true');
-    iconoSol.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
-    etiqueta.append(caja, iconoSol, texto);
+    etiqueta.append(caja, texto);
+
     const listaCapas = document.getElementById('rsListaCapas');
-    function colocarInterruptorInvierno() {
-      if (!listaCapas) {
-        form.appendChild(etiqueta);
-        return;
-      }
-      etiqueta.classList.add('rs-toggle-en-capas');
-      const grupoLuz = listaCapas.querySelector('.rs-capa-grupo-tit');
-      if (grupoLuz) grupoLuz.after(etiqueta);
-      else listaCapas.appendChild(etiqueta);
-    }
-    colocarInterruptorInvierno();
+    const filaSol = document.getElementById('rsToggleSol');
+    const filaSolCont = filaSol && filaSol.closest ? filaSol.closest('.rs-capa-fila') : null;
+    if (filaSolCont) filaSolCont.after(etiqueta);
+    else if (listaCapas) listaCapas.appendChild(etiqueta);
+    else document.querySelector('.rs-form')?.appendChild(etiqueta);
 
     caja.addEventListener('change', () => {
       modoInviernoRuta = caja.checked;
-      etiqueta.classList.toggle('rs-invierno-activo', modoInviernoRuta);
       mostrarEstado(modoInviernoRuta
         ? t('winterModeOn', 'Modo invierno activado: la próxima ruta buscará el sol (los tramos en sombra pesan más).')
         : t('winterModeOff', 'Modo invierno desactivado: las rutas vuelven a buscar la sombra.'), 'ok');

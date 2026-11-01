@@ -13,7 +13,7 @@
    - 22 abr ....... Día de la Tierra
    - 23-24 jun .... San Juan (hogueras)
    - resto de junio . Orgullo
-   - 31 oct-1 nov . Halloween (con decoración festiva, hasta el 1 nov 23:59)
+   - 31 oct ........ Halloween (con decoración festiva, solo la noche del 31)
    - 10 dic-15 ene  Navidad (con decoración festiva; el 31 dic anuncia el
      cambio de año; el 1 ene manda el ambiente anonuevo y del 2 al 15 ene
      vuelve la piel de Navidad hasta despedirse)
@@ -108,10 +108,9 @@
     if (mes === 4 && dia === 22) return 'ambiental';  // Día de la Tierra
     if (mes === 6 && (dia === 23 || dia === 24)) return 'sanjuan';
     if (mes === 6) return 'orgullo';
-    // Halloween: la noche del 31 y todo el día 1 de noviembre (23:59 incluida;
-    // el 2 a las 00:00 la web ya vuelve sola a su piel de siempre).
+    // Halloween (nov-2026): solo la noche del 31; el decorado desaparece
+    // el 1 de noviembre, en cuanto termina la temporada.
     if (mes === 10 && dia >= 31) return 'halloween';
-    if (mes === 11 && dia === 1) return 'halloween';
     // Navidad: del 10 de diciembre al 15 de enero (Año Nuevo georgiano viejo,
     // que se celebra el 13-14 de enero). El 1 de enero lo gobierna el
     // ambiente 'anonuevo' de más arriba; del 2 al 15 enero vuelve Navidad

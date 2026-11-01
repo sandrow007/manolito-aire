@@ -427,12 +427,7 @@
     panel.appendChild(attribution);
 
     var mapaWrap = document.querySelector('.map-wrap');
-    // Buscador unificado (nov-2026): el panel vive DENTRO del formulario de
-    // ruta, oculto, y solo se enseña al calcular: alternativas y estado en
-    // la misma tarjeta del buscador, sin paneles flotantes aparte.
-    var contenedorForm = document.querySelector('#main-content .rs-form');
-    if (contenedorForm) contenedorForm.appendChild(panel);
-    else if (mapaWrap && mapaWrap.parentNode) mapaWrap.parentNode.insertBefore(panel, mapaWrap.nextSibling);
+    if (mapaWrap && mapaWrap.parentNode) mapaWrap.parentNode.insertBefore(panel, mapaWrap.nextSibling);
     else document.getElementById('main-content')?.appendChild(panel);
 
     inputDestino.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); planificar(); } });
@@ -509,13 +504,6 @@
 
   // API pública acotada para que el chat use la misma geocodificación y
   // el mismo motor/pintado que el panel, sin duplicar rutas ni acceder al DOM.
-  // Limpieza pública para el buscador unificado: al cambiar de modo se
-  // desconecta la bici (ruta fuera del mapa, panel oculto y estado vacío).
-  window.manolitAireLimpiarRutaBici = function () {
-    try { limpiarRuta(); if (estado) estado.textContent = ''; } catch (e) {}
-    if (panel) { panel.classList.remove('rs-panel-viaje-abierto'); panel.setAttribute('hidden', ''); }
-  };
-
   window.manolitAirePlanificarRutaBici = async function (origenTexto, destinoTexto) {
     if (!map || !String(destinoTexto || '').trim()) return null;
     if (panel && panel.hasAttribute('hidden')) panel.removeAttribute('hidden');
@@ -1183,12 +1171,6 @@
     btn.setAttribute('aria-controls', 'rsPanelBici');
     btn.textContent = t('bikeBtn', 'Ruta en bici');
     btn.addEventListener('click', function () {
-      // Buscador unificado (nov-2026): este botón ya no abre un panel
-      // propio; activa el modo bici del buscador único y enfoca el destino.
-      if (window.manolitAireElegirModoRuta) {
-        window.manolitAireElegirModoRuta('bici', { enfocarDestino: true });
-        return;
-      }
       if (!panel) return;
       var abierto = !panel.hasAttribute('hidden');
       if (!abierto) {

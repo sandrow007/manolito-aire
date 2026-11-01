@@ -160,7 +160,7 @@
      huerfano al retirar el preload; se elimina 31-oct-2026.) -->
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
-<link rel="stylesheet" href="css/style.css?v=busqueda-agua-1">
+<link rel="stylesheet" href="css/style.css?v=buscador-glass-20261101-b">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -1397,24 +1397,32 @@
       <span data-i18n="modoCoche">Coche</span>
     </button>
   </div>
+<div class="rs-barra">
   <div class="rs-field">
     <label for="rsOrigen" class="visually-hidden" data-i18n="origin">Origen</label>
     <input type="text" id="rsOrigen" name="origen" placeholder="Punto de origen" data-i18n-placeholder="originPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasOrigen" aria-autocomplete="list">
     <ul class="rs-sugerencias" id="rsSugerenciasOrigen" role="listbox" data-i18n-aria-label="origin" aria-label="Origen"></ul>
   </div>
+  <div class="rs-vdiv" aria-hidden="true"></div>
   <div class="rs-field">
     <label for="rsDestino" class="visually-hidden" data-i18n="destiny">Destino</label>
     <input type="text" id="rsDestino" name="destino" placeholder="Punto de destino" data-i18n-placeholder="destinationPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasDestino" aria-autocomplete="list">
     <ul class="rs-sugerencias" id="rsSugerenciasDestino" role="listbox" data-i18n-aria-label="destiny" aria-label="Destino"></ul>
   </div>
-  <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar ruta</button>
-  <div id="rsParkingAction"></div>
+  <div class="rs-vdiv" aria-hidden="true"></div>
+  <!-- Fila de acciones: ambos botones comparten fila con 8px de gap;
+       cada uno flex-1, así caben sin romperse. -->
+  <div class="rs-fila-botones">
+    <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar ruta</button>
+    <div id="rsParkingAction"></div>
+  </div>
   <!-- Cierre del panel flotante en escritorio (nov-2026): la X vive
        DENTRO del panel. En móvil el CSS la oculta y el formulario sigue
        apilado como siempre. -->
   <button type="button" id="rsBtnCerrarForm" data-i18n-aria-label="closeLbl" aria-label="Cerrar">
     <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M1.5 1.5l11 11M12.5 1.5l-11 11" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
   </button>
+</div>
 </div>
   <div id="shadowRouteMap">
   </div>
@@ -2625,7 +2633,7 @@
 
 <!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
 <script src="js/theme.js" defer></script>
-<script src="js/i18n.js?v=faq-integraciones-20261101-a" defer></script>
+<script src="js/i18n.js?v=buscador-glass-20261101-b" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
 <script src="js/cookie-banner.js" defer></script>
@@ -2692,7 +2700,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=osm-global-restaurado-20261020'))
+        .then(() => cargarScript('js/shadows-route.js?v=buscador-glass-20261101-b'))
         .then(() => {
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.

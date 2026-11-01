@@ -266,7 +266,7 @@
 // 2026-11-01-f: las políticas legales se localizan en las siete lenguas
 // ofrecidas; se añade georgiano y se invalida la caché de traducciones JS.
 // Cambian js/i18n-legal.js, js/i18n.js y las tres páginas legales.
-const VERSION = '2026-11-01-f-legal-idiomas';
+const VERSION = '2026-11-01-g-buscador-glass';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

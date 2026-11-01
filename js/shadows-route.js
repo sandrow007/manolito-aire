@@ -5891,6 +5891,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
   }
 
+
   async function manejarBusquedaUnificada(origenDirecto, destinoDirecto) {
     const modo = window.__manolitoModoRuta || 'caminar';
 

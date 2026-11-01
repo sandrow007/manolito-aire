@@ -3945,84 +3945,147 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 
 /* ============================================================
    BUSCADOR DE RUTA FLOTANTE EN ESCRITORIO (nov-2026, >=768px)
-   - Ancho tope 560px, centrado sobre el mapa, bajo la barra de
-     acciones: no empuja nada ni tapa la barra.
-   - Tamaños FIJOS en px: nada escala con el viewport.
-   - Acento solo en borde y texto (glass), nunca como fondo de
-     relleno completo.
+   Puerto literal del HTML de diseño aportado por el equipo: mismas
+   medidas, mismos paddings, misma estructura de dos filas. Único
+   cambio respecto al original: los acentos usan la familia cromática
+   de la UI del mapa (naranja de la app para modo activo/Buscar ruta,
+   cian de la capa de aparcamiento para Aparcamiento), sin otras
+   tonalidades.
    ============================================================ */
 @media (min-width:768px){
+  /* .panel — cristal, tal cual el diseño */
   #main-content .rs-form{
     position:absolute;
     top:60px; left:50%;
     transform:translateX(-50%);
-    width:100%; max-width:560px;
+    width:100%; max-width:900px;
     margin:0; box-sizing:border-box;
     z-index:30;
-    border-radius:16px;
-    background:rgba(22,26,32,0.85);
+    background:rgba(22,26,32,0.55);
+    backdrop-filter:blur(28px) saturate(160%);
+    -webkit-backdrop-filter:blur(28px) saturate(160%);
+    border:1px solid rgba(255,255,255,0.10);
+    border-top-color:rgba(255,255,255,0.16);
+    border-radius:var(--mui-r-panel,12px);
+    padding:8px 10px;
+    display:flex; flex-direction:column; gap:7px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
   }
-  /* Tabs de modo: altura y fuente fijas */
+
+  /* .row-modes — píldoras de modo */
+  #main-content .rs-form .rs-modo-ruta{
+    display:flex; gap:2px; padding:0 2px;
+  }
   #main-content .rs-form .rs-modo-ruta button{
-    height:36px; padding:0 14px; box-sizing:border-box;
-    font-size:14px !important;
-    background:rgba(255,255,255,0.05);
+    display:flex; align-items:center; gap:5px;
+    height:auto; box-sizing:border-box;
+    background:transparent; border:none;
+    color:var(--mui-soft);
+    font-size:12px !important; font-weight:500; letter-spacing:-0.01em;
+    padding:4px 11px; border-radius:999px;
+    cursor:pointer; transition:color .18s, background .18s;
   }
-  #main-content .rs-form .rs-modo-ruta button svg{ width:16px; height:16px; }
-  /* Tab activo: glass, el acento solo en borde y texto */
+  #main-content .rs-form .rs-modo-ruta button svg{ width:13px; height:13px; opacity:.9; }
+  #main-content .rs-form .rs-modo-ruta button:hover{
+    color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.06);
+  }
   #main-content .rs-form .rs-modo-ruta button.activa{
-    background:rgba(255,255,255,0.07) !important;
-    border-color:var(--accent, #FF6B1A) !important;
-    color:var(--mui-accent-text, #FF9A4D) !important;
-    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    color:var(--mui-accent);
+    background:var(--mui-accent-tint);
   }
-  /* Campos de texto: 40px y 14px fijos */
-  #main-content .rs-form .rs-field input[type="text"]{
-    height:40px; min-height:40px; box-sizing:border-box;
-    font-size:14px !important;
+
+  /* .row-bar — la barra única */
+  #main-content .rs-form .rs-barra{
+    display:flex; align-items:center; gap:6px; flex-wrap:nowrap;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:var(--mui-r-ctl,8px);
+    padding:5px 8px;
   }
-  /* Botones: 40px de alto tope */
+  #main-content .rs-form .rs-barra .rs-field{
+    position:relative; flex:1; min-width:0;
+  }
+  #main-content .rs-form .rs-barra .rs-field input[type="text"]{
+    width:100%; height:34px; min-height:34px; box-sizing:border-box;
+    background:transparent; border:none; box-shadow:none !important;
+    color:var(--mui-text);
+    font-size:13px !important; font-weight:400; letter-spacing:-0.01em;
+    padding:0 10px 0 30px; outline:none;
+    background-repeat:no-repeat; background-position:10px center; background-size:13px 13px;
+  }
+  #main-content .rs-form .rs-barra #rsOrigen{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF6B1A'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z'/%3E%3C/svg%3E");
+  }
+  #main-content .rs-form .rs-barra #rsDestino{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF6B6B'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z'/%3E%3C/svg%3E");
+  }
+  #main-content .rs-form .rs-barra .rs-field input[type="text"]::placeholder{ color:var(--mui-soft); opacity:1; }
+  #main-content .rs-form .rs-barra .rs-vdiv{
+    width:1px; height:16px; background:var(--mui-line-2); flex:0 0 auto;
+  }
+
+  /* .btn — píldoras de acción (display:contents funde la fila con la barra) */
+  #main-content .rs-form .rs-fila-botones{ display:contents; }
   #main-content .rs-form #rsBuscarBtn,
   #main-content .rs-form .rs-parking-action{
-    height:40px; min-height:40px; max-height:40px; box-sizing:border-box;
-    font-size:14px !important;
+    display:flex; align-items:center; justify-content:center; gap:5px;
+    height:32px; min-height:32px; max-height:32px; box-sizing:border-box;
+    padding:0 14px; border-radius:999px;
+    font-size:12px !important; font-weight:500; letter-spacing:-0.01em;
+    white-space:nowrap; flex:0 0 auto;
+    cursor:pointer; transition:background .18s, border-color .18s, opacity .18s;
   }
-  /* «Buscar ruta»: glass con acento en borde/texto, sin relleno naranja */
+  #main-content .rs-form #rsParkingAction{ display:flex; flex:0 0 auto; }
+  /* .btn-ruta — acento del mapa */
   #main-content .rs-form #rsBuscarBtn{
-    background:rgba(255,107,26,0.14) !important;
-    border:1px solid var(--accent, #FF6B1A) !important;
-    color:var(--mui-accent-text, #FF9A4D) !important;
+    color:var(--mui-accent);
+    background:var(--mui-accent-tint);
+    border:1px solid rgba(255,107,26,0.22) !important;
     box-shadow:none !important;
-    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    backdrop-filter:none; -webkit-backdrop-filter:none;
   }
   #main-content .rs-form #rsBuscarBtn:hover{
-    background:rgba(255,107,26,0.22) !important;
-    transform:none !important; filter:none !important;
-    box-shadow:none !important;
+    background:rgba(255,107,26,0.20);
+    border-color:rgba(255,107,26,0.38) !important;
+    transform:none !important; filter:none !important; box-shadow:none !important;
   }
-  /* X de cierre DENTRO del panel */
+  /* .btn-parking — cian de la capa de aparcamiento */
+  #main-content .rs-form .rs-parking-action{
+    color:#2EC4A4;
+    background:rgba(46,196,164,0.10);
+    border:1px solid rgba(46,196,164,0.28);
+  }
+  #main-content .rs-form .rs-parking-action:hover{
+    background:rgba(46,196,164,0.18);
+    border-color:rgba(46,196,164,0.45);
+  }
+
+  /* .btn-close — X simple al final de la barra */
   #main-content .rs-form #rsBtnCerrarForm{
-    position:absolute; top:6px; right:6px; z-index:2;
-    width:32px; height:32px; display:flex; align-items:center; justify-content:center;
-    border:none; border-radius:8px; background:transparent; color:#B9C2CC;
-    cursor:pointer; touch-action:manipulation; padding:0;
+    position:static;
+    width:28px; height:28px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    background:transparent; border:none; border-radius:50%;
+    color:var(--mui-soft); cursor:pointer; padding:0;
+    transition:color .18s, background .18s;
   }
-  #main-content .rs-form #rsBtnCerrarForm:hover{ background:rgba(255,255,255,0.08); color:#F5F7FA; }
+  #main-content .rs-form #rsBtnCerrarForm:hover{ color:var(--mui-text); background:rgba(255,255,255,0.07); }
   #main-content .rs-form #rsBtnCerrarForm:focus-visible{ outline:2px solid var(--mui-accent); outline-offset:2px; }
+
   #main-content .rs-form.rs-form-plegado{ display:none; }
-  /* Píldora de reapertura: ocupa el hueco del panel plegado */
+  /* Píldora de reapertura (mismo hueco) */
   #main-content #rsBtnAbrirForm{
     position:absolute; top:60px; left:50%; transform:translateX(-50%);
     z-index:29; display:none; align-items:center; gap:8px;
     height:40px; padding:0 16px; border-radius:999px;
     background:rgba(22,26,32,0.78); border:1px solid var(--mui-line);
-    color:#E8EDF5; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    color:var(--mui-text); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     box-shadow:var(--mui-shadow);
     font:600 13px/1 var(--font-body, system-ui, sans-serif);
     cursor:pointer; touch-action:manipulation;
   }
   #main-content #rsBtnAbrirForm.rs-visible{ display:inline-flex; }
-  #main-content #rsBtnAbrirForm:hover{ border-color:var(--accent, #FF6B1A); }
+  #main-content #rsBtnAbrirForm:hover{ border-color:var(--mui-accent); }
   #main-content #rsBtnAbrirForm:focus-visible{ outline:2px solid var(--mui-accent); outline-offset:2px; }
   #main-content #rsBtnAbrirForm svg{ width:15px; height:15px; }
 }

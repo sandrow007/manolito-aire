@@ -13,6 +13,12 @@
  *   espacio de caché en el Worker para que nunca se devuelvan unos datos
  *   por otros en el mismo bbox — 24-oct-2026, arreglo del carril que no
  *   aparecía).
+ * - VELOCIDAD (01-nov-2026 c): la capa pide por MACROCELDA de 0,02° (mismo
+ *   sistema que fuentes de agua). La caja visible se expande a la rejilla,
+ *   se consulta una vez y queda servida en memoria al moverse por la zona.
+ *   Por debajo de z12,5 la consulta va en modo ligero (solo vías dedicadas,
+ *   timeout de 8 s) y al acercarse la celda se completa sola. Así el primer
+ *   carril aparece en 1-3 s y los paseos por la zona son instantáneos.
  * - "Más sombra" para bici NO se implementa: reutilizar el motor de sombra
  *   sobre la polilínea de bici no es trivial y se deja fuera para no tocar
  *   la lógica existente.
@@ -60,6 +66,14 @@
   var CARRIL_ZOOM_OCULTAR = 7;
   var CARRIL_ACUMULADO_MAX = 6000;  // tope de tramos guardados (recorte FIFO, móvil ligero)
   var CARRIL_PUNTOS_MAX = 20000;    // tope de señales de bici guardadas
+  // 01-nov-2026 (c): la búsqueda se hace por MACROCELDA de 0,02° (misma
+  // escala que la capa de fuentes de agua). La caja visible se expande a la
+  // rejilla, se pide UNA vez y queda servida desde memoria al moverte por
+  // la zona: sin releo a cada paso. Por debajo de z12,5 la consulta va en
+  // modo ligero (solo vías dedicadas) y al acercarte se completa sola.
+  var CARRIL_REJILLA_GRADOS = 0.02;
+  var CARRIL_ZOOM_COMPLETO = 12.5;
+  var carrilCeldas = new Map();     // clave macrocelda -> { features, modo, touched }
 
   var map = null;
   var rutaSourceListo = false;
@@ -543,20 +557,39 @@
     };
   }
 
-  function consultaCarriles(bbox) {
+  // 01-nov-2026 (c): dos niveles de consulta. El ligero (vías dedicadas
+  // únicamente) responde en 1-3 s incluso con espejos lentos; el completo
+  // añade los carriles sobre calzada y solo se pide a partir de z12,5. La
+  // macrocelda recuerda el nivel con que se sirvió: al acercarte, una celda
+  // ligera se repite en completa; una completa sirve para cualquier zoom.
+  function consultaCarriles(bbox, ligera) {
     var s = bbox.south.toFixed(6), w = bbox.west.toFixed(6),
         n = bbox.north.toFixed(6), e = bbox.east.toFixed(6);
     var b = s + ',' + w + ',' + n + ',' + e;
-    // Etiquetas habituales de OSM: vías dedicadas, carriles y rutas señalizadas.
-    return '[out:json][timeout:20];(' +
+    var dedicadas =
       'way["highway"="cycleway"](' + b + ');' +
+      'way["bicycle"~"^(designated|official)$"](' + b + ');';
+    if (ligera) return '[out:json][timeout:8];(' + dedicadas + ');out body geom;';
+    // Etiquetas habituales de OSM: vías dedicadas, carriles y rutas señalizadas.
+    return '[out:json][timeout:8];(' + dedicadas +
       'way["cycleway"](' + b + ');' +
       'way["cycleway:left"](' + b + ');' +
       'way["cycleway:right"](' + b + ');' +
       'way["cycleway:both"](' + b + ');' +
-      'way["bicycle"="designated"](' + b + ');' +
-      'way["bicycle"="official"](' + b + ');' +
       ');out body geom;';
+  }
+
+  // Expande la caja visible a la macrocelda de la rejilla: una sola
+  // petición cubre los paseos por la zona y el caché de memoria responde
+  // al instante, igual que hace la capa de fuentes de agua.
+  function macroceldaCarriles(bbox) {
+    var g = CARRIL_REJILLA_GRADOS;
+    return {
+      west: Math.max(-180, Math.floor(bbox.west / g) * g),
+      south: Math.max(-85, Math.floor(bbox.south / g) * g),
+      east: Math.min(180, Math.ceil(bbox.east / g) * g),
+      north: Math.min(85, Math.ceil(bbox.north / g) * g)
+    };
   }
 
   function wayToLineString(element) {
@@ -641,14 +674,14 @@
     'https://overpass.private.coffee/api/interpreter'
   ];
 
-  async function pedirCarriles(url, bbox, timeoutMs, esProxy) {
+  async function pedirCarriles(url, bbox, timeoutMs, esProxy, ligera) {
     var controller = new AbortController();
     var timeoutId = setTimeout(function () { controller.abort(); }, timeoutMs);
     try {
       var resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'Accept': 'application/json' },
-        body: new URLSearchParams({ data: consultaCarriles(bbox) }).toString(),
+        body: new URLSearchParams({ data: consultaCarriles(bbox, ligera) }).toString(),
         credentials: 'omit',
         signal: controller.signal
       });
@@ -665,9 +698,9 @@
     }
   }
 
-  function pedirCarrilesCarrera(bbox) {
-    var participantes = [pedirCarriles(OVERPASS_URL, bbox, 18000, true)]
-      .concat(OVERPASS_ESPEJOS_CARRIL.map(function (url) { return pedirCarriles(url, bbox, 15000, false); }));
+  function pedirCarrilesCarrera(bbox, ligera) {
+    var participantes = [pedirCarriles(OVERPASS_URL, bbox, 18000, true, ligera)]
+      .concat(OVERPASS_ESPEJOS_CARRIL.map(function (url) { return pedirCarriles(url, bbox, 15000, false, ligera); }));
     // Promise.any: el primero que resuelve (aunque sea una lista vacía de
     // verdad) gana; los errores y el "sin-datos" del proxy se descartan.
     return Promise.any(participantes);
@@ -730,6 +763,24 @@
       return;
     }
 
+    // (c) MACROCELDA: la caja visible se expande a la rejilla de 0,02° y la
+    // respuesta queda servida en memoria. Moverse por la zona ya no vuelve
+    // a pedir nada (antes cada movimiento con cambio de caja era una
+    // consulta nueva de varios segundos). Una celda completa sirve para
+    // cualquier zoom; una ligera se repite en completa al acercarse.
+    var celda = macroceldaCarriles(bbox);
+    var zoomAlto = zoom >= CARRIL_ZOOM_COMPLETO;
+    var claveCelda = celda.west.toFixed(3) + ':' + celda.south.toFixed(3) + ':' + celda.east.toFixed(3) + ':' + celda.north.toFixed(3);
+    var celdaCache = carrilCeldas.get(claveCelda);
+    if (celdaCache && Date.now() - celdaCache.touched < CARRIL_TTL_MS && (celdaCache.modo === 'completa' || !zoomAlto)) {
+      incorporarCarriles(celdaCache.features);
+      repintarCarrilAcumulado();
+      mostrarEstadoCarril(carrilAcumulado.size
+        ? t('bikeLaneStatus', 'Carriles bici · {n} tramos').replace('{n}', String(carrilAcumulado.size))
+        : t('bikeLaneNoData', 'Sin carriles bici mapeados en esta zona.'));
+      return;
+    }
+
     var clave = CARRIL_CACHE_VERSION + ':' + [bbox.west.toFixed(3), bbox.south.toFixed(3), bbox.east.toFixed(3), bbox.north.toFixed(3)].join(':');
     var cached = carrilCache.get(clave);
     if (cached && Date.now() - cached.touched < CARRIL_TTL_MS) {
@@ -739,19 +790,24 @@
       return;
     }
 
-    var falta = 1000 - (Date.now() - carrilUltima);
+    var falta = 500 - (Date.now() - carrilUltima);
     if (falta > 0) await esperar(falta);
     if (!carrilEnabled || requestId !== carrilRequestId) return;
     carrilUltima = Date.now();
 
     try {
       mostrarEstadoCarril(t('bikeLaneLoading', 'Cargando carriles bici…'));
-      // Proxy propio y espejos Overpass directos, todos a la vez: gana el
-      // primero con respuesta válida (ver nota de pedirCarrilesCarrera).
-      var features = await pedirCarrilesCarrera(bbox);
+      // Proxy propio y espejos Overpass directos, todos a la vez, sobre la
+      // macrocelda: gana el primero con respuesta válida (ver nota de
+      // pedirCarrilesCarrera). En zoom lejano la consulta va ligera y vuela.
+      var features = await pedirCarrilesCarrera(celda, !zoomAlto);
       if (!carrilEnabled || requestId !== carrilRequestId) return;
       // No cachear vacío: un fallo temporal no debe ocultar el carril 15 min.
       if (features.length) {
+        carrilCeldas.set(claveCelda, { features: features, modo: zoomAlto ? 'completa' : 'ligera', touched: Date.now() });
+        while (carrilCeldas.size > 120) carrilCeldas.delete(carrilCeldas.keys().next().value);
+        // El caché fino heredado sigue alimentado: si una consulta externa
+        // (chat) pide exactamente esta caja, responde sin red.
         carrilCache.set(clave, { features: features, touched: Date.now() });
         while (carrilCache.size > 200) carrilCache.delete(carrilCache.keys().next().value);
       }
@@ -1072,6 +1128,8 @@
     carrilInicializando = false;
     carrilAcumulado.clear();
     carrilPuntos.clear();
+    // (c) carrilCeldas NO se borra: al reactivar la capa la zona ya está
+    // servida en memoria y se pinta al instante, como fuentes de agua.
   }
 
   function onCarrilToggle() {
@@ -1097,7 +1155,7 @@
   function scheduleCarril() {
     if (!carrilEnabled) return;
     clearTimeout(carrilTimer);
-    carrilTimer = setTimeout(cargarCarriles, 350);
+    carrilTimer = setTimeout(cargarCarriles, 200);
   }
 
   /* ---------------- Arranque -------------------------------------------- */

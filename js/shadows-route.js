@@ -971,6 +971,23 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       paint: { 'line-color': '#00d4ff', 'line-width': 5, 'line-opacity': 0.95 },
     });
 
+    // Alerta de radiación UV sobre la ruta (nov-2026): nace vacía y la
+    // rellena evaluarAlertasUvRuta() con los segmentos de riesgo. Naranja
+    // para UV 6-7, rojo para UV >= 8. Sin toggle: forma parte de cualquier
+    // ruta calculada.
+    map.addSource('ruta-uv', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-ruta-uv',
+      type: 'line',
+      source: 'ruta-uv',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': ['case', ['==', ['get', 'nivel'], 'alto'], '#ff2d00', '#ff9500'],
+        'line-width': 5.5,
+        'line-opacity': 0.95,
+      },
+    });
+
     // Tramo ya recorrido (sep-2026, a lo Google Maps): la parte de la ruta
     // que ya has andado se pinta en gris POR ENCIMA de la naranja y del
     // cian de sombra, así de un vistazo ves lo que te queda. La fuente
@@ -2141,7 +2158,346 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // cian de los árboles llegaban tarde o no llegaban.
   window.manolitAireActualizarSombraRuta = () => {
     try { actualizarTramosSombraRuta(); } catch (e) { /* la ruta aún no existe */ }
+    // Las sombras de los árboles se han recalculado (o han llegado tarde
+    // tras la descarga): la alerta UV se reevalúa con la rejilla de árboles
+    // nueva. La serie UV sigue en caché: cero peticiones nuevas.
+    if (rutaActual) {
+      try { construirRejillaArbolesUv(); evaluarAlertasUvRuta(); } catch (e) { /* nunca rompe la ruta */ }
+    }
   };
+
+  /* ============================================================
+     ALERTA DE RADIACIÓN UV EN LA RUTA (nov-2026)
+     Cada ruta calculada se evalúa UNA VEZ en segundo plano, sin
+     toggle ni intervención del usuario. Un segmento es de riesgo si
+     cumple las TRES condiciones a la vez:
+       1) UV index >= 6 (Open-Meteo) a la hora efectiva seleccionada.
+       2) El punto medio del segmento NO está en sombra 3D de edificio
+          (mismo índice espacial que los tramos cian).
+       3) No hay árboles mapeados a menos de 15 m del punto medio
+          (rejilla espacial sobre los árboles ya descargados).
+     El resultado se pinta naranja (UV 6-7) o rojo (UV >= 8) sobre la
+     polilínea. Al mover el slider de hora se REEVALÚA con los datos
+     ya descargados (la serie UV horaria se pide una vez por zona y
+     se cachea 30 min): colores y banner se actualizan en vivo, igual
+     que las sombras 3D. Nunca hay cálculo por frame.
+     ============================================================ */
+  const UV_RUTA_SOURCE = 'ruta-uv';
+  const UV_RUTA_LAYER = 'capa-ruta-uv';
+  let uvSerieCache = null;          // { clave, horas, uvs, ts } de Open-Meteo
+  let uvRutaGeneracion = 0;         // guardia: solo la última evaluación escribe
+  let uvRutaArbolesRejilla = null;  // rejilla espacial de árboles (por ruta)
+  let uvRutaDescartado = false;     // el usuario cerró el banner de esta ruta
+  let uvUltimaFranja = null;        // franja de mayor exposición (para el tooltip)
+
+  function asegurarCapaUv() {
+    if (!map) return false;
+    if (map.getSource(UV_RUTA_SOURCE)) return true;
+    try {
+      map.addSource(UV_RUTA_SOURCE, { type: 'geojson', data: turf.featureCollection([]) });
+      map.addLayer({
+        id: UV_RUTA_LAYER,
+        type: 'line',
+        source: UV_RUTA_SOURCE,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': ['case', ['==', ['get', 'nivel'], 'alto'], '#ff2d00', '#ff9500'],
+          'line-width': 5.5,
+          'line-opacity': 0.95,
+        },
+      }, map.getLayer('capa-ruta-recorrida') ? 'capa-ruta-recorrida' : undefined);
+      registrarTooltipUv();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // Serie horaria de UV de Open-Meteo. UNA petición por zona (lat/lon con
+  // 2 decimales ~ ciudad) cacheada 30 min; los movimientos del slider la
+  // reusan, nunca repiten la petición.
+  async function obtenerSerieUv(lat, lon) {
+    const clave = Number(lat).toFixed(2) + ',' + Number(lon).toFixed(2);
+    if (uvSerieCache && uvSerieCache.clave === clave && Date.now() - uvSerieCache.ts < 30 * 60 * 1000) {
+      return uvSerieCache;
+    }
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + Number(lat).toFixed(4) +
+      '&longitude=' + Number(lon).toFixed(4) +
+      '&hourly=uv_index&timezone=auto&forecast_days=3&past_days=1';
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('Open-Meteo UV respondió ' + resp.status);
+    const j = await resp.json();
+    const horas = (j.hourly && j.hourly.time) || [];
+    const uvs = (j.hourly && j.hourly.uv_index) || [];
+    if (!horas.length) return null;
+    uvSerieCache = { clave, horas, uvs, ts: Date.now() };
+    return uvSerieCache;
+  }
+
+  function uvParaFechaHora(serie, fecha) {
+    if (!serie) return null;
+    const dos = (n) => String(n).padStart(2, '0');
+    const exacta = fecha.getFullYear() + '-' + dos(fecha.getMonth() + 1) + '-' + dos(fecha.getDate()) + 'T' + dos(fecha.getHours()) + ':00';
+    const idx = serie.horas.indexOf(exacta);
+    if (idx !== -1) {
+      const vExacto = Number(serie.uvs[idx]);
+      return Number.isFinite(vExacto) ? vExacto : null;
+    }
+    // Fecha simulada fuera de la ventana del pronóstico (solsticios): se
+    // aproxima con el MÁXIMO entre los días disponibles a la misma hora
+    // local. Conservador para una alerta de riesgo y fiel al pico del año
+    // cuando se simula el solsticio de verano.
+    const sufijo = 'T' + dos(fecha.getHours()) + ':00';
+    let max = null;
+    for (let i = 0; i < serie.horas.length; i++) {
+      if (!serie.horas[i].endsWith(sufijo)) continue;
+      const v = Number(serie.uvs[i]);
+      if (Number.isFinite(v) && (max === null || v > max)) max = v;
+    }
+    return max;
+  }
+
+  // Franja horaria del día con UV >= 6: la de mayor exposición.
+  function franjaMayorExposicion(serie, fecha) {
+    if (!serie) return null;
+    const dos = (n) => String(n).padStart(2, '0');
+    const dia = '-' + dos(fecha.getMonth() + 1) + '-' + dos(fecha.getDate());
+    let primero = -1, ultimo = -1;
+    for (let i = 0; i < serie.horas.length; i++) {
+      if (!serie.horas[i].includes(dia)) continue;
+      if (Number(serie.uvs[i]) >= 6) {
+        if (primero === -1) primero = i;
+        ultimo = i;
+      }
+    }
+    if (primero === -1) return null;
+    return { inicio: serie.horas[primero].slice(11, 16), fin: serie.horas[ultimo].slice(11, 16) };
+  }
+
+  // Rejilla espacial de los árboles YA DESCARGADOS alrededor de la ruta.
+  // Se construye una vez por ruta (o cuando llegan árboles nuevos) y las
+  // reevaluaciones del slider la reusan.
+  function construirRejillaArbolesUv() {
+    uvRutaArbolesRejilla = null;
+    try {
+      if (typeof window.manolitAireArbolesTodos !== 'function' || !rutaActual || !rutaActual.geometry) return;
+      const coords = rutaActual.geometry.coordinates;
+      let oeste = Infinity, este = -Infinity, sur = Infinity, norte = -Infinity;
+      for (const c of coords) {
+        if (c[0] < oeste) oeste = c[0];
+        if (c[0] > este) este = c[0];
+        if (c[1] < sur) sur = c[1];
+        if (c[1] > norte) norte = c[1];
+      }
+      const MARGEN = 0.002; // ~200 m de colchón alrededor de la ruta
+      const arboles = window.manolitAireArbolesTodos().filter(
+        (a) => a.lon >= oeste - MARGEN && a.lon <= este + MARGEN && a.lat >= sur - MARGEN && a.lat <= norte + MARGEN
+      );
+      if (!arboles.length) return;
+      const TAM_CELDA = 0.0005; // ~55 m
+      const celdas = new Map();
+      for (const a of arboles) {
+        const k = Math.floor(a.lon / TAM_CELDA) + ':' + Math.floor(a.lat / TAM_CELDA);
+        if (!celdas.has(k)) celdas.set(k, []);
+        celdas.get(k).push(a);
+      }
+      uvRutaArbolesRejilla = {
+        hayCerca(lon, lat) {
+          const cx = Math.floor(lon / TAM_CELDA), cy = Math.floor(lat / TAM_CELDA);
+          const cosLat = Math.cos(lat * Math.PI / 180);
+          for (let ix = cx - 1; ix <= cx + 1; ix++) {
+            for (let iy = cy - 1; iy <= cy + 1; iy++) {
+              const lista = celdas.get(ix + ':' + iy);
+              if (!lista) continue;
+              for (const a of lista) {
+                const dx = (a.lon - lon) * cosLat * 111320;
+                const dy = (a.lat - lat) * 110540;
+                if (dx * dx + dy * dy <= 22500) return true; // 15 m
+              }
+            }
+          }
+          return false;
+        },
+      };
+    } catch (e) { uvRutaArbolesRejilla = null; }
+  }
+
+  // Evaluación completa de la ruta. Se llama una vez al calcular la ruta y
+  // en cada cambio de hora; la serie UV y la rejilla de árboles se cachean,
+  // así que el recálculo por slider no toca la red.
+  async function evaluarAlertasUvRuta() {
+    if (!asegurarCapaUv()) return;
+    const fuente = map.getSource(UV_RUTA_SOURCE);
+    if (!fuente) return;
+    if (!rutaActual || !rutaActual.geometry || !rutaActual.geometry.coordinates || rutaActual.geometry.coordinates.length < 2) {
+      fuente.setData(turf.featureCollection([]));
+      actualizarBannerUv(0, null);
+      return;
+    }
+    const miGeneracion = ++uvRutaGeneracion;
+    try {
+      const centro = centroSolarEfectivo();
+      const serie = await obtenerSerieUv(centro.lat, centro.lon ?? centro.lng);
+      if (miGeneracion !== uvRutaGeneracion) return;
+      if (!serie) {
+        fuente.setData(turf.featureCollection([]));
+        actualizarBannerUv(0, null);
+        return;
+      }
+      const hora = obtenerHoraEfectiva();
+      const uv = uvParaFechaHora(serie, hora);
+      if (uv == null || uv < 6) {
+        // UV bajo (o de noche): no hay riesgo a esta hora.
+        fuente.setData(turf.featureCollection([]));
+        uvUltimaFranja = franjaMayorExposicion(serie, hora);
+        actualizarBannerUv(0, null);
+        return;
+      }
+      uvUltimaFranja = franjaMayorExposicion(serie, hora);
+      const sombrasEdificios = (ultimaColeccionSombras && ultimaColeccionSombras.features) || [];
+      const indiceEdificios = crearIndiceSombras(sombrasEdificios);
+      if (!uvRutaArbolesRejilla) construirRejillaArbolesUv();
+      const tramos = turf.lineChunk(rutaActual, 0.01, { units: 'kilometers' });
+      const riesgosos = [];
+      for (let i = 0; i < tramos.features.length; i++) {
+        const tramo = tramos.features[i];
+        const coordsTramo = tramo.geometry.coordinates;
+        const medio = coordsTramo[Math.floor(coordsTramo.length / 2)] || coordsTramo[0];
+        const enSombra = indiceEdificios.consultar(medio[0], medio[1]);
+        const cercaArbol = uvRutaArbolesRejilla ? uvRutaArbolesRejilla.hayCerca(medio[0], medio[1]) : false;
+        if (!enSombra && !cercaArbol) {
+          tramo.properties = { nivel: uv >= 8 ? 'alto' : 'moderado', uv: Math.round(uv) };
+          riesgosos.push(tramo);
+        }
+        if (i % 25 === 24 && i < tramos.features.length - 1) {
+          await cederAlNavegador();
+          if (miGeneracion !== uvRutaGeneracion) return;
+        }
+      }
+      fuente.setData(turf.featureCollection(riesgosos));
+      actualizarBannerUv(riesgosos.length, { uv, franja: uvUltimaFranja });
+    } catch (e) {
+      console.debug('[UV ruta] No se pudo evaluar la radiación de la ruta:', e);
+      try { fuente.setData(turf.featureCollection([])); } catch (e2) { /* fuente no lista */ }
+      actualizarBannerUv(0, null);
+    }
+  }
+
+  function limpiarAlertasUvRuta() {
+    uvRutaGeneracion++;
+    uvRutaArbolesRejilla = null;
+    uvRutaDescartado = false;
+    uvUltimaFranja = null;
+    try { map.getSource(UV_RUTA_SOURCE)?.setData(turf.featureCollection([])); } catch (e) { /* sin mapa aún */ }
+    const banner = document.getElementById('rsUvBanner');
+    if (banner) banner.hidden = true;
+  }
+
+  /* ---- Banner glass no modal (estilo de la barra superior) ---- */
+  function asegurarBannerUv() {
+    let banner = document.getElementById('rsUvBanner');
+    if (banner) return banner;
+    if (!document.getElementById('rsUvBannerEstilos')) {
+      const estilo = document.createElement('style');
+      estilo.id = 'rsUvBannerEstilos';
+      estilo.textContent = [
+        '#rsUvBanner{',
+        '  position:absolute; top:66px; left:50%; transform:translateX(-50%);',
+        '  z-index:25; box-sizing:border-box; max-width:min(560px, calc(100% - 24px));',
+        '  display:flex; align-items:center; gap:10px; padding:8px 12px;',
+        '  border-radius:14px; background:rgba(22,26,32,0.78);',
+        '  border:1px solid rgba(255,107,26,0.55); color:#F5F7FA;',
+        '  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);',
+        '  box-shadow:0 6px 20px rgba(10,25,35,0.30);',
+        '  font:500 12.5px/1.35 var(--font-body, system-ui, sans-serif);',
+        '}',
+        '#rsUvBanner[hidden]{ display:none; }',
+        '#rsUvBanner .rs-uv-ico{ flex:0 0 auto; width:18px; height:18px; color:#FF9500; }',
+        '#rsUvBanner .rs-uv-ico svg{ display:block; width:18px; height:18px; }',
+        '#rsUvBanner .rs-uv-txt{ flex:1 1 auto; min-width:0; }',
+        '#rsUvBanner button{',
+        '  flex:0 0 auto; width:32px; height:32px; display:flex; align-items:center; justify-content:center;',
+        '  border:none; border-radius:8px; background:transparent; color:#B9C2CC;',
+        '  cursor:pointer; touch-action:manipulation; padding:0;',
+        '}',
+        '#rsUvBanner button:hover{ background:rgba(255,255,255,0.08); color:#F5F7FA; }',
+        '#rsUvBanner button:focus-visible{ outline:2px solid #FF9500; outline-offset:2px; }',
+      ].join('\n');
+      document.head.appendChild(estilo);
+    }
+    banner = document.createElement('div');
+    banner.id = 'rsUvBanner';
+    banner.setAttribute('role', 'status');
+    banner.setAttribute('aria-live', 'polite');
+    banner.hidden = true;
+    const icono = document.createElement('span');
+    icono.className = 'rs-uv-ico';
+    icono.setAttribute('aria-hidden', 'true');
+    icono.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.5 20h19L12 3.5z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="0.4" fill="currentColor"/></svg>';
+    const texto = document.createElement('span');
+    texto.className = 'rs-uv-txt';
+    const cerrar = document.createElement('button');
+    cerrar.type = 'button';
+    cerrar.setAttribute('aria-label', t('uvRiesgoCerrar', 'Cerrar aviso de radiación'));
+    cerrar.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1.5 1.5l11 11M12.5 1.5l-11 11" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+    cerrar.addEventListener('click', () => {
+      uvRutaDescartado = true;
+      banner.hidden = true;
+    });
+    banner.append(icono, texto, cerrar);
+    contenedorMapa.appendChild(banner);
+    return banner;
+  }
+
+  function actualizarBannerUv(numTramos, info) {
+    const banner = asegurarBannerUv();
+    if (!banner) return;
+    if (!numTramos || uvRutaDescartado) {
+      banner.hidden = true;
+      return;
+    }
+    const uv = info && info.uv != null ? Math.round(info.uv) : '';
+    let msg = t('uvRiesgoBannerTpl', '¡Ojo! {n} tramos de tu ruta dan sol directo con UV {uv} a esta hora.')
+      .replace('{n}', String(numTramos))
+      .replace('{uv}', String(uv));
+    if (info && info.franja) {
+      msg += ' ' + t('uvRiesgoFranjaTpl', 'Franja de mayor exposición: {i}–{f}')
+        .replace('{i}', info.franja.inicio)
+        .replace('{f}', info.franja.fin);
+    }
+    banner.querySelector('.rs-uv-txt').textContent = msg;
+    banner.hidden = false;
+  }
+
+  /* ---- Tooltip de segmentos de riesgo (UV + franja horaria) ---- */
+  let uvTooltipRegistrado = false;
+  function registrarTooltipUv() {
+    if (uvTooltipRegistrado || !map) return;
+    uvTooltipRegistrado = true;
+    map.on('click', UV_RUTA_LAYER, (e) => {
+      const f = e.features && e.features[0];
+      if (!f) return;
+      const cont = document.createElement('div');
+      cont.style.cssText = 'font:500 12.5px/1.45 system-ui,sans-serif;max-width:230px;';
+      const strong = document.createElement('strong');
+      strong.textContent = 'UV ' + (f.properties.uv != null ? f.properties.uv : '');
+      const detalle = document.createElement('div');
+      detalle.textContent = t('uvRiesgoTooltipDetalle', 'Sol directo: sin sombra de edificio ni árboles a menos de 15 m.');
+      cont.append(strong, detalle);
+      if (uvUltimaFranja) {
+        const franja = document.createElement('div');
+        franja.style.cssText = 'margin-top:3px;opacity:0.85;';
+        franja.textContent = t('uvRiesgoFranjaTpl', 'Franja de mayor exposición: {i}–{f}')
+          .replace('{i}', uvUltimaFranja.inicio)
+          .replace('{f}', uvUltimaFranja.fin);
+        cont.appendChild(franja);
+      }
+      new maplibregl.Popup({ closeButton: false, maxWidth: '250px', offset: 8 })
+        .setLngLat(e.lngLat)
+        .setDOMContent(cont)
+        .addTo(map);
+    });
+    map.on('mousemove', UV_RUTA_LAYER, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', UV_RUTA_LAYER, () => { map.getCanvas().style.cursor = ''; });
+  }
   function calcularAnguloSol(horaOverride) {
     const centro = centroSolarEfectivo();
     const lat = centro.lat;
@@ -2462,6 +2818,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // Punto clave: cada cambio de hora (slider, "Ahora", solsticios) debe
     // avisar también a los árboles, o si no se quedan con la hora vieja.
     sincronizarArboles();
+    // La alerta UV se reevalúa sobre los segmentos ya descargados (la serie
+    // UV va en caché): colores y banner en vivo, sin nueva petición.
+    if (rutaActual) {
+      try { evaluarAlertasUvRuta(); } catch (e) { /* nunca rompe el slider */ }
+    }
   }
 
   function inyectarEstilosPanel() {
@@ -2694,6 +3055,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       seleccionPorInput.delete(inputDestino);
       map.getSource('ruta')?.setData(turf.featureCollection([]));
       map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
+      try { limpiarAlertasUvRuta(); } catch (e) { /* la capa UV aún no existe */ }
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
       map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
@@ -2722,6 +3084,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         mostrarBadgeSombra(null);
         if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
         if (window.ManolitCO2) window.ManolitCO2.ocultar();
+        try { limpiarAlertasUvRuta(); } catch (e) { /* aditivo: nunca rompe */ }
       } catch (e) {}
     };
 
@@ -4072,6 +4435,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       map.setLayoutProperty('capa-ruta-glow', 'visibility', vis);
       map.setLayoutProperty('capa-ruta-sombra', 'visibility', vis);
       map.setLayoutProperty('capa-ruta-sombra-outline', 'visibility', vis);
+      if (map.getLayer('capa-ruta-uv')) map.setLayoutProperty('capa-ruta-uv', 'visibility', vis);
       if (map.getLayer('capa-ruta-recorrida')) map.setLayoutProperty('capa-ruta-recorrida', 'visibility', vis);
     });
     tSol?.addEventListener('change', () => { asegurarActivacionSolar(); actualizarIluminacionSolar(); });
@@ -5379,6 +5743,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       actualizarIluminacionSolar();
       await actualizarTramosSombraRuta();
       sincronizarArboles();
+      // Alerta UV: se dispara sola con cada ruta nueva. La serie UV se pide
+      // una vez (caché 30 min) y la rejilla de árboles se construye con lo
+      // ya descargado; si los árboles llegan después, el aviso de
+      // manolitAireActualizarSombraRuta reevalúa.
+      uvRutaDescartado = false;
+      construirRejillaArbolesUv();
+      try { evaluarAlertasUvRuta(); } catch (e) { /* nunca rompe la búsqueda */ }
 
       if (ruta.esReal) {
         const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
@@ -5480,6 +5851,45 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     b.addEventListener('click', () => elegirModoRuta(b.dataset.modoRuta));
   });
   sincronizarBotonesModo();
+
+  // Plegado del buscador en escritorio (nov-2026): la X vive DENTRO del
+  // panel y lo pliega; una píldora glass en el mismo hueco (top:60px
+  // centrada) lo reabre. En móvil el CSS oculta ambos y todo sigue igual.
+  {
+    const formRuta = document.querySelector('#main-content .rs-form');
+    const btnCerrarForm = document.getElementById('rsBtnCerrarForm');
+    let btnAbrirForm = null;
+    const actualizarPildoraForm = () => {
+      if (!btnAbrirForm || !formRuta) return;
+      const plegado = formRuta.classList.contains('rs-form-plegado');
+      btnAbrirForm.classList.toggle('rs-visible', plegado);
+      btnAbrirForm.setAttribute('aria-expanded', plegado ? 'false' : 'true');
+    };
+    if (formRuta && btnCerrarForm && contenedorMapa) {
+      btnAbrirForm = document.createElement('button');
+      btnAbrirForm.type = 'button';
+      btnAbrirForm.id = 'rsBtnAbrirForm';
+      btnAbrirForm.setAttribute('aria-expanded', 'true');
+      btnAbrirForm.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span></span>';
+      contenedorMapa.appendChild(btnAbrirForm);
+      const pintarPildora = () => {
+        const txt = btnAbrirForm.querySelector('span');
+        if (txt) txt.textContent = t('searchBtn', 'Buscar ruta');
+      };
+      pintarPildora();
+      document.addEventListener('langChanged', pintarPildora);
+      btnCerrarForm.addEventListener('click', () => {
+        formRuta.classList.add('rs-form-plegado');
+        actualizarPildoraForm();
+      });
+      btnAbrirForm.addEventListener('click', () => {
+        formRuta.classList.remove('rs-form-plegado');
+        actualizarPildoraForm();
+        const dest = document.getElementById('rsDestino');
+        if (dest && window.matchMedia('(min-width:768px)').matches) dest.focus({ preventScroll: true });
+      });
+    }
+  }
 
   async function manejarBusquedaUnificada(origenDirecto, destinoDirecto) {
     const modo = window.__manolitoModoRuta || 'caminar';
@@ -9736,6 +10146,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         radioCopaM: a.radioCopaM,
         nombre: a.nombre,
         tipo: a.tipo,
+      }));
+
+    // ADITIVO (nov-2026) para la alerta UV de la ruta: posición de TODOS
+    // los árboles cargados (no solo los de modelo 3D) con su copa.
+    window.manolitAireArbolesTodos = () => arbolesGrandes
+      .map((a) => ({
+        lon: a.punto.geometry.coordinates[0],
+        lat: a.punto.geometry.coordinates[1],
+        radioCopaM: a.radioCopaM || 0,
       }));
 
     await cargarArbolesDeLaVista();

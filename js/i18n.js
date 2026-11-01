@@ -560,6 +560,10 @@ const translations = {
 		modoCoche: "Coche",
 		grupoSombrasSol: "Sombras y Sol",
 		grupoRutasMovilidad: "Rutas y movilidad",
+		uvRiesgoBannerTpl: "¡Ojo! {n} tramos de tu ruta dan sol directo con UV {uv} a esta hora.",
+		uvRiesgoFranjaTpl: "Franja de mayor exposición: {i}–{f}.",
+		uvRiesgoTooltipDetalle: "Sol directo: sin sombra de edificio ni árboles a menos de 15 m.",
+		uvRiesgoCerrar: "Cerrar aviso de radiación",
 	},
 	ca: {
 		queEsTitulo: "Què és Manolit∞ Aire",
@@ -1066,6 +1070,10 @@ const translations = {
 		modoCoche: "Cotxe",
 		grupoSombrasSol: "Ombres i Sol",
 		grupoRutasMovilidad: "Rutes i mobilitat",
+		uvRiesgoBannerTpl: "Compte! {n} trams de la teva ruta reben sol directe amb UV {uv} a aquesta hora.",
+		uvRiesgoFranjaTpl: "Franja de major exposició: {i}–{f}.",
+		uvRiesgoTooltipDetalle: "Sol directe: sense ombra d'edifici ni arbres a menys de 15 m.",
+		uvRiesgoCerrar: "Tancar avís de radiació",
 	},
 	eu: {
 		queEsTitulo: "Zer da Manolit∞ Aire",
@@ -1572,6 +1580,10 @@ const translations = {
 		modoCoche: "Kotxez",
 		grupoSombrasSol: "Itzalak eta Eguzkia",
 		grupoRutasMovilidad: "Ibilbideak eta mugikortasuna",
+		uvRiesgoBannerTpl: "Kontuz! Zure ibilbideko {n} tartek eguzki zuzena jasotzen dute UV {uv}-rekin ordu honetan.",
+		uvRiesgoFranjaTpl: "Esposizio handieneko ordutegia: {i}–{f}.",
+		uvRiesgoTooltipDetalle: "Eguzki zuzena: eraikin-itzalik eta 15 m baino hurbilagoko zuhaitzik gabe.",
+		uvRiesgoCerrar: "Itxi erradiazio-oharra",
 	},
 	gl: {
 		queEsTitulo: "Que é Manolit∞ Aire",
@@ -2079,6 +2091,10 @@ const translations = {
 		modoCoche: "Coche",
 		grupoSombrasSol: "Sombras e Sol",
 		grupoRutasMovilidad: "Rutas e mobilidade",
+		uvRiesgoBannerTpl: "Coidado! {n} tramos da túa ruta reciben sol directo con UV {uv} a esta hora.",
+		uvRiesgoFranjaTpl: "Franxa de maior exposición: {i}–{f}.",
+		uvRiesgoTooltipDetalle: "Sol directo: sen sombra de edificio nin árbores a menos de 15 m.",
+		uvRiesgoCerrar: "Pechar aviso de radiación",
 	},
 	en: {
 		queEsTitulo: "What is Manolit∞ Aire",
@@ -2613,6 +2629,10 @@ const translations = {
 		modoCoche: "Car",
 		grupoSombrasSol: "Shadows and Sun",
 		grupoRutasMovilidad: "Routes and mobility",
+		uvRiesgoBannerTpl: "Heads up! {n} stretches of your route get direct sun with UV {uv} at this hour.",
+		uvRiesgoFranjaTpl: "Peak exposure window: {i}–{f}.",
+		uvRiesgoTooltipDetalle: "Direct sun: no building shade or trees within 15 m.",
+		uvRiesgoCerrar: "Dismiss radiation alert",
 	},
 	ka: {
 		queEsTitulo: "რა არის Manolit∞ Aire",
@@ -3117,6 +3137,10 @@ const translations = {
 		modoCoche: "მანქანით",
 		grupoSombrasSol: "ჩრდილები და მზე",
 		grupoRutasMovilidad: "მარშრუტები და მობილობა",
+		uvRiesgoBannerTpl: "ყურადღება! მარშრუტის {n} მონაკვთი ამ საათში პირდაპირ მზეშია UV {uv}-ით.",
+		uvRiesgoFranjaTpl: "მაქსიმალური დატვირთვის პერიოდი: {i}–{f}.",
+		uvRiesgoTooltipDetalle: "პირდაპირი მზე: შენობის ჩრდილი ან ხეები 15 მ-ში არ არის.",
+		uvRiesgoCerrar: "რადიაციის გაფრთხილების დახურვა",
 	},
 	// Traducciones locales para la interfaz principal; el fallback MT queda
 	// reservado para frases largas que aún no tienen una traducción propia.
@@ -3244,7 +3268,11 @@ const translations = {
 		modoBici: "بالدراجة",
 		modoCoche: "بالسيارة",
 		grupoSombrasSol: "الظلال والشمس",
-		grupoRutasMovilidad: "المسارات والتنقل"
+		grupoRutasMovilidad: "المسارات والتنقل",
+		uvRiesgoBannerTpl: "انتبه! {n} مقاطع من مسارك تحت شمس مباشرة بمؤشر UV {uv} في هذه الساعة.",
+		uvRiesgoFranjaTpl: "فترة التعرض الأعلى: {i}–{f}.",
+		uvRiesgoTooltipDetalle: "شمس مباشرة: بلا ظل مبنى أو أشجار خلال 15 م.",
+		uvRiesgoCerrar: "إغلاق تنبيه الإشعاع",
 	}
 };
 

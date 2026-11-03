@@ -63,7 +63,11 @@
   // el resto de capas.
   var CARRIL_ZOOM_OCULTAR = 7;
   var CARRIL_ACUMULADO_MAX = 6000;  // tope de tramos guardados (recorte FIFO, móvil ligero)
-  var CARRIL_PUNTOS_MAX = 20000;    // tope de señales de bici guardadas
+  // Infladores/estaciones de reparación reales de OSM: son los ÚNICOS puntos
+  // de la capa (nov-2026, petición de Sandro: fuera los iconos redondos
+  // genéricos de bici, solo línea roja y, si existen, puntos de inflado).
+  var INFLADOR_MAX = 2000;          // tope de puntos guardados
+  var INFLADOR_MIN_ZOOM = 12;
   // 01-nov-2026 (c): la búsqueda se hace por MACROCELDA de 0,02° (misma
   // escala que la capa de fuentes de agua). La caja visible se expande a la
   // rejilla, se pide UNA vez y queda servida desde memoria al moverte por
@@ -80,7 +84,7 @@
   var carrilTimer = 0;
   var carrilCache = new Map();
   var carrilAcumulado = new Map(); // id OSM -> tramo pintado, en orden de llegada
-  var carrilPuntos = new Map();    // idTramo#n -> señal de bici, mismo orden
+  var infladorAcumulado = new Map(); // id OSM (node/) -> punto de inflado/reparación
   var carrilUltima = 0;
 
   var lista = { ultimaClave: '', rutas: [], touched: 0 };
@@ -549,29 +553,14 @@
   var CARRIL_BRILLO = 'carriles-bici-brillo';
   var CARRIL_BORDE_IZQ = 'carriles-bici-borde-izq';
   var CARRIL_BORDE_DER = 'carriles-bici-borde-der';
-  var CARRIL_SIMBOLO = 'carriles-bici-simbolo';
-  var CARRIL_IMAGEN = 'carriles-bici-icono';
+  var INFLADOR_SOURCE = 'infladores-bici-source';
+  var INFLADOR_LAYER = 'infladores-bici-circulo';
   var CARRIL_CACHE_VERSION = 'osm-cycleway-20261029';
   var carrilCapaLista = false; // Flag para saber si la capa está completamente inicializada
   var carrilInicializando = false; // Flag para evitar múltiples inicializaciones
   var carrilRequestId = 0;
   var carrilStyleHandler = null;
-  
-  // SVG del símbolo de bicicleta para carriles bici.
-  // 01-nov-2026 (b): la bici blanca va ahora sobre una pastilla de cristal
-  // translúcido con aro coral, acorde al tubo glass del trazado.
-  var BICI_ICONO_SVG =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
-    '<circle cx="16" cy="16" r="15" fill="#FFFFFF" fill-opacity="0.26" stroke="#E4574C" stroke-opacity="0.6" stroke-width="1.4"/>' +
-    '<circle cx="11" cy="10" r="5" fill="#FFFFFF" fill-opacity="0.16"/>' +
-    '<g fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(2.4 3) scale(0.85)">' +
-    '<circle cx="9" cy="21" r="5"/>' +
-    '<circle cx="23" cy="21" r="5"/>' +
-    '<path d="M9 21 L16 11 L20 11"/>' +
-    '<path d="M16 11 L14 7 L11 7"/>' +
-    '<path d="M20 11 L18 7 L21 7"/>' +
-    '</g>' +
-    '</svg>';
+  var infladorInteraccionLista = false;
 
   function bboxVisible() {
     var b = map.getBounds();
@@ -595,11 +584,17 @@
       'way["bicycle"~"^(designated|official)$"](' + b + ');';
     if (ligera) return '[out:json][timeout:8];(' + dedicadas + ');out body geom;';
     // Etiquetas habituales de OSM: vías dedicadas, carriles y rutas señalizadas.
+    // Se suman los nodos de INFLADO/REPARACIÓN reales (amenity=bicycle_repair_station,
+    // compressed_air=yes o service:bicycle:pump=yes): son los únicos puntos
+    // que se pintan sobre el carril, con popup al tocarlos.
     return '[out:json][timeout:8];(' + dedicadas +
       'way["cycleway"](' + b + ');' +
       'way["cycleway:left"](' + b + ');' +
       'way["cycleway:right"](' + b + ');' +
       'way["cycleway:both"](' + b + ');' +
+      'node["amenity"="bicycle_repair_station"](' + b + ');' +
+      'node["compressed_air"="yes"](' + b + ');' +
+      'node["service:bicycle:pump"="yes"](' + b + ');' +
       ');out body geom;';
   }
 
@@ -632,56 +627,29 @@
     return { type: 'Feature', properties: props, geometry: { type: 'LineString', coordinates: coords } };
   }
 
-  // Genera puntos espaciados a lo largo de las líneas para los símbolos de bici
-  function generarPuntosSimbolos(features, espaciadoMetros) {
-    if (!espaciadoMetros) espaciadoMetros = 50; // cada 50 metros por defecto
-    var puntos = [];
-    var RADIO_TIERRA = 6371000; // metros
-    
-    function distanciaMetros(lon1, lat1, lon2, lat2) {
-      var dLat = (lat2 - lat1) * Math.PI / 180;
-      var dLon = (lon2 - lon1) * Math.PI / 180;
-      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return RADIO_TIERRA * c;
-    }
-    
-    features.forEach(function(feature) {
-      var coords = feature.geometry.coordinates;
-      if (!coords || coords.length < 2) return;
-      
-      var distanciaAcumulada = 0;
-      var siguientePunto = espaciadoMetros; // primer punto a los X metros
-      
-      for (var i = 1; i < coords.length; i++) {
-        var p1 = coords[i-1];
-        var p2 = coords[i];
-        var distSegmento = distanciaMetros(p1[0], p1[1], p2[0], p2[1]);
-        
-        // Añadir puntos dentro de este segmento
-        while (distanciaAcumulada + distSegmento >= siguientePunto) {
-          var distanciaRestante = siguientePunto - distanciaAcumulada;
-          var fraccion = distanciaRestante / distSegmento;
-          
-          var lon = p1[0] + (p2[0] - p1[0]) * fraccion;
-          var lat = p1[1] + (p2[1] - p1[1]) * fraccion;
-          
-          puntos.push({
-            type: 'Feature',
-            properties: { tipo: 'simbolo-bici' },
-            geometry: { type: 'Point', coordinates: [lon, lat] }
-          });
-          
-          siguientePunto += espaciadoMetros;
-        }
-        
-        distanciaAcumulada += distSegmento;
-      }
-    });
-    
-    return puntos;
+  // Nodo OSM de inflado/reparación de bicicletas -> punto para la capa.
+  // Son los únicos marcadores que quedan sobre el carril (nov-2026).
+  function nodoAInflador(element) {
+    if (!element || element.type !== 'node') return null;
+    var lat = Number(element.lat);
+    var lon = Number(element.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    var tags = element.tags || {};
+    var reparacion = tags['amenity'] === 'bicycle_repair_station';
+    var inflador = tags['compressed_air'] === 'yes' || tags['service:bicycle:pump'] === 'yes';
+    if (!reparacion && !inflador) return null;
+    return {
+      type: 'Feature',
+      properties: {
+        __cid: 'node/' + element.id,
+        name: tags.name || '',
+        reparacion: reparacion,
+        inflador: inflador,
+        operador: tags.operator || tags.brand || '',
+        horario: tags.opening_hours || ''
+      },
+      geometry: { type: 'Point', coordinates: [lon, lat] }
+    };
   }
 
   // 01-nov-2026: el proxy y los espejos compiten EN PARALELO. Antes era una
@@ -716,7 +684,18 @@
       if (esProxy && resp.headers.get('X-Proxy-Aviso') === 'sin-datos') throw new Error('proxy sin-datos');
       var datos = await resp.json();
       if (!datos || !Array.isArray(datos.elements)) throw new Error('respuesta inválida');
-      return datos.elements.map(wayToLineString).filter(Boolean);
+      var carriles = [];
+      var infladores = [];
+      datos.elements.forEach(function (el) {
+        if (el && el.type === 'node') {
+          var punto = nodoAInflador(el);
+          if (punto) infladores.push(punto);
+          return;
+        }
+        var tramo = wayToLineString(el);
+        if (tramo) carriles.push(tramo);
+      });
+      return { carriles: carriles, infladores: infladores };
     } finally {
       clearTimeout(timeoutId);
     }
@@ -798,6 +777,7 @@
     var celdaCache = carrilCeldas.get(claveCelda);
     if (celdaCache && Date.now() - celdaCache.touched < CARRIL_TTL_MS && (celdaCache.modo === 'completa' || !zoomAlto)) {
       incorporarCarriles(celdaCache.features);
+      incorporarInfladores(celdaCache.infladores);
       repintarCarrilAcumulado();
       mostrarEstadoCarril(carrilAcumulado.size
         ? t('bikeLaneStatus', 'Carriles bici · {n} tramos').replace('{n}', String(carrilAcumulado.size))
@@ -809,6 +789,7 @@
     var cached = carrilCache.get(clave);
     if (cached && Date.now() - cached.touched < CARRIL_TTL_MS) {
       incorporarCarriles(cached.features);
+      incorporarInfladores(cached.infladores);
       repintarCarrilAcumulado();
       mostrarEstadoCarril(t('bikeLaneStatus', 'Carriles bici · {n} tramos').replace('{n}', String(carrilAcumulado.size)));
       return;
@@ -824,20 +805,23 @@
       // Proxy propio y espejos Overpass directos, todos a la vez, sobre la
       // macrocelda: gana el primero con respuesta válida (ver nota de
       // pedirCarrilesCarrera). En zoom lejano la consulta va ligera y vuela.
-      var features = await pedirCarrilesCarrera(celda, !zoomAlto);
+      var datos = await pedirCarrilesCarrera(celda, !zoomAlto);
       if (!carrilEnabled || requestId !== carrilRequestId) return;
+      var features = datos.carriles;
+      var infladores = datos.infladores;
       // No cachear vacío: un fallo temporal no debe ocultar el carril 15 min.
-      if (features.length) {
-        carrilCeldas.set(claveCelda, { features: features, modo: zoomAlto ? 'completa' : 'ligera', touched: Date.now() });
+      if (features.length || infladores.length) {
+        carrilCeldas.set(claveCelda, { features: features, infladores: infladores, modo: zoomAlto ? 'completa' : 'ligera', touched: Date.now() });
         while (carrilCeldas.size > 120) carrilCeldas.delete(carrilCeldas.keys().next().value);
         // El caché fino heredado sigue alimentado: si una consulta externa
         // (chat) pide exactamente esta caja, responde sin red.
-        carrilCache.set(clave, { features: features, touched: Date.now() });
+        carrilCache.set(clave, { features: features, infladores: infladores, touched: Date.now() });
         while (carrilCache.size > 200) carrilCache.delete(carrilCache.keys().next().value);
       }
       // (b) Los tramos nuevos se SUMAN a los ya pintados (nunca se borra lo
       // que ya se veía al moverse por el mapa) y se repinta el conjunto.
       incorporarCarriles(features);
+      incorporarInfladores(infladores);
       repintarCarrilAcumulado();
       carrilFallosSeguidos = 0;
       mostrarEstadoCarril(carrilAcumulado.size

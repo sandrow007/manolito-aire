@@ -5898,6 +5898,153 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (btnViajeCapas) btnViajeCapas.setAttribute('aria-pressed', modo === 'coche' ? 'true' : 'false');
   }
 
+  /* ---------------- Tiempos por modo bajo las pestañas (nov-2026) --------
+     Al pulsar «Buscar ruta» se piden EN PARALELO los tres perfiles OSRM ya
+     servidos por el proxy propio (a pie /ruta, bici /ruta-bici y coche
+     /ruta-coche) con overview=false: solo distancia y duración, sin pintar
+     nada en el mapa. La ruta que se dibuja sigue saliendo del motor de la
+     pestaña activa, como siempre. Mientras llegan, cada pestaña enseña un
+     esqueleto; si un perfil no encuentra trayecto, un «sin ruta» corto. */
+  var RESUMEN_OSRM_URL = {
+    caminar: CONFIG.osrmUrl + '/foot/',
+    bici: '/ruta-bici/driving/',
+    coche: '/ruta-coche/driving/',
+  };
+  var resumenPeticionId = 0;
+  var resumenClaveUltima = '';
+
+  function resumenElementos() {
+    return {
+      caminar: document.getElementById('rsResumenCaminar'),
+      bici: document.getElementById('rsResumenBici'),
+      coche: document.getElementById('rsResumenCoche'),
+    };
+  }
+
+  function limpiarResumenesModos() {
+    resumenClaveUltima = '';
+    resumenPeticionId++;
+    const cont = document.getElementById('rsModoRuta');
+    if (cont) cont.classList.remove('con-resumenes');
+    const els = resumenElementos();
+    Object.keys(els).forEach((k) => {
+      const el = els[k];
+      if (el) { el.className = 'rs-modo-resumen'; el.textContent = ''; }
+    });
+  }
+
+  function pintarResumenModo(el, r) {
+    if (!el) return;
+    el.classList.remove('cargando');
+    el.textContent = '';
+    if (!r) {
+      el.classList.add('sin-ruta');
+      el.textContent = t('modeNoRoute', 'sin ruta');
+      return;
+    }
+    el.classList.remove('sin-ruta');
+    const min = Math.round(r.duracionS / 60);
+    const txtMin = min >= 60 ? Math.floor(min / 60) + ' h ' + (min % 60) + ' min' : min + ' min';
+    const km = r.distanciaM / 1000;
+    const txtKm = String(km >= 10 ? Math.round(km) : Math.round(km * 10) / 10).replace('.', ',') + ' km';
+    const sMin = document.createElement('span');
+    sMin.className = 'rs-res-min';
+    sMin.textContent = txtMin;
+    const sKm = document.createElement('span');
+    sKm.className = 'rs-res-km';
+    sKm.textContent = txtKm;
+    el.appendChild(sMin);
+    el.appendChild(sKm);
+  }
+
+  async function pedirResumenModo(modo, origen, destino) {
+    const url = RESUMEN_OSRM_URL[modo] +
+      origen.lon + ',' + origen.lat + ';' + destino.lon + ',' + destino.lat +
+      '?overview=false';
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 9000);
+    try {
+      const resp = await fetch(url, { signal: controller.signal, credentials: 'omit' });
+      if (!resp.ok) return null;
+      const datos = await resp.json();
+      const r = datos && datos.code === 'Ok' && Array.isArray(datos.routes) && datos.routes[0];
+      if (!r) return null;
+      return { duracionS: r.duration || 0, distanciaM: r.distance || 0 };
+    } catch (e) {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function puntoOrigenResumen() {
+    // Mismo criterio que los tres motores con origen vacío: tu ubicación si
+    // ya se conoce; si no, el centro del mapa que estás mirando.
+    const ultima = window.__manolitUltimaPos;
+    if (ultima && Number.isFinite(Number(ultima.lat)) && Number.isFinite(Number(ultima.lon))) {
+      return { lat: Number(ultima.lat), lon: Number(ultima.lon) };
+    }
+    try {
+      const c = map.getCenter();
+      if (c && Number.isFinite(c.lat) && Number.isFinite(c.lng)) return { lat: c.lat, lon: c.lng };
+    } catch (e) { /* sin mapa todavía */ }
+    return null;
+  }
+
+  async function lanzarResumenesModos() {
+    const els = resumenElementos();
+    if (!els.caminar || !els.bici || !els.coche) return;
+    const oTxt = inputOrigen ? inputOrigen.value.trim() : '';
+    const dTxt = inputDestino ? inputDestino.value.trim() : '';
+    if (!dTxt) return;
+    // Cambiar de pestaña relanza la búsqueda con los mismos textos: no se
+    // repite el cálculo ni parpadea el esqueleto si ya se pidió esta pareja.
+    const clave = oTxt + '|' + dTxt;
+    if (clave === resumenClaveUltima) return;
+    resumenClaveUltima = clave;
+    const peticion = ++resumenPeticionId;
+
+    const cont = document.getElementById('rsModoRuta');
+    if (cont) cont.classList.add('con-resumenes');
+    Object.keys(els).forEach((k) => {
+      const el = els[k];
+      el.className = 'rs-modo-resumen cargando';
+      el.textContent = '';
+    });
+
+    let destino = null;
+    let origen = null;
+    try { destino = await resolverPunto(inputDestino); } catch (e) { /* abajo */ }
+    if (destino) {
+      if (oTxt) {
+        try { origen = await resolverPunto(inputOrigen); } catch (e) { /* abajo */ }
+      } else {
+        origen = puntoOrigenResumen();
+      }
+    }
+    if (!destino || !origen) {
+      // El motor activo ya enseña su propio error; los huecos se retiran.
+      if (peticion === resumenPeticionId) limpiarResumenesModos();
+      return;
+    }
+    if (peticion !== resumenPeticionId) return;
+
+    ['caminar', 'bici', 'coche'].forEach((modo) => {
+      pedirResumenModo(modo, origen, destino).then((r) => {
+        if (peticion !== resumenPeticionId) return;
+        pintarResumenModo(els[modo], r);
+      });
+    });
+  }
+
+  // Al editar un campo los números mostrados ya no valen: se retiran para
+  // no dejar datos de una búsqueda vieja junto a un texto nuevo.
+  [inputOrigen, inputDestino].forEach((input) => {
+    if (input) input.addEventListener('input', () => {
+      if (resumenClaveUltima) limpiarResumenesModos();
+    });
+  });
+
   function elegirModoRuta(modo, opciones) {
     if (!['caminar', 'bici', 'coche'].includes(modo)) return;
     const anterior = window.__manolitoModoRuta || 'caminar';
@@ -5920,6 +6067,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
     sincronizarBotonesModo();
     if (opciones && opciones.enfocarDestino && inputDestino) inputDestino.focus();
+    // Al tocar otra pestaña con una búsqueda ya escrita, el mapa cambia al
+    // trayecto de ESA modalidad (su motor reencuadra la vista al pintar).
+    // Sin destino escrito solo se cambia de pestaña, como antes.
+    if (anterior !== modo && inputDestino && inputDestino.value.trim()) {
+      manejarBusquedaUnificada();
+    }
   }
   window.manolitAireElegirModoRuta = elegirModoRuta;
 
@@ -5970,6 +6123,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   async function manejarBusquedaUnificada(origenDirecto, destinoDirecto) {
     const modo = window.__manolitoModoRuta || 'caminar';
+    // Los tres resúmenes bajo las pestañas se calculan a la vez, en paralelo
+    // y sin bloquear al motor activo (él sigue pintando su propia ruta).
+    lanzarResumenesModos();
 
     if (modo === 'bici') {
       const textoDestino = inputDestino.value.trim();

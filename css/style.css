@@ -3925,6 +3925,35 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 #main-content .rs-form .rs-modo-ruta button.activa{
   background:var(--accent); border-color:var(--accent); color:#fff;
 }
+/* Resumen de tiempo/distancia bajo cada pestaña (nov-2026): aparece al
+   buscar, con esqueleto mientras se calcula y «sin ruta» corto si el
+   perfil no encuentra trayecto. Hereda el color de la pestaña, así que
+   sirve igual en tema claro, oscuro y modo accesible. */
+#main-content .rs-form .rs-modo-ruta button .rs-modo-textos{
+  display:inline-flex; flex-direction:column; align-items:flex-start; gap:1px;
+}
+#main-content .rs-form .rs-modo-resumen{
+  display:none; align-items:baseline;
+  font:500 .64rem/1.25 var(--font-body);
+  font-variant-numeric:tabular-nums;
+  opacity:.72; white-space:nowrap;
+}
+#main-content .rs-form .rs-modo-ruta.con-resumenes .rs-modo-resumen{ display:inline-flex; }
+#main-content .rs-form .rs-modo-resumen .rs-res-min::after{ content:"\00a0\00b7\00a0"; }
+#main-content .rs-form .rs-modo-resumen.sin-ruta{ font-style:italic; opacity:.6; }
+#main-content .rs-form .rs-modo-resumen.cargando{
+  width:42px; height:8px; border-radius:999px;
+  background:currentColor; opacity:.3;
+  animation:rsResumenLatido 1.1s ease-in-out infinite;
+}
+@keyframes rsResumenLatido{ 0%,100%{ opacity:.16; } 50%{ opacity:.42; } }
+/* Móvil estrecho: si los km no caben junto a los minutos, los minutos
+   mandan y los km bajan a una segunda línea aún más pequeña. */
+@media (max-width:480px){
+  #main-content .rs-form .rs-modo-resumen{ flex-direction:column; align-items:flex-start; }
+  #main-content .rs-form .rs-modo-resumen .rs-res-min::after{ content:""; }
+  #main-content .rs-form .rs-modo-resumen .rs-res-km{ font-size:.9em; opacity:.85; }
+}
 /* Los paneles de bici y viaje viven DENTRO del formulario: se enseñan solo
    cuando su motor calcula, jamás como paneles flotantes aparte. */
 #main-content .rs-form .rs-panel-viaje{
@@ -5312,6 +5341,9 @@ html[lang="ar"] #main-content .rs-form .rs-field input[type="text"]{
   #main-content .rs-form,
   #main-content .rs-form.rs-form-flotante{ top:50px; }
   #main-content .rs-form .rs-modo-ruta button{ height:30px; min-height:30px; }
+  /* Con los resúmenes visibles la píldora crece a dos líneas: la altura
+     fija de 30px cortaría el texto pequeño. */
+  #main-content .rs-form .rs-modo-ruta.con-resumenes button{ height:auto; min-height:30px; }
   #main-content .rs-form .rs-field input[type="text"],
   #main-content .rs-form #rsBuscarBtn,
   #main-content .rs-form .rs-parking-action,

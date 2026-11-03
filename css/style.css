@@ -4519,6 +4519,55 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   outline:2px solid var(--mui-accent, var(--accent));
   outline-offset:2px;
 }
+#main-content .rs-modo-navegacion{
+  margin:0 0 14px; padding:14px; border:1px solid color-mix(in srgb,var(--accent,#ff6b1a) 34%,var(--line,#d9e1df));
+  border-radius:16px; background:color-mix(in srgb,var(--paper,#fbfaf7) 92%,var(--accent,#ff6b1a));
+  color:var(--text,#18333B); position:relative; z-index:1;
+}
+#main-content .rs-modo-navegacion[hidden]{display:none}
+#main-content .rs-nav-cabecera,#main-content .rs-nav-acciones{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#main-content .rs-nav-cabecera h3{margin:0;font-size:1rem}
+#main-content #rsNavEstado{font-size:.78rem;color:var(--muted,#40575a)}
+#main-content .rs-nav-instrucciones{display:grid;gap:8px;margin:12px 0}
+#main-content .rs-nav-instrucciones div{display:grid;gap:2px}
+#main-content .rs-nav-instrucciones small{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted,#40575a)}
+#main-content #rsNavActual{font-size:1.05rem}
+#main-content #rsNavSiguiente{font-size:.9rem;color:var(--muted,#40575a)}
+#main-content .rs-nav-acciones{justify-content:flex-start;flex-wrap:wrap}
+#main-content .rs-nav-acciones button{
+  min-width:44px; min-height:44px; padding:9px 14px; touch-action:manipulation;
+}
+#main-content .rs-nav-acciones button:focus-visible{
+  outline:3px solid var(--mui-accent,var(--accent,#ff6b1a)); outline-offset:3px;
+}
+[data-theme="dark"] #main-content .rs-modo-navegacion,
+#main-content .map-wrap.rs-mapa-oscuro-activo ~ .rs-modo-navegacion{
+  color:#F4F7F5; background:#18232A; border-color:#6DE0D1;
+}
+[data-theme="dark"] #main-content #rsNavEstado,
+[data-theme="dark"] #main-content .rs-nav-instrucciones small,
+[data-theme="dark"] #main-content #rsNavSiguiente{color:#C5D8D6}
+@media (max-width:640px){
+  #main-content .rs-modo-navegacion{
+    margin-bottom:calc(14px + env(safe-area-inset-bottom,0px));
+    padding:12px;
+  }
+  #main-content .rs-nav-cabecera{align-items:flex-start}
+  #main-content .rs-nav-acciones{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  #main-content .rs-nav-acciones button{width:100%;padding-inline:10px}
+}
+@media (max-width:640px) and (orientation:landscape){
+  #main-content .rs-modo-navegacion{padding:10px 12px}
+  #main-content .rs-nav-instrucciones{grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin:8px 0}
+}
+@media (max-width:360px){
+  #main-content .rs-nav-cabecera{display:grid;grid-template-columns:1fr}
+  #main-content .rs-nav-acciones{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  #main-content .rs-modo-navegacion,
+  #main-content .rs-nav-acciones button{transition:none !important}
+}
 [data-theme="dark"] #main-content .rs-accion-caminar #rsBtnCaminarResumen,
 #main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-accion-caminar #rsBtnCaminarResumen{
   color:#202124;
@@ -5515,7 +5564,7 @@ body.modo-accesible #main-content .rs-form #rsDestino{
    ========================================================================== */
 #main-content .map-wrap .rs-hud{
   position:absolute;
-  z-index:7;
+  z-index:20;
   box-sizing:border-box;
   background:rgba(22,26,32,0.94);
   color:var(--paper,#EDF4F2);
@@ -5724,6 +5773,30 @@ body.modo-accesible #main-content .rs-form #rsDestino{
 
 /* Paseo virtual con joystick: el velocímetro sube para no chocar con él */
 #main-content .map-wrap:has(#rsJoystick.rs-visible) #rsHudVeloWrap{bottom:196px;}
+
+/* The solar shadow widget is a deliberate modal surface over the map
+   (svg#map has z-index 1125). Never leave navigation HUD controls beneath
+   it where they could steal taps or make the time slider unreadable. The
+   route controls remain in the document flow above the map, so the trip can
+   be resumed as soon as the widget closes. */
+body:has(svg#map #w.o) #main-content .map-wrap .rs-hud,
+body:has(svg#map #w.o) #main-content .map-wrap #rsBtnRecentrarCaminata{
+  display:none !important;
+}
+
+/* Keep the bottom sheet clear of browser gesture areas on short phones. */
+@media (max-width:640px){
+  #main-content .map-wrap #rsHudTiempo{
+    max-height:calc(88px + env(safe-area-inset-bottom,0px));
+    padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  }
+  #main-content .rs-modo-navegacion{
+    margin-bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  }
+  #main-content .rs-nav-acciones button{
+    flex:1 1 140px;
+  }
+}
 
 /* El único will-change de la app: el marcador del usuario */
 #main-content .map-wrap .rs-marcador-usuario{will-change:transform;}

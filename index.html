@@ -1373,6 +1373,20 @@
     <div class="rs-accion-caminar" id="rsAccionCaminar" hidden>
       <button type="button" id="rsBtnCaminarResumen" data-i18n="walkModeStart">Iniciar caminata</button>
     </div>
+    <section class="rs-modo-navegacion" id="rsModoNavegacion" hidden aria-labelledby="rsModoNavegacionTitulo">
+      <div class="rs-nav-cabecera">
+        <h3 id="rsModoNavegacionTitulo" data-i18n="navTitle">Navegación</h3>
+        <span id="rsNavEstado" role="status" aria-live="polite" data-i18n="routeReady">Ruta lista</span>
+      </div>
+      <div class="rs-nav-instrucciones">
+        <div><small data-i18n="navCurrent">Ahora</small><strong id="rsNavActual">Pulsa «Iniciar caminata» para empezar</strong></div>
+        <div><small data-i18n="navNext">Siguiente</small><span id="rsNavSiguiente">Las indicaciones aparecerán aquí</span></div>
+      </div>
+      <div class="rs-nav-acciones">
+        <button type="button" id="rsBtnNavToggle" aria-pressed="false" data-i18n="walkModeStart">Iniciar caminata</button>
+        <button type="button" id="rsBtnNavVoz" class="rs-btn-escuchar" aria-pressed="false" data-i18n="voiceGuide">Guía por voz</button>
+      </div>
+    </section>
     <div id="rsLiveSummary" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Indicaciones paso a paso accesibles: la misma información que se ve
@@ -3961,7 +3975,7 @@ window.addEventListener("load",function(){layout();place()});
 })();
 </script>
 </svg><style id="rsSolarSvgIntegration">
-svg#map{position:absolute!important;z-index:1125!important;background:transparent!important;max-width:none!important;pointer-events:none!important;touch-action:none!important}
+svg#map{position:absolute!important;z-index:1200!important;background:transparent!important;max-width:none!important;pointer-events:none!important;touch-action:none!important}
 svg#map #mk{-webkit-tap-highlight-color:transparent;outline:none!important}
 svg#map #mk:focus,svg#map #mk:focus-visible{outline:none!important}
 #rsTimeControls{display:none!important}

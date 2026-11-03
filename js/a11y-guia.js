@@ -265,12 +265,32 @@
     guiaCaminataActiva = false;
     preavisoHechoEn = -1;
     ultimoAvisoDesvioMs = 0;
+    guiaCaminataActiva = pasosGuiadosActuales.length > 0;
+    pintarPanelNavegacion(0, true);
     // La guía solo habla si la persona la encendió con su botón.
     if (!vozQuerida()) return;
-    guiaCaminataActiva = pasosGuiadosActuales.length > 0;
     if (!guiaCaminataActiva) return;
     hablarPasoGuia(t('walkGuidanceStart', 'Guía de caminata activada. Te iré diciendo cada paso en voz alta.') + ' ' + pasosGuiadosActuales[0].texto);
     indicePasoGuiado = 1;
+  }
+
+  function pintarPanelNavegacion(indice, enMarcha) {
+    const panel = document.getElementById('rsModoNavegacion');
+    if (!panel) return;
+    const actual = pasosGuiadosActuales[indice] || pasosGuiadosActuales[pasosGuiadosActuales.length - 1];
+    const siguiente = pasosGuiadosActuales[indice + 1];
+    const texto = (paso) => paso && paso.texto ? limpiarTextoGuia(paso.texto) : '';
+    const actualEl = document.getElementById('rsNavActual');
+    const siguienteEl = document.getElementById('rsNavSiguiente');
+    const estado = document.getElementById('rsNavEstado');
+    const toggle = document.getElementById('rsBtnNavToggle');
+    if (actualEl) actualEl.textContent = texto(actual) || (enMarcha ? t('stepArrive', 'Has llegado a tu destino.') : t('walkModeStart', 'Iniciar caminata'));
+    if (siguienteEl) siguienteEl.textContent = texto(siguiente) || t('stepArrive', 'Has llegado a tu destino.');
+    if (estado) estado.textContent = enMarcha ? t('walkModeTracking', 'Siguiendo tu ubicación…') : t('routeReady', 'Ruta lista');
+    if (toggle) {
+      toggle.textContent = enMarcha ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata');
+      toggle.setAttribute('aria-pressed', enMarcha ? 'true' : 'false');
+    }
   }
 
   // Constantes del guiado espacial (metros).
@@ -324,6 +344,7 @@
       const paso = pasosGuiadosActuales[alcanzado];
       hablarPasoGuia(paso.texto);
       indicePasoGuiado = alcanzado + 1;
+      pintarPanelNavegacion(indicePasoGuiado, indicePasoGuiado < pasosGuiadosActuales.length);
       if (paso.esLlegada) guiaCaminataActiva = false;
     } catch (e) { /* geometría rara: se reintenta en la próxima lectura GPS */ }
   }
@@ -333,6 +354,7 @@
     indicePasoGuiado = 0;
     preavisoHechoEn = -1;
     ultimoAvisoDesvioMs = 0;
+    pintarPanelNavegacion(0, false);
     if (vozNavegadorDisponible()) {
       try { window.speechSynthesis.cancel(); } catch (e) { }
     }
@@ -393,6 +415,8 @@
     lista.innerHTML = '';
     if (!pasosActuales.length) {
       seccion.hidden = true;
+      const panel = document.getElementById('rsModoNavegacion');
+      if (panel) panel.hidden = true;
       return;
     }
     for (const texto of pasosActuales) {
@@ -403,6 +427,11 @@
     const btn = document.getElementById('rsBtnEscucharPasos');
     if (btn) btn.hidden = !vozNavegadorDisponible();
     seccion.hidden = false;
+    const panel = document.getElementById('rsModoNavegacion');
+    if (panel) {
+      panel.hidden = false;
+      pintarPanelNavegacion(0, false);
+    }
 
     // Las indicaciones son OPCIONALES: la sección aparece plegada y quien
     // quiera leerla o escucharla la despliega con el botón. Solo se abre
@@ -439,11 +468,29 @@
     detenerLecturaPasos();
     const seccion = document.getElementById('rsPasosSection');
     if (seccion) seccion.hidden = true;
+    const panel = document.getElementById('rsModoNavegacion');
+    if (panel) panel.hidden = true;
   }
+
+  cuandoExista('#rsBtnNavToggle', (btn) => {
+    btn.addEventListener('click', () => document.getElementById('rsBtnCaminarResumen')?.click());
+  });
+  cuandoExista('#rsBtnNavVoz', (btn) => {
+    btn.addEventListener('click', () => document.getElementById('rsBtnGuiaVoz')?.click());
+  });
 
   document.addEventListener('langChanged', () => {
     const btn = document.getElementById('rsBtnEscucharPasos');
     if (btn) btn.textContent = lecturaEnCurso ? t('stepsStop', 'Detener lectura') : t('stepsListen', 'Escuchar indicaciones');
+    const navTitle = document.getElementById('rsModoNavegacionTitulo');
+    const navVoice = document.getElementById('rsBtnNavVoz');
+    const navCurrent = document.querySelector('#rsModoNavegacion [data-i18n="navCurrent"]');
+    const navNext = document.querySelector('#rsModoNavegacion [data-i18n="navNext"]');
+    if (navTitle) navTitle.textContent = t('navTitle', 'Navegación');
+    if (navVoice) navVoice.textContent = t('voiceGuide', 'Guía por voz');
+    if (navCurrent) navCurrent.textContent = t('navCurrent', 'Ahora');
+    if (navNext) navNext.textContent = t('navNext', 'Siguiente');
+    pintarPanelNavegacion(indicePasoGuiado, guiaCaminataActiva);
     const titulo = document.getElementById('rsPasosTitulo');
     if (titulo) titulo.textContent = t('stepsTitle', 'Indicaciones paso a paso');
   });

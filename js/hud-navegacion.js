@@ -47,6 +47,7 @@
     map: null,
     wrap: null,
     visible: false,
+    enMarcha: false,
     modo: 'caminar',
     ruta: null,          // {coords, steps:[...], totalM, distanciaM, duracionS}
     lineaTurf: null,     // turf.lineString cacheado una vez por ruta
@@ -569,7 +570,7 @@
 
       if (pos) S.ultPos = pos;
     } catch (e) { /* el HUD jamás rompe el mapa */ }
-    S.rafId = requestAnimationFrame(tick);
+    S.rafId = S.enMarcha ? requestAnimationFrame(tick) : null;
   }
 
   /* ---------------------------------------------------------------------
@@ -661,6 +662,20 @@
       } else if (!hayRuta && S.visible) {
         ocultar();
       } else if (hayRuta && S.visible && modo === S.modo) {
+        if (caminando !== S.enMarcha) {
+          S.enMarcha = caminando;
+          S.el.banner.hidden = !caminando;
+          S.el.veloWrap.hidden = !caminando;
+          if (caminando) {
+            encenderGps();
+            if (S.rafId == null) S.rafId = requestAnimationFrame(tick);
+          } else {
+            apagarGps();
+            if (S.rafId != null) { cancelAnimationFrame(S.rafId); S.rafId = null; }
+            pintarLimite(null);
+            pintarVelocidad(null);
+          }
+        }
         var stashAhora = (S.modo === 'bici')
           ? (window.__manolitHudBici && window.__manolitHudBici.rutas ? window.__manolitHudBici.rutas[window.__manolitHudBici.activa || 0] : null)
           : (S.modo === 'coche' ? window.__manolitHudCoche : window.__manolitHudPeaton);
@@ -702,6 +717,7 @@
 
   function mostrar(conGps) {
     S.visible = true;
+    S.enMarcha = !!conGps;
     S.fallosRuta = 0;
     aplicarModo();
     resetPintado();
@@ -710,17 +726,26 @@
     S.el.veloWrap.hidden = !conGps;
     if (conGps) encenderGps();
     else apagarGps();
-    if (S.rafId == null) S.rafId = requestAnimationFrame(tick);
+    if (S.evalTimer == null) S.evalTimer = setInterval(function () { if (!document.hidden) evaluar(); }, 1500);
+    if (conGps && S.rafId == null) S.rafId = requestAnimationFrame(tick);
+    if (!conGps) {
+      pintarLimite(null);
+      pintarVelocidad(null);
+      pintarBanner(0);
+      pintarTiempo(0, null);
+    }
   }
 
   function ocultar() {
     S.visible = false;
+    S.enMarcha = false;
     S.fallosRuta = 0;
     S.el.banner.hidden = true;
     S.el.tiempo.hidden = true;
     S.el.veloWrap.hidden = true;
     S.el.limite.hidden = true;
     apagarGps();
+    if (S.evalTimer != null) { clearInterval(S.evalTimer); S.evalTimer = null; }
     restaurarCamara();
     if (S.rafId != null) { cancelAnimationFrame(S.rafId); S.rafId = null; }
   }
@@ -754,17 +779,32 @@
         } catch (e) { }
 
         // Las fuentes del mapa no emiten DOM: sondeo barato de 1 s.
-        setInterval(function () { if (!document.hidden) evaluar(); }, 1000);
+        S.evalTimer = setInterval(function () { if (!document.hidden) evaluar(); }, 1500);
 
         // Batería: con la pestaña oculta el GPS del HUD duerme del todo.
         document.addEventListener('visibilitychange', function () {
-          if (document.hidden) apagarGps();
+          if (document.hidden) {
+            apagarGps();
+            if (S.evalTimer != null) { clearInterval(S.evalTimer); S.evalTimer = null; }
+          }
           else if (S.visible) {
             var btnWalk = document.getElementById('rsBtnWalk');
             if (btnWalk && btnWalk.classList.contains('rs-activo')) encenderGps();
+            if (S.evalTimer == null) S.evalTimer = setInterval(function () { if (!document.hidden) evaluar(); }, 1500);
             evaluar();
           }
         });
+        window.addEventListener('pagehide', function () {
+          apagarGps();
+          if (S.evalTimer != null) { clearInterval(S.evalTimer); S.evalTimer = null; }
+          if (S.rafId != null) { cancelAnimationFrame(S.rafId); S.rafId = null; }
+        }, { passive: true });
+        window.addEventListener('pageshow', function () {
+          if (!document.hidden && S.visible) {
+            if (S.evalTimer == null) S.evalTimer = setInterval(function () { if (!document.hidden) evaluar(); }, 1500);
+            evaluar();
+          }
+        }, { passive: true });
 
         evaluar();
       } else if (intentos < 120) {

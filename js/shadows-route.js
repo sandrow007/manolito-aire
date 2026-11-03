@@ -267,6 +267,7 @@
         });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const datos = await resp.json();
+        if (!datos || !Array.isArray(datos.elements)) throw new Error('Respuesta Overpass inválida');
         return overpassJsonAGeojson(datos);
       } catch (e) {
         ultimoError = e;
@@ -376,9 +377,13 @@
   function encontrarNodoCercano(grafo, lon, lat) {
     let mejorIdx = -1;
     let mejorDist = Infinity;
+    const latRad = lat * Math.PI / 180;
+    const escalaLon = Math.max(0.01, Math.cos(latRad));
     for (let i = 0; i < grafo.nodos.length; i++) {
       const n = grafo.nodos[i];
-      const d = (n[0] - lon) * (n[0] - lon) + (n[1] - lat) * (n[1] - lat);
+      const dx = (n[0] - lon) * escalaLon;
+      const dy = n[1] - lat;
+      const d = dx * dx + dy * dy;
       if (d < mejorDist) {
         mejorDist = d;
         mejorIdx = i;
@@ -3054,10 +3059,33 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnReiniciar.id = 'rsBtnReset';
     btnReiniciar.textContent = t('resetBtn', 'Reiniciar');
 
+        // Atajo «Iniciar caminata» junto al resumen (nov-2026). Es una puerta
+    // ADITIVA: no tiene lógica propia, solo pulsa el botón de siempre
+    // (#rsBtnWalk) para no duplicar el modo caminata.
+    function mostrarAtajoCaminar(visible) {
+      const caja = document.getElementById('rsAccionCaminar');
+      if (!caja) return;
+      caja.hidden = !visible;
+    }
+    (function enlazarAtajoCaminar() {
+      const atajo = document.getElementById('rsBtnCaminarResumen');
+      if (!atajo) return;
+      atajo.addEventListener('click', () => {
+        document.getElementById('rsBtnWalk')?.click();
+        // Refleja el estado real del botón original para que el atajo no
+        // mienta: si la caminata está en marcha, se lee «Detener caminata».
+        atajo.textContent = t(
+          document.getElementById('rsBtnWalk')?.classList.contains('rs-activo') ? 'walkModeStop' : 'walkModeStart',
+          document.getElementById('rsBtnWalk')?.classList.contains('rs-activo') ? 'Detener caminata' : 'Iniciar caminata'
+        );
+      });
+    })();
+
     function reiniciarTodo() {
       detenerPaseoVirtual();
       salirDeModoClick();
       detenerCaminata();
+      mostrarAtajoCaminar(false);
       inputOrigen.value = '';
       inputDestino.value = '';
       seleccionPorInput.delete(inputOrigen);
@@ -3069,11 +3097,34 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
       if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
-      rutaActual = null;
+            rutaActual = null;
       origenParaAutoRuta = null;
       limpiarTramoRecorrido(); // si la ruta se borra, el gris también
+      // (nov-2026) Reinicio de verdad del GPS: si no se vuelve a poner a
+      // false, la siguiente lectura se cree «la primera» ya pasada y no
+      // repinta tu punto ni rellena el origen. Por eso, tras Reiniciar,
+      // «Mi ubicación» parecía no funcionar.
+      gpsYaColocado = false;
+      gpsUltimoDespertarMs = 0;
+      gpsRachaMovimiento = 0;
+      // Fuera también la memoria de la última posición: el chat y el
+      // buscador no deben arrastrar el punto viejo tras un reinicio.
+      try { window.__manolitUltimaPos = null; } catch (e) { /* nada que olvidar */ }
       mostrarEstado('');
       mostrarBadgeSombra(null);
+      // (nov-2026) Tras el borrado total el GPS está dormido y el despertador
+      // por movimiento exige gpsYaColocado=true, así que NADIE volvía a
+      // pintar tu punto: tras «Reiniciar» la ubicación desaparecía para
+      // siempre. Si el permiso YA estaba concedido, se despierta una vez en
+      // silencio (plazo de 25 s, sin avisos) y el punto reaparece solo.
+      // Sin permiso concedido no se fuerza ninguna petición al usuario.
+      try {
+        if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+          navigator.permissions.query({ name: 'geolocation' }).then((permiso) => {
+            if (permiso && permiso.state === 'granted') despertarGPS(false);
+          }).catch(() => { });
+        }
+      } catch (e) { /* sin Permissions API: no se fuerza nada */ }
     }
 
     btnReiniciar.addEventListener('click', reiniciarTodo);
@@ -3087,10 +3138,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
         if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
         if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
-        rutaActual = null;
+                rutaActual = null;
         origenParaAutoRuta = null;
         limpiarTramoRecorrido();
         mostrarBadgeSombra(null);
+        mostrarAtajoCaminar(false);
         if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
         if (window.ManolitCO2) window.ManolitCO2.ocultar();
         try { limpiarAlertasUvRuta(); } catch (e) { /* aditivo: nunca rompe */ }
@@ -3181,9 +3233,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const primeraVez = !gpsYaColocado;
       gpsYaColocado = true;
 
-      // Solo se actualiza el origen si sigue siendo «Mi ubicación»: jamás
+            // Solo se actualiza el origen si sigue siendo «Mi ubicación»: jamás
       // se pisa un origen elegido a mano en el mapa o escrito por ti.
-      const origenSigueSiendoGPS = primeraVez || inputOrigen.value === textoMiUbicacion;
+      // (nov-2026) ADITIVO: si el campo está VACÍO también se rellena. Antes,
+      // tras pulsar «Reiniciar», el campo quedaba vacío pero gpsYaColocado
+      // seguía en true, así que una lectura nueva del GPS no volvía a poner
+      // tu punto ni el origen, y parecía que «Mi ubicación» no hacía nada.
+      const origenVacio = !inputOrigen.value || !inputOrigen.value.trim();
+      const origenSigueSiendoGPS = primeraVez || origenVacio || inputOrigen.value === textoMiUbicacion;
       if (origenSigueSiendoGPS) {
         seleccionPorInput.set(inputOrigen, { lat, lon, nombre: textoMiUbicacion, texto: textoMiUbicacion });
         inputOrigen.value = textoMiUbicacion;
@@ -3414,8 +3471,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (watchId != null) navigator.geolocation.clearWatch(watchId);
       watchId = null;
       if (marcadorCaminando) { marcadorCaminando.remove(); marcadorCaminando = null; }
-      btnCaminar.classList.remove('rs-activo');
+            btnCaminar.classList.remove('rs-activo');
       btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
+      sincronizarAtajoCaminar();
+    }
+
+    // El atajo del resumen copia el estado del boton real, sin logica propia.
+    function sincronizarAtajoCaminar() {
+      const atajo = document.getElementById('rsBtnCaminarResumen');
+      if (!atajo) return;
+      const andando = btnCaminar.classList.contains('rs-activo');
+      atajo.textContent = andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata');
+      atajo.classList.toggle('rs-activo', andando);
+      atajo.setAttribute('aria-pressed', andando ? 'true' : 'false');
     }
 
     btnCaminar.addEventListener('click', () => {
@@ -3425,8 +3493,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
         return;
       }
-      btnCaminar.classList.add('rs-activo');
+            btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
+      sincronizarAtajoCaminar();
       mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
       // Si hay una ruta calculada con indicaciones, arranca la guía por voz:
       // anuncia el primer paso ya y los siguientes al acercarte a cada punto.
@@ -5453,6 +5522,46 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     let controladorActual = null;
     let indiceActivo = -1;
     let ultimosResultados = [];
+    const esOrigen = input === inputOrigen;
+
+    // «Mi ubicación» como primera opción, al estilo Google Maps: sale al
+    // enfocar el campo de origen vacío y encabeza las sugerencias al
+    // escribir, para que buscar DESDE donde estás cueste un toque.
+    function sugerenciaMiUbicacion() {
+      return {
+        miUbicacion: true,
+        nombre: t('myLocation', 'Mi ubicación'),
+        detalle: t('myLocationHint', 'Usar tu posición GPS'),
+        texto: t('myLocation', 'Mi ubicación'),
+      };
+    }
+
+    function elegirMiUbicacion() {
+      const texto = t('myLocation', 'Mi ubicación');
+      const poner = (lat, lon) => {
+        input.value = texto;
+        seleccionPorInput.set(input, { lat, lon, nombre: texto, texto });
+        contenedor.innerHTML = '';
+        contenedor.style.display = 'none';
+        indiceActivo = -1;
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
+      };
+      const ultima = window.__manolitUltimaPos;
+      if (ultima && Number.isFinite(Number(ultima.lat)) && Number.isFinite(Number(ultima.lon))) {
+        poner(Number(ultima.lat), Number(ultima.lon));
+        return;
+      }
+      if (!('geolocation' in navigator)) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          try { window.__manolitUltimaPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, precisionM: pos.coords.accuracy, ts: Date.now() }; } catch (e) { }
+          poner(pos.coords.latitude, pos.coords.longitude);
+        },
+        () => { /* sin permiso: no se escribe nada */ },
+        { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
+      );
+    }
 
     input.addEventListener('input', () => {
       seleccionPorInput.delete(input);
@@ -5567,6 +5676,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
 
     function seleccionarSugerencia(r) {
+      if (r && r.miUbicacion) { elegirMiUbicacion(); return; }
       input.value = r.texto;
       seleccionPorInput.set(input, {
         lat: r.lat,
@@ -5597,35 +5707,55 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
     }
 
-    function pintarSugerencias(resultados, textoOriginal) {
+    function pintarSugerencias(resultados, textoOriginal, opciones) {
+      opciones = opciones || {};
       ultimosResultados = [];
-      if (!resultados || resultados.length === 0) {
+      const conMiUbicacion = esOrigen && ('geolocation' in navigator);
+      const items = [];
+      if (conMiUbicacion) items.push(sugerenciaMiUbicacion());
+      if (resultados && resultados.length) {
+        items.push(...reordenarPorCiudadEscrita(resultados, textoOriginal));
+      }
+      if (!items.length) {
         contenedor.innerHTML = `<li class="rs-sug-empty" role="option" aria-disabled="true">${t('noResults', 'Sin resultados')}</li>`;
         contenedor.style.display = 'block';
         input.setAttribute('aria-expanded', 'true');
         return;
       }
-
-      resultados = reordenarPorCiudadEscrita(resultados, textoOriginal);
-      ultimosResultados = resultados;
+      // Sin resultados de lugares pero con «Mi ubicación» encima: se avisa
+      // igualmente debajo, sin ocultar la opción del GPS.
+      const sinResultadosLugares = !resultados || !resultados.length;
+      ultimosResultados = items;
       indiceActivo = -1;
 
-      contenedor.innerHTML = resultados
+      contenedor.innerHTML = items
         .map((r, i) => {
-          return `<li data-idx="${i}" id="${contenedorSugerenciasId}-opt-${i}" role="option" aria-selected="false">
+          const clase = r.miUbicacion ? ' class="rs-sug-ubicacion"' : '';
+          return `<li data-idx="${i}" id="${contenedorSugerenciasId}-opt-${i}" role="option" aria-selected="false"${clase}>
             <span class="rs-sug-linea1">${escHtml(r.nombre)}</span>
             <span class="rs-sug-linea2">${escHtml(r.detalle)}</span>
           </li>`;
         })
-        .join('');
+        .join('') +
+        (sinResultadosLugares && !opciones.silenciarNota
+          ? `<li class="rs-sug-empty" role="option" aria-disabled="true">${t('noResults', 'Sin resultados')}</li>`
+          : '');
       contenedor.style.display = 'block';
       input.setAttribute('aria-expanded', 'true');
       input.removeAttribute('aria-activedescendant');
 
       contenedor.querySelectorAll('li[data-idx]').forEach((li) => {
-        li.addEventListener('click', () => seleccionarSugerencia(resultados[Number(li.dataset.idx)]));
+        li.addEventListener('click', () => seleccionarSugerencia(items[Number(li.dataset.idx)]));
       });
     }
+
+    // Al enfocar el origen vacío se ofrece «Mi ubicación» directamente,
+    // como hace Google Maps, sin obligar a escribir nada.
+    input.addEventListener('focus', () => {
+      if (!esOrigen || input.value.trim()) return;
+      if (!('geolocation' in navigator)) return;
+      pintarSugerencias([], '', { silenciarNota: true });
+    });
 
     input.addEventListener('keydown', (e) => {
       const visible = contenedor.style.display !== 'none' && ultimosResultados.length > 0;
@@ -5831,11 +5961,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const nota = ruta.duracionEstimada ? ` (${t('routeEstimated', 'tiempo estimado a paso normal')})` : '';
         const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
         const resumenRuta = `${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`;
-        mostrarEstado(resumenRuta, 'ok');
+                mostrarEstado(resumenRuta, 'ok');
         statusEl.classList.add('rs-status-ruta');
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);
+        // Hay ruta: el atajo de «Iniciar caminata» se enciende junto al
+        // resumen (sobre todo en móvil, donde la botonera va en iconos).
+        mostrarAtajoCaminar(true);
+        // Mantener los tiempos y distancias bajo las pestañas incluso cuando
+        // la ruta se calculó directamente desde caminar/bici/coche.
+        lanzarResumenesModos();
         // CO2 evitado (27-sep): encuesta puntual tras enseñar la ruta.
         // Vive en js/co2.js, no guarda nada y se reinicia con cada ruta.
         if (window.ManolitCO2) window.ManolitCO2.mostrar(ruta.distanciaKm);
@@ -5925,7 +6061,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     resumenClaveUltima = '';
     resumenPeticionId++;
     const cont = document.getElementById('rsModoRuta');
-    if (cont) cont.classList.remove('con-resumenes');
+    if (cont) {
+      cont.classList.remove('con-resumenes');
+      cont.querySelectorAll('button[data-modo-ruta]').forEach((boton) => {
+        boton.removeAttribute('aria-label');
+        boton.removeAttribute('title');
+      });
+    }
     const els = resumenElementos();
     Object.keys(els).forEach((k) => {
       const el = els[k];
@@ -5955,6 +6097,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     sKm.textContent = txtKm;
     el.appendChild(sMin);
     el.appendChild(sKm);
+    const botonModo = el.closest('button[data-modo-ruta]');
+    if (botonModo) {
+      const nombreModo = botonModo.querySelector('[data-i18n]');
+      const etiqueta = nombreModo ? nombreModo.textContent.trim() : '';
+      const resumen = txtMin + ' · ' + txtKm;
+      botonModo.setAttribute('aria-label', etiqueta ? etiqueta + ': ' + resumen : resumen);
+      botonModo.setAttribute('title', resumen);
+    }
   }
 
   async function pedirResumenModo(modo, origen, destino) {
@@ -6005,7 +6155,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const peticion = ++resumenPeticionId;
 
     const cont = document.getElementById('rsModoRuta');
-    if (cont) cont.classList.add('con-resumenes');
+    if (cont) {
+      cont.classList.add('con-resumenes');
+      cont.querySelectorAll('button[data-modo-ruta]').forEach((boton) => {
+        const nombreModo = boton.querySelector('[data-i18n]');
+        boton.removeAttribute('title');
+        boton.setAttribute('aria-label', nombreModo ? nombreModo.textContent.trim() : boton.textContent.trim());
+      });
+    }
     Object.keys(els).forEach((k) => {
       const el = els[k];
       el.className = 'rs-modo-resumen cargando';
@@ -6196,8 +6353,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (btnModoClickRef) btnModoClickRef.textContent = t('pickMap', 'Elegir en el mapa');
     const btnLoc = document.getElementById('rsBtnMyLocation');
     if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicación');
-    const btnWalk = document.getElementById('rsBtnWalk');
+        const btnWalk = document.getElementById('rsBtnWalk');
     if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
+    // El atajo del resumen habla el mismo idioma que el botón de siempre.
+    const atajoCaminar = document.getElementById('rsBtnCaminarResumen');
+    if (atajoCaminar) {
+      const andando = !!(btnWalk && btnWalk.classList.contains('rs-activo'));
+      atajoCaminar.textContent = andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata');
+    }
 
     const btnPaseo = document.getElementById('rsBtnPaseo');
     if (btnPaseo) btnPaseo.textContent = paseoActivo ? t('virtualWalkStop', 'Salir del paseo') : t('virtualWalkStart', 'Paseo virtual 3D');

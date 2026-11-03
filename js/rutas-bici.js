@@ -704,9 +704,21 @@
   function pedirCarrilesCarrera(bbox, ligera) {
     var participantes = [pedirCarriles(OVERPASS_URL, bbox, 18000, true, ligera)]
       .concat(OVERPASS_ESPEJOS_CARRIL.map(function (url) { return pedirCarriles(url, bbox, 15000, false, ligera); }));
-    // Promise.any: el primero que resuelve (aunque sea una lista vacía de
-    // verdad) gana; los errores y el "sin-datos" del proxy se descartan.
-    return Promise.any(participantes);
+    // El primero que resuelve (incluida una respuesta vacía válida) gana.
+    // Promise.any no está disponible en todos los navegadores que soporta
+    // este sitio; un rechazo agregado se deja manejar por cargarCarriles().
+    if (typeof Promise.any === 'function') return Promise.any(participantes);
+    return new Promise(function (resolve, reject) {
+      var pendientes = participantes.length;
+      var errores = [];
+      participantes.forEach(function (participante) {
+        Promise.resolve(participante).then(resolve, function (error) {
+          errores.push(error);
+          pendientes--;
+          if (!pendientes) reject(errores[0] || new Error('Overpass no disponible'));
+        });
+      });
+    });
   }
 
   var carrilFallosSeguidos = 0;
@@ -841,17 +853,42 @@
     }
   }
 
-  var carrilIconoPromise = null;
-  function cargarIconoBici() {
-    if (!carrilIconoPromise) {
-      carrilIconoPromise = new Promise(function (resolve, reject) {
-        var img = new Image();
-        img.onload = function () { resolve(img); };
-        img.onerror = reject;
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(BICI_ICONO_SVG);
-      }).catch(function (error) { carrilIconoPromise = null; throw error; });
-    }
-    return carrilIconoPromise;
+  // Popup de los puntos de inflado/reparación: se construye con nodos DOM
+  // (nada de innerHTML con datos de OSM) y se registra UNA sola vez.
+  function prepararInteraccionInfladores() {
+    if (infladorInteraccionLista || !map) return;
+    infladorInteraccionLista = true;
+    map.on('click', function (e) {
+      if (!map.getLayer(INFLADOR_LAYER)) return;
+      var feats = map.queryRenderedFeatures(e.point, { layers: [INFLADOR_LAYER] });
+      if (!feats.length) return;
+      var p = feats[0].properties || {};
+      var coords = feats[0].geometry.coordinates;
+      var caja = document.createElement('div');
+      var titulo = document.createElement('b');
+      titulo.textContent = p.name ||
+        (p.reparacion ? t('bikeRepairStation', 'Punto de reparación de bicicletas') : t('bikePump', 'Inflador para bicicletas'));
+      caja.appendChild(titulo);
+      var detalles = [];
+      if (p.reparacion) detalles.push(t('bikeRepairStation', 'Punto de reparación de bicicletas'));
+      if (p.inflador) detalles.push(t('bikePump', 'Inflador para bicicletas'));
+      if (p.operador) detalles.push(p.operador);
+      if (p.horario) detalles.push(p.horario);
+      if (detalles.length) {
+        var sub = document.createElement('div');
+        sub.textContent = detalles.join(' · ');
+        caja.appendChild(sub);
+      }
+      new maplibregl.Popup({ closeButton: true })
+        .setLngLat([Number(coords[0]), Number(coords[1])])
+        .setDOMContent(caja)
+        .addTo(map);
+    });
+    map.on('mousemove', function (e) {
+      if (!map.getLayer(INFLADOR_LAYER)) return;
+      var feats = map.queryRenderedFeatures(e.point, { layers: [INFLADOR_LAYER] });
+      map.getCanvas().style.cursor = feats.length ? 'pointer' : '';
+    });
   }
 
   async function asegurarCapaCarril() {
@@ -865,20 +902,10 @@
     carrilInicializando = true;
     var mapaInicial = map;
     var estiloInicial = map.getStyle();
-    
+
     try {
-      // Cargar el icono de bicicleta. El carril rojo no depende del icono.
-      try {
-        var iconImage = await cargarIconoBici();
-        if (map !== mapaInicial || !mapaInicial.isStyleLoaded()) return false;
-        if (iconImage && !mapaInicial.hasImage(CARRIL_IMAGEN)) {
-          mapaInicial.addImage(CARRIL_IMAGEN, iconImage, { pixelRatio: 1 });
-        }
-      } catch (iconError) {
-        console.warn('[rutas-bici] El icono de bici no cargó; se dibujarán las líneas igualmente.', iconError);
-      }
       if (map !== mapaInicial || !mapaInicial.isStyleLoaded()) return false;
-      
+
       // Crear la fuente de datos si no existe
       if (!map.getSource(CARRIL_SOURCE)) {
         map.addSource(CARRIL_SOURCE, {
@@ -1026,31 +1053,34 @@
         });
       }
 
-      // 6. CAPA DE SÍMBOLOS DE BICICLETA (cada X metros)
-      if (map.hasImage(CARRIL_IMAGEN) && !map.getLayer(CARRIL_SIMBOLO)) {
+      // 6. INFLADORES / PUNTOS DE REPARACIÓN reales de OSM (nov-2026).
+      // Antes había un icono redondo de bici repetido cada 100 m sobre el
+      // trazado: fuera. Solo quedan puntos donde DE VERDAD hay un inflador
+      // o una estación de reparación, con popup al tocarlos.
+      if (!map.getSource(INFLADOR_SOURCE)) {
+        map.addSource(INFLADOR_SOURCE, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] }
+        });
+      }
+      if (!map.getLayer(INFLADOR_LAYER)) {
         map.addLayer({
-          id: CARRIL_SIMBOLO,
-          type: 'symbol',
-          source: CARRIL_SOURCE,
-          minzoom: 13, // Los símbolos aparecen desde zoom 13
-          layout: {
-            'icon-image': CARRIL_IMAGEN,
-            'icon-size': ['interpolate', ['linear'], ['zoom'], 
-              13, 0.6,   // Pequeño a zoom 13
-              15, 0.9,   // Medio a zoom 15
-              17, 1.2,   // Grande a zoom 17
-              19, 1.5    // Muy grande a zoom 19
-            ],
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true,
-            'icon-rotate': 0
-          },
+          id: INFLADOR_LAYER,
+          type: 'circle',
+          source: INFLADOR_SOURCE,
+          minzoom: INFLADOR_MIN_ZOOM,
           paint: {
-            'icon-opacity': 0.95
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 6.5, 19, 9],
+            'circle-color': '#FFFFFF',
+            'circle-opacity': 0.95,
+            'circle-stroke-color': '#E4574C',
+            'circle-stroke-width': 2.2,
+            'circle-stroke-opacity': 0.9
           }
         });
       }
-      
+      prepararInteraccionInfladores();
+
       carrilCapaLista = true;
       return true;
       
@@ -1065,18 +1095,9 @@
   // 01-nov-2026 (b): acumulador de zonas. Antes cada consulta REEMPLAZABA
   // lo pintado: al moverte a otro barrio el carril anterior desaparecía, y
   // al alejarte se borraba todo. Ahora los tramos se suman por su id de OSM
-  // (sin duplicar), las señales solo se calculan para los tramos nuevos y
-  // el conjunto se recorta en FIFO si supera el tope, para que el móvil
-  // siga ligero.
-  function borrarPuntosDeTramo(idTramo) {
-    var prefijo = idTramo + '#';
-    var claves = [];
-    carrilPuntos.forEach(function (v, k) { if (k.indexOf(prefijo) === 0) claves.push(k); });
-    claves.forEach(function (k) { carrilPuntos.delete(k); });
-  }
-
+  // (sin duplicar) y el conjunto se recorta en FIFO si supera el tope,
+  // para que el móvil siga ligero.
   function incorporarCarriles(features) {
-    var nuevos = [];
     (features || []).forEach(function (f) {
       if (!f || !f.geometry || f.geometry.type !== 'LineString') return;
       var id = f.properties && f.properties.__cid;
@@ -1088,30 +1109,44 @@
       }
       if (carrilAcumulado.has(id)) carrilAcumulado.delete(id); // al final: más reciente
       carrilAcumulado.set(id, f);
-      nuevos.push([id, f]);
     });
     while (carrilAcumulado.size > CARRIL_ACUMULADO_MAX) {
-      var viejo = carrilAcumulado.keys().next().value;
-      carrilAcumulado.delete(viejo);
-      borrarPuntosDeTramo(viejo);
+      carrilAcumulado.delete(carrilAcumulado.keys().next().value);
     }
-    nuevos.forEach(function (par) {
-      generarPuntosSimbolos([par[1]], 100).forEach(function (p, idx) {
-        carrilPuntos.set(par[0] + '#' + idx, p);
-      });
-    });
-    while (carrilPuntos.size > CARRIL_PUNTOS_MAX) carrilPuntos.delete(carrilPuntos.keys().next().value);
     return carrilAcumulado.size;
+  }
+
+  // Los puntos de inflado/reparación se acumulan igual que los tramos: por
+  // id de nodo OSM, sin duplicar, con el mismo recorte FIFO.
+  function incorporarInfladores(infladores) {
+    (infladores || []).forEach(function (f) {
+      if (!f || !f.geometry || f.geometry.type !== 'Point') return;
+      var id = (f.properties && f.properties.__cid) ||
+        'geo/' + f.geometry.coordinates[0].toFixed(5) + ',' + f.geometry.coordinates[1].toFixed(5);
+      if (infladorAcumulado.has(id)) infladorAcumulado.delete(id);
+      infladorAcumulado.set(id, f);
+    });
+    while (infladorAcumulado.size > INFLADOR_MAX) {
+      infladorAcumulado.delete(infladorAcumulado.keys().next().value);
+    }
+    return infladorAcumulado.size;
   }
 
   function repintarCarrilAcumulado() {
     if (!map || !map.getSource(CARRIL_SOURCE)) return;
-    // Orden de apilado: el último movido queda por encima.
-    [CARRIL_HALO, CARRIL_ROJO, CARRIL_BRILLO, CARRIL_BORDE_IZQ, CARRIL_BORDE_DER].forEach(function (id) { if (map.getLayer(id)) map.moveLayer(id); });
+    // Orden de apilado: el último movido queda por encima (los puntos de
+    // inflado, encima del trazado del carril).
+    [CARRIL_HALO, CARRIL_ROJO, CARRIL_BRILLO, CARRIL_BORDE_IZQ, CARRIL_BORDE_DER, INFLADOR_LAYER].forEach(function (id) { if (map.getLayer(id)) map.moveLayer(id); });
     map.getSource(CARRIL_SOURCE).setData({
       type: 'FeatureCollection',
-      features: Array.from(carrilAcumulado.values()).concat(Array.from(carrilPuntos.values()))
+      features: Array.from(carrilAcumulado.values())
     });
+    if (map.getSource(INFLADOR_SOURCE)) {
+      map.getSource(INFLADOR_SOURCE).setData({
+        type: 'FeatureCollection',
+        features: Array.from(infladorAcumulado.values())
+      });
+    }
   }
 
   async function pintarCarriles(features) {
@@ -1125,17 +1160,18 @@
 
   function destroyCarril() {
     carrilRequestId++;
+    clearTimeout(carrilTimer);
     try {
-      [CARRIL_SIMBOLO, CARRIL_BORDE_DER, CARRIL_BORDE_IZQ, CARRIL_BRILLO, CARRIL_ROJO, CARRIL_HALO].forEach(function(id) {
+      [INFLADOR_LAYER, CARRIL_BORDE_DER, CARRIL_BORDE_IZQ, CARRIL_BRILLO, CARRIL_ROJO, CARRIL_HALO].forEach(function(id) {
         if (map.getLayer(id)) map.removeLayer(id);
       });
       if (map.getSource(CARRIL_SOURCE)) map.removeSource(CARRIL_SOURCE);
-      if (map.hasImage(CARRIL_IMAGEN)) map.removeImage(CARRIL_IMAGEN);
+      if (map.getSource(INFLADOR_SOURCE)) map.removeSource(INFLADOR_SOURCE);
     } catch (e) { /* estilo reemplazado */ }
     carrilCapaLista = false;
     carrilInicializando = false;
     carrilAcumulado.clear();
-    carrilPuntos.clear();
+    infladorAcumulado.clear();
     // (c) carrilCeldas NO se borra: al reactivar la capa la zona ya está
     // servida en memoria y se pinta al instante, como fuentes de agua.
   }

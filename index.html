@@ -407,7 +407,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit∞ 3D">
-<base target="_blank">
+<base target="_self">
 </head>
 <body>
 
@@ -1366,6 +1366,13 @@
          pantalla no puede verlo; esta región role="status" lleva siempre el
          mismo dato en texto (distancia, duración, % sombra y posición del
          sol). La rellena shadows-route.js con los mismos datos del cálculo. -->
+    <!-- Atajo de «Iniciar caminata» junto al resumen de la ruta (nov-2026).
+         En móvil solo sirve el CSS: el botón nace oculto y shadows-route.js lo
+         enciende cuando hay una ruta calculada, para poder salir andando sin
+         tener que buscar el icono de la botonera del mapa. -->
+    <div class="rs-accion-caminar" id="rsAccionCaminar" hidden>
+      <button type="button" id="rsBtnCaminarResumen" data-i18n="walkModeStart">Iniciar caminata</button>
+    </div>
     <div id="rsLiveSummary" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Indicaciones paso a paso accesibles: la misma información que se ve

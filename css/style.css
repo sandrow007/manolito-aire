@@ -800,7 +800,7 @@ body.mode-peque .peque-message { animation: pequePop 0.55s cubic-bezier(0.34, 1.
   padding:.6rem 1.2rem; font-family:var(--font-body); font-size:.95rem;
   color: var(--text, #333); cursor: pointer; transition: background 0.15s;
 }
-city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
+.city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 .city-dropdown-list li.selected { font-weight: 700; background: var(--hover, #e8e8e8); }
 
 /* ============================================================
@@ -894,6 +894,9 @@ city-dropdown-list li:hover { background: var(--hover, #f0f0f0); }
 }
 .rs-sugerencias li:hover{ background:var(--accent-soft); }
 .rs-sugerencias li.rs-sug-empty{ color:var(--sky-mid); cursor:default; font-style:italic; }
+/* «Mi ubicación» encabeza el desplegable del origen, al estilo Google:
+   se distingue con el color de acento sin romper la tipografía. */
+.rs-sugerencias li.rs-sug-ubicacion .rs-sug-linea1{ color:var(--accent); }
 .rs-sug-linea1{ font-weight:600; }
 .rs-sug-linea2{ font-size:0.7rem; color:var(--sky-mid); }
 
@@ -3939,6 +3942,17 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   opacity:.72; white-space:nowrap;
 }
 #main-content .rs-form .rs-modo-ruta.con-resumenes .rs-modo-resumen{ display:inline-flex; }
+/* Reserva el alto de dos líneas desde el inicio: los minutos/km aparecen
+   bajo el modo seleccionado sin cambiar el tamaño del selector ni desplazarlo. */
+#main-content .rs-form .rs-modo-ruta.con-resumenes button .rs-modo-textos{
+  min-height:2.45em;
+}
+#main-content .rs-form .rs-modo-ruta.con-resumenes .rs-modo-resumen{
+  visibility:hidden;
+}
+#main-content .rs-form .rs-modo-ruta.con-resumenes .rs-modo-resumen:not(:empty){
+  visibility:visible;
+}
 #main-content .rs-form .rs-modo-resumen .rs-res-min::after{ content:"\00a0\00b7\00a0"; }
 #main-content .rs-form .rs-modo-resumen.sin-ruta{ font-style:italic; opacity:.6; }
 #main-content .rs-form .rs-modo-resumen.cargando{
@@ -4472,6 +4486,52 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   #main-content .rs-form,
   #main-content .rs-status-toggle:has(#rsStatus.rs-status-ruta)::after,
   #main-content .rs-status-toggle:has(#rsStatus.rs-status-ruta) #rsStatus{ transition:none !important; }
+}
+
+/* Atajo «Iniciar caminata» bajo la barra de estado (nov-2026): nace oculto
+   y shadows-route.js lo enciende al calcular una ruta. Es un CTA de verdad,
+   hermanado con #rsBuscarBtn, para que en móvil no haya que rebuscarlo en
+   la botonera deslizante del mapa. */
+#main-content .rs-accion-caminar{
+  display:flex;
+  margin:0 0 14px;
+}
+#main-content .rs-accion-caminar[hidden]{ display:none; }
+#main-content .rs-accion-caminar #rsBtnCaminarResumen{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:44px;
+  padding:10px 22px;
+  border:none; border-radius:12px;
+  background:var(--accent-text);
+  color:#FFFFFF;
+  font-size:0.95rem; font-weight:700; letter-spacing:0.02em;
+  box-shadow:0 4px 14px var(--accent-soft);
+  cursor:pointer;
+  transition:transform .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+#main-content .rs-accion-caminar #rsBtnCaminarResumen:hover{
+  background:var(--accent);
+  color:var(--paper);
+  transform:translateY(-1px);
+}
+#main-content .rs-accion-caminar #rsBtnCaminarResumen:active{ transform:translateY(1px); }
+#main-content .rs-accion-caminar #rsBtnCaminarResumen:focus-visible{
+  outline:2px solid var(--mui-accent, var(--accent));
+  outline-offset:2px;
+}
+[data-theme="dark"] #main-content .rs-accion-caminar #rsBtnCaminarResumen,
+#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-accion-caminar #rsBtnCaminarResumen{
+  color:#202124;
+}
+@media (max-width:640px){
+  #main-content .rs-accion-caminar #rsBtnCaminarResumen{
+    width:100%;
+    min-height:52px;
+    font-size:1.02rem;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  #main-content .rs-accion-caminar #rsBtnCaminarResumen{ transition:none !important; }
 }
 
 /* El contador conserva su fórmula completa en escritorio y la despliega

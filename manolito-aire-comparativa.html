@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Manolit∞ Aire · La comparativa, sin maquillaje</title>
-    <meta name="description" content="Comparativa objetiva entre Manolit∞ Aire, gratis y sin registro para caminar a la sombra, y las herramientas de pago del sector solar y la arquitectura. La sombra debería ser prioridad nacional. Busca sombra en mi calle, mapa de sombras y ruta con sombra." />
+    <meta name="description" content="Comparativa clara de Manolit∞ Aire: rutas peatonales por sombra, capas climáticas, ventajas y límites frente a SIG, simuladores solares y apps de navegación. Datos, privacidad y advertencias en lenguaje claro." />
     <meta property="og:title" content="Manolit∞ Aire · La comparativa, sin maquillaje" />
-    <meta property="og:description" content="Comparativa objetiva entre Manolit∞ Aire, gratis y sin registro para caminar a la sombra, y las herramientas de pago del sector solar y la arquitectura. La sombra debería ser prioridad nacional. Busca sombra en mi calle, mapa de sombras y ruta con sombra." />
+    <meta property="og:description" content="Comparativa clara de Manolit∞ Aire: rutas peatonales por sombra, capas climáticas, ventajas y límites frente a SIG, simuladores solares y apps de navegación." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Manolit∞ Aire · La comparativa, sin maquillaje" />
-    <meta name="twitter:description" content="Comparativa objetiva entre Manolit∞ Aire, gratis y sin registro para caminar a la sombra, y las herramientas de pago del sector solar y la arquitectura. La sombra debería ser prioridad nacional. Busca sombra en mi calle, mapa de sombras y ruta con sombra." />
+    <meta name="twitter:description" content="Comparativa clara de Manolit∞ Aire: rutas peatonales por sombra, capas climáticas, ventajas y límites frente a SIG, simuladores solares y apps de navegación." />
     <!-- Metadatos alineados con el texto visible de la sección de prioridad de la sombra. -->
     <link rel="canonical" href="https://manolitoaire.com/manolito-aire-comparativa.html" />
     <script type="application/ld+json">
@@ -322,6 +322,19 @@
             border: 1px solid #1e293b;
             background: #0f172a;
         }
+
+        .comparison-intro { max-width: 900px; }
+        .comparison-legend { display:flex; flex-wrap:wrap; gap:8px 16px; margin:10px 0 14px; color:#94a3b8; font-size:.84rem; }
+        .comparison-table th:first-child, .comparison-table td:first-child { position:sticky; left:0; z-index:1; background:#0f172a; }
+        .comparison-table th:first-child { background:#1a2a44; }
+        .comparison-table th { vertical-align:top; }
+        .comparison-table td { min-width:190px; vertical-align:top; }
+        .comparison-table td:first-child { min-width:160px; }
+        .comparison-table tbody th[scope="row"] { position:sticky; left:0; z-index:1; background:#0f172a; color:#f1f5f9; text-align:left; padding:10px 18px; border-bottom:1px solid #1e293b; min-width:160px; }
+        .comparison-callout { margin:16px 0; padding:18px 22px; border:1px solid rgba(0,229,255,.24); border-radius:16px; background:#0a1a30; }
+        .comparison-callout strong { color:#f1f5f9; }
+        .comparison-callout a { color:#00e5ff; }
+        .comparison-sources { color:#94a3b8; font-size:.84rem; }
  
         table {
             width: 100%;
@@ -474,7 +487,7 @@
             padding: 16px 20px; margin: 18px 0 6px; color: #94a3b8; font-size: 0.92rem;
         }
         .agua-telemetria b { color: #00e5ff; font-variant-numeric: tabular-nums; }
-        .agua-telemetria-nota { width: 100%; text-align: center; font-size: 0.78rem; color: #475569; }
+        .agua-telemetria-nota { width: 100%; text-align: center; font-size: 0.78rem; color: #94a3b8; }
         .sombra-prioridad { margin: 28px 0; padding: 24px clamp(18px, 4vw, 36px); border: 1px solid rgba(0,229,255,.22); border-left: 5px solid #00e5ff; border-radius: 18px; background: linear-gradient(135deg, #0a1a30, #142033); text-align: center; }
         .sombra-prioridad h2 { margin: 0 0 10px; border: 0; padding: 0; font-size: clamp(1.3rem, 4vw, 1.8rem); }
         .sombra-prioridad p { margin: 0 0 12px; }
@@ -528,15 +541,14 @@
             #movilLitros { font-size: 1.25rem; }
         }
     </style>
-<base target="_blank">
-<base target="_blank">
+    <base target="_self">
 </head>
 <body>
  
 <div class="container">
  
     <div class="backbar">
-        <a href="https://manolitoaire.com" target="_self" rel="noopener">← volver a Manolit∞ Aire</a>
+        <a href="https://manolitoaire.com" target="_self">← volver a Manolit∞ Aire</a>
     </div>
  
     <!-- HEADER -->
@@ -551,7 +563,7 @@
             <span class="badge cyan">JavaScript puro</span>
             <span class="badge gold">Dijkstra térmico</span>
             <span class="badge cloud">Nubosidad real</span>
-            <span class="badge">Todo en tu navegador</span>
+            <span class="badge">Cálculo de sombra local</span>
             <span class="badge">Gratuito</span>
             <span class="badge gold">AGPL-3.0</span>
         </div>
@@ -799,90 +811,52 @@
  
     <div class="separator"></div>
  
-    <!-- COMPARATIVA CON OTRAS HERRAMIENTAS DE PAGO -->
-    <h2>Comparativa con otras herramientas de pago</h2>
-    <p>
-        Manolit∞ Aire ocupa un nicho concreto: el del <strong>peatón urbano</strong> que busca caminar a la sombra en tiempo real,
-        sin coste y sin que sus datos de ubicación salgan de su navegador. Aquí va, característica a característica, qué da cada una.
-    </p>
- 
-    <div class="table-wrap">
-        <table>
+    <!-- COMPARATIVA CON HERRAMIENTAS DE MAPA Y ANÁLISIS SOLAR -->
+    <h2>Comparativa ampliada: qué tiene Manolit∞ y qué no</h2>
+    <div class="comparison-intro">
+        <p>Manolit∞ Aire no es una alternativa universal a los SIG, los simuladores solares profesionales ni las apps de navegación. Su punto fuerte es distinto: <strong>ayudarte a decidir por dónde caminar con menos sol</strong>, y reunir en un mapa ciudadano varias capas útiles para el calor urbano.</p>
+        <p>La tabla compara capacidades por tipo de herramienta, no una marca concreta. La oferta, los precios y las funciones de productos comerciales cambian; por eso no atribuimos una misma característica a todo el sector. «No indicado» significa que no hacemos una afirmación general sobre esa categoría.</p>
+    </div>
+    <div class="comparison-legend" aria-label="Leyenda de la comparativa">
+        <span><strong class="check">Sí / ventaja</strong> · disponible o foco diferencial</span>
+        <span><strong class="warn">Parcial / depende</strong> · sujeto a datos, cobertura o producto</span>
+        <span><strong class="cross">No / límite</strong> · no es el propósito o no está disponible</span>
+    </div>
+
+    <div class="table-wrap" role="region" aria-label="Tabla comparativa desplazable" tabindex="0">
+        <table class="comparison-table">
             <thead>
                 <tr>
-                    <th style="min-width:160px;">Característica</th>
-                    <th>Manolit∞ Aire</th>
-                    <th>Otras herramientas de pago</th>
+                    <th scope="col">Capacidad</th>
+                    <th scope="col">Manolit∞ Aire</th>
+                    <th scope="col">SIG / análisis urbano</th>
+                    <th scope="col">Simulador solar profesional</th>
+                    <th scope="col">App de navegación general</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td><strong>Coste</strong></td>
-                    <td><span class="check">Gratuito</span></td>
-                    <td>Modelo de suscripción o licencia</td>
-                </tr>
-                <tr>
-                    <td><strong>Arquitectura</strong></td>
-                    <td>100% cliente (JavaScript)</td>
-                    <td>Cliente + servidor / Desktop</td>
-                </tr>
-                <tr>
-                    <td><strong>Datos 3D</strong></td>
-                    <td>OpenStreetMap (colaborativo)</td>
-                    <td>Datos propietarios o satelitales</td>
-                </tr>
-                <tr>
-                    <td><strong>Nubosidad real</strong></td>
-                    <td><span class="check">Sí</span></td>
-                    <td><span class="cross">No</span></td>
-                </tr>
-                <tr>
-                    <td><strong>Rutas peatonales</strong></td>
-                    <td><span class="check">Sí (Dijkstra)</span></td>
-                    <td><span class="cross">No</span></td>
-                </tr>
-                <tr>
-                    <td><strong>Precisión de sombras</strong></td>
-                    <td>Media (geométrica)</td>
-                    <td>Alta / Muy alta (ray tracing o LiDAR)</td>
-                </tr>
-                <tr>
-                    <td><strong>Modelado / importación 3D</strong></td>
-                    <td><span class="check">Sí</span>: <a href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">Renderizado LiDAR</a> (nubes de puntos)</td>
-                    <td><span class="check">Sí</span></td>
-                </tr>
-                <tr>
-                    <td><strong>Captura de foto del mapa</strong></td>
-                    <td><span class="check">Sí</span></td>
-                    <td><span class="warn">Según herramienta</span></td>
-                </tr>
-                <tr>
-                    <td><strong>Métricas financieras</strong></td>
-                    <td><span class="cross">No</span></td>
-                    <td><span class="check">Sí (ROI, LCOE, etc.)</span></td>
-                </tr>
-                <tr>
-                    <td><strong>Privacidad</strong></td>
-                    <td>Alta (cálculo local)</td>
-                    <td>Media (envío de datos a servidores)</td>
-                </tr>
-                <tr>
-                    <td><strong>Open Source</strong></td>
-                    <td><span class="check">Sí (dependencias abiertas)</span></td>
-                    <td><span class="cross">No</span></td>
-                </tr>
-                <tr>
-                    <td><strong>Público objetivo</strong></td>
-                    <td><strong>Ciudadano / Peatón</strong></td>
-                    <td>Profesionales (solar, arquitectura, fotografía)</td>
-                </tr>
+                <tr><th scope="row">Objetivo principal</th><td><span class="check">Peatones y clima urbano</span>: sombra, aire y capas ciudadanas.</td><td><span class="warn">Análisis y gestión territorial</span>; requiere configurar datos y flujos de trabajo.</td><td><span class="warn">Evaluar recurso solar y proyectos</span> con herramientas de ingeniería.</td><td><span class="warn">Llegar al destino</span>, normalmente por tiempo o distancia.</td></tr>
+                <tr><th scope="row">Ruta a pie</th><td><span class="check">Ruta priorizada por sombra/frescor</span> y alternativa que prioriza sol en invierno.</td><td><span class="warn">Posible con red y análisis configurados</span>; no suele ser una función lista para peatones.</td><td><span class="cross">No es su función habitual</span>.</td><td><span class="check">Navegación peatonal habitual</span>; optimizar exposición a sombra no suele ser su criterio.</td></tr>
+                <tr><th scope="row">Sombras urbanas por hora</th><td><span class="check">Sí</span>: geometría solar + edificios y árboles cartografiados; precisión orientativa.</td><td><span class="warn">Sí, con datos, extensiones y configuración</span>; precisión según el modelo.</td><td><span class="check">Suele ofrecer análisis solar detallado</span>; capacidades y método dependen del producto.</td><td><span class="cross">No suele incluir simulación urbana 3D de sombras</span>.</td></tr>
+                <tr><th scope="row">Nubosidad integrada</th><td><span class="check">Capa de nubes y atenuación visual</span> a partir de datos meteorológicos externos.</td><td><span class="warn">Depende de las fuentes y del análisis configurado</span>.</td><td><span class="warn">Depende del producto</span>; análisis de cielo despejado no equivale a nube observada en vivo.</td><td><span class="warn">Puede mostrar tiempo</span>, pero no necesariamente recalcula sombras o rutas con nubes.</td></tr>
+                <tr><th scope="row">Calidad del aire</th><td><span class="check">Sí</span>: modelos CAMS/Open-Meteo y datos/estaciones disponibles para España; cobertura no universal.</td><td><span class="warn">Posible al incorporar fuentes externas</span>.</td><td><span class="cross">No suele ser su especialidad</span>.</td><td><span class="warn">Varía por app y ciudad</span>.</td></tr>
+                <tr><th scope="row">Fuentes de agua y aparcamiento</th><td><span class="check">Capas cartográficas</span>; no confirma potabilidad, plazas libres ni acceso.</td><td><span class="warn">Posible si se dispone de los datos</span>.</td><td><span class="cross">No es su función habitual</span>.</td><td><span class="warn">Puede mostrar puntos de interés</span>; disponibilidad y detalle varían.</td></tr>
+                <tr><th scope="row">Bici y transporte público</th><td><span class="check">Carriles bici, rutas en bicicleta y paradas/salidas donde hay datos</span>; no planifica itinerarios ni transbordos de transporte público.</td><td><span class="warn">Posible con datos y configuración</span>.</td><td><span class="cross">No es su función habitual</span>.</td><td><span class="check">Habitual en apps multimodales</span>; depende de cobertura y operador.</td></tr>
+                <tr><th scope="row">Datos y cobertura</th><td><span class="warn">OpenStreetMap y proveedores abiertos/externos</span>; cobertura, altura y actualización varían por zona.</td><td><span class="warn">Fuentes propias, públicas o contratadas</span>; requieren validar licencia y calidad.</td><td><span class="warn">Modelos, bases cartográficas o datos de pago</span>, según proveedor.</td><td><span class="warn">Cartografía y tráfico de cada proveedor</span>; cobertura desigual.</td></tr>
+                <tr><th scope="row">Precisión / aptitud técnica</th><td><span class="warn">Visual e indicativa</span>; no sirve para certificación, ingeniería ni seguridad.</td><td><span class="check">Puede soportar análisis técnicos</span> si los datos y el método son adecuados y se validan.</td><td><span class="check">Enfocado a análisis profesional</span>; hay que revisar supuestos, precisión y alcance de cada producto.</td><td><span class="warn">Orientativa para desplazamiento</span>; no es instrumento de medición ambiental.</td></tr>
+                <tr><th scope="row">Edición CAD / modelado 3D</th><td><span class="cross">No ofrece edición CAD completa</span>. La familia tiene una herramienta separada para visualizar nubes LiDAR.</td><td><span class="check">Amplia capacidad posible</span>, según SIG y complementos.</td><td><span class="warn">Puede permitir modelar/importar</span>; depende de la licencia/producto.</td><td><span class="cross">No suele ofrecer edición técnica de modelos</span>.</td></tr>
+                <tr><th scope="row">Métricas financieras solares</th><td><span class="cross">No</span>: no calcula ROI, LCOE ni retorno de inversión.</td><td><span class="warn">No es una función estándar</span>; puede añadirse con análisis propio.</td><td><span class="check">Frecuentes en productos de diseño fotovoltaico</span>; comprobar funciones y supuestos concretos.</td><td><span class="cross">No</span>.</td></tr>
+                <tr><th scope="row">Precio y acceso</th><td><span class="check">Gratuito, sin cuenta ni suscripción</span>.</td><td><span class="warn">Hay opciones libres y comerciales</span>.</td><td><span class="warn">A menudo licencias o suscripciones</span>; no todos los productos son de pago.</td><td><span class="warn">Hay opciones gratuitas y de pago</span>; modelo variable.</td></tr>
+                <tr><th scope="row">Privacidad</th><td><span class="warn">Cálculo solar y de ruta de sombra en el dispositivo</span>; algunas funciones transmiten consultas a proveedores externos.</td><td><span class="warn">Depende del despliegue, proveedor y datos cargados</span>.</td><td><span class="warn">Depende del producto y su arquitectura</span>.</td><td><span class="warn">Depende del proveedor y de la configuración de ubicación</span>.</td></tr>
+                <tr><th scope="row">Código abierto</th><td><span class="check">Código bajo AGPL-3.0</span>; componentes y datos de terceros conservan sus propias licencias.</td><td><span class="warn">Hay software libre y propietario</span>.</td><td><span class="warn">Hay productos de ambos tipos</span>.</td><td><span class="warn">Hay productos de ambos tipos</span>.</td></tr>
             </tbody>
         </table>
     </div>
-    <p class="text-muted" style="margin-top:8px;">
-        * Comparamos contra «las de pago» en general, sin nombrar marcas: no hace falta, ya sabes de cuáles hablamos.<br />
-        * "Modelado / importación 3D" se refiere a crear, editar o importar geometría (por ejemplo, un edificio nuevo o un modelo CAD). Manolit∞ visualiza los edificios 3D de OpenStreetMap con sus sombras y permite capturar una foto de esa vista para usarla donde quieras. Y además la familia cuenta con <a href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">Renderizado LiDAR</a>, herramienta propia para importar y renderizar nubes de puntos LiDAR en 3D.
-    </p>
+    <div class="comparison-callout">
+        <p><strong>Lo que Manolit∞ hace especialmente bien:</strong> poner juntas la ruta peatonal orientada a la sombra, el sol por hora, las capas de edificios/árboles/nubes y herramientas ciudadanas como aire, agua y aparcamiento, sin cobrar ni exigir registro.</p>
+        <p style="margin-bottom:0"><strong>Lo que no pretende sustituir:</strong> un levantamiento LiDAR validado, un SIG profesional, una simulación fotovoltaica certificable, navegación turn-by-turn con garantías, ni datos oficiales en tiempo real. Si necesitas una decisión técnica, sanitaria o de seguridad, contrasta con la fuente oficial o un profesional.</p>
+    </div>
+    <p class="comparison-sources">Nota metodológica: descripción funcional de Manolit∞ contrastada con las secciones y servicios enlazados en este sitio; las demás columnas son categorías generales, no auditorías ni comparaciones de marcas concretas. No se atribuye a todas las herramientas de una categoría el mismo precio o las mismas funciones. Más detalles sobre capas, datos, privacidad y límites: <a href="aviso-legal.html">aviso legal</a> y <a href="privacidad.html">política de privacidad</a>. <a href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">Renderizado LiDAR</a> es una herramienta separada de la familia, no una función integrada en Manolit∞ Aire.</p>
  
     <div class="separator"></div>
  
@@ -903,13 +877,13 @@
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    <span><strong>Manolit∞</strong>: hecha a su medida, gratis, con rutas por la sombra, con las nubes de verdad y sin que tu ubicación salga de tu navegador.</span>
+                    <span><strong>Manolit∞</strong>: gratis, con rutas por sombra y capas ciudadanas. La ruta de sombra se calcula localmente, aunque otras funciones sí consultan proveedores externos.</span>
                 </li>
                 <li>
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
-                    <span><strong>Otras herramientas</strong>: no están hechas para ir andando, no calculan rutas a pie y cuestan lo suyo.</span>
+                    <span><strong>Otras herramientas</strong>: las apps de navegación sí ofrecen rutas a pie; normalmente no optimizan por sombra. Las herramientas solares y SIG tienen otros objetivos.</span>
                 </li>
             </ul>
         </div>
@@ -926,13 +900,13 @@
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
-                    <span><strong>Manolit∞</strong>: aquí se queda corta, y lo decimos claro: precisión geométrica y ni una métrica financiera.</span>
+                    <span><strong>Manolit∞</strong>: se queda corta para uso profesional: precisión orientativa y sin métricas financieras.</span>
                 </li>
                 <li>
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    <span><strong>Otras herramientas</strong>: esto es exactamente lo suyo, mucha precisión y números que un banco entiende (ROI, LCOE).</span>
+                    <span><strong>Simuladores solares especializados</strong>: suelen ofrecer análisis más profundos y, según el producto, métricas financieras como ROI o LCOE.</span>
                 </li>
             </ul>
         </div>
@@ -958,7 +932,7 @@
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    <span><strong>Otras herramientas</strong>: modelos 3D detallados, con edición y exportación real.</span>
+                    <span><strong>Herramientas CAD/SIG</strong>: pueden ofrecer edición, importación y exportación avanzada; las capacidades dependen del producto.</span>
                 </li>
             </ul>
         </div>
@@ -982,7 +956,7 @@
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
                     </svg>
-                    <span><strong>Otras herramientas</strong>: potentes, pero caras y sin pensar en el que va andando.</span>
+                    <span><strong>SIG y herramientas profesionales</strong>: adecuadas para análisis configurables; no sustituyen por sí solas una guía peatonal centrada en la sombra.</span>
                 </li>
             </ul>
         </div>
@@ -1007,19 +981,19 @@
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    <span><strong>Única con rutas peatonales optimizadas</strong> por sombra (Dijkstra térmico).</span>
+                    <span><strong>Su diferencial principal</strong>: ruta peatonal cuyo coste prioriza sombra/frescor, no solo distancia o tiempo.</span>
                 </li>
                 <li>
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    <span><strong>Única con nubosidad en tiempo real</strong> integrada en el cálculo de sombra.</span>
+                    <span><strong>Nubosidad integrada</strong>: datos meteorológicos externos suavizan visualmente la sombra; no es una medición microclimática de cada calle.</span>
                 </li>
                 <li>
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    <span><strong>100% cliente</strong>: nada de lo que haces sale de tu navegador.</span>
+                    <span><strong>Cálculo local donde aporta privacidad</strong>: posición solar y ruta peatonal de sombra; búsquedas, mapas, meteorología y otras capas sí consultan servicios externos.</span>
                 </li>
                 <li>
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -1043,7 +1017,7 @@
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    <span><strong>Tres capas de sombra independientes</strong>: edificios, árboles y nubosidad. No fue el plan desde el primer día, pero al combinarlas el sistema se degrada bien: si falla el dato de un edificio, el árbol de al lado o una nube de paso suelen cubrir el hueco.</span>
+                    <span><strong>Combina capas de edificios, árboles y nubosidad</strong> para contextualizar la sombra; cada capa depende de sus datos y ninguna garantiza que el mapa recoja todos los obstáculos reales.</span>
                 </li>
                 <li>
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -1066,7 +1040,7 @@
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
                     </svg>
-                    <span><strong>Depende de OpenStreetMap</strong>: puede haber edificios sin altura o zonas incompletas. En la práctica esto se nota menos de lo esperado: al combinar tres capas independientes (edificios, árboles y nubosidad), si una falla o está incompleta, las otras dos suelen seguir aportando sombra real en esa misma zona.</span>
+                    <span><strong>Depende de los datos disponibles</strong>: OpenStreetMap puede omitir edificios o alturas y el arbolado también puede estar incompleto; las nubes aportan contexto meteorológico, pero no corrigen la geometría que falte.</span>
                 </li>
                 <li>
                     <svg class="icon-svg icon-svg-sm" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -1214,45 +1188,34 @@
     <!-- EL AGUA QUE NO SE VE -->
     <h2 id="agua">El agua que no se ve</h2>
     <p class="lead">
-        Nadie habla de esto, así que lo hablamos aquí: internet gasta agua. Poca, si la web está bien hecha.
-        Una barbaridad, si la web vive de subastar anuncios. Abajo están las cuentas de las dos cosas,
-        con los supuestos a la vista, para que cualquiera las discuta.
+        Esta sección explica una estimación del consumo asociado al tráfico web y la contrasta con supuestos publicados sobre publicidad programática. Las cifras no son mediciones directas de agua en cada visita: mostramos el periodo, los datos de tráfico y las hipótesis para que puedas valorar su alcance.
     </p>
 
     <div class="grid-2">
         <div class="card" style="border-left-color:#00e5ff;">
-            <h4 style="margin-top:0; color:#00e5ff;">Una visita a Manolit∞ Aire, medida de verdad</h4>
-            <p>Esto ya no es una estimación: la telemetría real de Cloudflare de los últimos 30 días cuenta
-                <strong>176.444 peticiones, 1,80 GB movidos y 4.819 visitas</strong>. Cuentas claras:
-                <strong>0,38 MB por visita de media</strong>. La caché funciona tan bien que la visita real
-                es seis veces más ligera que la primera carga.</p>
-            <p style="margin-bottom:0;">Pasado por energía y por agua: <strong>≈ 2 mililitros por visita</strong>, y casi todo
-                es la batería de tu móvil. El servidor, en todo el mes, gastó entre un sorbo y dos vasos de agua.</p>
+            <h4 style="margin-top:0; color:#00e5ff;">Tráfico medido y consumo estimado</h4>
+            <p>Esta sección muestra cifras de telemetría de Cloudflare correspondientes al periodo que se indica más abajo. Son métricas de tráfico servidas, no una auditoría independiente del consumo total de la web. El panel de sesión calcula el tiempo y las equivalencias localmente mediante sessionStorage; no envía esos contadores a un servicio de analítica.</p>
+            <p style="margin-bottom:0;">La cifra de agua por visita es una <strong>estimación calculada a partir del tráfico y supuestos de energía/agua</strong>, no una medición directa del consumo de agua de cada dispositivo o centro de datos. Consulta el periodo, las hipótesis y la nota metodológica antes de interpretarla.</p>
         </div>
         <div class="card" style="border-left-color:#ef4444;">
             <h4 style="margin-top:0; color:#ef4444;">La máquina de anuncios</h4>
-            <p><strong>Por visita:</strong> una página equivalente pero cargada de anuncios y rastreadores mueve
-                ~5,8 MB (estudio AdGuard 2024-25 sobre 119 webs reales) y no puede cachear apenas: cada impresión
-                publicitaria vuelve a pedir datos. Misma cuenta, mismo método: <strong>~6 mililitros por visita
-                (rango 4-9)</strong>, el triple que esta web, y es una estimación prudente a propósito.</p>
-            <p style="margin-bottom:0;"><strong>A escala mundial:</strong> con unas 300.000 millones de impresiones de anuncios al día
-                y sus subastas en tiempo real, salen <strong>unos 375 litros de agua por segundo</strong>.
-                Cada segundo. Duerma quien duerma.</p>
+            <p><strong>Comparación estimada:</strong> la cifra de tráfico atribuida a páginas con publicidad y el cálculo de agua dependen de estudios, muestras y supuestos que pueden variar. No representan una medición de todas las webs ni permiten afirmar que cada impresión consuma una cantidad fija.</p>
+            <p style="margin-bottom:0;"><strong>Escala mundial:</strong> el valor mostrado es una extrapolación ilustrativa basada en el volumen de impresiones y factores de conversión asumidos, no un contador de consumo global en tiempo real.</p>
         </div>
     </div>
 
     <div class="agua-telemetria">
         <span><b>176.444</b> peticiones servidas</span>
         <span><b>1,80 GB</b> movidos en 30 días</span>
-        <span><b>4.819</b> visitas reales</span>
+        <span><b>4.819</b> visitas reportadas</span>
         <span><b>16,7&nbsp;%</b> servido desde caché</span>
         <span><b>1.360</b> amenazas bloqueadas</span>
-        <span class="agua-telemetria-nota">Telemetría Cloudflare · 16 ago – 15 sep 2026</span>
+        <span class="agua-telemetria-nota">Telemetría de Cloudflare reportada · 16 ago – 15 sep 2026. Las cifras son históricas y no implican seguimiento personal.</span>
     </div>
 
     <!-- Gráfica interactiva: elige el periodo -->
     <div id="aguaSim">
-        <p class="agua-sim-titulo">Elige un periodo y mira lo que se bebe la publicidad programática del mundo:</p>
+        <p class="agua-sim-titulo">Estimación ilustrativa de consumo asociado a publicidad programática por periodo (según los supuestos descritos abajo):</p>
         <div class="agua-periodos" role="group" aria-label="Elige un periodo de tiempo">
             <button type="button" data-seg="1" class="activo">1 segundo</button>
             <button type="button" data-seg="60">1 minuto</button>
@@ -1260,8 +1223,8 @@
             <button type="button" data-seg="86400">1 día</button>
             <button type="button" data-seg="31536000">1 año</button>
         </div>
-        <div id="aguaNum" aria-live="polite">375 litros</div>
-        <div id="aguaEquiv">≈ 250 botellas de litro y medio · el agua de 187.500 visitas a esta web</div>
+        <div id="aguaNum" aria-live="polite">375 litros (estimación)</div>
+        <div id="aguaEquiv">Equivalencia calculada con los supuestos de esta página; no es una medición en tiempo real.</div>
         <div class="agua-barras" aria-hidden="true">
             <div class="agua-fila">
                 <div class="agua-barra anuncios" id="aguaBarraAnuncios"></div>
@@ -1269,20 +1232,20 @@
             </div>
             <div class="agua-fila">
                 <div class="agua-barra manolit"></div>
-                <span class="agua-etq">Manolit∞ Aire, una visita: 2 ml medidos. A esta escala no cabe, y esa es la idea.</span>
+                <span class="agua-etq">Estimación publicada para una visita; no es una medición directa de agua por persona.</span>
             </div>
         </div>
-        <div id="aguaVivo">Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados 0 litros de agua.</div>
+        <div id="aguaVivo">Estimación ilustrativa de agua asociada a publicidad programática; no es una medición en tiempo real.</div>
     </div>
 
     <!-- Tu sesión: discreto, desplegable, mismo conteo que el mapa -->
     <div class="tu-sesion">
         <button type="button" id="tuSesionBtn" aria-expanded="false" aria-controls="tuSesionPanel">Tu tiempo y tu agua aquí</button>
         <div id="tuSesionPanel" class="tu-sesion-panel" hidden>
-            <p>Llevas en Manolit∞ <strong id="tuSesionTiempo">0 s</strong>. En ese tiempo, Manolit∞ gastó por ti
-                <strong id="tuSesionAgua">~2 ml</strong> de agua, medida por telemetría.</p>
-            <p style="margin-bottom:0.4rem;">En ese mismo tiempo, la publicidad programática del mundo gastó
-                <strong id="tuSesionAnuncios">0 litros</strong>.</p>
+            <p>Llevas en Manolit∞ <strong id="tuSesionTiempo">0 s</strong>. Según la estimación publicada para el sitio, el tráfico asociado a esta visita equivaldría a
+                <strong id="tuSesionAgua">~2 ml</strong> de agua; no es una medición individual.</p>
+            <p style="margin-bottom:0.4rem;">En ese mismo tiempo, el cálculo de esta página estima que la publicidad programática mundial habría consumido
+                <strong id="tuSesionAnuncios">0 litros</strong> de agua; es una extrapolación, no una medición en directo.</p>
             <p class="tu-sesion-nota">El conteo es el mismo que ves en el mapa: sigue al pasar de una página a otra
                 dentro de esta pestaña y vuelve a cero si la cierras. Nada sale de tu navegador.</p>
         </div>
@@ -1290,21 +1253,13 @@
 
     <div class="quote-block" style="background:#0a1a30; border-left-color:#ef4444; color:#e2e8f0; font-style:normal;">
         <span>
-            Hay que elegir qué tecnología queremos tener delante.<br /><br />
-            Yo lo tengo claro. Quiero la que resuelve: una guía que te lleva por la sombra cuando hace 48 grados,
-            una inteligencia artificial a la que le preguntas algo y te contesta. Herramientas que trabajan para ti.<br /><br />
-            El anuncio programático trabaja contra ti. No lo pediste, no te da nada a cambio, y te lo cobra en datos,
-            en batería y, ahora lo sabes, en agua. Muy bonito el banner. Pero si me preguntan con qué me quedo,
-            me quedo con la máquina que me soluciona la vida, no con la que me interrumpe para venderme lo que no necesito.
-            El anuncio no es necesario. Que te guíen por la sombra, sí.<br /><br />
-            Esta web entera cabe en el agua de un sorbo. Y funciona mejor así.
+            La ausencia de publicidad reduce solicitudes y evita rastreadores publicitarios añadidos por el sitio. El impacto ambiental de una visita depende también del dispositivo, la red, el centro de datos, la caché y los servicios externos activados.<br /><br />
+            Las cifras de esta página sirven para explicar órdenes de magnitud, no para certificar una huella hídrica por visita ni para comparar todos los servicios de internet con una sola métrica.
         </span>
     </div>
 
     <p style="font-size:0.9rem; color:#94a3b8;">
-        Nota honesta: son órdenes de magnitud calculados con supuestos publicados, no contabilidad de farmacia.
-        Pero prueba a dividir todos los supuestos entre diez: la conclusión no se mueve ni un milímetro.
-        El agua se va en enseñarte cosas que no pediste, no en guiarte por la sombra.
+        Nota metodológica: el consumo asociado a datos y publicidad se estima a partir de supuestos publicados; los resultados cambian si varían los factores de energía, refrigeración, red o volumen de impresiones. No es una medición directa de agua por sesión.
     </p>
  
         <div class="separator"></div>
@@ -1312,9 +1267,8 @@
     <!-- TU MÓVIL TAMBIÉN BEBE: guía para medirlo tú mismo (sep-2026) -->
     <h2 id="tu-movil">Cuánta agua gasta tu móvil</h2>
     <p class="lead">
-        Cada scroll gasta agua, aunque no la veas caer. La refrigeración de los centros de datos
-        que procesan y sirven esos datos bebe, según una estimación de investigadores del Imperial College London,
-        <strong>hasta unos 200 litros por cada GB descargado</strong>.
+        Una estimación citada en estudios sobre centros de datos sitúa el consumo asociado al tráfico en una horquilla amplia que puede llegar a
+        <strong>unos 200 litros por GB</strong>, según la red, la ubicación y el método. No es una cifra universal ni una medición del consumo de tu móvil.
     </p>
     <p>
         Los propios autores avisan de que la horquilla es amplia, de 1 a 200 litros por GB según la red
@@ -1381,25 +1335,25 @@
     <h2>El resumen, corto</h2>
     <div style="background: #0a1a30; border-radius: 20px; padding: 24px 32px; border: 1px solid #00e5ff33; margin: 16px 0;">
         <p style="font-size:1.05rem; margin-bottom: 8px;">
-            <strong>Manolit∞ Aire no compite directamente con otras herramientas de pago porque no van dirigidas a la misma gente, ni de lejos.</strong>
+            <strong>Manolit∞ y las herramientas profesionales resuelven necesidades distintas, aunque pueden complementarse.</strong>
         </p>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
             <div style="background: #1e293b; padding: 14px 20px; border-radius: 12px; border-left: 4px solid #00e5ff;">
                 <h4 style="margin:0; color:#00e5ff;">Manolit∞</h4>
                 <p style="margin:6px 0 0 0; font-size:0.95rem;">
-                    <strong>Ciudadano / peatón</strong>: gratuito, ligero, con rutas y nubosidad real, pero precisión limitada.
+                    <strong>Ciudadano / peatón</strong>: gratuito, sin registro, con herramientas para explorar la sombra y capas urbanas; la precisión depende de los datos disponibles.
                 </p>
             </div>
             <div style="background: #1e293b; padding: 14px 20px; border-radius: 12px; border-left: 4px solid #94a3b8;">
                 <h4 style="margin:0; color:#94a3b8;">Otras herramientas</h4>
                 <p style="margin:6px 0 0 0; font-size:0.95rem;">
-                    <strong>Profesionales (solar, arquitectura, fotografía)</strong>: de pago, mayor precisión y funcionalidades avanzadas, sin enfoque peatonal.
+                    <strong>Profesionales</strong>: pueden necesitar SIG, CAD o software solar con flujos de trabajo y validación técnica; el precio y las funciones dependen de cada producto.
                 </p>
             </div>
             <div style="background: #1e293b; padding: 14px 20px; border-radius: 12px; border-left: 4px solid #f59e0b; grid-column: span 2;">
                 <h4 style="margin:0; color:#f59e0b;">El hueco que ocupa Manolit∞</h4>
                 <p style="margin:6px 0 0 0; font-size:0.95rem;">
-                    Nadie más hace esto: llevarte andando por la sombra, con las nubes de verdad, sin pagar y sin soltar tu ubicación. No compite con las herramientas profesionales, las complementa. Y detrás hay una apuesta: que sea el software libre, y no una suscripción, lo normal para pelear contra el clima que se nos viene encima.
+                    El diferencial es combinar una ruta a pie orientada a la sombra con capas climáticas y urbanas en una herramienta gratuita y abierta. El cálculo solar y la ruta de sombra se ejecutan localmente, pero las búsquedas, mapas y datos meteorológicos pueden consultar proveedores externos: los detalles están en la política de privacidad. Para análisis profesionales o decisiones de seguridad, usa herramientas y fuentes validadas.
                 </p>
             </div>
         </div>
@@ -1422,8 +1376,8 @@
     <footer class="footer">
         <span>Manolit∞ Aire · Proyecto ciudadano sin ánimo de lucro · © 2026 Sandro · Obra registrada en Propiedad Intelectual, Junta de Andalucía, Consejería de Cultura y Deporte · Nº Expediente: RTA-3147-26 · Nº Registro: 2026999010353785 · 28/08/2026 · AGPL-3.0</span>
         <span>
-            <a href="https://manolitoaire.com/aviso-legal" target="_blank">Aviso legal</a>
-            · <a href="https://manolitoaire.com/privacidad" target="_blank">Privacidad</a>
+            <a href="aviso-legal.html" target="_self">Aviso legal</a>
+            · <a href="privacidad.html" target="_self">Privacidad</a>
             · <a href="https://manolitoaire.com" target="_blank">manolitoaire.com</a>
         </span>
         <span style="color:#334155;">v1.0 · 2026</span>
@@ -1516,8 +1470,7 @@
   var vivoId = setInterval(function () {
     if (document.hidden) return;
     var litros = (Date.now() - inicio) / 1000 * LITROS_SEG;
-    vivoEl.textContent = 'Desde que entraste en Manolit∞, los anuncios del mundo llevan gastados ' +
-      fmtLitros(litros) + ' de agua.';
+    vivoEl.textContent = 'Estimación ilustrativa desde que abriste la página (no es una medición en tiempo real): ' + fmtLitros(litros) + '.';
   }, 250);
   window.addEventListener('pagehide', function () { clearInterval(vivoId); if (animId) cancelAnimationFrame(animId); });
 })();

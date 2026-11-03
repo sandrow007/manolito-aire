@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Política de Privacidad y Protección de Datos | Manolit∞ Aire</title>
-<meta name="description" content="Consulta la política de privacidad de Manolit∞ Aire. Tu mapa interactivo 3D 100% privado: sin registros, sin cookies de rastreo y con almacenamiento local seguro.">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="description" content="Política de privacidad de Manolit∞ Aire: qué preferencias se guardan localmente y qué datos técnicos, coordenadas o consultas pueden recibir los servicios externos.">
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="apple-mobile-web-app-title" content="Manolit 3D">
+<meta name="apple-mobile-web-app-title" content="Manolit∞ 3D">
 <style>
 .tabla-datos { width: 100%; border-collapse: collapse; margin: 1.2rem 0 2rem; font-size: .92rem; }
 .tabla-datos th, .tabla-datos td { text-align: left; padding: .6rem .7rem; border-bottom: 1px solid rgba(127,127,127,.25); vertical-align: top; }
@@ -21,8 +21,7 @@
 .caja-clara { border: 1px solid rgba(127,127,127,.3); border-radius: 10px; padding: 1rem 1.2rem; margin: .5rem 0 2rem; background: rgba(127,127,127,.06); }
 @media (max-width: 640px){ .tabla-datos td:first-child { white-space: normal; } }
 </style>
-<base target="_blank">
-<base target="_blank">
+<base target="_self">
 </head>
 <body>
 
@@ -46,152 +45,116 @@
 <div class="content">
   <h1 data-i18n-legal="priv_1">Política de Privacidad y Seguridad de Datos</h1>
   <p class="lead" data-i18n-legal="priv_2">
-    Resumen fundamental. Tu privacidad es lo primero. No hay registro de usuarios, no hay cuentas ni se crean perfiles. 
-    Todos tus datos de configuración se guardan de forma local en tu propio navegador, nunca en un servidor externo.
+    No hay cuentas ni perfiles publicitarios. Las preferencias se guardan localmente, pero algunas funciones envían consultas a servicios externos. Según la función, pueden transmitirse coordenadas, búsquedas o mensajes del chat; los proveedores también reciben datos técnicos como la IP. Aquí detallamos esos flujos.
   </p>
 
   <h2 data-i18n-legal="priv_21">Adónde van tus datos, de un vistazo</h2>
   <div class="caja-clara">
   <table class="tabla-datos">
-    <tr><th data-i18n-legal="priv_22">Servicio</th><th data-i18n-legal="priv_23">Qué sale de tu navegador</th><th data-i18n-legal="priv_24">Qué NO sale nunca</th></tr>
-    <tr><td data-i18n-legal="priv_25">Tu configuración</td><td data-i18n-legal="priv_26">Nada. Idioma, tema y modo de lectura se guardan solo en tu navegador con localStorage.</td><td data-i18n-legal="priv_27">Todo. Ni nosotros ni nadie la recibe.</td></tr>
-    <tr><td data-i18n-legal="priv_28">Chat de Manolit∞</td><td data-i18n-legal="priv_29">Solo el texto que escribes, a Cloudflare Workers AI y, si falla, a OpenRouter.</td><td data-i18n-legal="priv_30">Tu nombre, tu ubicación, tu historial de conversaciones.</td></tr>
-    <tr><td data-i18n-legal="priv_31">Calidad del aire</td><td data-i18n-legal="priv_32">Las coordenadas de la zona que consultas, a Open-Meteo y Copernicus.</td><td data-i18n-legal="priv_33">Tu identidad. No hay cuentas ni perfiles.</td></tr>
-    <tr><td data-i18n-legal="priv_34">Búsquedas y rutas</td><td data-i18n-legal="priv_35">La calle que buscas a OpenStreetMap Nominatim y las coordenadas del trayecto a OSRM.</td><td data-i18n-legal="priv_36">Tus rutas guardadas. No guardamos ninguna.</td></tr>
-    <tr><td data-i18n-legal="priv_37">Nubes y Catastro</td><td data-i18n-legal="priv_38">Solo las coordenadas de la zona visible del mapa, redondeadas, a través de nuestro propio proxy en Cloudflare.</td><td data-i18n-legal="priv_39">Tu GPS exacto. La clave de API nunca llega a tu dispositivo.</td></tr>
-    <tr><td data-i18n-legal="priv_40">Sombras 3D y sol</td><td data-i18n-legal="priv_41">Nada. Todos los cálculos se hacen en tu propio móvil u ordenador.</td><td data-i18n-legal="priv_42">Tus coordenadas jamás se envían a un servidor para calcular sombras.</td></tr>
-    <tr><td data-i18n-legal="priv_55">Rutas en bici y carriles</td><td data-i18n-legal="priv_56">Los puntos de origen y destino que escribes y la caja visible del mapa, a nuestro proxy en Cloudflare, que consulta OSRM de FOSSGIS, BRouter y Overpass para trazar la ruta o los carriles.</td><td data-i18n-legal="priv_57">Tu identidad, tu nombre y tu cuenta. Nada se guarda.</td></tr>
-    <tr><td data-i18n-legal="priv_58">Transporte público</td><td data-i18n-legal="priv_59">La caja visible del mapa y el código de la parada que pulses, a nuestro proxy en Cloudflare, que consulta Transitous y OpenStreetMap para mostrar paradas y próximas salidas.</td><td data-i18n-legal="priv_60">Tu nombre, tu cuenta, tu historial de consultas.</td></tr>
+    <tr><th>Función</th><th>Qué se transmite / almacena</th><th>Límites importantes</th></tr>
+    <tr><td>Preferencias y caché local</td><td>Idioma, tema, accesibilidad y ciertos datos temporales pueden guardarse en localStorage/sessionStorage.</td><td>No se sincronizan automáticamente con una cuenta; borrar los datos del navegador los elimina.</td></tr>
+    <tr><td>Chat de Manolit∞</td><td>Mensaje y una selección breve del contexto reciente se envían a Cloudflare Workers AI; si falla y está configurado, pueden reenviarse a OpenRouter.</td><td>No escribas datos sensibles. La conservación por proveedores externos depende de sus políticas.</td></tr>
+    <tr><td>Aire, clima y nubes</td><td>Coordenadas de la zona consultada hacia el proxy/API correspondiente; algunas capas consultan Open-Meteo/CAMS u OpenWeatherMap.</td><td>Las coordenadas pueden ser de la vista o de la ubicación elegida. IP y datos técnicos son visibles para proveedores/infraestructura.</td></tr>
+    <tr><td>Búsqueda y rutas</td><td>Texto de lugar, coordenadas de origen/destino o caja del mapa hacia el geocodificador, proveedor de rutas o proxy pertinente.</td><td>La ruta de sombra se calcula localmente; otras rutas/capas sí pueden enviar coordenadas. Los terceros pueden registrar peticiones.</td></tr>
+    <tr><td>Mapas, nubes y Catastro</td><td>Solicitudes de teselas/área visible a proveedores cartográficos; nubes y Catastro pueden pasar por proxies con caché técnica.</td><td>La clave de API permanece en el proxy cuando se utiliza; los proveedores reciben datos técnicos habituales.</td></tr>
+    <tr><td>Sombras y posición solar</td><td>El cálculo geométrico y la ruta peatonal por sombra se ejecutan en el dispositivo.</td><td>Esto no implica que toda la web sea local: otros módulos realizan solicitudes externas.</td></tr>
+    <tr><td>Rutas en bici y carriles</td><td>Los puntos de origen/destino y la caja visible se envían al proxy para consultar OSRM/FOSSGIS, BRouter y Overpass; ciertos respaldos pueden consultar directamente al proveedor.</td><td>No se adjunta deliberadamente nombre ni cuenta, y no se mantiene historial propio. Los proveedores pueden recibir IP y datos técnicos.</td></tr>
+    <tr><td>Transporte público</td><td>La caja visible y, al pedir salidas, el identificador de parada; el proxy consulta Transitous y OpenStreetMap. Si falla, el navegador puede consultar esos servicios directamente.</td><td>No se adjunta deliberadamente nombre ni cuenta; terceros reciben IP y metadatos de conexión y aplican sus propias políticas.</td></tr>
+    <tr><td>Fuentes de agua</td><td>La caja geográfica visible del mapa, directamente a Overpass y, en zonas cubiertas, a fuentes de datos municipales.</td><td>No se solicita GPS específicamente para esta capa ni se guarda un historial propio; los servicios externos reciben la IP y metadatos técnicos habituales.</td></tr>
+    <tr><td>Tipografías y mapas base</td><td>Solicitudes técnicas a Google Fonts y proveedores de mapas/teselas (por ejemplo, OpenFreeMap, IGN o Catastro, según las capas activadas).</td><td>No se adjunta deliberadamente tu nombre o cuenta; los proveedores pueden recibir IP y datos técnicos de conexión.</td></tr>
+    <tr><td>Juego y certificado</td><td>Nombre, puntuación y certificado se procesan localmente; solo las solicitudes normales para cargar la página llegan al alojamiento.</td><td>El nombre, puntuación y serie simbólica no se envían deliberadamente a Manolit∞ ni se registran.</td></tr>
   </table>
   </div>
 
-  <h2 data-i18n-legal="priv_3">1. Qué NO recogemos (Cero Datos Personales)</h2>
-  <p data-i18n-legal="priv_4">
-    Esta plataforma no solicita correos electrónicos, nombres, contraseñas ni números de teléfono. No existe un sistema de cuentas de usuario 
-    ni se utilizan identificadores publicitarios para rastrear tu actividad en internet. Navegas de forma 100% anónima.
+  <h2>1. Qué datos no solicitamos para crear una cuenta</h2>
+  <p>
+    No solicitamos correo, nombre, contraseña ni teléfono para crear una cuenta, y no creamos perfiles publicitarios. Aun así, tu uso no es anónimo frente a toda infraestructura: el alojamiento y los proveedores externos pueden recibir la IP y metadatos técnicos habituales. Las coordenadas o textos que necesita cada función se describen en esta política.
   </p>
 
-  <h2 data-i18n-legal="priv_5">2. Almacenamiento Local en tu Navegador (Local Storage)</h2>
-  <p data-i18n-legal="priv_6">
-    Tus preferencias personalizadas como el idioma elegido, el modo claro/oscuro de la interfaz, la paleta de color del mapa 3D y el modo de lectura adaptado 
-    (ya sea ciudadano, científico, abuela/abuelo o peque) se almacenan exclusivamente mediante la tecnología <code>localStorage</code>, 
-    una memoria local dentro de tu propio navegador web. Nosotros no recibimos, vemos ni almacenamos esta información, se queda en tu dispositivo móvil u ordenador, 
-    y se eliminará por completo si decides borrar los datos de navegación de tu historial.
+  <h2>2. Almacenamiento local en tu navegador</h2>
+  <p>
+    Algunas preferencias (por ejemplo, idioma, tema y opciones de accesibilidad), estados de interfaz y cachés pueden guardarse en <code>localStorage</code> o <code>sessionStorage</code> del navegador. Son almacenamientos locales, no cuentas ni sincronización con un perfil. Su contenido puede persistir según el tipo de almacenamiento hasta que caduque, se sobrescriba o borres los datos del sitio desde el navegador.
   </p>
 
-  <h2 data-i18n-legal="priv_7">3. El Asistente de Manolit∞ (Privacidad en Consultas con IA)</h2>
-  <p data-i18n-legal="priv_8">
-    Cuando redactas una pregunta en nuestro chat, ese texto <b>se envía a un servicio externo de inteligencia artificial</b> con la única finalidad de procesar y generar la respuesta climática. Para garantizar el servicio, utilizamos dos proveedores de confianza en este orden de prioridad.
+  <h2>3. El Asistente de Manolit∞ (Privacidad en Consultas con IA)</h2>
+  <p>
+    Al usar el chat, el mensaje escrito y una selección breve de mensajes recientes pueden enviarse a un servicio externo de inteligencia artificial para generar la respuesta. El sitio no asocia la consulta a una cuenta, pero el proveedor recibe el contenido enviado y puede tratarlo conforme a sus propias condiciones.
   </p>
-  <p data-i18n-legal="priv_9">
-    1) <b>Cloudflare Workers AI</b> · un entorno seguro operado directamente por Cloudflare bajo nuestra propia cuenta técnica, que procesa el texto en sus servidores globales para devolverte la respuesta de forma inmediata.<br>
-    2) <b>OpenRouter</b> · un servicio de IA alternativo y gratuito de terceros, utilizado exclusivamente como pasarela de respaldo si el servidor principal no está disponible.
+  <p>
+    El endpoint del sitio utiliza Cloudflare Workers AI. Si ese servicio falla y hay una clave de respaldo configurada, la consulta y el contexto breve pueden reenviarse a OpenRouter. El reenvío implica que el proveedor alternativo también recibe el contenido de la conversación necesario para contestar.
   </p>
-  <p data-i18n-legal="priv_10">
-    En ambos casos, el texto de tu consulta sale temporalmente de esta web hacia los servidores de dichos proveedores. Por tu propia seguridad, te recomendamos encarecidamente <strong>no incluir datos personales sensibles</strong> en el chat (como tu nombre completo, dirección exacta del domicilio, contraseñas o datos médicos concretos). Nosotros no usamos ese texto para identificarte, no lo asociamos a ningún perfil de usuario y no almacenamos el historial de tus conversaciones en ninguna base de datos externa más allá de la sesión actual del chat.
-  </p>
-
-  <h2 data-i18n-legal="priv_11">4. Datos de Ubicación GPS, Hora Local y Posición Solar</h2>
-  <p data-i18n-legal="priv_12">
-    Para proporcionar el pronóstico ambiental y de contaminación de tu zona exacta y operar el panel de instrumentos de la posición solar (arco de horizonte a cenit), la web requiere el uso de tu ubicación geográfica (siempre que otorgues permisos de geolocalización al navegador) y la hora configurada en tu sistema.
-  </p>
-  <p data-i18n-legal="priv_13">
-    La solicitud de datos de calidad del aire se transmite directamente a los modelos de Open-Meteo y Copernicus. Sin embargo, <b>todos los cálculos trigonométricos para proyectar la posición del sol y las sombras en 3D se ejecutan íntegramente de forma local en tu dispositivo</b>. Manolit∞ Aire jamás rastrea, guarda ni almacena en servidores propios tus coordenadas GPS, direcciones IP o husos horarios. Si prefieres no activar el GPS para proteger tu privacidad, puedes escribir tu ciudad manualmente y el simulador de calor urbano funcionará bajo los mismos principios de seguridad.
+  <p>
+    No incluyas contraseñas, datos médicos identificables, direcciones exactas ni información personal de otras personas. El historial que ves puede mantenerse temporalmente en el navegador para dar contexto a la conversación; no se crea una cuenta ni una base de datos propia de chats. La conservación y el tratamiento por parte de los proveedores dependen de sus políticas y condiciones vigentes.
   </p>
 
-  <h2 data-i18n-legal="priv_14">5. Búsqueda de Direcciones y Rutas con Sombra 3D</h2>
-  <p data-i18n-legal="priv_15">
-    Cuando buscas una calle o trayecto en la sección "Ruta y sombras 3D", el texto introducido se envía a 
-    <b>OpenStreetMap Nominatim</b> (el motor para localizarla geográficamente en el mapa) y las coordenadas resultantes se procesan a través de 
-    <b>OSRM</b> (para calcular la ruta a pie o trayecto real por las calles). Las geometrías del mapa y los edificios en 3D se cargan de forma segura desde los servidores de 
-    <b>OpenFreeMap</b>.
+  <h2>4. Datos de Ubicación GPS, Hora Local y Posición Solar</h2>
+  <p>
+    La ubicación del dispositivo es opcional y solo se obtiene si autorizas el permiso del navegador; también puedes elegir o escribir una zona manualmente. La posición solar se calcula con la ubicación y hora seleccionadas para mostrar el resultado.
   </p>
-  <p data-i18n-legal="priv_16">
-    Estos componentes son servicios públicos, abiertos e independientes de Manolit∞ Aire. No te identifican de forma personal ni comercial. Solo reciben las coordenadas indispensables para trazar las líneas del camino y renderizar las fachadas 3D en tu pantalla. Nosotros no guardamos tus búsquedas ni tus rutas en ningún servidor propio. Evita introducir datos que te identifiquen directamente en los campos de búsqueda.
+  <p>
+    Si una función necesita datos meteorológicos o de calidad del aire, transmite las coordenadas consultadas a los servicios correspondientes, por ejemplo a través de los proxies del sitio que consultan Open-Meteo/CAMS. El navegador puede solicitar permiso para usar la ubicación del dispositivo; también puedes indicar una zona manualmente. <b>Los cálculos de posición solar, sombras y ruta peatonal basada en sombras se ejecutan localmente</b>. Otras funciones de mapas, búsqueda o rutas pueden transmitir consultas o coordenadas a proveedores externos, según se explica aquí. Manolit∞ no crea perfiles ni mantiene deliberadamente una base de datos de historial personal de GPS o búsquedas. Los proveedores y la infraestructura de alojamiento pueden procesar IP y registros técnicos conforme a sus propias condiciones.
   </p>
 
-  <h2 data-i18n-legal="priv_19">6. Datos de Nubosidad en Tiempo Real (OpenWeatherMap)</h2>
-  <p data-i18n-legal="priv_20">
-    Para pintar las sombras con realismo físico según el cielo actual y dibujar la capa de nubes visible sobre el mapa, la web consulta el porcentaje de cobertura nubosa y las teselas del mapa de nubes de <b>OpenWeatherMap</b>. Ambas peticiones viajan a través de un proxy propio en <b>Cloudflare Workers</b>. Tu navegador solo envía a ese proxy las coordenadas del centro del mapa (o tu punto de referencia, si usaste "Mi ubicación") redondeadas a tres decimales, una precisión de unos 100&nbsp;m, y las coordenadas de tesela de la zona visible, sin ningún dato personal adjunto. La clave de API permanece en el servidor, nunca en tu dispositivo. Los resultados se guardan en caché unos 10 minutos y no se almacenan en ningún servidor propio. OpenWeatherMap procesa esas solicitudes según su propia política de privacidad. Si prefieres no enviar coordenada alguna, ten en cuenta que el mapa siempre usa el centro de la vista y nunca tu GPS, salvo que actives la ubicación manualmente.
+  <h2>5. Búsqueda de Direcciones y Rutas con Sombra 3D</h2>
+  <p>
+    Al buscar una dirección, el texto se envía al geocodificador utilizado (actualmente Photon/Komoot a través del proxy; otras funciones pueden usar otros servicios). Las coordenadas resultantes o el área consultada pueden enviarse al proveedor de rutas, como OSRM/FOSSGIS o BRouter. Las teselas, geometrías y edificios se solicitan a los proveedores cartográficos activados, como OpenFreeMap, IGN o Catastro.
+  </p>
+  <p>
+    Las solicitudes pueden incluir IP, metadatos técnicos, el texto buscado, coordenadas de origen/destino o la caja geográfica necesaria. Si pasan por el proxy, este procesa la petición y puede aplicar caché técnica; ante fallos, el navegador puede consultar directamente al proveedor. No adjuntamos deliberadamente nombre o cuenta, pero los terceros pueden registrar solicitudes conforme a sus políticas. Manolit∞ no mantiene un historial propio de búsquedas o rutas. Evita introducir datos que te identifiquen directamente.
   </p>
 
-  <h2 data-i18n-legal="priv_43">7. Capa del Catastro de España (Parcelas y Alturas)</h2>
-  <p data-i18n-legal="priv_44">
-    Al activar la capa «Catastro 3D», tu navegador solicita las imágenes de parcelas catastrales a
-    través del proxy propio de esta web en <b>Cloudflare Workers</b>, que a su vez consulta el servicio
-    público WMS de la <b>Sede Electrónica del Catastro</b> (ovc.catastro.meh.es). La única información
-    que viaja en esas peticiones son las <b>coordenadas de las teselas del mapa que estás viendo</b>
-    (la zona visible, no tu posición GPS ni ningún dato personal). El Catastro procesa esas solicitudes
-    como servicio público INSPIRE conforme a sus propias condiciones. Las respuestas se guardan en
-    caché durante 1 hora para acelerar la carga y no se almacena historial alguno de tus consultas.
+  <h2>6. Datos de Nubosidad en Tiempo Real (OpenWeatherMap)</h2>
+  <p>
+    Para mostrar la cobertura nubosa y las teselas de OpenWeatherMap, la web usa un proxy de Cloudflare Workers. El navegador envía las coordenadas de la zona consultada (centro del mapa o punto de referencia seleccionado) y, para las teselas, las coordenadas de cada tesela visible. La clave de API se mantiene en el proxy. Algunas respuestas pueden almacenarse temporalmente en caché técnica; Cloudflare y OpenWeatherMap pueden procesar IP y metadatos de solicitud según sus propias políticas. La petición de clima no adjunta tu nombre o una cuenta. Puedes evitar usar «Mi ubicación» y consultar una zona elegida manualmente.
   </p>
 
-  <h2 data-i18n-legal="priv_45">8. Tipografías web (Google Fonts)</h2>
-  <p data-i18n-legal="priv_46">
-    Los textos de la web (incluida la página «Comparativa») usan tipografías de <b>Google Fonts</b>,
-    servicio prestado por Google Ireland Ltd. Al cargar cualquier página, tu navegador descarga las
-    fuentes desde los servidores de Google, que recibe únicamente la petición técnica habitual
-    (dirección IP y agente de usuario), sin cookies ni identificadores asociados por nuestra parte.
-    Google trata esos datos según su propia política de privacidad. Ninguna otra información tuya
-    se envía a Google.
+  <h2>7. Capa del Catastro de España (Parcelas y Alturas)</h2>
+  <p>
+    Al activar «Catastro 3D», el mapa solicita imágenes del WMS de la Sede Electrónica del Catastro, mediante el proxy de Cloudflare Workers configurado para esta capa. La petición necesita las coordenadas de las teselas visibles; puede incluir IP y metadatos técnicos en la infraestructura de red. El proxy aplica caché técnica temporal (aproximadamente una hora según la configuración), sin mantener deliberadamente un historial personal de consultas. El proveedor y la infraestructura aplican sus propias condiciones.
   </p>
 
-  <h2 data-i18n-legal="priv_47">9. Juego y Certificado de Protección Climática</h2>
-  <p data-i18n-legal="priv_48">
-    El juego «Atrapa a Manolit∞» y su Certificado de Protección Climática funcionan por completo dentro de
-    tu navegador. La puntuación, los sellos y el nombre que escribas para el certificado <strong>no salen de
-    tu dispositivo</strong>. No se guardan en ningún servidor, no se asocian a ninguna cuenta y desaparecen
-    al cerrar la página. El número de serie del certificado se genera al azar en tu propio dispositivo y no
-    se registra en ninguna parte.
+  <h2>8. Tipografías web (Google Fonts)</h2>
+  <p>
+    Algunas páginas, incluida «Comparativa», cargan tipografías desde Google Fonts. Si esas fuentes externas se solicitan, Google recibe la petición técnica (que puede incluir IP, agente de usuario y cabeceras de conexión) y la trata conforme a su propia política. En otras secciones puede utilizarse una pila de fuentes del sistema. No adjuntamos deliberadamente nombre o cuenta a estas peticiones.
   </p>
 
-  <h2 data-i18n-legal="priv_49">10. Aparcamientos y planificador de viaje</h2>
-  <p data-i18n-legal="priv_50">
-    La capa de aparcamientos y el planificador de viaje consultan los datos abiertos de <strong>OpenStreetMap</strong>
-    a través del propio proxy de Manolit∞, y el trazado en coche lo calcula el servicio público OSRM del
-    <strong>FOSSGIS</strong>. Las búsquedas viajan sin tu nombre, sin tu cuenta y sin historial tuyo. Si escribes
-    una ciudad de origen o destino, ese texto se usa solo para localizarla y no se guarda en ningún servidor.
-    Si dejas el origen vacío se usa tu GPS en el momento, con el mismo permiso de siempre y sin que esa
-    posición salga de tu dispositivo más allá de la propia petición de ruta.
+  <h2>9. Juego y Certificado de Protección Climática</h2>
+  <p>
+    El juego «Atrapa a Manolit∞» y su certificado se generan en el navegador: el nombre, la puntuación y el número simbólico no se envían deliberadamente a Manolit∞ ni se registran en una cuenta. La página, como cualquier recurso web, sí genera solicitudes técnicas al servidor que la entrega. El contenido descargado se queda en tu dispositivo salvo que decidas compartirlo tú.
   </p>
 
-  <h2 data-i18n-legal="priv_51">11. Cómo protegerte aún más</h2>
-  <p data-i18n-legal="priv_52">
-    Aunque la web ya está diseñada para recoger lo mínimo, hay cosas que puedes hacer tú para ir un paso más allá.
-    Si no quieres compartir tu GPS, escribe tu ciudad a mano y el simulador funciona igual de bien. En el chat,
-    no escribas datos personales como tu nombre completo, tu dirección o datos de salud, porque ese texto viaja
-    a los servicios de IA para poder responderte. Y si algún día quieres que Manolit∞ se olvide por completo de ti,
-    basta con borrar los datos de navegación de tu navegador, no queda nada guardado en ningún otro sitio.
+  <h2>10. Aparcamientos y planificador de viaje</h2>
+  <p>
+    La capa de aparcamientos consulta objetos de OpenStreetMap en el área visible, normalmente mediante el proxy de Manolit∞; ese servicio recibe el área consultada y puede almacenar temporalmente respuestas en caché. El planificador envía el texto escrito al geocodificador y las coordenadas resultantes a OSRM/FOSSGIS para trazar el viaje. Si eliges usar la ubicación actual como origen, las coordenadas necesarias pueden salir del navegador hacia el servicio de rutas, directamente o a través del proxy. No adjuntamos deliberadamente tu nombre ni una cuenta y no mantenemos un historial propio de trayectos. Los proveedores reciben IP y metadatos de conexión según sus propias políticas.
   </p>
 
-  <h2 data-i18n-legal="priv_17">12. Derechos de los Usuarios y RGPD</h2>
-  <p data-i18n-legal="priv_18">
-    Debido a que la arquitectura técnica de Manolit∞ Aire está diseñada para no almacenar ningún dato de carácter personal en bases de datos propias, no existe ningún perfil o registro asociado a tu persona que podamos extraer, modificar, transferir o borrar de nuestros sistemas. Para cualquier consulta técnica, legal o relacionada con el proyecto de software, puedes ponerte en contacto directamente con el desarrollador del sitio web a través del correo electrónico <strong>SANDRO.A007@GMAIL.COM</strong>.
+  <h2>11. Consultas a servicios externos y registros técnicos</h2>
+  <p>Para servir la página, la infraestructura de alojamiento (incluido Cloudflare cuando interviene) procesa las solicitudes web y puede generar registros técnicos de seguridad y funcionamiento, como IP, fecha/hora, ruta solicitada y agente de usuario, conforme a sus condiciones y plazos. Los proxies de Manolit∞ pueden usar caché temporal para respuestas cartográficas o meteorológicas; no se usa esa caché para crear un perfil personal. Cuando el navegador recurre directamente a un tercero, ese proveedor recibe también la IP y los datos necesarios para la consulta. No controlamos sus registros ni sus periodos de conservación: consulta las políticas de cada proveedor enlazado.</p>
+
+  <h2>12. Asistente de IA: proveedores y contexto enviado</h2>
+  <p>El chat envía el mensaje escrito y, cuando se usa, una selección breve de mensajes recientes de la conversación al endpoint de Manolit∞, que lo procesa con Cloudflare Workers AI. Si ese proveedor falla y existe configuración de respaldo, el texto y el contexto se pueden reenviar a OpenRouter para generar la respuesta. La conversación se conserva temporalmente en la interfaz del navegador para mantener el contexto, pero Manolit∞ no mantiene una cuenta ni una base de datos propia de conversaciones. Los proveedores pueden procesar o conservar datos conforme a sus propias políticas y condiciones; evita incluir información identificable, sensible, médica o de terceros.</p>
+
+  <h2>13. Cómo proteger mejor tu privacidad</h2>
+  <p>
+    Puedes no conceder el permiso de ubicación y elegir una zona manualmente; ten presente que las búsquedas o rutas que solicites aún pueden enviar coordenadas a sus proveedores. Evita incluir datos personales, direcciones exactas o información de salud en el chat. Para borrar preferencias y cachés locales, elimina los datos del sitio desde tu navegador. Para solicitudes relacionadas con datos personales o privacidad, escribe a <strong>SANDRO.A007@GMAIL.COM</strong>; las peticiones a proveedores externos también pueden requerir contacto con ellos.
   </p>
 
-  <h2 data-i18n-legal="priv_53">13. Capa de fuentes de agua y privacidad de ubicación</h2>
-  <p data-i18n-legal="priv_54">
-    Al activar «Fuentes de agua», el navegador calcula y mantiene en memoria la caja geográfica visible del mapa. No se solicita el GPS para esta capa. La caja se envía directamente a Overpass y, solo cuando corresponde a su cobertura, al servicio de datos municipales de Valencia; en Málaga se descarga el conjunto municipal público y se filtra localmente. No guardamos la caja ni un historial de consultas en localStorage ni en servidores propios, y la aplicación no adjunta nombre, cuenta ni identificadores de usuario. Como son peticiones directas a terceros, estos reciben la dirección IP y metadatos técnicos habituales de conexión y podrían conservar registros según sus propias políticas. Por eso, la consulta no se describe como anónima frente a esos proveedores.
+  <h2>14. Derechos de los Usuarios y RGPD</h2>
+  <p>
+    Puedes ejercer los derechos que correspondan respecto de los datos personales tratados por el titular, así como solicitar información, escribiendo a <strong>SANDRO.A007@GMAIL.COM</strong>. Manolit∞ no mantiene cuentas ni perfiles de usuario y no conserva deliberadamente un historial propio de rutas o búsquedas; por ello puede no disponer de datos que permitan identificar una consulta concreta. Los tratamientos independientes de proveedores externos deben gestionarse también ante dichos proveedores. Si consideras que el tratamiento infringe la normativa, puedes reclamar ante la Agencia Española de Protección de Datos.
   </p>
 
-  <h2 data-i18n-legal="priv_61">14. Carril bici, rutas en bicicleta y transporte público</h2>
-  <p data-i18n-legal="priv_62">
-    Las rutas en bicicleta se calculan con el perfil de bicicleta de OSRM, el servicio público de FOSSGIS,
-    a través del proxy propio de Manolit∞ en Cloudflare Workers. Si ese proxy no devuelve ninguna ruta,
-    se intenta con BRouter, otro servicio abierto basado en OpenStreetMap. La capa de carriles bici dibuja
-    la infraestructura ciclista cartografiada en OpenStreetMap, consultada mediante Overpass a través del
-    mismo proxy, y solo cuando el proxy no responde la consulta sale directamente desde tu navegador hacia
-    Overpass. Lo único que viaja en estas peticiones son las coordenadas del trayecto o de la zona visible
-    del mapa, nunca tu nombre, tu cuenta ni ningún identificador tuyo.
+  <h2>15. Capa de fuentes de agua y privacidad de ubicación</h2>
+  <p>
+    Al activar «Fuentes de agua», la aplicación consulta la caja geográfica visible del mapa; no solicita GPS específicamente para esta capa. La caja se envía directamente a Overpass y, según la cobertura, a datos municipales de Valencia o Málaga (en este último caso, el conjunto puede descargarse y filtrarse localmente). Manolit∞ no guarda un historial propio de consultas; los servicios externos reciben IP y metadatos técnicos y podrían registrar las solicitudes conforme a sus políticas.
   </p>
-  <p data-i18n-legal="priv_63">
-    La capa de transporte público muestra paradas y sus próximas salidas. Nuestro proxy agrega los datos
-    abiertos de Transitous, un agregador sin ánimo de lucro con los horarios GTFS que publican los operadores
-    de transporte, y las paradas de OpenStreetMap para las zonas que Transitous aún no cubre. Cuando el proxy
-    no está disponible, el navegador puede consultar directamente a Transitous o a Overpass, y esos servicios
-    reciben la dirección IP y los metadatos técnicos habituales de cualquier conexión, conforme a sus propias
-    políticas. Las respuestas se guardan en caché en memoria durante unos 15 minutos para no repetir
-    peticiones, y no se almacena historial alguno de tus consultas en ningún servidor propio.
+
+  <h2>16. Carril bici, rutas en bicicleta y transporte público</h2>
+  <p>
+    Las rutas en bicicleta pueden enviar coordenadas del trayecto al proxy de Manolit∞ para consultar OSRM/FOSSGIS; si no hay resultado, se puede intentar BRouter. La capa de carriles bici consulta Overpass mediante el proxy y puede recurrir a una conexión directa si el proxy no responde. En ambos casos se transmiten las coordenadas necesarias y los proveedores o la infraestructura pueden recibir IP y metadatos técnicos; no se adjunta deliberadamente un nombre o una cuenta.
+  </p>
+  <p>
+    La capa de transporte público consulta Transitous y OpenStreetMap/Overpass para mostrar paradas; al pedir salidas se transmite el identificador de la parada. Si el proxy no responde, el navegador puede consultar directamente a esos proveedores, que reciben IP y metadatos técnicos. Puede haber caché temporal de respuestas para evitar peticiones repetidas; Manolit∞ no conserva un historial propio de consultas. Las políticas y retención de proveedores externos dependen de cada servicio.
   </p>
 </div>
 

@@ -486,7 +486,7 @@ const translations = {
 		syncReadError: "No se pudo leer el archivo.",
 		treesLoading: "Cargando árboles…",
 		metaTitle: "Rutas con sombra y aire en tiempo real | Manolit∞ Aire",
-		metaDesc: "Calcula rutas a pie por las calles con más sombra y consulta la calidad del aire en vivo y las horas de sol. Gratis, sin registro y sin publicidad.",
+		metaDesc: "Calcula rutas a pie por las calles con más sombra y consulta la calidad del aire en vivo y las horas de sol. La sombra debería ser prioridad nacional. Busca sombra en mi calle, mapa de sombras y ruta con sombra. Gratis, sin registro y sin publicidad.",
 		// 01-oct-2026 (segunda pasada): claves que shadows-route.js pedia con
 		// t() y no existian, por eso el panel de ruta salia mezclado en ingles.
 		and: "y",
@@ -505,6 +505,12 @@ const translations = {
 		winterModeOff: "Modo invierno desactivado: las rutas vuelven a buscar la sombra.",
 		winterModeOn: "Modo invierno activado: la próxima ruta buscará el sol (los tramos en sombra pesan más).",
 		winterSunRoute: "Modo invierno: ruta por el sol",
+		hudRemaining: "restante",
+		hudDistance: "distancia",
+		hudArrival: "llegada",
+		hudArrived: "Has llegado",
+		hudFollowRoute: "Sigue la ruta",
+		walkRecenter: "Volver a mi posición",
 		camGroupLabel: "Zoom e inclinación del mapa",
 		a11yOffRoute: "Atención, parece que te has alejado de la ruta guiada. Detente, orientate y, si lo necesitas, vuelve sobre tus pasos.",
 		stepsHide: "Ocultar indicaciones",
@@ -998,7 +1004,7 @@ const translations = {
 		syncReadError: "No s'ha pogut llegir el fitxer.",
 		treesLoading: "Carregant arbres…",
 		metaTitle: "Rutes amb ombra i aire en temps real | Manolit∞ Aire",
-		metaDesc: "Calcula rutes a peu pels carrers amb més ombra i consulta la qualitat de l'aire en viu i les hores de sol. Gratis, sense registre i sense publicitat.",
+		metaDesc: "Calcula rutes a peu pels carrers amb més ombra i consulta la qualitat de l'aire en viu i les hores de sol. L'ombra hauria de ser una prioritat nacional. Busca ombra al meu carrer, mapa d'ombres i ruta amb ombra. Gratis, sense registre i sense publicitat.",
 		and: "i",
 		camBrujula: "Brúixola, tornar al nord i nivellar la vista",
 		camFull: "Pantalla completa",
@@ -1015,6 +1021,12 @@ const translations = {
 		winterModeOff: "Mode hivern desactivat: les rutes tornen a buscar l'ombra.",
 		winterModeOn: "Mode hivern activat: la propera ruta buscarà el sol (els trams a l'ombra pesen més).",
 		winterSunRoute: "Mode hivern: ruta pel sol",
+		hudRemaining: "restant",
+		hudDistance: "distància",
+		hudArrival: "arribada",
+		hudArrived: "Has arribat",
+		hudFollowRoute: "Segueix la ruta",
+		walkRecenter: "Tornar a la meva posició",
 		camGroupLabel: "Zoom i inclinació del mapa",
 		a11yOffRoute: "Atenció, sembla que t'has allunyat de la ruta guiada. Atura't, orienta't i, si cal, torna sobre els teus passos.",
 		stepsHide: "Amagar indicacions",
@@ -1508,7 +1520,7 @@ const translations = {
 		syncReadError: "Ezin izan da fitxategia irakurri.",
 		treesLoading: "Zuhaitzak kargatzen…",
 		metaTitle: "Itzaleko ibilbideak eta airea zuzenekoz | Manolit∞ Aire",
-		metaDesc: "Kalkulatu oinezko ibilbideak itzal gehien duten kaletatik eta kontsultatu airearen kalitatea zuzenean eta eguzki-orduak. Doan, erregistrorik eta publizitaterik gabe.",
+		metaDesc: "Kalkulatu oinezko ibilbideak itzal gehien duten kaletatik eta kontsultatu airearen kalitatea zuzenean eta eguzki-orduak. Itzalak lehentasun nazionala izan beharko luke. Bilatu itzala nire kalean, itzalen mapa eta itzaleko ibilbidea. Doan, erregistrorik eta publizitaterik gabe.",
 		and: "eta",
 		camBrujula: "Konpasa, iparrera itzuli eta ikuspegia berdindu",
 		camFull: "Pantaila osoa",
@@ -1525,6 +1537,12 @@ const translations = {
 		winterModeOff: "Neguko modua desaktibatuta: ibilbideek berriro itzala bilatzen dute.",
 		winterModeOn: "Neguko modua aktibatuta: hurrengo ibilbideak eguzkia bilatuko du (itzaleko zatiek gehiago pisatzen dute).",
 		winterSunRoute: "Neguko modua: eguzkiko ibilbidea",
+		hudRemaining: "falta",
+		hudDistance: "distantzia",
+		hudArrival: "iritsiera",
+		hudArrived: "Helmugara iritsi zara",
+		hudFollowRoute: "Jarraitu ibilbidea",
+		walkRecenter: "Itzuli nire kokapenera",
 		camGroupLabel: "Maparen zooma eta inklinazioa",
 		a11yOffRoute: "Adi, badirudi gidatutako ibilbidetik urrundu zarela. Gelditu, orientatu eta, behar baduzu, itzuli zure uratsetatik.",
 		stepsHide: "Jarraibideak ezkutatu",
@@ -2019,7 +2037,7 @@ const translations = {
 		syncReadError: "Non se puido ler o ficheiro.",
 		treesLoading: "Cargando árbores…",
 		metaTitle: "Rutas con sombra e aire en tempo real | Manolit∞ Aire",
-		metaDesc: "Calcula rutas a pé polas rúas con máis sombra e consulta a calidade do aire en vivo e as horas de sol. De balde, sen rexistro e sen publicidade.",
+		metaDesc: "Calcula rutas a pé polas rúas con máis sombra e consulta a calidade do aire en vivo e as horas de sol. A sombra debería ser prioridade nacional. Busca sombra na miña rúa, mapa de sombras e ruta con sombra. De balde, sen rexistro e sen publicidade.",
 		and: "e",
 		camBrujula: "Compás, volver ao norte e nivelar a vista",
 		camFull: "Pantalla completa",
@@ -2036,6 +2054,12 @@ const translations = {
 		winterModeOff: "Modo inverno desactivado: as rutas volven buscar a sombra.",
 		winterModeOn: "Modo inverno activado: a próxima ruta buscará o sol (os tramos en sombra pesan máis).",
 		winterSunRoute: "Modo inverno: ruta polo sol",
+		hudRemaining: "restante",
+		hudDistance: "distancia",
+		hudArrival: "chegada",
+		hudArrived: "Chegaches",
+		hudFollowRoute: "Segue a ruta",
+		walkRecenter: "Volver á miña posición",
 		camGroupLabel: "Zoom e inclinación do mapa",
 		a11yOffRoute: "Atención, parece que te afastaches da ruta guiada. Detente, oriéntate e, se o precisas, volta sobre os teus pasos.",
 		stepsHide: "Agochar indicacións",
@@ -2557,7 +2581,7 @@ const translations = {
 		syncReadError: "The file could not be read.",
 		treesLoading: "Loading trees…",
 		metaTitle: "Shade routes and live air quality | Manolit∞ Aire",
-		metaDesc: "Plan walking routes along the shadiest streets and check live air quality and sun hours. Free, no sign-up, no ads.",
+		metaDesc: "Plan walking routes along the shadiest streets and check live air quality and sun hours. Shade should be a national priority. Find shade on my street, explore the shade map and find a shaded route. Free, no sign-up, no ads.",
 		and: "and",
 		camBrujula: "Compass, back to north and level the view",
 		camFull: "Full screen",
@@ -2574,6 +2598,12 @@ const translations = {
 		winterModeOff: "Winter mode off: routes seek shade again.",
 		winterModeOn: "Winter mode on: the next route will seek the sun (shaded stretches weigh more).",
 		winterSunRoute: "Winter mode: route by the sun",
+		hudRemaining: "remaining",
+		hudDistance: "distance",
+		hudArrival: "arrival",
+		hudArrived: "You have arrived",
+		hudFollowRoute: "Follow the route",
+		walkRecenter: "Back to my location",
 		camGroupLabel: "Map zoom and tilt",
 		a11yOffRoute: "Careful, it looks like you have strayed from the guided route. Stop, get your bearings and, if needed, retrace your steps.",
 		stepsHide: "Hide directions",
@@ -3065,7 +3095,7 @@ const translations = {
 		syncReadError: "ფაილის წაკითხვა ვერ მოხერხდა.",
 		treesLoading: "ხეები იტვირთება…",
 		metaTitle: "ჩრდილიანი მარშრუტები და ჰაერი რეალურ დროში | Manolit∞ Aire",
-		metaDesc: "დაგეგმე საფეხმავლო მარშრუტები ყველაზე ჩრდილიანი ქუჩებით და შეამოწმე ჰაერის ხარისხი ცოცხლად და მზის საათები. უფასო, რეგისტრაციისა და რეკლამის გარეშე.",
+		metaDesc: "დაგეგმე საფეხმავლო მარშრუტები ყველაზე ჩრდილიანი ქუჩებით და შეამოწმე ჰაერის ხარისხი ცოცხლად და მზის საათები. ჩრდილი ეროვნული პრიორიტეტი უნდა იყოს. მოძებნე ჩრდილი ჩემს ქუჩაზე, დაათვალიერე ჩრდილების რუკა და იპოვე ჩრდილიანი მარშრუტი. უფასო, რეგისტრაციისა და რეკლამის გარეშე.",
 		and: "და",
 		camBrujula: "კომპასი, ჩრდილოეთით დაბრუნება და ხედის გასწორება",
 		camFull: "სრული ეკრანი",
@@ -3082,6 +3112,12 @@ const translations = {
 		winterModeOff: "ზამთრის რეჟიმი გამორთულია: მარშრუტები ისევ ჩრდილს ეძებს.",
 		winterModeOn: "ზამთრის რეჟიმი ჩართულია: შემდეგი მარშრუტი მზეს ეძებს (ჩრდილიანი მონაკვეთები მეტად იწონის).",
 		winterSunRoute: "ზამთრის რეჟიმი: მარშრუტი მზით",
+		hudRemaining: "დარჩენილი",
+		hudDistance: "მანძილი",
+		hudArrival: "ჩამოსვლა",
+		hudArrived: "თქვენ ჩამოხვედით",
+		hudFollowRoute: "განაგრძეთ მარშრუტი",
+		walkRecenter: "ჩემს ადგილზე დაბრუნება",
 		camGroupLabel: "რუკის ზუმი და დახრა",
 		a11yOffRoute: "ფრთხილად, როგორც ჩანს, გზადაგზანი მარშრუტიდან გადახვეჯი. გაჩერდი, გაიაზრე მიმართულება და, საჭიროების შემთხვევაში, უკან დაბრუნდი შენი კვალით.",
 		stepsHide: "მიმართულებების დამალვა",
@@ -3159,7 +3195,7 @@ const translations = {
 		heroLoading: "جارٍ تحميل هواء مدينتك…",
 		heroMoment: "لحظة من فضلك.",
 		metaTitle: "مسارات الظل وجودة الهواء المباشرة | Manolit∞ Aire",
-		metaDesc: "خطّط لمسارات مشيًا في الشوارع الأكثر ظلًا، وتابع جودة الهواء وساعات سطوع الشمس. مجانًا، بلا تسجيل أو إعلانات.",
+		metaDesc: "خطّط لمسارات مشيًا في الشوارع الأكثر ظلًا، وتابع جودة الهواء وساعات سطوع الشمس. يجب أن يكون الظل أولوية وطنية. ابحث عن الظل في شارعي، واستكشف خريطة الظلال، واعثر على مسار مظلل. مجانًا، بلا تسجيل أو إعلانات.",
 		skipToContent: "انتقل إلى المحتوى الرئيسي",
 		tagline: "هواء وظل شارعك، مباشرةً",
 		modesLabel: "كيف تريد أن أشرح لك؟",
@@ -3244,6 +3280,12 @@ const translations = {
 		airDataUnavailable: "بيانات جودة الهواء غير متاحة الآن.",
 		irrLayerBtn: "الإشعاع الشمسي",
 		voiceGuide: "الإرشادات الصوتية",
+		hudRemaining: "المتبقّى",
+		hudDistance: "المسافة",
+		hudArrival: "الوصول",
+		hudArrived: "لقد وصلت",
+		hudFollowRoute: "اتبع المسار",
+		walkRecenter: "العودة إلى موقعي",
 		pickMap: "التحديد على الخريطة",
 		captureView: "التقاط صورة للخريطة",
 		now: "الآن",
@@ -3321,14 +3363,34 @@ function applyTranslations() {
 	document.querySelectorAll('#langToggle button').forEach(b => {
 		b.classList.toggle('active', b.dataset.lang === currentLang);
 	});
-	// 01-oct-2026: la pestaña del navegador y la description tambien cambian
-	// de idioma, pero solo en la portada (index). Las demas paginas cargan
-	// este mismo archivo y tienen sus propios title/description.
+	// 01-oct-2026: title y description traducidos solo en la portada; las
+	// descripciones incluyen la prioridad de la sombra también en cada idioma.
 	const esInicio = /\/(index\.html)?$/.test(location.pathname);
 	if (esInicio && dict.metaTitle) document.title = dict.metaTitle;
 	if (esInicio && dict.metaDesc) {
-		const md = document.querySelector('meta[name="description"]');
-		if (md) md.setAttribute('content', dict.metaDesc);
+	const md = document.querySelector('meta[name="description"]');
+	if (md) md.setAttribute('content', dict.metaDesc);
+	}
+	if (esInicio) {
+	const suffixes = {
+		es: 'La sombra debería ser prioridad nacional. Busca sombra en mi calle, explora el mapa de sombras y encuentra una ruta con sombra.',
+	ca: 'L’ombra hauria de ser una prioritat nacional. Busca ombra al meu carrer, explora el mapa d’ombres i troba una ruta amb ombra.',
+		eu: 'Itzalak lehentasun nazionala izan beharko luke. Bilatu itzala nire kalean, arakatu itzalen mapa eta aurkitu itzaleko ibilbidea.',
+	gl: 'A sombra debería ser prioridade nacional. Busca sombra na miña rúa, explora o mapa de sombras e atopa unha ruta con sombra.',
+		en: 'Shade should be a national priority. Find shade on my street, explore the shade map and find a shaded route.',
+	ka: 'ჩრდილი ეროვნული პრიორიტეტი უნდა იყოს. იპოვეთ ჩრდილი ჩემს ქუჩაზე, დაათვალიერეთ ჩრდილების რუკა და იპოვეთ ჩრდილიანი მარშრუტი.',
+	ar: 'يجب أن يكون الظل أولوية وطنية. ابحث عن الظل في شارعي، واستكشف خريطة الظلال، واعثر على مسار مظلل.'
+	};
+	['meta[property="og:description"]', 'meta[name="twitter:description"]'].forEach(selector => {
+	const meta = document.querySelector(selector);
+	if (!meta) return;
+	const original = meta.getAttribute('content') || '';
+	const prev = meta.dataset.prioritySuffix || '';
+	const base = prev && original.endsWith(prev) ? original.slice(0, -prev.length).trim() : original;
+	const suffix = suffixes[currentLang] || suffixes.es;
+	meta.setAttribute('content', `${base} ${suffix}`.trim());
+	meta.dataset.prioritySuffix = suffix;
+	});
 	}
 	document.documentElement.setAttribute('lang', currentLang);
 	// La estructura de la interfaz permanece LTR en todos los idiomas. Poner

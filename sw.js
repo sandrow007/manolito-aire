@@ -294,7 +294,7 @@ const HOSTS_REVALIDABLES = [
 ];
 
 /* Rutas propias con datos dinámicos (proxies del worker) */
-const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/carriles-bici', '/transporte-paradas', '/transporte-salidas', '/manolito'];
+const RUTAS_DINAMICAS = ['/api/', '/geo', '/geo-sugerencias', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/carriles-bici', '/transporte-paradas', '/transporte-salidas', '/manolito'];
 
 /* Hosts de datos dinámicos externos */
 const HOSTS_DINAMICOS = [

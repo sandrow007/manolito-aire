@@ -4670,6 +4670,14 @@ html[lang="ar"] #main-content #rsCamCtl{
   #main-content #rsTimeControls{ left:12px !important; bottom:12px !important; width:calc(100% - 24px) !important; padding:11px !important; }
   #main-content #rsTimeControls .rs-botones button{ min-height:38px !important; }
 }
+/* El control de geolocalización/centrado se eleva sobre las capas 3D y
+   conserva su espacio táctil dentro de la superficie del mapa. */
+#main-content .map-wrap #rsBtnRecentrarCaminata{
+  z-index:40 !important;
+}
+#main-content .map-wrap #rsMapControls{
+  z-index:40 !important;
+}
 
 /* SustituciÃ³n visual literal de la pieza de posiciÃ³n solar adjunta.
    No afecta al planetario ni a ningÃºn otro control del mapa. */
@@ -4824,17 +4832,18 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
 
 
 /* ============================================================
-   02-nov-2026. Buscador transparente y fino, aditivo.
-   La lógica, los ids, los textos y el orden del DOM no cambian.
-   Una fila para origen, destino y acciones. Solo los tres modos
-   ocupan su propia fila. Sin tarjetas, rellenos, blur ni sombras
-   de caja. El mapa queda visible entre todos los controles.
+   Buscador flotante limpio sobre el mapa.
+   Solo cambia el acabado visual, sin tocar geometría, tamaños,
+   posición, orden ni lógica. Fondo blanco discreto y controles legibles.
    ============================================================ */
 #main-content .map-wrap{
-  --rs-flotante-texto:#18333B;
-  --rs-flotante-sombra:0 1px 2px rgba(255,255,255,.94),0 0 5px rgba(255,255,255,.72);
+  --rs-flotante-texto:#202124;
+  --rs-flotante-sombra:none;
 }
-[data-theme="dark"] #main-content .map-wrap,
+[data-theme="dark"] #main-content .map-wrap{
+  --rs-flotante-texto:#202124;
+  --rs-flotante-sombra:none;
+}
 #main-content .map-wrap:has(.rs-mapa-oscuro-activo){
   --rs-flotante-texto:#EDF4F2;
   --rs-flotante-sombra:0 1px 2px rgba(0,0,0,.94),0 0 5px rgba(0,0,0,.72);
@@ -4937,6 +4946,46 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
   color:var(--rs-flotante-texto) !important;
   text-shadow:var(--rs-flotante-sombra);
 }
+#main-content .rs-form.rs-form-flotante,
+#main-content .rs-form:not(.rs-form-flotante){
+  padding:4px 8px;
+  border:1px solid rgba(60,64,67,.18) !important;
+  border-radius:12px !important;
+  background:rgba(255,255,255,.96) !important;
+  box-shadow:0 2px 6px rgba(60,64,67,.20) !important;
+  color:#202124 !important;
+}
+/* El panel de ruta conserva el mismo blanco translúcido en ambos temas y
+   sobre cualquier estilo de mapa; texto oscuro para mantener el contraste. */
+[data-theme="dark"] #main-content .rs-form,
+#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form,
+.rs-form:has(~ #main-content .map-wrap.rs-mapa-oscuro-activo){
+  border-color:rgba(60,64,67,.18) !important;
+  background:rgba(255,255,255,.96) !important;
+  box-shadow:0 2px 6px rgba(60,64,67,.20) !important;
+  color:#202124 !important;
+}
+[data-theme="dark"] #main-content .rs-form .rs-modo-ruta button,
+#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form .rs-modo-ruta button,
+[data-theme="dark"] #main-content .rs-form #rsBuscarBtn,
+[data-theme="dark"] #main-content .rs-form .rs-parking-action,
+[data-theme="dark"] #main-content .rs-form #rsBtnCerrarForm,
+#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form #rsBuscarBtn,
+#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form .rs-parking-action,
+#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form #rsBtnCerrarForm{
+  color:#202124 !important;
+}
+[data-theme="dark"] #main-content .rs-form .rs-field input[type="text"],
+#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form .rs-field input[type="text"]{
+  color:#202124 !important;
+  caret-color:#202124;
+}
+[data-theme="dark"] #main-content .rs-form .rs-field input[type="text"]::placeholder,
+#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form .rs-field input[type="text"]::placeholder{
+  color:#5f6368 !important;
+  opacity:1;
+}
+
 
 /* Los tres modos son la única excepción a la línea principal. */
 #main-content .rs-form .rs-modo-ruta{
@@ -5044,8 +5093,12 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
   box-shadow:none !important;
 }
 #main-content .rs-form .rs-field input[type="text"]:focus-visible{
-  outline:1px solid currentColor !important;
-  outline-offset:1px;
+  outline:none !important;
+  outline-offset:0;
+}
+#main-content .rs-form .rs-field input[type="text"]:focus{
+  outline:none !important;
+  box-shadow:none !important;
 }
 
 /* Buscar, aparcamiento y cierre comparten la fila de los campos. */
@@ -5363,3 +5416,269 @@ body.modo-accesible #main-content .rs-form #rsOrigen{
 body.modo-accesible #main-content .rs-form #rsDestino{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/%3E%3Cline x1='4' y1='22' x2='4' y2='15'/%3E%3C/svg%3E") !important;
 }
+/* ==========================================================================
+   HUD DE NAVEGACIÓN (nov-2026) — flotante sobre el mapa
+   Tokens del sistema únicamente. Ningún will-change en el HUD: el único
+   will-change: transform de la app es el marcador de usuario.
+   ========================================================================== */
+#main-content .map-wrap .rs-hud{
+  position:absolute;
+  z-index:7;
+  box-sizing:border-box;
+  background:rgba(22,26,32,0.94);
+  color:var(--paper,#EDF4F2);
+  border:1px solid var(--mui-line);
+  box-shadow:0 4px 18px rgba(0,0,0,0.28);
+}
+#main-content .map-wrap .rs-hud[hidden]{display:none !important;}
+
+/* ---- 4. Banner de instrucción superior ---- */
+#main-content .map-wrap #rsHudBanner{
+  top:124px;
+  left:50%;
+  transform:translateX(-50%);
+  width:calc(100% - 24px);
+  max-width:480px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 14px;
+  border-radius:0 0 var(--ux-radius-panel,12px) var(--ux-radius-panel,12px);
+  padding-top:calc(10px + env(safe-area-inset-top,0px));
+  pointer-events:none;
+}
+#main-content .map-wrap .rs-hud-maniobra{
+  flex:0 0 36px;
+  width:36px;
+  height:36px;
+  color:var(--accent);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+#main-content .map-wrap .rs-hud-maniobra svg{
+  width:30px;
+  height:30px;
+  display:block;
+}
+#main-content .map-wrap .rs-hud-banner-texto{
+  min-width:0;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+#main-content .map-wrap .rs-hud-banner-dist{
+  font-size:19px;
+  font-weight:700;
+  line-height:1.15;
+  font-variant-numeric:tabular-nums;
+}
+#main-content .map-wrap .rs-hud-banner-fila{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+#main-content .map-wrap .rs-hud-banner-calle{
+  font-size:12.5px;
+  line-height:1.3;
+  opacity:0.78;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+}
+/* Mini-señal de límite dentro del banner (estilo Vela, junto a la vía) */
+#main-content .map-wrap .rs-hud-banner-lim{
+  flex:0 0 auto;
+  min-width:24px;
+  height:22px;
+  padding:0 4px;
+  border-radius:5px;
+  background:#F5F6F2;
+  border:2px solid #D5303E;
+  color:#16181A;
+  font-size:11px;
+  font-weight:800;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-variant-numeric:tabular-nums;
+}
+#main-content .map-wrap .rs-hud-banner-lim[hidden]{display:none;}
+/* Buscador plegado: el banner sube al hueco libre. OJO: la clase
+   .rs-form-plegado vive en .rs-form, que es HERMANO (no descendiente) de
+   .map-wrap: el :has() hay hacerlo desde #main-content, si no la regla
+   queda muerta (nov-2026, arreglo tras revisión). */
+#main-content:has(.rs-form-plegado) .map-wrap #rsHudBanner{top:48px;}
+
+/* ---- 3. Panel inferior: tiempo / distancia / llegada ---- */
+#main-content .map-wrap #rsHudTiempo{
+  bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:100%;
+  max-width:480px;
+  display:flex;
+  align-items:center;
+  padding:10px 14px;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  border-radius:var(--ux-radius-panel,12px) var(--ux-radius-panel,12px) 0 0;
+  pointer-events:none;
+}
+#main-content .map-wrap .rs-hud-bloque{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  text-align:center;
+}
+#main-content .map-wrap .rs-hud-valor{
+  font-size:17px;
+  font-weight:700;
+  line-height:1.15;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+#main-content .map-wrap .rs-hud-etiqueta{
+  font-size:11px;
+  opacity:0.65;
+  letter-spacing:0.02em;
+}
+#main-content .map-wrap .rs-hud-sep{
+  flex:0 0 1px;
+  align-self:stretch;
+  margin:4px 0;
+  background:var(--mui-line);
+}
+
+/* ---- 1+2. Velocímetro y señal de límite (esquina inferior derecha) ---- */
+#main-content .map-wrap #rsHudVeloWrap{
+  right:14px;
+  bottom:90px;
+  background:transparent;
+  border:none;
+  box-shadow:none;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  pointer-events:none;
+}
+#main-content .map-wrap #rsHudVelo{
+  width:80px;
+  height:80px;
+  border-radius:50%;
+  background:rgba(22,26,32,0.94);
+  border:1px solid var(--mui-line);
+  box-shadow:0 4px 18px rgba(0,0,0,0.28);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:0;
+}
+#main-content .map-wrap .rs-hud-velo-num{
+  font-size:32px;
+  font-weight:800;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:var(--rs-hud-velo-color,var(--paper,#EDF4F2));
+  transition:color 0.25s ease;
+}
+#main-content .map-wrap .rs-hud-velo-unidad{
+  font-size:10.5px;
+  opacity:0.65;
+  margin-top:3px;
+}
+#main-content .map-wrap .rs-hud-recorrido{
+  font-size:10.5px;
+  font-weight:600;
+  opacity:0.85;
+  margin-top:4px;
+  font-variant-numeric:tabular-nums;
+}
+#main-content .map-wrap .rs-hud-recorrido[hidden]{display:none;}
+
+/* Señal clásica de límite: círculo blanco con borde rojo */
+#main-content .map-wrap #rsHudLimite{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  background:#F5F6F2;
+  border:5px solid #D5303E;
+  color:#16181A;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:17px;
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+  box-shadow:0 3px 10px rgba(0,0,0,0.35);
+}
+#main-content .map-wrap #rsHudLimite[hidden]{display:none;}
+
+/* ---- 5. Adaptación por modo ---- */
+/* Peatón: discreto */
+#main-content .map-wrap .rs-hud-modo-peaton #rsHudVelo{transform:scale(0.82);transform-origin:center bottom;}
+/* Bici: tamaño normal, contador de sesión visible (el JS le quita hidden) */
+#main-content .map-wrap .rs-hud-modo-bici #rsHudVelo{width:88px;height:88px;}
+/* Coche: prominente */
+#main-content .map-wrap .rs-hud-modo-coche #rsHudVelo{transform:scale(1.08);transform-origin:center bottom;}
+
+/* Paseo virtual con joystick: el velocímetro sube para no chocar con él */
+#main-content .map-wrap:has(#rsJoystick.rs-visible) #rsHudVeloWrap{bottom:196px;}
+
+/* El único will-change de la app: el marcador del usuario */
+#main-content .map-wrap .rs-marcador-usuario{will-change:transform;}
+
+/* ---- Escritorio ---- */
+@media (min-width:769px){
+  #main-content .map-wrap #rsHudBanner{
+    top:114px;
+    border-radius:var(--ux-radius-panel,12px);
+    padding-top:10px;
+  }
+  #main-content .map-wrap #rsHudTiempo{
+    bottom:12px;
+    border-radius:var(--ux-radius-panel,12px);
+    padding-bottom:10px;
+  }
+  #main-content .map-wrap #rsHudVeloWrap{right:20px;bottom:96px;}
+  #main-content .map-wrap #rsHudVelo{width:88px;height:88px;}
+  #main-content .map-wrap:has(#rsJoystick.rs-visible) #rsHudVeloWrap{bottom:210px;}
+}
+
+/* ---- Botón "volver a mi posición" de la caminata (nov-2026) ----
+   Abajo a la izquierda: a la derecha vive el velocímetro del HUD y en el
+   centro el panel inferior. Aparece solo cuando el usuario mueve el mapa
+   a mano durante la caminata (el auto-seguimiento queda en pausa hasta
+   que lo pulsa). */
+#main-content .map-wrap #rsBtnRecentrarCaminata{
+  position:absolute;
+  z-index:7;
+  left:16px;
+  bottom:24px;
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background:rgba(22,26,32,0.94);
+  color:var(--paper,#EDF4F2);
+  border:1px solid var(--mui-line);
+  box-shadow:0 4px 18px rgba(0,0,0,0.28);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  padding:0;
+}
+#main-content .map-wrap #rsBtnRecentrarCaminata svg{
+  width:22px;
+  height:22px;
+  display:block;
+}
+#main-content .map-wrap #rsBtnRecentrarCaminata.rs-visible{display:flex;}

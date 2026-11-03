@@ -62,6 +62,9 @@
     bearingInicial: 0,
     nominatimUrl: '/geo',
     nominatimReverseUrl: '/geo-reverso',
+    // Autocompletado mientras se escribe: Photon vía el proxy propio
+    // (Nominatim prohíbe autocomplete por política de uso).
+    sugerenciasUrl: '/geo-sugerencias',
     osrmUrl: '/ruta',
     velocidadCaminandoKmh: 4.8, 
     airQualityUrl: '/api/air-quality',
@@ -2905,6 +2908,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   let modoClickMapa = false;
   let puntoOrigenPendiente = null;
   let btnModoClickRef = null;
+  // Estado del clic en el mapa elevado al ámbito del módulo: el
+  // autocompletado (obtenerCentroPreferido) también lo consulta para sesgar
+  // las sugerencias al origen ya elegido, y antes vivía dentro de
+  // inyectarControlesMapa() donde no era visible (ReferenceError al teclear).
+  let esperandoSoloDestino = false;
+  let origenParaAutoRuta = null;
 
   function inyectarEstilosMapaControles() {
     if (document.getElementById('rsMapaEstilos')) return;
@@ -3118,9 +3127,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         mostrarEstado(t('clickOrigin', 'Haz clic en el mapa para marcar el origen.'));
       }
     });
-
-    let esperandoSoloDestino = false;
-    let origenParaAutoRuta = null;
 
     /* ============ GPS FINO CON SIESTA (sep-2026, pliego) ============
        1) PRIVACIDAD TOTAL: las coordenadas se procesan aquí, en el
@@ -5381,7 +5387,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   async function obtenerCentroPreferido(input) {
     const origenElegido = input === inputDestino ? seleccionPorInput.get(inputOrigen) : null;
-    for (const punto of [origenElegido, origenParaAutoRuta, window.__manolitUltimaPos]) {
+    // El centro del mapa es la "zona que estás mirando" (como en Google
+    // Maps): si te mueves a otra ciudad y buscas, las sugerencias son de ESE
+    // lugar aunque el GPS diga otra cosa. Solo le gana un origen ya elegido.
+    let centroMapa = null;
+    try {
+      const c = map && map.getCenter ? map.getCenter() : null;
+      if (c && Number.isFinite(c.lat) && Number.isFinite(c.lng)) {
+        centroMapa = { lat: c.lat, lon: c.lng };
+      }
+    } catch (eMapa) { /* el mapa aún no está listo: se sigue sin él */ }
+    for (const punto of [origenElegido, origenParaAutoRuta, centroMapa, window.__manolitUltimaPos]) {
       if (punto && Number.isFinite(Number(punto.lat)) && Number.isFinite(Number(punto.lon))) {
         return { lat: Number(punto.lat), lon: Number(punto.lon) };
       }
@@ -5458,18 +5474,75 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
         try {
           const centroCercano = await obtenerCentroPreferido(input);
-          const url = new URL(CONFIG.nominatimUrl, window.location.origin);
-          url.searchParams.set('q', texto);
-          url.searchParams.set('format', 'json');
-          url.searchParams.set('limit', '8');
-          url.searchParams.set('addressdetails', '1');
-          aplicarPreferenciaCercania(url, centroCercano);
-
-          const resp = await fetch(url.toString(), {
-            headers: { 'Accept-Language': 'es' },
+          const idiomaDoc = (document.documentElement.lang || 'es').split('-')[0];
+          const opcionesFetch = {
+            headers: { 'Accept-Language': idiomaDoc },
             signal: controladorActual.signal,
-          });
-          const resultados = await resp.json();
+          };
+
+          // Autocompletado mientras se escribe: Photon (vía el proxy propio
+          // /geo-sugerencias). Nominatim prohíbe búsqueda por tecleo en su
+          // política de uso; Photon no, y acepta sesgo lat/lon hacia la zona
+          // visible del mapa, como hace Google Maps.
+          let resultados = null;
+          try {
+            const url = new URL(CONFIG.sugerenciasUrl, window.location.origin);
+            url.searchParams.set('q', texto);
+            if (centroCercano) {
+              url.searchParams.set('lat', centroCercano.lat.toFixed(2));
+              url.searchParams.set('lon', centroCercano.lon.toFixed(2));
+            }
+            url.searchParams.set('lang', idiomaDoc);
+
+            const resp = await fetch(url.toString(), opcionesFetch);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const lugares = await resp.json();
+            // El proxy devuelve [{name, detail, lat, lon, type}]: se
+            // normaliza una sola vez al formato del desplegable.
+            resultados = (Array.isArray(lugares) ? lugares : [])
+              .filter((l) => l && Number.isFinite(Number(l.lat)) && Number.isFinite(Number(l.lon)))
+              .map((l) => {
+                const nombre = String(l.name || '');
+                const detalle = String(l.detail || '');
+                return {
+                  lat: Number(l.lat),
+                  lon: Number(l.lon),
+                  nombre: nombre,
+                  detalle: detalle,
+                  texto: detalle ? nombre + ', ' + detalle : nombre,
+                };
+              })
+              .filter((l) => l.texto);
+          } catch (ePhoton) {
+            if (ePhoton.name === 'AbortError') throw ePhoton;
+            resultados = null; // cae al respaldo Nominatim
+          }
+
+          // Respaldo: si el proxy de sugerencias no existe todavía en el
+          // despliegue o Photon está caído, se consulta Nominatim como antes
+          // para que el desplegable nunca se quede mudo.
+          if (!resultados) {
+            const url = new URL(CONFIG.nominatimUrl, window.location.origin);
+            url.searchParams.set('q', texto);
+            url.searchParams.set('format', 'json');
+            url.searchParams.set('limit', '8');
+            url.searchParams.set('addressdetails', '1');
+            aplicarPreferenciaCercania(url, centroCercano);
+            const resp = await fetch(url.toString(), opcionesFetch);
+            const datos = await resp.json();
+            resultados = (Array.isArray(datos) ? datos : [])
+              .filter((r) => r && r.lat != null && r.lon != null && r.display_name)
+              .map((r) => {
+                const partes = String(r.display_name).split(',');
+                return {
+                  lat: parseFloat(r.lat),
+                  lon: parseFloat(r.lon),
+                  nombre: partes[0].trim(),
+                  detalle: partes.slice(1).join(',').trim(),
+                  texto: String(r.display_name),
+                };
+              });
+          }
           pintarSugerencias(resultados, texto);
         } catch (e) {
           if (e.name !== 'AbortError') contenedor.innerHTML = '';
@@ -5477,24 +5550,29 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }, 350);
     });
 
+    function escHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
     function reordenarPorCiudadEscrita(resultados, textoOriginal) {
       const textoLower = textoOriginal.toLowerCase();
-      return [...resultados].sort((a, b) => {
-        const ciudadA = (a.address?.city || a.address?.town || a.address?.village || '').toLowerCase();
-        const ciudadB = (b.address?.city || b.address?.town || b.address?.village || '').toLowerCase();
-        const coincideA = ciudadA && textoLower.includes(ciudadA) ? 1 : 0;
-        const coincideB = ciudadB && textoLower.includes(ciudadB) ? 1 : 0;
-        return coincideB - coincideA;
-      });
+      // Si el texto escrito menciona una ciudad/zona del resultado (p. ej.
+      // «calle X, Sevilla»), ese resultado sube arriba.
+      const coincide = (r) => (r.nombre + ',' + r.detalle).toLowerCase().split(',')
+        .map((p) => p.trim())
+        .some((p) => p.length >= 3 && textoLower.includes(p)) ? 1 : 0;
+      return [...resultados].sort((a, b) => coincide(b) - coincide(a));
     }
 
     function seleccionarSugerencia(r) {
-      input.value = r.display_name;
+      input.value = r.texto;
       seleccionPorInput.set(input, {
-        lat: parseFloat(r.lat),
-        lon: parseFloat(r.lon),
-        nombre: r.display_name,
-        texto: r.display_name,
+        lat: r.lat,
+        lon: r.lon,
+        nombre: r.texto,
+        texto: r.texto,
       });
       contenedor.innerHTML = '';
       contenedor.style.display = 'none';
@@ -5534,11 +5612,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
       contenedor.innerHTML = resultados
         .map((r, i) => {
-          const ciudad = r.address?.city || r.address?.town || r.address?.village || r.address?.municipality || '';
-          const resto = r.display_name.split(',')[0];
           return `<li data-idx="${i}" id="${contenedorSugerenciasId}-opt-${i}" role="option" aria-selected="false">
-            <span class="rs-sug-linea1">${resto}</span>
-            <span class="rs-sug-linea2">${ciudad ? ciudad + ' · ' : ''}${r.address?.state || ''}</span>
+            <span class="rs-sug-linea1">${escHtml(r.nombre)}</span>
+            <span class="rs-sug-linea2">${escHtml(r.detalle)}</span>
           </li>`;
         })
         .join('');

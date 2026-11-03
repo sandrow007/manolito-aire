@@ -51,12 +51,15 @@
   if (window.__manolitoParkingViaje) return; // doble carga: jamás
   window.__manolitoParkingViaje = true;
 
+  // En desarrollo local (file:// O localhost) no corre el Worker que sirve
+  // estos proxies: se apunta al de producción (CORS abierto), como en
+  // rutas-bici.js y shadows-route.js. Sin esto el coche no traza rutas en local.
+  var ES_LOCAL = window.location.protocol === 'file:'
+    || ['localhost', '127.0.0.1', '[::1]'].indexOf(window.location.hostname) !== -1;
   var CONFIG = {
-    overpassUrl: window.location.protocol === 'file:'
-      ? 'https://manolitoaire.com/aparcamientos'
-      : '/aparcamientos',
-    osrmCocheUrl: '/ruta-coche',
-    geoUrl: '/geo',
+    overpassUrl: ES_LOCAL ? 'https://manolitoaire.com/aparcamientos' : '/aparcamientos',
+    osrmCocheUrl: ES_LOCAL ? 'https://manolitoaire.com/ruta-coche' : '/ruta-coche',
+    geoUrl: ES_LOCAL ? 'https://manolitoaire.com/geo' : '/geo',
     timeoutS: 15,
     timeoutViajeMs: 20000,
     esperaMoveendMs: 700,
@@ -1032,7 +1035,11 @@
 
   async function rutaEnCoche(origen, destino) {
     var coords = origen.lon + ',' + origen.lat + ';' + destino.lon + ',' + destino.lat;
-    var url = CONFIG.osrmCocheUrl + '/driving/' + coords + '?overview=full&geometries=geojson&steps=false';
+    // HUD de navegación (nov-2026): steps=true NO cambia la geometría ni
+    // los tiempos del viaje; solo pide además los pasos con maniobra,
+    // nombre de vía y límite de velocidad para el HUD. Sin este dato el
+    // banner y la señal de límite quedan ocultos.
+    var url = CONFIG.osrmCocheUrl + '/driving/' + coords + '?overview=full&geometries=geojson&steps=true';
     var controller = new AbortController();
     viaje.peticion = controller;
     var temporizador = setTimeout(function () { controller.abort(); }, CONFIG.timeoutViajeMs);
@@ -1043,7 +1050,13 @@
       if (!datos || datos.code !== 'Ok' || !datos.routes || !datos.routes.length) return null;
       var r = datos.routes[0];
       if (!r.geometry || !r.geometry.coordinates || !r.geometry.coordinates.length) return null;
-      return { geometry: r.geometry, distanciaM: r.distance || 0, duracionS: r.duration || 0 };
+      return {
+        geometry: r.geometry,
+        distanciaM: r.distance || 0,
+        duracionS: r.duration || 0,
+        // HUD de navegación (nov-2026, ADITIVO): pasos crudos para el banner.
+        pasos: (r.legs || []).reduce(function (acc, l) { return acc.concat(l.steps || []); }, []),
+      };
     } catch (e) {
       return null;
     } finally {
@@ -1087,6 +1100,8 @@
       decirEstado(t('parkingDriveNoRoute', 'No he podido trazar la ruta en coche.'));
       return;
     }
+    // HUD de navegación (nov-2026, ADITIVO): el viaje queda accesible.
+    try { window.__manolitHudCoche = ruta; } catch (eHud) { }
     pintarRuta(ruta.geometry);
     decirEstado('');
   }
@@ -1135,6 +1150,8 @@
     if (map && map.getSource('viaje-largo')) {
       map.getSource('viaje-largo').setData({ type: 'FeatureCollection', features: [] });
     }
+    // HUD de navegación (nov-2026, ADITIVO): sin viaje no hay HUD.
+    try { window.__manolitHudCoche = null; } catch (eHud) { }
     decirEstado('');
   }
 
@@ -1179,6 +1196,8 @@
       return;
     }
 
+    // HUD de navegación (nov-2026, ADITIVO): el viaje queda accesible.
+    try { window.__manolitHudCoche = ruta; } catch (eHud) { }
     pintarRuta(ruta.geometry);
 
     var km = ruta.distanciaM / 1000;

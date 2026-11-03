@@ -223,13 +223,10 @@
     try { return localStorage.getItem("manolito_cookies_choice") === "accepted"; } catch (e) { return false; }
   }
 
-  /* El orden del paseo sigue el recorrido natural por la página:
-     primero la ruta y su mapa 3D, luego el aire y su gráfica, y al
-     final lo común de la casa (el agua de los anuncios, el chat, tus
-     datos, el Ko-fi y los proyectos hermanos). El paso del agua
-     señala la sección «El agua que no se ve», desde donde se entra
-     a la comparativa para calcular los litros que gasta un móvil
-     por culpa de los anuncios que nadie pidió. */
+  /* El orden del paseo sigue el recorrido natural por la página, de
+     arriba hacia abajo y sin volver atrás. Cada paso espera a que su
+     destino exista y esté visible antes de avanzar, porque varias
+     secciones se montan de forma diferida al hacer scroll. */
   function construirPasos() {
     const p = obtenerTraducciones().pasos;
     const paso = (element, indice, side, align) => ({
@@ -237,30 +234,28 @@
       popover: { title: p[indice].title, description: p[indice].desc, side, align }
     });
     return [
+      paso("#modeGrid", 1, "bottom", "start"),
       paso(".rs-form", 4, "bottom", "start"),
       paso("#shadowRouteMap", 5, "top", "center"),
-      paso(".rs-layer-toggles", 8, "top", "center"),
-      paso("#shadowRouteMap", 9, "top", "center"),
       paso("#shadowRouteMap", 10, "top", "center"),
+      paso("#shadowRouteMap", 9, "top", "center"),
+      paso(".rs-layer-toggles", 8, "top", "center"),
       paso(".rs-planetario", 6, "top", "center"),
       paso(".rs-btn-lidar", 7, "top", "center"),
       paso("#cityDropdownBtn", 0, "bottom", "start"),
-      paso("#modeGrid", 1, "top", "start"),
       paso("#map", 2, "top", "center"),
       paso("#airChart", 3, "top", "center"),
-      paso("#ecoAgua", 15, "top", "center"),
       paso(".chat-fab", 11, "left", "end"),
+      paso("#ecoAgua", 15, "top", "center"),
       paso("#btnSyncExport", 12, "top", "center"),
       paso(".donacion-boton", 13, "top", "center"),
       paso(".footer-family", 14, "top", "center")
-      // Si algún elemento no está en la página (por ejemplo un HTML
-      // viejo servido desde caché), ese paso se salta y el paseo
-      // sigue como si nada.
     ].filter((s) => !s.element || document.querySelector(s.element));
   }
 
   let driverActivo = null;
   let driverPromesa = null;
+  let tutorialEnCurso = false;
 
   function obtenerFactoriaDriver() {
     if (typeof window.driver === "function") return window.driver;
@@ -306,27 +301,64 @@
     // El paseo puede arrancar por dos caminos a la vez (el cierre de la
     // intro y el observer propio); sin esta guarda saldrían dos paseos
     // montados uno encima de otro.
-    if (driverActivo) return;
+    if (driverActivo || tutorialEnCurso) return;
     const driverFactory = obtenerFactoriaDriver();
     if (!driverFactory) return;
     const textos = obtenerTraducciones();
     try {
+      const pasos = construirPasos();
+      if (!pasos.length) return;
+      tutorialEnCurso = true;
       driverActivo = driverFactory({
         allowClose: true,
+        smoothScroll: true,
+        scrollIntoViewOptions: { behavior: "smooth", block: "center", inline: "nearest" },
         showButtons: ["next", "previous", "close"],
         showProgress: true,
         progressText: textos.progreso,
         nextBtnText: textos.next,
         prevBtnText: textos.prev,
         doneBtnText: textos.done,
-        steps: construirPasos(),
+        steps: pasos,
+        onNextClick: () => avanzarAlPasoVisible(1),
+        onPrevClick: () => avanzarAlPasoVisible(-1),
         onDestroyed: () => {
           marcarTutorialVisto();
           driverActivo = null;
+          tutorialEnCurso = false;
         }
       });
       driverActivo.drive();
-    } catch (e) { /* si driver falla, la web sigue funcionando igual */ }
+    } catch (e) {
+      driverActivo = null;
+      tutorialEnCurso = false;
+      /* si driver falla, la web sigue funcionando igual */
+    }
+  }
+
+  /* Los controles propios evitan que Driver.js avance a un objetivo
+     desmontado/oculto mientras la página aún lo está creando al hacer scroll. */
+  function avanzarAlPasoVisible(direccion) {
+    if (!driverActivo) return;
+    const pasos = construirPasos();
+    let indice = typeof driverActivo.getActiveIndex === "function" ? driverActivo.getActiveIndex() : 0;
+    if (typeof indice !== "number") indice = 0;
+    const nuevoIndice = indice + direccion;
+    if (nuevoIndice < 0 || nuevoIndice >= pasos.length) {
+      if (direccion > 0 && typeof driverActivo.destroy === "function") driverActivo.destroy();
+      else if (typeof driverActivo.drive === "function") driverActivo.drive(0);
+      return;
+    }
+    const destino = pasos[nuevoIndice].element;
+    const elemento = destino && document.querySelector(destino);
+    if (!elemento) return;
+    elemento.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+    window.setTimeout(() => {
+      if (!driverActivo || !elemento.isConnected) return;
+      const estilo = window.getComputedStyle(elemento);
+      if (estilo.display === "none" || estilo.visibility === "hidden") return;
+      driverActivo.drive(nuevoIndice);
+    }, 350);
   }
 
   /* Arranque: solo si ya aceptaste las cookies y la intro ya pasó.
@@ -355,15 +387,21 @@
     const textos = obtenerTraducciones();
     driverActivo.setConfig({
       allowClose: true,
+      smoothScroll: true,
+      scrollIntoViewOptions: { behavior: "smooth", block: "center", inline: "nearest" },
+      showButtons: ["next", "previous", "close"],
       showProgress: true,
       progressText: textos.progreso,
       nextBtnText: textos.next,
       prevBtnText: textos.prev,
       doneBtnText: textos.done,
       steps: construirPasos(),
+      onNextClick: () => avanzarAlPasoVisible(1),
+      onPrevClick: () => avanzarAlPasoVisible(-1),
       onDestroyed: () => {
         marcarTutorialVisto();
         driverActivo = null;
+        tutorialEnCurso = false;
       }
     });
     try {

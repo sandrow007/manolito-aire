@@ -24,9 +24,9 @@ CONOCIMIENTO DE LA WEB — la web actual es la fuente de verdad, no una ficha ex
 
 8. SELLOS, SOSTENIBILIDAD Y AFIRMACIONES: la portada muestra un distintivo Website Carbon Rating con calificación A+ y la medición indicada allí (0,015 g CO₂ por visita, 102,7 KB y fecha 16/09/2026). Descríbelo como lo que publica el distintivo de la web, no como certificación oficial independiente ni como dato vigente verificado por ti. La página también publica estimaciones sobre consumo de agua/tráfico publicitario; preséntalas como cálculos y supuestos explicados en esa página, no como mediciones universales independientes. La web se presenta como gratuita, sin registro ni publicidad.
 
-9. TRANSPORTE PÚBLICO Y BICLETA (nuevo):
-ES: la web tiene una capa de transporte público que muestra paradas cercanas cartografiadas en OpenStreetMap, servidas mediante Overpass. No ofrece horarios ni salidas GTFS. Al elegir una parada hay un botón «Dirección» que calcula a pie, con ruta saludable por sombra, cómo llegar hasta ella. Todo funciona según los datos disponibles en la zona; no afirmes que cubre todas las ciudades.
-EN: the site has a public transport layer showing nearby stops mapped in OpenStreetMap and served through Overpass. It does not provide GTFS timetables or departures. When you choose a stop there is a «Directions» button that calculates a walking route, with a healthy shaded route, to reach it. Coverage depends on available data; do not claim every city is covered.
+9. TRANSPORTE PÚBLICO Y BICICLETA:
+ES: la capa de transporte público combina paradas de Transitous (feeds GTFS disponibles) y OpenStreetMap/Overpass, según la cobertura de cada zona. Al seleccionar una parada de Transitous, puede mostrar próximas salidas; las paradas que solo vienen de OpenStreetMap no incluyen horarios. No calcula itinerarios ni transbordos. El botón «Dirección» calcula una ruta a pie hacia la parada, con opción saludable por sombra cuando está disponible. No afirmes que hay cobertura u horarios en todas las ciudades, ni que las salidas sean datos en tiempo real garantizados.
+EN: the public transport layer combines Transitous stops (where GTFS feeds are available) with OpenStreetMap/Overpass, depending on local coverage. Selecting a Transitous stop may show upcoming departures; stops sourced only from OpenStreetMap have no schedules. It does not plan itineraries or transfers. The «Directions» button calculates a walking route to the stop, with a healthy shaded option when available. Do not claim every city is covered or that departures are guaranteed real-time.
 
 PRIVACIDAD Y VIGENCIA: no inventes qué datos conserva un servicio externo ni asegures que ninguna ubicación llega a ningún servidor; explica que la ubicación del dispositivo requiere permiso y que las funciones de mapa pueden consultar servicios de mapas/rutas. Distingue funciones del sitio de afirmaciones promocionales y de datos en tiempo real. Si una API, gráfica o cobertura falla, dilo con claridad; no simules una consulta ni inventes resultados actuales.
 
@@ -912,6 +912,89 @@ export default {
         });
       } catch (err) {
         return teselaVacia();
+      }
+    }
+
+        // --- Autocompletado de lugares (Photon, OSM) ---
+    // Nominatim no permite autocompletar mientras se escribe (su política de
+    // uso lo prohíbe). Photon sí soporta búsqueda por prefijo, es libre, sin
+    // clave ni trackers. Se pasa por aquí para no exponer la llamada externa
+    // y para cachear/moderar el ritmo.
+    // Parámetros: q (texto >=2), lat/lon (centro del mapa YA redondeado en el
+    // cliente a 2 decimales), lang (es/en/ka...). Photon solo entiende
+    // de/en/fr; para cualquier otro idioma se pide 'default' (nombre local).
+    if (url.pathname === '/geo-sugerencias') {
+      try {
+        const q = (url.searchParams.get('q') || '').trim();
+        if (q.length < 2) {
+          return new Response('[]', {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', ...CORS_HEADERS }
+          });
+        }
+        const latParam = Number(url.searchParams.get('lat'));
+        const lonParam = Number(url.searchParams.get('lon'));
+        const langRaw = (url.searchParams.get('lang') || 'es').toLowerCase();
+        // Photon SOLO soporta de/en/fr (comprobado: otro valor devuelve un
+        // objeto de error sin features). Para el resto, 'default' devuelve
+        // el nombre local del lugar, que es justo lo que queremos.
+        const idiomasPhoton = new Set(['de', 'en', 'fr']);
+        const lang = idiomasPhoton.has(langRaw.split('-')[0]) ? langRaw.split('-')[0] : 'default';
+
+        const destino = new URL('https://photon.komoot.io/api/');
+        destino.searchParams.set('q', q);
+        destino.searchParams.set('limit', '8');
+        destino.searchParams.set('lang', lang);
+        // Sesgo geográfico hacia la zona que se está mirando (no filtro duro):
+        // Photon acepta lat/lon para priorizar cercanos; no usamos bbox para
+        // que una búsqueda de otra ciudad siga apareciendo.
+        if (Number.isFinite(latParam) && Number.isFinite(lonParam) &&
+            Math.abs(latParam) <= 90 && Math.abs(lonParam) <= 180) {
+          destino.searchParams.set('lat', latParam.toFixed(2));
+          destino.searchParams.set('lon', lonParam.toFixed(2));
+        }
+
+        const controller = new AbortController();
+        const temporizador = setTimeout(() => controller.abort(), 8000);
+        let r;
+        try {
+          r = await fetch(destino.toString(), {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)'
+            },
+            signal: controller.signal
+          });
+        } finally {
+          clearTimeout(temporizador);
+        }
+        if (!r.ok) throw new Error(`Photon HTTP ${r.status}`);
+        const datos = await r.json();
+        const features = Array.isArray(datos && datos.features) ? datos.features : [];
+        // Se normaliza a un array plano y pequeño para el cliente.
+        const lugares = features.map((f) => {
+          const p = (f && f.properties) || {};
+          const c = (f && f.geometry && f.geometry.coordinates) || [];
+          const lon = Number(c[0]);
+          const lat = Number(c[1]);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+          const nombre = p.name || p.street || p.city || p.locality || '';
+          if (!nombre) return null;
+          const detalle = [p.street && p.street !== nombre ? p.street : '', p.city || p.town || p.village || p.locality || '', p.state || '', p.country || '']
+            .filter(Boolean)
+            .filter((v, i, arr) => arr.indexOf(v) === i)
+            .join(', ');
+          return { name: nombre, detail: detalle, lat, lon, type: p.type || p.osm_value || '' };
+        }).filter(Boolean);
+        return new Response(JSON.stringify(lugares), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return new Response('[]', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
       }
     }
 

@@ -31,20 +31,18 @@
 
   // El proxy del sitio usa el perfil routed-bike; ruta propia para no
   // interferir con las rutas de paseo ni con las rutas en coche.
-  var OSRM_BICI_URL = window.location.protocol === 'file:'
-    ? 'https://manolitoaire.com/ruta-bici'
-    : '/ruta-bici';
+  // En desarrollo local (file:// O localhost) no corre el Worker: se apunta
+  // al proxy de producción (CORS abierto).
+  var ES_LOCAL = window.location.protocol === 'file:'
+    || ['localhost', '127.0.0.1', '[::1]'].indexOf(window.location.hostname) !== -1;
+  var OSRM_BICI_URL = ES_LOCAL ? 'https://manolitoaire.com/ruta-bici' : '/ruta-bici';
   var BROUTER_URL = 'https://brouter.de/brouter';
-  var GEO_URL = window.location.protocol === 'file:'
-    ? 'https://manolitoaire.com/geo'
-    : '/geo';
+  var GEO_URL = ES_LOCAL ? 'https://manolitoaire.com/geo' : '/geo';
   // Ruta PROPIA para los carriles bici (ver nota de cabecera): antes
   // reutilizaba '/aparcamientos' y, si esa misma zona ya tenía la caché de
   // aparcamiento guardada en el Worker, el carril bici recibía esos mismos
   // datos (nodos de parking, sin geometría de vía) y no dibujaba nada.
-  var OVERPASS_URL = window.location.protocol === 'file:'
-    ? 'https://manolitoaire.com/carriles-bici'
-    : '/carriles-bici';
+  var OVERPASS_URL = ES_LOCAL ? 'https://manolitoaire.com/carriles-bici' : '/carriles-bici';
 
   // Fallback directo desde el navegador: el Worker no alcanza Overpass
   // desde Cloudflare, pero el navegador sí (CORS abierto). Solo se usa
@@ -206,7 +204,10 @@
   /* ---------------- Respaldo OSRM bici ---------------------------------- */
   async function pedirOsrmBici(origen, destino) {
     var coords = origen.lon + ',' + origen.lat + ';' + destino.lon + ',' + destino.lat;
-    var url = OSRM_BICI_URL + '/driving/' + coords + '?overview=full&geometries=geojson&steps=false&alternatives=' + (MAX_ALTERNATIVAS - 1);
+    // HUD de navegación (nov-2026): steps=true NO cambia la geometría ni
+    // los tiempos; solo pide además los pasos con maniobra/nombre/límite
+    // para el banner del HUD. Sin este dato el banner queda oculto.
+    var url = OSRM_BICI_URL + '/driving/' + coords + '?overview=full&geometries=geojson&steps=true&alternatives=' + (MAX_ALTERNATIVAS - 1);
     var controller = new AbortController();
     var timer = setTimeout(function () { controller.abort(); }, 15000);
     try {
@@ -215,7 +216,14 @@
       var datos = await resp.json();
       if (!datos || datos.code !== 'Ok' || !Array.isArray(datos.routes)) return [];
       return datos.routes.map(function (r) {
-        return { geometry: r.geometry, distanciaM: r.distance || 0, duracionS: r.duration || 0, desnivelM: null };
+        return {
+          geometry: r.geometry,
+          distanciaM: r.distance || 0,
+          duracionS: r.duration || 0,
+          desnivelM: null,
+          // HUD de navegación (nov-2026, ADITIVO): pasos crudos para el banner.
+          pasos: (r.legs || []).reduce(function (acc, l) { return acc.concat(l.steps || []); }, []),
+        };
       }).filter(function (r) { return r.geometry && r.geometry.coordinates && r.geometry.coordinates.length; });
     } catch (e) {
       return [];
@@ -332,6 +340,7 @@
       return f;
     });
     map.getSource(SOURCE_ID).setData({ type: 'FeatureCollection', features: features });
+    stashHudBici(rutas);
     if (features.length) {
       try {
         var bounds = new maplibregl.LngLatBounds(features[0].geometry.coordinates[0], features[0].geometry.coordinates[0]);
@@ -350,6 +359,8 @@
     }
     lista.ultimaClave = '';
     lista.rutas = [];
+    // HUD de navegación (nov-2026, ADITIVO): sin ruta no hay HUD.
+    try { window.__manolitHudBici = null; } catch (eHud) { }
   }
 
   function seleccionarAlternativa(indice) {
@@ -361,6 +372,19 @@
       f.properties.primaria = (f.properties.indice === indice);
     });
     source.setData(data);
+    // HUD de navegación (nov-2026, ADITIVO): el HUD sigue la alternativa
+    // elegida (por defecto la 0, la primaria).
+    try {
+      if (window.__manolitHudBici) window.__manolitHudBici.activa = indice;
+    } catch (eHud) { }
+  }
+
+  // HUD de navegación (nov-2026, ADITIVO): cada pintado deja la lista de
+  // rutas accesible con la alternativa activa. Solo lectura presentacional.
+  function stashHudBici(rutas) {
+    try {
+      window.__manolitHudBici = { rutas: rutas || [], activa: 0 };
+    } catch (eHud) { }
   }
 
   /* ---------------- Panel ------------------------------------------------- */

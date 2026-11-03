@@ -154,7 +154,7 @@
       tarjeta.setAttribute('role', 'dialog');
       tarjeta.setAttribute('aria-label', 'Permiso de voz');
       tarjeta.style.cssText = 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:9999;'
-        + 'background:var(--panel,#fff);color:var(--ink,#2A1A05);border:1px solid var(--line,rgba(14,59,71,.25));'
+        + 'background:#fff;color:#202124;border:1px solid rgba(60,64,67,.24);'
         + 'border-radius:14px;padding:12px 16px;max-width:min(92vw,340px);box-shadow:0 8px 30px rgba(0,0,0,.25);'
         + 'font:500 0.9rem/1.4 system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;gap:10px;';
       const txt = document.createElement('div');
@@ -164,11 +164,11 @@
       const btnNo = document.createElement('button');
       btnNo.type = 'button';
       btnNo.textContent = t('voiceNo', 'Ahora no');
-      btnNo.style.cssText = 'padding:7px 12px;border-radius:9px;border:1px solid var(--line,rgba(14,59,71,.25));background:none;color:inherit;cursor:pointer;';
+      btnNo.style.cssText = 'padding:7px 12px;border-radius:9px;border:1px solid rgba(60,64,67,.28);background:#fff;color:#202124;cursor:pointer;';
       const btnSi = document.createElement('button');
       btnSi.type = 'button';
       btnSi.textContent = t('voiceYes', 'Permitir voz');
-      btnSi.style.cssText = 'padding:7px 12px;border-radius:9px;border:none;background:var(--accent,#FFB85C);color:#1a1a1a;font-weight:600;cursor:pointer;';
+      btnSi.style.cssText = 'padding:7px 12px;border-radius:9px;border:none;background:#1a73e8;color:#fff;font-weight:600;cursor:pointer;';
       btnNo.addEventListener('click', () => { try { localStorage.setItem(CLAVE_PERMISO_VOZ, 'denegado'); } catch (e) { } tarjeta.remove(); });
       btnSi.addEventListener('click', () => {
         try { localStorage.setItem(CLAVE_PERMISO_VOZ, 'concedido'); } catch (e) { }

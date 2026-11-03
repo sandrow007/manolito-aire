@@ -4,6 +4,10 @@
   "compatibility_date": "2026-08-03",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
+  "dev": {
+    "ip": "0.0.0.0",
+    "local_protocol": "http"
+  },
   "assets": {
     "directory": "./",
     "binding": "ASSETS"

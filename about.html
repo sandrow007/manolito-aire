@@ -33,6 +33,14 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit∞ Aire">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
 <base target="_blank">
 <base target="_blank">
 <style>
@@ -50,6 +58,14 @@
 .about-sub{ color:var(--sky-mid); font-size:1.05rem; max-width:560px; margin:0 auto; }
 .about-logo-placa{ background:transparent; border:none; padding:4px 0 2px; margin:0 0 8px; }
 .about-logo-placa svg{ width:100%; max-width:560px; height:auto; display:block; margin:0 auto; }
+.modelo-manolit-3d{ position:relative; height:430px; max-width:760px; margin:0 auto 10px; overflow:hidden; border-radius:18px; background:radial-gradient(circle at 50% 45%,#18243b 0%,#080d18 58%,#03050b 100%); }
+.modelo-manolit-3d canvas{ display:block; width:100%; height:100%; touch-action:none; }
+.modelo-manolit-3d-controls{ position:absolute; left:50%; bottom:14px; transform:translateX(-50%); display:flex; gap:7px; padding:6px; border:1px solid #ffffff20; border-radius:12px; background:#080b13c7; backdrop-filter:blur(12px); }
+.modelo-manolit-3d-controls button{ min-height:40px; padding:8px 11px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); cursor:pointer; }
+.modelo-manolit-3d-controls button.active{ border-color:var(--accent); color:var(--accent-text); }
+.modelo-manolit-3d-hint{ margin:0 auto 10px; text-align:center; font-size:.8rem; color:var(--muted); }
+#logoAnotado{ display:none; }
+@media(max-width:700px){ .modelo-manolit-3d{ height:360px; margin-left:-10px; margin-right:-10px; border-radius:12px; } .modelo-manolit-3d-controls{ width:max-content; max-width:calc(100% - 18px); } .modelo-manolit-3d-controls button{ padding:8px 9px; font-size:.72rem; } }
 /* Colores del logo: los de siempre sobre fondo claro y una
    versión un poco más clara de cada uno para la noche. */
 :root{ --logo-vino:#7A0016; --logo-sol:#E6A100; --logo-aire:#007A87; }

@@ -4957,9 +4957,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   async function calcularRutaReal(origen, destino) {
     const coords = `${origen.lon},${origen.lat};${destino.lon},${destino.lat}`;
     const url = `${CONFIG.osrmUrl}/foot/${coords}?overview=full&geometries=geojson&steps=true`;
+    const urlAlternativa = `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coords}?overview=full&geometries=geojson&steps=true`;
 
     try {
-      const datos = await fetchConReintentos(url);
+      let datos;
+      try {
+        datos = await fetchConReintentos(url);
+      } catch (proxyError) {
+        // En desarrollo local (file://) o si el proxy está temporalmente
+        // caído, intenta el mismo router directamente antes de dibujar
+        // una línea de emergencia entre origen y destino.
+        console.debug('Proxy de rutas no disponible; intentando router peatonal directo:', proxyError.message);
+        datos = await fetchConReintentos(urlAlternativa, {}, 1);
+      }
       if (datos?.code === 'Ok' && datos.routes?.[0]) {
         let pasos = [];
         let pasosGuiados = [];
@@ -4989,9 +4999,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           pasosGuiados,
         };
       }
-      throw new Error('OSRM no ha devuelto una ruta válida.');
+      throw new Error('El router no ha devuelto una ruta válida.');
     } catch (err) {
-      console.debug('Routing real no disponible, usando línea directa:', err);
+      console.error('Routing real no disponible; se muestra la línea directa de emergencia:', err);
       return {
         geojson: { type: 'LineString', coordinates: [[origen.lon, origen.lat], [destino.lon, destino.lat]] },
         distanciaKm: null,

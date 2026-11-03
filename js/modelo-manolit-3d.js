@@ -6,7 +6,10 @@ import { UnrealBloomPass } from 'https://unpkg.com/three@0.180.0/examples/jsm/po
 import { OutputPass } from 'https://unpkg.com/three@0.180.0/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'https://unpkg.com/three@0.180.0/examples/jsm/environments/RoomEnvironment.js';
 
-const mount = document.getElementById('manolitModelo3D') || document.body;
+const mount = document.getElementById('manolitModelo3D');
+if (!mount) throw new Error('No se encontró el contenedor #manolitModelo3D');
+const activarFallback = () => document.documentElement.classList.add('modelo-3d-fallback');
+document.documentElement.classList.remove('modelo-3d-fallback');
 const width = () => Math.max(1, mount.clientWidth || innerWidth);
 const height = () => Math.max(1, mount.clientHeight || innerHeight);
 const SEED = 26032026;
@@ -17,10 +20,19 @@ const scene = new THREE.Scene();
 scene.background = null;
 scene.fog = new THREE.FogExp2(0x010207, 0.026);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+} catch (error) {
+  activarFallback();
+  throw error;
+}
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
 renderer.setSize(width(), height());
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.domElement.style.position = 'absolute';
+renderer.domElement.style.inset = '0';
+renderer.domElement.style.zIndex = '0';
 renderer.toneMappingExposure = 0.82;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -36,6 +48,8 @@ camera.position.copy(home);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 2.35, 0);
 controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.8;
 controls.dampingFactor = 0.055;
 controls.minDistance = 6;
 controls.maxDistance = 19;
@@ -44,7 +58,7 @@ controls.minPolarAngle = Math.PI * 0.18;
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.52, 0.42, 0.62);
+const bloom = new UnrealBloomPass(new THREE.Vector2(width(), height()), 0.52, 0.42, 0.62);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
@@ -71,7 +85,7 @@ function emissive(color, intensity = 4, opacity = 1) { return new THREE.MeshStan
 function ring(radius, tube, color, y, intensity = 3) { const m = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 12, 128), emissive(color, intensity)); m.rotation.x = Math.PI / 2; m.position.y = y; stage.add(m); return m; }
 const rings = [ring(3.09, 0.025, C.cyan, 0.02, 5), ring(3.28, 0.018, C.violet, -0.08, 4), ring(2.25, 0.014, C.blue, 0.15, 3), ring(1.45, 0.012, C.pink, 0.16, 3)];
 
-const monument = new THREE.Group(); monument.position.y = 2.62; scene.add(monument);
+const monument = new THREE.Group(); monument.position.y = 0.72; scene.add(monument);
 const logo = new THREE.Group(); monument.add(logo);
 const pt = (x, y, z = 0) => new THREE.Vector3((x - 100) / 100, (290 - y) / 100, z);
 function cubic(a, b, c, d) { return new THREE.CubicBezierCurve3(pt(...a), pt(...b), pt(...c), pt(...d)); }
@@ -98,18 +112,23 @@ echoData.forEach(([color, angle, z], i) => {
 });
 
 const glass = new THREE.Mesh(new THREE.ExtrudeGeometry(shieldShape, { depth: 0.12, bevelEnabled: true, bevelSize: 0.025, bevelThickness: 0.025, bevelSegments: 3 }), new THREE.MeshPhysicalMaterial({ color: 0x240611, emissive: 0x240008, emissiveIntensity: 0.35, metalness: 0.2, roughness: 0.08, transmission: 0.35, transparent: true, opacity: 0.76, thickness: 0.35, clearcoat: 1, side: THREE.DoubleSide }));
+glass.userData.logoPart = 'contorno';
 glass.position.z = -0.06; logo.add(glass);
-logo.add(tube(shieldPath, 0.034, C.red, 5.8, 160));
+const shieldTube = tube(shieldPath, 0.034, C.red, 5.8, 160);
+shieldTube.userData.logoPart = 'contorno';
+logo.add(shieldTube);
 const circle = new THREE.EllipseCurve(0, (290-150)/100, 0.45, 0.45, 0, Math.PI*2).getPoints(100).map(p => new THREE.Vector3(p.x,p.y,0.075));
-logo.add(tube(new THREE.CatmullRomCurve3(circle, true), 0.022, C.gold, 5.2, 120));
+const sunTube = tube(new THREE.CatmullRomCurve3(circle, true), 0.022, C.gold, 5.2, 120);
+sunTube.userData.logoPart = 'sol';
+logo.add(sunTube);
 const heart = new THREE.CurvePath();
 heart.add(cubic([100,146],[75,121],[75,171],[100,146]));
 heart.add(cubic([100,146],[125,121],[125,171],[100,146]));
-const heartMesh = tube(heart, 0.041, C.red, 6.2, 120); heartMesh.position.z = 0.095; logo.add(heartMesh);
+const heartMesh = tube(heart, 0.041, C.red, 6.2, 120); heartMesh.position.z = 0.095; heartMesh.userData.logoPart = 'infinito'; logo.add(heartMesh);
 const wave1 = new THREE.CurvePath(); wave1.add(quad([60,165],[80,155],[100,165])); wave1.add(quad([100,165],[120,175],[140,165]));
 const wave2 = new THREE.CurvePath(); wave2.add(quad([65,175],[82.5,167],[100,175])); wave2.add(quad([100,175],[117.5,183],[135,175]));
-const w1 = tube(wave1, 0.027, C.cyan, 5.8); w1.position.z = 0.10; logo.add(w1);
-const w2 = tube(wave2, 0.021, C.cyan, 5.3); w2.position.z = 0.10; logo.add(w2);
+const w1 = tube(wave1, 0.027, C.cyan, 5.8); w1.position.z = 0.10; w1.userData.logoPart = 'aire'; logo.add(w1);
+const w2 = tube(wave2, 0.021, C.cyan, 5.3); w2.position.z = 0.10; w2.userData.logoPart = 'aire'; logo.add(w2);
 logo.scale.setScalar(1.48);
 
 const haloGroup = new THREE.Group(); haloGroup.position.set(0,2.62,-0.75); scene.add(haloGroup);
@@ -135,8 +154,9 @@ let autoSpin = true, surgeStart = -100, simT = 0;
 function sample(t) {
   const phase=t/DURATION*Math.PI*2;
   const surge=Math.max(0,1-(t-surgeStart)/2.4);
-  monument.position.y=2.62+Math.sin(phase)*0.075;
-  monument.rotation.y=autoSpin?Math.sin(phase)*0.16:monument.rotation.y;
+  monument.position.y=0.72+Math.sin(phase)*0.075;
+  // OrbitControls rotates the camera, keeping the emblem face-on and its parts clickable.
+  monument.rotation.y=0;
   haloGroup.rotation.z=phase;
   particles.rotation.y=phase;
   const pulse=1+Math.sin(phase*3)*0.07+surge*0.9;
@@ -148,14 +168,67 @@ function sample(t) {
   echoes.forEach((e,i)=>{e.position.z=-0.20-Math.abs(echoData[i][1])*0.75-surge*0.18;});
 }
 const clock=new THREE.Clock(); const STEP=1/60; let acc=0,paused=false;
-function draw(){controls.update();composer.render();document.getElementById('hud').textContent=`${renderer.info.render.calls} llamadas · ${Math.round(renderer.info.render.triangles/1000)}k triángulos`;}
+function draw(){controls.update();composer.render();}
 renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),0.1);if(!paused){acc+=dt;while(acc>=STEP){acc-=STEP;simT+=STEP;}sample(simT);}draw();});
-window.__seek=(t)=>{paused=true;acc=0;simT=Number.isFinite(Number(t))&&Number(t)>0?Number(t):0;sample(simT);controls.update();composer.render();};
-window.__play=()=>{paused=false;clock.getDelta();};
+window.__seek=(t)=>{paused=true;controls.autoRotate=false;acc=0;simT=Number.isFinite(Number(t))&&Number(t)>0?Number(t):0;sample(simT);controls.update();composer.render();updatePlaybackButton();};
+window.__play=()=>{paused=false;controls.autoRotate=autoSpin;clock.getDelta();updatePlaybackButton();};
 const resizeModel = () => { camera.aspect = width() / height(); camera.updateProjectionMatrix(); renderer.setSize(width(), height()); composer.setSize(width(), height()); };
 addEventListener('resize', resizeModel);
 if (window.ResizeObserver) new ResizeObserver(resizeModel).observe(mount);
-document.getElementById('spin').addEventListener('click',e=>{autoSpin=!autoSpin;e.currentTarget.classList.toggle('active',autoSpin);});
-document.getElementById('surge').addEventListener('click',()=>{surgeStart=simT;});
-document.getElementById('reset').addEventListener('click',()=>{camera.position.copy(home);controls.target.set(0,2.35,0);controls.update();});
-sample(0);draw();const T_PARAM=new URLSearchParams(location.search).get('t');if(T_PARAM!==null)window.__seek(T_PARAM);window.__SCENE_READY__=true;
+const spinButton = document.getElementById('spin');
+const playbackButton = document.getElementById('playback');
+const surgeButton = document.getElementById('surge');
+const resetButton = document.getElementById('reset');
+const pauseIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14"/><path d="M16 5v14"/></svg>';
+const playIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>';
+function updatePlaybackButton() {
+  if (!playbackButton) return;
+  const playing = !paused;
+  playbackButton.innerHTML = playing ? pauseIcon : playIcon;
+  playbackButton.setAttribute('aria-label', playing ? 'Pausar' : 'Reproducir');
+  playbackButton.title = playing ? 'Pausar' : 'Reproducir';
+  playbackButton.classList.toggle('active', playing);
+}
+if (spinButton) spinButton.addEventListener('click', e => { autoSpin = !autoSpin; controls.autoRotate = autoSpin; e.currentTarget.classList.toggle('active', autoSpin); });
+if (playbackButton) playbackButton.addEventListener('click', () => {
+  paused = !paused;
+  controls.autoRotate = paused ? false : autoSpin;
+  if (!paused) clock.getDelta();
+  updatePlaybackButton();
+});
+if (surgeButton) surgeButton.addEventListener('click', () => { surgeStart = simT; });
+if (resetButton) resetButton.addEventListener('click', () => { camera.position.copy(home); controls.target.set(0,2.35,0); controls.update(); });
+// OrbitControls ya rota la cámara; bloquear gestos del canvas desde CSS puede
+// interferir en algunos navegadores con el pointer capture de los controles.
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let pointerDownX = 0, pointerDownY = 0;
+renderer.domElement.addEventListener('pointerup', (event) => {
+  if (event.target !== renderer.domElement || Math.hypot(event.clientX - pointerDownX, event.clientY - pointerDownY) > 8) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObjects(logo.children, true).find((item) => {
+    let object = item.object;
+    while (object && object !== logo) {
+      if (object.userData.logoPart) return true;
+      object = object.parent;
+    }
+    return false;
+  });
+  if (hit) {
+    let object = hit.object;
+    while (object && object !== logo && !object.userData.logoPart) object = object.parent;
+    if (object && object.userData.logoPart) window.dispatchEvent(new CustomEvent('manolitLogoPart', { detail: { key: object.userData.logoPart }}));
+  } else {
+    window.dispatchEvent(new CustomEvent('manolitLogoInfoClose'));
+  }
+});
+renderer.domElement.addEventListener('pointerdown', (event) => {
+  pointerDownX = event.clientX;
+  pointerDownY = event.clientY;
+});
+// Exponer estado útil para pruebas manuales/automatizadas sin depender de HUD externo.
+window.__manolitModel3D = { renderer, scene, camera, controls, stage, monument, logo };
+sample(0);draw();updatePlaybackButton();const T_PARAM=new URLSearchParams(location.search).get('t');if(T_PARAM!==null)window.__seek(T_PARAM);window.__SCENE_READY__=true;

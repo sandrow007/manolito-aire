@@ -60,12 +60,23 @@
 .about-logo-placa svg{ width:100%; max-width:560px; height:auto; display:block; margin:0 auto; }
 .modelo-manolit-3d{ position:relative; height:430px; max-width:760px; margin:0 auto 10px; overflow:hidden; border-radius:18px; background:radial-gradient(circle at 50% 45%,#18243b 0%,#080d18 58%,#03050b 100%); }
 .modelo-manolit-3d canvas{ display:block; width:100%; height:100%; touch-action:none; }
-.modelo-manolit-3d-controls{ position:absolute; left:50%; bottom:14px; transform:translateX(-50%); display:flex; gap:7px; padding:6px; border:1px solid #ffffff20; border-radius:12px; background:#080b13c7; backdrop-filter:blur(12px); }
-.modelo-manolit-3d-controls button{ min-height:40px; padding:8px 11px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); cursor:pointer; }
-.modelo-manolit-3d-controls button.active{ border-color:var(--accent); color:var(--accent-text); }
-.modelo-manolit-3d-hint{ margin:0 auto 10px; text-align:center; font-size:.8rem; color:var(--muted); }
+.modelo-3d-info{ position:absolute; z-index:3; left:50%; top:12px; width:min(370px,calc(100% - 32px)); transform:translateX(-50%); padding:7px 12px; border:1px solid rgba(255,255,255,.28); border-radius:12px; background:rgba(213,239,247,.055); box-shadow:0 7px 20px rgba(0,0,0,.12),0 0 18px rgba(0,234,255,.08); backdrop-filter:blur(8px) saturate(135%); color:rgba(244,250,255,.92); text-align:center; pointer-events:auto; cursor:pointer; opacity:0; visibility:hidden; transition:opacity .24s ease,visibility .24s ease; }
+.modelo-3d-info.visible{ opacity:1; visibility:visible; }
+.modelo-3d-info h3{ margin:0 0 2px; color:rgba(255,255,255,.98); font-family:var(--font-display,Fraunces,serif); font-size:.9rem; line-height:1.12; }
+.modelo-3d-info p{ margin:0; color:rgba(244,250,255,.78); font-family:var(--font-body,Karla,sans-serif); font-size:.72rem; line-height:1.22; }
+.panel-logo.is-hidden{ display:none; }
+.modelo-manolit-3d-controls{ position:absolute; z-index:4; left:50%; bottom:11px; transform:translateX(-50%); display:flex; gap:7px; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.modelo-manolit-3d-controls button{ position:relative; width:24px; height:24px; min-height:24px; padding:0; border:0; border-radius:50%; background:transparent; color:rgba(238,250,255,.82); cursor:pointer; transition:color .2s ease,filter .2s ease,transform .2s ease; }
+.modelo-manolit-3d-controls button svg{ position:absolute; left:50%; top:50%; display:block; width:16px; height:16px; margin:0; transform:translate(-50%,-50%); fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.modelo-manolit-3d-controls button:hover,.modelo-manolit-3d-controls button:focus-visible{ color:#FFFFFF; filter:drop-shadow(0 0 5px rgba(0,234,255,.75)); outline:none; }
+.modelo-manolit-3d-controls button:active{ transform:translateY(1px); }
+.modelo-manolit-3d-controls button.active{ color:#E8FBFF; filter:drop-shadow(0 0 5px rgba(0,234,255,.65)); }
+.modelo-manolit-3d-hint{ margin:0 auto 10px; text-align:center; font-family:var(--font-body, Karla, sans-serif); font-size:.88rem; color:var(--sky-mid); }
 #logoAnotado{ display:none; }
-@media(max-width:700px){ .modelo-manolit-3d{ height:360px; margin-left:-10px; margin-right:-10px; border-radius:12px; } .modelo-manolit-3d-controls{ width:max-content; max-width:calc(100% - 18px); } .modelo-manolit-3d-controls button{ padding:8px 9px; font-size:.72rem; } }
+html.modelo-3d-fallback #manolitModelo3D{ display:none; }
+html.modelo-3d-fallback #logoAnotado{ display:block; }
+html.modelo-3d-fallback .modelo-manolit-3d-hint{ display:none; }
+@media(max-width:700px){ .modelo-manolit-3d{ height:360px; margin-left:-10px; margin-right:-10px; border-radius:12px; } .modelo-manolit-3d-controls{ width:max-content; max-width:calc(100% - 18px); } .modelo-manolit-3d-controls button{ padding:8px 9px; font-size:.78rem; } }
 /* Colores del logo: los de siempre sobre fondo claro y una
    versión un poco más clara de cada uno para la noche. */
 :root{ --logo-vino:#7A0016; --logo-sol:#E6A100; --logo-aire:#007A87; }
@@ -86,7 +97,7 @@
 .callout[data-for="sol"]{ color:var(--logo-sol); }
 .callout[data-for="aire"]{ color:var(--logo-aire); }
 .callout-label{ font-family:var(--font-body); font-size:13px; font-weight:600; letter-spacing:0.04em; fill:currentColor; }
-.panel-logo{ background:var(--surface); border:1px solid var(--line); border-left:5px solid #999; border-radius:12px; padding:16px 18px; margin:0 0 24px; transition:border-color .25s ease; }
+.panel-logo{ display:none; }
 .panel-logo h3{ margin:0 0 6px; font-size:1rem; color:var(--sky-deep); }
 .panel-logo p{ margin:0; font-size:0.95rem; }
 .panel-logo .hint{ font-style:italic; opacity:0.75; }
@@ -149,6 +160,26 @@
   <!-- Logo interactivo ARRIBA DEL TODO (sep-2026):
        toca cada parte y el panel de abajo cuenta su porqué. -->
   <div class="about-logo-placa">
+    <div id="manolitModelo3D" class="modelo-manolit-3d" role="img" aria-label="Modelo 3D interactivo de Manolit∞">
+      <div id="modelo3DInfo" class="modelo-3d-info" role="status" aria-live="polite">
+        <h3 id="modelo3DInfoTitulo"></h3>
+        <p id="modelo3DInfoTexto"></p>
+      </div>
+      <div class="modelo-manolit-3d-controls" aria-label="Controles del modelo 3D">
+        <button type="button" id="spin" class="active" aria-label="Girar" title="Girar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14-4L4 9"/><path d="M4 5v4h4"/><path d="M4 13a8 8 0 0 0 14 4l2-2"/><path d="M20 19v-4h-4"/></svg>
+        </button>
+        <button type="button" id="playback" class="active" aria-label="Pausar" title="Pausar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14"/><path d="M16 5v14"/></svg>
+        </button>
+        <button type="button" id="surge" aria-label="Dar luz" title="Dar luz">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3"/><path d="M12 18v3"/><path d="m4.2 4.2 2.1 2.1"/><path d="m17.7 17.7 2.1 2.1"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="m4.2 19.8 2.1-2.1"/><path d="m17.7 6.3 2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg>
+        </button>
+        <button type="button" id="reset" aria-label="Centrar" title="Centrar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v5"/><path d="M12 17v5"/><path d="M2 12h5"/><path d="M17 12h5"/></svg>
+        </button>
+      </div>
+    </div>
     <svg id="logoAnotado" viewBox="0 0 620 340" xmlns="http://www.w3.org/2000/svg" aria-label="Logo de Manolit∞ con sus cuatro partes">
 <g class="parte" data-key="contorno" tabindex="0" role="button" aria-label="Contorno del logo">
               <path d="M 310,50 C 240,130 240,230 310,310 C 380,230 380,130 310,50 Z" fill="none" stroke="#7A0016" stroke-width="5" stroke-linejoin="round"/>
@@ -188,8 +219,8 @@
           </svg>
   </div>
 <div class="panel-logo" id="panelLogo">
-          <h3 id="panelLogoTitulo" data-text-es="Toca una parte del logo" data-text-ca="Toca una part del logo" data-text-gl="Toca unha parte do logo" data-text-eu="Ukitu logotipoaren zati bat" data-text-en="Tap a part of the logo" data-text-ka="შეეხე ლოგოს ნაწილს">Toca una parte del logo</h3>
-          <p id="panelLogoTexto" class="hint" data-text-es="El contorno, el sol, el aire y el agua, o el infinito. Cada uno con su porqué." data-text-ca="El contorn, el sol, l'aire i l'aigua, o l'infinit. Cadascun amb el seu per què." data-text-gl="O contorno, o sol, o aire e a auga, ou o infinito. Cada un co seu porqué." data-text-eu="Konturra, eguzkia, airea eta ura, edo infinitua. Bakoitzak bere arrazoia du." data-text-en="The outline, the sun, air and water, or the infinite. Each with its own reason." data-text-ka="კონტური, მზე, ჰაერი და წყალი, ან უსასრულობა. თითოეულს თავისი მიზეზი აქვს.">El contorno, el sol, el aire y el agua, o el infinito. Cada uno con su porqué.</p>
+          <h3 id="panelLogoTitulo" data-text-es="El mismo Manolit∞, ahora en 3D" data-text-ca="El mateix Manolit∞, ara en 3D" data-text-gl="O mesmo Manolit∞, agora en 3D" data-text-eu="Manolit∞ bera, orain 3Dn" data-text-en="The same Manolit∞, now in 3D" data-text-ka="იგივე Manolit∞, ახლა 3D-ში">El mismo Manolit∞, ahora en 3D</h3>
+          <p id="panelLogoTexto" class="hint" data-text-es="Es el logo de siempre convertido en un modelo interactivo: arrástralo para verlo desde cualquier ángulo y usa los controles para activar su luz." data-text-ca="És el logotip de sempre convertit en un model interactiu: arrossega'l per veure'l des de qualsevol angle i usa els controls per activar-ne la llum." data-text-gl="É o logotipo de sempre convertido nun modelo interactivo: arrástrao para velo desde calquera ángulo e usa os controis para activar a súa luz." data-text-eu="Beti-betiko logotipoa da, eredu interaktibo bihurtuta: arrastatu edozein angelutatik ikusteko eta erabili kontrolak argia aktibatzeko." data-text-en="It is the familiar logo turned into an interactive model: drag it to view it from any angle and use the controls to activate its light." data-text-ka="ეს არის ნაცნობი ლოგო ინტერაქტიულ მოდელად ქცეული: გადაათრიე ნებისმიერი კუთხით სანახავად და გამოიყენე კონტროლები მისი სინათლის გასააქტიურებლად.">Es el logo de siempre convertido en un modelo interactivo: arrástralo para verlo desde cualquier ángulo y usa los controles para activar su luz.</p>
         </div>
 
   <div class="about-hero">
@@ -486,6 +517,12 @@
 
 <script src="js/i18n.js"></script>
 <script src="js/theme.js"></script>
+<script type="module">
+  import('./js/modelo-manolit-3d.js').catch(function (error) {
+    console.error('No se pudo cargar el modelo 3D de Manolit∞.', error);
+    document.documentElement.classList.add('modelo-3d-fallback');
+  });
+</script>
 
 <script>
 /* Navegacion en la misma pestana: los enlaces internos dejan de abrir
@@ -616,6 +653,29 @@
       var panel = document.getElementById('panelLogo');
       var panelTitulo = document.getElementById('panelLogoTitulo');
       var panelTexto = document.getElementById('panelLogoTexto');
+      var modeloInfo = document.getElementById('modelo3DInfo');
+      var modeloInfoTitulo = document.getElementById('modelo3DInfoTitulo');
+      var modeloInfoTexto = document.getElementById('modelo3DInfoTexto');
+
+      window.addEventListener('manolitLogoPart', function (e) {
+        var key = e.detail && e.detail.key;
+        if (key) {
+          if (parteActiva === key && modeloInfo.classList.contains('visible')) {
+            window.dispatchEvent(new CustomEvent('manolitLogoInfoClose'));
+          } else {
+            activar(key);
+          }
+        }
+      });
+
+      window.addEventListener('manolitLogoInfoClose', function () {
+        modeloInfo.classList.remove('visible');
+        panel.classList.remove('is-hidden');
+        parteActiva = null;
+      });
+      modeloInfo.addEventListener('click', function () {
+        window.dispatchEvent(new CustomEvent('manolitLogoInfoClose'));
+      });
 
       function activar(key) {
         var info = significados[key];
@@ -631,6 +691,10 @@
         panelTitulo.textContent = info['titulo_' + langActual] || info.titulo_es;
         panelTexto.textContent = info['texto_' + langActual] || info.texto_es;
         panelTexto.classList.remove('hint');
+        modeloInfoTitulo.textContent = panelTitulo.textContent;
+        modeloInfoTexto.textContent = panelTexto.textContent;
+        modeloInfo.classList.add('visible');
+        panel.classList.add('is-hidden');
       }
 
       partes.forEach(function (p) {

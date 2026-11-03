@@ -3029,6 +3029,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnUbicacion.type = 'button';
     btnUbicacion.id = 'rsBtnMyLocation';
     btnUbicacion.textContent = t('myLocation', 'Mi ubicación');
+    btnUbicacion.title = t('myLocationHint', 'Usa tu GPS: Manolit∞ será tu punto de ubicación en el mapa; otros lugares pueden aparecer como puntos.');
+    btnUbicacion.setAttribute('aria-label', btnUbicacion.title);
 
     const btnCaminar = document.createElement('button');
     btnCaminar.type = 'button';
@@ -3085,6 +3087,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       detenerPaseoVirtual();
       salirDeModoClick();
       detenerCaminata();
+      dormirGPS();
+      try {
+        if (window.manolitAireLimpiarRutaBici) window.manolitAireLimpiarRutaBici();
+      } catch (e) { /* la ruta bici es un módulo independiente */ }
       mostrarAtajoCaminar(false);
       inputOrigen.value = '';
       inputDestino.value = '';
@@ -3222,13 +3228,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const soloPintar = !!(opciones && opciones.soloPintar);
       const lat = pos.coords.latitude, lon = pos.coords.longitude;
       const precisionM = Math.round(pos.coords.accuracy || 0);
+      ocultarIndicadoresUbicacion();
       // Memoria viva de tu posición (26-sep): cada
       // lectura plantada actualiza el punto global que el chat hereda
       // al instante, sin volver a encender el GPS por su cuenta.
       try { window.__manolitUltimaPos = { lat, lon, precisionM, ts: Date.now() }; } catch (e) { }
       // Aviso suelto (01-oct-2026): la capa de aire de España lo escucha
       // para enseñar u ocultar su casilla sin encender el GPS por su cuenta.
-      try { document.dispatchEvent(new CustomEvent('manolitUbicacionNueva')); } catch (e) { }
+      try {
+        document.dispatchEvent(new CustomEvent('manolitUbicacionNueva', {
+          detail: { lat, lon, precisionM }
+        }));
+      } catch (e) { }
       const textoMiUbicacion = t('myLocation', 'Mi ubicación');
       const primeraVez = !gpsYaColocado;
       gpsYaColocado = true;
@@ -3258,6 +3269,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           src.setData(turf.featureCollection([turf.point([lon, lat]), ...resto]));
         }
       }
+      // Manolit debe compartir exactamente la posición GPS, no depender de
+      // leer después el marcador blanco desde el DOM.
+      try {
+        const puntoManolit = [lon, lat];
+        asegurarManolitEnMapa(puntoManolit).update(puntoManolit, 0);
+      } catch (e) { /* el punto GPS sigue siendo válido aunque el mapa tarde */ }
 
       if (precisionM > 0) {
         const circuloPrecision = turf.circle([lon, lat], precisionM / 1000, { units: 'kilometers', steps: 48 });
@@ -3471,6 +3488,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (watchId != null) navigator.geolocation.clearWatch(watchId);
       watchId = null;
       if (marcadorCaminando) { marcadorCaminando.remove(); marcadorCaminando = null; }
+      manolit._ultimoLonCaminata = null;
             btnCaminar.classList.remove('rs-activo');
       btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
       sincronizarAtajoCaminar();
@@ -3501,9 +3519,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // anuncia el primer paso ya y los siguientes al acercarte a cada punto.
       if (window.ManolitA11y) window.ManolitA11y.iniciarGuiaCaminata();
 
-      const el = document.createElement('div');
-      el.style.cssText = `position:absolute;top:0;left:0;width:16px;height:16px;border-radius:50%;background:${leerVar('--sky-deep') || '#0E3B47'};border:3px solid var(--paper);box-shadow:0 0 0 6px ${(leerVar('--sky-deep') || '#0E3B47')}33;`;
-      marcadorCaminando = new maplibregl.Marker({ element: el });
+      marcadorCaminando = null;
 
       // Ahorro de batería andando (sep-2026): el GPS dispara ~1 lectura
       // cada 2 s y antes CADA lectura animaba la cámara y recalculaba las
@@ -3524,8 +3540,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const featIni = datosIni && datosIni.features && datosIni.features.find((f) => f && f.geometry && f.geometry.type === 'Point');
         if (featIni) {
           const lonIni = featIni.geometry.coordinates[0], latIni = featIni.geometry.coordinates[1];
-          marcadorCaminando.setLngLat([lonIni, latIni]);
-          marcadorCaminando.addTo(map);
           ultimaCamaraCaminata = [lonIni, latIni];
         }
       } catch (e) { }
@@ -3540,8 +3554,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           if (ahoraGpsMs - ultimaLecturaGpsMs < 1000) return;
           ultimaLecturaGpsMs = ahoraGpsMs;
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
-          marcadorCaminando.setLngLat([lon, lat]); // primero la posición: un Marker sin LngLat rompe al añadirse
-          if (!marcadorCaminando._map) marcadorCaminando.addTo(map);
+          const dxManolit = typeof manolit._ultimoLonCaminata === 'number'
+            ? (lon - manolit._ultimoLonCaminata) * 100000
+            : 0;
+          manolit._ultimoLonCaminata = lon;
+          asegurarManolitEnMapa([lon, lat]).update([lon, lat], dxManolit);
           const ahoraCaminata = Date.now();
           const movidoSuficiente = !ultimaCamaraCaminata
             || turf.distance(turf.point([ultimaCamaraCaminata[0], ultimaCamaraCaminata[1]]), turf.point([lon, lat]), { units: 'meters' }) > 12;
@@ -6352,7 +6369,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   document.addEventListener('langChanged', () => {
     if (btnModoClickRef) btnModoClickRef.textContent = t('pickMap', 'Elegir en el mapa');
     const btnLoc = document.getElementById('rsBtnMyLocation');
-    if (btnLoc) btnLoc.textContent = t('myLocation', 'Mi ubicación');
+    if (btnLoc) {
+      btnLoc.textContent = t('myLocation', 'Mi ubicación');
+      btnLoc.title = t('myLocationHint', 'Usa tu GPS: Manolit∞ será tu punto de ubicación en el mapa; otros lugares pueden aparecer como puntos.');
+      btnLoc.setAttribute('aria-label', btnLoc.title);
+    }
+    const btnCamUbiIdioma = document.getElementById('rsCamUbicacion');
+    if (btnCamUbiIdioma) btnCamUbiIdioma.title = t('myLocationHint', 'Usa tu GPS: Manolit∞ será tu punto de ubicación en el mapa; otros lugares pueden aparecer como puntos.');
         const btnWalk = document.getElementById('rsBtnWalk');
     if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
     // El atajo del resumen habla el mismo idioma que el botón de siempre.
@@ -6575,7 +6598,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // granate, sol dorado y las DOS ondas teal (agua y aire). Para que
     // las dos ondas se distingan en tamaño pequeño el trazo va engrosado
     // y la segunda onda un poco más separada, misma curva y colores.
-    const btnCamUbi = hacerBotonCam('rsCamUbicacion', '', t('myLocation', 'Mi ubicación'));
+    const btnCamUbi = hacerBotonCam('rsCamUbicacion', '', t('myLocationHint', 'Usa tu GPS: Manolit∞ será tu punto de ubicación en el mapa; otros lugares pueden aparecer como puntos.'));
     btnCamUbi.innerHTML = '<svg viewBox="0 0 200 300" aria-hidden="true"><circle cx="100" cy="150" r="45" fill="#E6A100"/><path d="M 60,163 Q 80,153 100,163 T 140,163" fill="none" stroke="#007A87" stroke-width="7" stroke-linecap="round"/><path d="M 65,183 Q 82.5,175 100,183 T 135,183" fill="none" stroke="#007A87" stroke-width="6" stroke-linecap="round"/><path d="M 100,150 C 75,125 75,175 100,150 C 125,125 125,175 100,150 Z" fill="none" stroke="#7A0016" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" fill="none" stroke="#7A0016" stroke-width="14" stroke-linejoin="round"/></svg>';
     btnCamUbi.addEventListener('click', () => {
       const original = document.getElementById('rsBtnMyLocation');
@@ -7924,6 +7947,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const manolit = { walker: null, marker: null, watchId: null, paseoTimer: null, vigilanciaCaminata: null, versionUbicacion: 0 };
 
     function asegurarManolitEnMapa(lngLat) {
+      ocultarIndicadoresUbicacion();
       if (!manolit.walker) {
         manolit.walker = new ManolitWalker({ size: 46 });
         manolit.marker = new maplibregl.Marker({
@@ -7955,11 +7979,34 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       return manolit.walker;
     }
+    function ocultarIndicadoresUbicacion() {
+      ['capa-puntos-manuales', 'capa-precision-ubicacion', 'capa-precision-ubicacion-borde'].forEach((id) => {
+        try {
+          if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+        } catch (e) { /* el estilo puede estar cambiando */ }
+      });
+    }
+    function mostrarIndicadoresUbicacion() {
+      ['capa-puntos-manuales', 'capa-precision-ubicacion', 'capa-precision-ubicacion-borde'].forEach((id) => {
+        try {
+          if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'visible');
+        } catch (e) { /* el estilo puede estar cambiando */ }
+      });
+    }
+    document.addEventListener('manolitUbicacionNueva', (event) => {
+      try {
+        const detalle = event && event.detail;
+        if (!detalle || !Number.isFinite(Number(detalle.lat)) || !Number.isFinite(Number(detalle.lon))) return;
+        const punto = [Number(detalle.lon), Number(detalle.lat)];
+        asegurarManolitEnMapa(punto).update(punto, 0);
+      } catch (e) { /* una lectura GPS no debe romper el mapa */ }
+    });
     function quitarManolitDeMapa() {
       try { if (manolit.marker) manolit.marker.remove(); } catch (e) { /* ya fuera */ }
       if (manolit.walker) { manolit.walker.destroy(); }
       manolit.walker = null;
       manolit.marker = null;
+      mostrarIndicadoresUbicacion();
     }
 
     // Compat: la caminata ya no usa un watchPosition propio (seguimos el

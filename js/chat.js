@@ -53,8 +53,18 @@
     return 'es';
   }
 
+  function escapeHTML(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function parseMarkdownToHTML(text) {
-    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    let html = escapeHTML(text);
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
     html = html.replace(/`(.*?)`/g, '<code>$1</code>');
     html = html.replace(/^### (.*$)/gm, '<h4>$1</h4>');

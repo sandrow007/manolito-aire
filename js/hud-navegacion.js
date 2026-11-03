@@ -174,6 +174,7 @@
     // aria-live va OFF para no re-anunciar la distancia cada 10 m.
     banner.setAttribute('aria-live', 'off');
     banner.innerHTML =
+      '<div class="rs-hud-marca" aria-hidden="true">MANOLIT∞ <span>· SOMBRA</span></div>' +
       '<div class="rs-hud-maniobra" id="rsHudManiobra"></div>' +
       '<div class="rs-hud-banner-texto">' +
       '<div class="rs-hud-banner-dist" id="rsHudBannerDist"></div>' +
@@ -703,6 +704,7 @@
   function mostrar(conGps) {
     S.visible = true;
     S.fallosRuta = 0;
+    if (S.wrap) S.wrap.classList.toggle('rs-modo-navegacion-activo', !!conGps);
     aplicarModo();
     resetPintado();
     S.el.banner.hidden = !conGps;
@@ -716,6 +718,7 @@
   function ocultar() {
     S.visible = false;
     S.fallosRuta = 0;
+    if (S.wrap) S.wrap.classList.remove('rs-modo-navegacion-activo');
     S.el.banner.hidden = true;
     S.el.tiempo.hidden = true;
     S.el.veloWrap.hidden = true;

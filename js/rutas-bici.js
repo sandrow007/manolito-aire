@@ -361,11 +361,16 @@
     if (map && map.getSource(SOURCE_ID)) {
       map.getSource(SOURCE_ID).setData({ type: 'FeatureCollection', features: [] });
     }
+    if (inputOrigen) inputOrigen.value = '';
+    if (inputDestino) inputDestino.value = '';
+    if (estado) estado.textContent = '';
+    if (listaAlt) listaAlt.textContent = '';
     lista.ultimaClave = '';
     lista.rutas = [];
     // HUD de navegación (nov-2026, ADITIVO): sin ruta no hay HUD.
     try { window.__manolitHudBici = null; } catch (eHud) { }
   }
+  window.manolitAireLimpiarRutaBici = limpiarRuta;
 
   function seleccionarAlternativa(indice) {
     var source = map && map.getSource(SOURCE_ID);
@@ -582,7 +587,13 @@
     var dedicadas =
       'way["highway"="cycleway"](' + b + ');' +
       'way["bicycle"~"^(designated|official)$"](' + b + ');';
-    if (ligera) return '[out:json][timeout:8];(' + dedicadas + ');out body geom;';
+    // Los infladores y estaciones de reparación se consultan también en la
+    // petición ligera: son puntos pequeños y no deben esperar al zoom alto.
+    var puntosServicio =
+      'node["amenity"="bicycle_repair_station"](' + b + ');' +
+      'node["compressed_air"="yes"](' + b + ');' +
+      'node["service:bicycle:pump"="yes"](' + b + ');';
+    if (ligera) return '[out:json][timeout:8];(' + dedicadas + puntosServicio + ');out body geom;';
     // Etiquetas habituales de OSM: vías dedicadas, carriles y rutas señalizadas.
     // Se suman los nodos de INFLADO/REPARACIÓN reales (amenity=bicycle_repair_station,
     // compressed_air=yes o service:bicycle:pump=yes): son los únicos puntos

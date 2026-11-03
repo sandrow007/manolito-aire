@@ -567,7 +567,7 @@ const translations = {
 		modeNoRoute: "sin ruta",
 		bikePump: "Inflador para bicicletas",
 		bikeRepairStation: "Punto de reparación de bicicletas",
-		myLocationHint: "Usar tu posición GPS",
+		myLocationHint: "Usa tu GPS: Manolit∞ será tu punto de ubicación en el mapa; otros lugares pueden aparecer como puntos.",
 		grupoSombrasSol: "Sombras y Sol",
 		grupoRutasMovilidad: "Rutas y movilidad",
 		uvRiesgoBannerTpl: "¡Ojo! {n} tramos de tu ruta dan sol directo con UV {uv} a esta hora.",

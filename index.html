@@ -404,7 +404,6 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit∞ 3D">
 <base target="_self">
@@ -2680,7 +2679,7 @@
       if (cargaRutasBiciPromise) return cargaRutasBiciPromise;
       cargaRutasBiciPromise = new Promise((resolve, reject) => {
         const s = document.createElement('script');
-           s.src = 'js/rutas-bici.js?v=hud-navegacion-20261102-b';
+           s.src = 'js/rutas-bici.js?v=hud-navegacion-20261103-b';
         s.onload = resolve;
         s.onerror = reject;
         document.body.appendChild(s);
@@ -2719,7 +2718,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=hud-navegacion-20261102-e'))
+        .then(() => cargarScript('js/shadows-route.js?v=hud-navegacion-20261103-manolit-descripcion'))
         .then(() => {
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
@@ -2745,7 +2744,7 @@
         // HUD de navegación (nov-2026): último de la cadena, presentación
         // flotante sobre el mapa. Lee las rutas por window.__manolitHud* y
         // engancha su GPS propio; no toca la lógica de ruta ni cámara.
-        .then(() => cargarScript('js/hud-navegacion.js?v=hud-20261102-c'))
+        .then(() => cargarScript('js/hud-navegacion.js?v=hud-20261103-a'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
       return cargaMapaSombrasPromise;
     }

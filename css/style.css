@@ -5539,6 +5539,21 @@ body.modo-accesible #main-content .rs-form #rsDestino{
   padding-top:calc(10px + env(safe-area-inset-top,0px));
   pointer-events:none;
 }
+#main-content .map-wrap .rs-hud-marca{
+  position:absolute;
+  top:5px;
+  left:14px;
+  color:var(--accent);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.12em;
+  line-height:1;
+  white-space:nowrap;
+}
+#main-content .map-wrap .rs-hud-marca span{
+  color:var(--paper,#EDF4F2);
+  opacity:.72;
+}
 #main-content .map-wrap .rs-hud-maniobra{
   flex:0 0 36px;
   width:36px;
@@ -5559,6 +5574,10 @@ body.modo-accesible #main-content .rs-form #rsDestino{
   display:flex;
   flex-direction:column;
   gap:1px;
+}
+#main-content .map-wrap #rsHudBanner .rs-hud-maniobra,
+#main-content .map-wrap #rsHudBanner .rs-hud-banner-texto{
+  margin-top:7px;
 }
 #main-content .map-wrap .rs-hud-banner-dist{
   font-size:19px;
@@ -5728,6 +5747,15 @@ body.modo-accesible #main-content .rs-form #rsDestino{
 /* El único will-change de la app: el marcador del usuario */
 #main-content .map-wrap .rs-marcador-usuario{will-change:transform;}
 
+/* La navegación de sombra es una capa de presentación: no desactiva ni
+   cubre los edificios 3D, las sombras ni el widget solar del mapa. */
+#main-content .map-wrap.rs-modo-navegacion-activo #shadowRouteMap{
+  filter:saturate(1.04) contrast(1.01);
+}
+#main-content .map-wrap.rs-modo-navegacion-activo .rs-form{
+  z-index:6;
+}
+
 /* ---- Escritorio ---- */
 @media (min-width:769px){
   #main-content .map-wrap #rsHudBanner{
@@ -5743,6 +5771,14 @@ body.modo-accesible #main-content .rs-form #rsDestino{
   #main-content .map-wrap #rsHudVeloWrap{right:20px;bottom:96px;}
   #main-content .map-wrap #rsHudVelo{width:88px;height:88px;}
   #main-content .map-wrap:has(#rsJoystick.rs-visible) #rsHudVeloWrap{bottom:210px;}
+}
+@media (max-width:640px){
+  #main-content .map-wrap #rsHudBanner{
+    min-height:66px;
+    padding-left:12px;
+    padding-right:12px;
+  }
+  #main-content .map-wrap .rs-hud-marca{left:12px;}
 }
 
 /* ---- Botón "volver a mi posición" de la caminata (nov-2026) ----

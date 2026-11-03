@@ -3222,9 +3222,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const aplicarPosicionGPS = (pos, opciones) => {
       const volar = !!(opciones && opciones.volar);
       const silenciosa = !!(opciones && opciones.silenciosa);
-      // soloPintar (sep-2026,  del tirón): la lectura tosca
-      // planta el punto YA para que veas respuesta, pero no resuelve el
-      // puente del chat (para rutar hace falta la lectura calibrada).
+      // La lectura tosca planta el punto YA para que veas respuesta. También
+      // puede resolver el puente del chat: una posición reciente y de hasta
+      // 150 m es preferible a bloquear la ruta esperando una precisión ideal.
       const soloPintar = !!(opciones && opciones.soloPintar);
       const lat = pos.coords.latitude, lon = pos.coords.longitude;
       const precisionM = Math.round(pos.coords.accuracy || 0);
@@ -3294,7 +3294,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (volar) map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
       // Puente con el chat: si el chip «¿Calculo tu ruta desde aquí?» está
       // esperando una posición calibrada, se la entregamos aquí.
-      if (window.__manolitUbicacionCb && !soloPintar) {
+      if (window.__manolitUbicacionCb && (!soloPintar || (opciones && opciones.resolverRuta))) {
         try { window.__manolitUbicacionCb.resolve({ lat, lon }); } catch (e) { }
         window.__manolitUbicacionCb = null;
       }
@@ -3311,17 +3311,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       let yaVolo = false;            // la cámara vuela una sola vez por despertar
       gpsWatchId = navigator.geolocation.watchPosition(
         (pos) => {
-          // Filtro de calibración: margen mayor de 20 m, lectura descartada
-          // para rutar... pero YA NO en silencio (sep-2026, 
-          // del tirón): la primera lectura tosca (≤150 m) planta tu punto al
-          // instante, con su círculo de precisión, para que veas que el GPS
-          // responde. El puente del chat y el apagado fino siguen exigiendo
-          // la lectura calibrada de siempre (≤20 m).
+          // La primera lectura razonable (≤150 m) se muestra y permite
+          // calcular la ruta sin esperar a una precisión ideal. Las lecturas
+          // posteriores siguen refinando el punto hasta ≤20 m.
           const acc = pos && pos.coords && isFinite(pos.coords.accuracy) ? pos.coords.accuracy : Infinity;
           if (acc > 20) {
             if (!huboLecturaTosca && acc <= 150) {
               huboLecturaTosca = true;
-              aplicarPosicionGPS(pos, { volar: !!desdeBoton && !yaVolo, silenciosa: !desdeBoton, soloPintar: true });
+              aplicarPosicionGPS(pos, {
+                volar: !!desdeBoton && !yaVolo,
+                silenciosa: !desdeBoton,
+                soloPintar: true,
+                resolverRuta: true
+              });
               yaVolo = yaVolo || !!desdeBoton;
             }
             return;
@@ -3354,12 +3356,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // Plazo máximo con el GPS encendido: 45 s si lo pediste tú, 25 s si
       // despertó por movimiento. Cumplido el plazo, se apaga sí o sí.
       gpsDeadlineTimer = setTimeout(() => {
-        const avisar = gpsAvisoPendiente && !huboLecturaBuena;
+        const avisar = gpsAvisoPendiente && !huboLecturaBuena && !huboLecturaTosca;
         dormirGPS();
         if (avisar) {
           mostrarEstado(t('locationNotCalibrated', 'El GPS no ha llegado a buena precisión (20 m o menos). Acércate a una ventana o sal a cielo abierto, o pulsa «Elegir en el mapa» para marcar el punto a mano.'), 'error');
         }
-        if (!huboLecturaBuena && window.__manolitUbicacionCb) {
+        if (!huboLecturaBuena && !huboLecturaTosca && window.__manolitUbicacionCb) {
           try { window.__manolitUbicacionCb.reject(new Error('sin-precision')); } catch (e) { }
           window.__manolitUbicacionCb = null;
         }

@@ -7393,6 +7393,38 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           '¡Hasta luego, Mari... digo, hasta la próxima caminata, compare!',
           '¡Esto ya está hecho! Un aplauso pa nosotros, que lo vale.'
         ];
+        this._frasesHora = {
+          madrugada: [
+            '¡Madrugada y tú todavía dando paseos! Eso es afición, miarma.',
+            '¡A estas horas hasta los gatos hablan bajito! Vamoh con cuidadito.',
+            '¡La madrugada está pa dormir, pero ea, aquí estamos, haciendo kilómetros!',
+            '¡Qué silencio más apañao! La ciudad duerme y nosotros de paseo secreto.'
+          ],
+          mañana: [
+            '¡Buenos días, miarma! La mañana está recién estrená, como una tostada.',
+            '¡Mañanita buena! Antes de que el sol se venga arriba, nos movemos.',
+            '¡Ea, a por el día! Con calma, que el café no se bebe solo.',
+            '¡Qué bien empieza la mañana! Tú pones las piernas y yo pongo el arte.'
+          ],
+          mediodía: [
+            '¡Mediodía, criatura! Busca sombra, que el Lorenzo viene con ganas.',
+            '¡A esta hora el sol aprieta más que una suegra en feria! Tira por lo fresquito.',
+            '¡Son horas de sombra y gazpacho, miarma! Yo voto por las dos cosas.',
+            '¡El mediodía no perdona! Menos mal que llevamos la ruta con arte.'
+          ],
+          tarde: [
+            '¡Buenas tardes, compare! El sol ya va bajando el tono, qué detalle.',
+            '¡Tardecita buena pa caminar! Ni corras ni te me hagas el héroe.',
+            '¡La tarde está pa paseíto y charla! Yo hablo, tú no te pierdas.',
+            '¡Ea, que la tarde se pone fresquita! Vamos a aprovecharla, miarma.'
+          ],
+          noche: [
+            '¡Buenas noches, miarma! Ojo con los baches, que de noche todos parecen artistas.',
+            '¡Noche cerrá y paseo abierto! Tú mira por dónde pisas y yo hago de farolillo.',
+            '¡A estas horas la ciudad tiene otro compás! Despacito y con arte.',
+            '¡La noche está fresquita! Pero no te me despistes, compare, que la sombra no lleva reflectante.'
+          ]
+        };
         /* ---- VOZ DE ESTACIÓN (sep-2026) ----
            Manolit comenta la estación del año real, como los árboles que
            cambian solos: en invierno se queja del frío, en otoño y en
@@ -7528,6 +7560,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // del verano se apartan las frases de calor, que en enero cantan.
       _elegirFraseEstacional() {
         try {
+          if (Math.random() < 0.48) return this._elegirFraseHora();
           const est = this._estacionActual();
           const deEstacion = (this._frasesEstaciones && this._frasesEstaciones[est]) || [];
           const generales = est === 'verano' ? this._frasesAndaluz
@@ -7549,6 +7582,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         } catch (e) {
           return this._frasesAndaluz[Math.floor(Math.random() * this._frasesAndaluz.length)];
         }
+      }
+      _elegirFraseHora() {
+        const ahora = new Date();
+        const hora = ahora.getHours();
+        const minuto = ahora.getMinutes();
+        const franja = hora < 6 ? 'madrugada'
+          : hora < 12 ? 'mañana'
+          : hora < 15 ? 'mediodía'
+          : hora < 20 ? 'tarde' : 'noche';
+        const frases = this._frasesHora[franja];
+        const frase = frases[Math.floor(Math.random() * frases.length)];
+        const horaTexto = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        const coletillas = [
+          ` Son las ${horaTexto}.`,
+          ` Ahora mismo son las ${horaTexto}, que conste en acta.`,
+          ` Son las ${horaTexto}; el reloj no miente, aunque a veces se haga el interesante.`
+        ];
+        return `${frase} ${coletillas[minuto % coletillas.length]}`;
       }
       _decirFraseAndaluza() {
         try {

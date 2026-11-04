@@ -266,9 +266,12 @@
 // 2026-11-01-f: las políticas legales se localizan en las siete lenguas
 // ofrecidas; se añade georgiano y se invalida la caché de traducciones JS.
 // Cambian js/i18n-legal.js, js/i18n.js y las tres páginas legales.
+// 2026-11-04-h: la mascota del GPS amplía sus locuciones andaluzas, dice la
+// hora exacta y adapta las bromas a madrugada, mañana, mediodía, tarde y noche.
+// Cambia js/shadows-route.js.
 // 2026-11-03-aa: reintenta el router peatonal directamente si el proxy
 // /ruta falla, evitando rutas rectas cuando el servicio sigue disponible.
-const VERSION = '2026-11-04-gps-hardened';
+const VERSION = '2026-11-04-gps-voz-horaria';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

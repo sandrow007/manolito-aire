@@ -3228,7 +3228,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const soloPintar = !!(opciones && opciones.soloPintar);
       const lat = pos.coords.latitude, lon = pos.coords.longitude;
       const precisionM = Math.round(pos.coords.accuracy || 0);
-      ocultarIndicadoresUbicacion();
+      // Oculta las capas del punto azul antes de mostrar el marcador Manolit.
+      // Este flujo se declara antes que la ayuda visual del mapa, por lo que
+      // no debe depender de una función anidada en otra inicialización.
+      ['capa-puntos-manuales', 'capa-precision-ubicacion', 'capa-precision-ubicacion-borde'].forEach((id) => {
+        try {
+          if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+        } catch (e) { /* el estilo puede estar cambiando */ }
+      });
       // Memoria viva de tu posición (26-sep): cada
       // lectura plantada actualiza el punto global que el chat hereda
       // al instante, sin volver a encender el GPS por su cuenta.
@@ -3312,12 +3319,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       try {
         gpsWatchId = navigator.geolocation.watchPosition(
         (pos) => {
-          // La primera lectura razonable (≤150 m) se muestra y permite
-          // calcular la ruta sin esperar a una precisión ideal. Las lecturas
-          // posteriores siguen refinando el punto hasta ≤20 m.
-          const acc = pos && pos.coords && isFinite(pos.coords.accuracy) ? pos.coords.accuracy : Infinity;
+          // La primera coordenada válida se muestra inmediatamente. Algunos
+          // móviles entregan al principio una precisión superior a 150 m o no
+          // informan accuracy; esperar ese filtro hacía parecer que el botón
+          // no respondía. Las lecturas posteriores siguen refinando el punto.
+          const coords = pos && pos.coords;
+          const latValida = coords && isFinite(coords.latitude) && isFinite(coords.longitude);
+          if (!latValida) return;
+          const acc = isFinite(coords.accuracy) ? coords.accuracy : Infinity;
           if (acc > 20) {
-            if (!huboLecturaTosca && acc <= 150) {
+            if (!huboLecturaTosca) {
               huboLecturaTosca = true;
               aplicarPosicionGPS(pos, {
                 volar: !!desdeBoton && !yaVolo,

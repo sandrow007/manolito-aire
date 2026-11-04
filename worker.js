@@ -1162,6 +1162,13 @@ export default {
       }
     }
 
-    return env.ASSETS.fetch(request);
+    const respuesta = await env.ASSETS.fetch(request);
+    const headers = new Headers(respuesta.headers);
+    headers.set('Permissions-Policy', 'geolocation=(self)');
+    return new Response(respuesta.body, {
+      status: respuesta.status,
+      statusText: respuesta.statusText,
+      headers,
+    });
   }
 };

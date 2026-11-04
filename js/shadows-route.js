@@ -3309,7 +3309,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       let huboLecturaBuena = false;
       let huboLecturaTosca = false;  // la primera lectura burda ya plantó el punto
       let yaVolo = false;            // la cámara vuela una sola vez por despertar
-      gpsWatchId = navigator.geolocation.watchPosition(
+      try {
+        gpsWatchId = navigator.geolocation.watchPosition(
         (pos) => {
           // La primera lectura razonable (≤150 m) se muestra y permite
           // calcular la ruta sin esperar a una precisión ideal. Las lecturas
@@ -3351,8 +3352,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         // navegador tiene una lectura de hace un suspiro la entrega al
         // instante y el filtro de 20 m sigue mandando. Antes, el 0 forzaba
         // un arranque en frío de la radio cada vez.
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 }
-      );
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 }
+        );
+      } catch (e) {
+        gpsWatchId = null;
+        if (desdeBoton) {
+          mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación. Comprueba el permiso de ubicación y que la página está abierta con HTTPS.'), 'error');
+        }
+      }
       // Plazo máximo con el GPS encendido: 45 s si lo pediste tú, 25 s si
       // despertó por movimiento. Cumplido el plazo, se apaga sí o sí.
       gpsDeadlineTimer = setTimeout(() => {

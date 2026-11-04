@@ -3330,18 +3330,30 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           if (acc > 20) {
             if (!huboLecturaTosca) {
               huboLecturaTosca = true;
-              aplicarPosicionGPS(pos, {
-                volar: !!desdeBoton && !yaVolo,
-                silenciosa: !desdeBoton,
-                soloPintar: true,
-                resolverRuta: true
-              });
+              try {
+                aplicarPosicionGPS(pos, {
+                  volar: !!desdeBoton && !yaVolo,
+                  silenciosa: !desdeBoton,
+                  soloPintar: true,
+                  resolverRuta: true
+                });
+              } catch (e) {
+                if (desdeBoton) {
+                  try { mostrarEstado(t('locationDenied', 'No se ha podido actualizar tu ubicación. Inténtalo de nuevo.'), 'error'); } catch (e2) { }
+                }
+              }
               yaVolo = yaVolo || !!desdeBoton;
             }
             return;
           }
           huboLecturaBuena = true;
-          aplicarPosicionGPS(pos, { volar: !!desdeBoton && !yaVolo, silenciosa: !desdeBoton });
+          try {
+            aplicarPosicionGPS(pos, { volar: !!desdeBoton && !yaVolo, silenciosa: !desdeBoton });
+          } catch (e) {
+            if (desdeBoton) {
+              try { mostrarEstado(t('locationDenied', 'No se ha podido actualizar tu ubicación. Inténtalo de nuevo.'), 'error'); } catch (e2) { }
+            }
+          }
           yaVolo = yaVolo || !!desdeBoton;
           if (acc <= 15) dormirGPS(); // calibrado de verdad: GPS a dormir YA
         },

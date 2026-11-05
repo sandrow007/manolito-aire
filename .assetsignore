@@ -21,3 +21,4 @@ wrangler.json
 __pycache__
 *.pyc
 *.bak
+.github/Protocolo Manolit.md

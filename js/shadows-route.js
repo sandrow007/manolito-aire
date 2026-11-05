@@ -1094,10 +1094,76 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   map.on('style.load', inicializarMapaListo);
   if (map.isStyleLoaded()) queueMicrotask(inicializarMapaListo);
 
+  // Sombras automáticas al acercarse (nov-2026). Solo se enciende la casilla
+  // existente «Sombras», así que el cálculo, la caché y el debounce son los
+  // de siempre. Se evalúa dentro del moveend ya debounced: cero listeners o
+  // cálculos nuevos durante el gesto de zoom. Con histéresis (se apaga más
+  // lejos de donde se enciende) y solo si fue el zoom quien las encendió; lo
+  // que el usuario decida a mano con la casilla siempre manda.
+  const ZOOM_SOMBRAS_AUTO = esGamaBaja ? 16.5 : 16;
+  const ZOOM_SOMBRAS_AUTO_SALIDA = ZOOM_SOMBRAS_AUTO - 0.75;
+  // Si el usuario las apaga a mano, no se vuelven a auto-encender (se
+  // recuerda también entre visitas). Volver a encenderlas a mano lo revierte.
+  const CLAVE_SOMBRAS_APAGADAS_A_MANO = 'manolito-sombras-apagadas-a-mano';
+  let sombrasEncendidasPorZoom = false;
+  let sombrasApagadasAMano = false;
+  try { sombrasApagadasAMano = localStorage.getItem(CLAVE_SOMBRAS_APAGADAS_A_MANO) === '1'; } catch (e) { /* sin almacenamiento: solo dura la sesión */ }
+  document.addEventListener('change', (evento) => {
+    if (!evento.isTrusted || !evento.target || evento.target.id !== 'rsToggleSombras') return;
+    sombrasEncendidasPorZoom = false;
+    sombrasApagadasAMano = !evento.target.checked;
+    try {
+      if (sombrasApagadasAMano) localStorage.setItem(CLAVE_SOMBRAS_APAGADAS_A_MANO, '1');
+      else localStorage.removeItem(CLAVE_SOMBRAS_APAGADAS_A_MANO);
+    } catch (e) { /* sin almacenamiento: solo dura la sesión */ }
+  });
+
+  function refrescarHoraSombras() {
+    if (modoManual || !sliderTiempo) return;
+    const minutos = String(minutosDesdeFecha(new Date()));
+    if (sliderTiempo.value === minutos) return;
+    sliderTiempo.value = minutos;
+    actualizarEtiquetaTiempo(false);
+  }
+
+  // Devuelve true si ha cambiado el estado de la casilla (el manejador de
+  // «change» ya recalcula sombras, árboles y ruta, no hay que repetirlo).
+  function ajustarSombrasPorZoom() {
+    const casilla = document.getElementById('rsToggleSombras');
+    if (!casilla) return false;
+    const zoom = map.getZoom();
+    if (zoom < ZOOM_SOMBRAS_AUTO_SALIDA) {
+      if (sombrasEncendidasPorZoom && casilla.checked) {
+        sombrasEncendidasPorZoom = false;
+        casilla.checked = false;
+        casilla.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      }
+      sombrasEncendidasPorZoom = false;
+      return false;
+    }
+    if (zoom < ZOOM_SOMBRAS_AUTO || casilla.checked || sombrasApagadasAMano || document.hidden) return false;
+    try {
+      const centro = centroSolarEfectivo();
+      const sol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon ?? centro.lng);
+      if (sol.altitude <= 0) return false; // de noche no hay sombras que enseñar
+    } catch (e) { return false; }
+    refrescarHoraSombras();
+    sombrasEncendidasPorZoom = true;
+    casilla.checked = true;
+    actualizarCacheEdificios();
+    casilla.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+
   const alTerminarMovimiento = crearDebounce(() => {
     if (!solarActivado || paseoActivo) return;
+    if (ajustarSombrasPorZoom()) return;
     actualizarCacheEdificios();
-    if (document.getElementById('rsToggleSombras')?.checked) recalcularSombrasVisibles();
+    if (document.getElementById('rsToggleSombras')?.checked) {
+      if (sombrasEncendidasPorZoom) refrescarHoraSombras();
+      recalcularSombrasVisibles();
+    }
     sincronizarArboles();
   }, 220);
   map.on('moveend', alTerminarMovimiento);
@@ -2962,7 +3028,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       #rsBtnCompartirPunto[hidden]{ display:none !important; }
       #rsBtnCompartirPunto .rs-share-icon{ display:block; width:20px; height:20px; }
       #rsSharePanel{
-        position:absolute; right:10px; bottom:180px; left:auto; z-index:101; display:none;
+        position:absolute; right:10px; bottom:228px; left:auto; z-index:101; display:none;
         align-items:center; gap:6px; flex-wrap:wrap; width:max-content; max-width:calc(100% - 20px);
         padding:8px; border:1px solid rgba(60,64,67,.18);
         border-radius:12px; background:#fff !important;
@@ -2988,20 +3054,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         background:#fff !important; color:#202124 !important;
       }
       #rsBtnCopiarCoordenadas svg{ display:block; width:16px; height:16px; pointer-events:none; }
-      #rsSharePanel #rsBtnIrAlPunto{
-        display:inline-flex; align-items:center; justify-content:center; gap:0;
-        width:32px; min-width:32px; height:32px; padding:0 !important; flex:0 0 32px;
-        border:1px solid rgba(60,64,67,.18) !important; border-radius:8px !important;
-        background:#fff !important; color:#202124 !important;
+      #rsBtnIrAlPunto{
+        position:absolute !important; right:10px; bottom:180px; z-index:100;
+        display:inline-flex; align-items:center; justify-content:center;
+        width:42px; min-width:42px; height:42px; padding:0 !important;
+        border:1px solid #303b4f !important; border-radius:12px !important;
+        background:#020406 !important; color:#fff !important;
+        box-shadow:0 2px 6px rgba(0,0,0,.35) !important;
       }
-      #rsSharePanel #rsBtnIrAlPunto:hover{ background:#f5f5f5 !important; }
-      #rsSharePanel #rsBtnIrAlPunto > svg{ display:block; width:32px; height:32px; flex:0 0 32px; pointer-events:none; border-radius:8px; }
-      #rsSharePanel #rsBtnIrAlPunto:disabled{ opacity:.55; }
+      #rsBtnIrAlPunto[hidden]{ display:none !important; }
+      #rsBtnIrAlPunto:hover{ filter:brightness(1.08); }
+      #rsBtnIrAlPunto > svg{ display:block; width:100%; height:100%; pointer-events:none; border-radius:12px; }
+      #rsBtnIrAlPunto:disabled{ opacity:.55; }
       @media (max-width:480px){
         #rsMapControls{ gap:3px; top:8px; left:8px; }
         #rsMapControls button{ padding:2px 7px; font-size:8px; }
         #rsBtnCompartirPunto{ right:8px; bottom:118px; }
-        #rsSharePanel{ left:8px; right:auto; bottom:166px; width:max-content; max-width:calc(100% - 16px); }
+        #rsBtnIrAlPunto{ right:8px; bottom:166px; }
+        #rsSharePanel{ left:8px; right:auto; bottom:214px; width:max-content; max-width:calc(100% - 16px); }
         #rsSharePanel button{ flex:0 0 auto; min-width:0; }
       }
 
@@ -3222,18 +3292,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         .then(() => mostrarEstado(t('shareInstagram', 'Enlace copiado para Instagram.'), 'ok'))
         .catch(() => mostrarEstado(t('shareCopyError', 'No se ha podido copiar el enlace.'), 'error'));
     });
-    ponerBotonCompartir(t('copyLink', 'Copiar enlace'), () => {
-      const url = urlPuntoCompartido();
-      if (url) copiarTexto(url)
-        .then(() => mostrarEstado(t('shareCopied', 'Enlace copiado.'), 'ok'))
-        .catch(() => mostrarEstado(t('shareCopyError', 'No se ha podido copiar el enlace.'), 'error'));
-    });
     // SVG de dirección exacto solicitado: Manolit inclinado apuntando al punto.
     // Se omite el bloque C2PA <metadata> del pegado porque no se representa.
     const ICONO_RUTA_PUNTO = '<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs><filter id="glowDir" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect width="100%" height="100%" fill="#020406"/><ellipse cx="91" cy="202" rx="22" ry="6" fill="#000" opacity="0.6"/><g transform="translate(118,110) rotate(18) scale(0.62) translate(-100,-150)" filter="url(#glowDir)"><path d="M 100,30 C 30,110 30,210 100,290" fill="none" stroke="#ff2a4b" stroke-width="5" stroke-linecap="round"/><path d="M 100,30 C 170,110 170,210 100,290 Z" fill="#ff2a4b" opacity="0.14" stroke="#ff2a4b" stroke-width="5" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="4"/><path d="M 100,146 C 75,121 75,171 100,146 C 125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#00e5ff" stroke-width="5" stroke-linecap="round"/><path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#00e5ff" stroke-width="4" stroke-linecap="round"/></g><circle cx="91" cy="196" r="4" fill="#ffffff"/></svg>';
     const btnIrAlPunto = document.createElement('button');
     btnIrAlPunto.type = 'button';
     btnIrAlPunto.id = 'rsBtnIrAlPunto';
+    btnIrAlPunto.hidden = true;
     btnIrAlPunto.title = t('routeToPoint', 'Ir hasta este punto');
     btnIrAlPunto.setAttribute('aria-label', btnIrAlPunto.title);
     btnIrAlPunto.innerHTML = ICONO_RUTA_PUNTO;
@@ -3273,7 +3338,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         btnIrAlPunto.disabled = false;
       }
     });
-    panelCompartir.appendChild(btnIrAlPunto);
+    contenedorMapa.appendChild(btnIrAlPunto);
     btnCompartirPunto.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -3349,9 +3414,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       try { window.manolitoViaje?.limpiar(); } catch (e) { /* reinicio también limpia el coche */ }
       detenerCaminata();
       document.getElementById('rsPanelBici')?.setAttribute('hidden', '');
+      document.getElementById('rsPanelViaje')?.setAttribute('hidden', '');
       try { window.manolitAireLimpiarRutaBici?.(); } catch (e) { /* reinicio también limpia la bici */ } 
       
-      dormirGPS();
+      try { dormirGPS(); } catch (e) { /* nunca debe cortar el resto del reinicio */ }
       try {
         if (window.manolitAireLimpiarRutaBici) window.manolitAireLimpiarRutaBici();
       } catch (e) { /* la ruta bici es un módulo independiente */ }
@@ -3374,6 +3440,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             rutaActual = null;
       origenParaAutoRuta = null;
       limpiarTramoRecorrido(); // si la ruta se borra, el gris también
+      // (nov-2026) El selector de modo (a pie/bici/coche), los resúmenes de
+      // min y km bajo cada pestaña y la etiqueta flotante sobre el destino
+      // en el mapa son estado nuevo que «Reiniciar» no tocaba: quedaban
+      // los números de la última búsqueda a la vista aunque la ruta ya se
+      // hubiera borrado del mapa. Reiniciar vuelve también al modo a pie.
+      try { limpiarResumenesModos(); } catch (e) { /* los resúmenes aún no existen */ }
+      window.__manolitoModoRuta = 'caminar';
+      try { sincronizarBotonesModo(); } catch (e) { /* los botones de modo aún no existen */ }
+      // El aviso de CO2 evitado y las indicaciones paso a paso pertenecen a
+      // la ruta que se acaba de borrar; sin esto se quedaban enseñando los
+      // datos de la búsqueda anterior con el mapa ya vacío.
+      if (window.ManolitCO2) window.ManolitCO2.ocultar();
+      if (window.ManolitA11y) window.ManolitA11y.ocultarPasos();
+      resumenRutaAccesible = '';
+      actualizarResumenAccesible();
       // (nov-2026) Reinicio de verdad del GPS: si no se vuelve a poner a
       // false, la siguiente lectura se cree «la primera» ya pasada y no
       // repinta tu punto ni rellena el origen. Por eso, tras Reiniciar,
@@ -3539,7 +3620,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // leer después el marcador blanco desde el DOM.
       try {
         const puntoManolit = [lon, lat];
-        asegurarManolitEnMapa(puntoManolit).update(puntoManolit, 0);
+        manolitPuente.asegurar(puntoManolit).update(puntoManolit, 0);
       } catch (e) { /* el punto GPS sigue siendo válido aunque el mapa tarde */ }
 
       if (precisionM > 0) {
@@ -3779,7 +3860,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (watchId != null) navigator.geolocation.clearWatch(watchId);
       watchId = null;
       if (marcadorCaminando) { marcadorCaminando.remove(); marcadorCaminando = null; }
-      manolit._ultimoLonCaminata = null;
+      manolitPuente.ultimoLonCaminata = null;
             btnCaminar.classList.remove('rs-activo');
       btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
       sincronizarAtajoCaminar();
@@ -3845,11 +3926,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           if (ahoraGpsMs - ultimaLecturaGpsMs < 1000) return;
           ultimaLecturaGpsMs = ahoraGpsMs;
           const lat = pos.coords.latitude, lon = pos.coords.longitude;
-          const dxManolit = typeof manolit._ultimoLonCaminata === 'number'
-            ? (lon - manolit._ultimoLonCaminata) * 100000
+          const dxManolit = typeof manolitPuente.ultimoLonCaminata === 'number'
+            ? (lon - manolitPuente.ultimoLonCaminata) * 100000
             : 0;
-          manolit._ultimoLonCaminata = lon;
-          asegurarManolitEnMapa([lon, lat]).update([lon, lat], dxManolit);
+          manolitPuente.ultimoLonCaminata = lon;
+          manolitPuente.asegurar([lon, lat]).update([lon, lat], dxManolit);
           const ahoraCaminata = Date.now();
           const movidoSuficiente = !ultimaCamaraCaminata
             || turf.distance(turf.point([ultimaCamaraCaminata[0], ultimaCamaraCaminata[1]]), turf.point([lon, lat]), { units: 'meters' }) > 12;
@@ -4326,7 +4407,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       actualizarBotonCompartirPunto();
       actualizarMascotaDestino(ultimoDestinoMarcador, true);
-      ocultarIndicadoresUbicacion();
+      manolitPuente.ocultarIndicadores();
       map.flyTo({
         center: [lng, lat],
         zoom: Math.min(17, Math.max(map.getZoom(), 16)),
@@ -5025,6 +5106,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       document.addEventListener('pointerdown', (e) => {
         if (!panelCapasAbierto()) return;
         if (contCapas.contains(e.target) || btnCapasFlot.contains(e.target)) return;
+        // La tarjeta del tutorial guiado no es «fuera»: tocar Siguiente no debe cerrar el panel.
+        if (e.target && e.target.closest && e.target.closest('.driver-popover')) return;
         cerrarPanelCapas(false);
       }, true);
 
@@ -5873,6 +5956,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     );
     boton.classList.toggle('rs-visible', hayPunto);
     boton.hidden = !hayPunto;
+    const botonIr = document.getElementById('rsBtnIrAlPunto');
+    if (botonIr) botonIr.hidden = !hayPunto;
   }
 
   function cargarPuntoCompartido() {
@@ -6610,8 +6695,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         // Hay ruta: el atajo de «Iniciar caminata» se enciende junto al
         // resumen (sobre todo en móvil, donde la botonera va en iconos).
         mostrarAtajoCaminar(true);
-        // Mantener los tiempos y distancias bajo las pestañas incluso cuando
-        // la ruta se calculó directamente desde caminar/bici/coche.
+        pintarResumenRutaActiva('caminar', {
+          distanciaKm: ruta.distanciaKm,
+          duracionMin: ruta.duracionMin
+        });
+        // Mantener bici/coche en segundo plano; el resumen a pie exacto ya se
+        // rellena desde esta ruta y no depende de que el perfil OSRM responda.
         lanzarResumenesModos();
         // CO2 evitado (27-sep): encuesta puntual tras enseñar la ruta.
         // Vive en js/co2.js, no guarda nada y se reinicia con cada ruta.
@@ -6689,6 +6778,53 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   };
   var resumenPeticionId = 0;
   var resumenClaveUltima = '';
+  var resumenesMapa = { destino: null, modos: {} };
+  var marcadorResumenMapa = null;
+
+  function registrarResumenMapa(modo, r) {
+    if (!r || !Number.isFinite(r.duracionS) || !Number.isFinite(r.distanciaM)) return;
+    resumenesMapa.modos[modo] = {
+      min: Math.round(r.duracionS / 60),
+      km: r.distanciaM / 1000,
+    };
+    pintarEtiquetaResumenMapa();
+  }
+
+  function formatoKmResumen(km) {
+    return String(km >= 10 ? Math.round(km) : Math.round(km * 10) / 10).replace('.', ',') + ' km';
+  }
+
+  // Etiqueta sobre el destino con min y km desde el origen para cada modo.
+  function pintarEtiquetaResumenMapa() {
+    try {
+      if (marcadorResumenMapa) { marcadorResumenMapa.remove(); marcadorResumenMapa = null; }
+      const d = resumenesMapa.destino;
+      if (!d || typeof maplibregl === 'undefined' || !map) return;
+      const nombres = { caminar: t('modoCaminar', 'A pie'), bici: t('modoBici', 'Bici'), coche: t('modoCoche', 'Coche') };
+      const lineas = ['caminar', 'bici', 'coche']
+        .filter((modo) => resumenesMapa.modos[modo])
+        .map((modo) => {
+          const r = resumenesMapa.modos[modo];
+          return nombres[modo] + ': ' + r.min + ' min · ' + formatoKmResumen(r.km);
+        });
+      if (!lineas.length) return;
+      const caja = document.createElement('div');
+      caja.setAttribute('dir', 'auto');
+      caja.style.cssText = 'background:var(--paper,#fff);color:var(--ink,#1b2a33);border:2px solid var(--accent,#00f2ff);border-radius:8px;padding:4px 8px;font:600 12px/1.35 system-ui,sans-serif;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25);pointer-events:none;';
+      lineas.forEach((linea) => {
+        const fila = document.createElement('div');
+        fila.textContent = linea;
+        caja.appendChild(fila);
+      });
+      marcadorResumenMapa = new maplibregl.Marker({ element: caja, anchor: 'bottom', offset: [0, -20] })
+        .setLngLat([d.lon, d.lat])
+        .addTo(map);
+    } catch (e) {
+      console.debug(e);
+    }
+  }
+
+  document.addEventListener('langChanged', pintarEtiquetaResumenMapa);
 
   function resumenElementos() {
     return {
@@ -6701,6 +6837,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   function limpiarResumenesModos() {
     resumenClaveUltima = '';
     resumenPeticionId++;
+    resumenesMapa = { destino: null, modos: {} };
+    pintarEtiquetaResumenMapa();
     const cont = document.getElementById('rsModoRuta');
     if (cont) {
       cont.classList.remove('con-resumenes');
@@ -6716,6 +6854,31 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     });
   }
 
+  // La ruta calculada por el motor del modo activo fija su propio resumen
+  // (min y km exactos) bajo su pestaña, por encima del aproximado OSRM.
+  function pintarResumenRutaActiva(modo, ruta) {
+    if (!ruta) return;
+    const distanciaM = Number.isFinite(Number(ruta.distanciaM))
+      ? Number(ruta.distanciaM)
+      : Number.isFinite(Number(ruta.distanciaKm)) ? Number(ruta.distanciaKm) * 1000 : NaN;
+    const duracionS = Number.isFinite(Number(ruta.duracionS))
+      ? Number(ruta.duracionS)
+      : Number.isFinite(Number(ruta.duracionMin)) ? Number(ruta.duracionMin) * 60 : NaN;
+    if (!Number.isFinite(distanciaM) || !Number.isFinite(duracionS)) return;
+    const els = resumenElementos();
+    const cont = document.getElementById('rsModoRuta');
+    if (cont) cont.classList.add('con-resumenes');
+    pintarResumenModo(els[modo], { distanciaM, duracionS });
+    registrarResumenMapa(modo, { distanciaM, duracionS });
+  }
+
+  function ocultarPanelRutaAntiguo(id) {
+    const panel = document.getElementById(id);
+    if (!panel) return;
+    panel.classList.remove('rs-panel-viaje-abierto');
+    panel.setAttribute('hidden', '');
+  }
+
   function pintarResumenModo(el, r) {
     if (!el) return;
     el.classList.remove('cargando');
@@ -6725,6 +6888,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       el.textContent = t('modeNoRoute', 'sin ruta');
       return;
     }
+
     el.classList.remove('sin-ruta');
     const min = Math.round(r.duracionS / 60);
     const txtMin = min >= 60 ? Math.floor(min / 60) + ' h ' + (min % 60) + ' min' : min + ' min';
@@ -6788,8 +6952,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const oTxt = inputOrigen ? inputOrigen.value.trim() : '';
     const dTxt = inputDestino ? inputDestino.value.trim() : '';
     if (!dTxt) return;
-    // Cambiar de pestaña relanza la búsqueda con los mismos textos: no se
-    // repite el cálculo ni parpadea el esqueleto si ya se pidió esta pareja.
+    // El motor de a pie no siempre responde al perfil OSRM genérico; por eso
+    // se preserva el resultado real de la ruta sombreada y se completa el resto.
     const clave = oTxt + '|' + dTxt;
     if (clave === resumenClaveUltima) return;
     resumenClaveUltima = clave;
@@ -6806,8 +6970,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
     Object.keys(els).forEach((k) => {
       const el = els[k];
-      el.className = 'rs-modo-resumen cargando';
-      el.textContent = '';
+      const yaTieneRuta = el.querySelector('.rs-res-min');
+      el.className = 'rs-modo-resumen' + (yaTieneRuta ? '' : ' cargando');
+      if (!yaTieneRuta) el.textContent = '';
     });
 
     let destino = null;
@@ -6826,11 +6991,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       return;
     }
     if (peticion !== resumenPeticionId) return;
+    resumenesMapa = { destino: { lat: destino.lat, lon: destino.lon }, modos: {} };
+    pintarEtiquetaResumenMapa();
 
     ['caminar', 'bici', 'coche'].forEach((modo) => {
       pedirResumenModo(modo, origen, destino).then((r) => {
         if (peticion !== resumenPeticionId) return;
-        pintarResumenModo(els[modo], r);
+        // Si el resumen aproximado no está disponible no reemplazar la ruta
+        // exacta calculada por el motor de ese modo.
+        if (r) { pintarResumenModo(els[modo], r); registrarResumenMapa(modo, r); }
+        else if (!els[modo].querySelector('.rs-res-min')) pintarResumenModo(els[modo], null);
       });
     });
   }
@@ -6952,8 +7122,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   async function manejarBusquedaUnificada(origenDirecto, destinoDirecto) {
     const modo = window.__manolitoModoRuta || 'caminar';
-    // Los tres resúmenes bajo las pestañas se calculan a la vez, en paralelo
-    // y sin bloquear al motor activo (él sigue pintando su propia ruta).
+    // Los resúmenes de bici/coche se consultan en paralelo. El tiempo y km a
+    // pie salen del motor real de la ruta sombreada más abajo.
     lanzarResumenesModos();
 
     if (modo === 'bici') {
@@ -6971,10 +7141,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       ponerCargando(true);
       try {
         const res = await window.manolitAirePlanificarRutaBici(inputOrigen.value.trim(), textoDestino);
-        mostrarEstado(res ? '' : t('bikeNoRoute', 'No he podido trazar la ruta en bici. Inténtalo en un momento.'), res ? 'ok' : 'error');
+          pintarResumenRutaActiva('bici', res);
+          ocultarPanelRutaAntiguo('rsPanelBici');
+          mostrarEstado(res ? '' : t('bikeNoRoute', 'No he podido trazar la ruta en bici. Inténtalo en un momento.'), res ? 'ok' : 'error');
       } catch (err) {
         console.debug(err);
-        mostrarEstado(t('bikeNoRoute', 'No he podido trazar la ruta en bici. Inténtalo en un momento.'), 'error');
+        if (document.getElementById('rsModoRuta')?.classList.contains('con-resumenes') &&
+            document.getElementById('rsResumenBici')?.querySelector('.rs-res-min')) {
+          mostrarEstado('');
+        } else {
+          mostrarEstado(t('bikeNoRoute', 'No he podido trazar la ruta en bici. Inténtalo en un momento.'), 'error');
+        }
       } finally {
         ponerCargando(false);
       }
@@ -6995,11 +7172,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
       ponerCargando(true);
       try {
-        await window.manolitoViaje.planificar(inputOrigen.value.trim(), textoDestino);
+        const res = await window.manolitoViaje.planificar(inputOrigen.value.trim(), textoDestino, { unified: true });
+        pintarResumenRutaActiva('coche', res && res.ruta);
+        ocultarPanelRutaAntiguo('rsPanelViaje');
         mostrarEstado('');
       } catch (err) {
         console.debug(err);
-        mostrarEstado(t('errorSearch', 'No he podido trazar la ruta. Prueba otra vez en un ratito.'), 'error');
+        if (document.getElementById('rsModoRuta')?.classList.contains('con-resumenes') &&
+            document.getElementById('rsResumenCoche')?.querySelector('.rs-res-min')) {
+          mostrarEstado('');
+        } else {
+          mostrarEstado(t('errorSearch', 'No he podido trazar la ruta. Prueba otra vez en un ratito.'), 'error');
+        }
       } finally {
         ponerCargando(false);
       }
@@ -7017,11 +7201,32 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (e.key === 'Enter') { e.preventDefault(); manejarBusquedaUnificada(); }
     });
   });
+  // Intercambiar origen y destino permite calcular el trayecto de vuelta sin
+  // alterar el tamaño de la barra ni sus campos.
+  const btnInvertirRuta = document.getElementById('rsBtnInvertirRuta');
+  if (btnInvertirRuta) btnInvertirRuta.addEventListener('click', () => {
+    const origen = inputOrigen.value;
+    const destino = inputDestino.value;
+    const puntoOrigen = seleccionPorInput.get(inputOrigen);
+    const puntoDestino = seleccionPorInput.get(inputDestino);
+    inputOrigen.value = destino;
+    inputDestino.value = origen;
+    if (puntoDestino) seleccionPorInput.set(inputOrigen, { ...puntoDestino, texto: destino });
+    else seleccionPorInput.delete(inputOrigen);
+    if (puntoOrigen) seleccionPorInput.set(inputDestino, { ...puntoOrigen, texto: origen });
+    else seleccionPorInput.delete(inputDestino);
+    limpiarResumenesModos();
+    if (inputDestino.value.trim()) manejarBusquedaUnificada();
+  });
 
   // Los colores de ruta son fijos y de alto contraste (naranja al sol, cyan en sombra)
   // para que se distingan siempre del mapa base, independientemente del tema.
 
   document.addEventListener('langChanged', () => {
+    if (btnInvertirRuta) {
+      btnInvertirRuta.title = t('reverseRoute', 'Invertir origen y destino');
+      btnInvertirRuta.setAttribute('aria-label', btnInvertirRuta.title);
+    }
     const btnLoc = document.getElementById('rsBtnMyLocation');
     if (btnLoc) {
       btnLoc.textContent = t('myLocation', 'Mi ubicación');
@@ -7936,6 +8141,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
      la figura se vea de pie en pantalla aunque el mapa esté muy
      inclinado; el rumbo sí sigue al mapa (rotationAlignment 'map').
      ============================================================ */
+  /* Puente hacia la figura de Manolit (bloque de más abajo).
+     Ese bloque va dentro de un `if` de guarda y, en modo estricto, todo lo
+     que declara (manolit, asegurarManolitEnMapa, ocultarIndicadoresUbicacion)
+     solo existe dentro de él. El código de arriba (Reiniciar, caminata, GPS,
+     pulsación larga) lo llamaba directamente y lanzaba ReferenceError: en
+     Reiniciar eso cortaba el reinicio a medias. El bloque rellena este
+     puente al cargarse; mientras tanto los huecos no hacen nada. */
+  const manolitPuente = {
+    ultimoLonCaminata: null,
+    asegurar: () => ({ update() {}, setIdle() {} }),
+    ocultarIndicadores: () => {},
+  };
+
   if (!window.__manolitWalkerIntegrado) {
     window.__manolitWalkerIntegrado = true;
 
@@ -8720,6 +8938,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       manolit.marker = null;
       mostrarIndicadoresUbicacion();
     }
+    manolitPuente.asegurar = asegurarManolitEnMapa;
+    manolitPuente.ocultarIndicadores = ocultarIndicadoresUbicacion;
 
     // Compat: la caminata ya no usa un watchPosition propio (seguimos el
     // punto azul de la app), pero REINICIAR aún llama a esta función.

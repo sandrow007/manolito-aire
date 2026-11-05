@@ -170,7 +170,7 @@
      huerfano al retirar el preload; se elimina 31-oct-2026.) -->
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
-<link rel="stylesheet" href="css/style.css?v=buscador-modo-oscuro-20261102-f">
+<link rel="stylesheet" href="css/style.css?v=tutorial-capas-20261105-a">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -1428,6 +1428,7 @@
     <ul class="rs-sugerencias" id="rsSugerenciasOrigen" role="listbox" data-i18n-aria-label="origin" aria-label="Origen"></ul>
   </div>
   <div class="rs-vdiv" aria-hidden="true"></div>
+  <button type="button" id="rsBtnInvertirRuta" class="rs-invertir-ruta" data-i18n-aria-label="reverseRoute" aria-label="Invertir origen y destino" title="Invertir origen y destino"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-3-3M17 17H4l3 3"/><path d="M20 7l-3 3M4 17l3-3"/></svg></button>
   <div class="rs-field">
     <label for="rsDestino" class="visually-hidden" data-i18n="destiny">Destino</label>
     <input type="text" id="rsDestino" name="destino" placeholder="Punto de destino" data-i18n-placeholder="destinationPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasDestino" aria-autocomplete="list">
@@ -2669,7 +2670,7 @@
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
 <script src="js/planetario.js" defer></script>
-<script src="js/tutorial.js?v=tutorial-orden-20261102-b" defer></script>
+<script src="js/tutorial.js?v=tutorial-capas-20261105-g" defer></script>
 <!-- Los árboles viven integrados dentro de shadows-route.js (motor único de sombras) -->
 
 <script>
@@ -2723,16 +2724,16 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=share-map-20261105-a'))
+        .then(() => cargarScript('js/shadows-route.js?v=tutorial-capas-20261105-a'))
         .then(() => {
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
-          cargarScript('js/fuentes-agua.js?v=osm-map-capasyagua-20261020').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));
+          cargarScript('js/fuentes-agua.js?v=fuente-popup-20261105-a').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));
           // Capa de transporte público (Transitous, con respaldo Overpass en
           // el Worker). Aditiva; su fallo no detiene árboles, irradiación ni
           // aparcamientos. Cambiar versión para invalidar cualquier copia
           // antigua guardada por navegador/CDN.
-          cargarScript('js/transporte-publico.js?v=transporte-20261101-a')
+          cargarScript('js/transporte-publico.js?v=parada-opaca-20261105-a')
             .catch((err) => console.error('No se ha podido cargar la capa de transporte público:', err));
           // Asegurar rutas bici en una llamada propia: un fallo en esta capa no
           // interrumpe el arranque de árboles, aire ni el planificador de coche.

@@ -887,33 +887,52 @@
   }
 
   /* ---------------- Popup al tocar una fuente ---------------------------- */
+  // Mismo lenguaje que la tarjeta de paradas (transporte-publico.js): papel
+  // sólido, borde mandarina fino, botón turquesa. Tamaño adaptable: ancho
+  // entre 200 y 260 px sin pasar nunca del 100% de la pantalla menos margen.
+  function inyectarEstilosPopup() {
+    if (document.getElementById('fa-popup-styles')) return;
+    const estilo = document.createElement('style');
+    estilo.id = 'fa-popup-styles';
+    estilo.textContent = `
+      .fa-map-popup { z-index:46; }
+      .fa-map-popup .maplibregl-popup-content { padding:0; overflow:hidden; border-radius:18px; background:transparent; box-shadow:0 12px 32px rgba(22,35,46,.22); }
+      .fa-map-popup .maplibregl-popup-tip { display:none; }
+      .fa-map-popup .maplibregl-popup-close-button { z-index:3; top:8px; right:8px; width:26px; height:26px; border-radius:50%; background:rgba(13,31,38,.06); color:var(--ink, #0D1F26); font-size:17px; line-height:26px; }
+      .fa-map-popup .maplibregl-popup-close-button:hover { background:rgba(13,31,38,.12); }
+      .fa-card { box-sizing:border-box; width:min(260px, calc(100vw - 48px)); min-width:min(200px, calc(100vw - 48px)); padding:14px 16px 16px; border:1px solid rgba(255,107,26,.35); border-radius:18px; background:var(--paper, #F6FAF7); color:var(--ink, #0D1F26); box-shadow:0 8px 22px rgba(22,35,46,.16); font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
+      .fa-eyebrow { display:block; margin:0 28px 3px 0; color:var(--sky-mid, #17788A); font-size:10px; font-weight:750; letter-spacing:.14em; text-transform:uppercase; }
+      .fa-title { display:block; margin-right:28px; color:var(--ink, #0D1F26); font-size:16px; font-weight:700; letter-spacing:-.02em; line-height:1.25; overflow-wrap:anywhere; }
+      .fa-directions { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:42px; margin-top:12px; padding:0 14px; border:0; border-radius:12px; background:#35C4D4; color:#06262b; font:650 13px/1.1 system-ui,-apple-system,"Segoe UI",sans-serif; cursor:pointer; box-shadow:0 5px 13px rgba(53,196,212,.3); transition:background .15s, transform .1s; -webkit-tap-highlight-color:transparent; }
+      .fa-directions:hover { background:#4dd8e8; }
+      .fa-directions:active { transform:scale(.97); }
+      .fa-directions:focus-visible { outline:2px solid var(--ink, #0D1F26); outline-offset:2px; }
+      .fa-directions svg { display:block; flex:0 0 auto; width:26px; height:32px; margin-block:-4px; }
+      .fa-directions span { min-width:0; text-align:center; }
+      @media (prefers-reduced-motion:no-preference) { .fa-map-popup .maplibregl-popup-content { animation:fa-pop-in .2s cubic-bezier(.2,.8,.2,1) both; } @keyframes fa-pop-in { from { opacity:0; transform:translateY(6px) scale(.97); } to { opacity:1; transform:none; } } }
+    `;
+    document.head.appendChild(estilo);
+  }
+
+  // Logo Manolit inclinado como pin direccional (variante permitida), con su
+  // resplandor y la vesica rellena en oscuro para que se lea sobre el turquesa.
+  const ICONO_DIRECCION =
+    '<svg viewBox="-30 0 260 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
+    '<defs><filter id="glowFuenteDireccion" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
+    '<g transform="rotate(18 100 160)" filter="url(#glowFuenteDireccion)">' +
+    '<path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="13" stroke-linejoin="round"/>' +
+    '<circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="11"/>' +
+    '<path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/>' +
+    '<path d="M65,180 Q82.5,172 100,180 T135,180" fill="none" stroke="#00e5ff" stroke-width="9" stroke-linecap="round"/>' +
+    '</g></svg>';
+
   function crearBotonDireccion(nombreFuente, coords) {
     const boton = document.createElement('button');
     boton.type = 'button';
-    boton.setAttribute('aria-label', t('fountainGetDirections', 'Obtener dirección'));
-    boton.title = t('fountainGetDirections', 'Obtener dirección');
-    boton.style.cssText =
-      'display:flex;align-items:center;justify-content:center;' +
-      'width:30px;height:30px;min-width:30px;box-sizing:border-box;' +
-      'margin-top:9px;padding:0;border:0;border-radius:0;background:transparent;color:#12343D;' +
-      'font:600 12px/1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;' +
-      '-webkit-tap-highlight-color:transparent;transition:transform .15s ease,box-shadow .15s ease';
-    boton.innerHTML =
-      '<svg class="manolit-direction-icon" viewBox="0 0 256 256" width="20" height="20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
-      '<defs><filter id="glowFuenteDireccion" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
-      '<g transform="translate(118,110) rotate(18) scale(0.62) translate(-100,-150)" filter="url(#glowFuenteDireccion)">' +
-      '<path d="M 100,30 C 30,110 30,210 100,290" fill="none" stroke="#ff2a4b" stroke-width="5" stroke-linecap="round"/>' +
-      '<path d="M 100,30 C 170,110 170,210 100,290 Z" fill="#ff2a4b" opacity="0.14" stroke="#ff2a4b" stroke-width="5" stroke-linejoin="round"/>' +
-      '<circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="4"/>' +
-      '<path d="M 100,146 C 75,121 75,171 100,146 C 125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#00e5ff" stroke-width="5" stroke-linecap="round"/>' +
-      '<path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#00e5ff" stroke-width="4" stroke-linecap="round"/>' +
-      '</g><circle cx="91" cy="196" r="4" fill="#12343D"/>' +
-      '</svg>';
-    boton.addEventListener('mouseenter', () => { boton.style.transform = 'translateY(-1px)'; });
-    boton.addEventListener('mouseleave', () => { boton.style.transform = 'translateY(0)'; });
-    boton.addEventListener('focus', () => { boton.style.boxShadow = '0 0 0 3px rgba(255,107,26,0.35)'; });
-    boton.addEventListener('blur', () => { boton.style.boxShadow = 'none'; });
+    boton.className = 'fa-directions';
+    boton.innerHTML = ICONO_DIRECCION + '<span></span>';
+    boton.querySelector('span').textContent = t('fountainGetDirections', 'Obtener dirección');
     boton.addEventListener('click', (evento) => {
       evento.stopPropagation();
       obtenerRutaHaciaFuente(coords, nombreFuente);
@@ -965,17 +984,28 @@
     const coords = feature.geometry && feature.geometry.coordinates;
     if (!coords || coords.length < 2) return;
 
-    const nombre = String(props.name || t('fountainName', 'Fuente pública de agua'));
+    const etiquetaFuente = t('fountainName', 'Fuente pública de agua');
+    const nombre = String(props.name || etiquetaFuente);
+    inyectarEstilosPopup();
     const caja = document.createElement('div');
-    caja.style.cssText = 'font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#12343D;max-width:220px';
+    caja.className = 'fa-card';
+    caja.setAttribute('dir', 'auto');
+    // Con nombre propio, el tipo («Fuente pública de agua») va como etiqueta
+    // pequeña encima; sin nombre, ese mismo texto ya es el título.
+    if (props.name) {
+      const etiqueta = document.createElement('span');
+      etiqueta.className = 'fa-eyebrow';
+      etiqueta.textContent = etiquetaFuente;
+      caja.appendChild(etiqueta);
+    }
     const titulo = document.createElement('strong');
-    titulo.style.cssText = 'display:block;max-width:100%;overflow-wrap:anywhere;line-height:1.25;';
+    titulo.className = 'fa-title';
     titulo.textContent = nombre;
     caja.appendChild(titulo);
     caja.appendChild(crearBotonDireccion(nombre, coords));
 
     if (popup) { try { popup.remove(); } catch (e) { /* sin popup */ } }
-    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '240px', offset: 10 })
+    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '280px', offset: 10, className: 'fa-map-popup' })
       .setLngLat([coords[0], coords[1]])
       .setDOMContent(caja)
       .addTo(map);

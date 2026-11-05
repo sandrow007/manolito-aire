@@ -266,12 +266,70 @@
 // 2026-11-01-f: las políticas legales se localizan en las siete lenguas
 // ofrecidas; se añade georgiano y se invalida la caché de traducciones JS.
 // Cambian js/i18n-legal.js, js/i18n.js y las tres páginas legales.
+// 2026-11-05-tutorial-capas: el tutorial se rehace. 1) Va siempre de arriba
+// abajo (antes bajaba a «Sincronizar» y volvía a Ko-fi y a la familia).
+// 2) Abre el panel de capas y lo explica por secciones (Sombras y sol,
+// Entorno y clima, Mapa base, Rutas y movilidad), destacando solo la zona
+// que explica con un recuadro invisible sobre sus filas. 3) La X naranja
+// enorme era el anillo de foco global (3px) sobre el botón de cerrar: ahora
+// es un cierre pequeño y redondo. 4) Tarjeta nueva con los tokens de la
+// paleta (claro y oscuro) y hoja inferior en móvil. Textos nuevos en los 7
+// idiomas. Cambian js/tutorial.js, js/shadows-route.js (tocar la tarjeta del
+// tutorial no cierra el panel de capas), css/style.css e index.html.
+// 2026-11-05-fuente-popup: el popup de las fuentes de agua se rediseña con
+// el mismo lenguaje que la tarjeta de paradas: etiqueta + título y un botón
+// turquesa con el logo Manolit (pin inclinado con glow, antes salía diminuto
+// y descentrado) y el texto «Obtener dirección». Ancho adaptable de 200 a
+// 260 px sin pasar de la pantalla, por encima del buscador (z-index 46) y con
+// modo noche sólido. Cambian js/fuentes-agua.js, css/style.css e index.html
+// (versión de ambos).
+// 2026-11-05-fix-reiniciar-b: causa real del botón «Reiniciar» que no
+// reiniciaba casi nada. detenerCaminata() (primer paso de reiniciarTodo)
+// usaba `manolit`, que vive dentro del `if` de guarda de la figura de
+// Manolit y en modo estricto no existe fuera: ReferenceError y el reinicio
+// se cortaba justo ahí (campos, ruta, marcadores y modos quedaban igual).
+// Lo mismo pasaba con asegurarManolitEnMapa (GPS/caminata) y
+// ocultarIndicadoresUbicacion (pulsación larga). Ahora el motor llama a
+// través de un puente (manolitPuente) que rellena el bloque de la figura.
+// Cambia js/shadows-route.js e index.html (versión del script).
+// 2026-11-05-parada-opaca: la tarjeta de parada de bus deja el «glass» con
+// backdrop-filter (no se desenfoca bien sobre el canvas WebGL del mapa y se
+// veía demasiado transparente/sin blur) y pasa a fondo sólido var(--paper),
+// como el resto de paneles que ya hicieron ese cambio en sep-2026. Además
+// la barra de scroll de la lista de salidas queda oculta (sigue
+// desplazable, solo no se ve la pista gris) y el popup sube a z-index:46
+// para no quedar detrás del buscador de rutas. Cambia js/transporte-publico.js.
+// 2026-11-05-fix-reiniciar: «Reiniciar» también vuelve al modo a pie, borra
+// los resúmenes de min/km de cada pestaña y la etiqueta flotante sobre el
+// destino, y oculta el aviso de CO2 y las indicaciones paso a paso de la
+// ruta anterior (antes se quedaban a la vista aunque la ruta ya se hubiera
+// borrado del mapa). Además el icono de parada de bus quita la línea de
+// ventana del parabrisas (el usuario prefiere el autobús más limpio).
+// Cambian js/shadows-route.js, js/transporte-publico.js e index.html
+// (versión de los dos scripts).
+// 2026-11-05-icono-bus-vesica: el icono de parada en el mapa (el punto que
+// se ve a cada zoom) pasa de un círculo genérico a la vesica roja-neón de
+// Manolit∞ usada como pin, con un autobús esquemático en cian donde el
+// logo lleva el círculo y el infinito. Cambia js/transporte-publico.js.
+// 2026-11-05-parada-glass: la tarjeta de parada de bus pasa del neón oscuro
+// al mismo cristal claro (papel + blur) que el resto de widgets del mapa,
+// con modo noche a juego en css/style.css. El icono "Cómo llegar" se
+// simplifica (sin brillo neón) y cada salida futura muestra además una
+// cuenta atrás ("en 12 min" / "en 1 h 20 min") en los 7 idiomas.
+// Cambian js/transporte-publico.js, js/i18n.js, css/style.css e index.html
+// (versión del script).
+// 2026-11-05-sombras-zoom: al acercarse (zoom >= 16, 16,5 en gama baja) la
+// casilla «Sombras» se enciende sola con la hora actual, y se apaga al alejarse
+// si la encendió el zoom. Si el usuario las apaga a mano no se vuelven a
+// encender solas (se recuerda entre visitas). Además las etiquetas de
+// min y km por modo salen sobre el destino (textos modoCaminar/Bici/Coche en
+// los 7 idiomas). Cambian js/shadows-route.js e index.html (versión del script).
 // 2026-11-04-h: la mascota del GPS amplía sus locuciones andaluzas, dice la
 // hora exacta y adapta las bromas a madrugada, mañana, mediodía, tarde y noche.
 // Cambia js/shadows-route.js.
 // 2026-11-03-aa: reintenta el router peatonal directamente si el proxy
 // /ruta falla, evitando rutas rectas cuando el servicio sigue disponible.
-const VERSION = '2026-11-05-fuente-logo-sin-fondo';
+const VERSION = '2026-11-05-tutorial-capas-v7';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

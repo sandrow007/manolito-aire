@@ -20,7 +20,18 @@
   const GRID_DEGREES = 0.02;
   const MAX_CELLS_PER_QUERY = 36;
   const ATTRIBUTION = '© <a href="https://transitous.org" target="_blank" rel="noopener">Transitous</a> · OpenStreetMap contributors';
-  const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#35C4D4" stroke="#0E3B47" stroke-width="1.6"/><rect x="6" y="7" width="14" height="9" rx="2.5" fill="none" stroke="#0E3B47" stroke-width="1.5"/><path d="M8 10h7M8 12.5h9" stroke="#0E3B47" stroke-width="1.3" stroke-linecap="round"/><circle cx="9.5" cy="17.5" r="1.3" fill="#fff"/><circle cx="16.5" cy="17.5" r="1.3" fill="#fff"/></svg>';
+  // Icono de parada con la identidad Manolit∞: la vesica roja-neón de
+  // siempre (variante "pin direccional" del protocolo de diseño, punta
+  // hacia abajo apoyada en la coordenada real), con un autobús esquemático
+  // en cian donde el logo lleva el círculo y el infinito.
+  const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="42" viewBox="0 0 24 42">' +
+    '<defs><filter id="tpBusGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
+    '<g transform="translate(-3.4,-3.6) scale(.1538)" filter="url(#tpBusGlow)">' +
+    '<path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="11" stroke-linejoin="round"/>' +
+    '<rect x="63" y="122" width="74" height="50" rx="16" fill="none" stroke="#00e5ff" stroke-width="10"/>' +
+    '<circle cx="80" cy="176" r="11" fill="#00e5ff"/>' +
+    '<circle cx="120" cy="176" r="11" fill="#00e5ff"/>' +
+    '</g></svg>';
 
   let map = null;
   let toggle = null;
@@ -383,7 +394,7 @@
     if (!targetMap.hasImage(IMAGE)) targetMap.addImage(IMAGE, icon, { pixelRatio: 1 });
     if (!targetMap.getSource(SOURCE)) targetMap.addSource(SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, attribution: ATTRIBUTION });
     if (!targetMap.getLayer(HALO)) targetMap.addLayer({ id: HALO, type: 'circle', source: SOURCE, minzoom: MIN_ZOOM, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12.5, 5, 16, 10], 'circle-color': '#35C4D4', 'circle-opacity': 0.75, 'circle-stroke-width': 2, 'circle-stroke-color': '#0E3B47' } });
-    if (!targetMap.getLayer(SYMBOL)) targetMap.addLayer({ id: SYMBOL, type: 'symbol', source: SOURCE, minzoom: MIN_ZOOM, layout: { 'icon-image': IMAGE, 'icon-size': ['interpolate', ['linear'], ['zoom'], 12.5, 0.75, 17, 1.05], 'icon-anchor': 'bottom', 'icon-offset': [0, -2], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+    if (!targetMap.getLayer(SYMBOL)) targetMap.addLayer({ id: SYMBOL, type: 'symbol', source: SOURCE, minzoom: MIN_ZOOM, layout: { 'icon-image': IMAGE, 'icon-size': ['interpolate', ['linear'], ['zoom'], 12.5, 0.75, 17, 1.05], 'icon-anchor': 'bottom', 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
     targetMap.moveLayer(HALO);
     targetMap.moveLayer(SYMBOL);
     return true;
@@ -495,7 +506,9 @@
     headingWrap.append(eyebrow, title);
     const directions = document.createElement('button'); directions.type = 'button'; directions.className = 'tp-directions';
     directions.setAttribute('aria-label', t('transportDirections', 'Cómo llegar'));
-    directions.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 21 12l-9 9.2-2-2 5.7-5.8H4v-2.8h11.7L10 4.8z" fill="currentColor"/></svg><span>' + t('transportDirections', 'Cómo llegar') + '</span>';
+    directions.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M12 2 2 9.5l7 2.5 2.5 7L19 2z"/></svg>' +
+      '<span>' + t('transportDirections', 'Cómo llegar') + '</span>';
     directions.addEventListener('click', alPulsarComoLlegar);
     header.append(headingWrap, directions);
     const body = document.createElement('div'); body.className = 'tp-departures'; body.textContent = t('transportLoading', 'Cargando salidas…');
@@ -546,6 +559,19 @@
     } catch (error) { return ''; }
   }
 
+  // Cuenta atrás tipo Google Maps/iOS: "en 12 min" o "en 1 h 20 min" junto
+  // a la hora exacta. Si ya ha pasado no se enseña (la fila ya se atenúa
+  // con la clase is-past).
+  function formatoCuentaAtras(timestamp) {
+    if (!Number.isFinite(timestamp)) return '';
+    const minutos = Math.round((timestamp - Date.now()) / 60000);
+    if (minutos <= 0) return t('transportArrivingNow', 'Llegando ahora');
+    if (minutos < 60) return t('transportInMin', 'en {min} min').replace('{min}', minutos);
+    const horas = Math.floor(minutos / 60);
+    const resto = minutos % 60;
+    return t('transportInHours', 'en {h} h {min} min').replace('{h}', horas).replace('{min}', resto);
+  }
+
   function pintarSalidas(body, items) {
     body.textContent = '';
     if (!items.length) { body.textContent = t('transportNoSchedules', 'No hay próximas salidas disponibles.'); return; }
@@ -554,10 +580,17 @@
     const ahora = Date.now();
     items.forEach(item => {
       const li = document.createElement('li');
-      li.className = 'tp-departure' + (item.timestamp && item.timestamp < ahora ? ' is-past' : '');
+      const esPasado = !!(item.timestamp && item.timestamp < ahora);
+      li.className = 'tp-departure' + (esPasado ? ' is-past' : '');
       const linea = document.createElement('span'); linea.className = 'tp-line-name'; linea.textContent = item.linea || item.nombre || t('transportStop', 'Línea');
+      const horaWrap = document.createElement('span'); horaWrap.className = 'tp-time-wrap';
       const hora = document.createElement('span'); hora.className = 'tp-time' + (item.tiempoReal ? ' is-realtime' : ''); hora.textContent = item.hora || '--:--';
-      li.append(linea, hora);
+      horaWrap.appendChild(hora);
+      if (!esPasado && item.timestamp) {
+        const cuenta = document.createElement('span'); cuenta.className = 'tp-countdown'; cuenta.textContent = formatoCuentaAtras(item.timestamp);
+        horaWrap.appendChild(cuenta);
+      }
+      li.append(linea, horaWrap);
       lista.appendChild(li);
     });
     body.appendChild(lista);
@@ -709,44 +742,58 @@
     if (tries < 240) setTimeout(() => waitForMap(tries + 1), 500);
   })(0);
 
-  // ---- Estilo de la tarjeta: lenguaje visual oscuro/semitransparente, igual
-  // que el widget de sombra (rgba(8,12,20,.94) + blur), responsive en web y
-  // móvil. Reemplaza el fondo claro anterior.
+  // ---- Estilo de la tarjeta: mismo lenguaje "glass" claro que el resto de
+  // paneles flotantes del mapa (posición solar, irradiación): fondo papel
+  // semitransparente con desenfoque y acento mandarina, nada de neón oscuro.
+  // El modo oscuro lo cubre css/style.css junto al resto de widgets.
   if (!document.getElementById('tp-stop-card-styles')) {
     const style = document.createElement('style');
     style.id = 'tp-stop-card-styles';
     style.textContent = `
-      .tp-map-popup .maplibregl-popup-content { padding:0; overflow:hidden; border-radius:24px; background:transparent; box-shadow:0 18px 54px rgba(0,0,0,.45); }
+      .tp-map-popup { z-index:46; }
+      .tp-map-popup .maplibregl-popup-content { padding:0; overflow:hidden; border-radius:18px; background:transparent; box-shadow:0 12px 32px rgba(22,35,46,.22); }
       .tp-map-popup .maplibregl-popup-tip { display:none; }
-      .tp-map-popup .maplibregl-popup-close-button { z-index:3; top:12px; right:12px; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.08); color:#e8e4dc; font-size:20px; }
-      .tp-map-popup .maplibregl-popup-close-button:hover { background:rgba(255,255,255,.16); }
-      .tp-stop-card { box-sizing:border-box; width:min(320px, calc(100vw - 28px)); max-height:min(70vh, 520px); overflow:auto; padding:20px; border:1px solid rgba(255,255,255,.08); border-radius:24px; background:rgba(8,12,20,.94); color:#e8e4dc; box-shadow:inset 0 1px rgba(255,255,255,.04); backdrop-filter:blur(28px) saturate(1.4); -webkit-backdrop-filter:blur(28px) saturate(1.4); font:14px/1.45 Inter,Montserrat,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+      .tp-map-popup .maplibregl-popup-close-button { z-index:3; top:10px; right:10px; width:28px; height:28px; border-radius:50%; background:rgba(13,31,38,.06); color:var(--ink, #0D1F26); font-size:18px; line-height:28px; }
+      .tp-map-popup .maplibregl-popup-close-button:hover { background:rgba(13,31,38,.12); }
+      .tp-stop-card {
+        box-sizing:border-box; width:min(320px, calc(100vw - 28px)); max-height:min(70vh, 520px); overflow-y:auto;
+        padding:18px; border:1px solid rgba(255,107,26,.35); border-radius:18px;
+        background:var(--paper, #F6FAF7);
+        color:var(--ink, #0D1F26); box-shadow:0 8px 22px rgba(22,35,46,.16);
+        font:14px/1.45 inherit;
+        scrollbar-width:none; -ms-overflow-style:none;
+      }
+      .tp-stop-card::-webkit-scrollbar { display:none; width:0; height:0; }
       .tp-sheet-handle { display:none; }
-      .tp-stop-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-right:28px; }
-      .tp-eyebrow { display:block; margin-bottom:4px; color:rgba(232,228,220,.55); font-size:10px; font-weight:750; letter-spacing:.15em; }
-      .tp-stop-title { display:block; color:#e8e4dc; font-size:19px; font-weight:700; letter-spacing:-.035em; line-height:1.2; }
-      .tp-directions { display:inline-flex; flex:none; align-items:center; gap:7px; min-height:38px; padding:0 13px; border:0; border-radius:13px; background:#35C4D4; color:#0e1420; font:650 12px/1 Inter,Montserrat,ui-sans-serif,system-ui,sans-serif; cursor:pointer; box-shadow:0 5px 13px rgba(53,196,212,.25); }
-      .tp-directions svg { width:14px; height:14px; transform:rotate(-45deg); }
+      .tp-stop-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-right:26px; }
+      .tp-eyebrow { display:block; margin-bottom:4px; color:var(--sky-mid, #17788A); font-size:10px; font-weight:750; letter-spacing:.15em; }
+      .tp-stop-title { display:block; color:var(--ink, #0D1F26); font-size:18px; font-weight:700; letter-spacing:-.03em; line-height:1.2; }
+      .tp-directions { display:inline-flex; flex:none; align-items:center; gap:6px; min-height:36px; padding:0 14px; border:0; border-radius:12px; background:#35C4D4; color:#06262b; font:650 12px/1 inherit; cursor:pointer; box-shadow:0 5px 13px rgba(53,196,212,.3); transition:background .15s, transform .1s; }
+      .tp-directions svg { display:block; flex:0 0 16px; width:16px; height:16px; }
       .tp-directions:hover { background:#4dd8e8; }
-      .tp-departures { margin-top:17px; }
+      .tp-directions:active { transform:scale(.96); }
+      .tp-departures { margin-top:16px; }
       /* Cada fila tiene su propio espacio vertical (min-height + padding) y
          la hora ocupa un ancho mínimo propio con caja incluida: nada de
          solapes ni cortes entre filas en ningún tamaño de pantalla
          (nov-2026, bug de la lista de paradas). */
       .tp-departure-list { display:grid; grid-template-columns:minmax(0,1fr); gap:2px; margin:0; padding:0; list-style:none; }
-      .tp-departure { display:flex; align-items:center; justify-content:space-between; gap:12px; box-sizing:border-box; min-height:40px; padding-block:6px; border-top:1px solid rgba(255,255,255,.08); }
-      .tp-line-name { flex:1 1 auto; min-width:0; overflow:hidden; color:rgba(232,228,220,.68); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
-      .tp-time { flex:0 0 auto; box-sizing:border-box; min-width:54px; text-align:center; padding:5px 9px; border-radius:999px; background:rgba(53,196,212,.16); color:#8fe0ea; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; }
-      .tp-time.is-realtime { background:rgba(43,152,115,.18); color:#7ad9ae; }
-      .tp-departure.is-past { opacity:.28; }
+      .tp-departure { display:flex; align-items:center; justify-content:space-between; gap:12px; box-sizing:border-box; min-height:44px; padding-block:6px; border-top:1px solid var(--line, rgba(14,59,71,.12)); }
+      .tp-line-name { flex:1 1 auto; min-width:0; overflow:hidden; color:var(--ink, #0D1F26); opacity:.72; font-size:12.5px; text-overflow:ellipsis; white-space:nowrap; }
+      .tp-time-wrap { flex:0 0 auto; display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+      .tp-time { box-sizing:border-box; min-width:54px; text-align:center; padding:5px 9px; border-radius:999px; background:rgba(53,196,212,.16); color:#1a7d8a; font-size:12px; font-weight:750; font-variant-numeric:tabular-nums; }
+      .tp-time.is-realtime { background:rgba(0,185,138,.16); color:#00785a; }
+      .tp-countdown { font-size:10.5px; font-weight:650; color:var(--sky-mid, #17788A); opacity:.85; }
+      .tp-departure.is-past { opacity:.35; }
+      .tp-departure.is-past .tp-countdown { display:none; }
       @media (max-width:600px) {
         .tp-map-popup { position:fixed !important; left:0 !important; right:0 !important; top:auto !important; bottom:0 !important; width:100vw; max-width:none !important; transform:none !important; pointer-events:none; }
-        .tp-map-popup .maplibregl-popup-content { width:100%; max-width:none; border-radius:26px 26px 0 0; box-shadow:0 -12px 40px rgba(0,0,0,.35); pointer-events:auto; }
+        .tp-map-popup .maplibregl-popup-content { width:100%; max-width:none; border-radius:22px 22px 0 0; box-shadow:0 -12px 40px rgba(22,35,46,.25); pointer-events:auto; }
         .tp-map-popup .maplibregl-popup-content > div { max-width:none; }
         .tp-map-popup-anchor-bottom, .tp-map-popup-anchor-top, .tp-map-popup-anchor-left, .tp-map-popup-anchor-right, .tp-map-popup-anchor-top-left, .tp-map-popup-anchor-top-right, .tp-map-popup-anchor-bottom-left, .tp-map-popup-anchor-bottom-right { transform:none !important; }
         .tp-map-popup .maplibregl-popup-close-button { top:14px; right:18px; }
-        .tp-stop-card { width:100%; max-width:none; max-height:min(48vh, 420px); padding:10px 20px calc(18px + env(safe-area-inset-bottom)); border-width:1px 0 0; border-radius:26px 26px 0 0; pointer-events:auto; }
-        .tp-sheet-handle { display:block; width:38px; height:4px; margin:0 auto 14px; border-radius:9px; background:rgba(255,255,255,.22); }
+        .tp-stop-card { width:100%; max-width:none; max-height:min(48vh, 420px); padding:10px 20px calc(18px + env(safe-area-inset-bottom)); border-width:1px 0 0; border-radius:22px 22px 0 0; pointer-events:auto; }
+        .tp-sheet-handle { display:block; width:38px; height:4px; margin:0 auto 14px; border-radius:9px; background:rgba(13,31,38,.18); }
         .tp-stop-header { padding-right:34px; }
       }
       @media (prefers-reduced-motion:no-preference) { .tp-map-popup .maplibregl-popup-content { animation:tp-sheet-in .28s cubic-bezier(.2,.8,.2,1) both; } @keyframes tp-sheet-in { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } } }

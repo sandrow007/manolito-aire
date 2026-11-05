@@ -959,6 +959,64 @@ body.mode-peque .peque-message { animation: pequePop 0.55s cubic-bezier(0.34, 1.
 [data-theme="dark"] #rsTimeSlider::-moz-range-thumb,
 .rs-mapa-oscuro-activo #rsTimeSlider::-moz-range-thumb{ border-color:#0A1E26; }
 
+/* Tarjeta de parada de transporte público: mismo cristal oscuro que el
+   resto de paneles flotantes del mapa en modo noche, pero sólido (sin
+   backdrop-filter, que no se desenfoca bien sobre el canvas WebGL del
+   mapa y se veía demasiado transparente). */
+[data-theme="dark"] .tp-stop-card,
+.rs-mapa-oscuro-activo .tp-stop-card{
+  background: #0A1E26;
+  border-color: rgba(255,122,51,0.38);
+  color: #E8F4F0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+[data-theme="dark"] .tp-eyebrow,
+.rs-mapa-oscuro-activo .tp-eyebrow{ color:#9FD8CE; }
+[data-theme="dark"] .tp-stop-title,
+.rs-mapa-oscuro-activo .tp-stop-title{ color:#E8F4F0; }
+[data-theme="dark"] .tp-line-name,
+.rs-mapa-oscuro-activo .tp-line-name{ color:#E8F4F0; }
+[data-theme="dark"] .tp-countdown,
+.rs-mapa-oscuro-activo .tp-countdown{ color:#9FD8CE; }
+[data-theme="dark"] .tp-departure,
+.rs-mapa-oscuro-activo .tp-departure{ border-top-color:rgba(232,244,240,0.14); }
+[data-theme="dark"] .tp-time,
+.rs-mapa-oscuro-activo .tp-time{ background:rgba(53,196,212,0.22); color:#8fe0ea; }
+[data-theme="dark"] .tp-time.is-realtime,
+.rs-mapa-oscuro-activo .tp-time.is-realtime{ background:rgba(0,255,200,0.18); color:#7ad9ae; }
+[data-theme="dark"] .tp-sheet-handle,
+.rs-mapa-oscuro-activo .tp-sheet-handle{ background:rgba(232,244,240,0.22); }
+[data-theme="dark"] .tp-map-popup .maplibregl-popup-close-button,
+.rs-mapa-oscuro-activo .tp-map-popup .maplibregl-popup-close-button{
+  background:rgba(232,244,240,0.1); color:#E8F4F0;
+}
+[data-theme="dark"] .tp-map-popup .maplibregl-popup-close-button:hover,
+.rs-mapa-oscuro-activo .tp-map-popup .maplibregl-popup-close-button:hover{
+  background:rgba(232,244,240,0.18);
+}
+
+/* Popup de fuentes de agua: mismo cristal oscuro sólido que la tarjeta de
+   paradas en modo noche. */
+[data-theme="dark"] .fa-card,
+.rs-mapa-oscuro-activo .fa-card{
+  background:#0A1E26;
+  border-color:rgba(255,122,51,0.38);
+  color:#E8F4F0;
+  box-shadow:0 8px 24px rgba(0,0,0,0.5);
+}
+[data-theme="dark"] .fa-eyebrow,
+.rs-mapa-oscuro-activo .fa-eyebrow{ color:#9FD8CE; }
+[data-theme="dark"] .fa-title,
+.rs-mapa-oscuro-activo .fa-title{ color:#E8F4F0; }
+[data-theme="dark"] .fa-map-popup .maplibregl-popup-close-button,
+.rs-mapa-oscuro-activo .fa-map-popup .maplibregl-popup-close-button{
+  background:rgba(232,244,240,0.1); color:#E8F4F0;
+}
+[data-theme="dark"] .fa-map-popup .maplibregl-popup-close-button:hover,
+.rs-mapa-oscuro-activo .fa-map-popup .maplibregl-popup-close-button:hover{
+  background:rgba(232,244,240,0.18);
+}
+
 [data-theme="dark"] #rsMapControls button,
 .rs-mapa-oscuro-activo #rsMapControls button,
 [data-theme="dark"] #rsMapStyleToggle button,
@@ -1156,30 +1214,97 @@ body.modo-accesible .rs-btn-escuchar[aria-pressed="true"]{ background:#000 !impo
 }
 
 
-/* ---------- Driver.js (tour guiado) hermanado con el tema oscuro ---------- */
-[data-theme="dark"] .driver-popover{
-  background:#0A0C1F; color:#E8F0FF;
-  border:1px solid rgba(0,240,255,0.25);
-  box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 24px rgba(0,240,255,0.08);
+/* ---------- Tutorial guiado (driver.js) ----------
+   Mismo lenguaje que el resto de paneles flotantes: papel sólido, borde de
+   1px, radio de tarjeta y acento de la paleta. Los tokens (--paper, --ink,
+   --accent...) ya cambian solos con el tema, así que claro y oscuro salen
+   del mismo bloque. Nada de degradados ni neón. */
+.driver-popover.manolito-tour{
+  box-sizing:border-box;
+  width:min(340px, calc(100vw - 24px)); min-width:0; max-width:none;
+  padding:18px 18px 14px;
+  border:1px solid var(--line, rgba(14,59,71,.14)); border-radius:16px;
+  background:var(--paper, #F6FAF7); color:var(--ink, #0D1F26);
+  box-shadow:0 8px 24px rgba(0,0,0,.2);
 }
-[data-theme="dark"] .driver-popover-title{ color:#E8F0FF; font-family:var(--font-display); }
-[data-theme="dark"] .driver-popover-description{ color:rgba(232,240,255,0.82); }
-[data-theme="dark"] .driver-popover-progress-text{ color:rgba(0,240,255,0.7); }
-[data-theme="dark"] .driver-popover-close-btn{ color:rgba(232,240,255,0.6); }
-[data-theme="dark"] .driver-popover-close-btn:hover{ color:#00F0FF; }
-[data-theme="dark"] .driver-popover-next-btn{
-  background:linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 100%);
-  color:#03050F; border:none; text-shadow:none; font-weight:700;
+.driver-popover.manolito-tour *{ font-family:var(--ux-font-sans, system-ui, -apple-system, "Segoe UI", sans-serif); }
+.manolito-tour .driver-popover-title{
+  margin:0 30px 6px 0; font-size:1.0625rem; font-weight:700; line-height:1.25;
+  letter-spacing:-.01em; color:var(--sky-deep, #0E3B47);
 }
-[data-theme="dark"] .driver-popover-prev-btn,
-[data-theme="dark"] .driver-popover-close-btn-text{
-  background:transparent; color:rgba(232,240,255,0.75);
-  border:1px solid rgba(0,240,255,0.3); text-shadow:none;
+.manolito-tour .driver-popover-description{
+  margin:0; font-size:.875rem; line-height:1.55; color:var(--ink, #0D1F26); opacity:.88;
 }
-[data-theme="dark"] .driver-popover-arrow-side-left{ border-left-color:#0A0C1F; }
-[data-theme="dark"] .driver-popover-arrow-side-right{ border-right-color:#0A0C1F; }
-[data-theme="dark"] .driver-popover-arrow-side-top{ border-top-color:#0A0C1F; }
-[data-theme="dark"] .driver-popover-arrow-side-bottom{ border-bottom-color:#0A0C1F; }
+.manolito-tour .driver-popover-footer{ margin-top:16px; gap:12px; }
+.manolito-tour .driver-popover-progress-text{
+  font-family:var(--ux-font-mono, ui-monospace, Consolas, monospace); font-size:.75rem; font-weight:600;
+  letter-spacing:.02em; color:var(--accent-text, #C24500);
+}
+.manolito-tour .driver-popover-navigation-btns{ gap:8px; }
+.manolito-tour .driver-popover-navigation-btns button + button{ margin-left:0; }
+.manolito-tour .driver-popover-footer button{
+  min-height:36px; padding:0 14px; border-radius:10px; text-shadow:none;
+  font-size:.8125rem; font-weight:650; line-height:1; cursor:pointer;
+  transition:background-color .2s ease, transform .1s ease, opacity .2s ease;
+}
+.manolito-tour .driver-popover-footer button:active{ transform:scale(.97); }
+.manolito-tour .driver-popover-prev-btn{
+  background:transparent; color:var(--ink, #0D1F26); border:1px solid var(--line, rgba(14,59,71,.2));
+}
+.manolito-tour .driver-popover-prev-btn:hover{ background:rgba(13,31,38,.06); }
+.manolito-tour .driver-popover-next-btn{
+  background:var(--accent, #FF6B1A); color:#06222B; border:1px solid transparent;
+}
+.manolito-tour .driver-popover-next-btn:hover{ background:var(--accent, #FF6B1A); opacity:.9; }
+.manolito-tour .driver-popover-footer button:focus-visible{
+  outline:2px solid var(--accent-text, #C24500) !important; outline-offset:2px;
+}
+/* Cierre discreto: pequeño y redondo. Driver le da el foco solo en cada
+   paso, y el anillo naranja de 3px global se veía como un cuadrado enorme;
+   el foco se marca con un fondo suave. */
+.manolito-tour .driver-popover-close-btn{
+  top:10px; right:10px; width:28px; height:28px; border-radius:50%;
+  font-size:16px; line-height:28px; color:var(--ink, #0D1F26); opacity:.6;
+  transition:background-color .2s ease, opacity .2s ease;
+}
+.manolito-tour .driver-popover-close-btn:hover,
+.manolito-tour .driver-popover-close-btn:focus-visible{ opacity:1; background:rgba(13,31,38,.1); }
+.driver-popover.manolito-tour .driver-popover-close-btn:focus-visible{ outline:none !important; }
+.manolito-tour .driver-popover-arrow-side-left{ border-left-color:var(--paper, #F6FAF7); }
+.manolito-tour .driver-popover-arrow-side-right{ border-right-color:var(--paper, #F6FAF7); }
+.manolito-tour .driver-popover-arrow-side-top{ border-top-color:var(--paper, #F6FAF7); }
+.manolito-tour .driver-popover-arrow-side-bottom{ border-bottom-color:var(--paper, #F6FAF7); }
+[data-theme="dark"] .driver-popover.manolito-tour{ box-shadow:0 8px 24px rgba(0,0,0,.5); }
+[data-theme="dark"] .manolito-tour .driver-popover-prev-btn:hover{ background:rgba(232,240,255,.08); }
+[data-theme="dark"] .manolito-tour .driver-popover-close-btn:hover,
+[data-theme="dark"] .manolito-tour .driver-popover-close-btn:focus-visible{ background:rgba(232,240,255,.12); }
+/* Recuadro invisible sobre una sección del panel de capas: va por encima
+   del panel (z 1120) y enmarca la zona que se está explicando. */
+.rs-tuto-fantasma{
+  position:fixed; z-index:1130; pointer-events:none; border-radius:12px;
+  outline:2px solid var(--accent, #FF6B1A); outline-offset:0;
+}
+/* Móvil: la tarjeta es una hoja fija abajo (pulgar cómodo, sin tapar lo
+   explicado, que sube a la zona libre). En los pasos de capas, el panel
+   ya es una hoja inferior, así que el tutorial pasa arriba. */
+@media (max-width:600px){
+  .driver-popover.manolito-tour{
+    position:fixed !important; left:12px !important; right:12px !important;
+    top:auto !important; bottom:calc(12px + env(safe-area-inset-bottom)) !important;
+    width:auto; margin:0 !important; transform:none !important;
+    padding:16px 16px 12px; border-radius:18px;
+  }
+  body.tuto-capas .driver-popover.manolito-tour{
+    top:calc(12px + env(safe-area-inset-top)) !important; bottom:auto !important;
+  }
+  .manolito-tour .driver-popover-arrow{ display:none; }
+  .manolito-tour .driver-popover-footer button{ min-height:44px; padding:0 18px; }
+  .manolito-tour .driver-popover-close-btn{ width:36px; height:36px; line-height:36px; top:8px; right:8px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .manolito-tour .driver-popover-footer button,
+  .manolito-tour .driver-popover-close-btn{ transition:none; }
+}
 
 /* ================= Pantalla completa del mapa 3D (propio) =================
    El botón nativo de MapLibre no funciona en iPhone (iOS solo permite
@@ -1744,12 +1869,6 @@ body > #rsBtnActualizarOSM{ position:fixed; top:10px; right:48px; z-index:30; }
   color:#06222B !important;
 }
 
-/* Botón "siguiente" del tour guiado en tema oscuro. */
-[data-theme="dark"] .driver-popover-next-btn{
-  background:var(--accent);
-  color:#03050F;
-}
-
 /* Botón LiDAR: sólido petróleo (claro) / cian (oscuro). */
 .rs-btn-lidar{
   background:var(--sky-deep);
@@ -1791,7 +1910,6 @@ body > #rsBtnActualizarOSM{ position:fixed; top:10px; right:48px; z-index:30; }
 /* --- 5. Sombras gigantes → sombras cortas (la jerarquía se
         mantiene con 2-16px; 44-50px eran puro gasto de GPU) --- */
 .chat-panel{ box-shadow:0 4px 16px rgba(0,0,0,0.18); }
-[data-theme="dark"] .driver-popover{ box-shadow:0 4px 12px rgba(0,0,0,0.50); }
 
 /* --- 6. floatX animaba margin-left (reflow 60 veces/seg en
         loop infinito). Un solo keyframes con translate: el
@@ -3937,18 +4055,13 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   font-variant-numeric:tabular-nums;
   opacity:.72; white-space:nowrap;
 }
-#main-content .rs-form .rs-modo-ruta.con-resumenes .rs-modo-resumen{ display:inline-flex; }
+#main-content .rs-form .rs-modo-ruta.con-resumenes .rs-modo-resumen{ display:inline-flex; visibility:visible; }
 /* Reserva el alto de dos líneas desde el inicio: los minutos/km aparecen
    bajo el modo seleccionado sin cambiar el tamaño del selector ni desplazarlo. */
 #main-content .rs-form .rs-modo-ruta.con-resumenes button .rs-modo-textos{
   min-height:2.45em;
 }
-#main-content .rs-form .rs-modo-ruta.con-resumenes .rs-modo-resumen{
-  visibility:hidden;
-}
-#main-content .rs-form .rs-modo-ruta.con-resumenes .rs-modo-resumen:not(:empty){
-  visibility:visible;
-}
+
 #main-content .rs-form .rs-modo-resumen .rs-res-min::after{ content:"\00a0\00b7\00a0"; }
 #main-content .rs-form .rs-modo-resumen.sin-ruta{ font-style:italic; opacity:.6; }
 #main-content .rs-form .rs-modo-resumen.cargando{
@@ -4062,6 +4175,18 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   #main-content .rs-form .rs-barra .rs-vdiv{
     width:1px; height:16px; background:var(--mui-line-2); flex:0 0 auto;
   }
+  /* Botón invertir origen/destino: del tamaño de los campos, sin alterar la
+     barra. Vive entre los dos inputs y gira la flecha al pasar el ratón. */
+  #main-content .rs-form .rs-barra .rs-invertir-ruta{
+    flex:0 0 auto; width:26px; height:26px; padding:0; margin:0 1px;
+    display:inline-flex; align-items:center; justify-content:center;
+    border:1px solid var(--mui-line-2); border-radius:999px;
+    background:var(--mui-surface,transparent); color:var(--mui-text); cursor:pointer;
+    transition:transform .25s ease, border-color .15s ease, color .15s ease;
+  }
+  #main-content .rs-form .rs-barra .rs-invertir-ruta svg{ width:14px; height:14px; }
+  #main-content .rs-form .rs-barra .rs-invertir-ruta:hover{ border-color:var(--accent); color:var(--accent); transform:rotate(180deg); }
+  #main-content .rs-form .rs-barra .rs-invertir-ruta:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 
   /* .btn — píldoras de acción (display:contents funde la fila con la barra) */
   #main-content .rs-form .rs-fila-botones{ display:contents; }
@@ -5038,6 +5163,7 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
   height:100% !important;
   flex:none !important;
 }
+#main-content #rsBtnIrAlPunto[hidden]{ display:none !important; }
 #main-content #rsBtnCerrarCompartir{
   width:32px !important;
   min-width:32px !important;
@@ -5133,7 +5259,7 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
 #main-content .rs-form .rs-modo-ruta button{
   min-width:0;
   min-height:24px;
-  height:24px;
+  height:auto;
   padding:1px 6px !important;
   gap:4px;
   border:0 !important;
@@ -5505,6 +5631,7 @@ body.modo-accesible #main-content .rs-form .rs-field input[type="text"]{
   box-shadow:none !important;
 }
 #main-content .rs-form .rs-barra .rs-vdiv{ display:none !important; }
+#main-content .rs-form .rs-barra .rs-invertir-ruta{ grid-column:2; grid-row:2; justify-self:center; align-self:center; margin:0; }
 #main-content .rs-form .rs-barra .rs-field:nth-child(1){ grid-column:1; grid-row:1; }
 #main-content .rs-form .rs-barra .rs-field:nth-child(3){ grid-column:2; grid-row:1; }
 #main-content .rs-form .rs-fila-botones{ display:contents; }

@@ -340,7 +340,7 @@
       .mp-parking-drive{display:inline-flex;align-items:center;justify-content:center;gap:7px;margin-top:9px;padding:8px 13px;border:0;border-radius:999px;background:linear-gradient(135deg,#12343D,#0E3B47);color:#fff;font:700 12px/1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
       .mp-parking-drive:hover{transform:translateY(-1px)}
       .mp-parking-drive:focus-visible{outline:3px solid rgba(255,107,26,.5);outline-offset:2px}
-      .mp-parking-drive svg{flex:0 0 18px;width:18px;height:18px}
+      .mp-parking-drive .mp-parking-direction-logo{flex:0 0 24px;width:24px;height:24px;border-radius:6px;overflow:hidden}
       .mp-parking-options{padding:10px 9px;background:#fbfcfd;border-left:1px solid #e2eaed;min-width:0}
       .mp-options-title{font-size:10px;font-weight:800;color:#52636b;text-transform:uppercase;letter-spacing:.035em;margin:0 0 4px}
       .mp-parking-options-list{min-width:0}
@@ -507,7 +507,9 @@
       '<div class="mp-parking-data"><div class="mp-parking-data-item">' + svgIconoParking('plazas', 22, '#537481') + '<div><strong>Capacidad</strong><span>' + capacidad + '</span></div></div>' +
       '<div class="mp-parking-data-item">' + svgIconoParking('precio', 22, '#537481') + '<div><strong>Precio</strong><span>' + tarifa + '</span></div></div></div>' +
       '<div class="mp-parking-footer"><span><strong>Acceso:</strong> ' + escaparHtml(textoAcceso(p.acceso)) + '</span><span><strong>Horario:</strong> ' + horario + '</span></div>' +
-      '<button type="button" class="mp-parking-drive" data-drive-lon="' + coords[0] + '" data-drive-lat="' + coords[1] + '" data-drive-name="' + escaparHtml(p.nombre || t('parkingName', 'Aparcamiento')) + '">' + svgIconoParking('coche', 18, 'currentColor') + '<span>' + escaparHtml(t('parkingDriveDirections', 'En coche')) + '</span></button>' +
+      '<button type="button" class="mp-parking-drive" data-drive-lon="' + coords[0] + '" data-drive-lat="' + coords[1] + '" data-drive-name="' + escaparHtml(p.nombre || t('parkingName', 'Aparcamiento')) + '">' +
+      '<svg class="mp-parking-direction-logo" viewBox="0 0 256 256" aria-hidden="true" focusable="false"><defs><filter id="mpParkingDirectionGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect width="100%" height="100%" fill="#020406"/><ellipse cx="91" cy="202" rx="22" ry="6" fill="#000000" opacity="0.6"/><g transform="translate(118,110) rotate(18) scale(0.62) translate(-100,-150)" filter="url(#mpParkingDirectionGlow)"><path d="M 100,30 C 30,110 30,210 100,290" fill="none" stroke="#ff2a4b" stroke-width="5" stroke-linecap="round"/><path d="M 100,30 C 170,110 170,210 100,290 Z" fill="#ff2a4b" opacity="0.14" stroke="#ff2a4b" stroke-width="5" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="4"/><path d="M 100,146 C 75,121 75,171 100,146 C 125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#00e5ff" stroke-width="5" stroke-linecap="round"/><path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#00e5ff" stroke-width="4" stroke-linecap="round"/></g><circle cx="91" cy="196" r="4" fill="#ffffff"/></svg>' +
+      '<span>' + escaparHtml(t('parkingDriveDirections', 'En coche')) + '</span></button>' +
       '</section><aside class="mp-parking-options" aria-label="Otras opciones"><h4 class="mp-options-title">' + escaparHtml(t('parkingOtherOptions', 'Otras opciones')) + '</h4><div class="mp-parking-options-list">' + opcionesHtml + '</div></aside></div></section>';
   }
 
@@ -1168,7 +1170,7 @@
 
   async function planificar(origenTexto, destinoTexto, opciones) {
     if (!map) return;
-    if (viaje.panel && viaje.panel.hasAttribute('hidden')) viaje.panel.removeAttribute('hidden');
+    if (viaje.panel && viaje.panel.hasAttribute('hidden') && !(opciones && opciones.unified)) viaje.panel.removeAttribute('hidden');
 
     var dTxt = String(destinoTexto != null ? destinoTexto : (viaje.inputDestino ? viaje.inputDestino.value : '')).trim();
     var oTxt = String(origenTexto != null ? origenTexto : (viaje.inputOrigen ? viaje.inputOrigen.value : '')).trim();
@@ -1221,7 +1223,7 @@
 
     clearTimeout(viaje.temporizadorLlegada);
     viaje.temporizadorLlegada = setTimeout(function () { prepararLlegada(destino); }, CONFIG.esperaLlegadaMs);
-    return destinoCerca ? { origen: origen, destino: destino, ruta: ruta } : null;
+    return { origen: origen, destino: destino, ruta: ruta };
   }
 
   function crearBotones() {

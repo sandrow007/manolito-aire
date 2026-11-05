@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    MANOLITO AIRE, hoja de estilos compartida
    Tokens de color separados por tema para poder cambiar
    claro/oscuro y el acento sin tocar el resto del CSS.
@@ -2610,10 +2610,6 @@ body.mode-peque .im-lost-btn{
           mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14.5 6.5-5.5 5.5 5.5 5.5'/%3E%3C/svg%3E") !important;
 }
 #main-content #rsMapControls.rs-plegado #rsBtnPlegarControles::before{ transform:rotate(180deg); }
-#main-content #rsBtnPickMap::before{
-  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-6.5-4.9-6.5-10.4a6.5 6.5 0 1 1 13 0C18.5 16.1 12 21 12 21z'/%3E%3Ccircle cx='12' cy='10.4' r='2.3'/%3E%3C/svg%3E");
-          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-6.5-4.9-6.5-10.4a6.5 6.5 0 1 1 13 0C18.5 16.1 12 21 12 21z'/%3E%3Ccircle cx='12' cy='10.4' r='2.3'/%3E%3C/svg%3E");
-}
 #main-content #rsBtnMyLocation::before{
   -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4.5'/%3E%3Cpath d='M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3'/%3E%3C/svg%3E");
           mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4.5'/%3E%3Cpath d='M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3'/%3E%3C/svg%3E");
@@ -5004,6 +5000,53 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
   opacity:1;
 }
 #main-content #rsBtnPlegarControles{ min-width:28px; }
+
+/* Panel «Compartir punto» (nov-2026): el buscador flotante usa z-index:30
+   y lo tapaba. La botonera vive a z-index:40, así que el panel va por
+   encima de ambos y deja de esconderse detrás del buscador. */
+#main-content #rsSharePanel{
+  z-index:45 !important;
+  background:#fff !important;
+  color:#202124 !important;
+  border-color:rgba(60,64,67,.18) !important;
+}
+#main-content #rsMapControls{ z-index:41 !important; }
+#main-content #rsBtnPickMap{ display:none !important; }
+#main-content #rsBtnCompartirPunto{
+  display:none !important;
+  position:absolute !important;
+  right:10px !important;
+  bottom:130px !important;
+  z-index:100 !important;
+  width:42px !important;
+  height:42px !important;
+  min-width:42px !important;
+  padding:0 !important;
+  align-items:center !important;
+  justify-content:center !important;
+  border:1px solid #303b4f !important;
+  border-radius:12px !important;
+  background:#020406 !important;
+  color:#fff !important;
+  overflow:hidden !important;
+  box-shadow:0 2px 6px rgba(0,0,0,.35) !important;
+}
+#main-content #rsBtnCompartirPunto.rs-visible{ display:inline-flex !important; }
+#main-content #rsBtnCompartirPunto .rs-share-icon{
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  flex:none !important;
+}
+#main-content #rsBtnCerrarCompartir{
+  width:32px !important;
+  min-width:32px !important;
+  height:32px !important;
+  padding:0 !important;
+  font-size:22px !important;
+  font-weight:400 !important;
+  line-height:1 !important;
+}
 
 /* El buscador flota también en móvil. Ya no añade altura al mapa. */
 #main-content .rs-form,

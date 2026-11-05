@@ -239,7 +239,9 @@
       paso("#shadowRouteMap", 5, "top", "center"),
       paso("#shadowRouteMap", 10, "top", "center"),
       paso("#shadowRouteMap", 9, "top", "center"),
-      paso(".rs-layer-toggles", 8, "top", "center"),
+      // El mapa 3D mueve este panel a un popover oculto y crea el botón
+      // flotante después de cargar sus módulos bajo demanda.
+      paso("#rsBtnCapasFlotante", 8, "top", "center"),
       paso(".rs-planetario", 6, "top", "center"),
       paso(".rs-btn-lidar", 7, "top", "center"),
       paso("#cityDropdownBtn", 0, "bottom", "start"),
@@ -250,7 +252,7 @@
       paso("#btnSyncExport", 12, "top", "center"),
       paso(".donacion-boton", 13, "top", "center"),
       paso(".footer-family", 14, "top", "center")
-    ].filter((s) => !s.element || document.querySelector(s.element));
+    ].filter((s) => !s.element || document.querySelector(s.element) || s.element === "#rsBtnCapasFlotante");
   }
 
   let driverActivo = null;
@@ -350,15 +352,27 @@
       return;
     }
     const destino = pasos[nuevoIndice].element;
-    const elemento = destino && document.querySelector(destino);
-    if (!elemento) return;
-    elemento.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-    window.setTimeout(() => {
-      if (!driverActivo || !elemento.isConnected) return;
+    const intentarAvance = (intento) => {
+      if (!driverActivo) return;
+      const elemento = destino && document.querySelector(destino);
+      if (!elemento) {
+        if (intento < 12) window.setTimeout(() => intentarAvance(intento + 1), 250);
+        return;
+      }
       const estilo = window.getComputedStyle(elemento);
-      if (estilo.display === "none" || estilo.visibility === "hidden") return;
-      driverActivo.drive(nuevoIndice);
-    }, 350);
+      const visible = estilo.display !== "none" &&
+        estilo.visibility !== "hidden" &&
+        elemento.getClientRects().length > 0;
+      if (!visible) {
+        if (intento < 12) window.setTimeout(() => intentarAvance(intento + 1), 250);
+        return;
+      }
+      elemento.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+      window.setTimeout(() => {
+        if (driverActivo && elemento.isConnected) driverActivo.drive(nuevoIndice);
+      }, 350);
+    };
+    intentarAvance(0);
   }
 
   /* Arranque: solo si ya aceptaste las cookies y la intro ya pasó.

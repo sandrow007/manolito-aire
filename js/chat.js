@@ -83,6 +83,7 @@ Eres Manolit∞, asistente de "Manolit∞ Aire" (manolitoaire.com), web de calid
 - Mapa de sombras 3D con MapLibre GL: TODOS los edificios visibles proyectan sombra real según la posición del sol (SunCalc); slider de hora, solsticios, hora dorada/azul, modo oscuro.
 - Árboles y palmeras 3D reales de OpenStreetMap con su sombra (la palmera también proyecta la del tronco).
 - Rutas con sombra sobre red peatonal real: % de sombra (edificios+árboles) en vivo, ruta "fresca" (Dijkstra térmico), indicaciones paso a paso plegables con lectura por voz y guía por voz GPS ("Iniciar caminata"). Buscador de calles centrado en España.
+- Al marcar o abrir un punto compartido en el mapa, se puede pedir «Ir hasta este punto»: Manolit usa el destino marcado y el origen elegido en el panel de rutas (vacío = GPS disponible), calcula una ruta peatonal real y la dibuja en el mapa. No afirma que existe una ruta hasta que el cálculo termine correctamente. También puede hacerlo desde el botón «Ir hasta este punto» del panel de compartir; el resultado y los pasos aparecen en el mapa y en el chat.
 - Rutas en bicicleta: se calculan con el perfil de bicicleta de OSRM (FOSSGIS) a través del proxy propio y, si no devuelve ruta, con BRouter como alternativa; hasta 3 alternativas con distancia y minutos. La capa «Carriles bici» consulta OpenStreetMap (Overpass) vía el proxy propio y, una vez cargada una zona, se mantiene dibujada aunque te muevas por ella. Son datos orientativos; no afirmes que la ruta o un carril son seguros, están abiertos o legalmente habilitados sin confirmación actual.
 - Transporte público: la capa «Transporte público» muestra paradas y próximas salidas en vivo. El proxy propio agrega Transitous (feeds GTFS abiertos) y OpenStreetMap (Overpass) para las zonas que Transitous no cubre, con consulta directa a ambos como respaldo; la región se elige sola según el centro del mapa. Los horarios pueden cambiar; no inventes paradas, salidas ni conexiones.
 - COMPARATIVA andar / bici / transporte público: andando es la única opción con porcentaje de sombra medido sobre edificios y árboles y con la ruta fresca (Dijkstra térmico); en bici tienes distancia, minutos, hasta 3 alternativas y la capa de carriles, pero sin medir sombra; en transporte público ves paradas y próximas salidas en vivo, pero no hay itinerario, transbordos ni ruta a pie calculada. Si piden comparar opciones para ir a un sitio, expón estas diferencias con claridad y ofrece activar lo que proceda (ruta en bici desde el chat si dan destino, capa de transporte, o la ruta andando desde «Ruta y sombras»).
@@ -579,6 +580,22 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
         if (capaTransporte && !capaTransporte.checked) capaTransporte.click();
         return 'Ahí van las tres opciones con lo que la web mide de verdad. Andando, la ruta te da el porcentaje de sombra sobre edificios y árboles y la opción de ruta fresca. En bici te calculo la ruta desde aquí si me dices destino, y la capa de carriles ya está encendida. En transporte público ves paradas y próximas salidas en vivo, aunque no calculo itinerarios ni transbordos. Dime destino y te dibujo la ruta en bici, o abre «Ruta y sombras» para la de andar.';
       }
+      const puntoCompartido = typeof window.manolitAirePuntoCompartidoActual === 'function'
+        ? window.manolitAirePuntoCompartidoActual()
+        : null;
+      const routeToMarkedPointIntent = Boolean(puntoCompartido) && /\b(ir|llegar|llevar|ruta|camino|dirigirme|c[oó]mo voy|ll[eé]vame|tr[aá]zame|dib[uú]jame)\b/i.test(txt) && /\b(a|hasta|hacia|ese punto|este punto|punto marcado|punto compartido|all[ií])\b/i.test(txt);
+      const markedPointOnlyRequest = Boolean(puntoCompartido) && /\b(punto|marcado|compartido|destino)\b/i.test(txt) && /\b(ese|este|all[ií]|marcado|compartido)\b/i.test(txt);
+      if (markedPointOnlyRequest && !routeToMarkedPointIntent) {
+        return 'Tengo localizado el punto marcado. Si quieres, pídeme «traza una ruta hasta este punto» y usaré el origen del panel de rutas o tu ubicación GPS si me das permiso.';
+      }
+      if (routeToMarkedPointIntent) {
+        if (typeof window.manolitAireCalcularRutaPuntoCompartido !== 'function') return 'El mapa todavía se está cargando. Espera un momento y vuelve a pedirme la ruta.';
+        const routed = await window.manolitAireCalcularRutaPuntoCompartido(puntoCompartido);
+        if (!routed) return 'No he podido calcular una ruta real hasta el punto marcado. Revisa el origen y vuelve a intentarlo.';
+        const destinationName = String(puntoCompartido.nombre || 'el punto marcado').split(',')[0];
+        return `He calculado y dibujado en el mapa la ruta a pie hasta ${destinationName}. Puedes ver las indicaciones en el panel de ruta.`;
+      }
+
       const bikeIntent = /\b(bici|bicicleta|ciclista|carril(?:es)? bici)\b/i.test(txt) && /\b(ruta|camino|ir|llevar|trazar|calcular|carril(?:es)?|buscar)\b/i.test(txt);
       if (bikeIntent) {
         const destinationMatch = txt.match(/\b(?:a|hasta|hacia|para)\s+(.+?)\s*$/i);

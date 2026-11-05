@@ -357,12 +357,15 @@
     }
   }
 
-  function limpiarRuta() {
-    if (map && map.getSource(SOURCE_ID)) {
+  function limpiarRuta(opciones) {
+    if (!(opciones && opciones.conservarRuta) && map && map.getSource(SOURCE_ID)) {
       map.getSource(SOURCE_ID).setData({ type: 'FeatureCollection', features: [] });
     }
-    if (inputOrigen) inputOrigen.value = '';
-    if (inputDestino) inputDestino.value = '';
+    if (opciones && opciones.conservarRuta) return;
+    if (!(opciones && opciones.conservarCampos)) {
+      if (inputOrigen) inputOrigen.value = '';
+      if (inputDestino) inputDestino.value = '';
+    }
     if (estado) estado.textContent = '';
     if (listaAlt) listaAlt.textContent = '';
     lista.ultimaClave = '';
@@ -506,7 +509,7 @@
     });
   }
 
-  async function planificar() {
+  async function planificar(opciones) {
     if (!map) return;
     if (panel && panel.hasAttribute('hidden')) panel.removeAttribute('hidden');
 
@@ -515,9 +518,13 @@
     if (!dTxt) { if (estado) estado.textContent = t('tripNeedDest', 'Dime a dónde vas y te trazo el viaje.'); return; }
 
     if (estado) estado.textContent = t('bikeSearching', 'Buscando la mejor ruta en bici…');
-    var destino = await geocodificar(dTxt);
+    var destino = opciones && opciones.destino
+      ? opciones.destino
+      : await geocodificar(dTxt);
     if (!destino) { if (estado) estado.textContent = t('bikeNoGeocode', 'No encuentro ese destino. Prueba con el nombre de la ciudad.'); return; }
-    var origen = oTxt ? await geocodificar(oTxt) : await miPosicion();
+    var origen = opciones && opciones.origen
+      ? opciones.origen
+      : (oTxt ? await geocodificar(oTxt) : await miPosicion());
     if (!origen) { if (estado) estado.textContent = t('bikeNoOrigin', 'No encuentro ese origen. Déjalo vacío para salir de donde estás.'); return; }
 
     var rutas = await calcularRutas(origen, destino);
@@ -537,13 +544,13 @@
 
   // API pública acotada para que el chat use la misma geocodificación y
   // el mismo motor/pintado que el panel, sin duplicar rutas ni acceder al DOM.
-  window.manolitAirePlanificarRutaBici = async function (origenTexto, destinoTexto) {
+  window.manolitAirePlanificarRutaBici = async function (origenTexto, destinoTexto, opciones) {
     if (!map || !String(destinoTexto || '').trim()) return null;
     if (panel && panel.hasAttribute('hidden')) panel.removeAttribute('hidden');
     if (inputOrigen) inputOrigen.value = String(origenTexto || '');
     if (inputDestino) inputDestino.value = String(destinoTexto || '');
     try {
-      var resultado = await planificar();
+      var resultado = await planificar(opciones);
       return resultado || null;
     } catch (error) {
       console.debug('[rutas-bici] No se pudo planificar desde el chat:', error);

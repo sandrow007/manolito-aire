@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Manolit∞ Aire · Shade routes and hourly sun shadows in any hot city worldwide | Rutas por la sombra en cualquier ciudad del mundo</title>
-<meta name="description" content="EN: Manolit∞ Aire is a free, universal web app to walk in the shade in extreme-heat cities: Seville, Écija, Córdoba, Athens, Dubai, Doha, Riyadh, Marrakech, Delhi, Phoenix and anywhere else. Hourly sun shadows, coolest routes, drinking fountains and parking, worldwide. Born in Seville. ES: App gratuita y universal para caminar por la sombra en cualquier ciudad con calor extremo, no solo Sevilla ni España. Sombra solar por horas, rutas más frescas, fuentes de agua y aparcamiento en todo el mundo. La sombra debería ser prioridad nacional. Busca sombra en mi calle, explora el mapa de sombras y encuentra una ruta con sombra.">
+<meta name="description" content="EN: Manolit∞ Aire is a free, universal web app to walk in the shade in extreme-heat cities: Seville, Écija, Córdoba, Athens, Dubai, Doha, Riyadh, Marrakech, Delhi, Phoenix and anywhere else. Hourly sun shadows, coolest routes, drinking fountains and parking, worldwide. Born in Seville. ES: App gratuita y universal para caminar por la sombra en cualquier ciudad con calor extremo, no solo Sevilla ni España. Sombra solar por horas, rutas más frescas, fuentes de agua y aparcamiento en todo el mundo. Comparte un punto del mapa mediante un enlace con sus coordenadas. La sombra debería ser prioridad nacional. Busca sombra en mi calle, explora el mapa de sombras y encuentra una ruta con sombra.">
 <!-- 28-sep-2026 (SEO): meta keywords eliminada, Google la
      ignora. Lo del agua y la publicidad se queda contado en su seccion de
      la pagina, no en la description. -->
@@ -21,11 +21,15 @@
 <meta property="og:description" content="Free, universal app: hourly sun shadows, coolest routes, drinking water fountains and parking in any extreme-heat city. Born in Seville, works worldwide. | App gratuita y universal: sombra por horas, rutas frescas, fuentes de agua y aparcamiento en cualquier ciudad con calor extremo. Nació en Sevilla, funciona en todo el mundo. La sombra debería ser prioridad nacional. Busca sombra en mi calle, explora el mapa de sombras y encuentra una ruta con sombra.">
 <meta name="twitter:title" content="Manolit∞ Aire · Shade routes and hourly sun shadows in any hot city worldwide | Rutas por la sombra en cualquier ciudad del mundo">
 <meta name="twitter:description" content="Free, universal app against urban heat: hourly shade, cool routes, drinking fountains and parking. | App gratuita y universal contra el calor urbano: sombra solar por horas, rutas más frescas, fuentes de agua y aparcamiento. La sombra debería ser prioridad nacional. Busca sombra en mi calle, explora el mapa de sombras y encuentra una ruta con sombra.">
-<meta property="og:image" content="https://manolitoaire.com/og-image.png">
-<meta property="og:image:secure_url" content="https://manolitoaire.com/og-image.png">
+<meta property="og:image" content="https://manolitoaire.com/og-image.png?v=manolit-logo">
+<meta property="og:image:secure_url" content="https://manolitoaire.com/og-image.png?v=manolit-logo">
+<meta property="og:image:alt" content="Logo de Manolit∞ Aire">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://manolitoaire.com/og-image.png?v=manolit-logo">
+<meta name="twitter:image:alt" content="Logo de Manolit∞ Aire">
 <meta property="og:image:alt" content="Logo de Manolit∞ Aire: mapa de sombras con edificios en 3D, rutas sin sol, agua, parkings y nubes en vivo">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://manolitoaire.com/og-image.png">
@@ -404,6 +408,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit∞ 3D">
 <base target="_self">
@@ -2718,7 +2723,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=hud-gps-20261104-hardened'))
+        .then(() => cargarScript('js/shadows-route.js?v=share-map-20261105-a'))
         .then(() => {
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.

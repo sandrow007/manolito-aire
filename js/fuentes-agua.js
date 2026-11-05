@@ -893,14 +893,23 @@
     boton.setAttribute('aria-label', t('fountainGetDirections', 'Obtener dirección'));
     boton.title = t('fountainGetDirections', 'Obtener dirección');
     boton.style.cssText =
-      'display:inline-flex;align-items:center;justify-content:center;gap:7px;' +
-      'margin-top:9px;padding:7px 13px;border:1px solid rgba(18,52,61,0.16);' +
-      'border-radius:999px;background:linear-gradient(135deg,#12343D,#0E3B47);color:#fff;' +
+      'display:flex;align-items:center;justify-content:center;' +
+      'width:30px;height:30px;min-width:30px;box-sizing:border-box;' +
+      'margin-top:9px;padding:0;border:0;border-radius:0;background:transparent;color:#12343D;' +
       'font:600 12px/1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;' +
       '-webkit-tap-highlight-color:transparent;transition:transform .15s ease,box-shadow .15s ease';
     boton.innerHTML =
-      '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>' +
-      '<span>' + t('fountainDirections', 'Dirección') + '</span>';
+      '<svg class="manolit-direction-icon" viewBox="0 0 256 256" width="20" height="20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
+      '<defs><filter id="glowFuenteDireccion" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
+      '<g transform="translate(118,110) rotate(18) scale(0.62) translate(-100,-150)" filter="url(#glowFuenteDireccion)">' +
+      '<path d="M 100,30 C 30,110 30,210 100,290" fill="none" stroke="#ff2a4b" stroke-width="5" stroke-linecap="round"/>' +
+      '<path d="M 100,30 C 170,110 170,210 100,290 Z" fill="#ff2a4b" opacity="0.14" stroke="#ff2a4b" stroke-width="5" stroke-linejoin="round"/>' +
+      '<circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="4"/>' +
+      '<path d="M 100,146 C 75,121 75,171 100,146 C 125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#00e5ff" stroke-width="5" stroke-linecap="round"/>' +
+      '<path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#00e5ff" stroke-width="4" stroke-linecap="round"/>' +
+      '</g><circle cx="91" cy="196" r="4" fill="#12343D"/>' +
+      '</svg>';
     boton.addEventListener('mouseenter', () => { boton.style.transform = 'translateY(-1px)'; });
     boton.addEventListener('mouseleave', () => { boton.style.transform = 'translateY(0)'; });
     boton.addEventListener('focus', () => { boton.style.boxShadow = '0 0 0 3px rgba(255,107,26,0.35)'; });
@@ -960,6 +969,7 @@
     const caja = document.createElement('div');
     caja.style.cssText = 'font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#12343D;max-width:220px';
     const titulo = document.createElement('strong');
+    titulo.style.cssText = 'display:block;max-width:100%;overflow-wrap:anywhere;line-height:1.25;';
     titulo.textContent = nombre;
     caja.appendChild(titulo);
     caja.appendChild(crearBotonDireccion(nombre, coords));

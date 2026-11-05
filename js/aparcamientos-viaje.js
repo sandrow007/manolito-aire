@@ -1144,12 +1144,13 @@
     } catch (e) { /* el encuadre es un gesto, no una obligación */ }
   }
 
-  function limpiarViaje() {
+  function limpiarViaje(opciones) {
     if (viaje.peticion) { try { viaje.peticion.abort(); } catch (e) { /* ok */ } viaje.peticion = null; }
     clearTimeout(viaje.temporizadorLlegada);
-    if (map && map.getSource('viaje-largo')) {
+    if (!(opciones && opciones.conservarRuta) && map && map.getSource('viaje-largo')) {
       map.getSource('viaje-largo').setData({ type: 'FeatureCollection', features: [] });
     }
+    if (opciones && opciones.conservarRuta) return;
     // HUD de navegación (nov-2026, ADITIVO): sin viaje no hay HUD.
     try { window.__manolitHudCoche = null; } catch (eHud) { }
     decirEstado('');
@@ -1165,7 +1166,7 @@
     } catch (e) { /* sin parking no pasa nada, el viaje ya está trazado */ }
   }
 
-  async function planificar(origenTexto, destinoTexto) {
+  async function planificar(origenTexto, destinoTexto, opciones) {
     if (!map) return;
     if (viaje.panel && viaje.panel.hasAttribute('hidden')) viaje.panel.removeAttribute('hidden');
 
@@ -1178,13 +1179,17 @@
     }
 
     decirEstado(t('tripSearching', 'Buscando el mejor camino…'));
-    var destino = await geocodificar(dTxt);
-    if (!destino) {
+    var destino = opciones && opciones.destinoCoordenadas
+      ? { lat: Number(opciones.destinoCoordenadas.lat), lon: Number(opciones.destinoCoordenadas.lon), nombre: opciones.destinoCoordenadas.nombre || dTxt }
+      : await geocodificar(dTxt);
+    if (!destino || !Number.isFinite(Number(destino.lat)) || !Number.isFinite(Number(destino.lon))) {
       decirEstado(t('tripNoGeocode', 'No encuentro ese destino. Prueba con el nombre de la ciudad.'));
       return;
     }
 
-    var origen = oTxt ? await geocodificar(oTxt) : await miPosicion();
+    var origen = opciones && opciones.origenCoordenadas
+      ? { lat: Number(opciones.origenCoordenadas.lat), lon: Number(opciones.origenCoordenadas.lon), nombre: opciones.origenCoordenadas.nombre || t('myLocation', 'Mi ubicación') }
+      : (oTxt ? await geocodificar(oTxt) : await miPosicion());
     if (!origen) {
       decirEstado(t('tripNoOrigin', 'No encuentro ese origen. Déjalo vacío para salir de donde estás.'));
       return;
@@ -1195,6 +1200,13 @@
       decirEstado(t('tripNoRoute', 'No he podido trazar el viaje en coche. Inténtalo en un momento.'));
       return;
     }
+
+    // Para el planificador compartido, devolver éxito solo al completar
+    // una ruta real; así el chat no anuncia un trayecto que no se dibujó.
+    var coordenadasRuta = ruta.geometry && ruta.geometry.coordinates;
+    var destinoCerca = Array.isArray(coordenadasRuta) && coordenadasRuta.length &&
+      Math.abs(coordenadasRuta[coordenadasRuta.length - 1][0] - destino.lon) < 0.005 &&
+      Math.abs(coordenadasRuta[coordenadasRuta.length - 1][1] - destino.lat) < 0.005;
 
     // HUD de navegación (nov-2026, ADITIVO): el viaje queda accesible.
     try { window.__manolitHudCoche = ruta; } catch (eHud) { }
@@ -1209,6 +1221,7 @@
 
     clearTimeout(viaje.temporizadorLlegada);
     viaje.temporizadorLlegada = setTimeout(function () { prepararLlegada(destino); }, CONFIG.esperaLlegadaMs);
+    return destinoCerca ? { origen: origen, destino: destino, ruta: ruta } : null;
   }
 
   function crearBotones() {

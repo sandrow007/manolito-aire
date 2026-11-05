@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    MANOLIT AIRE, Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -1044,6 +1044,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     inyectarControlesTiempo();
     inyectarControlesMapa();
+    cargarPuntoCompartido();
     inyectarSolVisual();
     inyectarBadgeSombra();
     conectarTogglesDeCapas();
@@ -1072,6 +1073,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     });
 
     setTimeout(() => {
+      // Si llega un punto compartido por URL (?manolit-punto=lat,lon), el
+      // vuelo de bienvenida NO debe disputarle la cámara: se respeta el
+      // zoom al punto (antes este easeTo cancelaba el flyTo y el punto
+      // compartido se quedaba sin autozoom).
+      if (window.__manolitPuntoCompartidoPendiente) {
+        delete window.__manolitPuntoCompartidoPendiente;
+        return;
+      }
       map.easeTo({
         pitch: CONFIG.pitchInicial,
         bearing: CONFIG.bearingInicial,
@@ -2910,9 +2919,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   /* ---------------- Elegir puntos directamente en el mapa + geolocalización ---------------- */
 
-  let modoClickMapa = false;
   let puntoOrigenPendiente = null;
-  let btnModoClickRef = null;
+  let mascotaEnPuntoMarcado = false;
+  let puntoFijadoPorPulsacionLarga = false;
   // Estado del clic en el mapa elevado al ámbito del módulo: el
   // autocompletado (obtenerCentroPreferido) también lo consulta para sesgar
   // las sugerencias al origen ya elegido, y antes vivía dentro de
@@ -2942,7 +2951,59 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       #rsMapControls button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
       #rsMapControls button.rs-activo{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); color:var(--sky-deep, #0E3B47); }
-      @media (max-width:480px){ #rsMapControls{ gap:3px; top:8px; left:8px; } #rsMapControls button{ padding:2px 7px; font-size:8px; } }
+      #rsBtnCompartirPunto{
+        position:absolute !important; right:10px; bottom:130px; z-index:100;
+        display:none; align-items:center; justify-content:center;
+        width:42px; height:42px; min-width:42px; padding:0;
+        border:1px solid #303b4f; border-radius:12px;
+        background:#020406; color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.35);
+      }
+      #rsBtnCompartirPunto.rs-visible{ display:inline-flex; }
+      #rsBtnCompartirPunto[hidden]{ display:none !important; }
+      #rsBtnCompartirPunto .rs-share-icon{ display:block; width:20px; height:20px; }
+      #rsSharePanel{
+        position:absolute; right:10px; bottom:180px; left:auto; z-index:101; display:none;
+        align-items:center; gap:6px; flex-wrap:wrap; width:max-content; max-width:calc(100% - 20px);
+        padding:8px; border:1px solid rgba(60,64,67,.18);
+        border-radius:12px; background:#fff !important;
+        box-shadow:0 2px 6px rgba(60,64,67,.20); color:#202124 !important;
+        box-sizing:border-box;
+      }
+      #rsSharePanel.rs-visible{ display:flex; }
+      #rsSharePanel[hidden]{ display:none !important; }
+      #rsSharePanel button{
+        min-height:32px; padding:6px 10px !important;
+        border:1px solid rgba(60,64,67,.18) !important; border-radius:8px !important;
+        background:#fff !important; color:#202124 !important;
+        box-shadow:none !important; font-family:inherit !important;
+        font-size:12px !important; font-weight:600 !important; line-height:1.2 !important;
+        text-transform:none !important; letter-spacing:normal !important;
+      }
+      #rsSharePanel button:hover{ background:#f5f5f5 !important; border-color:rgba(60,64,67,.32) !important; }
+      #rsShareCoordinates{ display:block; flex:1 1 100%; color:#202124 !important; background:#fff !important; }
+      #rsBtnCopiarCoordenadas{
+        display:inline-flex; align-items:center; justify-content:center;
+        width:32px; min-width:32px; height:32px; padding:0 !important; flex:0 0 32px;
+        border:1px solid rgba(60,64,67,.18) !important; border-radius:8px !important;
+        background:#fff !important; color:#202124 !important;
+      }
+      #rsBtnCopiarCoordenadas svg{ display:block; width:16px; height:16px; pointer-events:none; }
+      #rsSharePanel #rsBtnIrAlPunto{
+        display:inline-flex; align-items:center; justify-content:center; gap:0;
+        width:32px; min-width:32px; height:32px; padding:0 !important; flex:0 0 32px;
+        border:1px solid rgba(60,64,67,.18) !important; border-radius:8px !important;
+        background:#fff !important; color:#202124 !important;
+      }
+      #rsSharePanel #rsBtnIrAlPunto:hover{ background:#f5f5f5 !important; }
+      #rsSharePanel #rsBtnIrAlPunto > svg{ display:block; width:32px; height:32px; flex:0 0 32px; pointer-events:none; border-radius:8px; }
+      #rsSharePanel #rsBtnIrAlPunto:disabled{ opacity:.55; }
+      @media (max-width:480px){
+        #rsMapControls{ gap:3px; top:8px; left:8px; }
+        #rsMapControls button{ padding:2px 7px; font-size:8px; }
+        #rsBtnCompartirPunto{ right:8px; bottom:118px; }
+        #rsSharePanel{ left:8px; right:auto; bottom:166px; width:max-content; max-width:calc(100% - 16px); }
+        #rsSharePanel button{ flex:0 0 auto; min-width:0; }
+      }
 
       /* Botonera plegable: plegada solo queda el botón ≡ flotando */
       #rsBtnPlegarControles{
@@ -2954,7 +3015,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12);
       }
       #rsMapControls.rs-plegado{ right:auto; }
-      #rsMapControls.rs-plegado > button:not(#rsBtnPlegarControles){ display:none; }
+      #rsMapControls.rs-plegado > button:not(#rsBtnPlegarControles):not(#rsBtnCompartirPunto){ display:none; }
 
       /* Joystick virtual para paseo 3D */
       #rsJoystick{
@@ -3019,11 +3080,210 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const panelMapa = document.createElement('div');
     panelMapa.id = 'rsMapControls';
 
-    const btnModoClick = document.createElement('button');
-    btnModoClick.type = 'button';
-    btnModoClick.id = 'rsBtnPickMap';
-    btnModoClick.textContent = t('pickMap', 'Elegir en el mapa');
-    btnModoClickRef = btnModoClick;
+    // La selección manual se realiza manteniendo pulsado el mapa.
+    document.getElementById('rsBtnPickMap')?.remove();
+
+    const btnCompartirPunto = document.createElement('button');
+    btnCompartirPunto.type = 'button';
+    btnCompartirPunto.id = 'rsBtnCompartirPunto';
+    btnCompartirPunto.hidden = true;
+    btnCompartirPunto.title = t('sharePoint', 'Compartir punto');
+    btnCompartirPunto.setAttribute('aria-label', btnCompartirPunto.title);
+    btnCompartirPunto.innerHTML =
+      '<svg class="rs-share-icon" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
+      '<defs><filter id="rsGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+      '<g id="rsManolitLogo">' +
+      '<path d="M100 30C30 110 30 210 100 290c70-80 70-180 0-260Z" fill="rgba(255,42,75,0.05)" stroke="#ff2a4b" stroke-width="5" stroke-linejoin="round"/>' +
+      '<circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="4"/>' +
+      '<path d="M100 146c-25-25-25 25 0 0 25-25 25 25 0 0Z" fill="none" stroke="#ff2a4b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M60 165q20-10 40 0t40 0M65 175q17.5-8 35 0t35 0" fill="none" stroke="#00e5ff" stroke-width="5" stroke-linecap="round"/>' +
+      '</g></defs>' +
+      '<rect width="256" height="256" rx="44" ry="44" fill="#020406"/>' +
+      '<g stroke="#2a3340" stroke-width="10" stroke-linecap="round" fill="none">' +
+      '<line x1="68" y1="130" x2="192" y2="60"/><line x1="68" y1="130" x2="192" y2="200"/></g>' +
+      '<g transform="translate(68 130) scale(.26)" filter="url(#rsGlow)"><use href="#rsManolitLogo" transform="translate(-100 -150)"/></g>' +
+      '<g transform="translate(192 60) scale(.19)" filter="url(#rsGlow)"><use href="#rsManolitLogo" transform="translate(-100 -150)"/></g>' +
+      '<g transform="translate(192 200) scale(.19)" filter="url(#rsGlow)"><use href="#rsManolitLogo" transform="translate(-100 -150)"/></g>' +
+      '</svg>';
+    const panelCompartir = document.createElement('div');
+    panelCompartir.id = 'rsSharePanel';
+    panelCompartir.hidden = true;
+    panelCompartir.setAttribute('role', 'group');
+    panelCompartir.setAttribute('aria-label', t('sharePoint', 'Compartir punto'));
+    ['pointerdown', 'mousedown', 'touchstart', 'click'].forEach((tipo) => {
+      panelCompartir.addEventListener(tipo, (event) => {
+        event.stopPropagation();
+      });
+    });
+    const cerrarCompartir = document.createElement('button');
+    cerrarCompartir.type = 'button';
+    cerrarCompartir.id = 'rsBtnCerrarCompartir';
+    cerrarCompartir.textContent = '×';
+    cerrarCompartir.title = t('closeLbl', 'Cerrar');
+    cerrarCompartir.setAttribute('aria-label', t('closeLbl', 'Cerrar'));
+    cerrarCompartir.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      panelCompartir.classList.remove('rs-visible');
+      panelCompartir.hidden = true;
+      cancelarPuntoMarcado();
+    });
+    panelCompartir.appendChild(cerrarCompartir);
+    const coordenadasCompartidas = document.createElement('output');
+    coordenadasCompartidas.id = 'rsShareCoordinates';
+    coordenadasCompartidas.style.cssText = 'display:inline-block;width:auto;flex:1 1 auto;min-width:0;font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    panelCompartir.appendChild(coordenadasCompartidas);
+    // Botón de copiar SOLO las coordenadas (nov-2026): icono de portapapeles
+    // SVG inline, junto al output. Sin texto para no romper la línea del panel.
+    const btnCopiarCoordenadas = document.createElement('button');
+    btnCopiarCoordenadas.type = 'button';
+    btnCopiarCoordenadas.id = 'rsBtnCopiarCoordenadas';
+    btnCopiarCoordenadas.title = t('copyCoords', 'Copiar coordenadas');
+    btnCopiarCoordenadas.setAttribute('aria-label', t('copyCoords', 'Copiar coordenadas'));
+    btnCopiarCoordenadas.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    btnCopiarCoordenadas.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!coordenadasCompartidas.textContent) return;
+      copiarTexto(coordenadasCompartidas.textContent)
+        .then(() => mostrarEstado(t('coordsCopied', 'Coordenadas copiadas.'), 'ok'))
+        .catch(() => mostrarEstado(t('shareCopyError', 'No se ha podido copiar.'), 'error'));
+    });
+    panelCompartir.appendChild(btnCopiarCoordenadas);
+    const ponerBotonCompartir = (texto, accion) => {
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.textContent = texto;
+      boton.addEventListener('click', accion);
+      panelCompartir.appendChild(boton);
+    };
+    const urlPuntoCompartido = () => {
+      if (!ultimoDestinoMarcador) return '';
+      const url = new URL(window.location.href);
+      url.search = '';
+      url.hash = '';
+      url.searchParams.set('manolit-punto',
+        `${ultimoDestinoMarcador.lat.toFixed(6)},${ultimoDestinoMarcador.lon.toFixed(6)}`);
+      // En desarrollo (127.0.0.1, localhost) el enlace apuntaría a una máquina
+      // que nadie más puede abrir y WhatsApp/X no lo reconocen como web.
+      // El enlace compartido SIEMPRE lleva el dominio público de producción.
+      if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') {
+        try {
+          const produccion = new URL('https://manolitoaire.com/');
+          produccion.search = url.search;
+          return produccion.toString();
+        } catch (e) { /* nunca debería fallar; se devuelve el local */ }
+      }
+      return url.toString();
+    };
+    const copiarTexto = (texto) => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(texto);
+      }
+      const area = document.createElement('textarea');
+      area.value = texto;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      try { document.execCommand('copy'); } finally { area.remove(); }
+      return Promise.resolve();
+    };
+    const compartirUrl = () => {
+      const url = urlPuntoCompartido();
+      if (!url) return;
+      const texto = t('sharePointText', 'Mira este punto en Manolit∞ Aire');
+      if (typeof navigator.share === 'function') {
+        navigator.share({ title: t('sharePoint', 'Compartir punto'), text: texto, url }).catch(() => {});
+      } else {
+        copiarTexto(url)
+          .then(() => mostrarEstado(t('shareCopied', 'Enlace copiado.'), 'ok'))
+          .catch(() => mostrarEstado(t('shareCopyError', 'No se ha podido copiar el enlace.'), 'error'));
+      }
+    };
+    ponerBotonCompartir(t('shareNative', 'Compartir…'), compartirUrl);
+    ponerBotonCompartir('X', () => {
+      const url = urlPuntoCompartido();
+      if (url) window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(t('sharePointText', 'Mira este punto en Manolit∞ Aire'))}&url=${encodeURIComponent(url)}`, '_blank', 'noopener,noreferrer');
+    });
+    ponerBotonCompartir('WhatsApp', () => {
+      const url = urlPuntoCompartido();
+      if (url) window.open(`https://wa.me/?text=${encodeURIComponent(`${t('sharePointText', 'Mira este punto en Manolit∞ Aire')} ${url}`)}`, '_blank', 'noopener,noreferrer');
+    });
+    ponerBotonCompartir('Telegram', () => {
+      const url = urlPuntoCompartido();
+      if (url) window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(t('sharePointText', 'Mira este punto en Manolit∞ Aire'))}`, '_blank', 'noopener,noreferrer');
+    });
+    ponerBotonCompartir('Instagram', () => {
+      const url = urlPuntoCompartido();
+      if (url) copiarTexto(url)
+        .then(() => mostrarEstado(t('shareInstagram', 'Enlace copiado para Instagram.'), 'ok'))
+        .catch(() => mostrarEstado(t('shareCopyError', 'No se ha podido copiar el enlace.'), 'error'));
+    });
+    ponerBotonCompartir(t('copyLink', 'Copiar enlace'), () => {
+      const url = urlPuntoCompartido();
+      if (url) copiarTexto(url)
+        .then(() => mostrarEstado(t('shareCopied', 'Enlace copiado.'), 'ok'))
+        .catch(() => mostrarEstado(t('shareCopyError', 'No se ha podido copiar el enlace.'), 'error'));
+    });
+    // SVG de dirección exacto solicitado: Manolit inclinado apuntando al punto.
+    // Se omite el bloque C2PA <metadata> del pegado porque no se representa.
+    const ICONO_RUTA_PUNTO = '<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs><filter id="glowDir" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect width="100%" height="100%" fill="#020406"/><ellipse cx="91" cy="202" rx="22" ry="6" fill="#000" opacity="0.6"/><g transform="translate(118,110) rotate(18) scale(0.62) translate(-100,-150)" filter="url(#glowDir)"><path d="M 100,30 C 30,110 30,210 100,290" fill="none" stroke="#ff2a4b" stroke-width="5" stroke-linecap="round"/><path d="M 100,30 C 170,110 170,210 100,290 Z" fill="#ff2a4b" opacity="0.14" stroke="#ff2a4b" stroke-width="5" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="4"/><path d="M 100,146 C 75,121 75,171 100,146 C 125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M 60,165 Q 80,155 100,165 T 140,165" fill="none" stroke="#00e5ff" stroke-width="5" stroke-linecap="round"/><path d="M 65,175 Q 82.5,167 100,175 T 135,175" fill="none" stroke="#00e5ff" stroke-width="4" stroke-linecap="round"/></g><circle cx="91" cy="196" r="4" fill="#ffffff"/></svg>';
+    const btnIrAlPunto = document.createElement('button');
+    btnIrAlPunto.type = 'button';
+    btnIrAlPunto.id = 'rsBtnIrAlPunto';
+    btnIrAlPunto.title = t('routeToPoint', 'Ir hasta este punto');
+    btnIrAlPunto.setAttribute('aria-label', btnIrAlPunto.title);
+    btnIrAlPunto.innerHTML = ICONO_RUTA_PUNTO;
+    btnIrAlPunto.addEventListener('click', async () => {
+      if (!ultimoDestinoMarcador) return;
+      btnIrAlPunto.disabled = true;
+      try {
+        if (typeof window.manolitAireCalcularRutaPuntoCompartido !== 'function') {
+          mostrarEstado(t('chatRouteMapLoading', 'El mapa todavía se está cargando.'), 'error');
+          return;
+        }
+        const modoActual = window.__manolitoModoRuta || 'caminar';
+        const resultado = await window.manolitAireCalcularRutaPuntoCompartido(ultimoDestinoMarcador, modoActual);
+        if (!resultado) mostrarEstado(t('errorSearch', 'No se ha podido calcular la ruta.'), 'error');
+        else {
+          const chatPanel = document.getElementById('chatOverlay');
+          if (chatPanel && (chatPanel.hidden || getComputedStyle(chatPanel).display === 'none') && typeof window.openChat === 'function') window.openChat();
+          const chatBody = document.getElementById('chatBody');
+          if (chatBody) {
+            const mensaje = document.createElement('div');
+            mensaje.className = 'chat-msg mano';
+            const modoNombre = modoActual === 'bici' ? 'en bici' : (modoActual === 'coche' ? 'en coche' : 'a pie');
+            mensaje.textContent = `He calculado y dibujado en el mapa la ruta ${modoNombre} hasta el punto marcado. Puedes ver las indicaciones en el panel de ruta.`;
+            chatBody.appendChild(mensaje);
+            const listaPasos = document.getElementById('rsListaPasos');
+            const textosPasos = listaPasos ? Array.from(listaPasos.querySelectorAll('li')).map(paso => paso.textContent.trim()).filter(Boolean) : [];
+            if (textosPasos.length) {
+              const detalle = document.createElement('div');
+              detalle.className = 'chat-msg mano';
+              detalle.textContent = `Indicaciones del recorrido:\n${textosPasos.join('\n')}`;
+              chatBody.appendChild(detalle);
+            }
+            chatBody.scrollTop = chatBody.scrollHeight;
+          }
+        }
+      } finally {
+        btnIrAlPunto.disabled = false;
+      }
+    });
+    panelCompartir.appendChild(btnIrAlPunto);
+    btnCompartirPunto.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const punto = ultimoDestinoMarcador;
+      if (!punto) { mostrarEstado(t('markPointFirst', 'Primero marca un punto en el mapa (pulsación larga).'), 'info'); return; }
+      coordenadasCompartidas.textContent = `${Number(punto.lat).toFixed(6)}, ${Number(punto.lon).toFixed(6)}`;
+      const visible = !panelCompartir.classList.contains('rs-visible');
+      panelCompartir.classList.toggle('rs-visible', visible);
+      panelCompartir.hidden = !visible;
+    });
 
     const btnUbicacion = document.createElement('button');
     btnUbicacion.type = 'button';
@@ -3085,8 +3345,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     function reiniciarTodo() {
       detenerPaseoVirtual();
-      salirDeModoClick();
+      try { window.__manolitOrigenPuntoMarcado = null; } catch (e) { /* limpiar origen marcado */ }
+      try { window.manolitoViaje?.limpiar(); } catch (e) { /* reinicio también limpia el coche */ }
       detenerCaminata();
+      document.getElementById('rsPanelBici')?.setAttribute('hidden', '');
+      try { window.manolitAireLimpiarRutaBici?.(); } catch (e) { /* reinicio también limpia la bici */ } 
+      
       dormirGPS();
       try {
         if (window.manolitAireLimpiarRutaBici) window.manolitAireLimpiarRutaBici();
@@ -3103,6 +3367,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
       if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
+      actualizarMascotaDestino(null);
+      ultimoDestinoMarcador = null;
+      actualizarBotonCompartirPunto();
+      mascotaEnPuntoMarcado = false;
             rutaActual = null;
       origenParaAutoRuta = null;
       limpiarTramoRecorrido(); // si la ruta se borra, el gris también
@@ -3137,15 +3405,37 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     // Limpieza parcial (nov-2026) para el buscador unificado: al cambiar de
     // modo se desconecta la ruta peatonal del mapa SIN borrar lo que el
-    // usuario escribió en los campos (eso solo lo hace «Reiniciar»).
-    window.manolitAireLimpiarRutaPeatonal = function () {
+    // usuario escribió en los campos ni el destino marcado/compartido.
+    window.manolitAireLimpiarRutaPeatonal = function (opciones) {
       try {
-        map.getSource('ruta')?.setData(turf.featureCollection([]));
-        map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
-        if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
-        if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
-                rutaActual = null;
-        origenParaAutoRuta = null;
+        const destinoConservado = ultimoDestinoMarcador ? { ...ultimoDestinoMarcador } : null;
+        const puntoDePartida = destinoConservado
+          ? (destinoConservado.puntoPartida || window.__manolitOrigenPuntoMarcado || null)
+          : null;
+        if (destinoConservado && puntoDePartida) destinoConservado.puntoPartida = { ...puntoDePartida };
+        // No vaciar geometría ni marcadores: solo «Reiniciar» los quita.
+        if (destinoConservado) {
+          ultimoDestinoMarcador = destinoConservado;
+          mascotaEnPuntoMarcado = true;
+          inputDestino.value = textoCoordenadasPunto(destinoConservado.lat, destinoConservado.lon);
+          seleccionPorInput.set(inputDestino, {
+            lat: Number(destinoConservado.lat),
+            lon: Number(destinoConservado.lon),
+            nombre: destinoConservado.nombre || t('sharedPoint', 'Punto marcado'),
+            texto: inputDestino.value
+          });
+          const puntosDestino = [turf.point([Number(destinoConservado.lon), Number(destinoConservado.lat)], { tipo: 'destino-compartido' })];
+          const origenConservado = destinoConservado.puntoPartida || window.__manolitOrigenPuntoMarcado;
+          if (origenConservado && Number.isFinite(Number(origenConservado.lat)) && Number.isFinite(Number(origenConservado.lon))) {
+            puntosDestino.unshift(turf.point([Number(origenConservado.lon), Number(origenConservado.lat)], { tipo: 'origen-marcado' }));
+            pintarMarcadores(origenConservado, destinoConservado);
+          } else {
+            actualizarMascotaDestino(destinoConservado, true);
+          }
+          map.getSource('puntos-manuales')?.setData(turf.featureCollection(puntosDestino));
+          mascotaEnPuntoMarcado = true;
+        }
+        actualizarBotonCompartirPunto();
         limpiarTramoRecorrido();
         mostrarBadgeSombra(null);
         mostrarAtajoCaminar(false);
@@ -3154,37 +3444,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         try { limpiarAlertasUvRuta(); } catch (e) { /* aditivo: nunca rompe */ }
       } catch (e) {}
     };
-
-    function salirDeModoClick() {
-      modoClickMapa = false;
-      puntoOrigenPendiente = null;
-      esperandoSoloDestino = false;
-      btnModoClick.classList.remove('rs-activo');
-      map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
-    }
-
-    btnModoClick.addEventListener('click', () => {
-      if (modoClickMapa) {
-        salirDeModoClick();
-        mostrarEstado('');
-        return;
-      }
-      modoClickMapa = true;
-      puntoOrigenPendiente = null;
-      btnModoClick.classList.add('rs-activo');
-      // Si ya tienes un origen confirmado (por ejemplo «Mi ubicación»), el
-      // primer clic en el mapa pone el DESTINO directamente. Si no hay
-      // origen, el primer clic pone el origen y el segundo el destino.
-      const origenYaElegido = seleccionPorInput.get(inputOrigen);
-      if (origenYaElegido) {
-        origenParaAutoRuta = { lat: origenYaElegido.lat, lon: origenYaElegido.lon, nombre: origenYaElegido.nombre || t('myLocation', 'Mi ubicación') };
-        esperandoSoloDestino = true;
-        mostrarEstado(t('clickDestiny', 'Origen marcado, haz clic en el destino.'));
-      } else {
-        esperandoSoloDestino = false;
-        mostrarEstado(t('clickOrigin', 'Haz clic en el mapa para marcar el origen.'));
-      }
-    });
 
     /* ============ GPS FINO CON SIESTA (sep-2026, pliego) ============
        1) PRIVACIDAD TOTAL: las coordenadas se procesan aquí, en el
@@ -3389,7 +3648,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const avisar = gpsAvisoPendiente && !huboLecturaBuena && !huboLecturaTosca;
         dormirGPS();
         if (avisar) {
-          mostrarEstado(t('locationNotCalibrated', 'El GPS no ha llegado a buena precisión (20 m o menos). Acércate a una ventana o sal a cielo abierto, o pulsa «Elegir en el mapa» para marcar el punto a mano.'), 'error');
+          mostrarEstado(t('locationNotCalibrated', 'El GPS no ha llegado a buena precisión (20 m o menos). Acércate a una ventana o sal a cielo abierto, o mantén pulsado el mapa para marcar el punto a mano.'), 'error');
         }
         if (!huboLecturaBuena && !huboLecturaTosca && window.__manolitUbicacionCb) {
           try { window.__manolitUbicacionCb.reject(new Error('sin-precision')); } catch (e) { }
@@ -4008,7 +4267,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // panel unificado (anclajes #rsMonteArboles / #rsMonteIrradiacion del
     // index). Mismo botón, mismo id, mismo handler: solo cambia el sitio.
     // Si una página no trae los anclajes, caen a la barra como antes.
-    panelMapa.append(btnPlegarControles, btnModoClick, btnUbicacion, btnCaminar, btnGuiaVoz, btnPaseo, btnReiniciar);
+    // La fila superior conserva solo los controles de mapa; compartir vive
+    // en el cuadrado inferior derecho señalado junto a los controles.
+    panelMapa.append(
+      btnPlegarControles,
+      btnUbicacion,
+      btnCaminar,
+      btnGuiaVoz,
+      btnPaseo,
+      btnReiniciar
+    );
+    actualizarBotonCompartirPunto();
     const monteArboles = document.getElementById('rsMonteArboles');
     const monteIrradiacion = document.getElementById('rsMonteIrradiacion');
     if (monteArboles) monteArboles.appendChild(btnArboles); else panelMapa.appendChild(btnArboles);
@@ -4018,52 +4287,164 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // (rsCamUbicacion) le delega su click, pero ya no ocupa hueco en el banner.
     btnUbicacion.style.display = 'none';
     contenedorMapa.appendChild(panelMapa);
+    contenedorMapa.appendChild(btnCompartirPunto);
+    contenedorMapa.appendChild(panelCompartir);
+
+    let pulsacionLargaTimer = null;
+    let pulsacionLargaSuprimeClick = false;
+    let pulsacionLargaInicio = null;
+    let pulsacionLargaDisparada = false;
+
+    function cancelarPulsacionLarga() {
+      if (pulsacionLargaTimer) {
+        clearTimeout(pulsacionLargaTimer);
+        pulsacionLargaTimer = null;
+      }
+      pulsacionLargaInicio = null;
+      pulsacionLargaDisparada = false;
+    }
 
     map.on('click', (e) => {
-      if (!modoClickMapa) return;
+      if (!(e && e.__pulsacionLarga)) return;
+      pulsacionLargaSuprimeClick = true;
       const { lat, lng } = e.lngLat;
+      if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
+      if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
+      mascotaEnPuntoMarcado = true;
+      ultimoDestinoMarcador = {
+        lat,
+        lon: lng,
+        nombre: t('pointMap', 'Punto marcado en el mapa')
+      };
+      if (!esperandoSoloDestino && puntoOrigenPendiente) {
+        ultimoDestinoMarcador.puntoPartida = {
+          lat: Number(puntoOrigenPendiente.lat),
+          lon: Number(puntoOrigenPendiente.lon),
+          nombre: puntoOrigenPendiente.nombre || t('pointMap', 'Punto marcado en el mapa')
+        };
+        window.__manolitOrigenPuntoMarcado = { ...ultimoDestinoMarcador.puntoPartida };
+      }
+      actualizarBotonCompartirPunto();
+      actualizarMascotaDestino(ultimoDestinoMarcador, true);
+      ocultarIndicadoresUbicacion();
+      map.flyTo({
+        center: [lng, lat],
+        zoom: Math.min(17, Math.max(map.getZoom(), 16)),
+        duration: 800
+      });
 
       if (esperandoSoloDestino && origenParaAutoRuta) {
         const origenFijado = origenParaAutoRuta;
         const destinoFijado = { lat, lon: lng };
+        destinoFijado.puntoPartida = { lat: origenFijado.lat, lon: origenFijado.lon, nombre: origenFijado.nombre || t('pointMap', 'Punto marcado en el mapa') };
+        window.__manolitOrigenPuntoMarcado = { ...destinoFijado.puntoPartida };
         map.getSource('puntos-manuales')?.setData(turf.featureCollection([
           turf.point([origenFijado.lon, origenFijado.lat]),
           turf.point([lng, lat]),
         ]));
-        inputDestino.value = t('pointMap', 'Punto marcado en el mapa');
-        salirDeModoClick();
+        inputDestino.value = textoCoordenadasPunto(lat, lng);
         manejarBusqueda(
           { ...origenFijado },
           { ...destinoFijado, nombre: t('pointMap', 'Punto marcado en el mapa') }
         );
-        geocodificarInverso(lat, lng).then((nombre) => { inputDestino.value = nombre; });
+        geocodificarInverso(lat, lng).then(() => { inputDestino.value = textoCoordenadasPunto(lat, lng); });
         return;
       }
 
       if (!puntoOrigenPendiente) {
         puntoOrigenPendiente = { lat, lon: lng };
+        ultimoDestinoMarcador = { lat, lon: lng, nombre: t('pointMap', 'Punto marcado en el mapa') };
+        window.__manolitOrigenPuntoMarcado = { lat, lon: lng, nombre: t('pointMap', 'Punto marcado en el mapa') };
+        mascotaEnPuntoMarcado = true;
+        actualizarBotonCompartirPunto();
         map.getSource('puntos-manuales')?.setData(turf.featureCollection([turf.point([lng, lat])]));
-        inputOrigen.value = t('pointMap', 'Punto marcado en el mapa');
+        inputOrigen.value = textoCoordenadasPunto(lat, lng);
         mostrarEstado(t('clickDestiny', 'Origen marcado, haz clic en el destino.'));
-        geocodificarInverso(lat, lng).then((nombre) => { inputOrigen.value = nombre; });
+        geocodificarInverso(lat, lng).then(() => { inputOrigen.value = textoCoordenadasPunto(lat, lng); });
         return;
       }
 
       const origenFijado = puntoOrigenPendiente;
       const destinoFijado = { lat, lon: lng };
+      destinoFijado.puntoPartida = { lat: origenFijado.lat, lon: origenFijado.lon, nombre: origenFijado.nombre || t('pointMap', 'Punto marcado en el mapa') };
+      window.__manolitOrigenPuntoMarcado = { ...destinoFijado.puntoPartida };
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([
         turf.point([origenFijado.lon, origenFijado.lat]),
         turf.point([lng, lat]),
       ]));
-      inputDestino.value = t('pointMap', 'Punto marcado en el mapa');
-      salirDeModoClick();
+      inputDestino.value = textoCoordenadasPunto(lat, lng);
       manejarBusqueda(
         { ...origenFijado, nombre: t('pointMap', 'Punto marcado en el mapa') },
         { ...destinoFijado, nombre: t('pointMap', 'Punto marcado en el mapa') }
       );
-      geocodificarInverso(origenFijado.lat, origenFijado.lon).then((nombre) => { inputOrigen.value = nombre; });
-      geocodificarInverso(lat, lng).then((nombre) => { inputDestino.value = nombre; });
+      geocodificarInverso(origenFijado.lat, origenFijado.lon).then(() => {
+        inputOrigen.value = textoCoordenadasPunto(origenFijado.lat, origenFijado.lon);
+      });
+      geocodificarInverso(lat, lng).then(() => {
+        inputDestino.value = textoCoordenadasPunto(lat, lng);
+      });
     });
+
+    // Atajo tipo Google Maps: mantener pulsado sobre el mapa marca el punto.
+    // El clic corto no cambia.
+    const lienzoMapa = map.getCanvas();
+    if (lienzoMapa && !lienzoMapa.dataset.pulsacionLargaMapa) {
+      lienzoMapa.dataset.pulsacionLargaMapa = '1';
+      lienzoMapa.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        const rect = lienzoMapa.getBoundingClientRect();
+        const x = event.clientX;
+        const y = event.clientY;
+        const punteroId = event.pointerId;
+        pulsacionLargaInicio = { x, y, punteroId };
+        pulsacionLargaDisparada = false;
+        pulsacionLargaTimer = window.setTimeout(() => {
+          if (!pulsacionLargaInicio || pulsacionLargaInicio.punteroId !== punteroId) return;
+          pulsacionLargaDisparada = true;
+          pulsacionLargaSuprimeClick = true;
+          puntoFijadoPorPulsacionLarga = true;
+          const punto = map.unproject([
+            x - rect.left,
+            y - rect.top,
+          ]);
+              mascotaEnPuntoMarcado = true;
+          ultimoDestinoMarcador = {
+            lat: punto.lat,
+            lon: punto.lng,
+            nombre: t('pointMap', 'Punto marcado en el mapa')
+          };
+          actualizarBotonCompartirPunto();
+          actualizarMascotaDestino(ultimoDestinoMarcador, true);
+          map.flyTo({
+            center: [punto.lng, punto.lat],
+            zoom: Math.min(17, Math.max(map.getZoom(), 16)),
+            duration: 800
+          });
+          map.fire('click', { lngLat: punto, __pulsacionLarga: true });
+        }, 1000);
+      }, { passive: true });
+      lienzoMapa.addEventListener('pointermove', (event) => {
+        if (!pulsacionLargaInicio || (event.pointerId !== undefined && event.pointerId !== pulsacionLargaInicio.punteroId)) return;
+        // El tacto puede desplazarse unos píxeles sin intención de arrastrar;
+        // toleramos más movimiento en pantallas táctiles que con ratón.
+        const tolerancia = event.pointerType === 'touch' ? 24 : 12;
+        const dx = event.clientX - pulsacionLargaInicio.x;
+        const dy = event.clientY - pulsacionLargaInicio.y;
+        if (Math.hypot(dx, dy) > tolerancia) cancelarPulsacionLarga();
+      }, { passive: true });
+      lienzoMapa.addEventListener('pointerup', () => {
+        if (!pulsacionLargaDisparada) cancelarPulsacionLarga();
+        else {
+          pulsacionLargaInicio = null;
+          pulsacionLargaDisparada = false;
+        }
+      }, { passive: true });
+      lienzoMapa.addEventListener('pointercancel', cancelarPulsacionLarga, { passive: true });
+      lienzoMapa.addEventListener('pointerleave', (event) => {
+        if (event.buttons) return;
+        cancelarPulsacionLarga();
+      }, { passive: true });
+    }
   }
 
   function inyectarControlesTiempo() {
@@ -5466,10 +5847,207 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   /* ---------------- Marcadores ---------------- */
 
   let marcadorOrigen = null, marcadorDestino = null;
+  let marcadorDestinoMascota = null, mascotaDestino = null;
+  let ultimoDestinoMarcador = null;
+
+  function cancelarPuntoMarcado() {
+    if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
+    actualizarMascotaDestino(null);
+    map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
+    ultimoDestinoMarcador = null;
+    mascotaEnPuntoMarcado = false;
+    if (typeof inputDestino !== 'undefined' && inputDestino) {
+      inputDestino.value = '';
+      seleccionPorInput.delete(inputDestino);
+    }
+    actualizarBotonCompartirPunto();
+  }
+
+  function actualizarBotonCompartirPunto() {
+    const boton = document.getElementById('rsBtnCompartirPunto');
+    if (!boton) return;
+    const hayPunto = Boolean(
+      ultimoDestinoMarcador &&
+      Number.isFinite(Number(ultimoDestinoMarcador.lat)) &&
+      Number.isFinite(Number(ultimoDestinoMarcador.lon))
+    );
+    boton.classList.toggle('rs-visible', hayPunto);
+    boton.hidden = !hayPunto;
+  }
+
+  function cargarPuntoCompartido() {
+    let valor = '';
+    try { valor = new URLSearchParams(window.location.search).get('manolit-punto') || ''; } catch (e) { return; }
+    const partes = valor.split(',').map(Number);
+    if (partes.length !== 2 || !partes.every(Number.isFinite)) return;
+    const [lat, lon] = partes;
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return;
+    const destino = { lat, lon, nombre: t('sharedPoint', 'Punto compartido') };
+    ultimoDestinoMarcador = destino;
+    actualizarBotonCompartirPunto();
+    inputDestino.value = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+    mascotaEnPuntoMarcado = true;
+    window.__manolitPuntoCompartidoPendiente = { lat, lon };
+    map.getSource('puntos-manuales')?.setData(turf.featureCollection([
+      turf.point([lon, lat], { tipo: 'destino-compartido' }),
+    ]));
+    actualizarMascotaDestino(destino, true);
+    // essential:true: iOS Safari aborta vuelos no esenciales si llega otro
+    // movimiento de cámara, y este NO se debe poder cancelar.
+    map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 16), duration: 900, essential: true });
+    mostrarEstado(t('sharedPointLoaded', 'Punto compartido cargado.'), 'ok');
+  }
+
+  function textoCoordenadasPunto(lat, lon) {
+    return `${Number(lat).toFixed(6)}, ${Number(lon).toFixed(6)}`;
+  }
+
+  window.manolitAirePuntoCompartidoActual = () => {
+    if (!ultimoDestinoMarcador || !Number.isFinite(Number(ultimoDestinoMarcador.lat)) || !Number.isFinite(Number(ultimoDestinoMarcador.lon))) return null;
+    const origenGuardado = ultimoDestinoMarcador.puntoPartida || window.__manolitOrigenPuntoMarcado || null;
+    return Object.assign({
+    lat: Number(ultimoDestinoMarcador.lat),
+    lon: Number(ultimoDestinoMarcador.lon),
+    nombre: ultimoDestinoMarcador.nombre || t('sharedPoint', 'Punto marcado en el mapa')
+    }, origenGuardado ? { puntoPartida: Object.assign({}, origenGuardado) } : {});
+  };
+  window.manolitAireCalcularRutaPuntoCompartido = async function (destino, modoForzado) {
+    if (!destino || !Number.isFinite(Number(destino.lat)) || !Number.isFinite(Number(destino.lon))) return false;
+    try {
+      let origen;
+      if (modoForzado === 'caminar' && destino.puntoPartida && Number.isFinite(Number(destino.puntoPartida.lat)) && Number.isFinite(Number(destino.puntoPartida.lon))) {
+        origen = { lat: Number(destino.puntoPartida.lat), lon: Number(destino.puntoPartida.lon), nombre: destino.puntoPartida.nombre || t('pointMap', 'Punto marcado en el mapa') };
+      } else if (Number.isFinite(Number(destino.lat)) && Number.isFinite(Number(destino.lon))) {
+        const origenElegido = seleccionPorInput.get(inputOrigen);
+        if (origenElegido && origenElegido.texto === inputOrigen.value.trim()) origen = origenElegido;
+        else if (inputOrigen.value.trim()) origen = await resolverPunto(inputOrigen);
+        else {
+          const ultimaPos = window.__manolitUltimaPos;
+          origen = ultimaPos && Number.isFinite(Number(ultimaPos.lat)) && Number.isFinite(Number(ultimaPos.lon))
+            ? { lat: Number(ultimaPos.lat), lon: Number(ultimaPos.lon), nombre: t('myLocation', 'Mi ubicación') }
+            : null;
+        }
+        if (!origen && navigator.geolocation) {
+          mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicación…'));
+          try {
+            origen = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
+              pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, nombre: t('myLocation', 'Mi ubicación') }),
+              reject,
+              { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+            ));
+            window.__manolitUltimaPos = { lat: origen.lat, lon: origen.lon, precisionM: null, ts: Date.now() };
+          } catch (errorGps) {
+            mostrarEstado(t('chatRouteDenied', 'Sin permiso de ubicación. Selecciona un origen en el panel de rutas.'), 'error');
+            return false;
+          }
+        }
+      } else if (inputOrigen.value.trim()) {
+        origen = await resolverPunto(inputOrigen);
+      } else {
+        const ultima = window.__manolitUltimaPos;
+        if (ultima && Number.isFinite(Number(ultima.lat)) && Number.isFinite(Number(ultima.lon))) {
+          origen = { lat: Number(ultima.lat), lon: Number(ultima.lon), nombre: t('myLocation', 'Mi ubicación') };
+        } else if (navigator.geolocation) {
+          mostrarEstado(t('locationAsking', 'Pidiendo permiso de ubicación…'));
+          try {
+            origen = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
+              pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, nombre: t('myLocation', 'Mi ubicación') }),
+              reject,
+              { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+            ));
+          } catch (errorGps) {
+            mostrarEstado(t('chatRouteDenied', 'Sin permiso de ubicación no puedo salir desde donde estás. Escribe un origen en el panel de rutas.'), 'error');
+            return false;
+          }
+          window.__manolitUltimaPos = { lat: origen.lat, lon: origen.lon, precisionM: null, ts: Date.now() };
+        } else {
+          mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
+          return false;
+        }
+      }
+      if (!origen) {
+        mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
+        return false;
+      }
+      if (modoForzado === 'caminar' && destino.puntoPartida) {
+        origen = { lat: Number(destino.puntoPartida.lat), lon: Number(destino.puntoPartida.lon), nombre: destino.puntoPartida.nombre || t('pointMap', 'Punto marcado en el mapa') };
+      }
+      const destinoPunto = { ...destino, lat: Number(destino.lat), lon: Number(destino.lon), nombre: destino.nombre || t('sharedPoint', 'Punto marcado en el mapa') };
+      seleccionPorInput.set(inputOrigen, origen);
+      seleccionPorInput.set(inputDestino, destinoPunto);
+      if (!inputOrigen.value.trim()) inputOrigen.value = textoCoordenadasPunto(origen.lat, origen.lon);
+      seleccionPorInput.set(inputOrigen, { ...origen, texto: inputOrigen.value.trim() });
+      inputDestino.value = textoCoordenadasPunto(destinoPunto.lat, destinoPunto.lon);
+      if (modoForzado) {
+        window.__manolitoModoRuta = modoForzado;
+        sincronizarBotonesModo();
+      }
+      if (modoForzado === 'bici' && typeof window.manolitAirePlanificarRutaBici === 'function') {
+        const res = await window.manolitAirePlanificarRutaBici(inputOrigen.value, textoCoordenadasPunto(destinoPunto.lat, destinoPunto.lon), { origen, destino: destinoPunto });
+        if (res) {
+          destinoPunto.puntoPartida = { lat: origen.lat, lon: origen.lon, nombre: origen.nombre || '' };
+          ultimoDestinoMarcador = destinoPunto;
+          window.__manolitOrigenPuntoMarcado = { ...destinoPunto.puntoPartida };
+          actualizarBotonCompartirPunto();
+        }
+        return Boolean(res);
+      }
+      if (modoForzado === 'coche' && window.manolitoViaje && typeof window.manolitoViaje.planificar === 'function') {
+        const res = await window.manolitoViaje.planificar(inputOrigen.value, textoCoordenadasPunto(destinoPunto.lat, destinoPunto.lon), { origenCoordenadas: origen, destinoCoordenadas: destinoPunto });
+        if (res) {
+          destinoPunto.puntoPartida = { lat: origen.lat, lon: origen.lon, nombre: origen.nombre || '' };
+          ultimoDestinoMarcador = destinoPunto;
+          window.__manolitOrigenPuntoMarcado = { ...destinoPunto.puntoPartida };
+          actualizarBotonCompartirPunto();
+        }
+        return Boolean(res);
+      }
+      const ruta = await ejecutarBusquedaConPuntos(origen, destinoPunto);
+      if (ruta && ruta.esReal === true) {
+        destinoPunto.puntoPartida = { lat: origen.lat, lon: origen.lon, nombre: origen.nombre || '' };
+        ultimoDestinoMarcador = destinoPunto;
+        window.__manolitOrigenPuntoMarcado = { ...destinoPunto.puntoPartida };
+        actualizarBotonCompartirPunto();
+      }
+      return Boolean(ruta && ruta.esReal === true);
+    } catch (error) {
+      mostrarEstado(error.message || t('errorSearch', 'No se ha podido calcular la ruta.'), 'error');
+      return false;
+    }
+  };
+
+  function actualizarMascotaDestino(destino, forzar) {
+    if (marcadorDestinoMascota) marcadorDestinoMascota.remove();
+    if (mascotaDestino) mascotaDestino.destroy();
+    marcadorDestinoMascota = null;
+    mascotaDestino = null;
+    actualizarBotonCompartirPunto();
+    const btnCaminar = document.getElementById('rsBtnWalk');
+    if (!destino || (!forzar && (!btnCaminar || !btnCaminar.classList.contains('rs-activo'))) ||
+        typeof window.ManolitWalker !== 'function') return;
+    try {
+      mascotaDestino = new window.ManolitWalker({ size: 40 });
+      mascotaDestino.setIdle();
+      marcadorDestinoMascota = new maplibregl.Marker({
+        element: mascotaDestino.element,
+        rotationAlignment: 'viewport',
+        pitchAlignment: 'viewport',
+        anchor: 'center',
+        offset: [0, -10],
+      }).setLngLat([destino.lon, destino.lat]).addTo(map);
+    } catch (e) {
+      marcadorDestinoMascota = null;
+      mascotaDestino = null;
+    }
+  }
 
   function pintarMarcadores(origen, destino) {
+    const puntoMarcado = mascotaEnPuntoMarcado;
+    mascotaEnPuntoMarcado = false;
     if (marcadorOrigen) marcadorOrigen.remove();
     if (marcadorDestino) marcadorDestino.remove();
+    actualizarMascotaDestino(null);
+    ultimoDestinoMarcador = destino;
 
     const pin = (color) => {
       const el = document.createElement('div');
@@ -5477,15 +6055,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       return el;
     };
 
-    marcadorOrigen = new maplibregl.Marker({ element: pin(leerVar('--accent') || '#00f2ff') })
-      .setLngLat([origen.lon, origen.lat])
-      .setPopup(new maplibregl.Popup().setHTML(`<b>${t('origin', 'Origen')}</b><br>${origen.nombre}`))
-      .addTo(map);
+    if (!puntoMarcado) {
+      marcadorOrigen = new maplibregl.Marker({ element: pin(leerVar('--accent') || '#00f2ff') })
+        .setLngLat([origen.lon, origen.lat])
+        .setPopup(new maplibregl.Popup().setHTML(`<b>${t('origin', 'Origen')}</b><br>${origen.nombre}`))
+        .addTo(map);
 
-    marcadorDestino = new maplibregl.Marker({ element: pin(leerVar('--sky-deep') || '#0E3B47') })
-      .setLngLat([destino.lon, destino.lat])
-      .setPopup(new maplibregl.Popup().setHTML(`<b>${t('destiny', 'Destino')}</b><br>${destino.nombre}`))
-      .addTo(map);
+      marcadorDestino = new maplibregl.Marker({ element: pin(leerVar('--sky-deep') || '#0E3B47') })
+        .setLngLat([destino.lon, destino.lat])
+        .setPopup(new maplibregl.Popup().setHTML(`<b>${t('destiny', 'Destino')}</b><br>${destino.nombre}`))
+        .addTo(map);
+    }
+    actualizarMascotaDestino(destino, puntoMarcado);
+    actualizarBotonCompartirPunto();
   }
 
   /* ---------------- UI principal ---------------- */
@@ -6266,29 +6848,60 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const anterior = window.__manolitoModoRuta || 'caminar';
     if (anterior !== modo) {
       window.__manolitoModoRuta = modo;
-      // Desconectar el modo anterior: ocultar su panel y limpiar su ruta.
+      // Al cambiar de perfil limpiamos solo la línea activa, no el punto destino.
       if (anterior === 'caminar') {
-        try { if (window.manolitAireLimpiarRutaPeatonal) window.manolitAireLimpiarRutaPeatonal(); } catch (e) {}
+        // Las capas de ruta se dejan activas; el modo seleccionado las sustituye al terminar su cálculo.
       }
       if (anterior === 'bici') {
         const p = document.getElementById('rsPanelBici');
         if (p) { p.classList.remove('rs-panel-viaje-abierto'); p.setAttribute('hidden', ''); }
-        try { if (window.manolitAireLimpiarRutaBici) window.manolitAireLimpiarRutaBici(); } catch (e) {}
+        try { if (window.manolitAireLimpiarRutaBici) window.manolitAireLimpiarRutaBici({ conservarRuta: true, conservarCampos: true }); } catch (e) {}
       }
       if (anterior === 'coche') {
         const p = document.getElementById('rsPanelViaje');
         if (p) { p.classList.remove('rs-panel-viaje-abierto'); p.setAttribute('hidden', ''); }
-        try { if (window.manolitoViaje) window.manolitoViaje.limpiar(); } catch (e) {}
+        try { if (window.manolitoViaje) window.manolitoViaje.limpiar({ conservarRuta: true }); } catch (e) {}
       }
     }
     sincronizarBotonesModo();
     if (opciones && opciones.enfocarDestino && inputDestino) inputDestino.focus();
-    // Al tocar otra pestaña con una búsqueda ya escrita, el mapa cambia al
-    // trayecto de ESA modalidad (su motor reencuadra la vista al pintar).
-    // Sin destino escrito solo se cambia de pestaña, como antes.
-    if (anterior !== modo && inputDestino && inputDestino.value.trim()) {
-      manejarBusquedaUnificada();
+    // Al tocar otra pestaña con una búsqueda ya escrita, el mapa calcula el
+    // perfil alternativo sin descartar las geometrías ya dibujadas.
+    // Un punto elegido en el mapa sigue siendo el mismo destino.
+    const destinoMarcadoCambioModo = typeof window.manolitAirePuntoCompartidoActual === 'function'
+      ? window.manolitAirePuntoCompartidoActual()
+      : null;
+    if (destinoMarcadoCambioModo && modo === 'caminar') {
+      const origenPunto = destinoMarcadoCambioModo.puntoPartida || window.__manolitOrigenPuntoMarcado;
+      if (origenPunto) {
+        const destinoPunto = Object.assign({}, destinoMarcadoCambioModo, { puntoPartida: Object.assign({}, origenPunto) });
+        window.manolitAireCalcularRutaPuntoCompartido(destinoPunto, 'caminar').then((ok) => {
+          if (!ok) mostrarEstado(t('errorSearch', 'No he podido recalcular esa ruta. Mantengo el punto marcado; prueba otra vez.'), 'error');
+        });
+        return;
+      }
     }
+    if (anterior !== modo && destinoMarcadoCambioModo) {
+      const textoDestino = textoCoordenadasPunto(destinoMarcadoCambioModo.lat, destinoMarcadoCambioModo.lon);
+      const destinoParaModo = { ...destinoMarcadoCambioModo };
+      const origenGuardado = destinoParaModo.puntoPartida || window.__manolitOrigenPuntoMarcado;
+      if (origenGuardado) destinoParaModo.puntoPartida = { ...origenGuardado };
+      inputDestino.value = textoDestino;
+      seleccionPorInput.set(inputDestino, { ...destinoParaModo, texto: textoDestino });
+      const origenElegido = seleccionPorInput.get(inputOrigen);
+      const origen = origenElegido && origenElegido.texto === inputOrigen.value.trim()
+        ? origenElegido
+        : (destinoParaModo.puntoPartida || puntoOrigenResumen());
+      if (origen) {
+        if (!inputOrigen.value.trim()) inputOrigen.value = textoCoordenadasPunto(origen.lat, origen.lon);
+        seleccionPorInput.set(inputOrigen, { ...origen, texto: inputOrigen.value.trim() });
+        window.manolitAireCalcularRutaPuntoCompartido(destinoParaModo, modo).then((ok) => {
+          if (!ok) mostrarEstado(t('errorSearch', 'No he podido recalcular esa ruta. Mantengo el punto marcado; prueba otra vez.'), 'error');
+        });
+        return;
+      }
+    }
+    if (anterior !== modo && inputDestino && inputDestino.value.trim()) manejarBusquedaUnificada();
   }
   window.manolitAireElegirModoRuta = elegirModoRuta;
 
@@ -6409,7 +7022,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // para que se distingan siempre del mapa base, independientemente del tema.
 
   document.addEventListener('langChanged', () => {
-    if (btnModoClickRef) btnModoClickRef.textContent = t('pickMap', 'Elegir en el mapa');
     const btnLoc = document.getElementById('rsBtnMyLocation');
     if (btnLoc) {
       btnLoc.textContent = t('myLocation', 'Mi ubicación');
@@ -7364,6 +7976,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           '¡Socorro, que esto achicharra! Vamoh por la sombra o no vamoh.',
           '¡Qué calorón, shiquillo! Esto no lo aguanta ni el botijo.',
           '¡Ojú! Con esta temperatura el asfalto hace tortilla sin huevo.',
+          'Si sobrevives a una tarde de julio cruzando la Plaza de España a las cuatro, la NASA te convalida el viaje a Marte.',
+          'A las 16:00 en Sevilla no hay calles, hay carriles de lava con fachadas blancas.',
+          '¿El infierno? El infierno es un simulacro comparado con el termómetro de un coche aparcado al sol en Nervión a las cinco de la tarde.',
+          'En Sevilla el verano no es una estación, es una mudanza temporal al interior del congelador.',
+          'De tres a seis de la tarde, el único deporte extremo que se practica en la ciudad es abrir las persianas.',
+          'Sevilla en las tardes de verano: ese lugar donde el aire acondicionado no es un electrodoméstico, es un miembro más de la familia.',
+          'Cruzar la acera al sol a las 17:00 no es andar, es un acto de fe con zapatillas que se derriten.',
           // Sombra y ruta
           '¡Mira qué sombrita más rica ahí al lao! Eso sí que es vida.',
           '¡Por aquí, por aquí! Que en esta calle hay más sombra que en la Giralda.',
@@ -8177,7 +8796,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       btn.addEventListener('click', () => {
         setTimeout(() => {
           try {
-            if (!btn.classList.contains('rs-activo')) { pararVigilanciaCaminata(); return; }
+            if (!btn.classList.contains('rs-activo')) {
+              pararVigilanciaCaminata();
+              actualizarMascotaDestino(null);
+              return;
+            }
+            actualizarMascotaDestino(ultimoDestinoMarcador);
             pararVigilanciaCaminata();
             manolit.vigilanciaCaminata = setInterval(() => {
               try {

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -11,6 +11,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Manolit∞ 3D">
 <style>
@@ -63,6 +64,7 @@
     <tr><td>Fuentes de agua</td><td>La caja geográfica visible del mapa, directamente a Overpass y, en zonas cubiertas, a fuentes de datos municipales.</td><td>No se solicita GPS específicamente para esta capa ni se guarda un historial propio; los servicios externos reciben la IP y metadatos técnicos habituales.</td></tr>
     <tr><td>Tipografías y mapas base</td><td>Solicitudes técnicas a Google Fonts y proveedores de mapas/teselas (por ejemplo, OpenFreeMap, IGN o Catastro, según las capas activadas).</td><td>No se adjunta deliberadamente tu nombre o cuenta; los proveedores pueden recibir IP y datos técnicos de conexión.</td></tr>
     <tr><td>Juego y certificado</td><td>Nombre, puntuación y certificado se procesan localmente; solo las solicitudes normales para cargar la página llegan al alojamiento.</td><td>El nombre, puntuación y serie simbólica no se envían deliberadamente a Manolit∞ ni se registran.</td></tr>
+    <tr><td>Compartir un punto del mapa</td><td>El enlace incluye las coordenadas exactas del punto que marcas y se entrega a la aplicación o servicio de destino que eliges (por ejemplo, WhatsApp, Telegram o X); también puedes copiarlo o usar la función nativa de compartir del dispositivo.</td><td>Compartir es una acción voluntaria. Manolit∞ no registra el envío, pero la plataforma elegida puede recibir el enlace, asociarlo a tu cuenta y tratarlo según sus propias políticas. El enlace puede ser visto por quien lo reciba o acceda a él.</td></tr>
   </table>
   </div>
 
@@ -155,6 +157,11 @@
   </p>
   <p>
     La capa de transporte público consulta Transitous y OpenStreetMap/Overpass para mostrar paradas; al pedir salidas se transmite el identificador de la parada. Si el proxy no responde, el navegador puede consultar directamente a esos proveedores, que reciben IP y metadatos técnicos. Puede haber caché temporal de respuestas para evitar peticiones repetidas; Manolit∞ no conserva un historial propio de consultas. Las políticas y retención de proveedores externos dependen de cada servicio.
+  </p>
+
+  <h2>17. Compartir un punto del mapa y privacidad</h2>
+  <p>
+    La función «Compartir punto» crea un enlace que contiene las coordenadas (latitud y longitud) del punto que marcas en el mapa. Las coordenadas se incorporan al enlace en tu navegador; no se envían a Manolit∞ solo por abrir el panel o copiar el enlace. Si eliges compartir mediante la función del sistema, WhatsApp, Telegram, X u otra aplicación, el enlace y su ubicación se entregan a la plataforma seleccionada. Si lo compartes con otras personas, estas podrán ver el punto y reenviar el enlace. Manolit∞ no recibe confirmación ni mantiene deliberadamente un registro propio de quién comparte o recibe el enlace; la plataforma destinataria puede registrar la operación, asociarla a tu cuenta y tratarla conforme a sus propias políticas. Comparte solo puntos cuya ubicación quieras revelar. Al abrir un enlace compartido, el sitio lee las coordenadas de la URL para mostrar el punto; la carga de mapas y otros servicios puede generar las solicitudes externas descritas en esta política.
   </p>
 </div>
 

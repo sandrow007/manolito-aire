@@ -266,6 +266,12 @@
 // 2026-11-01-f: las políticas legales se localizan en las siete lenguas
 // ofrecidas; se añade georgiano y se invalida la caché de traducciones JS.
 // Cambian js/i18n-legal.js, js/i18n.js y las tres páginas legales.
+// 2026-11-05-compartir-og: cabecera de index.html más limpia para WhatsApp,
+// Telegram y Bing. Había dos twitter:image distintos y dos og:image:alt; ahora
+// hay uno de cada y la imagen lleva un sello nuevo (?v=20261105) para que los
+// rastreadores no sigan usando la copia guardada de cuando la og:image era el
+// compartir.png de 0 bytes. El JSON-LD suma image y logo (tus mismos archivos).
+// No cambia ninguna imagen ni icono. Cambia index.html.
 // 2026-11-05-tutorial-capas: el tutorial se rehace. 1) Va siempre de arriba
 // abajo (antes bajaba a «Sincronizar» y volvía a Ko-fi y a la familia).
 // 2) Abre el panel de capas y lo explica por secciones (Sombras y sol,
@@ -329,7 +335,7 @@
 // Cambia js/shadows-route.js.
 // 2026-11-03-aa: reintenta el router peatonal directamente si el proxy
 // /ruta falla, evitando rutas rectas cuando el servicio sigue disponible.
-const VERSION = '2026-11-05-tutorial-capas-v7';
+const VERSION = '2026-11-05-compartir-og-v1';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

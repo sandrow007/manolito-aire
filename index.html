@@ -284,7 +284,14 @@
     letter-spacing:0.55em; padding-left:0.55em; text-transform:uppercase;
     color:rgba(232,228,220,0.55); opacity:0;
   }
+  #manolitoSplash .ni-evento{
+    position:absolute; top:calc(44% + var(--ni-fs) / 2 + 22px + 9vmin); left:0; right:0; z-index:2;
+    text-align:center; font-size:clamp(9px, 1.05vw, 12px); font-weight:400; line-height:1.45;
+    letter-spacing:0.03em; color:rgba(232,228,220,0.55); opacity:0;
+    margin:0 auto; padding:0 20px; max-width:min(96vw, 1040px);
+  }
   #manolitoSplash.ni-run .ni-sub{ animation:niFadeIn 1.4s ease 1s forwards; }
+  #manolitoSplash.ni-run .ni-evento{ animation:niFadeIn 1.2s ease 1.2s forwards; }
   @keyframes niFadeIn{ to{ opacity:1; } }
 
   #manolitoSplash .ni-terms{ position:absolute; left:0; right:0; bottom:5vh; z-index:2; height:100px; }
@@ -302,8 +309,8 @@
     color:rgba(232,228,220,0.55);
   }
   /* escrituras que no admiten tracking ni mayúsculas forzadas */
-  html[lang="ar"] #manolitoSplash .ni-sub, html[lang="ar"] #manolitoSplash .ni-term-name, html[lang="ar"] #manolitoSplash .ni-term-desc,
-  html[lang="ka"] #manolitoSplash .ni-sub, html[lang="ka"] #manolitoSplash .ni-term-name, html[lang="ka"] #manolitoSplash .ni-term-desc{
+  html[lang="ar"] #manolitoSplash .ni-sub, html[lang="ar"] #manolitoSplash .ni-evento, html[lang="ar"] #manolitoSplash .ni-term-name, html[lang="ar"] #manolitoSplash .ni-term-desc,
+  html[lang="ka"] #manolitoSplash .ni-sub, html[lang="ka"] #manolitoSplash .ni-evento, html[lang="ka"] #manolitoSplash .ni-term-name, html[lang="ka"] #manolitoSplash .ni-term-desc{
     letter-spacing:0; padding-left:0; text-transform:none;
   }
 
@@ -359,6 +366,7 @@
     #manolitoSplash, #manolitoSplash *{ animation:none !important; transition:none !important; }
     #manolitoSplash .ni-title{ opacity:0.95; }
     #manolitoSplash .ni-sub{ opacity:1; }
+    #manolitoSplash .ni-evento{ opacity:1; }
   }
   html.manolito-idioma-pendiente body{ overflow:hidden; }
   html.manolito-idioma-pendiente #manolitoSplash{ opacity:0; visibility:hidden; pointer-events:none; }
@@ -508,6 +516,7 @@
       <span class="ni-right" aria-hidden="true">LIT<span class="ni-inf">∞</span></span>
     </div>
     <p class="sub-brand ni-sub">Simulador de sombras</p>
+    <p class="sub-brand ni-evento" id="feriaAvisoSplash" data-i18n="feriaMairenaSplash" hidden>El viernes 11 de diciembre de 2026 estaremos en la 1.ª Feria ciudadana del clima de Mairena del Aljarafe, de 10:00 a 20:00, con la carpa del sol y la sombra y Manolit∞ en persona.</p>
     <div class="ni-terms" aria-hidden="true">
       <div class="ni-term active"><span class="ni-term-name">acimut</span><span class="ni-term-desc">el ángulo del sol · el giro que nos da forma</span></div>
       <div class="ni-term"><span class="ni-term-name">cono de sombra</span><span class="ni-term-desc">la geometría del silencio</span></div>
@@ -2146,9 +2155,153 @@
 <section class="faq" id="seoGlobal" aria-labelledby="seoGlobalTitulo">
   <h2 id="seoGlobalTitulo" data-i18n="seoGlobalTit">El Google Maps de las sombras, en cualquier ciudad del mundo</h2>
   <p class="faq-intro" data-i18n="seoGlobalLead">Manolit∞ es un navegador 3D global de infraestructura urbana: un mapa de sombras interactivo, gratuito y sin registro para huir del sol, encontrar agua y aparcar a la sombra en cualquier rincón del planeta.</p>
+  <p class="faq-seo-p" id="feriaAvisoIntro" data-i18n-html="feriaMairenaIntroHtml" hidden>El viernes 11 de diciembre de 2026 estaremos todo el día en la 1.ª Feria ciudadana del clima de Mairena del Aljarafe (Parque Central, de 10:00 a 20:00) con la carpa del sol y la sombra y Manolit∞ en persona. La impulsa el Ayuntamiento de Mairena del Aljarafe, con la colaboración de Ingevents y <a href="https://climatonlab.com/" target="_blank" rel="noopener">Climatón Laboratorio Climático</a>. Gracias por hacerlo posible.</p>
   <p class="faq-seo-p" data-i18n="seoGlobalP1">El simulador de sombras en 3D (Shadow Map) calcula, minuto a minuto, qué calles y plazas están en sombra usando los edificios y árboles reales de OpenStreetMap. Con el Shadow Finder trazas rutas sin sol, localizas fuentes de agua pública y parkings con sombra, y consultas las nubes en vivo antes de salir. Funciona en cualquier ciudad del mundo gracias a los datos abiertos.</p>
   <p class="faq-seo-p" data-i18n="seoGlobalP2">La capa global de nubes, el sol y las sombras cubren todo el planeta. Lo único acotado a España son las estaciones físicas de calidad del aire, que alimentan el mapa de aire calle a calle.</p>
 </section>
+
+<section class="map-section" id="salidasCalle" aria-labelledby="salidasCalleTitulo">
+  <div class="map-head">
+    <h2 class="map-title" id="salidasCalleTitulo" data-i18n="calleTitulo">Manolit∞ sale a la calle</h2>
+  </div>
+  <p class="faq-intro" data-i18n="calleLead">Cuando salimos a ferias y encuentros presenciales lo dejamos aquí, para que no se pierda: próximas salidas arriba y recuerdos abajo.</p>
+  <div class="chart-card">
+    <h3 class="salidas-calle-subtitulo" data-i18n="calleUpcomingTitle">Próximas salidas</h3>
+    <ul class="salidas-calle-lista" id="salidasCalleUpcoming"></ul>
+    <p class="salidas-calle-vacio" id="salidasCalleUpcomingEmpty" data-i18n="calleUpcomingEmpty">Aún no hemos anunciado la próxima salida.</p>
+  </div>
+  <div class="chart-card">
+    <h3 class="salidas-calle-subtitulo" data-i18n="callePastTitle">Recuerdos</h3>
+    <ul class="salidas-calle-lista" id="salidasCallePast"></ul>
+    <p class="salidas-calle-vacio" id="salidasCallePastEmpty" data-i18n="callePastEmpty">Cuando pase la primera salida presencial, aparecerá aquí.</p>
+  </div>
+</section>
+
+<script>
+  (function () {
+    const splashAviso = document.getElementById('feriaAvisoSplash');
+    const introAviso = document.getElementById('feriaAvisoIntro');
+    const listaProximas = document.getElementById('salidasCalleUpcoming');
+    const listaRecuerdos = document.getElementById('salidasCallePast');
+    const vacioProximas = document.getElementById('salidasCalleUpcomingEmpty');
+    const vacioRecuerdos = document.getElementById('salidasCallePastEmpty');
+    if (!splashAviso || !introAviso || !listaProximas || !listaRecuerdos || !vacioProximas || !vacioRecuerdos) return;
+
+    function ahoraMadridSeguro() {
+      try {
+        const partes = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Europe/Madrid',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hourCycle: 'h23'
+        }).formatToParts(new Date());
+        const bolsa = {};
+        partes.forEach((p) => { bolsa[p.type] = p.value; });
+        const y = Number(bolsa.year);
+        const m = Number(bolsa.month);
+        const d = Number(bolsa.day);
+        const h = Number(bolsa.hour);
+        const min = Number(bolsa.minute);
+        const s = Number(bolsa.second);
+        if (![y, m, d, h, min, s].every(Number.isFinite)) return null;
+        return new Date(y, m - 1, d, h, min, s, 0);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function texto(clave, fallback) {
+      let msg = null;
+      try { if (typeof window.getMessages === 'function') msg = window.getMessages(); } catch (e) { msg = null; }
+      return (msg && msg[clave]) || fallback || '';
+    }
+
+    const eventos = [
+      {
+        startsAt: new Date(2026, 11, 11, 10, 0, 0, 0),
+        endsAt: new Date(2026, 11, 11, 20, 0, 0, 0),
+        dateKey: 'calleMairenaFecha',
+        placeKey: 'calleMairenaLugar',
+        summaryUpcomingKey: 'calleMairenaUpcoming',
+        summaryPastKey: 'calleMairenaPast',
+        link: 'https://climatonlab.com/',
+        linkKey: 'calleMairenaLink'
+      }
+    ];
+
+    function crearItem(ev, esPasado) {
+      const li = document.createElement('li');
+      li.className = 'salidas-calle-item';
+
+      const fecha = document.createElement('p');
+      fecha.className = 'salidas-calle-meta';
+      fecha.textContent = texto(ev.dateKey, '11 de diciembre de 2026 · Parque Central · Mairena del Aljarafe');
+      li.appendChild(fecha);
+
+      const lugar = document.createElement('p');
+      lugar.className = 'salidas-calle-lugar';
+      lugar.textContent = texto(ev.placeKey, '1.ª Feria ciudadana del clima de Mairena del Aljarafe');
+      li.appendChild(lugar);
+
+      const frase = document.createElement('p');
+      frase.className = 'salidas-calle-frase';
+      frase.textContent = esPasado
+        ? texto(ev.summaryPastKey, 'Estuvimos allí de apertura a cierre (10:00 a 20:00), con la carpa del sol y la sombra, presentando Manolit∞ en persona.')
+        : texto(ev.summaryUpcomingKey, 'Estaremos allí de apertura a cierre (10:00 a 20:00), con la carpa del sol y la sombra, presentando Manolit∞ en persona.');
+      li.appendChild(frase);
+
+      const enlace = document.createElement('a');
+      enlace.href = ev.link;
+      enlace.target = '_blank';
+      enlace.rel = 'noopener';
+      enlace.textContent = texto(ev.linkKey, 'Climatón Laboratorio Climático');
+      li.appendChild(enlace);
+
+      return li;
+    }
+
+    function aplicarAvisosYSalidas() {
+      const madridAhora = ahoraMadridSeguro();
+      const finAviso = new Date(2026, 11, 11, 23, 59, 59, 999);
+      const mostrarAviso = Boolean(madridAhora && madridAhora <= finAviso);
+      splashAviso.hidden = !mostrarAviso;
+      introAviso.hidden = !mostrarAviso;
+
+      listaProximas.innerHTML = '';
+      listaRecuerdos.innerHTML = '';
+      if (!madridAhora) {
+        vacioProximas.hidden = false;
+        vacioRecuerdos.hidden = false;
+        return;
+      }
+
+      const proximas = [];
+      const recuerdos = [];
+      eventos.forEach((ev) => {
+        if (madridAhora > ev.endsAt) recuerdos.push(ev);
+        else if (ev.summaryUpcomingKey) proximas.push(ev);
+      });
+      proximas.sort((a, b) => a.startsAt - b.startsAt);
+      recuerdos.sort((a, b) => b.endsAt - a.endsAt);
+
+      proximas.forEach((ev) => listaProximas.appendChild(crearItem(ev, false)));
+      recuerdos.forEach((ev) => listaRecuerdos.appendChild(crearItem(ev, true)));
+      vacioProximas.hidden = proximas.length > 0;
+      vacioRecuerdos.hidden = recuerdos.length > 0;
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', aplicarAvisosYSalidas, { once: true });
+    } else {
+      aplicarAvisosYSalidas();
+    }
+    document.addEventListener('langChanged', aplicarAvisosYSalidas);
+  })();
+</script>
 
 <!-- Preguntas frecuentes: con details/summary, sin JavaScript, bateria cero -->
 <section class="faq" id="faq" aria-labelledby="faqTitulo">

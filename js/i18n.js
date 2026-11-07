@@ -1,4 +1,4 @@
-// judges-file-ignore *
+﻿// judges-file-ignore *
 // La extensión Judges marca este archivo por heurísticas que NO aplican
 // aquí: la web no tiene analítica ni servidores de terceros, todo se
 // calcula en el navegador del usuario (esa es la arquitectura de
@@ -194,7 +194,7 @@ const translations = {
 		sunSummaryDeg: "grados de altura",
 		sunSummaryAzimuth: "azimut",
 		sunSummaryBelow: "De noche: el sol está bajo el horizonte.",
-		stepsTitle: "Indicaciones paso a paso",
+		stepsTitle: "Indicaciones",
 		stepsListen: "Escuchar indicaciones",
 		stepsStop: "Detener lectura",
 		stepDepart: "Sal por {calle} hacia el {dir}, {metros} metros",
@@ -766,7 +766,7 @@ const translations = {
 		sunSummaryDeg: "graus d'altitud",
 		sunSummaryAzimuth: "azimut",
 		sunSummaryBelow: "De nit: el sol està sota l'horitzó.",
-		stepsTitle: "Indicacions pas a pas",
+		stepsTitle: "Indicacions",
 		stepsListen: "Escolta les indicacions",
 		stepsStop: "Atura la lectura",
 		stepDepart: "Surt per {calle} cap al {dir}, {metros} metres",
@@ -1303,7 +1303,7 @@ const translations = {
 		sunSummaryDeg: "graduko altueran",
 		sunSummaryAzimuth: "azimut",
 		sunSummaryBelow: "Gauez: eguzkia horizontearen azpian dago.",
-		stepsTitle: "Pausoz pausoko jarraibideak",
+		stepsTitle: "Jarraibideak",
 		stepsListen: "Entzun jarraibideak",
 		stepsStop: "Gelditu irakurketa",
 		stepDepart: "Atera {calle} kaletik {dir} aldera, {metros} metro",
@@ -1841,7 +1841,7 @@ const translations = {
 		sunSummaryDeg: "graos de altura",
 		sunSummaryAzimuth: "acimut",
 		sunSummaryBelow: "De noite: o sol está baixo o horizonte.",
-		stepsTitle: "Indicacións paso a paso",
+		stepsTitle: "Indicacións",
 		stepsListen: "Escoitar indicacións",
 		stepsStop: "Deter a lectura",
 		stepDepart: "Saí por {calle} cara ao {dir}, {metros} metros",
@@ -2378,7 +2378,7 @@ const translations = {
 		sunSummaryDeg: "degrees altitude",
 		sunSummaryAzimuth: "azimuth",
 		sunSummaryBelow: "Night time: the sun is below the horizon.",
-		stepsTitle: "Turn-by-turn directions",
+		stepsTitle: "Directions",
 		stepsListen: "Listen to directions",
 		stepsStop: "Stop reading",
 		stepDepart: "Head out along {calle} towards the {dir}, {metros} metres",
@@ -2943,7 +2943,7 @@ const translations = {
 		sunSummaryDeg: "გრადუსი სიმაღლეზე",
 		sunSummaryAzimuth: "აზიმუთი",
 		sunSummaryBelow: "ღამეა: მზე ჰორიზონტის ქვემოთაა.",
-		stepsTitle: "ნაბიჯ-ნაბიჯ მიმართულებები",
+		stepsTitle: "მიმართულებები",
 		stepsListen: "მიმართულებების მოსმენა",
 		stepsStop: "კითხვის შეჩერება",
 		stepDepart: "გადი {calle}-ით, მიმართულება: {dir}, {metros} მეტრი",
@@ -3424,7 +3424,7 @@ const translations = {
 		winterSunRoute: "وضع الشتاء: مسار مشمس",
 		winterModeOn: "تم تفعيل وضع الشتاء: سيبحث المسار التالي عن أشعة الشمس.",
 		winterModeOff: "تم إيقاف وضع الشتاء: ستبحث المسارات مجددًا عن الظل.",
-		stepsTitle: "إرشادات خطوة بخطوة",
+		stepsTitle: "إرشادات ",
 		stepsListen: "استمع إلى الإرشادات",
 		stepsStop: "إيقاف القراءة",
 		stepArrive: "لقد وصلت إلى وجهتك.",

@@ -907,24 +907,31 @@
       .fa-directions:hover { background:#4dd8e8; }
       .fa-directions:active { transform:scale(.97); }
       .fa-directions:focus-visible { outline:2px solid var(--ink, #0D1F26); outline-offset:2px; }
-      .fa-directions svg { display:block; flex:0 0 auto; width:26px; height:32px; margin-block:-4px; }
-      .fa-directions span { min-width:0; text-align:center; }
+      .fa-directions svg { display:block; flex:0 0 auto; width:64px; height:auto; max-height:76px; margin-inline:-6px; }
+      .fa-directions span { display:none; }
       @media (prefers-reduced-motion:no-preference) { .fa-map-popup .maplibregl-popup-content { animation:fa-pop-in .2s cubic-bezier(.2,.8,.2,1) both; } @keyframes fa-pop-in { from { opacity:0; transform:translateY(6px) scale(.97); } to { opacity:1; transform:none; } } }
     `;
     document.head.appendChild(estilo);
   }
 
-  // Logo Manolit inclinado como pin direccional (variante permitida), con su
-  // resplandor y la vesica rellena en oscuro para que se lea sobre el turquesa.
+  // SVG oficial «IR HASTA AQUÍ» (nov-2026): el logo Manolit (vesica punteada
+  // con borde rojo, aro dorado y olas turquesa) inclinado como pin direccional
+  // con su resplandor, y debajo la leyenda «IR HASTA AQUÍ» con los puntitos de
+  // caminito que vienen de la marca. Va dentro del botón turquesa del popup.
   const ICONO_DIRECCION =
-    '<svg viewBox="-30 0 260 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
+    '<svg viewBox="0 0 260 340" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" role="img">' +
     '<defs><filter id="glowFuenteDireccion" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
-    '<g transform="rotate(18 100 160)" filter="url(#glowFuenteDireccion)">' +
+    '<g transform="translate(30,0)" filter="url(#glowFuenteDireccion)">' +
+    '<g transform="rotate(18 100 160)">' +
     '<path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="13" stroke-linejoin="round"/>' +
     '<circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="11"/>' +
     '<path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/>' +
     '<path d="M65,180 Q82.5,172 100,180 T135,180" fill="none" stroke="#00e5ff" stroke-width="9" stroke-linecap="round"/>' +
+    '</g>' +
+    '<text x="100" y="322" text-anchor="middle" fill="#06262b" font-family="system-ui,\'Segoe UI\',sans-serif" font-size="34" font-weight="800" letter-spacing="1">IR HASTA' +
+    '<tspan x="100" dy="38">AQUÍ</tspan></text>' +
+    '<circle cx="46" cy="318" r="4" fill="#06262b"/><circle cx="62" cy="318" r="4" fill="#06262b"/><circle cx="154" cy="318" r="4" fill="#06262b"/><circle cx="170" cy="318" r="4" fill="#06262b"/>' +
     '</g></svg>';
 
   function crearBotonDireccion(nombreFuente, coords) {
@@ -933,6 +940,7 @@
     boton.className = 'fa-directions';
     boton.innerHTML = ICONO_DIRECCION + '<span></span>';
     boton.querySelector('span').textContent = t('fountainGetDirections', 'Obtener dirección');
+    boton.setAttribute('aria-label', t('fountainGetDirections', 'Obtener dirección'));
     boton.addEventListener('click', (evento) => {
       evento.stopPropagation();
       obtenerRutaHaciaFuente(coords, nombreFuente);

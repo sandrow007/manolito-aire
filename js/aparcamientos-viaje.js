@@ -1170,7 +1170,13 @@
 
   async function planificar(origenTexto, destinoTexto, opciones) {
     if (!map) return;
-    if (viaje.panel && viaje.panel.hasAttribute('hidden') && !(opciones && opciones.unified)) viaje.panel.removeAttribute('hidden');
+    // Buscador unificado (nov-2026): en el buscador único el panel de viaje
+    // NUNCA se abre por su cuenta — el estado y los datos van al resumen del
+    // modo coche. Antes se quedaba abierto ocupando una fila entera del
+    // formulario (hueco grande vacío), que es lo que veía el usuario.
+    if (opciones && opciones.unified) {
+      if (viaje.panel) { viaje.panel.classList.remove('rs-panel-viaje-abierto'); viaje.panel.setAttribute('hidden', ''); }
+    } else if (viaje.panel && viaje.panel.hasAttribute('hidden')) viaje.panel.removeAttribute('hidden');
 
     var dTxt = String(destinoTexto != null ? destinoTexto : (viaje.inputDestino ? viaje.inputDestino.value : '')).trim();
     var oTxt = String(origenTexto != null ? origenTexto : (viaje.inputOrigen ? viaje.inputOrigen.value : '')).trim();

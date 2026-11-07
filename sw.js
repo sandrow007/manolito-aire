@@ -337,7 +337,51 @@
 // /ruta falla, evitando rutas rectas cuando el servicio sigue disponible.
 // 2026-11-07-a: evita que un destino marcado se reutilice como origen y limpia
 // el origen pendiente al reiniciar. Cambian js/shadows-route.js.
-const VERSION = '2026-11-07-b';
+// 2026-11-07-c: «Ir al punto» y «Compartir» se colocan bajo la botonera de
+// cámara con su mismo ancho (ya no tapan pantalla completa) y, si no hay un
+// origen distinto del destino, vuelven a acercar la cámara al punto.
+// Cambia js/shadows-route.js.
+// 2026-11-07-d: un solo punto marcado en el mapa es el DESTINO y el camino sale
+// de tu ubicación (antes el primer punto pasaba a ser el origen); solo con dos
+// puntos distintos se traza del primero al segundo. «Iniciar caminata» traza
+// antes la ruta desde tu ubicación si el punto marcado aún no la tiene.
+// antes la ruta a pie, tras dibujarse, lanzaba «mostrarAtajoCaminar is not
+// defined» (la función no era visible desde el cálculo) y se veía como fallo.
+// Cambia js/shadows-route.js.
+// 2026-11-07-e: «Mi ubicación» sale al escribir en origen O destino (como
+// Google Maps) y no se repite en el segundo campo si ya está elegida en el
+// primero; si el GPS falla se avisa. La fila «Mi ubicación» del desplegable
+// pierde el color de acento y el texto largo: queda como el resto de filas,
+// con un icono neutro. Cambian css/style.css y js/shadows-route.js.
+// 2026-11-07-g: se retira también el icono de «Mi ubicación»: la fila queda
+// IDÉNTICA a cualquier otra sugerencia (mismo fondo, mismo color, sin icono),
+// solo con la segunda línea vacía y oculta. Cambia css/style.css.
+// 2026-11-07-h: el desplegable de sugerencias (origen/destino) llevaba el
+// menú oscuro de la consola, pero el buscador en el que cuelga es SIEMPRE
+// blanco translúcido en los dos temas: ahora el desplegable usa ese mismo
+// blanco, sin contraste raro. «Mi ubicación» recupera un icono: el mismo pin
+// direccional de las fuentes de agua (ICONO_DIRECCION), delante del texto.
+// Cambian css/style.css y js/shadows-route.js.
+// 2026-11-07-i: «Mi ubicación» deja de ocupar fila al escribir una calle
+// (solo aparece al enfocar un campo vacío), y cada sugerencia pasa a una
+// sola línea por texto, con los nombres largos recortados en puntos
+// suspensivos: el cuadro no crece y caben más calles encontradas sin
+// agrandarlo. Cambian css/style.css y js/shadows-route.js.
+// 2026-11-07-j: el desplegable de sugerencias ya no hace scroll: se quita el
+// max-height, así se ven todas las calles encontradas de un vistazo.
+// Cambia css/style.css.
+// 2026-11-07-k: «Ir al punto» ya no fuerza la apertura del chat (solo avisa
+// ahí si el usuario ya lo tenía abierto); y el resumen de min/km bajo A pie/
+// Bici/Coche ya no desaparecía solo a los pocos segundos al marcar un punto
+// en el mapa (el destino se guardaba sin su texto y el resumen intentaba
+// geocodificar las coordenadas como si fueran una dirección, fallaba y
+// borraba el resumen ya pintado). Cambia js/shadows-route.js.
+// 2026-11-07-l: fuera el botón «Iniciar caminata» flotante sobre el mapa
+// (ya está en la botonera); «Indicaciones paso a paso» se despliega ahora
+// DENTRO del mapa, con el mismo blanco translúcido del buscador, sin mover
+// nada de la página; y la encuesta de CO2 se recoge sola 15 s tras elegir
+// medio. Cambian index.html, css/style.css y js/co2.js.
+const VERSION = '2026-11-07-l';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

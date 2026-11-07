@@ -289,6 +289,7 @@
     text-align:center; font-size:clamp(9px, 1.05vw, 12px); font-weight:400; line-height:1.45;
     letter-spacing:0.03em; color:rgba(232,228,220,0.55); opacity:0;
     margin:0 auto; padding:0 20px; max-width:min(96vw, 1040px);
+    white-space:nowrap;
   }
   #manolitoSplash.ni-run .ni-sub{ animation:niFadeIn 1.4s ease 1s forwards; }
   #manolitoSplash.ni-run .ni-evento{ animation:niFadeIn 1.2s ease 1.2s forwards; }
@@ -408,6 +409,34 @@
   @media (max-height:430px){
     .idioma-inicio-card{ padding:12px; }
     .idioma-inicio-btn{ min-height:44px; }
+  }
+  /* Aviso fantasma de la feria (nov-2026): píldora flotante de UNA línea
+     (white-space:nowrap, todo seguido), centrada arriba, sin bloquear nada
+     (pointer-events:none). Aparece tras el splash, vive 15 s y se va en
+     fundido. Sobre el mapa no interfiere: no captura clics ni desplaza nada. */
+  .feria-fantasma{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-8px);
+    z-index:1800;
+    max-width:calc(100vw - 24px);
+    padding:10px 18px;
+    border:1px solid rgba(230,161,0,.35);
+    border-radius:999px;
+    background:rgba(15,23,42,.92);
+    color:#f3e9d2;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    font-size:13px; line-height:1.4;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .9s ease, transform .9s ease;
+    box-shadow:0 4px 18px rgba(0,0,0,.35);
+  }
+  .feria-fantasma.visible{ opacity:1; transform:translateX(-50%) translateY(0); }
+  @media (max-width:640px){
+    .feria-fantasma{ font-size:12px; padding:8px 14px; top:10px; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .feria-fantasma{ transition:opacity .3s ease; transform:translateX(-50%); }
   }
 </style>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -1377,26 +1406,7 @@
          pantalla no puede verlo; esta región role="status" lleva siempre el
          mismo dato en texto (distancia, duración, % sombra y posición del
          sol). La rellena shadows-route.js con los mismos datos del cálculo. -->
-    <!-- Atajo de «Iniciar caminata» junto al resumen de la ruta (nov-2026).
-         En móvil solo sirve el CSS: el botón nace oculto y shadows-route.js lo
-         enciende cuando hay una ruta calculada, para poder salir andando sin
-         tener que buscar el icono de la botonera del mapa. -->
-    <div class="rs-accion-caminar" id="rsAccionCaminar" hidden>
-      <button type="button" id="rsBtnCaminarResumen" data-i18n="walkModeStart">Iniciar caminata</button>
-    </div>
     <div id="rsLiveSummary" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
-
-    <!-- Indicaciones paso a paso accesibles: la misma información que se ve
-         en el mapa, en texto ordenado, con lectura por voz (TTS del propio
-         navegador, sin servicios externos). Pensado para personas ciegas o
-         con baja visión, y útil para cualquiera. -->
-    <section id="rsPasosSection" class="rs-pasos" aria-labelledby="rsPasosTitulo" hidden>
-      <div class="rs-pasos-cabecera">
-        <h3 id="rsPasosTitulo" data-i18n="stepsTitle">Indicaciones paso a paso</h3>
-        <button id="rsBtnEscucharPasos" type="button" class="rs-btn-escuchar" aria-pressed="false" data-i18n="stepsListen">Escuchar indicaciones</button>
-      </div>
-      <ol id="rsListaPasos" class="rs-lista-pasos"></ol>
-    </section>
 
 <div class="map-wrap">
 <div class="rs-form">
@@ -1457,6 +1467,17 @@
 </div>
 </div>
   <div id="shadowRouteMap">
+  <!-- Indicaciones paso a paso DENTRO del mapa (nov-2026): nace pegado
+       ABAJO, justo encima del borde inferior del mapa, como una hoja
+       desplegable. No es parte del widget de sombras ni toca nada más:
+       solo se muestra cuando hay ruta calculada. -->
+  <section id="rsPasosSection" class="rs-pasos rs-pasos-en-mapa" aria-labelledby="rsPasosTitulo" hidden>
+    <div class="rs-pasos-cabecera">
+      <h3 id="rsPasosTitulo" data-i18n="stepsTitle"><svg id="rsPasosLogo" viewBox="0 0 260 340" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs><filter id="glowPasos" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g transform="translate(30,0)" filter="url(#glowPasos)"><g transform="rotate(18 100 160)"><path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="13" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="11"/><path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/><path d="M65,180 Q82.5,172 100,180 T135,180" fill="none" stroke="#00e5ff" stroke-width="9" stroke-linecap="round"/></g><text x="100" y="322" text-anchor="middle" fill="#06262b" font-family="system-ui,'Segoe UI',sans-serif" font-size="34" font-weight="800" letter-spacing="1">IR HASTA<tspan x="100" dy="38">AQUÍ</tspan></text><circle cx="46" cy="318" r="4" fill="#06262b"/><circle cx="62" cy="318" r="4" fill="#06262b"/><circle cx="154" cy="318" r="4" fill="#06262b"/><circle cx="170" cy="318" r="4" fill="#06262b"/></g></svg><span data-i18n="stepsTitle">Indicaciones paso a paso</span></h3>
+      <button id="rsBtnEscucharPasos" type="button" class="rs-btn-escuchar" aria-pressed="false" data-i18n="stepsListen">Escuchar indicaciones</button>
+    </div>
+    <ol id="rsListaPasos" class="rs-lista-pasos"></ol>
+  </section>
   </div>
 </div>
 
@@ -2300,6 +2321,41 @@
       aplicarAvisosYSalidas();
     }
     document.addEventListener('langChanged', aplicarAvisosYSalidas);
+
+    /* Aviso fantasma (nov-2026): cuando el splash termina, el MISMO texto de
+       la feria aparece sobre la web como una píldora flotante de UNA sola
+       línea (todo seguido, sin saltos ni palabras sueltas al final), se
+       mantiene unos 15 segundos y se desvanece. Con pointer-events:none no
+       interrumpe nada: ni el mapa ni los controles; es solo un aviso visual.
+       Solo sale si el aviso sigue vigente y una vez por carga. */
+    var fantasmaMostrado = false;
+    function mostrarFantasma() {
+      if (fantasmaMostrado || splashAviso.hidden) return;
+      fantasmaMostrado = true;
+      var caja = document.createElement('div');
+      caja.className = 'feria-fantasma';
+      caja.setAttribute('role', 'status');
+      caja.textContent = texto('feriaMairenaSplash', splashAviso.textContent.trim());
+      document.body.appendChild(caja);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { caja.classList.add('visible'); });
+      });
+      setTimeout(function () {
+        caja.classList.remove('visible');
+        setTimeout(function () { caja.remove(); }, 900);
+      }, 15000);
+    }
+    document.addEventListener('langChanged', function () {
+      var caja = document.querySelector('.feria-fantasma');
+      if (caja) caja.textContent = texto('feriaMairenaSplash', splashAviso.textContent.trim());
+    });
+    if (!document.getElementById('manolitoSplash')) {
+      mostrarFantasma();
+    } else {
+      new MutationObserver(function (mut, obs) {
+        if (!document.getElementById('manolitoSplash')) { obs.disconnect(); mostrarFantasma(); }
+      }).observe(document.documentElement, { childList: true, subtree: true });
+    }
   })();
 </script>
 
@@ -2875,7 +2931,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=tutorial-capas-20261105-a'))
+        .then(() => cargarScript('js/shadows-route.js?v=geo-fix-20261107-a'))
         .then(() => {
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.

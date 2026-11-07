@@ -157,6 +157,7 @@ window.ManolitCO2 = (function () {
         boton.setAttribute('aria-pressed', 'true');
         resultado.textContent = textoResultado(op.id);
         resultado.hidden = false;
+        programarDesvanecer();
       });
       grupo.appendChild(boton);
     });
@@ -203,6 +204,22 @@ window.ManolitCO2 = (function () {
     }
     distanciaMetrosActual = 0;
     medioSeleccionado = null;
+    if (temporizadorDesvanecer) { clearTimeout(temporizadorDesvanecer); temporizadorDesvanecer = null; }
+  }
+
+  /* Tras elegir un medio, la encuesta se recoge sola a los 15 s (10-20 s):
+     ya ha cumplido su función y no queda ocupando sitio sobre el mapa.
+     Se cancela si llega una ruta nueva (mostrar → ocultar/mostrar). */
+  var temporizadorDesvanecer = null;
+  function programarDesvanecer() {
+    if (temporizadorDesvanecer) clearTimeout(temporizadorDesvanecer);
+    temporizadorDesvanecer = setTimeout(function () {
+      temporizadorDesvanecer = null;
+      if (caja) {
+        caja.remove();
+        caja = null;
+      }
+    }, 15000);
   }
 
   /* Al cambiar de idioma la encuesta se retraduce en caliente,

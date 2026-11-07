@@ -1986,6 +1986,53 @@ body.mode-peque .im-lost-btn{
   max-width:62ch; margin:14px auto 0;
 }
 
+.salidas-calle-subtitulo{
+  margin:0;
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:1.03rem;
+  color:var(--sky-deep);
+}
+.salidas-calle-lista{
+  list-style:none;
+  margin:14px 0 0;
+  padding:0;
+  display:grid;
+  gap:14px;
+}
+.salidas-calle-item{
+  border-top:1px solid var(--line);
+  padding-top:12px;
+}
+.salidas-calle-item:first-child{
+  border-top:none;
+  padding-top:0;
+}
+.salidas-calle-meta{
+  margin:0;
+  font-family:var(--font-mono);
+  font-size:0.74rem;
+  color:var(--sky-mid);
+}
+.salidas-calle-lugar{
+  margin:4px 0 0;
+  font-weight:600;
+  color:var(--ink);
+}
+.salidas-calle-frase{
+  margin:6px 0 0;
+  color:var(--sky-mid);
+  line-height:1.6;
+}
+.salidas-calle-item a{
+  display:inline-block;
+  margin-top:7px;
+}
+.salidas-calle-vacio{
+  margin:12px 0 0;
+  color:var(--sky-mid);
+}
+
 /* ============================================================
    CAPAS INTEGRADAS EN EL WIDGET SOLAR (sep-2026)
    Las casillas de capas y los botones Mapa oscuro / Mapa IGN /

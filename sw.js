@@ -337,7 +337,7 @@
 // /ruta falla, evitando rutas rectas cuando el servicio sigue disponible.
 // 2026-11-07-a: evita que un destino marcado se reutilice como origen y limpia
 // el origen pendiente al reiniciar. Cambian js/shadows-route.js.
-const VERSION = '2026-11-07-a';
+const VERSION = '2026-11-07-b';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

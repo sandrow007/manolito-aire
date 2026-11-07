@@ -3433,6 +3433,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
       if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
+      puntoOrigenPendiente = null;
+      esperandoSoloDestino = false;
       actualizarMascotaDestino(null);
       ultimoDestinoMarcador = null;
       actualizarBotonCompartirPunto();
@@ -5987,6 +5989,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return `${Number(lat).toFixed(6)}, ${Number(lon).toFixed(6)}`;
   }
 
+  function mismoPunto(a, b) {
+    return Boolean(
+      a && b &&
+      Number.isFinite(Number(a.lat)) && Number.isFinite(Number(a.lon)) &&
+      Number.isFinite(Number(b.lat)) && Number.isFinite(Number(b.lon)) &&
+      Math.abs(Number(a.lat) - Number(b.lat)) <= 0.00001 &&
+      Math.abs(Number(a.lon) - Number(b.lon)) <= 0.00001
+    );
+  }
+
   window.manolitAirePuntoCompartidoActual = () => {
     if (!ultimoDestinoMarcador || !Number.isFinite(Number(ultimoDestinoMarcador.lat)) || !Number.isFinite(Number(ultimoDestinoMarcador.lon))) return null;
     const origenGuardado = ultimoDestinoMarcador.puntoPartida || window.__manolitOrigenPuntoMarcado || null;
@@ -5994,21 +6006,29 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     lat: Number(ultimoDestinoMarcador.lat),
     lon: Number(ultimoDestinoMarcador.lon),
     nombre: ultimoDestinoMarcador.nombre || t('sharedPoint', 'Punto marcado en el mapa')
-    }, origenGuardado ? { puntoPartida: Object.assign({}, origenGuardado) } : {});
+    }, origenGuardado && !mismoPunto(origenGuardado, ultimoDestinoMarcador)
+      ? { puntoPartida: Object.assign({}, origenGuardado) }
+      : {});
   };
   window.manolitAireCalcularRutaPuntoCompartido = async function (destino, modoForzado) {
     if (!destino || !Number.isFinite(Number(destino.lat)) || !Number.isFinite(Number(destino.lon))) return false;
     try {
       let origen;
-      if (modoForzado === 'caminar' && destino.puntoPartida && Number.isFinite(Number(destino.puntoPartida.lat)) && Number.isFinite(Number(destino.puntoPartida.lon))) {
+      if (modoForzado === 'caminar' && destino.puntoPartida &&
+          Number.isFinite(Number(destino.puntoPartida.lat)) && Number.isFinite(Number(destino.puntoPartida.lon)) &&
+          !mismoPunto(destino.puntoPartida, destino)) {
         origen = { lat: Number(destino.puntoPartida.lat), lon: Number(destino.puntoPartida.lon), nombre: destino.puntoPartida.nombre || t('pointMap', 'Punto marcado en el mapa') };
       } else if (Number.isFinite(Number(destino.lat)) && Number.isFinite(Number(destino.lon))) {
         const origenElegido = seleccionPorInput.get(inputOrigen);
-        if (origenElegido && origenElegido.texto === inputOrigen.value.trim()) origen = origenElegido;
-        else if (inputOrigen.value.trim()) origen = await resolverPunto(inputOrigen);
-        else {
+        if (origenElegido && origenElegido.texto === inputOrigen.value.trim() && !mismoPunto(origenElegido, destino)) {
+          origen = origenElegido;
+        } else if (inputOrigen.value.trim()) {
+          const origenResuelto = await resolverPunto(inputOrigen);
+          if (!mismoPunto(origenResuelto, destino)) origen = origenResuelto;
+        }
+        if (!origen) {
           const ultimaPos = window.__manolitUltimaPos;
-          origen = ultimaPos && Number.isFinite(Number(ultimaPos.lat)) && Number.isFinite(Number(ultimaPos.lon))
+          origen = ultimaPos && Number.isFinite(Number(ultimaPos.lat)) && Number.isFinite(Number(ultimaPos.lon)) && !mismoPunto(ultimaPos, destino)
             ? { lat: Number(ultimaPos.lat), lon: Number(ultimaPos.lon), nombre: t('myLocation', 'Mi ubicación') }
             : null;
         }
@@ -6054,8 +6074,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
         return false;
       }
-      if (modoForzado === 'caminar' && destino.puntoPartida) {
+      if (modoForzado === 'caminar' && destino.puntoPartida &&
+          Number.isFinite(Number(destino.puntoPartida.lat)) && Number.isFinite(Number(destino.puntoPartida.lon)) &&
+          !mismoPunto(destino.puntoPartida, destino)) {
         origen = { lat: Number(destino.puntoPartida.lat), lon: Number(destino.puntoPartida.lon), nombre: destino.puntoPartida.nombre || t('pointMap', 'Punto marcado en el mapa') };
+      }
+      if (mismoPunto(origen, destino)) {
+        mostrarEstado(t('errorSearch', 'El origen y el destino coinciden. Elige un origen distinto.'), 'error');
+        return false;
       }
       const destinoPunto = { ...destino, lat: Number(destino.lat), lon: Number(destino.lon), nombre: destino.nombre || t('sharedPoint', 'Punto marcado en el mapa') };
       seleccionPorInput.set(inputOrigen, origen);

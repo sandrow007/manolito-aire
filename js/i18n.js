@@ -408,6 +408,9 @@ const translations = {
 		calleMairenaUpcoming: "Estaremos allí de apertura a cierre (10:00 a 20:00), con la carpa del sol y la sombra, presentando Manolit∞ en persona.",
 		calleMairenaPast: "Estuvimos allí de apertura a cierre (10:00 a 20:00), con la carpa del sol y la sombra, presentando Manolit∞ en persona.",
 		calleMairenaLink: "Climatón Laboratorio Climático",
+		calleMairenaSitio: "📍 Parque Central, Mairena del Aljarafe",
+		calleMairenaIr: "Cómo llegar",
+		calleMairenaIrAria: "Cómo llegar: mapa de Manolit∞ con la carpa de la feria marcada",
 		// El agua que no se ve (seccion + contadores). {n} es el numero de litros.
 		aguaTitulo: "El agua que no se ve",
 		aguaP1: "Esto ya no es una estimación: la telemetría real de los últimos 30 días dice ",
@@ -2591,6 +2594,9 @@ const translations = {
 		calleMairenaUpcoming: "We will be there from opening to closing (10:00 to 20:00), with the sun-and-shade tent, presenting Manolit∞ in person.",
 		calleMairenaPast: "We were there from opening to closing (10:00 to 20:00), with the sun-and-shade tent, presenting Manolit∞ in person.",
 		calleMairenaLink: "Climatón Laboratorio Climático",
+		calleMairenaSitio: "📍 Parque Central, Mairena del Aljarafe",
+		calleMairenaIr: "How to get there",
+		calleMairenaIrAria: "How to get there: Manolit∞ map with the fair tent marked",
 		// The water you cannot see (section + counters). {n} is the litres figure.
 		aguaTitulo: "The water you cannot see",
 		aguaP1: "This is no longer an estimate. Real telemetry from the last 30 days says ",

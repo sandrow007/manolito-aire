@@ -2250,7 +2250,12 @@
         summaryUpcomingKey: 'calleMairenaUpcoming',
         summaryPastKey: 'calleMairenaPast',
         link: 'https://climatonlab.com/',
-        linkKey: 'calleMairenaLink'
+        linkKey: 'calleMairenaLink',
+        // 08-nov-2026: coordenadas exactas del Parque Central de Mairena
+        // del Aljarafe (OpenStreetMap, relation 13427642). Sirven para
+        // construir el enlace directo al mapa con el destino fijado.
+        lat: 37.3467540,
+        lon: -6.0521008
       }
     ];
 
@@ -2281,6 +2286,48 @@
       enlace.rel = 'noopener';
       enlace.textContent = texto(ev.linkKey, 'Climatón Laboratorio Climático');
       li.appendChild(enlace);
+
+      // 08-nov-2026: si el evento tiene coordenadas, añadimos el bloque
+      // «Cómo llegar»: muestra el lugar y ofrece el mapa de Manolit∞ con
+      // el destino ya fijado, con opción de coche, bici, bus o andando.
+      if (typeof ev.lat === 'number' && typeof ev.lon === 'number') {
+        const comoLlegar = document.createElement('div');
+        comoLlegar.className = 'salidas-calle-como-llegar';
+
+        const sitio = document.createElement('p');
+        sitio.className = 'salidas-calle-sitio';
+        sitio.textContent = texto('calleMairenaSitio', '📍 Parque Central, Mairena del Aljarafe');
+        comoLlegar.appendChild(sitio);
+
+        const irBoton = document.createElement('a');
+        irBoton.className = 'rs-btn-lidar';
+        // Respaldo sin JS: el enlace de siempre con manolit-punto. Con JS,
+        // el clic NO recarga la página: sube el mapa con scroll suave, lo
+        // carga si aún no está, marca el punto (la misma función que usa
+        // «Ir al punto») y centra la cámara en la carpa.
+        irBoton.href = './index.html?manolit-punto=37.3467540%2C-6.0521008';
+        irBoton.setAttribute('aria-label', texto('calleMairenaIrAria', 'Cómo llegar: mapa de Manolit∞ con la carpa de la feria marcada'));
+        // El logo de Manolit∞ (la gota con el sol y las ondas), el mismo
+        // trazo del sello de la web (g 1831-1836 del index), heredando el
+        // color del botón con currentColor. El viewBox encaja con el dibujo
+        // real (la gota) para que ocupe TODO el icono y no un rincón.
+        irBoton.innerHTML = '<svg viewBox="20 25 84 168" fill="none" stroke="currentColor" aria-hidden="true"><g transform="translate(0,10) scale(0.62)"><circle cx="100" cy="150" r="45" stroke-width="6"/><path d="M 60,165 Q 80,155 100,165 T 140,165" stroke-width="9" stroke-linecap="round"/><path d="M 65,175 Q 82.5,167 100,175 T 135,175" stroke-width="7" stroke-linecap="round"/><path d="M 100,149 C 75,124 75,174 100,149 C 125,124 125,174 100,149 Z" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M 100,30 C 30,110 30,210 100,290 C 170,210 170,110 100,30 Z" stroke-width="11" stroke-linejoin="round"/></g></svg> <span>' + texto('calleMairenaIr', 'Cómo llegar') + '</span>';
+        irBoton.addEventListener('click', function (evento) {
+          evento.preventDefault();
+          const mapa = document.getElementById('shadowRouteMap');
+          if (mapa) mapa.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (typeof window.manolitAireCargarMapaSombras === 'function') {
+            window.manolitAireCargarMapaSombras().then(function () {
+              if (typeof window.manolitAireMarcarPunto === 'function') {
+                window.manolitAireMarcarPunto(ev.lat, ev.lon, texto('calleMairenaSitio', 'Parque Central, Mairena del Aljarafe'));
+              }
+            }).catch(function () { /* sin mapa no hay marca, el scroll ya ayuda */ });
+          }
+        });
+        comoLlegar.appendChild(irBoton);
+
+        li.appendChild(comoLlegar);
+      }
 
       return li;
     }
@@ -2931,7 +2978,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=geo-fix-20261107-a'))
+        .then(() => cargarScript('js/shadows-route.js?v=marcar-punto-20261108-a'))
         .then(() => {
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.

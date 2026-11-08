@@ -381,7 +381,7 @@
 // DENTRO del mapa, con el mismo blanco translúcido del buscador, sin mover
 // nada de la página; y la encuesta de CO2 se recoge sola 15 s tras elegir
 // medio. Cambian index.html, css/style.css y js/co2.js.
-const VERSION = '2026-11-07-m';
+const VERSION = '2026-11-08-a';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

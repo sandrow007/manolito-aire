@@ -2096,6 +2096,36 @@ body.mode-peque .im-lost-btn{
   color:var(--sky-mid);
 }
 
+/* 08-nov-2026: bloque «Cómo llegar» del anuncio de la feria. El botón usa
+   la clase de la casa .rs-btn-lidar (mismo look que las fuentes de agua),
+   aquí solo se organiza la fila sitio + botón. */
+.salidas-calle-como-llegar{
+  margin-top:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:8px 14px;
+}
+.salidas-calle-sitio{
+  margin:0;
+  font-size:0.82rem;
+  color:var(--sky-mid);
+}
+/* El SVG del logo Manolit∞ del botón «Cómo llegar» más grande que el
+   estándar de .rs-btn-lidar (18px), para que la gota se note de verdad. */
+#main-content .salidas-calle-como-llegar a.rs-btn-lidar svg,
+.salidas-calle-como-llegar a.rs-btn-lidar svg{
+  width:30px;
+  height:30px;
+  flex:0 0 auto;
+}
+.salidas-calle-como-llegar a.rs-btn-lidar{
+  padding:10px 18px;
+  gap:10px;
+  font-size:0.92rem;
+}
+
 /* ============================================================
    CAPAS INTEGRADAS EN EL WIDGET SOLAR (sep-2026)
    Las casillas de capas y los botones Mapa oscuro / Mapa IGN /

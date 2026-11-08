@@ -6182,6 +6182,38 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       ? { puntoPartida: Object.assign({}, origenGuardado) }
       : {});
   };
+
+  // 08-nov-2026: marcar un punto por coordenadas SIN calcular ruta. Lo usa
+  // el botón «Cómo llegar» del anuncio de la feria (index.html): sube el
+  // mapa y muestra dónde está el lugar, sin recargar la página. Reutiliza
+  // exactamente el mismo marcado que el punto compartido; solo evita pedir
+  // geolocalización ni trazar nada: quien quiera la ruta, la pide.
+  window.manolitAireMarcarPunto = function (lat, lon, nombre) {
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return false;
+    // El mapa puede seguir inicializándose cuando llega el clic (la carga
+    // es en cascada). Reintento breve en vez de fallar: hasta ~10 s.
+    const marcar = function (intentos) {
+      if (!map || !map.getSource || !map.getSource('puntos-manuales')) {
+        if (intentos > 0) { setTimeout(function () { marcar(intentos - 1); }, 500); }
+        return;
+      }
+      const destino = { lat: Number(lat), lon: Number(lon), nombre: String(nombre || t('sharedPoint', 'Punto marcado en el mapa')) };
+      ultimoDestinoMarcador = destino;
+      mascotaEnPuntoMarcado = true;
+      window.__manolitPuntoCompartidoPendiente = { lat: destino.lat, lon: destino.lon };
+      map.getSource('puntos-manuales').setData(turf.featureCollection([
+        turf.point([destino.lon, destino.lat], { tipo: 'destino-compartido' }),
+      ]));
+      try { actualizarBotonCompartirPunto(); } catch (e) { /* aún no existe */ }
+      try { actualizarMascotaDestino(destino, true); } catch (e) { /* sin mascota aún */ }
+      try {
+        map.flyTo({ center: [destino.lon, destino.lat], zoom: Math.max(map.getZoom(), 16), duration: 900, essential: true });
+      } catch (e) { /* la cámara nunca rompe el marcado */ }
+    };
+    marcar(20);
+    return true;
+  };
+
   window.manolitAireCalcularRutaPuntoCompartido = async function (destino, modoForzado) {
     if (!destino || !Number.isFinite(Number(destino.lat)) || !Number.isFinite(Number(destino.lon))) return false;
     try {

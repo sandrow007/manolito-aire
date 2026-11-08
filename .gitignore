@@ -14,3 +14,7 @@
 
 # documento interno de diseño: solo local, nunca se sube al repo ni se sirve
 .github/Protocolo Manolit.md
+
+# scripts temporales de diagnostico/reparacion (solo local)
+fix-i18n.js
+qa-diag.mjs

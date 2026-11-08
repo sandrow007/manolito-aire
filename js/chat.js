@@ -540,6 +540,48 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
   async function intentarAccionDirecta(pregunta) {
     const txt = String(pregunta || '');
     try {
+      // 08-nov-2026: la feria de Mairena del Aljarafe. Manolit∞ la conoce
+      // (los datos viven aquí, con fecha), la cuenta si se la preguntas y
+      // si le pides «llévame a la feria» te marca el sitio y calcula la
+      // ruta en el modo que pidas: andando, bici o coche. En bus marca el
+      // punto y enciende la capa de transporte, porque itinerarios con
+      // transbordos no calculamos. Funca aunque abras el chat más tarde:
+      // los datos no dependen del enlace de entrada.
+      const FERIA = {
+        lat: 37.3467540,
+        lon: -6.0521008,
+        nombre: 'Parque Central, Mairena del Aljarafe',
+        inicio: new Date(2026, 11, 11, 10, 0, 0, 0),
+        fin: new Date(2026, 11, 11, 20, 0, 0, 0),
+        vigenteHasta: new Date(2026, 11, 11, 23, 59, 59, 999)
+      };
+      const mencionaFeria = /\b(feria|mairena|climaton|carpa)\b/i.test(txt);
+      const pideFeriaRuta = mencionaFeria && /\b(ir|llegar|llevar|ll[eé]vame|ll[eé]vame|ruta|camino|trazar|dirigirme|c[oó]mo (voy|llego))\b/i.test(txt);
+      if (mencionaFeria && Date.now() <= FERIA.vigenteHasta.getTime()) {
+        const fechaFeria = 'viernes 11 de diciembre de 2026, de 10:00 a 20:00';
+        if (pideFeriaRuta) {
+          if (typeof window.manolitAireCalcularRutaPuntoCompartido !== 'function') {
+            if (typeof window.manolitAireCargarMapaSombras === 'function') window.manolitAireCargarMapaSombras();
+            return 'El mapa todavía se está cargando. Dámelo otra vez en un momento y te dibujo la ruta hasta la carpa.';
+          }
+          const modoBici = /\b(bici|bicicleta)\b/i.test(txt);
+          const modoCoche = /\b(coche|carro|conducir|auto)\b/i.test(txt);
+          const modoBus = /\b(bus|autob[uú]s|metro|tranv[ií]a|tren|p[uú]blico)\b/i.test(txt);
+          const destino = { lat: FERIA.lat, lon: FERIA.lon, nombre: FERIA.nombre };
+          if (modoBus) {
+            const capaTransporte = document.getElementById('rsToggleTransporte');
+            if (capaTransporte && !capaTransporte.checked) capaTransporte.click();
+            await window.manolitAireCalcularRutaPuntoCompartido(destino, 'caminar');
+            return 'Te he marcado la carpa en el mapa (' + FERIA.nombre + ') y encendido las paradas de transporte público cerca. Los itinerarios con transbordos los calcula la app del operador; yo te dejo las salidas en vivo al alcance de un clic.';
+          }
+          const modo = modoBici ? 'bici' : (modoCoche ? 'coche' : 'caminar');
+          const routed = await window.manolitAireCalcularRutaPuntoCompartido(destino, modo);
+          if (!routed) return 'No he podido calcular la ruta hasta la carpa. Revisa el origen (o dame permiso de ubicación) y vuelve a pedírmela.';
+          const como = modoBici ? 'en bici' : (modoCoche ? 'en coche' : 'a pie');
+          return 'Ruta ' + como + ' hasta la carpa de la feria dibujada en el mapa (' + FERIA.nombre + ', ' + fechaFeria + '). Las indicaciones están en el panel de ruta.';
+        }
+        return 'Sí, ojo: el ' + fechaFeria + ' estaremos en la 1.ª Feria ciudadana del clima de Mairena del Aljarafe, en el Parque Central, con la carpa del sol y la sombra y yo en persona. Si me pides «llévame a la feria» te dibujo la ruta andando, en bici o en coche desde donde estés.';
+      }
       if (/\b(aparcamiento|aparcamientos|aparcar|aparco|aparcas|parking|parkings)\b/i.test(txt)) {
         const m = txt.match(/\ben\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ'’\-\s]{2,40}?)\s*[?.!¡]*\s*$/i);
         let detalle = {};
@@ -749,4 +791,17 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
   window.closeChat = closeChat;
   window.askQuick = askQuick;
   window.askCustom = askCustom;
+  // 08-nov-2026: canal para que otros módulos dejen un mensaje de Manolit∞
+  // en el chat (lo usa el enlace profundo del anuncio de la feria de Mairena
+  // en js/shadows-route.js). NUNCA abre el chat por su cuenta: solo añade
+  // la burbuja si ya está abierto, para no interrumpir a quien está
+  // mirando otra cosa.
+  window.manolitAireChatDecir = function (text, who) {
+    try {
+      if (!text) return;
+      const overlay = document.getElementById('chatOverlay');
+      if (!overlay || !overlay.classList.contains('open')) return;
+      addBubble(String(text), who === 'user' ? 'user' : 'mano');
+    } catch (e) { /* sin chat visible no hay nada que hacer */ }
+  };
 })();

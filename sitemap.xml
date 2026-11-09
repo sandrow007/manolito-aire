@@ -20,6 +20,11 @@
   <url>
     <loc>https://manolitoaire.com/anade-manolito.html</loc>
   </url>
+  <!-- Huecos OSM: página propia, añadida el 09-nov-2026. -->
+  <url>
+    <loc>https://manolitoaire.com/huecos.html</loc>
+    <lastmod>2026-11-09</lastmod>
+  </url>
   <url>
     <loc>https://manolitoaire.com/manolito-aire-comparativa.html</loc>
   </url>

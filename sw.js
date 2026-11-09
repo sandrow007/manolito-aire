@@ -381,7 +381,16 @@
 // DENTRO del mapa, con el mismo blanco translúcido del buscador, sin mover
 // nada de la página; y la encuesta de CO2 se recoge sola 15 s tras elegir
 // medio. Cambian index.html, css/style.css y js/co2.js.
-const VERSION = '2026-11-08-a';
+// 2026-11-09-a: entra la herramienta nueva «Huecos OSM» (huecos.html), página
+// propia e independiente con su acceso en la portada por encima del LiDAR, y
+// con la vista previa reforzada: al soltar un dibujo o fijar un encuadre se
+// descarga el detalle (edificios, calles, árboles, barrios) en paralelo, y al
+// pulsar «Vista previa» se completa y se repinta antes de capturar. También se
+// corrigió en huecos.html el rebautizado de la variable global de cobertura
+// dentro de calcularHuecos (pisaba el array con un número). Purga de cachés:
+// los navegadores reciben el huecos.html nuevo al revalidar la navegación
+// (network-first), y esta VERSION limpia la estática restante.
+const VERSION = '2026-11-09-a';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

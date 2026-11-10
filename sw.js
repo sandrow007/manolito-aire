@@ -408,7 +408,19 @@
 // bloques aunque el mapa esté quieto y ya no tiene umbral mínimo de zoom.
 // El script se fuerza a red (con caché de respaldo) y se purgan las cachés
 // de versiones anteriores para que el SW no sirva el módulo antiguo.
-const VERSION = '2026-11-10-a';
+// 2026-11-10-b: el filtro OSM del relleno catastral compara intersección de
+// huellas, no solo centroides; así no descarta edificios catastrales vecinos.
+// Cambian js/catastro-edificios-3d.js e index.html.
+// 2026-11-10-c: sin límite de bloques/volúmenes por vista; el módulo recorre
+// toda el área visible en tandas pequeñas. Cambia el script y su URL versionada.
+// 2026-11-10-d: el Worker ya no recorta a 1.500 huellas catastrales por bloque.
+// Cambian worker.js y la caché del service worker. Los fallos de Catastro
+// ya no se silencian: se registran en consola con el bloque y detalle.
+// 2026-11-10-e: invalida el cliente, el mapa/sombras y Catastro en red primero.
+// Cambia index.html, js/shadows-route.js y js/catastro-edificios-3d.js.
+// 2026-11-10-f: retira el recorte a 900 edificios por vista del módulo del
+// Catastro (ya era politica desde la -c, pero el código lo seguía aplicando).
+const VERSION = '2026-11-10-f';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo
@@ -608,7 +620,7 @@ self.addEventListener('fetch', function(ev) {
 	// Capas en desarrollo activo: red primero para que un arreglo llegue al
 	// momento (con caché como respaldo sin conexión).
 	if (url.origin === self.location.origin &&
-	/\/js\/(transporte-publico|rutas-bici|fuentes-agua|catastro-edificios-3d)\.js$/i.test(url.pathname)) {
+	/\/js\/(transporte-publico|rutas-bici|fuentes-agua|catastro-edificios-3d|shadows-route)\.js$/i.test(url.pathname)) {
 		ev.respondWith(networkFirst(peticion));
 		return;
 	}

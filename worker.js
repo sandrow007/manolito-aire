@@ -1204,27 +1204,7 @@ export default {
             } catch (err) { continue; }
           }
         }
-        // Tope de construcciones por bloque: protege el tamaño de la
-        // respuesta y de la KV en zonas muy densas; se conservan las
-        // huellas más grandes (las que más pesan visualmente).
-        const MAX_POR_BLOQUE = 1500;
-        let final = features;
-        if (features.length > MAX_POR_BLOQUE) {
-          final = features
-            .map((f) => {
-              const r = f.geometry.coordinates[0];
-              let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
-              for (const p of r) {
-                if (p[0] < minLon) minLon = p[0]; if (p[0] > maxLon) maxLon = p[0];
-                if (p[1] < minLat) minLat = p[1]; if (p[1] > maxLat) maxLat = p[1];
-              }
-              return { f, a: (maxLon - minLon) * (maxLat - minLat) };
-            })
-            .sort((a, b) => b.a - a.a)
-            .slice(0, MAX_POR_BLOQUE)
-            .map((x) => x.f);
-        }
-        const cuerpo = JSON.stringify({ type: 'FeatureCollection', features: final });
+        const cuerpo = JSON.stringify({ type: 'FeatureCollection', features });
         if (kv) {
           try { await kv.put(claveKv, cuerpo, { expirationTtl: 2592000, metadata: { ts: Date.now() } }); } catch (err) { }
         }

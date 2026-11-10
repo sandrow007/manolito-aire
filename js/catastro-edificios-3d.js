@@ -31,14 +31,16 @@
   var SRC = 'catastro-edificios-src';
   var CAPA = 'catastro-edificios-capa';
   var BLOQUE_GRADOS = 0.003;        // ~300 m: el WFS del Catastro se ahoga con cajas grandes
+  var ZOOM_MINIMO = 15;             // más allá los volúmenes apenas se aprecian y la
+                                    // vista pediría cientos de bloques de golpe
   var COLCHON_GRADOS = 0.0015;      // ~150 m extra: las sombras largas del
                                     // atardecer entran desde fuera de pantalla.
                                     // Los bloques son fijos y van a caché:
                                     // pedir ese anillo extra no cuesta más
                                     // en cada movimiento del mapa.
-  var MAX_BLOQUES_POR_PASADA = 4;   // no saturar: pocas peticiones nuevas por parada
-  var MAX_BLOQUES_EN_VISTA = 30;    // vista enorme: no gastar datos
-  var MAX_EDIFICIOS_EN_VISTA = 900; // tope de extrusiones por pintada (móvil)
+  var MAX_BLOQUES_POR_PASADA = 4;   // peticiones paralelas; todas las celdas visibles se recorren por tandas
+  // (sin tope de edificios por vista desde el 10-nov: se pintan todos,
+  //  el recorte a 900 dejaba manzanas completas sin volumen)
   var ALTURA_PLANTA_M = 3;          // plantas × 3 m
   var ALTURA_SIN_DATO_M = 10;       // altura baja genérica si no hay plantas
   var CELDA_REJILLA = 0.001;        // ~110 m para la rejilla espacial OSM
@@ -185,7 +187,6 @@
 
   function osmTieneEdificioEn(lon, lat, rejilla) {
     var cy0 = Math.floor(lat / CELDA_REJILLA), cx0 = Math.floor(lon / CELDA_REJILLA);
-    // 5×5 celdas de entorno: cubre huellas grandes aunque su centroide caiga lejos
     for (var cy = cy0 - 2; cy <= cy0 + 2; cy++) {
       for (var cx = cx0 - 2; cx <= cx0 + 2; cx++) {
         var lista = rejilla.get(cy + ':' + cx);
@@ -194,6 +195,48 @@
           var c = lista[i];
           if (lon < c.minLon || lon > c.maxLon || lat < c.minLat || lat > c.maxLat) continue;
           if (puntoEnAnillo(lon, lat, c.ext)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function anillosIntersectan(a, b) {
+    for (var i = 0; i < a.length - 1; i++) {
+      var ax = a[i][0], ay = a[i][1], bx = a[i + 1][0], by = a[i + 1][1];
+      for (var j = 0; j < b.length - 1; j++) {
+        var cx = b[j][0], cy = b[j][1], dx = b[j + 1][0], dy = b[j + 1][1];
+        var d1 = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+        var d2 = (bx - ax) * (dy - ay) - (by - ay) * (dx - ax);
+        var d3 = (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx);
+        var d4 = (dx - cx) * (by - cy) - (dy - cy) * (bx - cx);
+        if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+            ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return true;
+      }
+    }
+    return false;
+  }
+
+  function huellaCatastroSolapaOsm(ext, rejilla) {
+    var minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+    for (var p = 0; p < ext.length; p++) {
+      if (ext[p][0] < minLon) minLon = ext[p][0];
+      if (ext[p][0] > maxLon) maxLon = ext[p][0];
+      if (ext[p][1] < minLat) minLat = ext[p][1];
+      if (ext[p][1] > maxLat) maxLat = ext[p][1];
+    }
+    var cy0 = Math.floor(((minLat + maxLat) / 2) / CELDA_REJILLA);
+    var cx0 = Math.floor(((minLon + maxLon) / 2) / CELDA_REJILLA);
+    for (var cy = cy0 - 2; cy <= cy0 + 2; cy++) {
+      for (var cx = cx0 - 2; cx <= cx0 + 2; cx++) {
+        var lista = rejilla.get(cy + ':' + cx);
+        if (!lista) continue;
+        for (var i = 0; i < lista.length; i++) {
+          var c = lista[i];
+          if (c.maxLon < minLon || c.minLon > maxLon || c.maxLat < minLat || c.minLat > maxLat) continue;
+          if (anillosIntersectan(ext, c.ext) ||
+              puntoEnAnillo(ext[0][0], ext[0][1], c.ext) ||
+              puntoEnAnillo(c.ext[0][0], c.ext[0][1], ext)) return true;
         }
       }
     }
@@ -213,17 +256,9 @@
         lista.push([cy, cx]);
       }
     }
-    // Si la vista pide demasiados bloques, se priorizan los del centro:
-    // son los que se ven; el resto llega al acercar más.
-    if (lista.length > MAX_BLOQUES_EN_VISTA) {
-      var cLat = (b.getSouth() + b.getNorth()) / 2, cLon = (b.getWest() + b.getEast()) / 2;
-      lista.sort(function (a, b2) {
-        var da = Math.abs((a[0] + 0.5) * BLOQUE_GRADOS - cLat) + Math.abs((a[1] + 0.5) * BLOQUE_GRADOS - cLon);
-        var db = Math.abs((b2[0] + 0.5) * BLOQUE_GRADOS - cLat) + Math.abs((b2[1] + 0.5) * BLOQUE_GRADOS - cLon);
-        return da - db;
-      });
-      lista = lista.slice(0, MAX_BLOQUES_EN_VISTA);
-    }
+    // Sin capar ni por zoom ni por número de bloques: a gran escala puede
+    // tardar más porque las celdas se consultan por tandas pequeñas, pero la
+    // cobertura no se queda recortada a un círculo central.
     return lista;
   }
 
@@ -248,7 +283,7 @@
         return false;
       }
       bloques.set(clave, { estado: 'error', datos: null, t: Date.now() });
-      console.debug('[Catastro 3D] bloque ' + clave + ' ERROR: ' + ((err && err.message) || err));
+      console.error('[Catastro 3D] bloque ' + clave + ' ERROR:', (err && err.message) || err);
       return false;
     }
   }
@@ -259,6 +294,10 @@
   function repintar() {
     try {
       if (!activo || !map.getSource(SRC)) return;
+      if (map.getZoom() < ZOOM_MINIMO) {
+        map.getSource(SRC).setData({ type: 'FeatureCollection', features: [] });
+        return;
+      }
       // Esperar a que el mapa base haya cargado sus teselas antes de
       // decidir qué huecos rellenar: si no, faltan edificios OSM y se
       // levantarían duplicados que luego quedarían bajo los de OSM.
@@ -308,8 +347,10 @@
             // idénticos, no separados por calles.
             var celdaC = Math.floor(clat / 0.00005) + ':' + Math.floor(clon / 0.00005);
             if (celdasCatastro.has(celdaC)) continue;
-            // OSM manda: si ya tiene un edificio aquí, no se levanta nada
-            if (osmTieneEdificioEn(clon, clat, rejillaOsm)) continue;
+            // OSM solo tapa el edificio catastral si las huellas se solapan.
+            // No descartar por el centroide: una casa vecina pegada puede
+            // contenerlo por error y dejar huecos completos en la manzana.
+            if (huellaCatastroSolapaOsm(ext, rejillaOsm)) continue;
             celdasCatastro.add(celdaC);
             var plantas = f.properties ? f.properties.p : null;
             var estimada = !(plantas > 0);
@@ -325,14 +366,12 @@
         }
       });
 
-      // Tope de edificios por vista: se conservan los más cercanos al
-      // centro de la pantalla y se deja constancia en consola para poder
-      // detectar zonas densas donde algo queda fuera.
-      if (candidatos.length > MAX_EDIFICIOS_EN_VISTA) {
-        candidatos.sort(function (a, b) { return a.dc - b.dc; });
-        console.debug('[Catastro 3D] recorte en vista densa: ' + candidatos.length + ' edificios candidatos → se pintan los ' + MAX_EDIFICIOS_EN_VISTA + ' más cercanos al centro');
-        candidatos = candidatos.slice(0, MAX_EDIFICIOS_EN_VISTA);
-      }
+      // Sin recorte por densidad (2026-11-10-c): se pintan TODOS los
+      // edificios válidos de los bloques visibles para que Catastro
+      // complete los huecos de OSM. El recorte a MAX_EDIFICIOS_EN_VISTA
+      // quedó retirado: dejaba manzanas enteras sin volumen en vistas
+      // densas. Si algún día hiciera falta un tope en móviles muy
+      // modestos, se aplicaría por proximidad al centro ANTES de pintar.
       var finales = candidatos.map(function (c) { return c.feature; });
       console.debug('[Catastro 3D] repintado: ' + finales.length + ' edificios (zoom ' + map.getZoom().toFixed(1) + ', bloques en memoria ' + bloques.size + ')');
       map.getSource(SRC).setData({
@@ -366,7 +405,6 @@
         }
       }
       var lista = bloquesDeLaVista();
-      if (lista.length > MAX_BLOQUES_EN_VISTA) lista = lista.slice(0, MAX_BLOQUES_EN_VISTA);
       // Cancelar la tanda anterior: esas peticiones ya son de una vista vieja
       if (controlAbortar) { try { controlAbortar.abort(); } catch (e) { } }
       controlAbortar = new AbortController();
@@ -384,18 +422,28 @@
         await Promise.all(pendientes);
       }
       repintar();
-      // Cada pasada está limitada a cuatro bloques para no saturar el WFS.
-      // Si la vista todavía tiene bloques sin consultar, continuar por tandas
-      // aunque el usuario no mueva el mapa: si no, solo se dibuja el primer
-      // grupo de cuatro y el resto de edificios parece faltar.
-      if (pendientes.length && activo && !senal.aborted) programar();
+      // Cada pasada pide como máximo cuatro celdas, pero recorre toda la
+      // vista. Los errores recientes esperan su ventana de reintento sin
+      // provocar un bucle de peticiones cada medio segundo.
+      var quedanBloques = false, esperaReintento = Infinity;
+      for (var q = 0; q < lista.length; q++) {
+        var estadoBloque = bloques.get(claveBloque(lista[q][0], lista[q][1]));
+        if (!estadoBloque) { quedanBloques = true; break; }
+        if (estadoBloque.estado === 'error') {
+          var restante = 300000 - (Date.now() - (estadoBloque.t || 0));
+          if (restante <= 0) { quedanBloques = true; break; }
+          if (restante < esperaReintento) esperaReintento = restante;
+        }
+      }
+      if (quedanBloques && activo && !senal.aborted) programar();
+      else if (esperaReintento < Infinity && activo && !senal.aborted) programar(esperaReintento + 50);
     } catch (e) { /* silencio total */ }
   }
 
-  function programar() {
+  function programar(espera) {
     try {
       clearTimeout(temporizador);
-      temporizador = setTimeout(cargarVista, 500);
+      temporizador = setTimeout(cargarVista, espera == null ? 500 : espera);
     } catch (e) { }
   }
 
@@ -556,6 +604,15 @@
   // Enganche público: lo llama el interruptor «Catastro 3D» de shadows-route.js
   window.manolitoCatastro3D = function (activoNuevo) {
     try { alternar(activoNuevo); } catch (e) { }
+  };
+  window.__manolitoCatastroDebug = function () {
+    var resumen = { activos: activo, zoom: map && map.getZoom(), bloques: bloques.size, peticiones: 0, edificiosRecibidos: 0, fallos: 0 };
+    bloques.forEach(function (b) {
+      if (b.estado === 'cargando') resumen.peticiones++;
+      if (b.estado === 'error') resumen.fallos++;
+      if (b.datos && b.datos.features) resumen.edificiosRecibidos += b.datos.features.length;
+    });
+    return resumen;
   };
 
   // Arranque: espera al mapa con reintentos suaves (patrón arboles-3d.js)

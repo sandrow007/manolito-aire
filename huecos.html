@@ -15,7 +15,7 @@
         nuevos (con cache en localStorage para no repetir).
       * Boton "Extraer area completa": descarga todo el poligono celda
         a celda con barra de progreso y cancelacion.
-  - Satelite: PNOA (IGN) en Espana, Esri World Imagery fuera.
+  - Ortofoto: PNOA (IGN) en Espana. Satelite: Esri World Imagery fuera.
   - Catastro oficial: solo dentro de Espana (WMS INSPIRE D.G. Catastro).
 
   Abre este archivo en el navegador y listo. Requiere internet.
@@ -165,6 +165,9 @@ body{overflow:hidden;overscroll-behavior:none}
 .export-dialog .formato label{cursor:pointer;display:flex;align-items:center;gap:5px;background:transparent;border:0}
 .export-dialog .formato input{accent-color:#00a890}
 #exportPreview[hidden],#seccionWrap[hidden]{display:none}
+#exportPreview .formato{flex-wrap:wrap;gap:6px 12px}
+#exportPreview #copiarCompartirBtn{color:var(--b3)}
+#josmStatus[hidden]{display:none}
 .capas-previa{margin:8px 0;border-top:1px solid rgba(134,191,192,.25);padding-top:6px}
 .capas-previa summary{cursor:pointer;font-weight:700}.capas-previa>div{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;margin-top:6px}
 .capas-previa label{display:flex;align-items:center;gap:5px;font-size:11px;line-height:1.25;cursor:pointer}
@@ -287,7 +290,8 @@ html,body{ height:100%; }
     <section id="contenidoCapas" class="panel-tab active" role="tabpanel" aria-labelledby="tabCapas">
       <div class="panel-subtitle"><span data-i18n="layers">Capas</span> - <span id="zoomReadout">sin lugar</span></div>
       <label><input type="checkbox" data-layer="gaps" checked> <span data-i18n="buildingGaps">Huecos de edificios</span></label>
-      <label><input type="checkbox" data-layer="satelite" checked> <span data-i18n="satellite">Ortofoto / satelite</span></label>
+      <label><input type="checkbox" data-layer="ortofoto"> <span data-i18n="ortofoto">Ortofoto (PNOA)</span></label>
+      <label><input type="checkbox" data-layer="satelite" checked> <span data-i18n="satellite">Satelite (Esri)</span></label>
       <label><input type="checkbox" data-layer="gaps3d"> <span data-i18n="heightGaps">Huecos de altura</span></label>
       <label><input type="checkbox" data-layer="gaptrees"> <span data-i18n="fewTrees">Zonas con pocos arboles</span></label>
       <label><input type="checkbox" data-layer="buildings3d"> <span data-i18n="buildings3d">Edificios con altura</span></label>
@@ -316,7 +320,7 @@ html,body{ height:100%; }
           <span class="lg-item"><span class="sw" style="background:#FFFFFF"></span><span data-i18n="streets">Calles</span></span>
         </div>
         <small>Datos © OpenStreetMap contributors (Nominatim + Overpass API).
-        Satelite: PNOA (IGN) en Espana / Esri World Imagery fuera.
+        Ortofoto: PNOA (IGN, Espana). Satelite: Esri World Imagery.
         Catastro: D.G. del Catastro (solo Espana). El detalle se carga por zonas al acercarte (zoom 13+).</small>
       </div>
     </section>
@@ -340,11 +344,13 @@ html,body{ height:100%; }
       <div class="barra"><div class="relleno" id="progFill"></div></div>
     </div>
     <div id="exportPreview" hidden>
+      <p id="topeExportacion" class="ayuda" data-i18n="exportLimitHelp">Límite de seguridad: 10&nbsp;000 huecos por archivo.</p>
       <img id="previewImg" alt="Vista previa exacta de la exportación" data-i18n-alt="previewAlt" hidden>
       <div id="seccionWrap" class="fila" style="margin-top:10px" hidden><select id="seccionArea" aria-label="Seccion" data-i18n-aria-label="section"></select></div>
       <details class="capas-previa" open><summary data-i18n="includedLayers">Capas incluidas</summary><div id="capasPrevia"></div></details>
-      <div class="formato"><label><input type="radio" name="formato" value="png" checked> PNG</label><label><input type="radio" name="formato" value="pdf"> PDF</label></div>
-      <div class="fila"><button id="exportarBtn" data-i18n="exportSection">Exportar seccion</button></div>
+      <div class="formato"><label><input type="radio" name="formato" value="png" checked> PNG</label><label><input type="radio" name="formato" value="pdf"> PDF</label><label><input type="radio" name="formato" value="geojson"> <span data-i18n="formatGeoJSON">GeoJSON</span></label><label><input type="radio" name="formato" value="csv"> <span data-i18n="formatCSV">CSV</span></label><label><input type="radio" name="formato" value="gpx"> <span data-i18n="formatGPX">GPX</span></label><label><input type="radio" name="formato" value="kml"> <span data-i18n="formatKML">KML</span></label><label><input type="radio" name="formato" value="zip"> <span data-i18n="formatZIP">ZIP (todo)</span></label></div>
+      <div class="fila"><button id="exportarBtn" data-i18n="exportSection">Exportar seccion</button><button id="copiarCompartirBtn" type="button" data-i18n="copyShareLink">Copiar / compartir enlace</button></div>
+      <p id="josmStatus" class="ayuda" role="status" aria-live="polite" hidden></p>
     </div>
   </div>
 </div>
@@ -354,7 +360,7 @@ html,body{ height:100%; }
 (function(){
   'use strict';
   var LANGS=['es','en','ca','eu','pt'], STORE='huecos_osm_lang_v1';
-  var ES_TEXT={navShade:'Mapa de sombras',navGaps:'Huecos OSM',navLidar:'Renderizado LiDAR',languageLabel:'Idioma de la herramienta',searchBtn:'Buscar',searchLabel:'Buscar lugar',searchPlaceholder:'Pueblo, ciudad, barrio, provincia o pais... (ej.: Viena, Austria)',drawMap:'Dibujar en el mapa',closeHelp:'Cerrar ayuda',initialHelp:'Escribe un lugar arriba y pulsa Buscar; luego acerca el zoom (nivel 13+) para cargar el detalle.',hidePanel:'Ocultar panel lateral',mapPanel:'Panel de mapa',layers:'Capas',legend:'Leyenda',buildingGaps:'Huecos de edificios',satellite:'Ortofoto / satelite',heightGaps:'Huecos de altura',fewTrees:'Zonas con pocos arboles',buildings3d:'Edificios con altura',buildings2d:'Edificios sin altura',trees:'Arboles',neighbourNames:'Nombres de barrios',osmMap:'Mapa OSM',streetsAvenues:'Calles y avenidas',cadastre:'Catastro (oficial)',extractExport:'Extraer / exportar',gaps:'Huecos',buildings:'Edificios',heights3d:'Alturas 3D',surfaces:'Superficies',withHeight:'Con altura',withoutHeight:'Sin altura',tree:'Árbol',streets:'Calles',avenues:'Avenidas',chooseArea:'Elige cómo definir el área que quieres exportar.',areaLabel:'Área:',downloadArea:'Area de descarga',visibleArea:'Zoom / encuadre visible',freehand:'Dibujo libre',adminBoundary:'Forma administrativa',currentView:'Usa el encuadre actual del mapa.',activateDrawing:'Activar dibujo',preview:'Vista previa',clearSelection:'Borrar selección',extractArea:'Extraer área completa',extractingArea:'Extrayendo area completa...',previewAlt:'Vista previa exacta de la exportación',section:'Seccion',includedLayers:'Capas incluidas',exportSection:'Exportar seccion',close:'Cerrar',cancel:'Cancelar',loading:'cargando',ready:'listo',exportFile:'Exportar archivo',exportDrawnArea:'Exportar área dibujada',exportMap:'Exportar mapa',preparePreview:'Preparar vista previa',extractAdminHelp:'Pulsa «Extraer área completa» para descargar el lugar por secciones; al finalizar podrás exportar cada sección.',drawnAreaHelp:'La forma dibujada está seleccionada; elige el formato y exporta el archivo.',visibleAreaHelp:'Elige Zoom / encuadre visible y prepara la vista previa para exportar.',adminPreviewHelp:'Pulsa «Extraer área completa» para descargar el lugar por secciones.',areaExtracted:'Área completa extraída. Ahora prepara la vista previa y elige una sección y el formato para exportar.',adminReady:'Area: {width} × {height} km. {sections} secciones listas; elige una y exporta PNG o PDF.',areaPreview:'Area: {width} × {height} km. Vista previa de un único archivo con la forma completa seleccionada.',searching:'Buscando',tryAnother:'Prueba con otro nombre o mas detalle.',searchingIn:'Buscando "{place}" en Nominatim...',placeTooLarge:'"{place}" abarca ~{area} km2: demasiado extenso. Busca un pueblo, ciudad o barrio. Aun asi puedes usar "Extraer area completa" por partes si quieres.',placeReadyZoom:'"{place}" listo. Los datos disponibles se van cargando automáticamente; acerca el zoom (nivel {zoom}+) para mostrar el detalle.',loadingVisible:'Cargando el detalle de la zona visible...',extractCancel:'Extraccion cancelada.',overpassFail:'Overpass esta fallando o el area es demasiado grande. Prueba mas tarde o con un lugar menor.',tooManyTrees:'Demasiados arboles acumulados: se limita el dibujado a {limit}.',alreadyDrawing:'Ya hay un dibujo fijado. Pulsa «Borrar selección» desde Extraer para empezar otro.',drawingFixed:'La forma dibujada está fijada. Pulsa «Borrar selección» para elegir otra área.',noPlace:'Primero busca un lugar.',noAdminPlace:'Primero busca un lugar con limite administrativo.',noDrawnArea:'Dibuja primero un area sobre el mapa.',previewFirst:'Prepara primero la vista previa del área visible.',noAreaSelected:'No hay un área seleccionada.',outsideMap:'El área seleccionada queda fuera del mapa.',previewError:'No se pudo generar la vista previa: {error}',exportError:'No se pudo exportar. Una capa de imagen no permite la captura; desactivala e intentalo otra vez. {error}',downloadReady:'Descarga preparada. Si el navegador pregunta, elige donde guardarla.',overpassLimit:'Overpass ha limitado temporalmente esta conexión por exceso de peticiones (error 406). El detalle no cargará hasta que se levante el bloqueo (normalmente en unas horas). El mapa base y la ortofoto siguen funcionando.',nominatimError:'Error consultando Nominatim: {error}',noGeometry:'Sin geometria para este lugar. Prueba con otro nombre.',placeNotFound:'No se encontro "{place}". Prueba con otro nombre o mas detalle.',alreadyExtracting:'La extracción ya está en curso.',alreadyExtracted:'El área completa ya está extraída.',cacheReady:'Todo el area ya estaba descargada o en cache.',largeAreaConfirm:'El area se divide en {count} zonas: la descarga completa puede tardar unos {minutes} min aprox. ¿Continuar?',confirmSmallArea:'El área es demasiado extensa. Busca un pueblo, ciudad o barrio más pequeño.',tryLaterSmall:'Overpass esta fallando o el area es demasiado grande. Prueba mas tarde o con un lugar menor.',extractBusy:'Preparando...',areaTooLarge:'Esta forma es demasiado grande para descargarla de una vez. Prueba a dibujar un área más pequeña.',placeMissingGeometry:'Sin geometria para este lugar. Prueba con otro nombre.',drawTooSmall:'Dibuja un area un poco mayor.',drawFixedNotice:'Area dibujada y fijada. Ya puedes navegar; para borrarla usa «Borrar selección».',selectionCleared:'Seleccion borrada.',noSelection:'La selección dibujada no está disponible. Vuelve a dibujarla desde «Dibujar en el mapa».',exportNeedsPreview:'Prepara primero la vista previa del área visible.',};
+  var ES_TEXT={copyShareLink:'Copiar / compartir enlace',shareLinkCopied:'Enlace copiado al portapapeles.',shareLinkReady:'Enlace listo para compartir.',shareLinkError:'No se pudo copiar el enlace.',exportLimit:'El área contiene demasiados huecos ({count}; máximo {limit}). Reduce el área antes de exportar.',noGaps:'No hay huecos disponibles en el área seleccionada.',josmOpen:'Abriendo JOSM Remote Control…',josmUnavailable:'JOSM no respondió. Comprueba que está instalado y que Remote Control está activado; también puedes abrir el enlace iD.',formatGeoJSON:'GeoJSON',formatCSV:'CSV',formatGPX:'GPX',formatKML:'KML',formatZIP:'ZIP (todo)',navShade:'Mapa de sombras',navGaps:'Huecos OSM',navLidar:'Renderizado LiDAR',languageLabel:'Idioma de la herramienta',searchBtn:'Buscar',searchLabel:'Buscar lugar',searchPlaceholder:'Pueblo, ciudad, barrio, provincia o pais... (ej.: Viena, Austria)',drawMap:'Dibujar en el mapa',closeHelp:'Cerrar ayuda',initialHelp:'Escribe un lugar arriba y pulsa Buscar; luego acerca el zoom (nivel 13+) para cargar el detalle.',hidePanel:'Ocultar panel lateral',mapPanel:'Panel de mapa',layers:'Capas',legend:'Leyenda',buildingGaps:'Huecos de edificios',ortofoto:'Ortofoto (PNOA)',satellite:'Satelite (Esri)',heightGaps:'Huecos de altura',fewTrees:'Zonas con pocos arboles',buildings3d:'Edificios con altura',buildings2d:'Edificios sin altura',trees:'Arboles',neighbourNames:'Nombres de barrios',osmMap:'Mapa OSM',streetsAvenues:'Calles y avenidas',cadastre:'Catastro (oficial)',extractExport:'Extraer / exportar',gaps:'Huecos',buildings:'Edificios',heights3d:'Alturas 3D',surfaces:'Superficies',withHeight:'Con altura',withoutHeight:'Sin altura',tree:'Árbol',streets:'Calles',avenues:'Avenidas',chooseArea:'Elige cómo definir el área que quieres exportar.',areaLabel:'Área:',downloadArea:'Area de descarga',visibleArea:'Zoom / encuadre visible',freehand:'Dibujo libre',adminBoundary:'Forma administrativa',currentView:'Usa el encuadre actual del mapa.',activateDrawing:'Activar dibujo',preview:'Vista previa',clearSelection:'Borrar selección',extractArea:'Extraer área completa',extractingArea:'Extrayendo area completa...',previewAlt:'Vista previa exacta de la exportación',section:'Seccion',includedLayers:'Capas incluidas',exportSection:'Exportar seccion',close:'Cerrar',cancel:'Cancelar',loading:'cargando',ready:'listo',exportFile:'Exportar archivo',exportDrawnArea:'Exportar área dibujada',exportMap:'Exportar mapa',preparePreview:'Preparar vista previa',extractAdminHelp:'Pulsa «Extraer área completa» para descargar el lugar por secciones; al finalizar podrás exportar cada sección.',drawnAreaHelp:'La forma dibujada está seleccionada; elige el formato y exporta el archivo.',visibleAreaHelp:'Elige Zoom / encuadre visible y prepara la vista previa para exportar.',adminPreviewHelp:'Pulsa «Extraer área completa» para descargar el lugar por secciones.',areaExtracted:'Área completa extraída. Ahora prepara la vista previa y elige una sección y el formato para exportar.',adminReady:'Area: {width} × {height} km. {sections} secciones listas; elige una y exporta PNG o PDF.',areaPreview:'Area: {width} × {height} km. Vista previa de un único archivo con la forma completa seleccionada.',searching:'Buscando',tryAnother:'Prueba con otro nombre o mas detalle.',searchingIn:'Buscando "{place}" en Nominatim...',placeTooLarge:'"{place}" abarca ~{area} km2: demasiado extenso. Busca un pueblo, ciudad o barrio. Aun asi puedes usar "Extraer area completa" por partes si quieres.',placeReadyZoom:'"{place}" listo. Los datos disponibles se van cargando automáticamente; acerca el zoom (nivel {zoom}+) para mostrar el detalle.',loadingVisible:'Cargando el detalle de la zona visible...',extractCancel:'Extraccion cancelada.',overpassFail:'Overpass esta fallando o el area es demasiado grande. Prueba mas tarde o con un lugar menor.',tooManyTrees:'Demasiados arboles acumulados: se limita el dibujado a {limit}.',alreadyDrawing:'Ya hay un dibujo fijado. Pulsa «Borrar selección» desde Extraer para empezar otro.',drawingFixed:'La forma dibujada está fijada. Pulsa «Borrar selección» para elegir otra área.',noPlace:'Primero busca un lugar.',noAdminPlace:'Primero busca un lugar con limite administrativo.',noDrawnArea:'Dibuja primero un area sobre el mapa.',previewFirst:'Prepara primero la vista previa del área visible.',noAreaSelected:'No hay un área seleccionada.',outsideMap:'El área seleccionada queda fuera del mapa.',previewError:'No se pudo generar la vista previa: {error}',exportError:'No se pudo exportar. Una capa de imagen no permite la captura; desactivala e intentalo otra vez. {error}',downloadReady:'Descarga preparada. Si el navegador pregunta, elige donde guardarla.',overpassLimit:'Overpass ha limitado temporalmente esta conexión por exceso de peticiones (error 406). El detalle no cargará hasta que se levante el bloqueo (normalmente en unas horas). El mapa base y la ortofoto siguen funcionando.',nominatimError:'Error consultando Nominatim: {error}',noGeometry:'Sin geometria para este lugar. Prueba con otro nombre.',placeNotFound:'No se encontro "{place}". Prueba con otro nombre o mas detalle.',alreadyExtracting:'La extracción ya está en curso.',alreadyExtracted:'El área completa ya está extraída.',cacheReady:'Todo el area ya estaba descargada o en cache.',largeAreaConfirm:'El area se divide en {count} zonas: la descarga completa puede tardar unos {minutes} min aprox. ¿Continuar?',confirmSmallArea:'El área es demasiado extensa. Busca un pueblo, ciudad o barrio más pequeño.',tryLaterSmall:'Overpass esta fallando o el area es demasiado grande. Prueba mas tarde o con un lugar menor.',extractBusy:'Preparando...',areaTooLarge:'Esta forma es demasiado grande para descargarla de una vez. Prueba a dibujar un área más pequeña.',placeMissingGeometry:'Sin geometria para este lugar. Prueba con otro nombre.',drawTooSmall:'Dibuja un area un poco mayor.',drawFixedNotice:'Area dibujada y fijada. Ya puedes navegar; para borrarla usa «Borrar selección».',selectionCleared:'Seleccion borrada.',noSelection:'La selección dibujada no está disponible. Vuelve a dibujarla desde «Dibujar en el mapa».',exportNeedsPreview:'Prepara primero la vista previa del área visible.',};
   var TEXT={
     'Buscar lugar':['Search for a place','Cerca un lloc','Bilatu toki bat','Pesquisar local'],
     'Buscar':['Search','Cerca','Bilatu','Pesquisar'],
@@ -370,7 +376,8 @@ html,body{ height:100%; }
     'sin lugar':['no place selected','cap lloc seleccionat','ez dago tokirik','sem local'],
     'vista completa':['full view','vista completa','ikuspegi osoa','vista completa'],
     'Huecos de edificios':['Building gaps','Buits d’edificis','Eraikinen hutsuneak','Vazios de edifícios'],
-    'Ortofoto / satelite':['Orthophoto / satellite','Ortofoto / satèl·lit','Ortoargazkia / satelitea','Ortofoto / satélite'],
+    'Ortofoto (PNOA)':['Orthophoto (PNOA)','Ortofoto (PNOA)','Ortoargazkia (PNOA)','Ortofoto (PNOA)'],
+    'Satelite (Esri)':['Satellite (Esri)','Satèl·lit (Esri)','Satelitea (Esri)','Satélite (Esri)'],
     'Huecos de altura':['Height gaps','Buits d’alçada','Altuera-hutsuneak','Vazios de altura'],
     'Zonas con pocos arboles':['Areas with few trees','Zones amb pocs arbres','Zuhaitz gutxiko eremuak','Zonas com poucas árvores'],
     'Edificios con altura':['Buildings with height data','Edificis amb alçada','Altuera-datuak dituzten eraikinak','Edifícios com altura'],
@@ -440,7 +447,8 @@ html,body{ height:100%; }
     'Panel del mapa':['Map panel','Panell del mapa','Mapa-panela','Painel do mapa'],
     'Capas':['Layers','Capes','Geruzak','Camadas'],'Leyenda':['Legend','Llegenda','Legenda','Legenda'],
     'Huecos de edificios':['Building gaps','Buits d’edificis','Eraikinen hutsuneak','Vazios de edifícios'],
-    'Ortofoto / satelite':['Orthophoto / satellite','Ortofoto / satèl·lit','Ortoargazkia / satelitea','Ortofoto / satélite'],
+    'Ortofoto (PNOA)':['Orthophoto (PNOA)','Ortofoto (PNOA)','Ortoargazkia (PNOA)','Ortofoto (PNOA)'],
+    'Satelite (Esri)':['Satellite (Esri)','Satèl·lit (Esri)','Satelitea (Esri)','Satélite (Esri)'],
     'Huecos de altura':['Height gaps','Buits d’alçada','Altuera-hutsuneak','Vazios de altura'],
     'Zonas con pocos arboles':['Areas with few trees','Zones amb pocs arbres','Zuhaitz gutxiko eremuak','Zonas com poucas árvores'],
     'Edificios con altura':['Buildings with height data','Edificis amb alçada','Altuera-datuak dituzten eraikinak','Edifícios com altura'],
@@ -464,7 +472,7 @@ html,body{ height:100%; }
     'Vista previa exacta de la exportación':['Exact export preview','Previsualització exacta de l’exportació','Esportazioaren aurrebista zehatza','Pré-visualização exata da exportação'],
     'Seccion':['Section','Secció','Atala','Secção'],'Capas incluidas':['Included layers','Capes incloses','Sartutako geruzak','Camadas incluídas'],
     'Exportar seccion':['Export section','Exporta la secció','Esportatu atala','Exportar secção'],'Exportar archivo':['Export file','Exporta el fitxer','Esportatu fitxategia','Exportar ficheiro'],
-    'Edificios OSM':['OSM buildings','Edificis OSM','OSM eraikinak','Edifícios OSM'],'con altura':['with height data','amb alçada','altuera-datuekin','com altura'],'Cobertura':['Coverage','Cobertura','Estaldura','Cobertura'],'Editar en iD':['Edit in iD','Edita a iD','Editatu iD-n','Editar no iD'],
+    'Edificios OSM':['OSM buildings','Edificis OSM','OSM eraikinak','Edifícios OSM'],'con altura':['with height data','amb alçada','altuera-datuekin','com altura'],'Cobertura':['Coverage','Cobertura','Estaldura','Cobertura'],'Editar en iD':['Edit in iD','Edita a iD','Editatu iD-n','Editar no iD'],'Editar en JOSM':['Edit in JOSM','Edita al JOSM','Editatu JOSM-en','Editar no JOSM'],
     'navGaps':['OSM gaps','Buits OSM','OSM hutsuneak','Vazios OSM'],
     'navLidar':['LiDAR rendering','Renderització LiDAR','LiDAR errendatzea','Renderização LiDAR'],
     'languageLabel':['Tool language','Idioma de l’eina','Tresnaren hizkuntza','Idioma da ferramenta'],
@@ -477,7 +485,8 @@ html,body{ height:100%; }
     'mapPanel':['Map panel','Panell del mapa','Mapa-panela','Painel do mapa'],
     'layers':['Layers','Capes','Geruzak','Camadas'],'legend':['Legend','Llegenda','Legenda','Legenda'],
     'buildingGaps':['Building gaps','Buits d’edificis','Eraikinen hutsuneak','Vazios de edifícios'],
-    'satellite':['Orthophoto / satellite','Ortofoto / satèl·lit','Ortoargazkia / satelitea','Ortofoto / satélite'],
+    'ortofoto':['Orthophoto (PNOA)','Ortofoto (PNOA)','Ortoargazkia (PNOA)','Ortofoto (PNOA)'],
+    'satellite':['Satellite (Esri)','Satèl·lit (Esri)','Satelitea (Esri)','Satélite (Esri)'],
     'heightGaps':['Height gaps','Buits d’alçada','Altuera-hutsuneak','Vazios de altura'],
     'fewTrees':['Areas with few trees','Zones amb pocs arbres','Zuhaitz gutxiko eremuak','Zonas com poucas árvores'],
     'buildings3d':['Buildings with height data','Edificis amb alçada','Altuera-datuak dituzten eraikinak','Edifícios com altura'],
@@ -516,6 +525,27 @@ html,body{ height:100%; }
     'previewError':['Could not generate the preview: {error}','No s’ha pogut generar la previsualització: {error}','Ezin izan da aurrebista sortu: {error}','Não foi possível gerar a pré-visualização: {error}'],
     'exportError':['Export failed. An image layer prevents capture; turn it off and try again. {error}','No s’ha pogut exportar. Una capa d’imatge impedeix la captura; desactiva-la i torna-ho a provar. {error}','Ezin izan da esportatu. Irudi-geruza batek kaptura eragozten du; desaktibatu eta saiatu berriro. {error}','Não foi possível exportar. Uma camada de imagem impede a captura; desative-a e tente novamente. {error}'],
     'downloadReady':['Download ready. If your browser asks, choose where to save it.','Descàrrega preparada. Si el navegador t’ho demana, tria on desar-la.','Deskarga prest. Nabigatzaileak galdetzen badizu, aukeratu non gorde.','Transferência preparada. Se o navegador perguntar, escolha onde a guardar.'],
+    'shareLinkCopied':['Link copied to clipboard.','Enllaç copiat al porta-retalls.','Esteka arbelean kopiatu da.','Ligação copiada para a área de transferência.'],
+    'shareLinkReady':['Link ready to share.','Enllaç llest per compartir.','Partekatzeko esteka prest.','Ligação pronta para partilhar.'],
+    'shareLinkError':['Could not copy the link.','No s’ha pogut copiar l’enllaç.','Ezin izan da esteka kopiatu.','Não foi possível copiar a ligação.'],
+    'copyShareLink':['Copy / share link','Copia / comparteix l’enllaç','Kopiatu / partekatu esteka','Copiar / partilhar ligação'],
+    'formatGeoJSON':['GeoJSON','GeoJSON','GeoJSON','GeoJSON'],'formatCSV':['CSV','CSV','CSV','CSV'],'formatGPX':['GPX','GPX','GPX','GPX'],'formatKML':['KML','KML','KML','KML'],'formatZIP':['ZIP (all)','ZIP (tot)','ZIP (dena)','ZIP (tudo)'],
+    'exportLimit':['Too many gaps in this area ({count}; maximum {limit}). Reduce the selected area before exporting.','Hi ha massa buits en aquesta àrea ({count}; màxim {limit}). Redueix l’àrea seleccionada abans d’exportar.','Hutsune gehiegi eremu honetan ({count}; gehienez {limit}). Murriztu hautatutako eremua esportatu aurretik.','Demasiados vazios nesta área ({count}; máximo {limit}). Reduza a área selecionada antes de exportar.'],
+    'tooLargeExport':['The selected area has {count} analysis cells; the limit is {limit} gaps. Select a smaller area.','L’àrea seleccionada té {count} cel·les d’anàlisi; el límit és de {limit} buits. Tria una àrea més petita.','Hautatutako eremuak {count} analisi-gelaxka ditu; hutsune-muga {limit} da. Aukeratu eremu txikiago bat.','A área selecionada tem {count} células de análise; o limite é de {limit} vazios. Escolha uma área menor.'],
+    'exportLimitHelp':['Safety limit: 10,000 gaps per file.','Límit de seguretat: 10.000 buits per fitxer.','Segurtasun-muga: 10.000 hutsune fitxategiko.','Limite de segurança: 10.000 vazios por ficheiro.'],'extractBusy':['Preparing…','S’està preparant…','Prestatzen…','A preparar…'],
+
+    'noGaps':['No gaps are available in the selected area.','No hi ha buits disponibles a l’àrea seleccionada.','Ez dago hutsunerik hautatutako eremuan.','Não há vazios disponíveis na área selecionada.'],
+    'josmOpen':['Opening JOSM Remote Control…','S’està obrint JOSM Remote Control…','JOSM Remote Control irekitzen…','A abrir o JOSM Remote Control…'],
+    
+
+
+    'noGaps':['No gaps are available in the selected area.','No hi ha buits disponibles a l’àrea seleccionada.','Ez dago hutsunerik hautatutako eremuan.','Não há vazios disponíveis na área selecionada.'],
+    'josmOpen':['Opening JOSM Remote Control…','S’està obrint JOSM Remote Control…','JOSM Remote Control irekitzen…','A abrir o JOSM Remote Control…'],
+    
+
+
+
+    'noGaps':['No gaps are available in the selected area.','No hi ha buits disponibles a l’àrea seleccionada.','Ez dago hutsunerik hautatutako eremuan.','Não há vazios disponíveis na área selecionada.'],
     'overpassLimit':['Overpass has temporarily rate-limited this connection (error 406). Details will not load until the block is lifted, usually within a few hours. The base map and imagery still work.','Overpass ha limitat temporalment aquesta connexió per excés de peticions (error 406). Els detalls no es carregaran fins que s’aixequi el bloqueig, normalment en unes hores. El mapa base i l’ortofoto continuen funcionant.','Overpass-ek konexio hau aldi baterako mugatu du eskaera gehiegi egin direlako (406 errorea). Xehetasunak ez dira kargatuko blokeoa kendu arte, normalean ordu batzuk barru. Oinarrizko mapak eta ortoargazkiak funtzionatzen jarraitzen dute.','O Overpass limitou temporariamente esta ligação por excesso de pedidos (erro 406). Os detalhes não serão carregados até o bloqueio ser levantado, normalmente dentro de algumas horas. O mapa base e as imagens continuam a funcionar.'],
     'nominatimError':['Error querying Nominatim: {error}','Error en consultar Nominatim: {error}','Errorea Nominatim kontsultatzean: {error}','Erro ao consultar o Nominatim: {error}'],
     'noGeometry':['No geometry is available for this place. Try another name.','No hi ha geometria disponible per a aquest lloc. Prova un altre nom.','Ez dago toki honetarako geometria erabilgarririk. Saiatu beste izen batekin.','Não há geometria disponível para este local. Tente outro nome.'],
@@ -559,7 +589,7 @@ html,body{ height:100%; }
     'Edificios OSM':['OSM buildings','Edificis OSM','OSM eraikinak','Edifícios OSM'],
     'con altura':['with height data','amb alçada','altuera-datuekin','com altura'],
     'Cobertura':['Coverage','Cobertura','Estaldura','Cobertura'],
-    'Editar en iD':['Edit in iD','Edita a iD','Editatu iD-n','Editar no iD'],
+    'Editar en iD':['Edit in iD','Edita a iD','Editatu iD-n','Editar no iD'],'Editar en JOSM':['Edit in JOSM','Edita al JOSM','Editatu JOSM-en','Editar no JOSM'],
     'Área completa extraída. Ahora prepara la vista previa y elige una sección y el formato para exportar.':['Entire area extracted. Prepare the preview, then choose a section and format to export.','Àrea completa extreta. Prepara la previsualització i tria una secció i el format per exportar.','Eremu osoa erauzita.atu aurrebista eta aukeratu atala eta esportatzeko formatua.','Área completa extraída. Prepare a pré-visualização e escolha uma secção e o formato de exportação.'],
     'Todo el area ya estaba descargada o en cache.':['The whole area was already downloaded or cached.','Tota l’àrea ja s’havia descarregat o era a la memòria cau.','Eremu osoa deskargatuta edo cachean zegoen.','A área completa já estava descarregada ou em cache.'],
     'Zona cargada.':['Area loaded.','Zona carregada.','Eremua kargatuta.','Zona carregada.'],
@@ -767,7 +797,7 @@ html,body{ height:100%; }
     observer.observe(document.body,{subtree:true,childList:true,characterData:true});
   }
   window.huecosTranslate=function(s){return tr(s);};
-  window.huecosTranslateKey=function(key){var arr=TEXT[key];return LANGS.indexOf(current)===0?(ES_TEXT[key]||key):(arr?arr[LANGS.indexOf(current)-1]:key);};
+  window.huecosTranslateKey=function(key){var arr=TEXT[key];if(!arr)return ES_TEXT[key]||key;return LANGS.indexOf(current)===0?(ES_TEXT[key]||key):arr[LANGS.indexOf(current)-1];};
   window.huecosLanguage=function(){return current;};
   document.addEventListener('DOMContentLoaded',function(){
     document.querySelectorAll('[data-huecos-lang]').forEach(function(b){
@@ -809,7 +839,11 @@ function avisarSiBloqueo(e){
   avisoBloqueoOverpass=true;
   avisoPlantilla('overpassLimit',{},15000);
 }
-var URL_PNOA='https://www.ign.es/wms-inspire/pnoa-ma';
+var URL_PNOA='https://www.ign.es/wmts/pnoa-ma';
+// 2026-11-10: el WMTS de PNOA ahora exige TILEMATRIX sin el prefijo "GoogleMapsCompatible:"
+// y tambien minusculas; la forma antigua devolvia 400 y la ortofoto dejaba de cargar
+// (y por tanto desaparecia tambien de las exportaciones).
+var URL_PNOA_TILE='https://www.ign.es/wmts/pnoa-ma?layer=OI.OrthoimageCoverage&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&TileMatrix={z}&TileRow={y}&TileCol={x}';
 var URL_ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 var URL_OSM ='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 var URL_CATASTRO_WMS=['https://ovc.catastro.meh.es/cartografia/INSPIRE/spadgcwms.aspx',
@@ -824,7 +858,7 @@ var capas={};
 var estado={};
 var boundaryGeoJSON=null;
 var datosListos=false;          // hay un lugar buscado
-var capaSateliteActual=null;
+var lugarEnEspana=false;
 var catastroLayer=null,catastroSolicitado=0,catastroDisponible=false;
 var ultimaBusqueda=0;
 
@@ -995,8 +1029,9 @@ function cacheGuardar(clave,valor){
 map=L.map('map',{preferCanvas:true,zoomControl:true,attributionControl:false,
   zoomSnap:.25,zoomDelta:.5,maxZoom:19,minZoom:3});
 map.setView([37.35,-6.06],4);
-['tiles','roads','data','base','edge'].forEach(function(n){map.createPane(n);});
+['tiles','ortho','roads','data','base','edge'].forEach(function(n){map.createPane(n);});
 map.getPane('tiles').style.zIndex=205;
+map.getPane('ortho').style.zIndex=210;
 map.getPane('roads').style.zIndex=215;
 map.getPane('data').style.zIndex=220;
 map.getPane('base').style.zIndex=204;
@@ -1004,10 +1039,9 @@ map.getPane('edge').style.zIndex=260;
 map.getPane('edge').style.pointerEvents='none';
 renderer=L.canvas({padding:.4,pane:'data'});
 
-var pnoaLayer=L.tileLayer.wms(URL_PNOA,{layers:'OI.OrthoimageCoverage',format:'image/png',transparent:true,pane:'tiles',maxZoom:19,opacity:1,version:'1.3.0',crossOrigin:'anonymous'});
+var pnoaLayer=L.tileLayer(URL_PNOA_TILE,{pane:'ortho',maxZoom:19,opacity:1,crossOrigin:'anonymous',attribution:'Ortofoto PNOA © Instituto Geográfico Nacional'});
 var esriLayer=L.tileLayer(URL_ESRI,{pane:'tiles',maxZoom:19,opacity:1,crossOrigin:'anonymous'});
 var osmLayer =L.tileLayer(URL_OSM ,{pane:'tiles',maxZoom:19,opacity:1,crossOrigin:'anonymous'});
-capaSateliteActual=esriLayer;
 
 /* Al mover/zoom: programar carga incremental del viewport (con retardo
    para no disparar peticiones durante el arrastre) */
@@ -1056,14 +1090,20 @@ function actualizarDisponibilidad(){
     var independiente=box.dataset.layer==='satelite'||box.dataset.layer==='osmmap';
     box.parentNode.classList.toggle('off',!datosListos&&!independiente);
   });
+  // PNOA requiere un lugar buscado en Espana; su checkbox queda aparte.
+  var filaOrto=document.querySelector('#contenidoCapas [data-layer="ortofoto"]');
+  if(filaOrto)filaOrto.parentNode.classList.toggle('off',!datosListos||!lugarEnEspana);
 }
 function sync(){
   leerCheckboxes();actualizarDisponibilidad();
   if(!boundaryGeoJSON){estado.catastro=false;}
-  if(capaSateliteActual){
-    if(estado.satelite){if(!map.hasLayer(capaSateliteActual))map.addLayer(capaSateliteActual);}
-    else if(map.hasLayer(capaSateliteActual))map.removeLayer(capaSateliteActual);
-  }
+  // Ortofoto PNOA y satelite Esri son capas independientes, cada una
+  // controlada por su propia casilla; las capas vectoriales quedan encima.
+  var ortoVisible=estado.ortofoto&&lugarEnEspana;
+  if(ortoVisible){if(!map.hasLayer(pnoaLayer))map.addLayer(pnoaLayer);}
+  else if(map.hasLayer(pnoaLayer))map.removeLayer(pnoaLayer);
+  if(estado.satelite){if(!map.hasLayer(esriLayer))map.addLayer(esriLayer);}
+  else if(map.hasLayer(esriLayer))map.removeLayer(esriLayer);
   if(estado.osmmap){if(!map.hasLayer(osmLayer))map.addLayer(osmLayer);}
   else if(map.hasLayer(osmLayer))map.removeLayer(osmLayer);
   if(!datosListos)return;
@@ -1204,8 +1244,7 @@ function cargarLugar(lugar,nombreBuscado){
   var espana=esEspana(lugar.address);
   catastroDisponible=false;catastroSolicitado++;catastroActivaToken++;
   cacheCatastro={};peticionesCatastro={};
-  if(capaSateliteActual&&map.hasLayer(capaSateliteActual))map.removeLayer(capaSateliteActual);
-  capaSateliteActual=espana?pnoaLayer:esriLayer;
+  lugarEnEspana=espana;
   $('filaCatastro').style.display=espana?'':'none';
   $('contenidoCapas').querySelector('[data-layer="catastro"]').checked=espana;
   if(catastroLayer&&map.hasLayer(catastroLayer))map.removeLayer(catastroLayer);
@@ -1383,7 +1422,7 @@ function incorporarDatos(datos,bb){
       if(coords.length<4)return;
       var tiene3d=el.tags.height!==undefined||el.tags['building:levels']!==undefined||el.tags['building:height']!==undefined;
       visto[id]=1;
-      (tiene3d?ACUM.ed3:ACUM.ed2).push({type:'Feature',geometry:{type:'Polygon',coordinates:[coords]},properties:{}});
+      (tiene3d?ACUM.ed3:ACUM.ed2).push({type:'Feature',id:id,geometry:{type:'Polygon',coordinates:[coords]},properties:{osm_type:el.type,osm_id:String(el.id),building:el.tags.building||'',height:el.tags.height||el.tags['building:height']||'',building_levels:el.tags['building:levels']||''}});
       coords.forEach(function(p){marcar(p[0],p[1]);});
       return;
     }
@@ -1439,24 +1478,28 @@ function reconstruirCapas(){
    datos de Overpass todavia NO se marca como hueco)
 =========================================================================== */
 function calcularHuecos(){
-  if(!boundaryGeoJSON||ACUM.ed3.length+ACUM.ed2.length===0)return{gaps:[],gaps3d:[],gaptrees:[],resumen:[]};
+  if(!boundaryGeoJSON||ACUM.ed3.length+ACUM.ed2.length===0)return{gaps:[],gaps3d:[],gaptrees:[],resumen:[],gapCeldas:Object.create(null)};
+  var gapCeldas=Object.create(null),huecosProcesados=0;var MAX_CELDAS_HUECOS=10000;
   var bb=bboxDe(boundaryGeoJSON);
+  var bbArea=areaDescarga?bboxDe(areaDescarga):null;
+  if(bbArea){bb=[Math.max(bb[0],bbArea[0]),Math.max(bb[1],bbArea[1]),Math.min(bb[2],bbArea[2]),Math.min(bb[3],bbArea[3])];if(bb[0]>=bb[2]||bb[1]>=bb[3])return{gaps:[],gaps3d:[],gaptrees:[],resumen:[],gapCeldas:gapCeldas};}
   var latMed=(bb[1]+bb[3])/2,cos=Math.cos(latMed*Math.PI/180);
   var dy=CELDA_M/111320,dx=dy/cos;
   var nx=Math.ceil((bb[2]-bb[0])/dx),ny=Math.ceil((bb[3]-bb[1])/dy);
-  if(nx*ny>120000)return{gaps:[],gaps3d:[],gaptrees:[],resumen:[]};
+  if(nx*ny>MAX_CELDAS_HUECOS)return{gaps:[],gaps3d:[],gaptrees:[],resumen:[],gapCeldas:gapCeldas,limitExceeded:nx*ny,maxCells:MAX_CELDAS_HUECOS};
 
   var stats={};
   function stat(lon,lat){
     var k=Math.floor((lon-bb[0])/dx)+','+Math.floor((lat-bb[1])/dy);
-    return stats[k]||(stats[k]={area:0,n:0,n3:0,trees:0,roads:0});
+    return stats[k]||(stats[k]={area:0,n:0,n3:0,trees:0,roads:0,osmIds:{}});
   }
+  function marcaEdificio(s,f){if(f.properties&&f.properties.osm_id)s.osmIds[(f.properties.osm_type||'way')+'/'+f.properties.osm_id]=1;}
   function contar(lista,es3d){
     lista.forEach(function(f){
       var a=areaM2(f.geometry);if(a<=0)return;
       var c=centroide(f.geometry.coordinates[0]);
       var s=stat(c[0],c[1]);
-      s.area+=a;s.n++;if(es3d)s.n3++;
+      s.area+=a;s.n++;if(es3d)s.n3++;marcaEdificio(s,f);
     });
   }
   contar(ACUM.ed3,true);contar(ACUM.ed2,false);
@@ -1472,7 +1515,8 @@ function calcularHuecos(){
     var lonC=bb[0]+(i+.5)*dx,latC=bb[1]+(j+.5)*dy;
     if(!enPoligono(lonC,latC,boundaryGeoJSON))continue;
     if(!cubierto(lonC,latC))continue;   // solo zonas ya descargadas
-    var s=stats[i+','+j]||{area:0,n:0,n3:0,trees:0,roads:0};
+    if(huecosProcesados>=MAX_CELDAS_HUECOS)return{gaps:[],gaps3d:[],gaptrees:[],resumen:[],gapCeldas:gapCeldas,limitExceeded:huecosProcesados+1,maxCells:MAX_CELDAS_HUECOS};
+    var s=stats[i+','+j]||{area:0,n:0,n3:0,trees:0,roads:0,osmIds:{}};
     var urbRes=false;
     for(var r=0;r<ACUM.resid.length;r++)if(enAnillo(lonC,latC,ACUM.resid[r])){urbRes=true;break;}
     if(!urbRes&&s.roads<MIN_CALLES_M)continue;
@@ -1481,13 +1525,22 @@ function calcularHuecos(){
     var ring=[[bb[0]+i*dx,bb[1]+j*dy],[bb[0]+(i+1)*dx,bb[1]+j*dy],
               [bb[0]+(i+1)*dx,bb[1]+(j+1)*dy],[bb[0]+i*dx,bb[1]+(j+1)*dy],[bb[0]+i*dx,bb[1]+j*dy]];
     var nombre=barrioCercano(latC,lonC);
-    var info='<b>'+escapeHtml(nombre)+'</b><br>'+trTexto('Edificios OSM')+': '+s.n+' ('+trTexto('con altura')+': '+s.n3+')<br>'
-      +trTexto('Cobertura')+': '+Math.round(coberturaCelda*100)+'%<br>'+trTexto('Arboles')+': '+s.trees+' ('+arbolesHa.toFixed(1)+'/ha)<br>'
-      +'<a href="https://www.openstreetmap.org/edit?editor=id#map=18/'+latC.toFixed(6)+'/'+lonC.toFixed(6)+'">'+trTexto('Editar en iD')+'</a>'; 
-    var item={type:'Feature',geometry:{type:'Polygon',coordinates:[ring]},properties:{i:info,b:nombre}};
-    if(coberturaCelda<MIN_COBERTURA)gaps.push(item);
-    else if(s.n&&s.n3/s.n<MIN_RATIO_3D)gaps3d.push(item);
-    if(arbolesHa<MIN_ARBOLES_HA)gaptrees.push(item);
+    var osmIds=Object.keys(s.osmIds||{}).sort();
+    function hueco(tipo){
+      var gapId='huecos-osm:'+Math.round(lonC*1000000)+':'+Math.round(latC*1000000)+':'+tipo;
+      var editId=osmIds.length?osmIds[0].split('/'):null;
+      var editar=editId?'https://www.openstreetmap.org/edit?'+(editId[0]==='way'?'way='+editId[1]:'node='+editId[1])+'#map=19/'+latC.toFixed(6)+'/'+lonC.toFixed(6):'https://www.openstreetmap.org/edit?editor=id#map=19/'+latC.toFixed(6)+'/'+lonC.toFixed(6);
+      var josm='http://127.0.0.1:8111/load_and_zoom?left='+(lonC-dx/2).toFixed(6)+'&right='+(lonC+dx/2).toFixed(6)+'&top='+(latC+dy/2).toFixed(6)+'&bottom='+(latC-dy/2).toFixed(6)+(editId?'&select='+editId[0][0]+editId[1]:'');
+      var links='<a href="'+editar+'" target="_blank" rel="noopener">'+trTexto('Editar en iD')+'</a> · <a href="'+josm+'" target="_blank" rel="noopener" data-josm-link="1">'+trTexto('Editar en JOSM')+'</a>';
+      return{type:'Feature',id:gapId,geometry:{type:'Polygon',coordinates:[ring]},properties:{gap_id:gapId,osm_id:osmIds[0]||'',osm_ids:osmIds,gap_type:tipo,latitude:latC,longitude:lonC,neighbourhood:nombre,building_count:s.n,building_coverage:+(coberturaCelda*100).toFixed(1),height_building_count:s.n3,tree_count:s.trees,edit_url:editar,josm_url:josm,attribution:'© OpenStreetMap contributors',i:'<b>'+escapeHtml(tipo)+'</b><br>'+escapeHtml(nombre)+'<br>'+links,b:nombre}};
+    }
+    if(coberturaCelda<MIN_COBERTURA)gaps.push(hueco('building_gap'));
+    else if(s.n&&s.n3/s.n<MIN_RATIO_3D)gaps3d.push(hueco('height_gap'));
+    if(arbolesHa<MIN_ARBOLES_HA)gaptrees.push(hueco('tree_gap'));
+    if(coberturaCelda<MIN_COBERTURA||s.n&&s.n3/s.n<MIN_RATIO_3D||arbolesHa<MIN_ARBOLES_HA){
+      huecosProcesados++;
+      gapCeldas[i+','+j]={lon:lonC,lat:latC,dx:dx,dy:dy,osmIds:osmIds,nombre:nombre};
+    }
   }
   var porBarrio={};
   gaps.forEach(function(f){
@@ -1497,7 +1550,7 @@ function calcularHuecos(){
   });
   var resumen=Object.keys(porBarrio).map(function(k){var g=porBarrio[k];
     return{nombre:k,n:g.n,lat:g.lat/g.n,lon:g.lon/g.n};});
-  return{gaps:gaps,gaps3d:gaps3d,gaptrees:gaptrees,resumen:resumen};
+  return{gaps:gaps,gaps3d:gaps3d,gaptrees:gaptrees,resumen:resumen,gapCeldas:gapCeldas,maxCells:MAX_CELDAS_HUECOS};
 }
 function barrioCercano(lat,lon){
   if(!ACUM.nombres.length)return'sin barrio';
@@ -1687,6 +1740,31 @@ function seccionesDe(geom){
   });
 }
 function rectangulo(c){return{type:'Polygon',coordinates:[[[c[0],c[1]],[c[2],c[1]],[c[2],c[3]],[c[0],c[3]],[c[0],c[1]]]]};}
+function areaParaExportar(){
+  if(!areaDescarga)return null;
+  if($('modoArea').value==='admin'&&coberturaTotal&&seccionesDescarga.length){var b=bboxDeCelda(seccionesDescarga[+$('seccionArea').value||0]);return rectangulo(b);}
+  return areaDescarga;
+}
+function obtenerHuecosEnArea(area){
+  var r=calcularHuecos(),out=[],seen=Object.create(null);
+  if(r.limitExceeded)return{limitExceeded:r.limitExceeded,maxCells:r.maxCells,features:[]};
+  ['gaps','gaps3d','gaptrees'].forEach(function(k){if(!estado[k])return;(r[k]||[]).forEach(function(f){var p=f.properties||{};if(!seen[p.gap_id]&&enPoligono(p.longitude,p.latitude,area)){seen[p.gap_id]=1;out.push(f);}});});
+  return{features:out,maxCells:r.maxCells||10000};
+}
+function enlacesEdicion(f){var p=f.properties,parts=(p.osm_id||'').split('/'),id=parts.length===2?((parts[0]==='way'?'way=':'node=')+encodeURIComponent(parts[1])):'',lat=p.latitude,lon=p.longitude;return{id:id?'https://www.openstreetmap.org/edit?'+id+'#map=19/'+lat.toFixed(6)+'/'+lon.toFixed(6):'https://www.openstreetmap.org/edit?editor=id#map=19/'+lat.toFixed(6)+'/'+lon.toFixed(6),josm:'http://127.0.0.1:8111/load_and_zoom?left='+(lon-.001).toFixed(6)+'&right='+(lon+.001).toFixed(6)+'&top='+(lat+.001).toFixed(6)+'&bottom='+(lat-.001).toFixed(6)+(parts.length===2?'&select='+parts[0][0]+parts[1]:'')};}
+function csvCell(v){return'"'+String(v==null?'':v).replace(/"/g,'"')+'"';}
+function xmlEscape(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
+function exportarHuecos(formato,features,base){
+  var text,ext,type;
+  if(formato==='geojson'){text=JSON.stringify({type:'FeatureCollection',name:document.title,features:features,attribution:'© OpenStreetMap contributors'},null,2);ext='geojson';type='application/geo+json;charset=utf-8';}
+  else if(formato==='csv'){var rows=[['gap_id','osm_id','osm_ids','type','latitude','longitude','neighbourhood','building_count','building_coverage_percent','height_building_count','tree_count','edit_url','josm_url','attribution'].map(csvCell).join(';')];features.forEach(function(f){var p=f.properties,e=enlacesEdicion(f);rows.push([p.gap_id,p.osm_id,(p.osm_ids||[]).join('|'),p.gap_type,p.latitude,p.longitude,p.neighbourhood,p.building_count,p.building_coverage,p.height_building_count,p.tree_count,e.id,e.josm,'© OpenStreetMap contributors'].map(csvCell).join(';'));});text='\\uFEFF'+rows.join('\\r\\n');ext='csv';type='text/csv;charset=utf-8';}
+  else if(formato==='gpx'){text='<?xml version="1.0" encoding="UTF-8"?>\\n<gpx version="1.1" creator="Huecos OSM" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>Huecos OSM</name><desc>© OpenStreetMap contributors</desc></metadata>'+features.map(function(f){var p=f.properties,e=enlacesEdicion(f);return'<wpt lat="'+p.latitude+'" lon="'+p.longitude+'"><name>'+xmlEscape(p.gap_id)+'</name><type>'+xmlEscape(p.gap_type)+'</type><desc>OSM '+xmlEscape(p.osm_id)+'; iD '+xmlEscape(e.id)+'; JOSM '+xmlEscape(e.josm)+'; © OpenStreetMap contributors</desc></wpt>';}).join('')+'</gpx>';ext='gpx';type='application/gpx+xml;charset=utf-8';}
+  else if(formato==='kml'){text='<?xml version="1.0" encoding="UTF-8"?>\\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Huecos OSM</name><description>© OpenStreetMap contributors</description>'+features.map(function(f){var p=f.properties,e=enlacesEdicion(f),coords=f.geometry.coordinates[0].map(function(q){return q[0]+','+q[1]+',0';}).join(' ');return'<Placemark><name>'+xmlEscape(p.gap_id)+'</name><description>'+xmlEscape(p.gap_type+'; OSM '+p.osm_id+'; '+e.id+'; '+e.josm)+'</description><ExtendedData><Data name="edit_url"><value>'+xmlEscape(e.id)+'</value></Data></ExtendedData><Polygon><outerBoundaryIs><LinearRing><coordinates>'+coords+'</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>';}).join('')+'</Document></kml>';ext='kml';type='application/vnd.google-earth.kml+xml;charset=utf-8';}
+  else return false;
+  guardarBlob(new Blob([text],{type:type}),base+'.'+ext);return true;
+}
+function copiarEnlace(url){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(function(){avisoPlantilla('shareLinkCopied',{},4000);},function(){avisoPlantilla('shareLinkError',{},5000);});return;}var t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}t.remove();avisoPlantilla(ok?'shareLinkCopied':'shareLinkError',{},5000);}
+$('copiarCompartirBtn').addEventListener('click',function(){var c=map.getCenter(),u=new URL(location.href);u.hash='map='+map.getZoom()+'/'+c.lat.toFixed(6)+'/'+c.lng.toFixed(6);if(navigator.share)navigator.share({title:document.title,url:u.href}).then(function(){avisoPlantilla('shareLinkReady',{},3500);}).catch(function(e){if(e.name!=='AbortError')copiarEnlace(u.href);});else copiarEnlace(u.href);});
 function actualizarControlDibujo(){
   var boton=$('activarDibujo'),modoDibujo=$('modoArea').value==='dibujo';
   boton.hidden=!modoDibujo;
@@ -1986,7 +2064,8 @@ function capasParaLeyenda(){
   // En la exportacion manda el checkbox, no el zoom: se lista lo marcado.
   var items=[];
   function agregar(clave,nombre,color,visible){if(estado[clave]&&visible)items.push({nombre:nombre,color:color});}
-  agregar('satelite','Ortofoto / satelite','#00FFC8',true);
+  agregar('ortofoto','Ortofoto (PNOA)','#00FFC8',true);
+  agregar('satelite','Satelite (Esri)','#00FFC8',true);
   agregar('osmmap','Mapa OSM','#C8C8C8',true);
   agregar('gaps','Huecos de edificios',css('--gap'),true);
   agregar('gaps3d','Huecos de altura',css('--gap3'),true);
@@ -2088,7 +2167,10 @@ function prepararCaptura(){
   function soltarCatastro(){
     if(catastroTemporal&&catastroLayer&&map.hasLayer(catastroLayer))map.removeLayer(catastroLayer);
   }
-  return asegurarDatosParaArea().then(esperarImagenes).then(function(){
+  return asegurarDatosParaArea().then(function(){
+    sync();
+    return esperarImagenes();
+  }).then(function(){
     return capturarMapa().then(function(canvas){soltarCatastro();return canvas;},
       function(err){soltarCatastro();throw err;});
   },function(err){soltarCatastro();throw err;});
@@ -2113,7 +2195,7 @@ function capturarMapa(){
   else{trazarGeometria(ctx,areaDescarga);ctx.clip('nonzero');}
   ctx.fillStyle='#020406';ctx.fillRect(left,top,right-left,bottom-top);
   return cargarLogoMarca().then(function(logoImg){
-    var imagenes=Array.prototype.slice.call(document.querySelectorAll('#map .leaflet-pane img'));
+    var imagenes=Array.prototype.slice.call(document.querySelectorAll('#map .leaflet-ortho-pane img, #map .leaflet-tiles-pane img'));
     imagenes.sort(function(a,b){return(+getComputedStyle(a.parentNode).zIndex||0)-(+getComputedStyle(b.parentNode).zIndex||0);});
     imagenes.forEach(function(el){
       if(!el.complete||!el.naturalWidth)return;
@@ -2158,6 +2240,80 @@ function guardarBlob(blob,nombre){
   var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=nombre;
   document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},30000);
 }
+function prepararDatosHuecosExportacion(){
+  var area=areaParaExportar();if(!area)throw new Error(trTexto('noAreaSelected'));
+  if(areaM2(area)>AREA_MAX_KM2*1000000)throw new Error(trTexto('tooLargeExport').replace('{count}',Math.round(areaM2(area)/1000000)).replace('{limit}',AREA_MAX_KM2));
+  var encontrados=obtenerHuecosEnArea(area);
+  if(encontrados.limitExceeded)throw new Error(trTexto('tooLargeExport').replace('{count}',encontrados.limitExceeded).replace('{limit}',encontrados.maxCells));
+  if(encontrados.features.length>10000)throw new Error(trTexto('exportLimit').replace('{count}',encontrados.features.length).replace('{limit}',10000));
+  if(!encontrados.features.length)throw new Error(trTexto('noGaps'));
+  return encontrados.features;
+}
+function comprobarJOSM(link){
+  var avisoEl=$('josmStatus');avisoEl.hidden=false;avisoEl.textContent=trTexto('josmOpen');
+  var controlador=window.AbortController?new AbortController():null;
+  var temporizador=setTimeout(function(){if(controlador)controlador.abort();avisoEl.textContent=trTexto('josmUnavailable');},1800);
+  try{fetch(link,{mode:'cors',signal:controlador?controlador.signal:undefined}).then(function(){clearTimeout(temporizador);avisoEl.textContent=trTexto('josmOpen');}).catch(function(){clearTimeout(temporizador);avisoEl.textContent=trTexto('josmUnavailable');});}
+  catch(e){clearTimeout(temporizador);avisoEl.textContent=trTexto('josmUnavailable');}
+  window.open(link,'_blank','noopener');
+}
+$('contenidoCapas').addEventListener('click',function(e){
+  var link=e.target.closest('a[data-josm-link]');if(!link)return;
+  e.preventDefault();comprobarJOSM(link.href);
+});
+/* Generador ZIP (STORE, sin compresion) 100% local: hace falta porque el
+   navegador no puede comprimir en ZIP nativamente y evita dependencias.
+   Formato: firma Local File Header + Central Directory + End Of Central Dir.
+   CRC32 con tabla precalculada. Suficiente para imagenes/JPEG/JSON/texto. */
+var TABLA_CRC=(function(){var t=new Int32Array(256);for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c;}return t;})();
+function crc32(bytes){var c=-1;for(var i=0;i<bytes.length;i++)c=TABLA_CRC[(c^bytes[i])&0xFF]^(c>>>8);return (c^-1)>>>0;}
+function zipCrear(archivos){
+  /* archivos: [{nombre:String, datos:Uint8Array}] */
+  var enc=new TextEncoder(),partes=[],centrales=[],desplazamiento=0;
+  function u16(v){return[v&255,(v>>>8)&255];}
+  function u32(v){return[v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];}
+  archivos.forEach(function(a){
+    var nb=enc.encode(a.nombre),crc=crc32(a.datos),tam=a.datos.length;
+    var local=[].concat(u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(tam),u32(tam),u16(nb.length),u16(0));
+    partes.push(new Uint8Array(local),nb,a.datos);
+    centrales.push(new Uint8Array([].concat(u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(tam),u32(tam),u16(nb.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(desplazamiento))),nb);
+    desplazamiento+=local.length+nb.length+tam;
+  });
+  var tamCentral=0;centrales.forEach(function(p){tamCentral+=p.length;});
+  var fin=new Uint8Array([].concat(u32(0x06054b50),u16(0),u16(0),u16(archivos.length),u16(archivos.length),u32(tamCentral),u32(desplazamiento),u16(0)));
+  return new Blob(partes.concat(centrales,[fin]),{type:'application/zip'});
+}
+function bytesDeCanvas(canvas,calidad){
+  /* Devuelve Promise<Uint8Array> con el canvas en JPEG (mas ligero para ZIP). */
+  return new Promise(function(resolve,reject){
+    canvas.toBlob(function(b){
+      if(!b){reject(new Error('No se pudo crear la imagen del ZIP'));return;}
+      var fr=new FileReader();fr.onload=function(){resolve(new Uint8Array(fr.result));};fr.onerror=function(){reject(new Error('No se pudo leer la imagen del ZIP'));};fr.readAsArrayBuffer(b);
+    },'image/jpeg',calidad||.9);
+  });
+}
+function generarZIP(canvas,base){
+  var enc=new TextEncoder();
+  var ahora=new Date(),sello=ahora.toISOString().replace(/[:.]/g,'-').slice(0,19);
+  var huecos=null;
+  try{huecos=obtenerHuecosEnArea(areaParaExportar());}catch(e){}
+  var geo=null;
+  if(huecos&&huecos.features&&huecos.features.length){
+    geo={type:'FeatureCollection',features:huecos.features};
+  }
+  var info={lugar:(document.title.split(' - ')[0]||'mapa'),fecha:ahora.toISOString(),
+    capas:capasParaLeyenda().map(function(i){return i.nombre;}),
+    area:$('modoArea').value,seccion:($('modoArea').value==='admin')?(+$('seccionArea').value+1):null,
+    aviso:'Imagen (c) IGN PNOA / Esri / OpenStreetMap contributors. Solo para uso descriptivo.'};
+  var nombreMapa=base+'-mapa-'+sello+'.jpg';
+  return bytesDeCanvas(canvas,.9).then(function(imgBytes){
+    var archivos=[{nombre:nombreMapa,datos:imgBytes},
+      {nombre:'info.json',datos:enc.encode(JSON.stringify(info,null,2))}];
+    if(geo)archivos.push({nombre:base+'-huecos-'+sello+'.geojson',datos:enc.encode(JSON.stringify(geo))});
+    if(areaDescarga)archivos.push({nombre:base+'-area-'+sello+'.geojson',datos:enc.encode(JSON.stringify(areaDescarga))});
+    return zipCrear(archivos);
+  });
+}
 function pdfDeJPEG(bytes,w,h){
   var ancho=w*72/150,alto=h*72/150,enc=new TextEncoder();
   var cab='%PDF-1.4\n',objs=[
@@ -2178,17 +2334,33 @@ function pdfDeJPEG(bytes,w,h){
 }
 $('exportarBtn').addEventListener('click',function(){
   if(exportando)return;
+  $('josmStatus').hidden=true;
   if(!areaDescarga&&datosListos&&$('modoArea').value==='dibujo'){
     aviso('La selección dibujada no está disponible. Vuelve a dibujarla desde «Dibujar en el mapa».');return;
   }
   if(!areaDescarga){aviso('Prepara primero la vista previa del área visible.');return;}
-  exportando=true;this.disabled=true;this.textContent='Preparando...';
+  exportando=true;this.disabled=true;this.textContent=trTexto('extractBusy');
   var formato=document.querySelector('input[name="formato"]:checked').value,boton=this;
+  if(formato==='geojson'||formato==='csv'||formato==='gpx'||formato==='kml'){
+    try{
+      var features=prepararDatosHuecosExportacion();
+      var baseDatos=(document.title.split(' - ')[0]||'huecos-osm').replace(/[^a-z0-9áéíóúñ]+/gi,'-').toLowerCase();
+      var esSeccionableDatos=$('modoArea').value==='admin'&&coberturaTotal,numeroDatos=+$('seccionArea').value+1;
+      generarArchivoHuecos(formato,features,baseDatos+(esSeccionableDatos?'-seccion-'+numeroDatos:''));
+      avisoPlantilla('downloadReady',{},6000);
+    }catch(errDatos){aviso(''+errDatos.message,8000);}
+    exportando=false;boton.disabled=false;boton.textContent=trTexto('exportFile');return;
+  }
   prepararCaptura().then(function(canvas){
     var base=(document.title.split(' - ')[0]||'mapa').replace(/[^a-z0-9áéíóúñ]+/gi,'-').toLowerCase();
     var esSeccionable=$('modoArea').value==='admin'&&coberturaTotal;
     var numero=+$('seccionArea').value+1;
     var sufijo=esSeccionable?'-seccion-'+numero:'';
+    if(formato==='zip'){
+      /* El ZIP lleva el mismo contenido que el resto de formatos: mapa JPG
+         recortado a la forma, huecos en GeoJSON, area dibujada y un info.json. */
+      return generarZIP(canvas,base+sufijo).then(function(blob){guardarBlob(blob,base+sufijo+'.zip');});
+    }
     if(formato==='png')return new Promise(function(resolve,reject){
       canvas.toBlob(function(blob){if(!blob){reject(new Error(trTexto('No se pudo crear el PNG')));return;}guardarBlob(blob,base+sufijo+'.png');resolve();},'image/png');
     });

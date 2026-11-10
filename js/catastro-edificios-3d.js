@@ -41,10 +41,21 @@
   var PETICIONES_EN_VUELO = 3;      // peticiones simultáneas; al terminar cada una se
                                     // pinta lo recibido y se lanza la siguiente, sin
                                     // esperar a que la tanda entera acabe
-  // (sin tope de edificios por vista desde el 10-nov: se pintan todos,
-  //  el recorte a 900 dejaba manzanas completas sin volumen)
+  // (sin tope de edificios por vista desde el 10-nov: se pintan todos;
+  //  el recorte a 900 dejaba manzanas completas sin volumen. 2026-11-10-d:
+  //  para móviles modestos hay un TOPE DE SEGURIDAD mucho más holgado,
+  //  aplicado SOLO por proximidad al centro: si alguna vez se alcanza, se
+  //  quedan los volúmenes más cercanos a donde mira el usuario y el resto
+  //  de la manzana queda pendiente hasta que se mueva el mapa. Ver
+  //  MAX_EDIFICIOS_EN_VISTA más abajo.)
   var ALTURA_PLANTA_M = 3;          // plantas × 3 m
   var ALTURA_SIN_DATO_M = 10;       // altura baja genérica si no hay plantas
+  var MAX_EDIFICIOS_EN_VISTA = 900; // tope de seguridad solo por rendimiento: casi
+                                    // nunca se alcanza (una vista muy densa a zoom
+                                    // 15-16 ronda los 300-600 edificios catastrales
+                                    // tras el dedupe). Si se alcanza, se guardan los
+                                    // más cercanos al centro de la pantalla y se avisa
+                                    // por consola; los de fuera entran al mover el mapa.
   var CELDA_REJILLA = 0.001;        // ~110 m para la rejilla espacial OSM
   var MAX_PUNTOS_ANILLO = 28;       // simplificación barata de geometría
 
@@ -447,13 +458,28 @@
         }
       });
 
-      // Sin recorte por densidad (2026-11-10-c): se pintan TODOS los
-      // edificios válidos de los bloques visibles para que Catastro
-      // complete los huecos de OSM. El recorte a MAX_EDIFICIOS_EN_VISTA
-      // quedó retirado: dejaba manzanas enteras sin volumen en vistas
-      // densas. Si algún día hiciera falta un tope en móviles muy
-      // modestos, se aplicaría por proximidad al centro ANTES de pintar.
-      var finales = candidatos.map(function (c) { return c.feature; });
+      // Orden centro → esquinas (2026-11-10-d): los candidatos ya llevan
+      // su distancia al centro de la pantalla en c.dc (calculada y antes
+      // sin usar). Ordenar de más cerca a más lejos y pintar en ese orden
+      // hace que el levantamiento del 3D empiece por lo que el usuario está
+      // mirando y los bordes lleguen después, sin tirón: MapLibre dibuja
+      // los GeoJSON por lotes, y entregarlos ordenados del centro hacia
+      // fuera aprovecha ese flujo. En vistas normales no cambia nada
+      // visible; en móviles modestos reparte el coste de GPU del primer
+      // frame en lugar de concentrarlo.
+      candidatos.sort(function (a, b) { return a.dc - b.dc; });
+      // Tope de seguridad SOLO por rendimiento (nunca por diseño): casi
+      // ninguna vista lo alcanza. Si se alcanza, se conservan los primeros
+      // del orden (los más cercanos al centro de la pantalla) y se recorta
+      // la cola; el usuario verá su entorno completo y los bloques de los
+      // bordes aparecerán al mover o hacer zoom.
+      var finales;
+      if (candidatos.length > MAX_EDIFICIOS_EN_VISTA) {
+        console.warn('[Catastro 3D] vista muy densa: se pintan los ' + MAX_EDIFICIOS_EN_VISTA + ' volúmenes más cercanos al centro de ' + candidatos.length + ' (el resto entrará al mover el mapa)');
+        finales = candidatos.slice(0, MAX_EDIFICIOS_EN_VISTA).map(function (c) { return c.feature; });
+      } else {
+        finales = candidatos.map(function (c) { return c.feature; });
+      }
       console.debug('[Catastro 3D] repintado: ' + finales.length + ' edificios (zoom ' + map.getZoom().toFixed(1) + ', bloques en memoria ' + bloques.size + ')');
       map.getSource(SRC).setData({
         type: 'FeatureCollection',

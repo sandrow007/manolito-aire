@@ -432,7 +432,13 @@
 // Imagery, OSM estándar y el WMS del Catastro) pasan a STALE-WHILE-REVALIDATE:
 // responden al instante desde cache pero se revalidan, y sus teselas ya no
 // llenan la cache dinamica sin control.
-const VERSION = '2026-11-10-h';
+// 2026-11-10-i: el repintado del Catastro ordena los candidatos centro →
+// esquinas usando la distancia al centro ya calculada (dc), y añade un tope
+// de seguridad MAX_EDIFICIOS_EN_VISTA (900) solo por rendimiento: si una
+// vista muy densa lo alcanza, se conservan los más cercanos al centro y se
+// avisa por consola. No cambia ni color ni alturas ni el parser del Worker.
+// Cambian js/catastro-edificios-3d.js e index.html (URL versionada del script).
+const VERSION = '2026-11-10-i';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

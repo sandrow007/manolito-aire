@@ -36,7 +36,6 @@
                                     // Los bloques son fijos y van a caché:
                                     // pedir ese anillo extra no cuesta más
                                     // en cada movimiento del mapa.
-  var ZOOM_MINIMO = 15;             // más allá los volúmenes apenas se aprecian
   var MAX_BLOQUES_POR_PASADA = 4;   // no saturar: pocas peticiones nuevas por parada
   var MAX_BLOQUES_EN_VISTA = 30;    // vista enorme: no gastar datos
   var MAX_EDIFICIOS_EN_VISTA = 900; // tope de extrusiones por pintada (móvil)
@@ -260,10 +259,6 @@
   function repintar() {
     try {
       if (!activo || !map.getSource(SRC)) return;
-      if (map.getZoom() < ZOOM_MINIMO) {
-        map.getSource(SRC).setData({ type: 'FeatureCollection', features: [] });
-        return;
-      }
       // Esperar a que el mapa base haya cargado sus teselas antes de
       // decidir qué huecos rellenar: si no, faltan edificios OSM y se
       // levantarían duplicados que luego quedarían bajo los de OSM.
@@ -370,7 +365,6 @@
           if (b0 && b0.estado !== 'cargando') bloques.delete(k0);
         }
       }
-      if (map.getZoom() < ZOOM_MINIMO) { repintar(); return; }
       var lista = bloquesDeLaVista();
       if (lista.length > MAX_BLOQUES_EN_VISTA) lista = lista.slice(0, MAX_BLOQUES_EN_VISTA);
       // Cancelar la tanda anterior: esas peticiones ya son de una vista vieja
@@ -388,10 +382,13 @@
       }
       if (pendientes.length) {
         await Promise.all(pendientes);
-        // Al terminar la tanda, si el usuario siguió moviendo el mapa el
-        // temporizador habrá programado otra pasada: aquí solo se repinta.
       }
       repintar();
+      // Cada pasada está limitada a cuatro bloques para no saturar el WFS.
+      // Si la vista todavía tiene bloques sin consultar, continuar por tandas
+      // aunque el usuario no mueva el mapa: si no, solo se dibuja el primer
+      // grupo de cuatro y el resto de edificios parece faltar.
+      if (pendientes.length && activo && !senal.aborted) programar();
     } catch (e) { /* silencio total */ }
   }
 

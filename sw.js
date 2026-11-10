@@ -404,7 +404,11 @@
 // MapLibre (la capa no se creaba y cascaba al añadirla). La opacidad pasa
 // a ser fija (0,9) y los edificios con altura estimada se distinguen por
 // tono (gris-azul claro) en fill-extrusion-color.
-const VERSION = '2026-11-09-d';
+// 2026-11-10-a: Catastro 3D continúa automáticamente las tandas de cuatro
+// bloques aunque el mapa esté quieto y ya no tiene umbral mínimo de zoom.
+// El script se fuerza a red (con caché de respaldo) y se purgan las cachés
+// de versiones anteriores para que el SW no sirva el módulo antiguo.
+const VERSION = '2026-11-10-a';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo
@@ -604,7 +608,7 @@ self.addEventListener('fetch', function(ev) {
 	// Capas en desarrollo activo: red primero para que un arreglo llegue al
 	// momento (con caché como respaldo sin conexión).
 	if (url.origin === self.location.origin &&
-		/\/js\/(transporte-publico|rutas-bici|fuentes-agua)\.js$/i.test(url.pathname)) {
+	/\/js\/(transporte-publico|rutas-bici|fuentes-agua|catastro-edificios-3d)\.js$/i.test(url.pathname)) {
 		ev.respondWith(networkFirst(peticion));
 		return;
 	}

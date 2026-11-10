@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -57,7 +57,7 @@
     <tr><td>Chat de Manolit∞</td><td>Mensaje y una selección breve del contexto reciente se envían a Cloudflare Workers AI; si falla y está configurado, pueden reenviarse a OpenRouter.</td><td>No escribas datos sensibles. La conservación por proveedores externos depende de sus políticas.</td></tr>
     <tr><td>Aire, clima y nubes</td><td>Coordenadas de la zona consultada hacia el proxy/API correspondiente; algunas capas consultan Open-Meteo/CAMS u OpenWeatherMap.</td><td>Las coordenadas pueden ser de la vista o de la ubicación elegida. IP y datos técnicos son visibles para proveedores/infraestructura.</td></tr>
     <tr><td>Búsqueda y rutas</td><td>Texto de lugar, coordenadas de origen/destino o caja del mapa hacia el geocodificador, proveedor de rutas o proxy pertinente.</td><td>La ruta de sombra se calcula localmente; otras rutas/capas sí pueden enviar coordenadas. Los terceros pueden registrar peticiones.</td></tr>
-    <tr><td>Mapas, nubes y Catastro</td><td>Solicitudes de teselas/área visible a proveedores cartográficos; nubes y Catastro pueden pasar por proxies con caché técnica.</td><td>La clave de API permanece en el proxy cuando se utiliza; los proveedores reciben datos técnicos habituales.</td></tr>
+    <tr><td>Mapas, nubes y Catastro</td><td>Solicitudes de teselas/área visible a proveedores cartográficos; nubes y Catastro pueden pasar por proxies con caché técnica. Con «Catastro 3D» activo, el área visible se trocea en bloques pequeños que el proxy consulta al WFS INSPIRE de construcciones del Catastro y cachea temporalmente.</td><td>La clave de API permanece en el proxy cuando se utiliza; los proveedores reciben datos técnicos habituales.</td></tr>
     <tr><td>Sombras y posición solar</td><td>El cálculo geométrico y la ruta peatonal por sombra se ejecutan en el dispositivo.</td><td>Esto no implica que toda la web sea local: otros módulos realizan solicitudes externas.</td></tr>
     <tr><td>Rutas en bici y carriles</td><td>Los puntos de origen/destino y la caja visible se envían al proxy para consultar OSRM/FOSSGIS, BRouter y Overpass; ciertos respaldos pueden consultar directamente al proveedor.</td><td>No se adjunta deliberadamente nombre ni cuenta, y no se mantiene historial propio. Los proveedores pueden recibir IP y datos técnicos.</td></tr>
     <tr><td>Transporte público</td><td>La caja visible y, al pedir salidas, el identificador de parada; el proxy consulta Transitous y OpenStreetMap. Si falla, el navegador puede consultar esos servicios directamente.</td><td>No se adjunta deliberadamente nombre ni cuenta; terceros reciben IP y metadatos de conexión y aplican sus propias políticas.</td></tr>

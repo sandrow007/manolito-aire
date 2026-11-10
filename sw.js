@@ -390,7 +390,21 @@
 // dentro de calcularHuecos (pisaba el array con un número). Purga de cachés:
 // los navegadores reciben el huecos.html nuevo al revalidar la navegación
 // (network-first), y esta VERSION limpia la estática restante.
-const VERSION = '2026-11-09-a';
+// 2026-11-09-c: los edificios 3D del Catastro también proyectan sombra
+// (mismo sol, mismo slider): nuevo manejador 'sombras-edificios' en
+// js/shadow-worker.js, gancho síncrono window.__manolitoSombrasCatastro en
+// js/catastro-edificios-3d.js (Web Worker + caché por bloque y franja
+// solar) y tres puntos de enganche aditivos en js/shadows-route.js
+// (recalcularSombrasVisibles, ruta OSRM y window.manolitAireRecalcularSombras).
+// Con Catastro 3D apagado el motor queda idéntico (un typeof).
+// Cambian js/shadow-worker.js, js/catastro-edificios-3d.js,
+// js/shadows-route.js e index.html.
+// 2026-11-09-d: corrección del estilo de la capa de edificios 3D del
+// Catastro: fill-extrusion-opacity no admite expresiones de datos en
+// MapLibre (la capa no se creaba y cascaba al añadirla). La opacidad pasa
+// a ser fija (0,9) y los edificios con altura estimada se distinguen por
+// tono (gris-azul claro) en fill-extrusion-color.
+const VERSION = '2026-11-09-d';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

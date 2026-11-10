@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -78,10 +78,15 @@
   <p>
     La capa opcional <b>«Catastro 3D»</b> dibuja las parcelas catastrales mediante el servicio de mapas
     <b>WMS INSPIRE de la Sede Electrónica del Catastro</b> (Dirección General del Catastro,
-    ovc.catastro.meh.es) y colorea los edificios según su altura. Cartografía y datos ©
+    ovc.catastro.meh.es) y colorea los edificios según su altura. Además, para rellenar las manzanas
+    donde OpenStreetMap no tiene volúmenes, la misma capa solicita al <b>servicio WFS INSPIRE de
+    construcciones</b> (bu:BuildingPart, con el número de plantas sobre rasante) las huellas de los
+    edificios del área visible, a través de un proxy propio con caché técnica temporal; los edificios
+    que OSM ya tiene se respetan siempre y no se duplican. Cartografía y datos ©
     <b>Dirección General del Catastro</b> (sede electrónica: sedecatastro.gob.es), reutilizados
     conforme a sus condiciones de uso público y a la normativa INSPIRE. Su representación en esta web
-    (incluido el coloreado por alturas) es <b>orientativa y sin validez jurídica ni catastral</b>:
+    (incluido el coloreado por alturas y las extrusiones estimadas como plantas × 3 metros) es
+    <b>orientativa y sin validez jurídica ni catastral</b>:
     para cualquier trámite oficial consulta siempre la Sede Electrónica del Catastro.
   </p>
 

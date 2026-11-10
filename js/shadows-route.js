@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MANOLIT AIRE, Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -1403,6 +1403,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // flecha solo lo lee cuando alguien la llama, siempre después.
   window.manolitAireSimulando = () => modoManual;
 
+  // Punto de entrada público y barato para que módulos externos (p. ej.
+  // las sombras del Catastro 3D) pidan un repintado cuando sus datos
+  // llegan del Web Worker, sin exponer el motor entero.
+  window.manolitAireRecalcularSombras = () => {
+    try { recalcularSombrasVisibles(); } catch (e) { /* nunca rompe nada */ }
+  };
+
   let versionCalculoSombras = 0;
   // Marca si el último barrido de sombras ya repintó los tramos de la ruta,
   // para que aplicarCambioDeHora no lo haga DOS veces seguidas (antes cada
@@ -1566,6 +1573,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
 
     if (miVersion !== versionCalculoSombras) return;
+    // Catastro 3D (nov-2026): sombras de los edificios del Catastro que OSM
+    // no tiene. Las calcula js/catastro-edificios-3d.js en un Web Worker y
+    // las sirve desde su caché (bloque + franja solar); si el worker aún no
+    // ha respondido devuelve la última versión conocida, así que el slider
+    // de hora nunca se bloquea. Con el modo apagado la función no existe y
+    // este bloque no cuesta nada (un typeof).
+    try {
+      const extra = (typeof window.__manolitoSombrasCatastro === 'function')
+        ? window.__manolitoSombrasCatastro(posSol) : null;
+      if (extra && extra.length) {
+        for (let e2 = 0; e2 < extra.length; e2++) poligonosSombra.push(extra[e2]);
+      }
+    } catch (e) { /* sin Catastro: exactamente como antes */ }
     const coleccionSombras = turf.featureCollection(poligonosSombra);
     map.getSource('sombras')?.setData(coleccionSombras);
     ultimaColeccionSombras = coleccionSombras;
@@ -5001,6 +5021,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         }
       }
       btnCatastro.setAttribute('aria-pressed', catastroActivo ? 'true' : 'false');
+      // Aviso al módulo de volúmenes de relleno (catastro-edificios-3d.js):
+      // levanta en 3D los edificios del Catastro que OSM no tiene. Si el
+      // módulo aún no cargó, el mapa se comporta exactamente como antes.
+      try { if (typeof window.manolitoCatastro3D === 'function') window.manolitoCatastro3D(catastroActivo); } catch (e) {}
     });
     // Catastro 3D ya NO va con los mapas base (07-oct-2026):
     // es una capa combinable y vive en su propia fila-toggle
@@ -5873,6 +5897,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (posSolActual.altitude > 0 && capaEdificiosDisponible && edificiosCacheados.length) {
         poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
       }
+      // Catastro 3D: las sombras de relleno (cacheadas por su módulo)
+      // también puntúan en la ruta alternativa OSRM, igual que en la
+      // térmica local (que las recibe vía ultimaColeccionSombras).
+      try {
+        const extra = (typeof window.__manolitoSombrasCatastro === 'function')
+          ? window.__manolitoSombrasCatastro(posSolActual) : null;
+        if (extra && extra.length) poligonosSombra = poligonosSombra.concat(extra);
+      } catch (e) { /* sin Catastro: como antes */ }
 
       const distanciaMinimaKm = Math.min(...candidatas.map((r) => r.distance / 1000));
 

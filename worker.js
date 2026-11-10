@@ -1130,90 +1130,105 @@ export default {
       // devuelve HTTP 500) y aquí se convierten a un GeoJSON ligero
       // (geometría + plantas) cacheado en KV. Si el Catastro tarda o falla,
       // se responde una colección vacía y el mapa sigue igual.
-      const vaciaCatastroEdificios = () => new Response('{"type":"FeatureCollection","features":[]}', {
+      // Cabecera X-Proxy-Aviso para que el cliente (y quien depure con el
+      // inspector) distinga SIEMPRE: 'cache' (servido de KV), 'ok' (fresco
+      // del Catastro, con edificios), 'vacio' (el Catastro respondió bien
+      // y no hay nada ahí) y 'error:<detalle>' (falló el Catastro o el
+      // proxy: NO es un hueco real, solo no hay datos ahora).
+      const respuestaCatastro = (cuerpo, aviso, maxAge) => new Response(cuerpo, {
         status: 200,
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=' + maxAge, 'X-Proxy-Aviso': aviso, ...CORS_HEADERS }
       });
+      const vaciaCatastroEdificios = (aviso) => respuestaCatastro('{"type":"FeatureCollection","features":[]}', aviso || 'vacio', 300);
       try {
         const s = parseFloat(url.searchParams.get('s'));
         const w = parseFloat(url.searchParams.get('w'));
         const n = parseFloat(url.searchParams.get('n'));
         const e = parseFloat(url.searchParams.get('e'));
-        if (![s, w, n, e].every(Number.isFinite) || s >= n || w >= e) return vaciaCatastroEdificios();
+        if (![s, w, n, e].every(Number.isFinite) || s >= n || w >= e) return vaciaCatastroEdificios('sin-parametros');
         // Tope duro de área: el WFS del Catastro no admite cajas grandes.
-        if ((n - s) > 0.006 || (e - w) > 0.006 || (n - s) * (e - w) > 0.000025) return vaciaCatastroEdificios();
+        if ((n - s) > 0.006 || (e - w) > 0.006 || (n - s) * (e - w) > 0.000025) return vaciaCatastroEdificios('area-grande');
         const claveKv = 'catedif3d:' + [s, w, n, e].map((v) => v.toFixed(4)).join(',');
         const kv = env.AIR_QUALITY_CACHE || null;
         if (kv) {
           try {
             const { value, metadata } = await kv.getWithMetadata(claveKv);
             if (value && metadata && metadata.ts && Date.now() - metadata.ts < 30 * 24 * 3600 * 1000) {
-              return new Response(value, {
-                status: 200,
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400', 'X-Proxy-Aviso': 'cache', ...CORS_HEADERS }
-              });
+              return respuestaCatastro(value, 'cache', 86400);
             }
           } catch (err) { }
         }
-        const ctl = new AbortController();
-        const timer = setTimeout(() => ctl.abort(), 55000);
-        let texto = '';
-        try {
-          const destino = 'https://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=getfeature'
-            + '&typenames=bu:BuildingPart&srsname=EPSG:4326'
-            + '&BBOX=' + s.toFixed(6) + ',' + w.toFixed(6) + ',' + n.toFixed(6) + ',' + e.toFixed(6);
-          const r = await fetch(destino, {
-            headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
-            signal: ctl.signal,
-          });
-          if (!r.ok) throw new Error(`Catastro WFS HTTP ${r.status}`);
-          texto = await r.text();
-        } finally {
-          clearTimeout(timer);
-        }
-        const features = [];
-        if (texto && texto.indexOf('BuildingPart') !== -1) {
-          const redondear = (v) => Math.round(v * 1e6) / 1e6;
-          const anilloDe = (crudo) => {
-            const numeros = crudo.trim().split(/\s+/).map(Number);
-            const ring = [];
-            for (let k = 0; k + 1 < numeros.length; k += 2) {
-              // GML entrega "lat lon": se invierte a [lon, lat] GeoJSON
-              if (isFinite(numeros[k]) && isFinite(numeros[k + 1])) ring.push([redondear(numeros[k + 1]), redondear(numeros[k])]);
-            }
-            return ring.length >= 4 ? ring : null;
-          };
-          const trozos = texto.split('<bu-ext2d:BuildingPart');
-          for (let i = 1; i < trozos.length; i++) {
-            try {
-              const trozo = trozos[i];
-              const mPlantas = trozo.match(/numberOfFloorsAboveGround[^>]*>\s*(\d+)/);
-              const plantas = mPlantas ? parseInt(mPlantas[1], 10) : null;
-              const mExt = /<gml:exterior>[\s\S]*?<gml:posList[^>]*>([^<]+)<\/gml:posList>/.exec(trozo);
-              if (!mExt) continue;
-              const exterior = anilloDe(mExt[1]);
-              if (!exterior) continue;
-              const coordinates = [exterior];
-              const reInt = /<gml:interior>[\s\S]*?<gml:posList[^>]*>([^<]+)<\/gml:posList>/g;
-              let mInt;
-              while ((mInt = reInt.exec(trozo)) !== null) {
-                const interior = anilloDe(mInt[1]);
-                if (interior) coordinates.push(interior);
-              }
-              features.push({ type: 'Feature', properties: { p: plantas }, geometry: { type: 'Polygon', coordinates } });
-            } catch (err) { continue; }
+        // La petición al Catastro se lanza AHORA y su vida queda amarrada
+        // con ctx.waitUntil: aunque el cliente abandone (abort del fetch
+        // del navegador, navegación, cierre de pestaña), el worker termina
+        // de descargar, parsear y GUARDAR EN KV lo que pidió. Así la
+        // siguiente visita a ese bloque sale de caché aunque esta petición
+        // no llegara a entregar nada.
+        const trabajo = (async () => {
+          const ctl = new AbortController();
+          const timer = setTimeout(() => ctl.abort(), 55000);
+          let texto = '';
+          try {
+            const destino = 'https://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=getfeature'
+              + '&typenames=bu:BuildingPart&srsname=EPSG:4326'
+              + '&BBOX=' + s.toFixed(6) + ',' + w.toFixed(6) + ',' + n.toFixed(6) + ',' + e.toFixed(6);
+            const r = await fetch(destino, {
+              headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+              signal: ctl.signal,
+            });
+            if (!r.ok) throw new Error(`Catastro WFS HTTP ${r.status}`);
+            texto = await r.text();
+          } finally {
+            clearTimeout(timer);
           }
-        }
-        const cuerpo = JSON.stringify({ type: 'FeatureCollection', features });
-        if (kv) {
-          try { await kv.put(claveKv, cuerpo, { expirationTtl: 2592000, metadata: { ts: Date.now() } }); } catch (err) { }
-        }
-        return new Response(cuerpo, {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400', ...CORS_HEADERS }
-        });
+          const features = [];
+          if (texto && texto.indexOf('BuildingPart') !== -1) {
+            const redondear = (v) => Math.round(v * 1e6) / 1e6;
+            const anilloDe = (crudo) => {
+              const numeros = crudo.trim().split(/\s+/).map(Number);
+              const ring = [];
+              for (let k = 0; k + 1 < numeros.length; k += 2) {
+                // GML entrega "lat lon": se invierte a [lon, lat] GeoJSON
+                if (isFinite(numeros[k]) && isFinite(numeros[k + 1])) ring.push([redondear(numeros[k + 1]), redondear(numeros[k])]);
+              }
+              return ring.length >= 4 ? ring : null;
+            };
+            const trozos = texto.split('<bu-ext2d:BuildingPart');
+            for (let i = 1; i < trozos.length; i++) {
+              try {
+                const trozo = trozos[i];
+                const mPlantas = trozo.match(/numberOfFloorsAboveGround[^>]*>\s*(\d+)/);
+                const plantas = mPlantas ? parseInt(mPlantas[1], 10) : null;
+                const mExt = /<gml:exterior>[\s\S]*?<gml:posList[^>]*>([^<]+)<\/gml:posList>/.exec(trozo);
+                if (!mExt) continue;
+                const exterior = anilloDe(mExt[1]);
+                if (!exterior) continue;
+                const coordinates = [exterior];
+                const reInt = /<gml:interior>[\s\S]*?<gml:posList[^>]*>([^<]+)<\/gml:posList>/g;
+                let mInt;
+                while ((mInt = reInt.exec(trozo)) !== null) {
+                  const interior = anilloDe(mInt[1]);
+                  if (interior) coordinates.push(interior);
+                }
+                features.push({ type: 'Feature', properties: { p: plantas }, geometry: { type: 'Polygon', coordinates } });
+              } catch (err) { continue; }
+            }
+          }
+          const cuerpo = JSON.stringify({ type: 'FeatureCollection', features });
+          if (kv) {
+            try { await kv.put(claveKv, cuerpo, { expirationTtl: 2592000, metadata: { ts: Date.now() } }); } catch (err) { }
+          }
+          return cuerpo;
+        })();
+        if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(trabajo.catch(() => null));
+        const cuerpo = await trabajo;
+        const cuenta = (JSON.parse(cuerpo).features || []).length;
+        return respuestaCatastro(cuerpo, cuenta > 0 ? 'ok' : 'vacio', 86400);
       } catch (err) {
-        return vaciaCatastroEdificios();
+        // Error del Catastro (timeout, HTTP 500, red…): se etiqueta para
+        // que nadie lo confunda con una zona realmente sin edificios.
+        const detalle = String((err && err.message) || err).slice(0, 60).replace(/[^\w .:-]/g, '');
+        return vaciaCatastroEdificios('error:' + detalle);
       }
     }
 

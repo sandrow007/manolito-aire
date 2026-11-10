@@ -38,7 +38,9 @@
                                     // Los bloques son fijos y van a caché:
                                     // pedir ese anillo extra no cuesta más
                                     // en cada movimiento del mapa.
-  var MAX_BLOQUES_POR_PASADA = 4;   // peticiones paralelas; todas las celdas visibles se recorren por tandas
+  var PETICIONES_EN_VUELO = 3;      // peticiones simultáneas; al terminar cada una se
+                                    // pinta lo recibido y se lanza la siguiente, sin
+                                    // esperar a que la tanda entera acabe
   // (sin tope de edificios por vista desde el 10-nov: se pintan todos,
   //  el recorte a 900 dejaba manzanas completas sin volumen)
   var ALTURA_PLANTA_M = 3;          // plantas × 3 m
@@ -49,7 +51,12 @@
   var map = null;
   var activo = false;
   var temporizador = null;
-  var controlAbortar = null;   // AbortController de la tanda de bloques en curso
+  var controlAbortar = null;   // AbortController de las peticiones en vuelo
+  var movimientoReal = false;  // movestart con originalEvent: el usuario (o una
+                               // animación) ha movido el mapa de verdad. Solo
+                               // entonces se cancelan las peticiones en curso;
+                               // los eventos 'sourcedata' de nubes, sombras y
+                               // compañía ya NO recortan lo que vuela.
   var bloques = new Map();     // "cyx cx" -> { estado: 'ok'|'vacia'|'error'|'cargando', datos: FC|null }
 
   // ---------- sombras del Catastro (Web Worker + caché por franja solar) ----------
@@ -256,6 +263,15 @@
         lista.push([cy, cx]);
       }
     }
+    // Orden centro → esquinas: lo primero que llega es lo que el usuario
+    // está mirando, no la esquina superior izquierda de la vista.
+    var ccy = Math.floor(((sur + norte) / 2) / BLOQUE_GRADOS);
+    var ccx = Math.floor(((oeste + este) / 2) / BLOQUE_GRADOS);
+    lista.sort(function (a, b) {
+      var da = (a[0] - ccy) * (a[0] - ccy) + (a[1] - ccx) * (a[1] - ccx);
+      var db = (b[0] - ccy) * (b[0] - ccy) + (b[1] - ccx) * (b[1] - ccx);
+      return da - db;
+    });
     // Sin capar ni por zoom ni por número de bloques: a gran escala puede
     // tardar más porque las celdas se consultan por tandas pequeñas, pero la
     // cobertura no se queda recortada a un círculo central.
@@ -272,13 +288,27 @@
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       var fc = await resp.json();
       if (!fc || !Array.isArray(fc.features)) throw new Error('respuesta inválida');
+      // La cabecera del Worker distingue un hueco real ('vacio'/'cache'
+      // sin features) de un fallo del Catastro ('error:...'): lo segundo
+      // se trata como bloque fallido y su ventana de reintento lo vuelve
+      // a intentar, no se da por bueno un vacío que no lo es.
+      var aviso = String(resp.headers.get('X-Proxy-Aviso') || '');
+      if (fc.features.length === 0 && aviso.indexOf('error:') === 0) {
+        console.warn('[Catastro 3D] bloque ' + clave + ' falló en el proxy: ' + aviso);
+        throw new Error('proxy ' + aviso);
+      }
       bloques.set(clave, { estado: fc.features.length ? 'ok' : 'vacia', datos: fc });
-      console.debug('[Catastro 3D] bloque ' + clave + ': ' + fc.features.length + ' edificios');
+      console.debug('[Catastro 3D] bloque ' + clave + ': ' + fc.features.length + ' edificios' + (aviso ? ' [' + aviso + ']' : ''));
+      // Pintar EN CUANTO llega: no se espera a que la tanda entera
+      // acabe. Si el mapa base aún está cargando, repintar() solo
+      // reprograma su espera y no molesta.
+      repintar();
       return fc.features.length > 0;
     } catch (err) {
       if (err && err.name === 'AbortError') {
-        // La petición se canceló por movimiento del mapa, no por fallo:
-        // el bloque queda reintentable de inmediato para la nueva vista.
+        // La petición se abandonó porque el usuario movió el mapa de
+        // verdad, no por un fallo: el bloque queda reintentable de
+        // inmediato para la nueva vista.
         bloques.set(clave, { estado: 'error', datos: null, t: 0 });
         return false;
       }
@@ -288,8 +318,60 @@
     }
   }
 
+  // Cola concurrente: PETICIONES_EN_VUELO obreros recorren la lista ya
+  // ordenada (centro primero). Cuando uno acaba lanza el siguiente sin
+  // esperar a sus compañeros, y cada respuesta se pinta al llegar.
+  async function recorrerCola(lista, senal) {
+    var siguiente = 0;
+    async function obrero() {
+      while (signalViva(senal) && siguiente < lista.length) {
+        var trabajo = lista[siguiente++];
+        var clave = claveBloque(trabajo[0], trabajo[1]);
+        var previo = bloques.get(clave);
+        if (previo && previo.estado !== 'error') continue; // ya está en memoria o en vuelo
+        // Un bloque que falló no se reintenta en caliente: 5 min de espera
+        if (previo && previo.estado === 'error' && (previo.t || 0) > 0 && Date.now() - previo.t < 300000) continue;
+        await pedirBloque(trabajo[0], trabajo[1], senal);
+      }
+    }
+    var obreros = [];
+    for (var k = 0; k < PETICIONES_EN_VUELO; k++) obreros.push(obrero());
+    await Promise.all(obreros);
+  }
+
+  function signalViva(senal) {
+    return activo && !document.hidden && senal && !senal.aborted;
+  }
+
   // ---------- repintado ----------
   var esperandoIdle = false; // evita apilar map.once('idle') en cadena
+
+  // Red de seguridad: si con las nubes y las sombras activas el mapa no
+  // llega a 'idle' (siempre hay una fuente cargando), la espera no puede
+  // durar eternamente: a los 2,5 s se repinta con lo que haya. El riesgo
+  // de pintar un duplicado antes de que OSM termine se acepta a cambio
+  // de no congelar la capa para siempre.
+  var alFinalemperaIdle = null; // el manejador 'idle' en vuelo, por si hay que retirarlo
+  function esperarMapaListo(callback) {
+    if (map.loaded()) { callback(); return; }
+    if (!esperandoIdle) {
+      esperandoIdle = true;
+      esperaAbiertaEn = Date.now();
+      alFinalemperaIdle = function () { esperandoIdle = false; alFinalemperaIdle = null; callback(); };
+      map.once('idle', alFinalemperaIdle);
+      setTimeout(function () {
+        if (esperandoIdle) {
+          esperandoIdle = false;
+          try { if (alFinalemperaIdle) map.off('idle', alFinalemperaIdle); } catch (e) { }
+          alFinalemperaIdle = null;
+          callback();
+        }
+      }, 2500);
+    }
+    // Si ya había una espera abierta, la devolución de llamada actual se
+    // pierde a propósito: la que esté colgada pintará con los datos nuevos
+    // cuando salte (idle o el plazo de 2,5 s).
+  }
 
   function repintar() {
     try {
@@ -301,11 +383,10 @@
       // Esperar a que el mapa base haya cargado sus teselas antes de
       // decidir qué huecos rellenar: si no, faltan edificios OSM y se
       // levantarían duplicados que luego quedarían bajo los de OSM.
+      // Con tope de 2,5 s para no quedarse colgados si el mapa nunca
+      // llega a idle (nubes, sombras y otras capas cargando sin fin).
       if (!map.loaded()) {
-        if (!esperandoIdle) {
-          esperandoIdle = true;
-          map.once('idle', function () { esperandoIdle = false; repintar(); });
-        }
+        esperarMapaListo(repintar);
         return;
       }
 
@@ -390,54 +471,61 @@
     } catch (e) { /* nunca romper el mapa por esta capa */ }
   }
 
+  var cargandoAhora = false; // solo una pasada activa a la vez
+
   async function cargarVista() {
     try {
-      if (!activo || !map || document.hidden) return;
-      // Los bloques en memoria se recortan: en una sesión larga no deben
-      // acumularse megas de GeoJSON de zonas que ya no se ven.
-      if (bloques.size > 120) {
-        var sobran = bloques.size - 120;
-        var iter = bloques.keys();
-        for (var r = 0; r < sobran; r++) {
-          var k0 = iter.next().value;
-          var b0 = bloques.get(k0);
-          if (b0 && b0.estado !== 'cargando') bloques.delete(k0);
+      if (!activo || !map || document.hidden || cargandoAhora) return;
+      cargandoAhora = true;
+      try {
+        // Los bloques en memoria se recortan: en una sesión larga no deben
+        // acumularse megas de GeoJSON de zonas que ya no se ven.
+        if (bloques.size > 120) {
+          var sobran = bloques.size - 120;
+          var iter = bloques.keys();
+          for (var r = 0; r < sobran; r++) {
+            var k0 = iter.next().value;
+            var b0 = bloques.get(k0);
+            if (b0 && b0.estado !== 'cargando') bloques.delete(k0);
+          }
         }
-      }
-      var lista = bloquesDeLaVista();
-      // Cancelar la tanda anterior: esas peticiones ya son de una vista vieja
-      if (controlAbortar) { try { controlAbortar.abort(); } catch (e) { } }
-      controlAbortar = new AbortController();
-      var senal = controlAbortar.signal;
-      var pendientes = [];
-      for (var i = 0; i < lista.length && pendientes.length < MAX_BLOQUES_POR_PASADA; i++) {
-        var clave = claveBloque(lista[i][0], lista[i][1]);
-        var previo = bloques.get(clave);
-        if (previo && previo.estado !== 'error') continue;
-        // Un bloque que falló no se reintenta en caliente: 5 min de espera
-        if (previo && previo.estado === 'error' && Date.now() - (previo.t || 0) < 300000) continue;
-        pendientes.push(pedirBloque(lista[i][0], lista[i][1], senal));
-      }
-      if (pendientes.length) {
-        await Promise.all(pendientes);
-      }
-      repintar();
-      // Cada pasada pide como máximo cuatro celdas, pero recorre toda la
-      // vista. Los errores recientes esperan su ventana de reintento sin
-      // provocar un bucle de peticiones cada medio segundo.
-      var quedanBloques = false, esperaReintento = Infinity;
-      for (var q = 0; q < lista.length; q++) {
-        var estadoBloque = bloques.get(claveBloque(lista[q][0], lista[q][1]));
-        if (!estadoBloque) { quedanBloques = true; break; }
-        if (estadoBloque.estado === 'error') {
-          var restante = 300000 - (Date.now() - (estadoBloque.t || 0));
-          if (restante <= 0) { quedanBloques = true; break; }
-          if (restante < esperaReintento) esperaReintento = restante;
+        var lista = bloquesDeLaVista(); // ordenada: primero el centro de la pantalla
+        var vistaAlEmpezar = map.getCenter().wrap().lng + ',' + map.getCenter().lat.toFixed(5);
+        // NO se aborta al entrar: las peticiones en vuelo de la pasada
+        // anterior siguen siendo útiles (bloques fijos, no dependen de la
+        // vista). Solo se abandonan cuando el usuario mueve el mapa de
+        // verdad (ver enganche 'movestart').
+        if (!controlAbortar || controlAbortar.signal.aborted) controlAbortar = new AbortController();
+        var senal = controlAbortar.signal;
+        // Cola concurrente: 3 en vuelo, cada respuesta se pinta al llegar
+        // (pedirBloque llama a repintar()).
+        await recorrerCola(lista, senal);
+        // Bloques aún sin pedir o con error reintentable: otra pasada.
+        // Los errores recientes esperan su ventana de reintento sin
+        // provocar un bucle de peticiones cada medio segundo.
+        var quedanBloques = false, esperaReintento = Infinity;
+        for (var q = 0; q < lista.length; q++) {
+          var estadoBloque = bloques.get(claveBloque(lista[q][0], lista[q][1]));
+          if (!estadoBloque) { quedanBloques = true; break; }
+          if (estadoBloque.estado === 'error') {
+            var restante = 300000 - (Date.now() - (estadoBloque.t || 0));
+            if (restante <= 0) { quedanBloques = true; break; }
+            if (restante < esperaReintento) esperaReintento = restante;
+          }
         }
+        // Si el usuario movió el mapa mientras la cola trabajaba con la
+        // lista vieja, otra pasada pide los bloques de la vista nueva
+        // (los que ya están en memoria no se repiden).
+        if (activo && !document.hidden) {
+          var c = map.getCenter();
+          if ((c.wrap().lng + ',' + c.lat.toFixed(5)) !== vistaAlEmpezar) { programar(); return; }
+        }
+        if (quedanBloques && activo && !senal.aborted) programar();
+        else if (esperaReintento < Infinity && activo && !senal.aborted) programar(esperaReintento + 50);
+      } finally {
+        cargandoAhora = false;
       }
-      if (quedanBloques && activo && !senal.aborted) programar();
-      else if (esperaReintento < Infinity && activo && !senal.aborted) programar(esperaReintento + 50);
-    } catch (e) { /* silencio total */ }
+    } catch (e) { /* silencio total */ cargandoAhora = false; }
   }
 
   function programar(espera) {
@@ -447,15 +535,33 @@
     } catch (e) { }
   }
 
+  // Solo un movimiento REAL del usuario (arrastre, rueda, pinch o una
+  // animación de flyTo lanzada por la web) abandona las peticiones en
+  // vuelo. Los eventos 'sourcedata' de nubes, sombras y demás capas no
+  // tocan lo que ya está en el aire: el Catastro tarda ~2 s por bloque y
+  // cancelar por un simple evento de datos hacía que ningún bloque
+  // llegase nunca a completarse.
+  function alEmpezarMovimiento(e) {
+    try {
+      if (!e || !e.originalEvent) return; // evento sintético: ignorar
+      movimientoReal = true;
+      if (controlAbortar) { try { controlAbortar.abort(); } catch (e2) { } }
+      controlAbortar = null;
+    } catch (e2) { }
+  }
+
   // Los datos de CUALQUIER fuente disparan 'sourcedata', incluido el setData
   // de la nuestra propia: hay que filtrar, o repintar() → setData →
-  // sourcedata → programar() quedaría en un ciclo sin fin. Además, cuando el
-  // mapa está quieto y cargado (map.loaded()) no hay nada nuevo que mirar.
+  // sourcedata → programar() quedaría en un ciclo sin fin. Cuando el mapa
+  // está quieto y cargado (map.loaded()) no hay nada nuevo que mirar; si
+  // no lo está, se repasa la cola PASADO un plazo (no cada 500 ms en
+  // cadena mientras nubes/sombras cargan teselas sin fin).
   function alRecibirDatos(e) {
     try {
       if (e && e.sourceId === SRC) return;
       if (map.loaded()) return;
-      programar();
+      if (!movimientoReal) programar(1500); // descanso: no atiborrar mientras carga el mapa base
+      movimientoReal = false;
     } catch (e2) { }
   }
 
@@ -475,6 +581,7 @@
         if (!enganchado) {
           enganchado = true;
           map.on('moveend', programar);
+          map.on('movestart', alEmpezarMovimiento);
           map.on('sourcedata', alRecibirDatos);
         }
         programar();
@@ -482,6 +589,7 @@
         if (enganchado) {
           enganchado = false;
           try { map.off('moveend', programar); } catch (e) { }
+          try { map.off('movestart', alEmpezarMovimiento); } catch (e) { }
           try { map.off('sourcedata', alRecibirDatos); } catch (e) { }
         }
         clearTimeout(temporizador);

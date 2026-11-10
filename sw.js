@@ -420,7 +420,11 @@
 // Cambia index.html, js/shadows-route.js y js/catastro-edificios-3d.js.
 // 2026-11-10-f: retira el recorte a 900 edificios por vista del módulo del
 // Catastro (ya era politica desde la -c, pero el código lo seguía aplicando).
-const VERSION = '2026-11-10-f';
+// 2026-11-10-g: cola concurrente en el cliente (3 en vuelo, centro primero,
+// pintado por bloque, cancelación solo con movimiento real del usuario) y
+// waitUntil + X-Proxy-Aviso en el worker. Cambian worker.js,
+// js/catastro-edificios-3d.js e index.html.
+const VERSION = '2026-11-10-g';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

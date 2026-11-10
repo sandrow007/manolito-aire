@@ -32,9 +32,9 @@
 <title>Huecos OSM · Manolit∞ Aire — huecos urbanos, edificios y árboles de cualquier lugar del mundo</title>
 <meta name="description" content="Mapa de datos de OpenStreetMap para cualquier lugar del mundo: huecos de edificios, huecos de altura, zonas con pocos árboles, catastro oficial en España, dibujo libre y exportación en PNG/PDF. Herramienta independiente de la familia Manolit∞, gratis y sin registro.">
 <link rel="canonical" href="https://manolitoaire.com/huecos.html">
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Manolit∞ Aire">
 <meta property="og:url" content="https://manolitoaire.com/huecos.html">
@@ -726,6 +726,10 @@ html,body{ height:100%; }
   }
   function translateTree(root){
     function translateNode(n){
+      /* Los nodos dentro de un elemento con data-i18n los gestiona
+         translateKey; pasarlos por tr() canoniza el texto traducido a la
+         clave y en español muestra la clave en vez del valor (p.ej. «formatGeoJSON»). */
+      var pp=n.parentNode;while(pp&&pp.nodeType===1){if(pp.hasAttribute('data-i18n'))return;pp=pp.parentNode;}
       if(!Object.prototype.hasOwnProperty.call(n,'__huecosOriginal'))n.__huecosOriginal=n.nodeValue;
       var original=n.__huecosOriginal;
       if(original.trim()==='Datos © OpenStreetMap contributors (Nominatim + Overpass API).'){
@@ -790,7 +794,7 @@ html,body{ height:100%; }
           while(p&&p!==document.body&&!p.hasAttribute('data-i18n'))p=p.parentNode;
           if(p&&p.hasAttribute('data-i18n')){
             var k=p.getAttribute('data-i18n'),vs=TEXT[k];if(vs)node.nodeValue=LANGS.indexOf(current)===0?(ES_TEXT[k]||vs[0]):vs[LANGS.indexOf(current)-1];
-          }else{var v=tr(node.__huecosOriginal);if(v!==node.nodeValue)node.nodeValue=v;}
+          }else if(p){var v=tr(node.__huecosOriginal);if(v!==node.nodeValue)node.nodeValue=v;}
         }else r.addedNodes.forEach(function(n){if(n.nodeType===1||n.nodeType===3)translateTree(n);});
       });
     });
@@ -835,7 +839,7 @@ var OVERPASS = [
 ];
 var avisoBloqueoOverpass=false;
 function avisarSiBloqueo(e){
-  if(avisoBloqueoOverpass||!/406/.test(e&&e.message||''))return;
+  if(avisoBloqueoOverpass||!/406|429/.test(e&&e.message||''))return;
   avisoBloqueoOverpass=true;
   avisoPlantilla('overpassLimit',{},15000);
 }
@@ -913,7 +917,11 @@ function setStatus(t){
   el.textContent=el.__huecosOriginal;
 }
 function trTexto(t){return window.huecosTranslateKey?window.huecosTranslateKey(t):window.huecosTranslate?window.huecosTranslate(t):t;}
-function esEspana(addr){return !!(addr&&String(addr.country_code||'').toLowerCase()==='es');}
+function esEspana(addr){
+  if(addr&&String(addr.country_code||'').toLowerCase()==='es')return true;
+  // Respaldo: si Nominatim no trae address, miramos el nombre completo.
+  return /\b(España|Espanya|Espainia|Spain)\b/i.test(String(addr&&addr.display_name||''));
+}
 
 function distM(a,b){
   var R=6371000,r=Math.PI/180;
@@ -1184,7 +1192,7 @@ $('buscarTxt').addEventListener('keydown',function(e){if(e.key==='Enter')buscar(
 
 function hacerBusqueda(q){
   avisoPlantilla('searchingIn',{place:escapeHtml(q)});
-  var url='https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&limit=1&accept-language=es,en'
+  var url='https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&addressdetails=1&limit=1&accept-language=es,en'
         +'&email=huecos-osm-mundial@example.com&q='+encodeURIComponent(q);
   fetch(url,{headers:{'Accept':'application/json'}})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
@@ -1241,7 +1249,7 @@ function cargarLugar(lugar,nombreBuscado){
   var limite=outlineLayer.getBounds().pad(0.4);
   map.setMaxBounds(limite);
 
-  var espana=esEspana(lugar.address);
+  var espana=esEspana(lugar.address)||esEspana({country_code:null,display_name:lugar.display_name});
   catastroDisponible=false;catastroSolicitado++;catastroActivaToken++;
   cacheCatastro={};peticionesCatastro={};
   lugarEnEspana=espana;
@@ -1329,15 +1337,24 @@ function consultaOverpassBB(bb){
     +'way["landuse"="residential"]('+f(bb[1])+','+f(bb[0])+','+f(bb[3])+','+f(bb[2])+');'
     +');out geom;';
 }
-function fetchOverpass(consulta,indice,ultimoError){
-  if(indice>=OVERPASS.length)return Promise.reject(ultimoError||new Error('todas las instancias fallaron'));
+function fetchOverpass(consulta,indice,ultimoError,rebote){
+  if(indice>=OVERPASS.length){
+    // Una segunda vuelta completa tras una pausa larga (sobrecarga 429/502)
+    if(!rebote)return new Promise(function(res){setTimeout(function(){res(fetchOverpass(consulta,0,ultimoError,true));},8000);});
+    return Promise.reject(ultimoError||new Error('todas las instancias fallaron'));
+  }
   var ctrl=new AbortController();
   var timer=setTimeout(function(){ctrl.abort();},75000);
   return fetch(OVERPASS[indice],{method:'POST',signal:ctrl.signal,
     headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
     body:'data='+encodeURIComponent(consulta)})
     .then(function(r){clearTimeout(timer);if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-    .catch(function(e){clearTimeout(timer);return fetchOverpass(consulta,indice+1,e);});
+    .catch(function(e){clearTimeout(timer);
+      // Ante saturacion (429) o instancia caida (502/503), esperamos antes
+      // de saltar a la siguiente en lugar de quemar toda la lista seguida.
+      var espera=/429|50[23]/.test(e&&e.message||'')?4000:300;
+      return new Promise(function(res){setTimeout(function(){res(fetchOverpass(consulta,indice+1,e,rebote));},espera);});
+    });
 }
 var peticionesFallidas=0;
 function procesarCola(){
@@ -1723,7 +1740,7 @@ function actualizarCapasPrevia(){
     var label=document.createElement('label'),box=document.createElement('input');
     box.type='checkbox';box.checked=original.checked;box.dataset.previewLayer=original.dataset.layer;box.dataset.previewText=original.closest('label').querySelector('[data-i18n]')?original.closest('label').querySelector('[data-i18n]').dataset.i18n:original.closest('label').textContent.trim();
     box.addEventListener('change',function(){original.checked=box.checked;sync();programarVistaPrevia();});
-    var previewKey=original.dataset.previewText||original.dataset.layer;
+    var previewKey=box.dataset.previewText||original.dataset.layer;
     label.appendChild(box);label.appendChild(document.createTextNode(trTexto(previewKey)));destino.appendChild(label);
   });
 }

@@ -424,7 +424,15 @@
 // pintado por bloque, cancelación solo con movimiento real del usuario) y
 // waitUntil + X-Proxy-Aviso en el worker. Cambian worker.js,
 // js/catastro-edificios-3d.js e index.html.
-const VERSION = '2026-11-10-g';
+// 2026-11-10-h: huecos.html corregido (ortofoto activable: Nominatim con
+// addressdetails; Overpass con reintentos ante 429/502; textos de formato
+// que salian como claves). Para que el arreglo llegue: VERSION sube (purga
+// de caches), el espejo overpass.private.coffee entra en HOSTS_DINAMICOS y
+// los servidores de teselas que usa huecos.html (PNOA/IGN, Esri World
+// Imagery, OSM estándar y el WMS del Catastro) pasan a STALE-WHILE-REVALIDATE:
+// responden al instante desde cache pero se revalidan, y sus teselas ya no
+// llenan la cache dinamica sin control.
+const VERSION = '2026-11-10-h';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo
@@ -446,21 +454,28 @@ const HOSTS_ESTATICOS = [
 	'fonts.gstatic.com',
 ];
 
-/* Hosts con STALE-WHILE-REVALIDATE: rápidos Y auto-actualizados */
+/* Hosts con STALE-WHILE-REVALIDATE: rápidos Y auto-actualizados.
+   Incluye los servidores de teselas de huecos.html (ortofoto PNOA, satelite
+   Esri, mapa OSM y WMS del Catastro): cacheados sin bloquearlos para siempre. */
 const HOSTS_REVALIDABLES = [
 	'tiles.openfreemap.org',
+	'www.ign.es',
+	'server.arcgisonline.com',
+	'tile.openstreetmap.org',
+	'ovc.catastro.meh.es',
 ];
 
 /* Rutas propias con datos dinámicos (proxies del worker) */
 const RUTAS_DINAMICAS = ['/api/', '/geo', '/geo-sugerencias', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/carriles-bici', '/transporte-paradas', '/transporte-salidas', '/manolito'];
 
-/* Hosts de datos dinámicos externos */
+/* Hosts de datos dinámicos externos (todos los espejos Overpass de huecos.html) */
 const HOSTS_DINAMICOS = [
 	'api.open-meteo.com',
 	'overpass-api.de',
 	'lz4.overpass-api.de',
 	'overpass.kumi.systems',
 	'overpass.nchc.org.tw',
+	'overpass.private.coffee',
 ];
 
 /* Respuestas geográficas de fuentes: uso en memoria de la página, sin caché

@@ -239,6 +239,7 @@
       var fc = await resp.json();
       if (!fc || !Array.isArray(fc.features)) throw new Error('respuesta inválida');
       bloques.set(clave, { estado: fc.features.length ? 'ok' : 'vacia', datos: fc });
+      console.debug('[Catastro 3D] bloque ' + clave + ': ' + fc.features.length + ' edificios');
       return fc.features.length > 0;
     } catch (err) {
       if (err && err.name === 'AbortError') {
@@ -248,6 +249,7 @@
         return false;
       }
       bloques.set(clave, { estado: 'error', datos: null, t: Date.now() });
+      console.debug('[Catastro 3D] bloque ' + clave + ' ERROR: ' + ((err && err.message) || err));
       return false;
     }
   }
@@ -337,6 +339,7 @@
         candidatos = candidatos.slice(0, MAX_EDIFICIOS_EN_VISTA);
       }
       var finales = candidatos.map(function (c) { return c.feature; });
+      console.debug('[Catastro 3D] repintado: ' + finales.length + ' edificios (zoom ' + map.getZoom().toFixed(1) + ', bloques en memoria ' + bloques.size + ')');
       map.getSource(SRC).setData({
         type: 'FeatureCollection',
         features: finales,

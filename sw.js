@@ -438,7 +438,17 @@
 // vista muy densa lo alcanza, se conservan los más cercanos al centro y se
 // avisa por consola. No cambia ni color ni alturas ni el parser del Worker.
 // Cambian js/catastro-edificios-3d.js e index.html (URL versionada del script).
-const VERSION = '2026-11-10-i';
+// 2026-11-12-flujo-transporte-a: limpieza de interfaz secundaria al cambiar
+// Coche ↔ Bici (indicaciones/CO2/compartir no quedan huérfanos), bloqueo del
+// auto-encendido de sombras/aparcamiento/cámara al trazar ruta en coche, el
+// HUD de navegación solo aparece con caminata/paseo activos (ya no sale un
+// panel muerto al buscar coche) y sus señales de límite pasan al acento
+// Manolit∞ (sin rojo tráfico). La mancha de nubes desaparece al apagar la
+// casilla Nubes. Buscador compacto y píldora de reapertura centrada en móvil.
+// Tutorial con paso «Huecos OSM». Cambian js/shadows-route.js,
+// js/aparcamientos-viaje.js, js/hud-navegacion.js, js/tutorial.js,
+// css/style.css e index.html.
+const VERSION = '2026-11-12-flujo-transporte-a';
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo

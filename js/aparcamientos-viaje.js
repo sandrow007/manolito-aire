@@ -1225,10 +1225,13 @@
     var min = Math.round(ruta.duracionS / 60);
     var tiempoTxt = min >= 60 ? Math.floor(min / 60) + ' h ' + (min % 60) + ' min' : min + ' min';
 
-    decirEstado(t('tripSummary', 'Viaje trazado') + ' · ' + kmTxt + ' km · ' + tiempoTxt + '. ' + t('tripParkingOn', 'Abajo tienes los aparcamientos del destino, con anillo los que están a la sombra.'));
+    decirEstado(t('tripSummary', 'Viaje trazado') + ' · ' + kmTxt + ' km · ' + tiempoTxt + '.');
 
+    // Bloqueo de auto-expand (nov-2026): al trazar una ruta en coche la app
+    // ya NO enciende por su cuenta las sombras, ni el aparcamiento, ni mueve
+    // la cámara a la llegada (prepararLlegada). El buscador arranca y se
+    // queda compacto; esas capas solo se activan si el usuario lo pide.
     clearTimeout(viaje.temporizadorLlegada);
-    viaje.temporizadorLlegada = setTimeout(function () { prepararLlegada(destino); }, CONFIG.esperaLlegadaMs);
     return { origen: origen, destino: destino, ruta: ruta };
   }
 

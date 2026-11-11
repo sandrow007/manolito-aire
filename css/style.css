@@ -5619,7 +5619,11 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
   outline-offset:1px;
 }
 #main-content #rsBtnAbrirForm{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
   top:44px;
+  z-index:29;
   height:32px;
   padding:0 8px;
   border:0 !important;
@@ -5896,7 +5900,7 @@ body.modo-accesible #main-content .rs-form #rsDestino{
   text-overflow:ellipsis;
   min-width:0;
 }
-/* Mini-señal de límite dentro del banner (estilo Vela, junto a la vía) */
+/* Mini-señal de límite dentro del banner (paleta Manolit∞, sin rojo tráfico) */
 #main-content .map-wrap .rs-hud-banner-lim{
   flex:0 0 auto;
   min-width:24px;
@@ -5904,7 +5908,7 @@ body.modo-accesible #main-content .rs-form #rsDestino{
   padding:0 4px;
   border-radius:5px;
   background:#F5F6F2;
-  border:2px solid #D5303E;
+  border:2px solid var(--mui-accent, #FF6B1A);
   color:#16181A;
   font-size:11px;
   font-weight:800;
@@ -6011,13 +6015,13 @@ body.modo-accesible #main-content .rs-form #rsDestino{
 }
 #main-content .map-wrap .rs-hud-recorrido[hidden]{display:none;}
 
-/* Señal clásica de límite: círculo blanco con borde rojo */
+/* Señal de límite con la paleta Manolit∞ (acento naranja, sin rojo tráfico) */
 #main-content .map-wrap #rsHudLimite{
   width:48px;
   height:48px;
   border-radius:50%;
   background:#F5F6F2;
-  border:5px solid #D5303E;
+  border:5px solid var(--mui-accent, #FF6B1A);
   color:#16181A;
   display:flex;
   align-items:center;
@@ -6106,3 +6110,25 @@ body.modo-accesible #main-content .rs-form #rsDestino{
   display:block;
 }
 #main-content .map-wrap #rsBtnRecentrarCaminata.rs-visible{display:flex;}
+
+/* ============================================================
+   BUSCADOR MÁS COMPACTO (nov-2026)
+   Reduce ~5-8% la "caja" exterior del buscador flotante ajustando
+   SOLO los rellenos interiores (paddings). Los inputs, los botones,
+   sus textos y el mapa base NO se tocan. Regla ADITIVA: va al final
+   de la hoja y gana por cascada sin alterar la lógica.
+   ============================================================ */
+#main-content .rs-form,
+#main-content .rs-form.rs-form-flotante{
+  padding:3px 7px;
+}
+@media (max-width:760px){
+  #main-content .rs-form,
+  #main-content .rs-form.rs-form-flotante{
+    padding:3px 5px;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  #main-content .rs-form,
+  #main-content .rs-form.rs-form-flotante{ transition:none !important; }
+}

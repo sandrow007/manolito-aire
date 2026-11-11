@@ -636,6 +636,15 @@
       var btnPaseo = document.getElementById('rsBtnPaseo');
       var caminando = !!(btnWalk && btnWalk.classList.contains('rs-activo'));
       var paseando = !!(btnPaseo && btnPaseo.classList.contains('rs-activo'));
+      // UX urgente (nov-2026): el HUD solo se muestra cuando la navegación
+      // está en marcha (caminata o paseo). Con la ruta recién dibujada sin
+      // navegar (p. ej. una búsqueda en coche) no debe aparecer un panel que
+      // no se puede tocar ni hace nada: queda escondido y solo vuelve al
+      // iniciar la navegación de verdad.
+      if (!caminando && !paseando) {
+        if (S.visible) ocultar();
+        return;
+      }
       var modo = window.__manolitoModoRuta || 'caminar';
       var fuente = modo === 'bici' ? 'bici-rutas' : (modo === 'coche' ? 'viaje-largo' : 'ruta');
       // El tiempo y la distancia deben estar visibles desde que se dibuja la

@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    MANOLIT AIRE, Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -1747,7 +1747,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // 2) Sombra macro de la masa de nubes sobre el suelo.
     const velo = document.getElementById('rsNubesSombra');
     if (velo) {
-      const opVelo = Math.min(0.85, nubosidadActual * densidadAtmosfericaZoom() * 0.9);
+      const opVelo = nubesEncendidas()
+        ? Math.min(0.85, nubosidadActual * densidadAtmosfericaZoom() * 0.9)
+        : 0;
       velo.style.opacity = String(opVelo);
       // AHORRO REAL (sep-2026): el velo lleva una animación CSS infinita
       // (deriva de 90 s). Antes corría LAS 24 H aunque el velo estuviera
@@ -1887,9 +1889,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   function aplicarVisibilidadNubes() {
-    if (!map.getLayer(CAPA_NUBES_ID)) return;
     const visible = document.getElementById('rsToggleNubes')?.checked !== false;
-    map.setLayoutProperty(CAPA_NUBES_ID, 'visibility', visible ? 'visible' : 'none');
+    if (map.getLayer(CAPA_NUBES_ID)) {
+      map.setLayoutProperty(CAPA_NUBES_ID, 'visibility', visible ? 'visible' : 'none');
+    }
+    // El velo de sombra macro (la «mancha» sobre el suelo) es parte de la
+    // capa Nubes: al apagar la casilla desaparece también, no solo las teselas.
+    aplicarOpticaNubes();
+  }
+
+  // Nubes activas = casilla marcada (por defecto lo está). El velo de sombra
+  // y las teselas comparten esta misma fuente de verdad.
+  function nubesEncendidas() {
+    return document.getElementById('rsToggleNubes')?.checked !== false;
   }
 
   // Visibilidad de las nubes según ZOOM y modo claro/oscuro:
@@ -7348,6 +7360,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const anterior = window.__manolitoModoRuta || 'caminar';
     if (anterior !== modo) {
       window.__manolitoModoRuta = modo;
+      // Limpieza de interfaz secundaria al cambiar de modo (nov-2026,
+      // flujo tipo Google Maps): las indicaciones a pie (con su logo
+      // «IR HASTA AQUÍ» y su flecha), el aviso de CO2 y el panel de
+      // compartir punto no pueden quedarse huérfanos detrás del buscador.
+      // Son capas aditivas: su ausencia no rompe el cambio de modo.
+      try { if (window.ManolitA11y) window.ManolitA11y.ocultarPasos(); } catch (e) { /* aún sin A11Y */ }
+      try { if (window.ManolitCO2) window.ManolitCO2.ocultar(); } catch (e) { /* aún sin CO2 */ }
+      try {
+        const panelCompartir = document.getElementById('rsSharePanel');
+        if (panelCompartir) { panelCompartir.classList.remove('rs-visible'); panelCompartir.hidden = true; }
+      } catch (e) { /* sin panel de compartir */ }
       // Al cambiar de perfil limpiamos solo la línea activa, no el punto destino.
       if (anterior === 'caminar') {
         // Las capas de ruta se dejan activas; el modo seleccionado las sustituye al terminar su cálculo.

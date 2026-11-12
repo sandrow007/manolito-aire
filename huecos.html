@@ -271,6 +271,7 @@ html,body{ height:100%; }
   <input id="buscarTxt" type="search" placeholder="Pueblo, ciudad, barrio, provincia o pais... (ej.: Viena, Austria)"
          autocomplete="off" spellcheck="false" aria-label="Buscar lugar" data-i18n-placeholder="searchPlaceholder" data-i18n-aria-label="searchLabel">
   <button id="buscarBtn" data-i18n="searchBtn">Buscar</button>
+  <button id="capturaBtn" type="button" aria-label="Captura de pantalla" title="Captura de pantalla del delimitado">📷</button>
   <button id="dibujarAbrir" type="button" data-i18n="drawMap">Dibujar en el mapa</button>
 </header>
 <div id="aviso" role="status"></div>
@@ -1239,12 +1240,18 @@ function cargarLugar(lugar,nombreBuscado){
 
   if(outlineLayer)map.removeLayer(outlineLayer);
   if(baseLayer)map.removeLayer(baseLayer);
+  limpiarMascara();
   var shapePts=(function(){
     var polys=boundaryGeoJSON.type==='Polygon'?[boundaryGeoJSON.coordinates]:boundaryGeoJSON.coordinates;
     return polys.map(function(poly){return poly[0].map(function(p){return[p[1],p[0]];});});
   })();
   baseLayer=L.polygon(shapePts,{pane:'base',stroke:false,fillColor:css('--bg'),fillOpacity:1,interactive:false}).addTo(map);
   outlineLayer=L.polygon(shapePts,{pane:'edge',renderer:renderer,color:css('--edge'),weight:1.2,opacity:1,fill:false,interactive:false}).addTo(map);
+  // Delimitado siempre aislado (sep-2026): fuera de la forma del lugar el
+  // fondo queda tapado en opaco. Sin capa de mapa (satelite/osmmap apagadas)
+  // solo se ve la linea administrativa sobre el fondo del mapa; y con capas
+  // encendidas, nunca municipios ni alrededores del termino buscado.
+  pintarMascara(boundaryGeoJSON);
   map.fitBounds(outlineLayer.getBounds(),{paddingTopLeft:[20,70],paddingBottomRight:[20,20]});
   var limite=outlineLayer.getBounds().pad(0.4);
   map.setMaxBounds(limite);
@@ -1322,8 +1329,54 @@ function cargarViewport(){
    COLA DE PETICIONES OVERPASS (celda a celda, con pausa y reintentos)
 =========================================================================== */
 function encolar(claves,esExtraccion){
-  for(var k=0;k<claves.length;k++)colaCarga.push({clave:claves[k],extra:!!esExtraccion});
-  if(!cargando)procesarCola();
+  /* RAPIDEZ (nov-2026): la cola secuencial con 900 ms de pausa por celda
+     hacia interminable la extraccion (más de 10 min para 600 celdas). Ahora
+     todo entra en una unica pasada con N peticiones simultaneas usando
+     pedirCelda (dedupe + cache + marca de vista), con reconstruccion de
+     capas progresiva para que el detalle aparezca mientras descarga. */
+  var lista=claves.filter(function(c){return !visto['celda:'+c];});
+  if(!lista.length){if(esExtraccion)finalizarExtraccion();return;}
+  cargando=true;
+  if(esExtraccion){extrayendo=true;cancelarExtraccion=false;
+    totalCeldasExtra=lista.length;hechasCeldasExtra=0;
+    $('progreso').className='on';$('progFill').style.width='0%';actualizarProgresoTxt();}
+  var hechas=0,sigIndice=0,fallidas=0;
+  var CONC=6;
+  function lanzar(){
+    while(sigIndice<lista.length&&sigIndice-sigIndice<CONC){}
+  }
+  // Simplemente lanzamos todas con pedirCelda, que ya limita dedupe; para no
+  // saturar Overpass, hechas en tandas de CONC con Promise.all.
+  function tanda(){
+    if(cancelarExtraccion){lista=[];}
+    var lote=lista.slice(sigIndice,sigIndice+CONC);
+    sigIndice+=lote.length;
+    if(!lote.length){cargando=false;
+      reconstruirCapas();sync();
+      if(esExtraccion)finalizarExtraccion();
+      else if(fallidas===0)aviso('Zona cargada.',2500);
+      return;}
+    Promise.all(lote.map(function(clave){
+      return pedirCelda(clave).catch(function(e){fallidas++;});
+    })).then(function(){
+      hechas+=lote.length;
+      if(esExtraccion){hechasCeldasExtra=Math.min(totalCeldasExtra,hechas);actualizarProgresoTxt();}
+      reconstruirCapas();sync();
+      setTimeout(tanda,120);
+    });
+  }
+  tanda();
+}
+function finalizarExtraccion(){
+  extrayendo=false;
+  $('progreso').className='';
+  $('ejecutarExtraccion').disabled=false;$('ejecutarExtraccion').hidden=true;
+  $('vistaBtn').textContent=trTexto('preview');
+  $('modoArea').value='admin';$('modoArea').disabled=false;
+  $('modoArea').dispatchEvent(new Event('change'));
+  $('previaTxt').textContent=trTexto('areaExtracted');
+  coberturaTotal=true;
+  reconstruirCapas();sync();
 }
 function consultaOverpassBB(bb){
   var f=function(v){return v.toFixed(6);};
@@ -1611,15 +1664,14 @@ $('ejecutarExtraccion').addEventListener('click',function(){
     for(var k=0;k<pts.length;k++)if(enPoligono(pts[k][0],pts[k][1],boundaryGeoJSON))return true;
     return false;
   });
-  var ya=utiles.filter(function(c){return visto['celda:'+c];}).length;
   var pendientes=utiles.filter(function(c){return !visto['celda:'+c];});
-  if(!pendientes.length){coberturaTotal=true;reconstruirCapas();this.hidden=true;avisoPlantilla('cacheReady',{},5000);return;}
-  if(utiles.length>600&&!window.confirm(trTexto('largeAreaConfirm').replace('{count}',utiles.length).replace('{minutes}',Math.max(1,Math.round(utiles.length*PAUSA_MS*0.6/60000)))))return;
-  extrayendo=true;cancelarExtraccion=false;this.disabled=true;
-  totalCeldasExtra=utiles.length;hechasCeldasExtra=ya;
-  $('progreso').className='on';
-  $('progFill').style.width=Math.round(ya/utiles.length*100)+'%';
-  actualizarProgresoTxt();aviso('');
+  if(!pendientes.length){coberturaTotal=true;reconstruirCapas();finalizarExtraccion();avisoPlantilla('cacheReady',{},5000);return;}
+  /* Bug «a la primera» (nov-2026): el botón quedaba deshabilitado y la barra
+     oculta porque la barra de progreso se apagaba al iniciar. Ahora la lógica
+     del arranque vive SOLO en encolar(): aquí solo validamos y delegamos. */
+  if(utiles.length>600&&!window.confirm(trTexto('largeAreaConfirm').replace('{count}',utiles.length).replace('{minutes}',Math.max(1,Math.round(utiles.length*0.9/60)))))return;
+  this.disabled=true;
+  aviso('');
   encolar(pendientes,true);
 });
 function actualizarProgresoTxt(){
@@ -1726,7 +1778,7 @@ function pintarMascara(geom){
   var anillos=[[[-180,-85],[180,-85],[180,85],[-180,85],[-180,-85]]];
   polys.forEach(function(poly){poly.forEach(function(ring){anillos.push(ring);});});
   mascaraArea=L.polygon(anillos.map(function(ring){return ring.map(function(p){return[p[1],p[0]];});}),{
-    pane:'mask',stroke:false,fillColor:'#020406',fillOpacity:.82,fillRule:'evenodd',interactive:false
+    pane:'mask',stroke:false,fillColor:'#020406',fillOpacity:1,fillRule:'evenodd',interactive:false
   }).addTo(map);
 }
 function limpiarMascara(){
@@ -2391,6 +2443,35 @@ $('exportarBtn').addEventListener('click',function(){
   }).then(function(){
     exportando=false;boton.disabled=false;
     boton.textContent=trTexto('exportFile');
+  });
+});
+
+/* CAPTURA DIRECTA (nov-2026): botón de la barra superior. Sin diálogo ni
+   pasos: toma la forma activa (el dibujo si lo hay, y si no el término
+   buscado) y descarga el PNG al instante, con el recorte EXACTO de esa
+   forma — nada de mapa extra ni alrededores. */
+$('capturaBtn').addEventListener('click',function(){
+  if(!datosListos&&!areaDescarga){avisoPlantilla('noPlace');return;}
+  var geo=areaDescarga||boundaryGeoJSON;
+  if(!geo){avisoPlantilla('noPlace');return;}
+  var fijadoAntes=areaDescarga,dibujoAntes=dibujoFijado;
+  var modoAntes=$('modoArea').value,seccionAntes=$('seccionArea').value;
+  areaDescarga=geo;dibujoFijado=false;
+  $('modoArea').value='visible';
+  var btn=this;btn.disabled=true;
+  prepararCaptura().then(function(canvas){
+    var base=(document.title.split(' - ')[0]||'mapa').replace(/[^a-z0-9áéíóúñ]+/gi,'-').toLowerCase();
+    return new Promise(function(res,rej){
+      canvas.toBlob(function(b){b?res(guardarBlob(b,base+'-captura.png')):rej(new Error(trTexto('No se pudo crear el PNG')));},'image/png');
+    });
+  }).then(function(){avisoPlantilla('downloadReady',{},6000);})
+  .catch(function(e){avisoPlantilla('exportError',{error:escapeHtml(e.message)},10000);})
+  .then(function(){
+    // Restaurar el estado tal como estaba antes de la captura instantánea.
+    areaDescarga=fijadoAntes;dibujoFijado=dibujoAntes;
+    $('modoArea').value=modoAntes;$('modoArea').dispatchEvent(new Event('change'));
+    if(modoAntes==='admin'&&coberturaTotal&&seccionesDescarga.length){$('seccionArea').value=seccionAntes;mostrarSeccion();}
+    btn.disabled=false;
   });
 });
 

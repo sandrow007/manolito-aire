@@ -18,3 +18,10 @@
 # scripts temporales de diagnostico/reparacion (solo local)
 fix-i18n.js
 qa-diag.mjs
+
+# archivos temporales de trabajo (guiones bajos / qa-*, nunca van al repo)
+_*
+qa-*
+*.tmp
+_*.py
+_*.mjs

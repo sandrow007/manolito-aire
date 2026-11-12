@@ -8682,6 +8682,30 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             '¡Marcando {t}! Y eso a la sombra, que al sol ni te lo cuento.'
           ]
         };
+        // Memoria de lo hablado (nov-2026): Manolit no repite la frase
+        // anterior ni el mismo tipo de frase seguido. Con esto el reloj y la
+        // temperatura dejan de monopolizar el saludo: salen de vez en cuando,
+        // y entre medias tira de lugar, estación y frases andaluzas sueltas.
+        this._ultimaFrase = '';
+        this._ultimoTipo = '';
+        // Lugar donde estás (ciudad/barrio) y una recomendación cercana
+        // (museo, restaurante...). Se rellena en segundo plano, sin bloquear
+        // nunca la voz, y se reutiliza mientras no te muevas de zona.
+        this._lugarCache = { ts: 0, lat: null, lon: null, nombre: null, reco: null };
+        this._lugarPendiente = false;
+        this._frasesLugar = [
+          'Por cierto, que estamoh en {lugar}. No sé tú, pero yo aquí me quedo un ratito a la sombra.',
+          '¿Sabes dónde estamoh, miarma? En {lugar}, que tiene su aquel.',
+          'Estamoh en {lugar}. ¡Ea, ya puede presumir el paseo!',
+          'Mira que estamoh en {lugar}. {reco}',
+          'Como soy mu curioso, te cuento: estamoh en {lugar}. {reco}'
+        ];
+        this._recoPrompts = [
+          '{reco}, por si quieres darle un capricho al paseo.',
+          'Y ya de paso, {reco}.',
+          '{reco}. Total, andando se llega a to los laos.',
+          'Además {reco}.'
+        ];
         this._lastLngLat = null;
         this._moving = false;
         this._ultimoMovMs = Date.now();
@@ -8748,34 +8772,106 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if ((m === 8 && d >= 23) || m === 9 || m === 10 || (m === 11 && d < 21)) return 'otono';
         return 'invierno';
       }
-      // Elige la frase adecuada: más de la mitad de las veces habla de la
-      // estación en curso (si hay temperatura conocida la suelta en la
-      // frase) y el resto tira del repertorio general de siempre. Fuera
-      // del verano se apartan las frases de calor, que en enero cantan.
+      // Elige la frase con variedad y sin repetir: el reloj y la temperatura
+      // salen de vez en cuando, pero Manolit intercala lugar, estación y
+      // andaluzas sueltas. Nunca repite la frase anterior ni el tipo seguido.
       _elegirFraseEstacional() {
         try {
-          if (Math.random() < 0.48) return this._elegirFraseHora();
-          const est = this._estacionActual();
-          const deEstacion = (this._frasesEstaciones && this._frasesEstaciones[est]) || [];
-          const generales = est === 'verano' ? this._frasesAndaluz
-            : this._frasesAndaluz.filter((f) => !/calor|solana|bochorno|derrit|flama|lorenzo|achicharra|tortilla|freidora/i.test(f));
           const cache = ManolitWalker._tempCache;
           const t = cache && isFinite(cache.t) ? cache.t : null;
-          const usarEstacion = deEstacion.length && Math.random() < 0.55;
-          const fuente = usarEstacion ? deEstacion : generales;
-          const conTemp = fuente.filter((f) => f.indexOf('{t}') >= 0);
-          const sinTemp = fuente.filter((f) => f.indexOf('{t}') < 0);
-          let pool = (t !== null && conTemp.length && Math.random() < 0.6) ? conTemp : sinTemp;
-          if (!pool.length) pool = fuente.length ? fuente : this._frasesAndaluz;
-          let frase = pool[Math.floor(Math.random() * pool.length)];
-          if (t !== null && frase.indexOf('{t}') >= 0) {
-            const g = Math.round(t);
-            frase = frase.replace('{t}', g === 1 ? '1 grado' : g + ' grados');
+          const est = this._estacionActual();
+          const lugar = (this._lugarCache && this._lugarCache.nombre) ? this._lugarCache : null;
+
+          const gen = [];
+          gen.push({ peso: 16, tipo: 'hora', fn: () => this._elegirFraseHora() });
+          if (t !== null) gen.push({ peso: 14, tipo: 'temp', fn: () => this._elegirFraseTemperatura(t) });
+          gen.push({ peso: 22, tipo: 'estacion', fn: () => this._elegirFraseEstacion(est, t) });
+          if (lugar) gen.push({ peso: 16, tipo: 'lugar', fn: () => this._elegirFraseLugar(lugar) });
+          gen.push({ peso: 32, tipo: 'general', fn: () => this._elegirFraseGeneral(est) });
+
+          // Evita encadenar el mismo tipo; si no queda otro, repite tipo pero
+          // nunca la misma frase.
+          const alternativos = gen.filter((g) => g.tipo !== this._ultimoTipo);
+          const pool = alternativos.length ? alternativos : gen;
+          const total = pool.reduce((s, g) => s + g.peso, 0);
+          let umbral = Math.random() * total;
+          let elegido = pool[pool.length - 1];
+          for (const g of pool) {
+            umbral -= g.peso;
+            if (umbral < 0) { elegido = g; break; }
           }
+
+          let frase = elegido.fn();
+          let intentos = 0;
+          while (frase === this._ultimaFrase && intentos < 3) {
+            frase = elegido.fn();
+            intentos++;
+          }
+          this._ultimaFrase = frase;
+          this._ultimoTipo = elegido.tipo;
           return frase;
         } catch (e) {
           return this._frasesAndaluz[Math.floor(Math.random() * this._frasesAndaluz.length)];
         }
+      }
+      // Frases con temperatura real: junta todas las de {t} (de cualquier
+      // estación) y elige una, sustituyendo el número.
+      _elegirFraseTemperatura(t) {
+        const todas = [];
+        Object.keys(this._frasesEstaciones || {}).forEach((est) => {
+          (this._frasesEstaciones[est] || []).forEach((f) => {
+            if (f.indexOf('{t}') >= 0) todas.push(f);
+          });
+        });
+        const pool = todas.length ? todas : this._frasesAndaluz;
+        let frase = pool[Math.floor(Math.random() * pool.length)];
+        if (frase.indexOf('{t}') >= 0) {
+          const g = Math.round(t);
+          frase = frase.replace('{t}', g === 1 ? '1 grado' : g + ' grados');
+        }
+        return frase;
+      }
+      _elegirFraseEstacion(est, t) {
+        const deEstacion = (this._frasesEstaciones && this._frasesEstaciones[est]) || [];
+        const pool = deEstacion.length ? deEstacion : this._frasesAndaluz;
+        let frase = pool[Math.floor(Math.random() * pool.length)];
+        if (t !== null && frase.indexOf('{t}') >= 0) {
+          const g = Math.round(t);
+          frase = frase.replace('{t}', g === 1 ? '1 grado' : g + ' grados');
+        }
+        return frase;
+      }
+      _elegirFraseGeneral(est) {
+        const generales = est === 'verano' ? this._frasesAndaluz
+          : this._frasesAndaluz.filter((f) => !/calor|solana|bochorno|derrit|flama|lorenzo|achicharra|tortilla|freidora/i.test(f));
+        const pool = generales.length ? generales : this._frasesAndaluz;
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+      _elegirFraseLugar(lugar) {
+        const nombre = String(lugar.nombre || 'por aquí');
+        const reco = lugar.reco ? this._recomendacionTexto(lugar.reco) : '';
+        let pool;
+        if (reco) {
+          pool = this._frasesLugar.filter((f) => f.indexOf('{reco}') >= 0);
+          if (!pool.length) pool = this._frasesLugar;
+        } else {
+          pool = this._frasesLugar.filter((f) => f.indexOf('{reco}') < 0);
+        }
+        if (!pool.length) pool = this._frasesLugar;
+        let frase = pool[Math.floor(Math.random() * pool.length)];
+        frase = frase.replace('{lugar}', nombre);
+        // Si la frase lleva {reco} pero no hay recomendación, se sustituye por
+        // una coletilla andaluza neutra para que no quede hueco.
+        frase = frase.replace('{reco}', reco || 'y aquí no hay quien se pierda');
+        return frase;
+      }
+      _recomendacionTexto(reco) {
+        if (!reco) return '';
+        const nombre = String(reco.nombre || '').trim();
+        const tipo = String(reco.tipo || 'sitio');
+        const detalle = nombre ? `${tipo} llamado «${nombre}»` : `un ${tipo}`;
+        const plantilla = this._recoPrompts[Math.floor(Math.random() * this._recoPrompts.length)];
+        return plantilla.replace('{reco}', `cerca tienes ${detalle}, muy recomendable`);
       }
       _elegirFraseHora() {
         const ahora = new Date();
@@ -8844,6 +8940,27 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // (/clima ya devuelve temperatura) y, si no hay dato, directamente a
       // Open-Meteo, que no pide clave. Si todo falla, Manolit habla sin
       // número y tan contento. Nunca bloquea y nunca ensucia la consola.
+      // Lugar y recomendación cercana (nov-2026): rellena la caché de
+      // ubicación en segundo plano. La voz jamás espera a estas peticiones:
+      // se usan en la frase siguiente si ya están listas.
+      async _enriquecerLugar(lat, lon) {
+        if (this._lugarPendiente || !isFinite(Number(lat)) || !isFinite(Number(lon))) return;
+        const cache = this._lugarCache || (this._lugarCache = { ts: 0, lat: null, lon: null, nombre: null, reco: null });
+        const mismaZona = cache.lat !== null && Math.abs(cache.lat - lat) < 0.15 && Math.abs(cache.lon - lon) < 0.15;
+        if (cache.ts && Date.now() - cache.ts < 600000 && mismaZona) return;
+        this._lugarPendiente = true;
+        try {
+          const [nombre, reco] = await Promise.all([
+            ManolitWalker._consultarLugar(lat, lon),
+            ManolitWalker._consultarRecomendacion(lat, lon),
+          ]);
+          this._lugarCache = { ts: Date.now(), lat, lon, nombre, reco };
+        } catch (e) {
+          /* sin lugar ni recomendación no pasa nada */
+        } finally {
+          this._lugarPendiente = false;
+        }
+      }
       static async _refrescarTemperatura(lat, lon) {
         try {
           const c = ManolitWalker._tempCache || (ManolitWalker._tempCache = { t: null, ts: 0, lat: null, lon: null });
@@ -8871,6 +8988,67 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           ManolitWalker._tempCache = { t: temp, ts: ahora, lat, lon };
           return temp;
         } catch (e) { return null; }
+      }
+      // Nombre corto del lugar (ciudad, pueblo, barrio) vía el proxy propio
+      // /geo-reverso (Nominatim). Devuelve null si no se puede resolver.
+      static async _consultarLugar(lat, lon) {
+        try {
+          const url = new URL('/geo-reverso', window.location.origin);
+          url.searchParams.set('lat', lat);
+          url.searchParams.set('lon', lon);
+          url.searchParams.set('format', 'json');
+          url.searchParams.set('addressdetails', '1');
+          const r = await fetch(url.toString(), { headers: { 'Accept-Language': 'es' } });
+          if (!r.ok) return null;
+          const d = await r.json();
+          const a = d && d.address;
+          if (!a) return null;
+          return a.city || a.town || a.village || a.municipality || a.suburb || a.neighbourhood || a.county || a.state || null;
+        } catch (e) { return null; }
+      }
+      // Recomendación cercana (museo, restaurante, café...) vía Overpass.
+      // Mejor esfuerzo: si la red o los espejos fallan, devuelve null en
+      // silencio y Manolit habla solo del lugar, sin romper la voz.
+      static async _consultarRecomendacion(lat, lon) {
+        const query = '[out:json][timeout:6];(' +
+          'node["tourism"~"museum|attraction|gallery"](around:600,' + lat + ',' + lon + ');' +
+          'node["amenity"~"restaurant|cafe|bar|ice_cream"](around:600,' + lat + ',' + lon + ');' +
+          ');out body 5;';
+        const espejos = [
+          'https://overpass.kumi.systems/api/interpreter',
+          'https://overpass-api.de/api/interpreter',
+          'https://lz4.overpass-api.de/api/interpreter',
+          'https://overpass.private.coffee/api/interpreter',
+        ];
+        for (const url of espejos) {
+          try {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 6000);
+            const r = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+              body: 'data=' + encodeURIComponent(query),
+              signal: controller.signal,
+            });
+            clearTimeout(timer);
+            if (!r.ok) continue;
+            const d = await r.json();
+            const el = d && Array.isArray(d.elements) ? d.elements[0] : null;
+            if (!el) return null;
+            const tags = el.tags || {};
+            const nombre = tags.name || tags['name:es'] || '';
+            let tipo = 'sitio con encanto';
+            if (tags.amenity === 'restaurant') tipo = 'restaurante';
+            else if (tags.amenity === 'cafe') tipo = 'café';
+            else if (tags.amenity === 'bar') tipo = 'bar';
+            else if (tags.amenity === 'ice_cream') tipo = 'heladería';
+            else if (tags.tourism === 'museum') tipo = 'museo';
+            else if (tags.tourism === 'attraction') tipo = 'lugar con encanto';
+            else if (tags.tourism === 'gallery') tipo = 'galería';
+            return { nombre, tipo };
+          } catch (e) { /* se prueba el siguiente espejo */ }
+        }
+        return null;
       }
       // Elige la voz española de mejor calidad disponible y detecta su
       // género por el nombre para poder neutralizar el tono después.

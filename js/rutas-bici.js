@@ -742,10 +742,9 @@
   var carrilFallosSeguidos = 0;
   var carrilStatusPropio = false;
   function mostrarEstadoCarril(texto) {
-    var el = document.getElementById('rsStatus');
-    if (!el) return;
-    el.textContent = texto;
-    carrilStatusPropio = !!texto;
+    // La barra de estado flotante sobre el mapa ("Carriles bici · N tramos")
+    // queda desactivada: era un cartel feo encima del mapa. La capa sigue
+    // cargando y pintando igual; simplemente ya no escribe en #rsStatus.
   }
   function limpiarEstadoCarril() {
     // Solo borramos lo que escribió esta capa: el estado puede estar

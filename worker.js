@@ -1098,6 +1098,54 @@ export default {
       }
     }
 
+    // Ortofoto PNOA (IGN) para huecos.html. El WMTS de ign.es no envía
+    // cabeceras CORS, así que el navegador bloqueaba cada tesela pedida con
+    // crossOrigin y la ortofoto no se veía ni salía en capturas/exportaciones.
+    // Aquí se proxea con caché; si el WMTS falla se intenta el WMS INSPIRE
+    // equivalente (misma tesela como BBOX EPSG:3857); si todo falla, tesela
+    // neutra con 200 para que la consola quede limpia.
+    if (url.pathname === '/pnoa-tile') {
+      const teselaVaciaPNOA = () => {
+        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+        return new Response(transparente, {
+          status: 200,
+          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      };
+      try {
+        const z = parseInt(url.searchParams.get('z') || '', 10);
+        const x = parseInt(url.searchParams.get('x') || '', 10);
+        const y = parseInt(url.searchParams.get('y') || '', 10);
+        if (!Number.isFinite(z) || !Number.isFinite(x) || !Number.isFinite(y) || z < 0 || z > 20) throw new Error('tesela no válida');
+        const destinoWmts = 'https://www.ign.es/wmts/pnoa-ma?layer=OI.OrthoimageCoverage&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg'
+          + '&TileMatrix=' + z + '&TileRow=' + y + '&TileCol=' + x;
+        let r = await fetch(destinoWmts, {
+          headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+          cf: { cacheTtl: 86400, cacheEverything: true },
+        });
+        let ct = r.ok ? (r.headers.get('Content-Type') || '') : '';
+        if (!r.ok || !ct.includes('image')) {
+          const R = 6378137, n = Math.pow(2, z), tam = 2 * Math.PI * R / n;
+          const mx0 = -Math.PI * R + x * tam, mx1 = mx0 + tam;
+          const my1 = Math.PI * R - y * tam, my0 = my1 - tam;
+          const destinoWms = 'https://www.ign.es/wms-inspire/pnoa-ma?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=OI.OrthoimageCoverage&STYLES=&CRS=EPSG:3857&FORMAT=image/jpeg&WIDTH=256&HEIGHT=256'
+            + '&BBOX=' + mx0.toFixed(2) + ',' + my0.toFixed(2) + ',' + mx1.toFixed(2) + ',' + my1.toFixed(2);
+          r = await fetch(destinoWms, {
+            headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+            cf: { cacheTtl: 86400, cacheEverything: true },
+          });
+          ct = r.ok ? (r.headers.get('Content-Type') || '') : '';
+          if (!r.ok || !ct.includes('image')) throw new Error('PNOA no devolvió imagen');
+        }
+        return new Response(r.body, {
+          status: 200,
+          headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=86400', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return teselaVaciaPNOA();
+      }
+    }
+
     if (url.pathname === '/catastro-wms') {
       const teselaVaciaCatastro = () => {
         const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));

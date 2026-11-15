@@ -56,7 +56,7 @@
   color-scheme:dark;
   --bg:#03050F; --ink:#b9dddd; --panel:rgba(3,5,15,.96); --edge:#86bfc0;
   --gap:#FF00E5; --gap3:#FFD745; --tree:#3DDC84; --b3:#00FFC8;
-  --b2:#3FA9F5; --gapT:#C88A6B; --cat:#B366FF; --zoom:12;
+  --b2:#3FA9F5; --gapT:#C88A6B; --cat:#B366FF; --park:#A3E635; --zoom:12;
 }
 *{box-sizing:border-box}
 html,body,#map{width:100%;height:100%;margin:0;background:var(--bg);color:var(--ink);
@@ -245,6 +245,7 @@ html,body{ height:100%; }
   .panel{ top:calc(102px + env(safe-area-inset-top)) !important; }
 }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -298,6 +299,7 @@ html,body{ height:100%; }
       <label><input type="checkbox" data-layer="buildings3d"> <span data-i18n="buildings3d">Edificios con altura</span></label>
       <label><input type="checkbox" data-layer="buildings2d" checked> <span data-i18n="buildings2d">Edificios sin altura</span></label>
       <label><input type="checkbox" data-layer="trees"> <span data-i18n="trees">Arboles</span></label>
+      <label><input type="checkbox" data-layer="parques" checked> <span data-i18n="parksGardens">Parques y jardines</span></label>
       <label><input type="checkbox" data-layer="labels" checked> <span data-i18n="neighbourNames">Nombres de barrios</span></label>
       <label><input type="checkbox" data-layer="osmmap"> <span data-i18n="osmMap">Mapa OSM</span></label>
       <label><input type="checkbox" data-layer="streets" checked> <span data-i18n="streetsAvenues">Calles y avenidas</span></label>
@@ -315,6 +317,7 @@ html,body{ height:100%; }
           <span class="lg-item"><span class="sw" style="background:var(--b3)"></span><span data-i18n="withHeight">Con altura</span></span>
           <span class="lg-item"><span class="sw" style="background:var(--b2)"></span><span data-i18n="withoutHeight">Sin altura</span></span>
           <span class="lg-item"><span class="sw" style="background:var(--tree)"></span><span data-i18n="tree">Árbol</span></span>
+          <span class="lg-item"><span class="sw" style="background:var(--park)"></span><span data-i18n="parksGardens">Parques y jardines</span></span>
         </div>
         <div class="lg-group"><span class="lg-h" data-i18n="streets">Calles</span>
           <span class="lg-item"><span class="sw" style="background:#FFD745"></span><span data-i18n="avenues">Avenidas</span></span>
@@ -361,7 +364,7 @@ html,body{ height:100%; }
 (function(){
   'use strict';
   var LANGS=['es','en','ca','eu','pt'], STORE='huecos_osm_lang_v1';
-  var ES_TEXT={copyShareLink:'Copiar / compartir enlace',shareLinkCopied:'Enlace copiado al portapapeles.',shareLinkReady:'Enlace listo para compartir.',shareLinkError:'No se pudo copiar el enlace.',exportLimit:'El área contiene demasiados huecos ({count}; máximo {limit}). Reduce el área antes de exportar.',noGaps:'No hay huecos disponibles en el área seleccionada.',josmOpen:'Abriendo JOSM Remote Control…',josmUnavailable:'JOSM no respondió. Comprueba que está instalado y que Remote Control está activado; también puedes abrir el enlace iD.',formatGeoJSON:'GeoJSON',formatCSV:'CSV',formatGPX:'GPX',formatKML:'KML',formatZIP:'ZIP (todo)',navShade:'Mapa de sombras',navGaps:'Huecos OSM',navLidar:'Renderizado LiDAR',languageLabel:'Idioma de la herramienta',searchBtn:'Buscar',searchLabel:'Buscar lugar',searchPlaceholder:'Pueblo, ciudad, barrio, provincia o pais... (ej.: Viena, Austria)',drawMap:'Dibujar en el mapa',closeHelp:'Cerrar ayuda',initialHelp:'Escribe un lugar arriba y pulsa Buscar; luego acerca el zoom (nivel 13+) para cargar el detalle.',hidePanel:'Ocultar panel lateral',mapPanel:'Panel de mapa',layers:'Capas',legend:'Leyenda',buildingGaps:'Huecos de edificios',ortofoto:'Ortofoto (PNOA)',satellite:'Satelite (Esri)',heightGaps:'Huecos de altura',fewTrees:'Zonas con pocos arboles',buildings3d:'Edificios con altura',buildings2d:'Edificios sin altura',trees:'Arboles',neighbourNames:'Nombres de barrios',osmMap:'Mapa OSM',streetsAvenues:'Calles y avenidas',cadastre:'Catastro (oficial)',extractExport:'Extraer / exportar',gaps:'Huecos',buildings:'Edificios',heights3d:'Alturas 3D',surfaces:'Superficies',withHeight:'Con altura',withoutHeight:'Sin altura',tree:'Árbol',streets:'Calles',avenues:'Avenidas',chooseArea:'Elige cómo definir el área que quieres exportar.',areaLabel:'Área:',downloadArea:'Area de descarga',visibleArea:'Zoom / encuadre visible',freehand:'Dibujo libre',adminBoundary:'Forma administrativa',currentView:'Usa el encuadre actual del mapa.',activateDrawing:'Activar dibujo',preview:'Vista previa',clearSelection:'Borrar selección',extractArea:'Extraer área completa',extractingArea:'Extrayendo area completa...',previewAlt:'Vista previa exacta de la exportación',section:'Seccion',includedLayers:'Capas incluidas',exportSection:'Exportar seccion',close:'Cerrar',cancel:'Cancelar',loading:'cargando',ready:'listo',exportFile:'Exportar archivo',exportDrawnArea:'Exportar área dibujada',exportMap:'Exportar mapa',preparePreview:'Preparar vista previa',extractAdminHelp:'Pulsa «Extraer área completa» para descargar el lugar por secciones; al finalizar podrás exportar cada sección.',drawnAreaHelp:'La forma dibujada está seleccionada; elige el formato y exporta el archivo.',visibleAreaHelp:'Elige Zoom / encuadre visible y prepara la vista previa para exportar.',adminPreviewHelp:'Pulsa «Extraer área completa» para descargar el lugar por secciones.',areaExtracted:'Área completa extraída. Ahora prepara la vista previa y elige una sección y el formato para exportar.',adminReady:'Area: {width} × {height} km. {sections} secciones listas; elige una y exporta PNG o PDF.',areaPreview:'Area: {width} × {height} km. Vista previa de un único archivo con la forma completa seleccionada.',searching:'Buscando',tryAnother:'Prueba con otro nombre o mas detalle.',searchingIn:'Buscando "{place}" en Nominatim...',placeTooLarge:'"{place}" abarca ~{area} km2: demasiado extenso. Busca un pueblo, ciudad o barrio. Aun asi puedes usar "Extraer area completa" por partes si quieres.',placeReadyZoom:'"{place}" listo. Los datos disponibles se van cargando automáticamente; acerca el zoom (nivel {zoom}+) para mostrar el detalle.',loadingVisible:'Cargando el detalle de la zona visible...',extractCancel:'Extraccion cancelada.',overpassFail:'Overpass esta fallando o el area es demasiado grande. Prueba mas tarde o con un lugar menor.',tooManyTrees:'Demasiados arboles acumulados: se limita el dibujado a {limit}.',alreadyDrawing:'Ya hay un dibujo fijado. Pulsa «Borrar selección» desde Extraer para empezar otro.',drawingFixed:'La forma dibujada está fijada. Pulsa «Borrar selección» para elegir otra área.',noPlace:'Primero busca un lugar.',noAdminPlace:'Primero busca un lugar con limite administrativo.',noDrawnArea:'Dibuja primero un area sobre el mapa.',previewFirst:'Prepara primero la vista previa del área visible.',noAreaSelected:'No hay un área seleccionada.',outsideMap:'El área seleccionada queda fuera del mapa.',previewError:'No se pudo generar la vista previa: {error}',exportError:'No se pudo exportar. Una capa de imagen no permite la captura; desactivala e intentalo otra vez. {error}',downloadReady:'Descarga preparada. Si el navegador pregunta, elige donde guardarla.',overpassLimit:'Overpass ha limitado temporalmente esta conexión por exceso de peticiones (error 406). El detalle no cargará hasta que se levante el bloqueo (normalmente en unas horas). El mapa base y la ortofoto siguen funcionando.',nominatimError:'Error consultando Nominatim: {error}',noGeometry:'Sin geometria para este lugar. Prueba con otro nombre.',placeNotFound:'No se encontro "{place}". Prueba con otro nombre o mas detalle.',alreadyExtracting:'La extracción ya está en curso.',alreadyExtracted:'El área completa ya está extraída.',cacheReady:'Todo el area ya estaba descargada o en cache.',largeAreaConfirm:'El area se divide en {count} zonas: la descarga completa puede tardar unos {minutes} min aprox. ¿Continuar?',confirmSmallArea:'El área es demasiado extensa. Busca un pueblo, ciudad o barrio más pequeño.',tryLaterSmall:'Overpass esta fallando o el area es demasiado grande. Prueba mas tarde o con un lugar menor.',extractBusy:'Preparando...',areaTooLarge:'Esta forma es demasiado grande para descargarla de una vez. Prueba a dibujar un área más pequeña.',placeMissingGeometry:'Sin geometria para este lugar. Prueba con otro nombre.',drawTooSmall:'Dibuja un area un poco mayor.',drawFixedNotice:'Area dibujada y fijada. Ya puedes navegar; para borrarla usa «Borrar selección».',selectionCleared:'Seleccion borrada.',noSelection:'La selección dibujada no está disponible. Vuelve a dibujarla desde «Dibujar en el mapa».',exportNeedsPreview:'Prepara primero la vista previa del área visible.',};
+  var ES_TEXT={copyShareLink:'Copiar / compartir enlace',shareLinkCopied:'Enlace copiado al portapapeles.',shareLinkReady:'Enlace listo para compartir.',shareLinkError:'No se pudo copiar el enlace.',exportLimit:'El área contiene demasiados huecos ({count}; máximo {limit}). Reduce el área antes de exportar.',noGaps:'No hay huecos disponibles en el área seleccionada.',josmOpen:'Abriendo JOSM Remote Control…',josmUnavailable:'JOSM no respondió. Comprueba que está instalado y que Remote Control está activado; también puedes abrir el enlace iD.',formatGeoJSON:'GeoJSON',formatCSV:'CSV',formatGPX:'GPX',formatKML:'KML',formatZIP:'ZIP (todo)',navShade:'Mapa de sombras',navGaps:'Huecos OSM',navLidar:'Renderizado LiDAR',languageLabel:'Idioma de la herramienta',searchBtn:'Buscar',searchLabel:'Buscar lugar',searchPlaceholder:'Pueblo, ciudad, barrio, provincia o pais... (ej.: Viena, Austria)',drawMap:'Dibujar en el mapa',closeHelp:'Cerrar ayuda',initialHelp:'Escribe un lugar arriba y pulsa Buscar; luego acerca el zoom (nivel 13+) para cargar el detalle.',hidePanel:'Ocultar panel lateral',mapPanel:'Panel de mapa',layers:'Capas',legend:'Leyenda',buildingGaps:'Huecos de edificios',ortofoto:'Ortofoto (PNOA)',satellite:'Satelite (Esri)',heightGaps:'Huecos de altura',fewTrees:'Zonas con pocos arboles',buildings3d:'Edificios con altura',buildings2d:'Edificios sin altura',trees:'Arboles',neighbourNames:'Nombres de barrios',osmMap:'Mapa OSM',streetsAvenues:'Calles y avenidas',cadastre:'Catastro (oficial)',parksGardens:'Parques y jardines',extractExport:'Extraer / exportar',gaps:'Huecos',buildings:'Edificios',heights3d:'Alturas 3D',surfaces:'Superficies',withHeight:'Con altura',withoutHeight:'Sin altura',tree:'Árbol',streets:'Calles',avenues:'Avenidas',chooseArea:'Elige cómo definir el área que quieres exportar.',areaLabel:'Área:',downloadArea:'Area de descarga',visibleArea:'Zoom / encuadre visible',freehand:'Dibujo libre',adminBoundary:'Forma administrativa',currentView:'Usa el encuadre actual del mapa.',activateDrawing:'Activar dibujo',preview:'Vista previa',clearSelection:'Borrar selección',extractArea:'Extraer área completa',extractingArea:'Extrayendo area completa...',previewAlt:'Vista previa exacta de la exportación',section:'Seccion',includedLayers:'Capas incluidas',exportSection:'Exportar seccion',close:'Cerrar',cancel:'Cancelar',loading:'cargando',ready:'listo',exportFile:'Exportar archivo',exportDrawnArea:'Exportar área dibujada',exportMap:'Exportar mapa',preparePreview:'Preparar vista previa',extractAdminHelp:'Pulsa «Extraer área completa» para descargar el lugar por secciones; al finalizar podrás exportar cada sección.',drawnAreaHelp:'La forma dibujada está seleccionada; elige el formato y exporta el archivo.',visibleAreaHelp:'Elige Zoom / encuadre visible y prepara la vista previa para exportar.',adminPreviewHelp:'Pulsa «Extraer área completa» para descargar el lugar por secciones.',areaExtracted:'Área completa extraída. Ahora prepara la vista previa y elige una sección y el formato para exportar.',adminReady:'Area: {width} × {height} km. {sections} secciones listas; elige una y exporta PNG o PDF.',areaPreview:'Area: {width} × {height} km. Vista previa de un único archivo con la forma completa seleccionada.',searching:'Buscando',tryAnother:'Prueba con otro nombre o mas detalle.',searchingIn:'Buscando "{place}" en Nominatim...',placeTooLarge:'"{place}" abarca ~{area} km2: demasiado extenso. Busca un pueblo, ciudad o barrio. Aun asi puedes usar "Extraer area completa" por partes si quieres.',placeReadyZoom:'"{place}" listo. Los datos disponibles se van cargando automáticamente; acerca el zoom (nivel {zoom}+) para mostrar el detalle.',loadingVisible:'Cargando el detalle de la zona visible...',extractCancel:'Extraccion cancelada.',overpassFail:'Overpass esta fallando o el area es demasiado grande. Prueba mas tarde o con un lugar menor.',tooManyTrees:'Demasiados arboles acumulados: se limita el dibujado a {limit}.',alreadyDrawing:'Ya hay un dibujo fijado. Pulsa «Borrar selección» desde Extraer para empezar otro.',drawingFixed:'La forma dibujada está fijada. Pulsa «Borrar selección» para elegir otra área.',noPlace:'Primero busca un lugar.',noAdminPlace:'Primero busca un lugar con limite administrativo.',noDrawnArea:'Dibuja primero un area sobre el mapa.',previewFirst:'Prepara primero la vista previa del área visible.',noAreaSelected:'No hay un área seleccionada.',outsideMap:'El área seleccionada queda fuera del mapa.',previewError:'No se pudo generar la vista previa: {error}',exportError:'No se pudo exportar. Una capa de imagen no permite la captura; desactivala e intentalo otra vez. {error}',downloadReady:'Descarga preparada. Si el navegador pregunta, elige donde guardarla.',overpassLimit:'Overpass ha limitado temporalmente esta conexión por exceso de peticiones (error 406). El detalle no cargará hasta que se levante el bloqueo (normalmente en unas horas). El mapa base y la ortofoto siguen funcionando.',nominatimError:'Error consultando Nominatim: {error}',noGeometry:'Sin geometria para este lugar. Prueba con otro nombre.',placeNotFound:'No se encontro "{place}". Prueba con otro nombre o mas detalle.',alreadyExtracting:'La extracción ya está en curso.',alreadyExtracted:'El área completa ya está extraída.',cacheReady:'Todo el area ya estaba descargada o en cache.',largeAreaConfirm:'El area se divide en {count} zonas: la descarga completa puede tardar unos {minutes} min aprox. ¿Continuar?',confirmSmallArea:'El área es demasiado extensa. Busca un pueblo, ciudad o barrio más pequeño.',tryLaterSmall:'Overpass esta fallando o el area es demasiado grande. Prueba mas tarde o con un lugar menor.',extractBusy:'Preparando...',areaTooLarge:'Esta forma es demasiado grande para descargarla de una vez. Prueba a dibujar un área más pequeña.',placeMissingGeometry:'Sin geometria para este lugar. Prueba con otro nombre.',drawTooSmall:'Dibuja un area un poco mayor.',drawFixedNotice:'Area dibujada y fijada. Ya puedes navegar; para borrarla usa «Borrar selección».',selectionCleared:'Seleccion borrada.',noSelection:'La selección dibujada no está disponible. Vuelve a dibujarla desde «Dibujar en el mapa».',exportNeedsPreview:'Prepara primero la vista previa del área visible.',};
   var TEXT={
     'Buscar lugar':['Search for a place','Cerca un lloc','Bilatu toki bat','Pesquisar local'],
     'Buscar':['Search','Cerca','Bilatu','Pesquisar'],
@@ -493,6 +496,7 @@ html,body{ height:100%; }
     'buildings3d':['Buildings with height data','Edificis amb alçada','Altuera-datuak dituzten eraikinak','Edifícios com altura'],
     'buildings2d':['Buildings without height data','Edificis sense alçada','Altuera-daturik gabeko eraikinak','Edifícios sem altura'],
     'trees':['Trees','Arbres','Zuhaitzak','Árvores'],'neighbourNames':['Neighbourhood names','Noms dels barris','Auzo-izenak','Nomes dos bairros'],
+    'parksGardens':['Parks and gardens','Parcs i jardins','Parkeak eta lorategiak','Parques e jardins'],
     'osmMap':['OSM map','Mapa OSM','OSM mapa','Mapa OSM'],'streetsAvenues':['Streets and avenues','Carrers i avingudes','Kaleak eta etorbideak','Ruas e avenidas'],
     'cadastre':['Cadastre (official)','Cadastre (oficial)','Katastroa (ofiziala)','Cadastro (oficial)'],'extractExport':['Extract / export','Extreure / exportar','Erauzi / esportatu','Extrair / exportar'],
     'gaps':['Gaps','Buits','Hutsuneak','Vazios'],'buildings':['Buildings','Edificis','Eraikinak','Edifícios'],'heights3d':['3D heights','Alçades 3D','3D altuerak','Alturas 3D'],
@@ -804,6 +808,9 @@ html,body{ height:100%; }
   window.huecosTranslate=function(s){return tr(s);};
   window.huecosTranslateKey=function(key){var arr=TEXT[key];if(!arr)return ES_TEXT[key]||key;return LANGS.indexOf(current)===0?(ES_TEXT[key]||key):arr[LANGS.indexOf(current)-1];};
   window.huecosLanguage=function(){return current;};
+  /* 2026-11-14: exponemos las tablas para que renderHuecosTemplate (script exterior)
+     pueda traducir plantillas sin romper el cambio de idioma. */
+  window.huecosEsText=ES_TEXT;window.huecosTextTabla=TEXT;window.huecosLangs=LANGS;
   document.addEventListener('DOMContentLoaded',function(){
     document.querySelectorAll('[data-huecos-lang]').forEach(function(b){
       b.addEventListener('click',function(){setLang(b.getAttribute('data-huecos-lang'));});
@@ -848,12 +855,20 @@ var URL_PNOA='https://www.ign.es/wmts/pnoa-ma';
 // 2026-11-10: el WMTS de PNOA ahora exige TILEMATRIX sin el prefijo "GoogleMapsCompatible:"
 // y tambien minusculas; la forma antigua devolvia 400 y la ortofoto dejaba de cargar
 // (y por tanto desaparecia tambien de las exportaciones).
-var URL_PNOA_TILE='https://www.ign.es/wmts/pnoa-ma?layer=OI.OrthoimageCoverage&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&TileMatrix={z}&TileRow={y}&TileCol={x}';
+// 2026-11-14: la ortofoto vuelve a ir proxeada por el worker (/pnoa-tile).
+// ign.es no envía cabeceras CORS y el navegador bloqueaba cada tesela pedida
+// con crossOrigin (la ortofoto no se veía ni salía en capturas/exportaciones).
+// Mismo aspecto de siempre; al ser mismo origen, el canvas sale limpio.
+var URL_PNOA_TILE='/pnoa-tile?z={z}&y={y}&x={x}';
 var URL_ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 var URL_OSM ='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 var URL_CATASTRO_WMS=['https://ovc.catastro.meh.es/cartografia/INSPIRE/spadgcwms.aspx',
                       'https://ovc.catastro.meh.es/cartografia/INSPIRE/spadgowms.aspx'];
-var CACHE_PREFIX='huecosMundialV1:'; // localStorage
+// 2026-11-14: V2 porque la consulta Overpass ahora trae también parques y
+// jardines; las celdas guardadas con la V1 no los incluirían nunca.
+var CACHE_PREFIX='huecosMundialV2:'; // localStorage
+// Limpieza única de las celdas viejas V1 para no inflar localStorage.
+try{var viejasCache=[];for(var li=0;li<localStorage.length;li++){var lk=localStorage.key(li);if(lk&&lk.indexOf('huecosMundialV1:')===0)viejasCache.push(lk);}viejasCache.forEach(function(k){localStorage.removeItem(k);});}catch(e){}
 
 /* ===========================================================================
    ESTADO GLOBAL
@@ -868,7 +883,7 @@ var catastroLayer=null,catastroSolicitado=0,catastroDisponible=false;
 var ultimaBusqueda=0;
 
 // Datos acumulados de Overpass (con dedupe por id de elemento)
-var ACUM={ed3:[],ed2:[],calles:[],arboles:[],nombres:[],resid:[]};
+var ACUM={ed3:[],ed2:[],calles:[],arboles:[],nombres:[],resid:[],parques:[]};
 var visto={};
 // Cobertura descargada: lista de bbox [W,S,E,N] + flag "todo descargado"
 var cobertura=[];
@@ -893,10 +908,11 @@ function aviso(txt,ms){
 function renderHuecosTemplate(template,lang){
   if(typeof template!=='string')return template;
   if(lang&&lang!=='es'){
-    var keys=Object.keys(ES_TEXT);
+    var ES=window.huecosEsText||{},TX=window.huecosTextTabla||{},LG=window.huecosLangs||['es'];
+    var keys=Object.keys(ES);
     for(var i=0;i<keys.length;i++){
-      var k=keys[i],values=TEXT[k];
-      if(values&&values[LANGS.indexOf(lang)-1]===template){template=ES_TEXT[k];break;}
+      var k=keys[i],values=TX[k];
+      if(values&&values[LG.indexOf(lang)-1]===template){template=ES[k];break;}
     }
   }
   return template.replace(/\{([a-zA-Z0-9_]+)\}/g,function(match,key){
@@ -1083,6 +1099,7 @@ capas.gaps3d     =polygons([],'--gap3',.42,.7,true);
 capas.gaptrees   =polygons([],'--gapT',.35,.6,true);
 capas.buildings3d=polygons([],'--b3',.82,.3,false);
 capas.buildings2d=polygons([],'--b2',.8,.3,false);
+capas.parques    =polygons([],'--park',.42,.9,false);
 capas.streets    =L.geoJSON({type:'FeatureCollection',features:[]},{pane:'roads',
   renderer:L.canvas({padding:.4,pane:'roads'}),interactive:false,style:estiloCalles});
 capas.trees =L.layerGroup();
@@ -1125,6 +1142,7 @@ function sync(){
   aplicar('gaps',estado.gaps);
   aplicar('gaps3d',estado.gaps3d);
   aplicar('gaptrees',estado.gaptrees);
+  aplicar('parques',estado.parques&&detalle);
   aplicar('buildings3d',estado.buildings3d&&detalle);
   aplicar('buildings2d',estado.buildings2d&&detalle);
   aplicar('trees',estado.trees&&detalle);
@@ -1233,7 +1251,7 @@ function cargarLugar(lugar,nombreBuscado){
 
   // reset de datos y de cualquier seleccion del lugar anterior
   limpiarSeleccion(false);
-  ACUM={ed3:[],ed2:[],calles:[],arboles:[],nombres:[],resid:[]};
+  ACUM={ed3:[],ed2:[],calles:[],arboles:[],nombres:[],resid:[],parques:[]};
   visto={};cobertura=[];coberturaTotal=false;
   cancelarExtraccion=false;extrayendo=false;
   $('progreso').className='';
@@ -1388,6 +1406,7 @@ function consultaOverpassBB(bb){
     +'node["natural"="tree"]('+f(bb[1])+','+f(bb[0])+','+f(bb[3])+','+f(bb[2])+');'
     +'node["place"~"^(suburb|neighbourhood|quarter|town|village|city)$"]('+f(bb[1])+','+f(bb[0])+','+f(bb[3])+','+f(bb[2])+');'
     +'way["landuse"="residential"]('+f(bb[1])+','+f(bb[0])+','+f(bb[3])+','+f(bb[2])+');'
+    +'way["leisure"~"^(park|garden)$"]('+f(bb[1])+','+f(bb[0])+','+f(bb[3])+','+f(bb[2])+');'
     +');out geom;';
 }
 function fetchOverpass(consulta,indice,ultimoError,rebote){
@@ -1496,7 +1515,8 @@ function incorporarDatos(datos,bb){
       coords.forEach(function(p){marcar(p[0],p[1]);});
       return;
     }
-    if(el.tags&&el.tags.landuse==='residential'&&coords.length>=4){visto[id]=1;ACUM.resid.push(coords);coords.forEach(function(p){marcar(p[0],p[1]);});}
+    if(el.tags&&el.tags.landuse==='residential'&&coords.length>=4){visto[id]=1;ACUM.resid.push(coords);coords.forEach(function(p){marcar(p[0],p[1]);});return;}
+    if(el.tags&&(el.tags.leisure==='park'||el.tags.leisure==='garden')&&coords.length>=4){visto[id]=1;ACUM.parques.push({type:'Feature',geometry:{type:'Polygon',coordinates:[coords]},properties:{}});coords.forEach(function(p){marcar(p[0],p[1]);});return;}
   });
   if(ACUM.arboles.length>MAX_ARBOL_GLOBAL){
     ACUM.arboles.length=MAX_ARBOL_GLOBAL;
@@ -1509,12 +1529,13 @@ function incorporarDatos(datos,bb){
    RECONSTRUCCION DE CAPAS desde los datos acumulados
 =========================================================================== */
 function reconstruirCapas(){
-  [capas.gaps,capas.gaps3d,capas.gaptrees,capas.buildings3d,capas.buildings2d].forEach(function(c){if(map.hasLayer(c))map.removeLayer(c);});
+  [capas.gaps,capas.gaps3d,capas.gaptrees,capas.buildings3d,capas.buildings2d,capas.parques].forEach(function(c){if(map.hasLayer(c))map.removeLayer(c);});
   if(map.hasLayer(capas.streets))map.removeLayer(capas.streets);
   capas.trees.clearLayers();capas.labels.clearLayers();gapDots.clearLayers();gapBadges.clearLayers();
 
   capas.buildings3d=polygons(ACUM.ed3,'--b3',.82,.3,false);
   capas.buildings2d=polygons(ACUM.ed2,'--b2',.8,.3,false);
+  capas.parques=polygons(ACUM.parques,'--park',.42,.9,false);
   capas.streets=L.geoJSON({type:'FeatureCollection',features:ACUM.calles},{pane:'roads',
     renderer:L.canvas({padding:.4,pane:'roads'}),interactive:false,style:estiloCalles});
 
@@ -1690,14 +1711,40 @@ function prepararCatastro(){
   catastroSolicitado++;
   intentarCapabilities(URL_CATASTRO_WMS,0,catastroSolicitado);
 }
+function montarCapaCatastro(base,elegida,token,indice){
+  if(token!==catastroSolicitado)return;
+  var siguiente=L.tileLayer.wms(base,{layers:elegida,styles:'',format:'image/png',transparent:true,
+    pane:'data',maxZoom:20,opacity:1,version:'1.3.0',crossOrigin:'anonymous'});
+  if(catastroLayer&&map.hasLayer(catastroLayer))map.removeLayer(catastroLayer);
+  catastroLayer=siguiente;catastroDisponible=true;
+  catastroLayer.once('load',function(){catastroDisponible=true;});
+  sync();
+  var actual=catastroLayer;
+  actual.on('tileerror',function(){
+    if(actual!==catastroLayer)return;
+    // Fallback del endpoint de la Sede INSPIRE oficial.
+    if(indice+1<URL_CATASTRO_WMS.length)intentarCapabilities(URL_CATASTRO_WMS,indice+1,token);
+  });
+  if(estado.catastro){var region=regionVisible();if(region)solicitarCatastroParaRegion(region);}
+}
 function intentarCapabilities(urls,indice,token){
   if(indice>=urls.length){
-    if(token===catastroSolicitado)console.warn('Servicio INSPIRE del Catastro no disponible en este momento.');
+    /* 2026-11-14: si los GetCapabilities fallan (servicio lento o caído) ya
+       no nos rendimos. Montamos la capa directamente con BU.Building, la
+       capa oficial INSPIRE de edificios que anuncia el servicio: las teselas
+       GetMap no dependen del capabilities, así que el catastro vuelve a
+       aparecer aunque la consulta de capacidades esté fallando. */
+    if(token===catastroSolicitado){
+      console.warn('GetCapabilities del Catastro no disponible; usando la capa oficial BU.Building directamente.');
+      montarCapaCatastro(urls[0],'BU.Building',token,0);
+    }
     return;
   }
   var base=urls[indice];
-  fetch(base+'?service=WMS&request=GetCapabilities')
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
+  var ctrl=window.AbortController?new AbortController():null;
+  var temporizador=setTimeout(function(){if(ctrl)ctrl.abort();},12000);
+  fetch(base+'?service=WMS&request=GetCapabilities',ctrl?{signal:ctrl.signal}:undefined)
+    .then(function(r){clearTimeout(temporizador);if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
     .then(function(txt){
       var doc=new DOMParser().parseFromString(txt,'text/xml');
       if(doc.getElementsByTagName('parsererror').length)throw new Error('Capabilities XML no valido');
@@ -1711,22 +1758,9 @@ function intentarCapabilities(urls,indice,token){
       var elegida=capasWms.filter(function(n){return/(^|:)BU\.Building$/i.test(n)||/BU\.Building/i.test(n);})[0]
         ||capasWms.filter(function(n){return/CadastralParcel|PARCELA/i.test(n);})[0];
       if(!elegida)throw new Error('El servicio no anuncia edificios catastrales');
-      if(token!==catastroSolicitado)return;
-      var siguiente=L.tileLayer.wms(base,{layers:elegida,styles:'',format:'image/png',transparent:true,
-        pane:'data',maxZoom:20,opacity:1,version:'1.3.0',crossOrigin:'anonymous'});
-      if(catastroLayer&&map.hasLayer(catastroLayer))map.removeLayer(catastroLayer);
-      catastroLayer=siguiente;catastroDisponible=true;
-      catastroLayer.once('load',function(){catastroDisponible=true;});
-      sync();
-      var actual=catastroLayer;
-      actual.on('tileerror',function(){
-        if(actual!==catastroLayer)return;
-        // Fallback del endpoint de la Sede INSPIRE oficial.
-        if(indice+1<urls.length)intentarCapabilities(urls,indice+1,token);
-      });
-      if(estado.catastro){var region=regionVisible();if(region)solicitarCatastroParaRegion(region);}
+      montarCapaCatastro(base,elegida,token,indice);
     })
-    .catch(function(){intentarCapabilities(urls,indice+1,token);});
+    .catch(function(){clearTimeout(temporizador);intentarCapabilities(urls,indice+1,token);});
 }
 function solicitarCatastroParaRegion(region){
   if(!catastroDisponible||!region||!estado.catastro)return;
@@ -2139,6 +2173,7 @@ function capasParaLeyenda(){
   agregar('gaps','Huecos de edificios',css('--gap'),true);
   agregar('gaps3d','Huecos de altura',css('--gap3'),true);
   agregar('gaptrees','Zonas con pocos arboles',css('--gapT'),true);
+  agregar('parques','Parques y jardines',css('--park'),true);
   agregar('buildings3d','Edificios con altura',css('--b3'),true);
   agregar('buildings2d','Edificios sin altura',css('--b2'),true);
   agregar('trees','Arboles',css('--tree'),true);
@@ -2264,7 +2299,11 @@ function capturarMapa(){
   else{trazarGeometria(ctx,areaDescarga);ctx.clip('nonzero');}
   ctx.fillStyle='#020406';ctx.fillRect(left,top,right-left,bottom-top);
   return cargarLogoMarca().then(function(logoImg){
-    var imagenes=Array.prototype.slice.call(document.querySelectorAll('#map .leaflet-ortho-pane img, #map .leaflet-tiles-pane img'));
+    /* 2026-11-14: también las imágenes del panel de datos (ahí vive el WMS
+       del Catastro). Sin esto el catastro no salía en capturas ni en los
+       PNG/PDF exportados. Las capas vectoriales de ese panel son canvas, no
+       img, así que no se duplica nada: se repasan a mano más abajo. */
+    var imagenes=Array.prototype.slice.call(document.querySelectorAll('#map .leaflet-ortho-pane img, #map .leaflet-tiles-pane img, #map .leaflet-data-pane img'));
     imagenes.sort(function(a,b){return(+getComputedStyle(a.parentNode).zIndex||0)-(+getComputedStyle(b.parentNode).zIndex||0);});
     imagenes.forEach(function(el){
       if(!el.complete||!el.naturalWidth)return;
@@ -2277,6 +2316,7 @@ function capturarMapa(){
     if(estado.gaptrees)dibujarPoligonos(ctx,huecos.gaptrees,css('--gapT'),.35,.6);
     if(estado.gaps3d)dibujarPoligonos(ctx,huecos.gaps3d,css('--gap3'),.42,.7);
     if(estado.gaps)dibujarPoligonos(ctx,huecos.gaps,css('--gap'),.5,.7);
+    if(estado.parques)dibujarPoligonos(ctx,ACUM.parques,css('--park'),.42,.9);
     if(estado.buildings2d)dibujarPoligonos(ctx,ACUM.ed2,css('--b2'),.8,.3);
     if(estado.buildings3d)dibujarPoligonos(ctx,ACUM.ed3,css('--b3'),.82,.3);
     dibujarArboles(ctx);dibujarEtiquetas(ctx);
@@ -2493,4 +2533,3 @@ sync();
 </footer>
 </body>
 </html>
-

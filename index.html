@@ -2699,6 +2699,9 @@
 <script src="js/i18n.js?v=buscador-glass-20261101-b" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
+<!-- trampa de errores temporal para diagnóstico -->
+<script src="err-trap.js"></script>
+<script src="poll-inline.js"></script>
 <script src="js/cookie-banner.js" defer></script>
 <!-- 09-oct-2026 (): la única verdad sobre si hay sol.
      Sin dependencias propias, carga con defer y pregunta a SunCalc solo
@@ -2765,6 +2768,12 @@
       ])
         .then(() => cargarScript('js/shadows-route.js?v=hud-navegacion-20261102-a'))
         .then(() => {
+          // Inventario oficial de árboles del Ayto. de Sevilla (CSV Parques
+          // y Jardines convertido a GeoJSON): se fusiona con los de OSM sin
+          // duplicar. Aditivo; su fallo no detiene nada (arboles-sevilla.js
+          // solo expone hooks que shadows-route.js consulta si existen).
+          cargarScript('js/arboles-sevilla.js?v=inv-sevilla-20261116-a')
+            .catch((err) => console.error('No se ha podido cargar el inventario de árboles de Sevilla:', err));
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
           cargarScript('js/fuentes-agua.js?v=osm-map-capasyagua-20261020').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));

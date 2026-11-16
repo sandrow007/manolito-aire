@@ -10858,6 +10858,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     },
   };
 
+  // Expuestas para js/arboles-sevilla.js: el inventario oficial del Ayto.
+  // de Sevilla se clasifica y dimensiona con LA MISMA lógica que OSM.
+  window.manolitoClasificarArbol = clasificarArbol;
+  window.manolitoEstimarDimensionesArbol = estimarDimensionesArbol;
+
   function clasificarArbol(tags) {
     const texto = [
       tags.species || '',
@@ -11454,7 +11459,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           const candidatos = el.type === 'way' ? expandirHilera(el) : [el];
           for (const cand of candidatos) {
             const arbol = procesarElementoOSM(cand);
-            if (arbol) arbolesGrandes.push(arbol);
+            if (arbol) {
+              // Anti-choque con el inventario oficial del Ayto. de Sevilla
+              // (js/arboles-sevilla.js): si un árbol del inventario oficial
+              // cae a <7 m de este nodo OSM, el dato oficial (con especie,
+              // altura y perímetro medidos) gana y el de OSM no se añade.
+              // Así no se dibuja el mismo árbol dos veces.
+              const duplicado = typeof window.manolitAireArbolesOficialesDuplicado === 'function'
+                ? window.manolitAireArbolesOficialesDuplicado(el.lon ?? cand.lon, el.lat ?? cand.lat)
+                : null;
+              if (!duplicado) arbolesGrandes.push(arbol);
+            }
             // INP (2026-09-12): tramos de 80 en vez de 200. Con miles de
             // árboles, 200 seguidos secuestraban el hilo ~200-300 ms y un
             // toque en el mapa esperaba eso (INP 592 ms medido en el
@@ -11482,7 +11497,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function dibujarArbolesVisibles() {
       if (!map.getSource('arboles-globales-copas') || !capaVisible) return [];
       const b = map.getBounds();
-      const enVista = arbolesGrandes.filter((a) => {
+      // El inventario oficial del Ayto. de Sevilla (js/arboles-sevilla.js)
+      // entra aquí FUSIONADO con los de OSM, sin duplicados: si un árbol OSM
+      // cae a <7 m de uno oficial, el oficial (dato medido) gana.
+      const fusionados = (typeof window.manolitAireArbolesFusionados === 'function')
+        ? window.manolitAireArbolesFusionados(arbolesGrandes, b)
+        : arbolesGrandes;
+      const enVista = fusionados.filter((a) => {
         const [lon, lat] = a.punto.geometry.coordinates;
         return lon >= b.getWest() && lon <= b.getEast() && lat >= b.getSouth() && lat <= b.getNorth();
       }).slice(0, CONFIG.maxArbolesEnPantalla);
@@ -12162,6 +12183,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     map.on('moveend', () => {
       clearTimeout(esperaMoveend);
       esperaMoveend = setTimeout(() => {
+        // El inventario oficial del Ayto. de Sevilla se descarga UNA vez
+        // cuando la vista toca Sevilla; luego vive en memoria.
+        if (typeof window.manolitAireArbolesOficialesCargarSiToca === 'function') {
+          window.manolitAireArbolesOficialesCargarSiToca(map).then((nuevo) => {
+            if (nuevo) { dibujarArbolesVisibles(); recalcularSombrasArboles(); }
+          });
+        }
         cargarArbolesDeLaVista();
         recalcularSombrasArboles();
       }, CONFIG.esperaMoveendMs);
@@ -12215,7 +12243,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // La capa 3D necesita: qué albizias hay cargadas (posición y medidas
     // reales OSM), la estación de la fecha efectiva y el progreso dentro de
     // ella. Nada de lo existente se toca; solo se EXPONE lectura.
-    window.manolitAireAlbizias = () => arbolesGrandes
+    // (feb-2026: el inventario oficial del Ayto. de Sevilla entra por la
+    // fusión de js/arboles-sevilla.js cuando ya está descargado, así los
+    // árboles oficiales también alcanzan el motor 3D sin duplicar OSM.)
+    const arbolesParaTodo = () => {
+      const fusion = (typeof window.manolitAireArbolesFusionados === 'function')
+        ? window.manolitAireArbolesFusionados(arbolesGrandes)
+        : arbolesGrandes;
+      return fusion.length > arbolesGrandes.length ? fusion : arbolesGrandes;
+    };
+    window.manolitAireAlbizias = () => arbolesParaTodo()
       .filter((a) => a.tipo === 'albizia')
       .map((a) => ({
         lon: a.punto.geometry.coordinates[0],
@@ -12228,7 +12265,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     window.manolitAireProgresoEstacion = () => progresoEstacion(obtenerHoraEfectiva());
     // Igual que manolitAireAlbizias pero con AMBAS especies con modelo 3D
     // (albizia + naranjo) y su tipo, para js/arboles-3d.js.
-    window.manolitAireArboles3D = () => arbolesGrandes
+    window.manolitAireArboles3D = () => arbolesParaTodo()
       .filter((a) => a.tipo === 'albizia' || a.tipo === 'naranjo')
       .map((a) => ({
         lon: a.punto.geometry.coordinates[0],

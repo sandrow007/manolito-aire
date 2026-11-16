@@ -22,6 +22,17 @@ qa-diag.mjs
 # archivos temporales de trabajo (guiones bajos / qa-*, nunca van al repo)
 _*
 qa-*
+qa_*
 *.tmp
 _*.py
 _*.mjs
+
+# capturas de pantalla de trabajo (solo local)
+captura-*.png
+
+# scripts puntuales de QA/intercepcion (solo local)
+err-trap.js
+poll-inline.js
+
+# datos intermedios generados por descargar_osm.py (solo vale el .geojson final)
+data/arboles-osm-sevilla.json

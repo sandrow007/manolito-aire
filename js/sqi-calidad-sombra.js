@@ -2,9 +2,9 @@
    CALIDAD DE SOMBRA (SQI) — Manolit∞ Aire (nov-2026)
    --------------------------------------------------------------------------
    Colorea las sombras proyectadas que YA dibuja shadows-route.js según su
-   calidad térmica real y alimenta la pestaña "Sombra" de la tarjeta
-   #rsSqiPanel. Con polvo o aire contaminado la radiación difusa también
-   calienta dentro de la sombra, y el SQI lo hace visible.
+   calidad térmica real y alimenta el bloque compacto del widget solar SVG.
+   Con polvo o aire contaminado la radiación difusa también calienta dentro
+   de la sombra, y el SQI lo hace visible.
 
    REGLAS DURAS DE RENDIMIENTO (móvil que no se calienta):
      - UN solo SQI por polígono, calculado en su centroide. Nada de
@@ -388,7 +388,11 @@
       for (var c = 0; c < feats.length; c++) {
         if (!feats[c].properties || feats[c].properties.sqi_hora !== hKey) { completos = false; break; }
       }
-      if (completos) { pintarUi(fecha, lat, lon, hKey); return; }
+      if (completos) {
+        var previo = S.horaKey === hKey ? S.ultimoPintado : null;
+        pintarUi(fecha, lat, lon, hKey, previo ? previo.sqi : null, previo ? previo.svf : null);
+        return;
+      }
     }
 
     S.calculando = true;
@@ -403,7 +407,13 @@
 
       var noche = !solVisible(fecha, lat, lon) || !isFinite(ghi) || ghi === null || ghi <= 10;
 
-      if (!feats.length) { S.calculando = false; S.sigGeometria = sig; return; }
+      if (!feats.length) {
+        S.calculando = false;
+        S.sigGeometria = sig;
+        S.horaKey = hKey;
+        pintarUi(fecha, lat, lon, hKey, null, null);
+        return;
+      }
 
       // Lotes: se recorren todos los polígonos, se recolorean y al final
       // hay UN solo setData por tanda completa (la transición suaviza).
@@ -497,9 +507,139 @@
   }
 
   /* ---------------------------------------------------------------------
-     UI de la pestaña Sombra: estado, porcentaje, indicador, contexto,
-     6 horas y badges. Todos los textos en español, sin señales raras.
+     Bloque compacto unido al panel solar SVG visible. El antiguo panel
+     #rsTimeControls sigue oculto y solo actúa como puente lógico.
      --------------------------------------------------------------------- */
+  function posicionarWidgetMini() {
+    var mini = document.getElementById('rsSqiMini');
+    var root = S.widgetRoot, panel = S.widgetPanel;
+    if (!mini || !root || !panel || !root.parentElement) return;
+    if (mini.parentElement !== root.parentElement) {
+      root.parentElement.insertBefore(mini, root.nextSibling);
+    }
+    var abierto = panel.classList.contains('o');
+    mini.hidden = !abierto;
+    mini.setAttribute('aria-hidden', abierto ? 'false' : 'true');
+    if (!abierto) return;
+
+    var rect = root.getBoundingClientRect();
+    var escala = rect.width / 390;
+    if (!isFinite(escala) || escala <= 0) return;
+    var left = parseFloat(root.style.left);
+    var top = parseFloat(root.style.top);
+    if (!isFinite(left) || !isFinite(top)) {
+      var padreRect = root.parentElement.getBoundingClientRect();
+      left = rect.left - padreRect.left + root.parentElement.scrollLeft;
+      top = rect.top - padreRect.top + root.parentElement.scrollTop;
+    }
+    mini.style.width = (341 * escala) + 'px';
+    mini.style.left = (left + 12 * escala) + 'px';
+    mini.style.top = (top + 258 * escala - mini.offsetHeight) + 'px';
+  }
+
+  function montarWidgetMini() {
+    var root = document.querySelector('svg#map');
+    var panel = root && root.querySelector('#w');
+    if (!root || !panel || !root.parentElement) return false;
+
+    var slider = document.getElementById('rsTimeSlider');
+    if (slider && S.sliderTiempo !== slider) {
+      if (S.sliderTiempo) S.sliderTiempo.removeEventListener('input', programarEvaluacion);
+      S.sliderTiempo = slider;
+      slider.addEventListener('input', programarEvaluacion, { passive: true });
+    }
+
+    var mini = document.getElementById('rsSqiMini');
+    if (mini && S.widgetRoot === root && S.widgetPanel === panel &&
+      mini.parentElement === root.parentElement) return true;
+
+    if (S.widgetRoot !== root) {
+      if (S.obsWidgetRoot) S.obsWidgetRoot.disconnect();
+      S.widgetRoot = root;
+      try {
+        S.obsWidgetRoot = new MutationObserver(posicionarWidgetMini);
+        S.obsWidgetRoot.observe(root, { attributes: true, attributeFilter: ['style'] });
+      } catch (e) { }
+    }
+    if (S.widgetPanel !== panel) {
+      if (S.obsWidgetPanel) S.obsWidgetPanel.disconnect();
+      S.widgetPanel = panel;
+      try {
+        S.obsWidgetPanel = new MutationObserver(posicionarWidgetMini);
+        S.obsWidgetPanel.observe(panel, { attributes: true, attributeFilter: ['class'] });
+      } catch (e) { }
+    }
+    if (!S.widgetEventos) {
+      S.widgetEventos = true;
+      window.addEventListener('resize', posicionarWidgetMini, { passive: true });
+      document.addEventListener('fullscreenchange', posicionarWidgetMini);
+      document.addEventListener('webkitfullscreenchange', posicionarWidgetMini);
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', posicionarWidgetMini, { passive: true });
+    }
+
+    if (!mini) {
+      mini = document.createElement('div');
+      mini.className = 'rs-sqi-mini';
+      mini.id = 'rsSqiMini';
+      mini.hidden = true;
+      mini.setAttribute('role', 'group');
+      mini.setAttribute('aria-label', 'Calidad de la sombra');
+      mini.innerHTML =
+        '<div class="rs-sqi-mini-fila">' +
+        '<span class="rs-sqi-mini-estado" id="rsSqiMiniEstado">Midiendo la sombra</span>' +
+        '<span class="rs-sqi-mini-pct" id="rsSqiMiniPct"></span>' +
+        '</div>' +
+        '<div class="rs-sqi-mini-barra" aria-hidden="true">' +
+        '<div class="rs-sqi-mini-indicador" id="rsSqiMiniIndicador"></div>' +
+        '</div>' +
+        '<div class="rs-sqi-mini-datos" id="rsSqiMiniDatos"></div>';
+      root.parentElement.insertBefore(mini, root.nextSibling);
+      if (S.ultimoPintado) {
+        pintarMini(S.ultimoPintado.noche, S.ultimoPintado.sqi,
+          S.ultimoPintado.aod, S.ultimoPintado.pm, S.ultimoPintado.dhi);
+      }
+    }
+    posicionarWidgetMini();
+    return true;
+  }
+
+  function pintarMini(noche, sqi, aod, pm, dhi) {
+    var mini = document.getElementById('rsSqiMini');
+    if (!mini) return;
+    var estadoEl = document.getElementById('rsSqiMiniEstado');
+    var pctEl = document.getElementById('rsSqiMiniPct');
+    var ind = document.getElementById('rsSqiMiniIndicador');
+    var datosEl = document.getElementById('rsSqiMiniDatos');
+    mini.classList.toggle('rs-sqi-mini-noche', noche);
+
+    if (noche) {
+      if (estadoEl) estadoEl.textContent = 'Sin radiación solar directa';
+      if (pctEl) pctEl.textContent = '';
+      if (ind) ind.style.left = '0%';
+    } else if (sqi != null && isFinite(sqi)) {
+      var color = colorDeSqi(sqi);
+      mini.style.setProperty('--rs-sqi-mini-color', color);
+      if (estadoEl) estadoEl.textContent = estadoDeSqi(sqi);
+      if (pctEl) pctEl.textContent = sqi + ' %';
+      if (ind) ind.style.left = clamp(0, 100, sqi) + '%';
+    } else {
+      var sombrasActivas = document.getElementById('rsToggleSombras');
+      mini.style.setProperty('--rs-sqi-mini-color', '#EEF1F6');
+      if (estadoEl) estadoEl.textContent = sombrasActivas && sombrasActivas.checked
+        ? 'Buscando sombras en esta zona' : 'Activa las sombras para medirlas';
+      if (pctEl) pctEl.textContent = '';
+      if (ind) ind.style.left = '0%';
+    }
+
+    var puntoAod = aod == null ? '' : (aod < 0.2 ? ' rs-sqi-punto-bajo' : (aod <= 0.4 ? ' rs-sqi-punto-moderado' : ' rs-sqi-punto-alto'));
+    var puntoPm = pm == null ? '' : (pm <= 15 ? ' rs-sqi-punto-bajo' : (pm <= 25 ? ' rs-sqi-punto-moderado' : ' rs-sqi-punto-alto'));
+    var html =
+      '<span class="rs-sqi-mini-dato"><i class="rs-sqi-punto' + puntoAod + '"></i>AOD <b>' + (aod != null ? aod.toFixed(2) : '–') + '</b></span>' +
+      '<span class="rs-sqi-mini-dato"><i class="rs-sqi-punto' + puntoPm + '"></i>PM2.5 <b>' + (pm != null ? Math.round(pm) : '–') + '</b></span>' +
+      '<span class="rs-sqi-mini-dato"><i class="rs-sqi-punto rs-sqi-punto-azul"></i>DHI <b>' + (dhi != null ? Math.round(dhi) : '–') + '</b></span>';
+    if (datosEl && datosEl.__htmlCache !== html) { datosEl.innerHTML = html; datosEl.__htmlCache = html; }
+  }
+
   function nivelPuntoAod(aod) {
     if (aod == null) return '';
     if (aod < 0.2) return ' rs-sqi-punto-bajo';
@@ -515,7 +655,6 @@
 
   function pintarUi(fecha, lat, lon, hKey, sqiMedio, svfMedio) {
     var card = document.querySelector('.rs-sqi-card');
-    if (!card) return;
     var meteo = S.ultimosMeteo;
     var serie = meteo ? serieHoraria(meteo) : null;
     var idx = serie ? indiceDeHora(serie, fecha) : -1;
@@ -525,6 +664,14 @@
     var pm = idx >= 0 ? serie.pm[idx] : null;
     var noche = !solVisible(fecha, lat, lon) || !isFinite(ghi) || ghi === null || ghi <= 10;
 
+    // Primero el bloque mini del widget de hora: no depende de la tarjeta
+    // de la página y tiene que pintar aunque la tarjeta aún no exista.
+    var sqiMini = (!noche && sqiMedio != null && isFinite(sqiMedio))
+      ? Math.round(clamp(0, 100, sqiMedio)) : null;
+    pintarMini(noche, sqiMini, aod, pm, dhi);
+    S.ultimoPintado = { noche: noche, sqi: sqiMini, aod: aod, pm: pm, dhi: dhi,
+      svf: svfMedio != null && isFinite(svfMedio) ? svfMedio : null };
+
     var estado = document.getElementById('rsSqiEstado');
     var pct = document.getElementById('rsSqiPct');
     var indicador = document.getElementById('rsSqiIndicador');
@@ -532,21 +679,21 @@
     var titulo = document.getElementById('rsSqiContextoTitulo');
     var cuerpo = document.getElementById('rsSqiContextoCuerpo');
 
-    card.classList.toggle('rs-sqi-noche', noche);
+    if (card) card.classList.toggle('rs-sqi-noche', noche);
 
     if (noche) {
       if (estado) estado.textContent = 'Sin radiación solar directa';
       if (pct) pct.textContent = '–';
       if (indicador) indicador.style.left = '0%';
-      card.style.setProperty('--rs-sqi-color', 'rgba(237,244,242,0.45)');
-      card.style.setProperty('--rs-sqi-borde', 'rgba(237,244,242,0.1)');
+      if (card) card.style.setProperty('--rs-sqi-color', 'rgba(237,244,242,0.45)');
+      if (card) card.style.setProperty('--rs-sqi-borde', 'rgba(237,244,242,0.1)');
       if (titulo) titulo.textContent = 'La sombra descansa';
       if (cuerpo) cuerpo.textContent = 'De noche no hay radiación solar directa que medir. La calidad de sombra vuelve al amanecer.';
     } else if (sqiMedio != null && isFinite(sqiMedio)) {
       var sqi = clamp(0, 100, Math.round(sqiMedio));
       var color = colorDeSqi(sqi);
-      card.style.setProperty('--rs-sqi-color', color);
-      card.style.setProperty('--rs-sqi-borde', color + '55');
+      if (card) card.style.setProperty('--rs-sqi-color', color);
+      if (card) card.style.setProperty('--rs-sqi-borde', color + '55');
       if (estado) estado.textContent = estadoDeSqi(sqi);
       if (pct) pct.textContent = String(sqi);
       if (indicador) indicador.style.left = sqi + '%';
@@ -632,8 +779,20 @@
     try {
       if (window.manolitAireMap && window.turf) {
         S.map = window.manolitAireMap;
-        montarTabs();
-        reubicarBloques();
+        // La calidad de sombra vive SOLO dentro del widget de hora del mapa.
+        // No hay tarjeta fuera del mapa y los bloques Aire/Previsión de la
+        // página se quedan exactamente donde estaban.
+
+        // Widget mini: el panel de hora se construye dinámicamente, así que
+        // se espera con un observador y se reinserta si se reconstruye.
+        try {
+          var obsWidget = new MutationObserver(function () { montarWidgetMini(); });
+          obsWidget.observe(document.body, { childList: true, subtree: true });
+        } catch (e) { }
+        var intentosWidget = 0;
+        var timerWidget = setInterval(function () {
+          if (montarWidgetMini() || ++intentosWidget > 90) clearInterval(timerWidget);
+        }, 1000);
 
         try { S.map.on('sourcedata', function (e) { if (e && e.sourceId === 'sombras' && !S.pintando) programarEvaluacion(); }); } catch (e) { }
         try { S.map.on('styledata', function () { if (!S.capaEdificios) S.capaEdificios = detectarCapaEdificios(); }); } catch (e) { }

@@ -161,7 +161,7 @@
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
 <link rel="stylesheet" href="css/style.css?v=hud-navegacion-20261102-a">
-<link rel="stylesheet" href="css/sqi.css?v=sqi-20261117-a">
+<link rel="stylesheet" href="css/sqi.css?v=sqi-widget-visible-20261117-d">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -1367,65 +1367,11 @@
          sol). La rellena shadows-route.js con los mismos datos del cálculo. -->
     <div id="rsLiveSummary" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
-    <!-- CALIDAD DE SOMBRA (SQI, nov-2026): tarjeta con pestañas Sombra /
-         Aire / Previsión. La pestaña Sombra es nueva y tiñe los polígonos
-         de sombra que ya dibuja shadows-route.js según su calidad térmica
-         (radiación difusa que calienta también a la sombra). Las pestañas
-         Aire y Previsión reubican en una sola tarjeta los bloques que ya
-         existían en la página (panel AQI y evolución del aire). El módulo
-         js/sqi-calidad-sombra.js mueve esos bloques al arrancar, sin tocar
-         su lógica. -->
-    <section class="rs-sqi" id="rsSqiPanel" aria-labelledby="rsSqiTitulo">
-      <div class="map-head">
-        <h2 class="map-title" id="rsSqiTitulo">Calidad de sombra</h2>
-      </div>
-      <div class="rs-sqi-card">
-        <div class="rs-sqi-tabs" role="tablist" aria-label="Vistas de la tarjeta">
-          <button type="button" class="rs-sqi-tab rs-sqi-tab-activa" role="tab" aria-selected="true" data-rs-sqi-tab="sombra" id="rsSqiTabSombra" aria-controls="rsSqiVistaSombra">Sombra</button>
-          <button type="button" class="rs-sqi-tab" role="tab" aria-selected="false" data-rs-sqi-tab="aire" id="rsSqiTabAire" aria-controls="rsSqiVistaAire">Aire</button>
-          <button type="button" class="rs-sqi-tab" role="tab" aria-selected="false" data-rs-sqi-tab="prevision" id="rsSqiTabPrevision" aria-controls="rsSqiVistaPrevision">Previsión</button>
-        </div>
-
-        <div class="rs-sqi-vista rs-sqi-vista-activa" role="tabpanel" id="rsSqiVistaSombra" aria-labelledby="rsSqiTabSombra">
-          <div class="rs-sqi-cabecera">
-            <div class="rs-sqi-cab-izq">
-              <p class="rs-sqi-sub">calidad de sombra ahora</p>
-              <p class="rs-sqi-estado" id="rsSqiEstado">Midiendo la sombra</p>
-            </div>
-            <div class="rs-sqi-cab-dcha">
-              <span class="rs-sqi-pct" id="rsSqiPct">–</span><span class="rs-sqi-pct-sim">%</span>
-            </div>
-          </div>
-
-          <div class="rs-sqi-barra" role="img" aria-label="Escala de calidad de sombra de ilusoria a efectiva">
-            <div class="rs-sqi-barra-indicador" id="rsSqiIndicador"></div>
-          </div>
-          <div class="rs-sqi-barra-extremos">
-            <span>sombra ilusoria</span>
-            <span>sombra efectiva</span>
-          </div>
-
-          <div class="rs-sqi-contexto" id="rsSqiContexto">
-            <p class="rs-sqi-contexto-titulo" id="rsSqiContextoTitulo">Sin datos todavía</p>
-            <p class="rs-sqi-contexto-cuerpo" id="rsSqiContextoCuerpo">Esperando la radiación solar y el aire de esta zona.</p>
-          </div>
-
-          <p class="rs-sqi-rotulo">próximas 6 horas</p>
-          <div class="rs-sqi-horas" id="rsSqiHoras"></div>
-
-          <div class="rs-sqi-badges" id="rsSqiBadges">
-            <span class="rs-sqi-badge"><i class="rs-sqi-punto" id="rsSqiPuntoAod"></i>AOD <b id="rsSqiAod">–</b></span>
-            <span class="rs-sqi-badge"><i class="rs-sqi-punto" id="rsSqiPuntoPm"></i>PM2.5 · <b id="rsSqiPm">–</b> µg/m³</span>
-            <span class="rs-sqi-badge"><i class="rs-sqi-punto rs-sqi-punto-azul"></i>DHI · <b id="rsSqiDhi">–</b> W/m²</span>
-          </div>
-        </div>
-
-        <!-- El módulo SQI reubica aquí #rsAqiPanel (Aire) y la sección de
-             evolución del aire (Previsión) al arrancar. -->
-        <div class="rs-sqi-vista" role="tabpanel" id="rsSqiVistaAire" aria-labelledby="rsSqiTabAire" hidden></div>
-        <div class="rs-sqi-vista" role="tabpanel" id="rsSqiVistaPrevision" aria-labelledby="rsSqiTabPrevision" hidden></div>
-      </div>
-    </section>
+    <!-- CALIDAD DE SOMBRA (SQI, nov-2026): el módulo
+         js/sqi-calidad-sombra.js tiñe las sombras de shadows-route.js y
+         acompaña al widget solar SVG con un bloque compacto. El antiguo
+         #rsTimeControls queda oculto como puente lógico; Aire y Previsión
+         conservan su sitio. -->
 
     <!-- Indicaciones paso a paso accesibles: la misma información que se ve
          en el mapa, en texto ordenado, con lectura por voz (TTS del propio
@@ -1672,7 +1618,23 @@
        1) el mapa con sus controles y viajes, 2) las capas del mapa,
        3) la cúpula del planetario centrada, 4) el bloque «¿No hay 3D en
        tu zona?», 5) este acceso LiDAR, siempre debajo del todo. -->
-  <a class="rs-btn-lidar" href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">
+  <a class="rs-btn-lidar" id="rsBtnHuecosOsm" href="huecos.html" target="_self">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <rect x="8.5" y="8.5" width="7" height="7" rx="1"/>
+      <path d="M3 9h5.5M15.5 9H21M3 15h5.5M15.5 15H21"/>
+    </svg>
+    <span>Huecos OSM</span>
+  </a>
+  <a class="rs-btn-lidar" href="https://sandrow007.github.io/Mairena-el-Elefante-del-clima/mairena-3d/index.html" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <rect x="8.5" y="8.5" width="7" height="7" rx="1"/>
+      <path d="M3 9h5.5M15.5 9H21M3 15h5.5M15.5 15H21"/>
+    </svg>
+    <span>Elefante climático</span>
+  </a>
+  <a class="rs-btn-lidar" id="rsBtnLidar" href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
       <polyline points="3.29 7 12 12 20.71 7"/>
@@ -2699,9 +2661,6 @@
 <script src="js/i18n.js?v=buscador-glass-20261101-b" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
-<!-- trampa de errores temporal para diagnóstico -->
-<script src="err-trap.js"></script>
-<script src="poll-inline.js"></script>
 <script src="js/cookie-banner.js" defer></script>
 <!-- 09-oct-2026 (): la única verdad sobre si hay sol.
      Sin dependencias propias, carga con defer y pregunta a SunCalc solo
@@ -2768,12 +2727,6 @@
       ])
         .then(() => cargarScript('js/shadows-route.js?v=hud-navegacion-20261102-a'))
         .then(() => {
-          // Inventario oficial de árboles del Ayto. de Sevilla (CSV Parques
-          // y Jardines convertido a GeoJSON): se fusiona con los de OSM sin
-          // duplicar. Aditivo; su fallo no detiene nada (arboles-sevilla.js
-          // solo expone hooks que shadows-route.js consulta si existen).
-          cargarScript('js/arboles-sevilla.js?v=inv-sevilla-20261116-a')
-            .catch((err) => console.error('No se ha podido cargar el inventario de árboles de Sevilla:', err));
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
           cargarScript('js/fuentes-agua.js?v=osm-map-capasyagua-20261020').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));
@@ -2800,9 +2753,9 @@
         // engancha su GPS propio; no toca la lógica de ruta ni cámara.
         .then(() => cargarScript('js/hud-navegacion.js?v=hud-20261102-a'))
         // Calidad de sombra (SQI, nov-2026): último de la cadena. Tiñe las
-        // sombras que ya dibuja el mapa según su calidad térmica y llena la
-        // pestaña Sombra de la tarjeta #rsSqiPanel. Presentación pura.
-        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-20261117-a'))
+        // sombras que ya dibuja el mapa según su calidad térmica y muestra
+        // el resultado en el widget solar visible. Presentación pura.
+        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-widget-visible-20261117-d'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
       return cargaMapaSombrasPromise;
     }
@@ -4067,9 +4020,12 @@ svg#map #mk:focus,svg#map #mk:focus-visible{outline:none!important}
     if(!clock||!slider)return;
     var parts=clock.textContent.trim().split(':').map(Number);
     if(parts.length!==2||parts.some(Number.isNaN))return;
-    slider.value=String(Math.min(1439,Math.round((parts[0]*60+parts[1])/5)*5));
+    var value=String(Math.min(1439,Math.round((parts[0]*60+parts[1])/5)*5));
+    if(slider.value===value)return;
+    slider.value=value;
     slider.dispatchEvent(new Event('input',{bubbles:true}));
   }
+  if(window.MutationObserver)new MutationObserver(syncMapTime).observe(root.querySelector('#bt'),{childList:true,characterData:true,subtree:true});
   root.addEventListener('pointermove',function(event){if(root.querySelector('#w').classList.contains('o')&&event.buttons&&event.target.closest&&event.target.closest('#st'))syncMapTime();});
   root.addEventListener('pointerup',function(event){if(root.querySelector('#w').classList.contains('o')&&event.target.closest&&event.target.closest('#st'))syncMapTime();});
   root.addEventListener('click',function(event){

@@ -230,3 +230,104 @@
   .rs-sqi-hora-valor{font-size:0.74rem;}
   .rs-sqi-tab{font-size:0.85rem;}
 }
+
+/* ==========================================================================
+   CALIDAD DE SOMBRA MINI (panel solar SVG visible, nov-2026)
+   Tarjeta superior unida al widget; no modifica el mapa ni sus controles.
+   ========================================================================== */
+
+#rsSqiMini.rs-sqi-mini{
+  --rs-sqi-mini-color:#EEF1F6;
+  position:absolute;
+  z-index:1125;
+  box-sizing:border-box;
+  margin:0;
+  padding:10px 13px 9px;
+  border:1px solid rgba(255,255,255,0.08);
+  border-bottom:0;
+  border-radius:13.5px 13.5px 0 0;
+  background:rgba(8,12,20,0.96);
+  box-shadow:0 -8px 24px rgba(0,0,0,0.18);
+  color:#EEF1F6;
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  pointer-events:none;
+}
+#rsSqiMini.rs-sqi-mini[hidden]{display:none!important;}
+#rsSqiMini .rs-sqi-mini-fila{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  min-width:0;
+}
+#rsSqiMini .rs-sqi-mini-estado{
+  font-size:12px;
+  font-weight:700;
+  line-height:1.2;
+  color:var(--rs-sqi-mini-color,#EEF1F6);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  transition:color 0.3s ease;
+}
+#rsSqiMini .rs-sqi-mini-pct{
+  font-size:15px;
+  font-weight:800;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:var(--rs-sqi-mini-color,#EEF1F6);
+  white-space:nowrap;
+  transition:color 0.3s ease;
+}
+#rsSqiMini .rs-sqi-mini-barra{
+  position:relative;
+  height:5px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#E63E5F 0%,#FF6B1A 32%,#FFC033 62%,#00B98A 100%);
+}
+#rsSqiMini .rs-sqi-mini-indicador{
+  position:absolute;
+  top:50%;
+  left:0%;
+  width:11px;
+  height:11px;
+  border-radius:50%;
+  background:var(--rs-sqi-mini-color,#EEF1F6);
+  border:2px solid #10151B;
+  box-shadow:0 1px 4px rgba(0,0,0,0.5);
+  transform:translate(-50%,-50%);
+  transition:left 0.3s ease,background 0.3s ease;
+}
+#rsSqiMini .rs-sqi-mini-datos{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px 14px;
+}
+#rsSqiMini .rs-sqi-mini-dato{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:10.5px;
+  color:#AEB7C7;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+#rsSqiMini .rs-sqi-mini-dato b{
+  font-weight:700;
+  color:#EEF1F6;
+}
+#rsSqiMini .rs-sqi-mini-dato .rs-sqi-punto{
+  width:6px;
+  height:6px;
+}
+#rsSqiMini.rs-sqi-mini-noche .rs-sqi-mini-estado{color:rgba(238,241,246,0.65);}
+#rsSqiMini.rs-sqi-mini-noche .rs-sqi-mini-indicador{background:rgba(238,241,246,0.35);}
+@media (max-width:640px){
+  #rsSqiMini.rs-sqi-mini{padding:9px 11px 8px;gap:5px;}
+  #rsSqiMini .rs-sqi-mini-estado{font-size:11px;}
+  #rsSqiMini .rs-sqi-mini-datos{gap:4px 10px;}
+  #rsSqiMini .rs-sqi-mini-dato{font-size:10px;}
+}

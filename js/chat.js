@@ -33,6 +33,54 @@
 
   let chatHistory = [];
   const QUESTION_CACHE = new Map();
+
+  /* ---- Detección de Andalucía (una sola fuente de verdad) ----
+     Geolocalización del navegador + rectángulo aproximado de Andalucía.
+     Si el usuario no da permiso o la geolocalización falla, el resultado
+     es SIEMPRE false (castellano): nunca andaluz forzado sin estar seguros.
+     El mismo booleano lo leen el chat (lo manda al worker) y la mascota
+     del mapa (window.__manolitEnAndalucia), así no se desincronizan. */
+  window.__manolitEnAndalucia = false;
+  let andaluciaPromesa = null;
+  function detectarAndalucia() {
+    if (andaluciaPromesa) return andaluciaPromesa;
+    andaluciaPromesa = new Promise((resolve) => {
+      const castellano = () => resolve(false);
+      try {
+        if (!('geolocation' in navigator)) return castellano();
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            try {
+              const lat = Number(pos && pos.coords && pos.coords.latitude);
+              const lon = Number(pos && pos.coords && pos.coords.longitude);
+              resolve(Number.isFinite(lat) && Number.isFinite(lon) &&
+                lat >= 35.9 && lat <= 38.75 && lon >= -7.55 && lon <= -1.6);
+            } catch (e) { castellano(); }
+          },
+          castellano,
+          { timeout: 8000, maximumAge: 600000 }
+        );
+      } catch (e) { castellano(); }
+    });
+    andaluciaPromesa.then((v) => { window.__manolitEnAndalucia = v === true; });
+    return andaluciaPromesa;
+  }
+  window.manolitAireEnAndalucia = detectarAndalucia;
+  detectarAndalucia(); // se lanza al cargar para que la mascota ya lo tenga
+
+  const REGLA_ACENTO_CASTELLANO = '10. ACENTO: escribe en español neutro y estándar. No uses acento andaluz escrito: ni seseo ni ceceo, ni palabras como «illo», «quillo», «mi arma» o «pisha». Solo si el usuario escribe él mismo en andaluz, respóndele con naturalidad en su mismo registro, sin exagerar.';
+  const REGLA_ACENTO_ANDALUZ = `10. ACENTO (el usuario está en Andalucía, confirmado por geolocalización): escribe en español con el habla real de Sevilla y su entorno, NO una caricatura de feria. En concreto:
+- Aspira la ese final y la jota: «estas» → «ehtáh», «hijos» → «hijoh», «trabajas» → «trabajáh».
+- Pierde la d intervocálica en participios: «hablado» → «hablao», «pescado» → «pescao», «cansado» → «cansao».
+- Sesea o cecea según te salga de forma natural, sin forzarlo en cada palabra.
+- Usa con moderación expresiones reales del habla sevillana: «quillo», «illo», «pisha», «ni ná». Como mucho una por respuesta; no las amontones.
+- EVITA sonar a parodia o a personaje de chiste: habla como hablaría una persona real, no un estereotipo. Ante la duda, sobrio antes que exagerado.
+- Tu personalidad NO cambia: sigues siendo el mismo Manolit∞, serio, directo y sin maquillar los datos; solo cambia el acento, no el carácter.`;
+  function contextoSegunZona(enAndalucia) {
+    return enAndalucia
+      ? MANOLITO_SYSTEM_CONTEXT.replace(REGLA_ACENTO_CASTELLANO, REGLA_ACENTO_ANDALUZ)
+      : MANOLITO_SYSTEM_CONTEXT;
+  }
   let waterSearchPendingLocation = false;
   let waterSearchOriginInMemory = null;
   const WATER_SEARCH_TITLE = 'Buscame fuente de agua más cercana';

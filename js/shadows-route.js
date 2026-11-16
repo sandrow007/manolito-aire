@@ -8587,6 +8587,98 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           '¡Hasta luego, Mari... digo, hasta la próxima caminata, compare!',
           '¡Esto ya está hecho! Un aplauso pa nosotros, que lo vale.'
         ];
+        /* ---- FRASES EN CASTELLANO (nov-2026) ----
+           La mascota habla en andaluz SOLO cuando la detección compartida
+           (window.__manolitEnAndalucia, la misma que usa el chat, definida
+           en js/chat.js) confirma que estás en Andalucía. Fuera, usa estos
+           pools equivalentes en castellano neutro. Una sola lógica para
+           chat y mascota: nunca dos fuentes de verdad distintas. */
+        this._frasesCastellano = [
+          // Saludos y ánimos
+          '¡Ea, hola! ¿Damos un paseo o qué?',
+          '¡Venga, alma de cántaro, que la sombra nos espera!',
+          '¡Hola! Yo te llevo por lo fresquito, tú tranquilo.',
+          '¡Ya está aquí Manolit, que esto se arregla andando!',
+          '¡Poco a poco, que quien corre no llega a la sombra!',
+          '¡Qué ilusión verte! ¿Buscamos sombra o qué?',
+          // Calor y sol
+          '¡Uf, qué calor! Esto es un horno con vistas.',
+          '¡Menuda solana! Hasta los lagartos busquen toldo.',
+          '¡Qué bochorno! Esto no es una calle, es la freidora del cielo.',
+          '¡Qué calor tan malo! Me derrito como un helado de cucurucho.',
+          '¡Qué tartera! Ni los chicharrones aguantan esta tarde.',
+          '¡El sol no perdona! Menos mal que me tienes a mí.',
+          '¡Socorro, que esto achicharra! Por la sombra o no vamos.',
+          '¡Qué calor! Esto no lo aguanta ni el botijo.',
+          '¡Uf! Con esta temperatura el asfalto hace tortilla sin huevo.',
+          'Si sobrevives a una tarde de julio cruzando la plaza a las cuatro, la NASA te convalida el viaje a Marte.',
+          'A las 16:00 no hay calles, hay carriles de lava con fachadas blancas.',
+          '¿El infierno? Un simulacro comparado con el termómetro de un coche aparcado al sol a las cinco de la tarde.',
+          'El verano no es una estación, es una mudanza temporal al interior del congelador.',
+          'De tres a seis de la tarde, el único deporte extremo es abrir las persianas.',
+          'En las tardes de verano, el aire acondicionado no es un electrodoméstico, es un miembro más de la familia.',
+          'Cruzar la acera al sol a las 17:00 no es andar, es un acto de fe con zapatillas que se derriten.',
+          // Sombra y ruta
+          '¡Mira qué sombrita ahí al lado! Eso sí que es vida.',
+          '¡Por aquí, por aquí! Que en esta calle hay sombra de sobra.',
+          '¡Fíjate qué fresquito bajo los árboles! Esto es una maravilla.',
+          '¡Agárrate a la pared de la sombra, que eso es oro puro!',
+          '¡Por aquí, que esta plaza tiene toldo y glorietas!',
+          '¡Qué bien se está a la sombrita! Como en casa no se está en ningún lado.',
+          'Crucemos de sombra en sombra como los gatos, que son muy listos.',
+          '¡Esta callejuela es una gozada! Fresquito y sin sol de cara.',
+          // Árboles y aire
+          '¡Ay, qué bien huele este árbol! Respira hondo.',
+          '¡Mira qué arboleda! Con árboles así se respira otra cosa.',
+          '¡Este airecito sí que entra bien! Nada que ver con la avenida.',
+          '¡Benditos sean los árboles, que ellos sí que dan la cara fresquita!',
+          '¡Respira, respira! Que por aquí el aire está de lujo.',
+          // Ánimo general
+          '¡No te preocupes, que Manolit te guía sin problema!',
+          'Tú camina con calma, que la prisa no es buena consejera.',
+          '¡Ea, ya queda menos! Menos que un minuto de sombra al mediodía.',
+          '¡Qué arte tienes caminando! Pareces profesional.',
+          '¡Vamos que nos vamos! Y con este paseo, ni un museo.',
+          '¡Alegría, que la vida son dos días y hoy hace un día estupendo!',
+          'Tú a tu ritmo, que aquí el único que corre contra ti es el reloj.',
+          'Y si te cansas, paramos un momentito y ya está. Esto no es una competición.',
+          // Despedidas y llegada
+          '¡Ya hemos llegado! Qué paseo más bonito nos hemos dado.',
+          '¡Hasta la próxima caminata!',
+          '¡Esto ya está hecho! Un aplauso para nosotros, que lo vale.'
+        ];
+        this._frasesHoraCastellano = {
+          madrugada: [
+            '¡Madrugada y tú todavía dando paseos! Eso es afición.',
+            '¡A estas horas hasta los gatos hablan bajito! Vamos con cuidado.',
+            '¡La madrugada es para dormir, pero aquí estamos, haciendo kilómetros!',
+            '¡Qué silencio más agradable! La ciudad duerme y nosotros de paseo secreto.'
+          ],
+          mañana: [
+            '¡Buenos días! La mañana está recién estrenada, como una tostada.',
+            '¡Mañanita buena! Antes de que el sol suba, nos movemos.',
+            '¡Ea, a por el día! Con calma, que el café no se bebe solo.',
+            '¡Qué bien empieza la mañana! Tú pones las piernas y yo pongo el estilo.'
+          ],
+          mediodía: [
+            '¡Mediodía! Busca sombra, que el sol viene con ganas.',
+            '¡A esta hora el sol aprieta! Tira por lo fresquito.',
+            '¡Son horas de sombra! Yo voto por la sombra.',
+            '¡El mediodía no perdona! Menos mal que llevamos la ruta bien encaminada.'
+          ],
+          tarde: [
+            '¡Buenas tardes! El sol ya va bajando el tono, qué detalle.',
+            '¡Buena tarde para caminar! Ni corras ni te hagas el héroe.',
+            '¡La tarde es para paseo y charla! Yo hablo, tú no te pierdas.',
+            '¡Ea, que la tarde se pone fresquita! Vamos a aprovecharla.'
+          ],
+          noche: [
+            '¡Buenas noches! Ojo con los baches, que de noche todos parecen artistas.',
+            '¡Noche cerrada y paseo abierto! Tú mira por dónde pisas y yo hago de farolillo.',
+            '¡A estas horas la ciudad tiene otro compás! Despacito y con estilo.',
+            '¡La noche está fresquita! Pero no te despistes, que la sombra no lleva reflectante.'
+          ]
+        };
         this._frasesHora = {
           madrugada: [
             '¡Madrugada y tú todavía dando paseos! Eso es afición, miarma.',
@@ -8619,6 +8711,74 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             '¡La noche está fresquita! Pero no te me despistes, compare, que la sombra no lleva reflectante.'
           ]
         };
+        this._frasesEstacionesCastellano = {
+          invierno: [
+            '¡Uf, qué frío! Esto parece una nevera.',
+            '¡Qué me congelo! Yo nací para la sombrita, no para la escarcha.',
+            '¡Qué fresquita está la mañana! Vamos andando, que eso calienta más que la manta.',
+            '¡Brrr! Si me quedo quieto me plantan en un belén.',
+            '¡El invierno es llevadero, pero ojo con la humedad, que atraviesa!',
+            '¡Venga, al sol que calienta! En invierno la sombra sobra.',
+            '¡Qué frío tan serio! Me faltan las castañas asadas y me sobra el airecito.',
+            '¡Anda que no se agradece nada un cafelito caliente con este tiempo!',
+            '¡Mira qué árboles tan valientes! Verdes en diciembre, eso es resistencia.',
+            '¡Abrígate bien, que el invierno no perdona!',
+            '¡Estamos a {t}! Que me tiembla hasta el corazón.',
+            '¡{t} ahí fuera! Abrígate, que el invierno parece de broma pero muerde.',
+            '¡Marcando {t}! Y yo aquí, plantado como un árbol sin manta.'
+          ],
+          otono: [
+            '¡Ya está aquí el otoño! Caen las hojas y yo me pongo nostálgico.',
+            '¡Qué bien se está! Ni frío ni calor, el otoño es el término medio.',
+            '¡Mira qué alfombra de hojas! Pisa despacio, que crujen como patatas fritas.',
+            '¡El otoño es la primavera al revés! Cada hoja que cae es una flor del suelo.',
+            '¡Con este tiempo apetecen castañas! Y un paseo sin prisa.',
+            '¡Ojo, que anochece antes! No te confíes, que la tarde se te echa encima.',
+            '¡Qué olorcito a tierra mojada! Eso no lo embotella el perfume más caro.',
+            '¡Los árboles aguantan verdes, qué valientes! Otros ya van soltando.',
+            '¡Octubre es un mes traicionero! De mañana chaqueta y de tarde manga corta.',
+            '¡Si llega el chaparrón, corre! Que la lluvia de otoño no avisa.',
+            '¡Estamos a {t}! Tiempo de chaqueta fina, que el otoño va por capas.',
+            '¡{t} y olor a otoño! Esto sí que es vivir.'
+          ],
+          primavera: [
+            '¡Primavera! La floración huele tan bien que hasta yo me pongo poeta.',
+            '¡Qué florecida está la ciudad! La primavera no se aguanta de bonita.',
+            '¡Ojo, el polen anda suelto! Si estornudo yo, que soy de mentira, imagínate tú.',
+            '¡Los ojos llorosos son el precio de tanta flor! Pero qué bien huele.',
+            '¡Las golondrinas ya están aquí! Una no hace verano, pero alegra la tarde.',
+            '¡Ni frío ni calor! La primavera es como yo, templada y agradable.',
+            '¡Mira qué árboles tan contentos! En primavera hasta las sombras huelen bien.',
+            '¡Abril, aguas mil! Si te pilla el chaparrón, yo te cubro con la hoja.',
+            '¡Los jazmines ya se están preparando! Dentro de nada esto huele a gloria.',
+            '¡Estamos a {t} y huele a flores! Esto es lo mejor del año.',
+            '¡{t} de primavera! Ni frío ni calor.'
+          ],
+          verano: [
+            '¡Verano oficial! Empieza la temporada de la sombra buena.',
+            '¡Ya está aquí el verano! A partir de ahora la sombra es oro y yo soy el banquero.',
+            '¡El verano es un horno, pero contigo hasta el horno se pasa bien!',
+            '¡Agosto no perdona! Botijo lleno y a vivir de sombra en sombra.',
+            '¡En verano madruga, que a las doce el sol no tiene piedad!',
+            '¡Qué noches tan buenas las de verano! De día sombra y de noche terraza.',
+            '¡{t}! Esto no es una calle, es una sartén.',
+            '¡Estamos a {t}! Vamos por la sombra o nos fundimos como el helado.',
+            '¡Marcando {t}! Y eso a la sombra, que al sol ni te lo cuento.'
+          ]
+        };
+        this._frasesLugarCastellano = [
+          'Por cierto, que estamos en {lugar}. No sé tú, pero yo aquí me quedo un ratito a la sombra.',
+          '¿Sabes dónde estamos? En {lugar}, que tiene su encanto.',
+          'Estamos en {lugar}. ¡Ya puede presumir el paseo!',
+          'Mira que estamos en {lugar}. {reco}',
+          'Como soy muy curioso, te cuento: estamos en {lugar}. {reco}'
+        ];
+        this._recoPromptsCastellano = [
+          '{reco}, por si quieres darle un capricho al paseo.',
+          'Y ya de paso, {reco}.',
+          '{reco}. Total, andando se llega a todos los lados.',
+          'Además {reco}.'
+        ];
         /* ---- VOZ DE ESTACIÓN (sep-2026) ----
            Manolit comenta la estación del año real, como los árboles que
            cambian solos: en invierno se queja del frío, en otoño y en
@@ -8811,19 +8971,27 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           this._ultimoTipo = elegido.tipo;
           return frase;
         } catch (e) {
-          return this._frasesAndaluz[Math.floor(Math.random() * this._frasesAndaluz.length)];
+          const banco = this._poolAndaluz();
+          return banco[Math.floor(Math.random() * banco.length)];
         }
       }
       // Frases con temperatura real: junta todas las de {t} (de cualquier
       // estación) y elige una, sustituyendo el número.
+      // Misma fuente de verdad que el chat (js/chat.js): si la detección
+      // geolocalizada no confirma Andalucía, la mascota habla castellano.
+      _enAndalucia() {
+        try { return window.__manolitEnAndalucia === true; } catch (e) { return false; }
+      }
+      _poolAndaluz() { return this._enAndalucia() ? this._frasesAndaluz : this._frasesCastellano; }
       _elegirFraseTemperatura(t) {
+        const bancos = this._enAndalucia() ? this._frasesEstaciones : this._frasesEstacionesCastellano;
         const todas = [];
-        Object.keys(this._frasesEstaciones || {}).forEach((est) => {
-          (this._frasesEstaciones[est] || []).forEach((f) => {
+        Object.keys(bancos || {}).forEach((est) => {
+          (bancos[est] || []).forEach((f) => {
             if (f.indexOf('{t}') >= 0) todas.push(f);
           });
         });
-        const pool = todas.length ? todas : this._frasesAndaluz;
+        const pool = todas.length ? todas : this._poolAndaluz();
         let frase = pool[Math.floor(Math.random() * pool.length)];
         if (frase.indexOf('{t}') >= 0) {
           const g = Math.round(t);
@@ -8832,8 +9000,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         return frase;
       }
       _elegirFraseEstacion(est, t) {
-        const deEstacion = (this._frasesEstaciones && this._frasesEstaciones[est]) || [];
-        const pool = deEstacion.length ? deEstacion : this._frasesAndaluz;
+        const banco = this._enAndalucia() ? this._frasesEstaciones : this._frasesEstacionesCastellano;
+        const deEstacion = (banco && banco[est]) || [];
+        const pool = deEstacion.length ? deEstacion : this._poolAndaluz();
         let frase = pool[Math.floor(Math.random() * pool.length)];
         if (t !== null && frase.indexOf('{t}') >= 0) {
           const g = Math.round(t);
@@ -8842,27 +9011,32 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         return frase;
       }
       _elegirFraseGeneral(est) {
-        const generales = est === 'verano' ? this._frasesAndaluz
-          : this._frasesAndaluz.filter((f) => !/calor|solana|bochorno|derrit|flama|lorenzo|achicharra|tortilla|freidora/i.test(f));
-        const pool = generales.length ? generales : this._frasesAndaluz;
+        const banco = this._poolAndaluz();
+        const generales = est === 'verano' ? banco
+          : banco.filter((f) => !/calor|solana|bochorno|derrit|flama|lorenzo|achicharra|tortilla|freidora/i.test(f));
+        const pool = generales.length ? generales : banco;
         return pool[Math.floor(Math.random() * pool.length)];
       }
       _elegirFraseLugar(lugar) {
         const nombre = String(lugar.nombre || 'por aquí');
         const reco = lugar.reco ? this._recomendacionTexto(lugar.reco) : '';
+        const bancoLugar = this._enAndalucia() ? this._frasesLugar : this._frasesLugarCastellano;
+        const bancoReco = this._enAndalucia() ? this._recoPrompts : this._recoPromptsCastellano;
         let pool;
         if (reco) {
-          pool = this._frasesLugar.filter((f) => f.indexOf('{reco}') >= 0);
-          if (!pool.length) pool = this._frasesLugar;
+          pool = bancoLugar.filter((f) => f.indexOf('{reco}') >= 0);
+          if (!pool.length) pool = bancoLugar;
         } else {
-          pool = this._frasesLugar.filter((f) => f.indexOf('{reco}') < 0);
+          pool = bancoLugar.filter((f) => f.indexOf('{reco}') < 0);
         }
-        if (!pool.length) pool = this._frasesLugar;
+        if (!pool.length) pool = bancoLugar;
         let frase = pool[Math.floor(Math.random() * pool.length)];
         frase = frase.replace('{lugar}', nombre);
         // Si la frase lleva {reco} pero no hay recomendación, se sustituye por
-        // una coletilla andaluza neutra para que no quede hueco.
-        frase = frase.replace('{reco}', reco || 'y aquí no hay quien se pierda');
+        // una coletilla neutra para que no quede hueco.
+        frase = frase.replace('{reco}', reco || (this._enAndalucia()
+          ? 'y aquí no hay quien se pierda'
+          : 'y por aquí no se pierde nadie'));
         return frase;
       }
       _recomendacionTexto(reco) {
@@ -8870,7 +9044,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const nombre = String(reco.nombre || '').trim();
         const tipo = String(reco.tipo || 'sitio');
         const detalle = nombre ? `${tipo} llamado «${nombre}»` : `un ${tipo}`;
-        const plantilla = this._recoPrompts[Math.floor(Math.random() * this._recoPrompts.length)];
+        const bancoReco = this._enAndalucia() ? this._recoPrompts : this._recoPromptsCastellano;
+        const plantilla = bancoReco[Math.floor(Math.random() * bancoReco.length)];
         return plantilla.replace('{reco}', `cerca tienes ${detalle}, muy recomendable`);
       }
       _elegirFraseHora() {
@@ -8881,7 +9056,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           : hora < 12 ? 'mañana'
           : hora < 15 ? 'mediodía'
           : hora < 20 ? 'tarde' : 'noche';
-        const frases = this._frasesHora[franja];
+        const bancoHora = this._enAndalucia() ? this._frasesHora : this._frasesHoraCastellano;
+        const frases = bancoHora[franja] || bancoHora.mañana;
         const frase = frases[Math.floor(Math.random() * frases.length)];
         const horaTexto = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         const coletillas = [

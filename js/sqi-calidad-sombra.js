@@ -14,7 +14,9 @@
      - El SQI se guarda como PROPIEDAD del polígono de sombra (sqi, sqi_color,
        sqi_hora), nunca en la geometría del suelo.
      - Las llamadas a Open-Meteo son UNA por zona y hora (caché de 20 min),
-       nunca por polígono. Lo que cambia entre polígonos es solo el SVF.
+       nunca por polígono. Lo que cambia entre polígonos es el SVF y el
+       contexto de calle (vías, verde, cañón), que sale de las teselas
+       vectoriales YA cargadas: cero descargas nuevas por polígono.
      - Cálculo en lotes de 20 polígonos entre tandas, nunca de golpe. La UI
        nunca espera.
      - Cero errores en consola: fallo silencioso y la sombra queda como
@@ -22,14 +24,30 @@
      - No se toca la lógica geométrica de sombras: esto solo escucha los
        datos que la fuente 'sombras' ya publica.
 
-   Fórmula:
+   Fórmula (ajuste local tipo land use regression):
+     El valor base de DHI/PM2.5/AOD que da Open-Meteo/CAMS tiene resolución
+     de kilómetros: pintarlo igual en toda la ciudad miente, porque una
+     avenida con tráfico y una calle residencial a 100 m no respiran lo
+     mismo. Por eso el valor base se BAJA A CALLE con variables locales de
+     OpenStreetMap (método estándar en epidemiología ambiental):
+       via    = aporte de la vía más pesada cercana (jerarquía OSM) con
+                decaimiento exp(-d/75 m) y corte a 150 m.
+       verde  = cercanía a parques/masa verde OSM, exp(-d/70 m): limpia.
+       cañón  = 1 - SVF: calle estrecha entre edificios altos, atrapa más.
+       factorLocal = exp(b0 + b1·via - b2·verde + b3·cañón), acotado
+                entre 0.55 y 1.9. Los pesos b nacen como priors documentados
+                y se CALIBRAN con las estaciones reales de OpenAQ cuando hay
+                2 o más en la ciudad (regresión ridge contra el log del
+                cociente medición/base; con pocas estaciones los priors
+                apenas se mueven).
      SVF  = fracción de cielo visible en el centroide (0-1), con los
             edificios OSM ya cargados en el mapa, radio 100 m, 8 direcciones.
-     DHIef = DHI x SVF
+     DHIef = DHI x (1 + 0.5 x (factorLocal - 1)) x SVF
      SQI  = clamp(0, 100, 100 x (1 - DHIef / GHI))
      Si GHI <= 10 W/m2 o el sol está bajo el horizonte: estado "noche", sin
      teñir y con la vista deshabilitada.
-     AOD y PM2.5 NO entran en la fórmula: son dato y texto contextual.
+     AOD y PM2.5 siguen en el panel como dato de zona; lo que se baja a
+     calle es el factor que modula la difusa (y por tanto el color).
 
    Colores (paleta del sistema):
      85-100 efectiva  verde  #00B98A (var(--breath-good))
@@ -44,13 +62,22 @@
 
   var S = {
     map: null,
-    capaEdificios: null,     // id de la capa fill-extrusion de edificios
+    capaEdificios: null,     // { id, source, sourceLayer } de la capa fill-extrusion
     pintando: false,         // true mientras un setData propio está en vuelo
     calculando: false,
     horaKey: '',             // yyyy-MM-ddTHH de la última tanda aplicada
     sigGeometria: '',        // firma de la colección (nº de features)
-    cacheSvf: new Map(),     // key polígono -> { geoKey, svf }
+    cacheSvf: new Map(),     // key polígono -> svf
+    cacheFactor: new Map(),  // key polígono -> factor local (LUR)
     cacheApi: new Map(),     // zona+hora -> { ts, datos }
+    cacheEstaciones: new Map(), // zona -> { ts, lista } estaciones OpenAQ
+    contextoCalle: null,     // vías + verde de las teselas ya cargadas
+    ctxEstaciones: null,     // { clave, ctx } contexto OSM de las estaciones
+    pesos: { b0: 0, b1: 0.45, b2: 0.35, b3: 0.30 }, // priors; OpenAQ los calibra
+    pesosCalibrados: 0,      // nº de estaciones que calibraron (0 = priors)
+    calibrando: false,
+    calibracionZona: '',
+    calibracionTs: 0,
     ultimosMeteo: null,      // última respuesta buena (para la UI)
     rafProgramado: false,
     timerReevaluacion: null,
@@ -62,6 +89,24 @@
   var LOTE = 20;                    // polígonos por tanda
   var TTL_CACHE = 20 * 60 * 1000;   // 20 minutos
   var RETRASO_REEVALUACION = 40000; // se repasa la hora cada 40 s
+
+  // Ajuste local calle a calle (land use regression). Las magnitudes están
+  // tomadas de la literatura LUR urbana: la pluma de una vía con tráfico cae
+  // dentro de los primeros 50-150 m y el verde próximo reduce la acumulación
+  // local. Son PRIORS acotados, no mediciones: cuando OpenAQ tiene 2 o más
+  // estaciones en la ciudad, los pesos se recalibran con sus lecturas.
+  var LUR = {
+    RADIO_VIA: 150,          // corte: más lejos, la vía ya no suma
+    DECAIMIENTO_VIA: 75,     // exp(-d/75)
+    RADIO_VERDE: 150,
+    DECAIMIENTO_VERDE: 70,   // exp(-d/70)
+    CELDA_GRILLA: 0.0018,    // ~200 m: índice espacial del contexto
+    MAX_VIAS: 6000,          // tope de segmentos indexados por vista
+    PRIOR: { b0: 0, b1: 0.45, b2: 0.35, b3: 0.30 },
+    FACTOR_MIN: 0.55,
+    FACTOR_MAX: 1.9
+  };
+  var OPENAQ_TTL = 30 * 60 * 1000; // las estaciones no se repiden en media hora
 
   /* ---------------------------------------------------------------------
      Utilidades
@@ -246,13 +291,19 @@
   function detectarCapaEdificios() {
     try {
       var capas = S.map.getStyle().layers || [];
+      var empaquetar = function (c) {
+        // querySourceFeatures necesita el id de la FUENTE y el source-layer,
+        // no el id de la capa (antes se le pasaba el id de capa y la
+        // consulta fallaba en silencio: todos los SVF salían 1 = plano).
+        return { id: c.id, source: c.source, sourceLayer: c['source-layer'] || null };
+      };
       for (var i = 0; i < capas.length; i++) {
-        if (capas[i].type === 'fill-extrusion' && /building/i.test(capas[i].id)) return capas[i].id;
+        if (capas[i].type === 'fill-extrusion' && /building/i.test(capas[i].id)) return empaquetar(capas[i]);
       }
       // Respaldo: cualquier fill-extrusion (la capa de edificios es la única
-      // extrusión de la app).
+      // extrusión del estilo base).
       for (var j = 0; j < capas.length; j++) {
-        if (capas[j].type === 'fill-extrusion') return capas[j].id;
+        if (capas[j].type === 'fill-extrusion') return empaquetar(capas[j]);
       }
     } catch (e) { }
     return null;
@@ -260,12 +311,13 @@
 
   function svfDeCentroide(centro, claveGeo) {
     var cacheado = S.cacheSvf.get(claveGeo);
-    if (cacheado) return cacheado;
+    if (cacheado != null) return cacheado;
 
     var vistos = {}, candidatos = [];
     try {
-      if (S.capaEdificios) {
-        var feats = S.map.querySourceFeatures(S.capaEdificios) || [];
+      if (S.capaEdificios && S.capaEdificios.source) {
+        var opciones = S.capaEdificios.sourceLayer ? { sourceLayer: S.capaEdificios.sourceLayer } : undefined;
+        var feats = S.map.querySourceFeatures(S.capaEdificios.source, opciones) || [];
         for (var i = 0; i < feats.length; i++) {
           var f = feats[i];
           var p = f.properties || {};
@@ -326,6 +378,408 @@
       if (f.geometry.type === 'Polygon') n = coords[0].length;
       return primero[0].toFixed(6) + ',' + primero[1].toFixed(6) + ':' + n;
     } catch (e) { return 'f' + idx; }
+  }
+
+  /* ---------------------------------------------------------------------
+     CONTEXTO DE CALLE (land use regression)
+     Las variables locales salen de las teselas vectoriales que el mapa YA
+     tiene cargadas (misma fuente que los edificios): capa 'transportation'
+     para la jerarquía de vías y 'landcover'/'park' para la masa verde.
+     Se construye UNA vez por vista (firma = bounds + zoom) con un índice
+     espacial de rejilla; cada polígono solo consulta sus 9 celdas. Nada se
+     descarga por polígono.
+     --------------------------------------------------------------------- */
+  function pesoViaDeClase(clase) {
+    switch (clase) {
+      case 'motorway': case 'trunk': return 1.0;
+      case 'primary': return 0.85;
+      case 'secondary': return 0.6;
+      case 'tertiary': return 0.45;
+      case 'unclassified': case 'residential': return 0.2;
+      case 'living_street': case 'pedestrian': return 0.1;
+      case 'service': case 'track': case 'path':
+      case 'footway': case 'cycleway': case 'steps': return 0.05;
+      default: return 0; // ferrocarriles y resto: sin emisión de tráfico
+    }
+  }
+
+  function distPuntoSegmentoM(p, a, b, cosLat) {
+    // Equirectangular en metros: válida para distancias < 1 km.
+    var kx = 111320 * cosLat, ky = 110540;
+    var ax = a[0] * kx, ay = a[1] * ky;
+    var bx = b[0] * kx, by = b[1] * ky;
+    var px = p[0] * kx, py = p[1] * ky;
+    var dx = bx - ax, dy = by - ay;
+    var largo2 = dx * dx + dy * dy;
+    var t = largo2 > 0 ? clamp(((px - ax) * dx + (py - ay) * dy) / largo2, 0, 1) : 0;
+    var cx = ax + t * dx, cy = ay + t * dy;
+    return Math.sqrt((px - cx) * (px - cx) + (py - cy) * (py - cy));
+  }
+
+  function puntoEnAnillo(p, anillo) {
+    var dentro = false;
+    for (var i = 0, j = anillo.length - 1; i < anillo.length; j = i++) {
+      var xi = anillo[i][0], yi = anillo[i][1], xj = anillo[j][0], yj = anillo[j][1];
+      if (((yi > p[1]) !== (yj > p[1])) && (p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi)) dentro = !dentro;
+    }
+    return dentro;
+  }
+
+  function construirGrilla(ctx) {
+    var celda = LUR.CELDA_GRILLA;
+    var i, j;
+    for (i = 0; i < ctx.vias.length; i++) {
+      var pts = ctx.vias[i].puntos;
+      var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (j = 0; j < pts.length; j++) {
+        if (pts[j][0] < minX) minX = pts[j][0];
+        if (pts[j][0] > maxX) maxX = pts[j][0];
+        if (pts[j][1] < minY) minY = pts[j][1];
+        if (pts[j][1] > maxY) maxY = pts[j][1];
+      }
+      // +1 celda de margen: la vía debe encontrarse aunque el punto caiga en
+      // la celda vecina (el radio de influencia es menor que la celda).
+      var c0x = Math.floor(minX / celda) - 1, c1x = Math.floor(maxX / celda) + 1;
+      var c0y = Math.floor(minY / celda) - 1, c1y = Math.floor(maxY / celda) + 1;
+      for (var cx = c0x; cx <= c1x; cx++) {
+        for (var cy = c0y; cy <= c1y; cy++) {
+          var clave = cx + ',' + cy;
+          var entrada = ctx.grilla.get(clave);
+          if (!entrada) { entrada = { vias: [], verdes: [] }; ctx.grilla.set(clave, entrada); }
+          entrada.vias.push(i);
+        }
+      }
+    }
+    for (i = 0; i < ctx.verdes.length; i++) {
+      var anillo = ctx.verdes[i];
+      var mX = Infinity, mY = Infinity, MX = -Infinity, MY = -Infinity;
+      for (j = 0; j < anillo.length; j++) {
+        if (anillo[j][0] < mX) mX = anillo[j][0];
+        if (anillo[j][0] > MX) MX = anillo[j][0];
+        if (anillo[j][1] < mY) mY = anillo[j][1];
+        if (anillo[j][1] > MY) MY = anillo[j][1];
+      }
+      var d0x = Math.floor(mX / celda) - 1, d1x = Math.floor(MX / celda) + 1;
+      var d0y = Math.floor(mY / celda) - 1, d1y = Math.floor(MY / celda) + 1;
+      for (var gx = d0x; gx <= d1x; gx++) {
+        for (var gy = d0y; gy <= d1y; gy++) {
+          var clave2 = gx + ',' + gy;
+          var entrada2 = ctx.grilla.get(clave2);
+          if (!entrada2) { entrada2 = { vias: [], verdes: [] }; ctx.grilla.set(clave2, entrada2); }
+          entrada2.verdes.push(i);
+        }
+      }
+    }
+  }
+
+  function firmaVista() {
+    try {
+      var b = S.map.getBounds();
+      var z = Math.round(S.map.getZoom() * 2) / 2;
+      return [b.getWest().toFixed(2), b.getSouth().toFixed(2),
+        b.getEast().toFixed(2), b.getNorth().toFixed(2), z].join('|');
+    } catch (e) { return ''; }
+  }
+
+  function obtenerContextoCalle() {
+    var sig = firmaVista();
+    if (S.contextoCalle && S.contextoCalle.sig === sig) return S.contextoCalle;
+    var ctx = { sig: sig, vias: [], verdes: [], grilla: new Map(), cosLat: 0.8 };
+    try {
+      var centro = S.map.getCenter();
+      ctx.cosLat = Math.max(0.087, Math.cos(centro.lat * Math.PI / 180));
+      // Localiza en el estilo qué fuente vectorial sirve cada source-layer
+      // (el id de fuente no se adivina: se lee del propio estilo cargado).
+      var capas = S.map.getStyle().layers || [];
+      var fuentes = {};
+      for (var i = 0; i < capas.length; i++) {
+        var sl = capas[i]['source-layer'];
+        var src = capas[i].source;
+        if (!sl || !src) continue;
+        if (sl === 'transportation' || sl === 'landcover' || sl === 'park') {
+          fuentes[src + '|' + sl] = { source: src, sourceLayer: sl };
+        }
+      }
+      var vistosVia = {}, vistosVerde = {};
+      for (var k in fuentes) {
+        var f = fuentes[k];
+        var feats;
+        try { feats = S.map.querySourceFeatures(f.source, { sourceLayer: f.sourceLayer }) || []; }
+        catch (e) { continue; }
+        for (var n = 0; n < feats.length; n++) {
+          var ft = feats[n];
+          var p = ft.properties || {};
+          var geom = ft.geometry;
+          if (!geom) continue;
+          if (f.sourceLayer === 'transportation') {
+            var peso = pesoViaDeClase(p['class']);
+            if (peso <= 0) continue;
+            var lineas = geom.type === 'LineString' ? [geom.coordinates]
+              : (geom.type === 'MultiLineString' ? geom.coordinates : null);
+            if (!lineas) continue;
+            var idv = ft.id != null ? 'v' + ft.id : null;
+            if (idv && vistosVia[idv]) continue;
+            if (idv) vistosVia[idv] = true;
+            for (var li = 0; li < lineas.length; li++) {
+              if (lineas[li] && lineas[li].length >= 2) ctx.vias.push({ peso: peso, puntos: lineas[li] });
+            }
+            if (ctx.vias.length > LUR.MAX_VIAS) break;
+          } else {
+            // landcover / park: solo masa verde
+            var clase = p['class'] || '';
+            var esVerde = f.sourceLayer === 'park' ? true
+              : (clase === 'wood' || clase === 'grass' || clase === 'scrub' ||
+                 clase === 'wetland' || clase === 'meadow');
+            if (!esVerde) continue;
+            if (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon') continue;
+            var idg = ft.id != null ? 'g' + ft.id : null;
+            if (idg && vistosVerde[idg]) continue;
+            if (idg) vistosVerde[idg] = true;
+            var anillos = geom.type === 'Polygon' ? [geom.coordinates[0]]
+              : geom.coordinates.map(function (pg) { return pg[0]; });
+            for (var ai = 0; ai < anillos.length; ai++) {
+              if (anillos[ai] && anillos[ai].length >= 4) ctx.verdes.push(anillos[ai]);
+            }
+          }
+        }
+      }
+      construirGrilla(ctx);
+    } catch (e) { }
+    S.contextoCalle = ctx;
+    S.cacheFactor.clear(); // el contexto cambió: los factores viejos no valen
+    return ctx;
+  }
+
+  function puntuacionVia(p, ctx) {
+    if (!ctx || !ctx.vias.length) return 0;
+    var celda = LUR.CELDA_GRILLA;
+    var cx = Math.floor(p[0] / celda), cy = Math.floor(p[1] / celda);
+    var mejor = 0;
+    for (var dx = -1; dx <= 1; dx++) {
+      for (var dy = -1; dy <= 1; dy++) {
+        var entrada = ctx.grilla.get((cx + dx) + ',' + (cy + dy));
+        if (!entrada) continue;
+        for (var k = 0; k < entrada.vias.length; k++) {
+          var v = ctx.vias[entrada.vias[k]];
+          var dMin = Infinity;
+          for (var j = 0; j < v.puntos.length - 1; j++) {
+            var d = distPuntoSegmentoM(p, v.puntos[j], v.puntos[j + 1], ctx.cosLat);
+            if (d < dMin) dMin = d;
+            if (dMin < 2) break;
+          }
+          if (dMin > LUR.RADIO_VIA) continue;
+          // Manda la vía DOMINANTE (la de mayor aporte), no la suma: una
+          // esquina entre dos avenidas no contamina el doble.
+          var contrib = v.peso * Math.exp(-dMin / LUR.DECAIMIENTO_VIA);
+          if (contrib > mejor) mejor = contrib;
+        }
+      }
+    }
+    return mejor;
+  }
+
+  function puntuacionVerde(p, ctx) {
+    if (!ctx || !ctx.verdes.length) return 0;
+    var celda = LUR.CELDA_GRILLA;
+    var cx = Math.floor(p[0] / celda), cy = Math.floor(p[1] / celda);
+    var dMin = Infinity;
+    for (var dx = -1; dx <= 1; dx++) {
+      for (var dy = -1; dy <= 1; dy++) {
+        var entrada = ctx.grilla.get((cx + dx) + ',' + (cy + dy));
+        if (!entrada) continue;
+        for (var k = 0; k < entrada.verdes.length; k++) {
+          var anillo = ctx.verdes[entrada.verdes[k]];
+          if (puntoEnAnillo(p, anillo)) return 1; // dentro del parque
+          for (var j = 0; j < anillo.length - 1; j++) {
+            var d = distPuntoSegmentoM(p, anillo[j], anillo[j + 1], ctx.cosLat);
+            if (d < dMin) dMin = d;
+          }
+        }
+      }
+    }
+    if (!isFinite(dMin) || dMin > LUR.RADIO_VERDE) return 0;
+    return Math.exp(-dMin / LUR.DECAIMIENTO_VERDE);
+  }
+
+  // factorLocal: multiplicador del fondo regional para ESTE punto.
+  // exp(b0 + b1·via - b2·verde + b3·cañón), acotado. Los pesos son los
+  // priors salvo que OpenAQ los haya calibrado para esta ciudad.
+  function factorLocalDe(p, svf, claveGeo) {
+    var cacheado = S.cacheFactor.get(claveGeo);
+    if (cacheado != null) return cacheado;
+    var factor = 1;
+    try {
+      var ctx = obtenerContextoCalle();
+      var via = puntuacionVia(p, ctx);
+      var verde = puntuacionVerde(p, ctx);
+      var canon = clamp(1 - (svf != null && isFinite(svf) ? svf : 1), 0, 1);
+      var w = S.pesos;
+      factor = clamp(Math.exp(w.b0 + w.b1 * via - w.b2 * verde + w.b3 * canon),
+        LUR.FACTOR_MIN, LUR.FACTOR_MAX);
+    } catch (e) { factor = 1; }
+    if (S.cacheFactor.size > 900) S.cacheFactor.clear();
+    S.cacheFactor.set(claveGeo, factor);
+    return factor;
+  }
+
+  /* ---------------------------------------------------------------------
+     CALIBRACIÓN CON ESTACIONES REALES (OpenAQ vía worker /openaq-estaciones)
+     Cuando una ciudad tiene 2 o más estaciones con PM2.5 reciente, se
+     compara la lectura real de cada una con el valor base de Open-Meteo y
+     se ajustan los pesos del factor local (regresión ridge sobre
+     log(medición/base) contra los predictores via/verde, con priors como
+     ancla: con 2-10 estaciones el ajuste corrige sin sobreajustar).
+     El contexto OSM de las estaciones (que suelen caer fuera de la vista)
+     se pide con UNA consulta Overpass agregada por ciudad, no una por
+     estación. Sin clave OpenAQ, sin estaciones o con la consulta caída:
+     los priors siguen y el mapa funciona igual. Silencio total en consola.
+     --------------------------------------------------------------------- */
+  function postOverpass(query) {
+    var ctl;
+    try { ctl = new AbortController(); } catch (e) { ctl = null; }
+    var timer = ctl ? setTimeout(function () { try { ctl.abort(); } catch (e) { } }, 30000) : null;
+    var opciones = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: 'data=' + encodeURIComponent(query)
+    };
+    if (ctl) opciones.signal = ctl.signal;
+    return fetch('/arboles', opciones).then(function (r) {
+      if (timer) clearTimeout(timer);
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).catch(function () {
+      if (timer) clearTimeout(timer);
+      return null; // fallo silencioso: se quedan los priors
+    });
+  }
+
+  function estacionesDeZona(lat, lon) {
+    var clave = lat.toFixed(1) + ',' + lon.toFixed(1);
+    var enCache = S.cacheEstaciones.get(clave);
+    if (enCache && Date.now() - enCache.ts < OPENAQ_TTL) return Promise.resolve(enCache.lista);
+    var url = '/openaq-estaciones?lat=' + lat.toFixed(3) + '&lon=' + lon.toFixed(3) + '&radio=25000';
+    return fetchConReintentos(url, 0).then(function (d) {
+      var lista = d && d.estaciones ? d.estaciones : [];
+      S.cacheEstaciones.set(clave, { ts: Date.now(), lista: lista });
+      return lista;
+    });
+  }
+
+  // Contexto OSM de las estaciones: una sola consulta Overpass con todas.
+  function contextoDeEstaciones(estaciones, latRef) {
+    var clave = estaciones.map(function (e) { return e.id; }).join('-');
+    if (S.ctxEstaciones && S.ctxEstaciones.clave === clave) {
+      return Promise.resolve(S.ctxEstaciones.ctx);
+    }
+    var partes = [];
+    for (var i = 0; i < estaciones.length; i++) {
+      var e = estaciones[i];
+      partes.push('way["highway"~"motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|pedestrian|service"](around:400,' + e.lat + ',' + e.lon + ');');
+      partes.push('way["landuse"~"grass|park|forest|meadow|recreation_ground|village_green"](around:250,' + e.lat + ',' + e.lon + ');');
+      partes.push('way["leisure"~"park|garden|green"](around:250,' + e.lat + ',' + e.lon + ');');
+    }
+    var query = '[out:json][timeout:25];(' + partes.join('') + ');out geom;';
+    return postOverpass(query).then(function (datos) {
+      if (!datos || !datos.elements) return null;
+      var ctx = { sig: 'ovp', vias: [], verdes: [], grilla: new Map(), cosLat: Math.max(0.087, Math.cos(latRef * Math.PI / 180)) };
+      for (var i = 0; i < datos.elements.length; i++) {
+        var el = datos.elements[i];
+        if (el.type !== 'way' || !el.geometry || el.geometry.length < 2) continue;
+        var puntos = [];
+        for (var j = 0; j < el.geometry.length; j++) {
+          puntos.push([el.geometry[j].lon, el.geometry[j].lat]);
+        }
+        var tags = el.tags || {};
+        if (tags.highway) {
+          var peso = pesoViaDeClase(tags.highway);
+          if (peso > 0) ctx.vias.push({ peso: peso, puntos: puntos });
+        } else if ((tags.landuse || tags.leisure) && puntos.length >= 3) {
+          ctx.verdes.push(puntos);
+        }
+      }
+      construirGrilla(ctx);
+      S.ctxEstaciones = { clave: clave, ctx: ctx };
+      return ctx;
+    });
+  }
+
+  // Ridge 3x3: minimiza Σ(y - Xw)² + Σ λk·(wk - prior_k)².
+  function resolverRidge3(X, y, prior, lam) {
+    var n = 3;
+    var A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    var b = [0, 0, 0];
+    for (var i = 0; i < X.length; i++) {
+      for (var r = 0; r < n; r++) {
+        b[r] += X[i][r] * y[i];
+        for (var c = 0; c < n; c++) A[r][c] += X[i][r] * X[i][c];
+      }
+    }
+    for (var k = 0; k < n; k++) { A[k][k] += lam[k]; b[k] += lam[k] * prior[k]; }
+    for (var col = 0; col < n; col++) {
+      var piv = col;
+      for (var f = col + 1; f < n; f++) if (Math.abs(A[f][col]) > Math.abs(A[piv][col])) piv = f;
+      if (Math.abs(A[piv][col]) < 1e-9) return null;
+      if (piv !== col) {
+        var tmpA = A[piv]; A[piv] = A[col]; A[col] = tmpA;
+        var tmpB = b[piv]; b[piv] = b[col]; b[col] = tmpB;
+      }
+      for (var f2 = col + 1; f2 < n; f2++) {
+        var fac = A[f2][col] / A[col][col];
+        for (var c2 = col; c2 < n; c2++) A[f2][c2] -= fac * A[col][c2];
+        b[f2] -= fac * b[col];
+      }
+    }
+    var w = [0, 0, 0];
+    for (var r2 = n - 1; r2 >= 0; r2--) {
+      var s = b[r2];
+      for (var c3 = r2 + 1; c3 < n; c3++) s -= A[r2][c3] * w[c3];
+      w[r2] = s / A[r2][r2];
+    }
+    return w;
+  }
+
+  function calibrarPesosConEstaciones(pmBase, lat, lon) {
+    if (!isFinite(pmBase) || pmBase <= 0 || S.calibrando) return;
+    var claveZona = lat.toFixed(1) + ',' + lon.toFixed(1);
+    if (S.calibracionZona === claveZona && Date.now() - S.calibracionTs < OPENAQ_TTL) return;
+    // Se marca el intento ya: si no hay estaciones no se reintenta en media hora.
+    S.calibracionZona = claveZona;
+    S.calibracionTs = Date.now();
+    S.calibrando = true;
+    estacionesDeZona(lat, lon).then(function (lista) {
+      var validas = [];
+      for (var i = 0; i < lista.length; i++) {
+        var e = lista[i];
+        if (e && isFinite(e.lat) && isFinite(e.lon) && isFinite(e.pm25) && e.pm25 > 0 && e.pm25 < 500) {
+          validas.push(e);
+        }
+      }
+      if (validas.length < 2) return null; // sin estaciones suficientes: priors
+      return contextoDeEstaciones(validas, lat).then(function (ctx) {
+        if (!ctx) return;
+        var X = [], y = [];
+        for (var i = 0; i < validas.length; i++) {
+          var est = validas[i];
+          var p = [est.lon, est.lat];
+          X.push([1, puntuacionVia(p, ctx), puntuacionVerde(p, ctx)]);
+          y.push(Math.log(est.pm25 / pmBase));
+        }
+        var w = resolverRidge3(X, y, [LUR.PRIOR.b0, LUR.PRIOR.b1, LUR.PRIOR.b2], [0.5, 2, 2]);
+        if (!w) return;
+        S.pesos = {
+          b0: clamp(w[0], -0.4, 0.4),
+          b1: clamp(w[1], 0.05, 0.9),
+          b2: clamp(w[2], 0.0, 0.8),
+          b3: LUR.PRIOR.b3 // el cañón de una estación fuera de vista no se mide: prior
+        };
+        S.pesosCalibrados = validas.length;
+        S.cacheFactor.clear();
+        S.sigGeometria = ''; // fuerza el repintado con los pesos calibrados
+        programarEvaluacion();
+      });
+    }).then(function () { S.calibrando = false; })
+      .catch(function () { S.calibrando = false; });
   }
 
   /* ---------------------------------------------------------------------
@@ -407,6 +861,14 @@
 
       var noche = !solVisible(fecha, lat, lon) || !isFinite(ghi) || ghi === null || ghi <= 10;
 
+      // Calibración con estaciones reales de la ciudad (OpenAQ): una vez por
+      // zona cada media hora, en paralelo al pintado. Si trae pesos nuevos,
+      // se programa solo el repintado. Sin estaciones, los priors mandan.
+      var pmZona = idx >= 0 ? serie.pm[idx] : null;
+      if (!noche && isFinite(pmZona) && pmZona > 0) {
+        try { calibrarPesosConEstaciones(pmZona, lat, lon); } catch (e) { }
+      }
+
       if (!feats.length) {
         S.calculando = false;
         S.sigGeometria = sig;
@@ -474,11 +936,18 @@
               delete f2.properties.sqi_hora;
               continue;
             }
-            var dhiEf = dhi * svf;
+            // Ajuste local (LUR): la difusa sube donde el contexto de calle
+            // acumula más carga (vía pesada, cañón cerrado) y baja con verde.
+            // Amortiguada al 50%: la difusa responde a los aerosoles, pero
+            // menos que la concentración en superficie.
+            var factor = 1;
+            try { factor = factorLocalDe(centroide, svf, clave); } catch (e) { factor = 1; }
+            var dhiEf = dhi * (1 + 0.5 * (factor - 1)) * svf;
             var sqi = clamp(0, 100, Math.round(100 * (1 - dhiEf / ghi)));
             f2.properties.sqi = sqi;
             f2.properties.sqi_color = colorDeSqi(sqi);
             f2.properties.sqi_hora = hKey;
+            f2.properties.sqi_f = Math.round(factor * 100) / 100;
             svfMedio += svf; nSvf++;
             sumaSqi += sqi; nSqi++;
           } catch (e) { /* un polígono que falle no rompe la tanda */ }

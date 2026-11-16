@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MANOLIT AIRE, Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -1730,7 +1730,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     try {
       if (map.getLayer('capa-sombras')) {
         map.setPaintProperty('capa-sombras', 'fill-opacity', 0.34 * f);
-        map.setPaintProperty('capa-sombras', 'fill-color', colorSombra);
+        // La nube solo tiñe el color BASE: donde sqi-calidad-sombra.js ya
+        // pintó una sombra con su sqi_color (calidad calle a calle) ese
+        // color manda y no se pisa con un lavado uniforme.
+        map.setPaintProperty('capa-sombras', 'fill-color', ['coalesce', ['get', 'sqi_color'], colorSombra]);
       }
       if (map.getLayer('capa-sombras-halo')) {
         map.setPaintProperty('capa-sombras-halo', 'fill-opacity', 0.10 * f);

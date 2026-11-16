@@ -2725,7 +2725,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=hud-navegacion-20261102-a'))
+        .then(() => cargarScript('js/shadows-route.js?v=lur-calle-20261117-e'))
         .then(() => {
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
@@ -2755,7 +2755,7 @@
         // Calidad de sombra (SQI, nov-2026): último de la cadena. Tiñe las
         // sombras que ya dibuja el mapa según su calidad térmica y muestra
         // el resultado en el widget solar visible. Presentación pura.
-        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-widget-visible-20261117-d'))
+        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=lur-calle-20261117-e'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
       return cargaMapaSombrasPromise;
     }

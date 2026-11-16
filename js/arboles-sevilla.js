@@ -35,7 +35,12 @@
   if (window.__manolitoArbolesSevilla) return;
   window.__manolitoArbolesSevilla = true;
 
-  var GEOJSON_URL = 'data/arboles-inventario-sevilla.geojson';
+  // El GeoJSON vive comprimido (.gz) para poder desplegar en Cloudflare
+  // (límite de 25 MiB por asset). El worker lo sirve con Content-Encoding:
+  // gzip, así que el navegador lo descomprime de forma transparente.
+  // Fallback: si el worker no lo transforma, se descomprime aquí con
+  // DecompressionStream('gzip').
+  var GEOJSON_URL = 'data/arboles-inventario-sevilla.geojson.gz';
   // Bbox aproximado de Sevilla: fuera de aquí el inventario no existe y no
   // tiene sentido ni descargarlo ni mezclarlo (ahorra red en otras ciudades).
   var SEVILLA = { oeste: -6.12, este: -5.80, sur: 37.28, norte: 37.46 };
@@ -145,7 +150,14 @@
     if (estado.cargado) return Promise.resolve(true);
     if (estado.cargando) return estado.cargando;
     estado.cargando = fetch(GEOJSON_URL)
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        // Content-Encoding lo ya ha tratado el navegador; si no, gzip manual.
+        if ((r.headers.get('content-encoding') || '').indexOf('gzip') !== -1 ||
+            typeof r.json !== 'function') return r;
+        return descomprimirGzip(r);
+      })
+      .then(function (r) { return r instanceof Response ? r.json() : r; })
       .then(function (geo) { return aplicarGeojson(geo); })
       .catch(function (e) {
         console.warn('[arboles-sevilla] Inventario oficial no disponible:', e && e.message);
@@ -153,6 +165,18 @@
         return false;
       });
     return estado.cargando;
+  }
+
+  // Descompresión manual de gzip en navegadores con DecompressionStream
+  // (Chrome 80+, Safari 16.4+, Firefox 113+). Si no está, la capa oficial
+  // de árboles no carga y el resto de la app sigue igual que antes.
+  function descomprimirGzip(r) {
+    if (typeof DecompressionStream !== 'function') {
+      throw new Error('Descompresión gzip no disponible');
+    }
+    var ds = new DecompressionStream('gzip');
+    var resp = new Response(r.body.pipeThrough(ds));
+    return resp;
   }
 
   function aplicarGeojson(geo) {

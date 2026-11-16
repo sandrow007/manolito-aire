@@ -1280,6 +1280,91 @@ export default {
       }
     }
 
+    // --- Estaciones reales de calidad del aire (OpenAQ v3) para calibrar el
+    // ajuste local de contaminación del mapa de sombras. OpenAQ v3 exige
+    // clave (gratuita) en la cabecera X-API-Key: vive como secret del Worker
+    // (OPENAQ_API_KEY) y nunca toca el navegador. Sin clave o sin estaciones
+    // se devuelve una lista vacía etiquetada y el cliente sigue con sus
+    // pesos iniciales, sin ruido.
+    if (url.pathname === '/openaq-estaciones') {
+      const vaciaOpenaq = (aviso) => new Response(JSON.stringify({ estaciones: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Proxy-Aviso': aviso, ...CORS_HEADERS }
+      });
+      try {
+        if (!env.OPENAQ_API_KEY) return vaciaOpenaq('sin-clave');
+        const lat = parseFloat(url.searchParams.get('lat'));
+        const lon = parseFloat(url.searchParams.get('lon'));
+        const radio = Math.min(25000, Math.max(1000, parseFloat(url.searchParams.get('radio')) || 25000));
+        if (!isFinite(lat) || !isFinite(lon)) return vaciaOpenaq('sin-parametros');
+        const cabOpenaq = { 'X-API-Key': env.OPENAQ_API_KEY, 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' };
+        const ctl = new AbortController();
+        const temporizador = setTimeout(() => ctl.abort(), 12000);
+        let rLoc;
+        try {
+          rLoc = await fetch(
+            `https://api.openaq.org/v3/locations?coordinates=${lat.toFixed(4)},${lon.toFixed(4)}&radius=${Math.round(radio)}&parameters_id=2&limit=100`,
+            { headers: cabOpenaq, signal: ctl.signal });
+        } finally {
+          clearTimeout(temporizador);
+        }
+        if (!rLoc.ok) return vaciaOpenaq('openaq-' + rLoc.status);
+        const datosLoc = await rLoc.json();
+        const crudos = (datosLoc && datosLoc.results) || [];
+        const cosLat = Math.max(0.087, Math.cos(lat * Math.PI / 180));
+        const dist2 = (l) => {
+          const dx = (l.coordinates.longitude - lon) * 111320 * cosLat;
+          const dy = (l.coordinates.latitude - lat) * 110540;
+          return dx * dx + dy * dy;
+        };
+        const candidatas = crudos
+          .filter((l) => l && l.coordinates &&
+            isFinite(l.coordinates.latitude) && isFinite(l.coordinates.longitude) &&
+            Array.isArray(l.sensors) && l.sensors.some((s) => s.parameter && s.parameter.id === 2))
+          .sort((a, b) => dist2(a) - dist2(b))
+          .slice(0, 10);
+        const ahora = Date.now();
+        const estaciones = await Promise.all(candidatas.map(async (l) => {
+          try {
+            const sensorPm = l.sensors.find((s) => s.parameter && s.parameter.id === 2);
+            const ctl2 = new AbortController();
+            const temporizador2 = setTimeout(() => ctl2.abort(), 8000);
+            let rUlt;
+            try {
+              rUlt = await fetch(`https://api.openaq.org/v3/locations/${l.id}/latest`,
+                { headers: cabOpenaq, signal: ctl2.signal });
+            } finally {
+              clearTimeout(temporizador2);
+            }
+            if (!rUlt.ok) return null;
+            const datosUlt = await rUlt.json();
+            const medidas = (datosUlt && datosUlt.results) || [];
+            const m = medidas.find((mm) => mm.sensorsId === sensorPm.id);
+            if (!m || !isFinite(m.value) || m.value <= 0 || m.value > 500) return null;
+            const fechaTxt = m.datetime && m.datetime.utc;
+            const fechaMs = Date.parse(fechaTxt || '');
+            // Dato viejo (más de 3 h): no calibra la situación actual.
+            if (!isFinite(fechaMs) || ahora - fechaMs > 3 * 3600 * 1000) return null;
+            return {
+              id: l.id,
+              nombre: l.name || '',
+              lat: l.coordinates.latitude,
+              lon: l.coordinates.longitude,
+              pm25: Math.round(m.value * 10) / 10,
+              fecha: fechaTxt,
+            };
+          } catch (e) { return null; }
+        }));
+        const limpias = estaciones.filter(Boolean);
+        return new Response(JSON.stringify({ estaciones: limpias }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Proxy-Aviso': limpias.length ? 'ok' : 'sin-datos', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return vaciaOpenaq('error');
+      }
+    }
+
     if (url.pathname === '/traduce') {
       const neutra = () => new Response(JSON.stringify({ ok: false, texto: '' }), {
         status: 200,
@@ -1316,6 +1401,28 @@ export default {
       } catch (err) {
         return neutra();
       }
+    }
+
+    // --- Assets .gz (geojson/csv comprimidos para cumplir el límite de
+    // 25 MiB por asset de Cloudflare). Se sirven tal cual con
+    // Content-Encoding: gzip y el Content-Type del archivo ORIGINAL,
+    // para que el navegador los descomprima de forma transparente.
+    const rutaUrl = url.pathname;
+    if (/\.(geojson|csv|json)\.gz$/i.test(rutaUrl)) {
+      const gzResp = await env.ASSETS.fetch(new Request(new URL(rutaUrl, url), request));
+      if (gzResp && gzResp.status < 400) {
+        const gzHeaders = new Headers(gzResp.headers);
+        const tipoOriginal = rutaUrl.toLowerCase().endsWith('.csv.gz')
+          ? 'text/csv; charset=utf-8'
+          : rutaUrl.toLowerCase().endsWith('.json.gz')
+            ? 'application/json; charset=utf-8'
+            : 'application/geo+json; charset=utf-8';
+        gzHeaders.set('Content-Type', tipoOriginal);
+        gzHeaders.set('Content-Encoding', 'gzip');
+        gzHeaders.set('Cache-Control', 'public, max-age=86400');
+        return new Response(gzResp.body, { status: gzResp.status, headers: gzHeaders });
+      }
+      // Si el .gz no existe, cae al manejo normal (404) abajo.
     }
 
     const respuesta = await env.ASSETS.fetch(request);

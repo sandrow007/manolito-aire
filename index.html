@@ -1379,14 +1379,6 @@
          en el mapa, en texto ordenado, con lectura por voz (TTS del propio
          navegador, sin servicios externos). Pensado para personas ciegas o
          con baja visión, y útil para cualquiera. -->
-    <section id="rsPasosSection" class="rs-pasos" aria-labelledby="rsPasosTitulo" hidden>
-      <div class="rs-pasos-cabecera">
-        <h3 id="rsPasosTitulo" data-i18n="stepsTitle">Indicaciones paso a paso</h3>
-        <button id="rsBtnEscucharPasos" type="button" class="rs-btn-escuchar" aria-pressed="false" data-i18n="stepsListen">Escuchar indicaciones</button>
-      </div>
-      <ol id="rsListaPasos" class="rs-lista-pasos"></ol>
-    </section>
-
 <div class="map-wrap">
 <div class="rs-form">
   <!-- Selector de modo del buscador UNIFICADO (nov-2026): un solo par de
@@ -1397,15 +1389,24 @@
   <div class="rs-modo-ruta" id="rsModoRuta" role="group" data-i18n-aria-label="modoRutaLabel" aria-label="Modo de ruta">
     <button type="button" data-modo-ruta="caminar" class="activa" aria-pressed="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4.2" r="1.7"/><path d="M13 7.5 10.2 9 8.8 13.2M13 7.5l2.6 2.2 2.1 1.3M13 7.5l-.6 5.2-2.6 6.3M13 7.5l1.7 5 1.6 6.5"/></svg>
-      <span data-i18n="modoCaminar">A pie</span>
+      <span class="rs-modo-textos">
+        <span data-i18n="modoCaminar">A pie</span>
+        <small class="rs-modo-resumen" id="rsResumenCaminar"></small>
+      </span>
     </button>
     <button type="button" data-modo-ruta="bici" aria-pressed="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="16" r="3"/><circle cx="18" cy="16" r="3"/><path d="M6 16l3-6 5 2 3 3M14 10l-1.5 2"/></svg>
-      <span data-i18n="modoBici">Bici</span>
+      <span class="rs-modo-textos">
+        <span data-i18n="modoBici">Bici</span>
+        <small class="rs-modo-resumen" id="rsResumenBici"></small>
+      </span>
     </button>
     <button type="button" data-modo-ruta="coche" aria-pressed="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-3l1.8-5h12.4L20 13v3"/><path d="M4 16h16"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/><path d="M9.3 16.5h5.4"/></svg>
-      <span data-i18n="modoCoche">Coche</span>
+      <span class="rs-modo-textos">
+        <span data-i18n="modoCoche">Coche</span>
+        <small class="rs-modo-resumen" id="rsResumenCoche"></small>
+      </span>
     </button>
   </div>
 <div class="rs-barra">
@@ -1415,6 +1416,7 @@
     <ul class="rs-sugerencias" id="rsSugerenciasOrigen" role="listbox" data-i18n-aria-label="origin" aria-label="Origen"></ul>
   </div>
   <div class="rs-vdiv" aria-hidden="true"></div>
+  <button type="button" id="rsBtnInvertirRuta" class="rs-invertir-ruta" data-i18n-aria-label="reverseRoute" aria-label="Invertir origen y destino" title="Invertir origen y destino"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-3-3M17 17H4l3 3"/><path d="M20 7l-3 3M4 17l3-3"/></svg></button>
   <div class="rs-field">
     <label for="rsDestino" class="visually-hidden" data-i18n="destiny">Destino</label>
     <input type="text" id="rsDestino" name="destino" placeholder="Punto de destino" data-i18n-placeholder="destinationPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasDestino" aria-autocomplete="list">
@@ -1436,6 +1438,17 @@
 </div>
 </div>
   <div id="shadowRouteMap">
+  <!-- Indicaciones paso a paso DENTRO del mapa (nov-2026): nace pegado
+       ABAJO, justo encima del borde inferior del mapa, como una hoja
+       desplegable. No es parte del widget de sombras ni toca nada más:
+       solo se muestra cuando hay ruta calculada. -->
+  <section id="rsPasosSection" class="rs-pasos rs-pasos-en-mapa" aria-labelledby="rsPasosTitulo" hidden>
+    <div class="rs-pasos-cabecera">
+      <h3 id="rsPasosTitulo" data-i18n="stepsTitle"><svg id="rsPasosLogo" viewBox="0 0 260 340" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs><filter id="glowPasos" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g transform="translate(30,0)" filter="url(#glowPasos)"><g transform="rotate(18 100 160)"><path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="13" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="11"/><path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/><path d="M65,180 Q82.5,172 100,180 T135,180" fill="none" stroke="#00e5ff" stroke-width="9" stroke-linecap="round"/></g><text x="100" y="322" text-anchor="middle" fill="#06262b" font-family="system-ui,'Segoe UI',sans-serif" font-size="34" font-weight="800" letter-spacing="1">IR HASTA<tspan x="100" dy="38">AQUÍ</tspan></text><circle cx="46" cy="318" r="4" fill="#06262b"/><circle cx="62" cy="318" r="4" fill="#06262b"/><circle cx="154" cy="318" r="4" fill="#06262b"/><circle cx="170" cy="318" r="4" fill="#06262b"/></g></svg><span data-i18n="stepsTitle">Indicaciones paso a paso</span></h3>
+      <button id="rsBtnEscucharPasos" type="button" class="rs-btn-escuchar" aria-pressed="false" data-i18n="stepsListen">Escuchar indicaciones</button>
+    </div>
+    <ol id="rsListaPasos" class="rs-lista-pasos"></ol>
+  </section>
   </div>
 </div>
 

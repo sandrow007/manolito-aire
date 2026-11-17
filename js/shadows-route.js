@@ -3829,7 +3829,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // Por (sep-2026): NADA de armar solo el
       // modo «elegir en el mapa». El GPS se enciende, se calibra, planta
       // tu punto como origen y se apaga. Tú decides el siguiente paso.
+      // OJO: si el GPS ya estaba despierto (p. ej. el despertar silencioso
+      // que «Reiniciar» lanza con el permiso ya concedido), despertarGPS
+      // sale por la puerta rápida y la cámara no vuela. En ese caso el
+      // autozoom se hace aquí mismo con la última posición conocida.
+      const yaDespierto = gpsWatchId != null;
       despertarGPS(true);
+      if (yaDespierto) {
+        const ultimaConocida = window.__manolitUltimaPos;
+        if (ultimaConocida && isFinite(ultimaConocida.lat) && isFinite(ultimaConocida.lon)) {
+          map.flyTo({ center: [ultimaConocida.lon, ultimaConocida.lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
+        }
+      }
     });
 
     // Puente para el chat (sep-2026): el chip «¿Calculo tu ruta con sombra
@@ -4595,7 +4606,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             zoom: Math.min(17, Math.max(map.getZoom(), 16)),
             duration: 800
           });
-          map.fire('click', { lngLat: punto, __pulsacionLarga: true });
+          // originalEvent mínimo: MapLibre lo lee en su manejador interno de
+          // clic de marcadores (marker.ts _onMapClick) y sin él lanza
+          // «Cannot read properties of undefined (reading 'target')».
+          map.fire('click', { lngLat: punto, originalEvent: { target: lienzoMapa }, __pulsacionLarga: true });
         }, 1000);
       }, { passive: true });
       lienzoMapa.addEventListener('pointermove', (event) => {

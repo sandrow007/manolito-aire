@@ -2763,6 +2763,11 @@
           // Asegurar rutas bici en una llamada propia: un fallo en esta capa no
           // interrumpe el arranque de árboles, aire ni el planificador de coche.
           cargarRutasBici().catch((err) => console.error('No se ha podido cargar la capa de rutas en bici:', err));
+          // Inventario oficial de arbolado de Sevilla (datos abiertos del
+          // Ayuntamiento). Carga en paralelo y aditiva: shadows-route.js lo
+          // fusiona con los árboles de OSM ganando el oficial si chocan.
+          // Su fallo no detiene arboles-3d ni el resto de módulos.
+          cargarScript('js/arboles-sevilla.js?v=arboles-sevilla-20261117').catch((err) => console.error('No se ha podido cargar el inventario oficial de árboles:', err));
           return cargarScript('js/arboles-3d.js');
         })
         .then(() => cargarScript('js/irradiacion-solar.js'))

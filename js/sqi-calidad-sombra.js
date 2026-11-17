@@ -292,57 +292,73 @@
     try {
       var capas = S.map.getStyle().layers || [];
       var empaquetar = function (c) {
-        // querySourceFeatures necesita el id de la FUENTE y el source-layer,
-        // no el id de la capa (antes se le pasaba el id de capa y la
-        // consulta fallaba en silencio: todos los SVF salían 1 = plano).
         return { id: c.id, source: c.source, sourceLayer: c['source-layer'] || null };
       };
       for (var i = 0; i < capas.length; i++) {
         if (capas[i].type === 'fill-extrusion' && /building/i.test(capas[i].id)) return empaquetar(capas[i]);
       }
-      // Respaldo: cualquier fill-extrusion (la capa de edificios es la única
-      // extrusión del estilo base).
+      // Respaldo: cualquier fill-extrusion del estilo base (la capa de
+      // edificios). Las extrusiones propias (edificios-en-sombra, copas de
+      // árboles) usan fuentes geojson sin source-layer: se descartan.
       for (var j = 0; j < capas.length; j++) {
-        if (capas[j].type === 'fill-extrusion') return empaquetar(capas[j]);
+        if (capas[j].type === 'fill-extrusion' && capas[j]['source-layer']) return empaquetar(capas[j]);
       }
     } catch (e) { }
     return null;
+  }
+
+  // Instantánea de los edificios que proyectan sombra AHORA MISMO en
+  // pantalla. Se usa queryRenderedFeatures sobre la capa 3D — la misma vía
+  // que el motor de sombras — porque querySourceFeatures devuelve teselas
+  // viejas de la caché de la fuente y NO los edificios de la vista
+  // (medido: 141 devueltos, 0 dentro del encuadre → SVF siempre 1 = lavado
+  // uniforme). Una consulta por vista; cada polígono solo distancia al
+  // centroide precalculado.
+  function instantaneaEdificios() {
+    var sig = firmaVista();
+    if (S.edifSvf && S.edifSvf.sig === sig) return S.edifSvf.lista;
+    var lista = [];
+    try {
+      if (S.capaEdificios && S.capaEdificios.id && S.map.getLayer(S.capaEdificios.id)) {
+        var feats = S.map.queryRenderedFeatures({ layers: [S.capaEdificios.id] }) || [];
+        var vistos = {};
+        for (var i = 0; i < feats.length; i++) {
+          var f = feats[i];
+          var id = f.id != null ? f.id : null;
+          if (id != null && vistos[id]) continue;
+          if (id != null) vistos[id] = true;
+          var geom = f.geometry;
+          if (!geom) continue;
+          var partes;
+          try { partes = turf.flatten(turf.feature(geom)).features; } catch (e) { continue; }
+          for (var pi = 0; pi < partes.length; pi++) {
+            var c;
+            try { c = turf.centroid(partes[pi]).geometry.coordinates; } catch (e) { continue; }
+            lista.push({ c: c, h: alturaDe(f.properties || {}) });
+          }
+        }
+      }
+    } catch (e) { }
+    // La caché de SVF solo vale mientras la instantánea sea la misma.
+    if (!S.edifSvf || S.edifSvf.sig !== sig) S.cacheSvf.clear();
+    S.edifSvf = { sig: sig, lista: lista };
+    return lista;
   }
 
   function svfDeCentroide(centro, claveGeo) {
     var cacheado = S.cacheSvf.get(claveGeo);
     if (cacheado != null) return cacheado;
 
-    var vistos = {}, candidatos = [];
+    var candidatos = [];
     try {
-      if (S.capaEdificios && S.capaEdificios.source) {
-        var opciones = S.capaEdificios.sourceLayer ? { sourceLayer: S.capaEdificios.sourceLayer } : undefined;
-        var feats = S.map.querySourceFeatures(S.capaEdificios.source, opciones) || [];
-        for (var i = 0; i < feats.length; i++) {
-          var f = feats[i];
-          var p = f.properties || {};
-          var id = p.id || p['@id'] || p.osm_id ||
-            (f.id != null ? f.id : null);
-          if (id != null && vistos[id]) continue;
-          if (id != null) vistos[id] = true;
-          var geom = f.geometry;
-          if (!geom) continue;
-          // Centro del edificio con turf si hay; si no, el primer punto.
-          var c;
-          try {
-            c = turf.centroid(f).geometry.coordinates;
-          } catch (e) {
-            var ring = geom.type === 'Polygon' ? geom.coordinates[0] : (geom.coordinates[0] && geom.coordinates[0][0]);
-            if (!ring || !ring.length) continue;
-            c = ring[0];
-          }
-          var dx = (c[0] - centro[0]) * 111320 * Math.cos(centro[1] * Math.PI / 180);
-          var dy = (c[1] - centro[1]) * 110540;
-          var dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > RADIO_SVF || dist < 1) continue;
-          var h = alturaDe(p);
-          candidatos.push({ ang: Math.atan2(dy, dx), fracc: clamp(Math.atan2(h, dist) / (Math.PI / 2), 0, 1) });
-        }
+      var lista = instantaneaEdificios();
+      for (var i = 0; i < lista.length; i++) {
+        var e = lista[i];
+        var dx = (e.c[0] - centro[0]) * 111320 * Math.cos(centro[1] * Math.PI / 180);
+        var dy = (e.c[1] - centro[1]) * 110540;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > RADIO_SVF || dist < 1) continue;
+        candidatos.push({ ang: Math.atan2(dy, dx), fracc: clamp(Math.atan2(e.h, dist) / (Math.PI / 2), 0, 1) });
       }
     } catch (e) { }
 
@@ -948,6 +964,7 @@
             f2.properties.sqi_color = colorDeSqi(sqi);
             f2.properties.sqi_hora = hKey;
             f2.properties.sqi_f = Math.round(factor * 100) / 100;
+            f2.properties.sqi_svf = Math.round(svf * 100) / 100;
             svfMedio += svf; nSvf++;
             sumaSqi += sqi; nSqi++;
           } catch (e) { /* un polígono que falle no rompe la tanda */ }

@@ -152,12 +152,19 @@
     estado.cargando = fetch(GEOJSON_URL)
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        // Content-Encoding lo ya ha tratado el navegador; si no, gzip manual.
-        if ((r.headers.get('content-encoding') || '').indexOf('gzip') !== -1 ||
-            typeof r.json !== 'function') return r;
-        return descomprimirGzip(r);
+        return r.arrayBuffer();
       })
-      .then(function (r) { return r instanceof Response ? r.json() : r; })
+      .then(function (buf) {
+        // A prueba de servidores: algunos sirven el .gz ya descomprimido
+        // (content-encoding tratado por el navegador o el CDN) y otros lo
+        // dan crudo aunque la cabecera diga gzip. No nos fiamos de
+        // cabeceras: miramos los bytes mágicos 1F 8B.
+        var bytes = new Uint8Array(buf);
+        if (bytes.length > 2 && bytes[0] === 0x1F && bytes[1] === 0x8B) {
+          return descomprimirGzip(buf);
+        }
+        return JSON.parse(new TextDecoder().decode(bytes));
+      })
       .then(function (geo) { return aplicarGeojson(geo); })
       .catch(function (e) {
         console.warn('[arboles-sevilla] Inventario oficial no disponible:', e && e.message);
@@ -170,13 +177,12 @@
   // Descompresión manual de gzip en navegadores con DecompressionStream
   // (Chrome 80+, Safari 16.4+, Firefox 113+). Si no está, la capa oficial
   // de árboles no carga y el resto de la app sigue igual que antes.
-  function descomprimirGzip(r) {
+  function descomprimirGzip(buf) {
     if (typeof DecompressionStream !== 'function') {
       throw new Error('Descompresión gzip no disponible');
     }
     var ds = new DecompressionStream('gzip');
-    var resp = new Response(r.body.pipeThrough(ds));
-    return resp;
+    return new Response(new Response(buf).body.pipeThrough(ds)).json();
   }
 
   function aplicarGeojson(geo) {

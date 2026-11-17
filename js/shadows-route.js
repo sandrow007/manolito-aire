@@ -12616,8 +12616,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     window.manolitAireProgresoEstacion = () => progresoEstacion(obtenerHoraEfectiva());
     // Igual que manolitAireAlbizias pero con AMBAS especies con modelo 3D
     // (albizia + naranjo) y su tipo, para js/arboles-3d.js.
+    // EZ-TREE (nov-2026, ADITIVO): especies con modelo 3D procedural estilo
+    // ez-tree (dgreenheck, MIT) para coníferas y frondosas. Solo se AÑADEN
+    // tipos al filtro: la albizia y el naranjo siguen con SUS modelos de
+    // siempre, intactos, y el resto (palmera, cítricos, genéricos…) sigue
+    // con su extrusión plana de siempre.
+    const EZ_TIPOS_3D = new Set([
+      'pino', 'encina_roble', 'platanero', 'olmo', 'chopo', 'eucalipto',
+      'tipuana', 'jacaranda', 'morera', 'ficus', 'paraiso', 'ginkgo',
+    ]);
     window.manolitAireArboles3D = () => arbolesParaTodo()
-      .filter((a) => a.tipo === 'albizia' || a.tipo === 'naranjo')
+      .filter((a) => a.tipo === 'albizia' || a.tipo === 'naranjo' || EZ_TIPOS_3D.has(a.tipo))
       .map((a) => ({
         lon: a.punto.geometry.coordinates[0],
         lat: a.punto.geometry.coordinates[1],

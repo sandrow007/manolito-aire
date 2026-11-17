@@ -5571,11 +5571,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 4, 10, 8, 15, 12],
         'circle-color': ['match', ['get', 'estado'], 'good', AIRE_ES.colores.good, 'mid', AIRE_ES.colores.mid, 'bad', AIRE_ES.colores.bad, AIRE_ES.colores.unknown],
-        'circle-opacity': 0.85,
+        // A zoom de calle manda la superficie interpolada (aire-superficie.js);
+        // los puntos se atenúan pero siguen visibles y clicables (popup intacto).
+        // Hasta zoom 10 la opacidad es la de siempre (0,85): nada cambia.
+        'circle-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.85, 14, 0.35],
         'circle-stroke-width': 1.5,
         'circle-stroke-color': '#FBFAF7',
       },
     });
+    // Superficie continua interpolada (js/aire-superficie.js): se engancha a
+    // esta misma fuente, debajo de los círculos. Aditiva: si el módulo no
+    // cargó o falla, la capa de puntos sigue exactamente igual.
+    try { window.manolitAireSuperficie && window.manolitAireSuperficie.instalar(map, AIRE_ES); } catch (e) { }
     // Popup con el detalle al tocar un punto: mismo estilo que los marcadores.
     map.on('click', AIRE_ES.capaId, (ev) => {
       try {
@@ -5683,6 +5690,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (map.getLayer(AIRE_ES.capaId)) {
           map.setLayoutProperty(AIRE_ES.capaId, 'visibility', 'none');
         }
+        try { window.manolitAireSuperficie && window.manolitAireSuperficie.vis('none'); } catch (e) { }
         map.getSource(AIRE_ES.fuenteId)?.setData(turf.featureCollection([]));
         mostrarEstado(t('airLayerOffSpain', 'Capa de aire apagada, fuera de España no tenemos fuente fiable.'));
       }
@@ -5692,9 +5700,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (toggle.checked) {
         asegurarFuenteAire();
         map.setLayoutProperty(AIRE_ES.capaId, 'visibility', 'visible');
+        try { window.manolitAireSuperficie && window.manolitAireSuperficie.vis('visible'); } catch (e) { }
         refrescarAireEnVista();
       } else if (map.getLayer(AIRE_ES.capaId)) {
         map.setLayoutProperty(AIRE_ES.capaId, 'visibility', 'none');
+        try { window.manolitAireSuperficie && window.manolitAireSuperficie.vis('none'); } catch (e) { }
       }
     });
 

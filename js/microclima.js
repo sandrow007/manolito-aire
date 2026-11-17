@@ -310,6 +310,24 @@
   // Si esa hora está en la previsión se usa su dato horario; si está
   // más lejos (solsticios, otro día) se cae a la temperatura actual
   // y la leyenda ya dice que todo esto es una estimación por modelo.
+  // v5 (integración con el motor de sombras): para el MOMENTO ACTUAL la
+  // nubosidad es la MISMA que usa shadows-route.js (OpenWeatherMap vía
+  // /clima, expuesta en window.manolitAireNubosidad con escala 0..1; aquí
+  // se trabaja en 0..100), así el mismo cielo no da dos números distintos
+  // en sombras y en microclima. Sin llamadas nuevas: se lee el hook global.
+  // Para horas pasadas o futuras manda la previsión horaria de Open-Meteo,
+  // exactamente como hasta ahora.
+  function nubesAhoraUnificadas(respaldo) {
+    try {
+      if (typeof window.manolitAireNubosidad === 'function') {
+        const v = Number(window.manolitAireNubosidad());
+        if (isFinite(v)) return Math.max(0, Math.min(100, v * 100));
+      }
+    } catch (e) { /* hook ausente: se usa el respaldo de siempre */ }
+    return respaldo;
+  }
+  const esHoraActual = (horaMs) => Math.floor(horaMs / 3600000) === Math.floor(Date.now() / 3600000);
+
   function datosParaHora(horaMs) {
     const p = previsionCache;
     const celda = p.horas[Math.floor(horaMs / 3600000)];
@@ -318,14 +336,16 @@
       try { return (typeof window.manolitAireNubosidad === 'function') ? window.manolitAireNubosidad() : null; } catch (e) { return null; }
     };
     if (celda && isFinite(celda.t)) {
+      const nubesCelda = isFinite(celda.n) ? celda.n : nubesActuales();
       return {
         t: celda.t,
-        nubes: isFinite(celda.n) ? celda.n : nubesActuales(),
+        nubes: esHoraActual(horaMs) ? nubesAhoraUnificadas(nubesCelda) : nubesCelda,
         humedad: isFinite(celda.h) ? celda.h : (isFinite(p.actualH) ? p.actualH : null)
       };
     }
     if (p.actualT !== null && isFinite(p.actualT)) {
-      return { t: p.actualT, nubes: nubesActuales(), humedad: isFinite(p.actualH) ? p.actualH : null };
+      const nubesRespaldo = nubesActuales();
+      return { t: p.actualT, nubes: esHoraActual(horaMs) ? nubesAhoraUnificadas(nubesRespaldo) : nubesRespaldo, humedad: isFinite(p.actualH) ? p.actualH : null };
     }
     return null;
   }
@@ -370,6 +390,13 @@
     const c = mapa.getCenter();
     const solDisponible = typeof SunCalc !== 'undefined';
     const nubesEn = (ms) => {
+      // Misma unificación que datosParaHora: en la hora actual manda el
+      // valor del motor de sombras (0..100); en cualquier otra hora, la
+      // cadena de respaldo de siempre.
+      if (esHoraActual(ms)) {
+        const u = nubesAhoraUnificadas(null);
+        if (u !== null) return u;
+      }
       const cel = p.horas[Math.floor(ms / 3600000)];
       if (cel && isFinite(cel.n)) return cel.n;
       if (isFinite(p.actualN)) return p.actualN;

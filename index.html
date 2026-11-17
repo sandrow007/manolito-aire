@@ -2751,6 +2751,10 @@
       ])
         .then(() => cargarScript('js/shadows-route.js?v=fecha-widget-20261117-i'))
         .then(() => {
+          // Superficie continua de calidad del aire: módulo aditivo que se
+          // engancha a la fuente 'aire-es' cuando shadows-route la crea.
+          // Fallo silencioso: sin él, la capa de puntos sigue igual.
+          cargarScript('js/aire-superficie.js').catch(() => { });
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
           cargarScript('js/fuentes-agua.js?v=osm-map-capasyagua-20261020').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));

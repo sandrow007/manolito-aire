@@ -25,9 +25,9 @@
 </div>
 
 <div class="content">
-  <h1>Cómo se calcula</h1>
+  <h1 data-i18n-legal="met_tit">Cómo se calcula</h1>
 
-  <p>
+  <p data-i18n-legal="met_intro">
     No existe un sensor en cada calle de Sevilla. Ni en Bilbao, ni en Berlín, ni en ningún sitio.
     Lo que sí existen son dos tipos de datos que se pueden cruzar: datos públicos de satélites y
     estaciones oficiales que cubren zonas amplias, y datos muy precisos de cómo es cada calle,
@@ -37,8 +37,8 @@
     <strong>regresión por uso del suelo</strong>.
   </p>
 
-  <h2>La sombra y la radiación difusa</h2>
-  <p>
+  <h2 data-i18n-legal="met_s1t">La sombra y la radiación difusa</h2>
+  <p data-i18n-legal="met_s1p">
     La sombra geométrica bloquea el sol directo, pero no toda la radiación. En días con
     contaminación alta —polvo sahariano, smog urbano, inversión térmica— las partículas en
     suspensión dispersan la radiación en todas las direcciones, incluida hacia abajo dentro de
@@ -47,15 +47,15 @@
     Manolit∞ Aire: no si hay sombra, sino cuánto vale esa sombra en este momento y en este lugar.
   </p>
   <figure class="method-figure">
-    <img src="metodolgiasombra.svg" alt="Diagrama explicativo de la sombra y la radiación difusa">
-    <figcaption>
+    <img src="metodolgiasombra.svg" data-i18n-legal="met_imgalt" alt="Diagrama explicativo de la sombra y la radiación difusa">
+    <figcaption data-i18n-legal="met_cap">
       La sombra bloquea la radiación directa, pero la radiación difusa sigue llegando al interior
       de la sombra desde todas las direcciones.
     </figcaption>
   </figure>
 
-  <h2>Los parámetros del modelo</h2>
-  <p>
+  <h2 data-i18n-legal="met_s2t">Los parámetros del modelo</h2>
+  <p data-i18n-legal="met_s2p1">
     El modelo usa un coeficiente que pondera cuánto influye la contaminación local medida en
     superficie sobre la radiación difusa que llega dentro de la sombra. Ese coeficiente no es
     el mismo en todo el mundo: en una ciudad del sur peninsular con convección fuerte y episodios
@@ -63,7 +63,7 @@
     efecto es mayor. En el norte atlántico, el viento y la lluvia frecuente limpian el aire con
     rapidez y la difusa la domina la nubosidad, no el aerosol.
   </p>
-  <p>
+  <p data-i18n-legal="met_s2p2">
     Para reflejar esto, el modelo adapta ese coeficiente automáticamente según la zona climática
     del punto que estés consultando, determinada a partir de la clasificación Köppen-Geiger.
     Los valores por zona son <strong>parámetros elegidos a mano con justificación física
@@ -73,8 +73,8 @@
     completa en el repositorio del proyecto, sin cajas negras.
   </p>
 
-  <h2>Las fuentes de datos</h2>
-  <p>
+  <h2 data-i18n-legal="met_s3t">Las fuentes de datos</h2>
+  <p data-i18n-legal="met_s3p">
     Todo lo que usa Manolit∞ Aire es público, gratuito y auditable. La radiación solar y los
     datos de aerosoles vienen de Copernicus CAMS vía Open-Meteo. Las mediciones de calidad del
     aire en superficie vienen de OpenAQ, donde hay estaciones disponibles. La geometría de
@@ -82,8 +82,8 @@
     España vienen de AEMET OpenData. Ninguna fuente es de pago ni propietaria.
   </p>
 
-  <h2>Lo que esto no es</h2>
-  <p>
+  <h2 data-i18n-legal="met_s4t">Lo que esto no es</h2>
+  <p data-i18n-legal="met_s4p">
     Manolit∞ Aire no es un monitor oficial de calidad del aire. No sustituye los avisos de tu
     comunidad autónoma ni las recomendaciones de ninguna agencia de salud pública. Si tienes
     una condición respiratoria o necesitas datos certificados para tomar una decisión importante,
@@ -92,7 +92,7 @@
     responsabilidad de medirlo.
   </p>
 
-  <p>
+  <p data-i18n-legal="met_s5p">
     El código completo, con los parámetros documentados y su justificación, está disponible en el
     <a href="https://github.com/sandrow007/manolito-aire" target="_blank" rel="noopener">
     repositorio del proyecto</a>.
@@ -105,6 +105,7 @@
   <a href="cookies.html">Cookies</a>
 </div>
 
+<script src="js/i18n-legal.js?v=met-i18n-20261117"></script>
 <script src="js/theme.js"></script>
 </body>
 </html>

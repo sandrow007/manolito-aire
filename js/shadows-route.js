@@ -104,6 +104,31 @@
     paseoSuavizado: 0.12, // Inercia en el movimiento
   };
 
+  // Paleta arquitectónica cálida de los edificios 3D (modo normal):
+  // tonos tierra por altura en vez del azul de fábrica del estilo base,
+  // con degradado vertical (la azotea recibe más luz que la base).
+  // La usan tanto el pintado inicial (inicializarMapaListo) como el
+  // interruptor «Catastro 3D» al apagarse.
+  const COLOR_EDIFICIOS_NORMAL = [
+    'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 10],
+    0, '#d4c9c1',
+    30, '#bfb3a5',
+    70, '#a39685',
+    140, '#8c8276'
+  ];
+  // Gradiente de densidad del Catastro: verde (bajos) → amarillo →
+  // naranja → fucsia (torres). Se lee de un vistazo dónde se concentra
+  // la altura de la ciudad.
+  const COLOR_EDIFICIOS_CATASTRO = [
+    'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+    0, '#2f9e44',
+    12, '#8ac926',
+    25, '#ffca3a',
+    45, '#f3722c',
+    80, '#d6006d',
+    140, '#9d0060'
+  ];
+
   /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
   function t(clave, fallback) {
     try {
@@ -873,14 +898,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       CONFIG.edificiosLayerId = capaEdificios.id;
       capaEdificiosDisponible = true;
       try {
-        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', [
-          'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
-          0, '#8fb3e8',
-          30, '#5f8fd6',
-          70, '#3f6bc0',
-          140, '#274a96'
-        ]);
-        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-opacity', 0.93);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', COLOR_EDIFICIOS_NORMAL);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-opacity', 0.95);
         map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-vertical-gradient', true);
       } catch (e) {
         console.debug('No se ha podido aplicar el color vivo a los edificios:', e);
@@ -2656,11 +2675,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const factorNubLuz = 1 - nubosidadActual * 0.5;
     const grisNube = mezclarHex('#199EF3', '#8fa0b3', nubosidadActual * 0.85);
 
+    // Hora dorada: con el sol bajo (menos de 20°) la luz se calienta del
+    // blanco cálido del mediodía hacia el naranja del atardecer.
+    const calorSolar = Math.min(1, Math.max(0, (20 - alturaDeg) / 20));
+
+    // anchor 'map' (no 'viewport'): la luz queda fija respecto al norte
+    // del mapa, como las sombras proyectadas en el suelo que calcula el
+    // motor con el azimut real. Con 'viewport' las fachadas cambiarían de
+    // iluminación al rotar la cámara y dejarían de coincidir con ellas.
     map.setLight({
       anchor: 'map',
-      color: bajoHorizonte ? '#3a4a63' : '#fff6e6',
-      intensity: bajoHorizonte ? 0.15 : Math.min(1, (0.35 + alturaDeg / 90) * factorNubLuz),
-      position: [1.5, azimutDeg, polar],
+      color: bajoHorizonte ? '#3a4a63' : mezclarHex('#fff6e6', '#ff9955', calorSolar),
+      intensity: bajoHorizonte ? 0.15 : Math.min(1, (0.6 + (alturaDeg / 90) * 0.4) * factorNubLuz),
+      position: [1.15, azimutDeg, polar],
     });
 
     map.setSky({
@@ -5214,25 +5241,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const CAT_SRC = 'catastro-wms-base';
     const CAT_CAPA = 'catastro-wms-capa';
     let catastroActivo = false;
-    const COLOR_EDIFICIOS_NORMAL = [
-      'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
-      0, '#8fb3e8',
-      30, '#5f8fd6',
-      70, '#3f6bc0',
-      140, '#274a96'
-    ];
-    // Gradiente de densidad del Catastro: verde (bajos) → amarillo →
-    // naranja → fucsia (torres). Se lee de un vistazo dónde se concentra
-    // la altura de la ciudad.
-    const COLOR_EDIFICIOS_CATASTRO = [
-      'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
-      0, '#2f9e44',
-      12, '#8ac926',
-      25, '#ffca3a',
-      45, '#f3722c',
-      80, '#d6006d',
-      140, '#9d0060'
-    ];
+    // Las paletas de los edificios (COLOR_EDIFICIOS_NORMAL cálida y
+    // COLOR_EDIFICIOS_CATASTRO de densidad) viven a nivel de módulo,
+    // junto a CONFIG: las comparte el pintado inicial del estilo.
     const asegurarCapaCatastro = () => {
       try {
         if (!map.getSource(CAT_SRC)) {
@@ -12160,7 +12171,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             extrusión 3D (lo garantiza asegurarOrdenCapas() tras cada
             styledata: el edificio tapa físicamente la sombra al pintarse);
          2) la extrusión es prácticamente opaca (≥ 0,9; la web la fija a
-            0,93 al cargar el estilo, en los dos temas, porque el tema
+            0,95 al cargar el estilo, en los dos temas, porque el tema
             oscuro es un filtro CSS y no cambia el estilo del mapa).
        Cumplidas ambas, restar la huella no cambia ningún píxel visible ni
        el cálculo de rutas (las calles no atraviesan edificios: la parte

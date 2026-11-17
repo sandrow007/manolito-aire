@@ -838,7 +838,21 @@ export default {
           atardecer: d?.sys?.sunset ?? null,
           // Lluvia actual en mm/h (capa Lluvia del mapa). Campo nuevo y
           // aditivo: los clientes viejos simplemente lo ignoran.
-          lluvia_mm_h: isFinite(Number(d?.rain?.['1h'])) ? Number(d.rain['1h']) : 0,
+          // OWM solo rellena rain.1h cuando hay acumulado medido: la
+          // llovizna (ids 3xx) llega casi siempre SIN ese campo y la capa
+          // se quedaba muda con el parte diciendo «llovizna ligera». Si
+          // falta el dato pero el código de estado anuncia precipitación
+          // (2xx-5xx), se estima un mínimo según el id para que el mapa
+          // pueda dibujarla. Con nieve (6xx) o sin precipitación: 0.
+          lluvia_mm_h: (() => {
+            const medida = Number(d?.rain?.['1h']);
+            if (isFinite(medida) && medida > 0) return medida;
+            const idTiempo = Number(d?.weather?.[0]?.id) || 0;
+            if (idTiempo >= 200 && idTiempo < 300) return 2;   // tormenta
+            if (idTiempo >= 300 && idTiempo < 400) return 0.4; // llovizna
+            if (idTiempo >= 500 && idTiempo < 600) return 0.8; // lluvia sin acumulado
+            return 0;
+          })(),
         };
         return new Response(JSON.stringify(salida), {
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }

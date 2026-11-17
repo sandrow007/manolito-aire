@@ -115,24 +115,25 @@
         type: 'fill-extrusion',
         source: SRC,
         paint: {
-          // Mismo gradiente azul que los edificios OSM en modo normal;
-          // los de altura estimada (sin plantas) llevan un tono gris-azulado
-          // más claro para distinguirlos de lejos. OJO: fill-extrusion-opacity
+          // Misma paleta arquitectónica cálida que los edificios OSM en
+          // modo normal (ver COLOR_EDIFICIOS_NORMAL en shadows-route.js);
+          // los de altura estimada (sin plantas) llevan un gris cálido
+          // plano para distinguirlos de lejos. OJO: fill-extrusion-opacity
           // NO admite expresiones de datos en MapLibre (error de estilo), así
           // que la diferencia va en el color y la opacidad es fija.
           'fill-extrusion-color': [
             'case',
             ['==', ['get', 'est'], 1],
-            '#9fb6cf',
+            '#a89f91',
             [
-              'interpolate', ['linear'], ['get', 'h'],
-              0, '#8fb3e8',
-              30, '#5f8fd6',
-              70, '#3f6bc0',
-              140, '#274a96'
+              'interpolate', ['linear'], ['coalesce', ['get', 'h'], 10],
+              0, '#d4c9c1',
+              30, '#bfb3a5',
+              70, '#a39685',
+              140, '#8c8276'
             ]
           ],
-          'fill-extrusion-opacity': 0.9,
+          'fill-extrusion-opacity': 0.95,
           'fill-extrusion-height': ['get', 'h'],
           'fill-extrusion-base': 0,
           'fill-extrusion-vertical-gradient': true,

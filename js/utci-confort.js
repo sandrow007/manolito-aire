@@ -51,9 +51,16 @@
      Pa = presión de vapor de agua (kPa). */
 
   function presionVaporKPa(ta, rh) {
-    // Fórmula de Magnus: presión de saturación (hPa) y luego a kPa con la HR.
-    var es = 6.112 * Math.exp((17.62 * ta) / (243.12 + ta));
-    return Math.max(0, Math.min(100, rh)) / 100 * es / 10;
+    // Presión de saturación con la ecuación ESPECÍFICA del modelo UTCI
+    // (la del código Fortran original de www.utci.org, no Magnus): serie
+    // exponencial sobre kelvin con los coeficientes g de Bröde et al.
+    var G = [-2836.5744, -6028.076559, 19.54263612, -0.02737830188,
+      0.000016261698, 7.0229056e-10, -1.8680009e-13];
+    var tk = ta + 273.15;
+    var es = 2.7150305 * Math.log(tk);
+    for (var i = 0; i < G.length; i++) es += G[i] * Math.pow(tk, i - 2);
+    es = Math.exp(es) * 0.01; // de Pa a hPa
+    return Math.max(0, Math.min(100, rh)) / 100 * es / 10; // hPa -> kPa
   }
 
   function calcularUTCI(ta, tmrt, va, rh) {
@@ -198,7 +205,7 @@
       - 5.06004592e-06 * Ta * va * D2 * Pa
       + 1.14325367e-07 * Ta2 * va2 * D2 * Pa
       + 2.53016723e-06 * va2 * D2 * Pa
-      - 1.72857035e-06 * Ta * va2 * D2 * Pa
+      - 1.72857035e-08 * Ta * va2 * D2 * Pa
       - 3.95079398e-08 * va3 * D2 * Pa
       - 3.59413173e-07 * D3 * Pa
       + 7.04388046e-07 * Ta * D3 * Pa
@@ -211,11 +218,11 @@
       + 3.34678041e-10 * va * D4 * Pa
       - 1.15606447e-10 * D5 * Pa
       - 2.80626406e+00 * Pa2
-      + 5.48707484e-01 * Ta * Pa2
+      + 5.48712484e-01 * Ta * Pa2
       - 3.99428410e-03 * Ta2 * Pa2
       - 9.54009191e-04 * Ta3 * Pa2
       + 1.93090978e-05 * Ta4 * Pa2
-      - 3.08806391e-01 * va * Pa2
+      - 3.08806365e-01 * va * Pa2
       + 1.16952364e-02 * Ta * va * Pa2
       + 4.95271903e-04 * Ta2 * va * Pa2
       - 1.90710882e-05 * Ta3 * va * Pa2
@@ -234,7 +241,7 @@
       - 7.01199003e-06 * Ta2 * va * D * Pa2
       - 1.06823306e-04 * va2 * D * Pa2
       + 3.61341136e-06 * Ta * va2 * D * Pa2
-      + 2.29763167e-07 * va3 * D * Pa2
+      + 2.29748967e-07 * va3 * D * Pa2
       + 3.04788893e-04 * D2 * Pa2
       - 6.42070836e-05 * Ta * D2 * Pa2
       + 1.16257971e-06 * Ta2 * D2 * Pa2
@@ -250,35 +257,36 @@
       + 1.55126038e-02 * Ta2 * Pa3
       - 2.63917279e-04 * Ta3 * Pa3
       + 4.53433455e-02 * va * Pa3
-      - 4.17343836e-04 * Ta * va * Pa3
-      - 1.40879056e-03 * va2 * Pa3
-      + 3.53562758e-04 * Ta * va2 * Pa3
-      - 3.02318710e-06 * va3 * Pa3
-      - 1.07257952e-02 * D * Pa3
-      + 1.95689149e-03 * Ta * D * Pa3
-      - 2.24522160e-05 * Ta2 * D * Pa3
-      + 2.13458168e-05 * va * D * Pa3
-      - 7.15551469e-06 * Ta * va * D * Pa3
-      - 5.70034859e-06 * va2 * D * Pa3
-      - 5.22198865e-05 * D2 * Pa3
-      + 1.33406477e-05 * Ta * D2 * Pa3
-      - 2.31414541e-07 * va * D2 * Pa3
-      + 6.78073851e-07 * D3 * Pa3
-      - 9.18159848e-03 * Pa4
-      + 2.04326746e-02 * Ta * Pa4
-      - 1.17030739e-03 * Ta2 * Pa4
-      - 5.37570484e-04 * va * Pa4
-      + 8.80938008e-05 * Ta * va * Pa4
-      + 3.62071825e-05 * va2 * Pa4
-      + 2.04901517e-03 * D * Pa4
-      - 7.01364432e-05 * Ta * D * Pa4
-      - 8.52555352e-06 * va * D * Pa4
-      + 1.04867944e-05 * D2 * Pa4
-      + 2.28630882e-04 * Pa5
-      - 2.35491938e-04 * Ta * Pa5
-      + 3.54264814e-05 * va * Pa5
-      - 1.08679006e-04 * D * Pa5
-      - 9.31005375e-06 * Pa6;
+      - 4.32943862e-03 * Ta * va * Pa3
+      + 1.45389826e-04 * Ta2 * va * Pa3
+      + 2.17508610e-04 * va2 * Pa3
+      - 6.66724702e-05 * Ta * va2 * Pa3
+      + 3.33217140e-05 * va3 * Pa3
+      - 2.26921615e-03 * D * Pa3
+      + 3.80261982e-04 * Ta * D * Pa3
+      - 5.45314314e-09 * Ta2 * D * Pa3
+      - 7.96355448e-04 * va * D * Pa3
+      + 2.53458034e-05 * Ta * va * D * Pa3
+      - 6.31223658e-06 * va2 * D * Pa3
+      + 3.02122035e-04 * D2 * Pa3
+      - 4.77403547e-06 * Ta * D2 * Pa3
+      + 1.73825715e-06 * va * D2 * Pa3
+      - 4.09087898e-07 * D3 * Pa3
+      + 6.14155345e-01 * Pa4
+      - 6.16755931e-02 * Ta * Pa4
+      + 1.33374846e-03 * Ta2 * Pa4
+      + 3.55375387e-03 * va * Pa4
+      - 5.13027851e-04 * Ta * va * Pa4
+      + 1.02449757e-04 * va2 * Pa4
+      - 1.48526421e-03 * D * Pa4
+      - 4.11469183e-05 * Ta * D * Pa4
+      - 6.80434415e-06 * va * D * Pa4
+      - 9.77675906e-06 * D2 * Pa4
+      + 8.82773108e-02 * Pa5
+      - 3.01859306e-03 * Ta * Pa5
+      + 1.04452989e-03 * va * Pa5
+      + 2.47090539e-04 * D * Pa5
+      + 1.48348065e-03 * Pa6;
 
     return utci;
   }

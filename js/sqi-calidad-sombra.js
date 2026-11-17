@@ -1282,7 +1282,15 @@
     if (mini.parentElement !== root.parentElement) {
       root.parentElement.insertBefore(mini, root.nextSibling);
     }
-    var abierto = panel.classList.contains('o');
+    // AÑADIDO: la calidad de sombra SOLO se enseña con «Sombras» encendida.
+    // Con el interruptor apagado (o sin interruptor en la página) el widget
+    // solar queda exactamente como estaba, sin la tarjeta debajo.
+    var sombrasOn = true;
+    try {
+      var tg = document.getElementById('rsToggleSombras');
+      if (tg) sombrasOn = !!tg.checked;
+    } catch (e) { }
+    var abierto = panel.classList.contains('o') && sombrasOn;
     mini.hidden = !abierto;
     mini.setAttribute('aria-hidden', abierto ? 'false' : 'true');
     if (!abierto) return;
@@ -1578,6 +1586,12 @@
         try { S.map.on('sourcedata', function (e) { if (e && e.sourceId === 'sombras' && !S.pintando) programarEvaluacion(); }); } catch (e) { }
         try { S.map.on('styledata', function () { if (!S.capaEdificios) S.capaEdificios = detectarCapaEdificios(); }); } catch (e) { }
         S.capaEdificios = detectarCapaEdificios();
+        // AÑADIDO: al conmutar «Sombras» se enseña/oculta la tarjeta de
+        // calidad de sombra al instante, sin esperar al repintado.
+        try {
+          var tgSombras = document.getElementById('rsToggleSombras');
+          if (tgSombras) tgSombras.addEventListener('change', function () { posicionarWidgetMini(); });
+        } catch (e) { }
 
         S.timerReevaluacion = setInterval(function () {
           if (document.hidden) return;

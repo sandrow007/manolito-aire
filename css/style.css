@@ -6159,3 +6159,67 @@ body.modo-accesible #main-content .rs-form #rsDestino{
     max-width:calc(100% - 90px);
   }
 }
+/* ==========================================================================
+   UTCI en ruta (nov-2026): panel #rsConfortRuta con la comparativa
+   fresca/rápida, la confianza de los datos y los avisos de confort.
+   Mismo lenguaje visual que la tarjeta flotante de la ruta (cristal
+   oscuro, borde de acento). Lo crea js/confort-ruta.js y solo es visible
+   mientras hay una ruta activa; fuera de ese caso ni existe en pantalla.
+   ========================================================================== */
+#main-content #rsConfortRuta{
+  display:block;
+  margin-block:8px 16px;
+  padding:10px 14px;
+  border:1px solid var(--mui-line-2, rgba(255,255,255,.14));
+  border-inline-start:4px solid var(--mui-accent, #FF6B1A);
+  border-radius:var(--mui-r-panel, 12px);
+  background:rgba(22,26,32,.96);
+  box-shadow:var(--mui-shadow, 0 6px 24px rgba(0,0,0,.25));
+  color:var(--mui-text, #E6E9EE);
+  font-size:clamp(.8rem, 2vw, .9rem);
+  font-weight:500;
+  line-height:1.45;
+  font-variant-numeric:tabular-nums;
+  max-width:min(46ch, 100%);
+}
+#main-content #rsConfortRuta[hidden]{ display:none !important; }
+#main-content #rsConfortRuta p{ margin:0; }
+#main-content #rsConfortRuta p + p{ margin-top:6px; }
+#main-content #rsConfortRuta .rs-confort-fresca{ font-weight:650; }
+#main-content #rsConfortRuta .rs-confort-rapida{ color:var(--mui-text, #E6E9EE); opacity:.82; }
+#main-content #rsConfortRuta .rs-confort-confianza{
+  display:flex; align-items:flex-start; gap:7px;
+  margin-top:8px; padding-top:8px;
+  border-top:1px solid var(--mui-line-2, rgba(255,255,255,.12));
+  font-size:.92em; opacity:.88;
+}
+#main-content #rsConfortRuta .rs-conf-punto{
+  flex:0 0 auto; width:9px; height:9px; border-radius:50%; margin-top:.32em;
+  background:var(--breath-good, #00B98A);
+}
+#main-content #rsConfortRuta .rs-conf-media .rs-conf-punto{ background:#FFB300; }
+#main-content #rsConfortRuta .rs-conf-baja .rs-conf-punto{ background:var(--breath-bad, #E63E5F); }
+#main-content #rsConfortRuta .rs-confort-aviso{
+  margin-top:8px; padding:8px 10px;
+  border-radius:10px;
+  font-size:.94em; font-weight:600; line-height:1.4;
+  background:rgba(255,179,0,.12);
+  border-inline-start:3px solid #FFB300;
+}
+#main-content #rsConfortRuta .rs-confort-aviso.rs-aviso-muy-fuerte{
+  background:rgba(230,62,95,.14);
+  border-inline-start-color:var(--breath-bad, #E63E5F);
+}
+/* Dentro del mapa flota bajo la tarjeta de la ruta; la posición vertical
+   la ajusta confort-ruta.js midiendo la tarjeta (top en línea). */
+#main-content .map-wrap > #rsConfortRuta{
+  position:absolute; left:12px; z-index:29;
+  width:max-content; max-width:min(430px, calc(100% - 24px));
+  margin:0;
+}
+@media (max-width:480px){
+  #main-content .map-wrap > #rsConfortRuta{ left:8px; max-width:calc(100% - 16px); }
+}
+@media (prefers-reduced-motion: reduce){
+  #main-content #rsConfortRuta{ transition:none; }
+}

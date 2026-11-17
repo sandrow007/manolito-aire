@@ -276,7 +276,20 @@
 // Cambian worker.js, js/lluvia.js, js/aire-superficie.js, js/shadows-route.js,
 // js/microclima.js, js/i18n.js (2 claves nuevas en 7 idiomas), css/style.css
 // e index.html.
-const VERSION = '2026-11-17-k-lluvia';
+// 2026-11-17-l: CONFORT TÉRMICO UTCI (Fase 1). El coste del Dijkstra de la
+// ruta fresca deja de ser solo "fracción de sombra": cada tramo pesa
+// tiempo × estrés UTCI (sol/sombra con Tmrt estimada) cuando hay meteo, y
+// cae al coste clásico si no la hay (silencioso). Nuevos módulos
+// js/utci-confort.js (UTCI polinómico de Bröde et al. 2012, Tmrt estimada,
+// viento de Open-Meteo ajustado de 10 m a peatón ×0,6, caché de meteo por
+// celda 0,25°) y js/confort-ruta.js (comparativa ruta fresca vs rápida:
+// UTCI medio, minutos al sol y diferencia; índice de confianza de los
+// datos con alturas reales, especie de árboles, toldos y frescura meteo;
+// avisos por umbrales de UTCI para colectivos vulnerables). worker.js
+// gana wind_speed_10m y shortwave_radiation en /prevision (aditivo).
+// Cambian worker.js, js/shadows-route.js, js/i18n.js (18 claves nuevas en
+// 7 idiomas), css/style.css, index.html y los dos js nuevos.
+const VERSION = '2026-11-17-l-utci';
 // 2026-11-17-f: el coeficiente K de amortiguación del factor LUR del SQI
 // deja de ser el 0.5 fijo y pasa a depender de la zona Köppen-Geiger del
 // punto (Beck et al. 2018, rejilla local data/koppen-rejilla.json,

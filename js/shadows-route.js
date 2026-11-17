@@ -479,7 +479,19 @@
           penalizacion = calcularPenalizacionSolar(puntoMedio, posSol, indiceSombras);
           penalizacionPorArista.set(claveArista, penalizacion);
         }
-        const peso = arista.longitudM * (1 + penalizacion);
+        // UTCI (nov-2026, ADITIVO): si el módulo de confort tiene la meteo
+        // lista, el coste de la arista es TIEMPO x nivel de estrés UTCI
+        // (sol/sombra con Tmrt estimada). Si el módulo falta o no hay
+        // datos, el coste es el de siempre, byte a byte.
+        let peso;
+        if (typeof window.__manolitUtciPesoArista === 'function') {
+          const pesoUtci = window.__manolitUtciPesoArista(arista.longitudM, penalizacion === 0);
+          peso = (typeof pesoUtci === 'number' && isFinite(pesoUtci) && pesoUtci > 0)
+            ? pesoUtci
+            : arista.longitudM * (1 + penalizacion);
+        } else {
+          peso = arista.longitudM * (1 + penalizacion);
+        }
 
         const nuevaDist = dist[u] + peso;
         if (nuevaDist < dist[v]) {
@@ -527,6 +539,16 @@
     const centro = { lat: (origen.lat + destino.lat) * 0.5, lon: (origen.lon + destino.lon) * 0.5 };
     const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
 
+    // UTCI (nov-2026, ADITIVO): prepara el confort del momento (meteo
+    // cacheada + Tmrt estimada sol/sombra) antes de ponderar las aristas.
+    // Tiene timeout propio y jamás rompe: sin módulo o sin datos, el
+    // Dijkstra pondera con el coste clásico de sombra, igual que siempre.
+    try {
+      if (typeof window.__manolitUtciPreparar === 'function') {
+        await window.__manolitUtciPreparar(centro.lat, centro.lon, obtenerHoraEfectiva());
+      }
+    } catch (e) { /* sin UTCI: la ruta sigue igual */ }
+
     // La colección de sombras y su índice espacial se preparan UNA vez
     // por ruta. Antes se reconstruían en CADA arista del Dijkstra (con
     // el serialize() de la capa de árboles incluido) y la web entera se
@@ -538,6 +560,22 @@
 
     const resultado = dijkstraTermico(grafo, inicioIdx, finIdx, posSol, indiceSombrasRuta);
     if (resultado.camino.length < 2) throw new Error('Dijkstra térmico no ha encontrado camino');
+
+    // UTCI (nov-2026, ADITIVO): la "ruta rápida" comparativa es el mismo
+    // grafo sin penalización (posSol null → penalización 0 en todas las
+    // aristas → Dijkstra por distancia pura). Solo se calcula cuando el
+    // confort está listo: sin meteo no hay nada que comparar y la ruta
+    // queda exactamente como antes.
+    let confortRuta = null;
+    try {
+      if (typeof window.__manolitUtciEstadisticasRuta === 'function'
+        && typeof window.__manolitUtciListo === 'function' && window.__manolitUtciListo()) {
+        const rapida = dijkstraTermico(grafo, inicioIdx, finIdx, null, indiceSombrasRuta);
+        if (rapida.camino.length >= 2) {
+          confortRuta = window.__manolitUtciEstadisticasRuta(resultado.camino, rapida.camino, indiceSombrasRuta);
+        }
+      }
+    } catch (e) { /* sin comparativa: la ruta fresca sigue igual */ }
 
     const distanciaRealKm = turf.length(turf.lineString(resultado.camino), { units: 'kilometers' });
     const duracionMin = (distanciaRealKm / CONFIG.velocidadCaminandoKmh) * 60;
@@ -570,6 +608,7 @@
       duracionEstimada: true,
       coberturaSombraPct,
       esDijkstraTermico: true,
+      confort: confortRuta, // UTCI (nov-2026): comparativa fresca/rápida o null
       pasos,
       pasosGuiados,
     };
@@ -1288,6 +1327,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       : candidatos;
     edificiosCacheados = elegidos.map((candidato) => candidato.edificio);
     centroidesEdificiosCacheados = elegidos.map((candidato) => candidato.centroide);
+    // Confianza de los datos (nov-2026, ADITIVO): cuántos edificios de la
+    // vista tienen altura REAL (altura o plantas en los datos) frente a
+    // los que caen en el fallback fijo. Lo lee js/confort-ruta.js para el
+    // índice de confianza; si ese módulo falta, este contador no cuesta
+    // nada (un recorrido de la lista ya cargada).
+    try {
+      let conAlturaReal = 0;
+      for (const ed of edificiosCacheados) {
+        const p = (ed && ed.properties) || {};
+        const directa = Number(p.height ?? p.render_height);
+        const plantas = Number(p.levels ?? p['building:levels'] ?? p.render_levels);
+        if ((isFinite(directa) && directa > 0) || (isFinite(plantas) && plantas > 0)) conAlturaReal++;
+      }
+      window.__manolitConfianzaEdificios = {
+        total: edificiosCacheados.length,
+        conAlturaReal,
+      };
+    } catch (e) { /* sin confianza: las sombras siguen igual */ }
   }
 
   /* ---------------- Sombras reales: sol + altura de edificios ---------------- */
@@ -7309,6 +7366,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);
+        // UTCI (nov-2026, ADITIVO): comparativa fresca/rápida, confianza de
+        // los datos y avisos de confort. Si el módulo no cargó, no pasa
+        // nada: la ruta se muestra exactamente como antes.
+        try {
+          if (window.ManolitConfortRuta && typeof window.ManolitConfortRuta.mostrar === 'function') {
+            window.ManolitConfortRuta.mostrar(ruta);
+          }
+        } catch (e) { /* el panel nunca rompe la ruta */ }
         // Hay ruta: el atajo de «Iniciar caminata» se enciende junto al
         // resumen (sobre todo en móvil, donde la botonera va en iconos).
         mostrarAtajoCaminar(true);

@@ -2753,7 +2753,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=fecha-widget-20261117-i'))
+        .then(() => cargarScript('js/shadows-route.js?v=utci-20261117-a'))
         .then(() => {
           // Superficie continua de calidad del aire: módulo aditivo que se
           // engancha a la fuente 'aire-es' cuando shadows-route la crea.
@@ -2797,6 +2797,11 @@
         // sombras que ya dibuja el mapa según su calidad térmica y muestra
         // el resultado en el widget solar visible. Presentación pura.
         .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-glosario-20261117'))
+        // Confort térmico UTCI (nov-2026): coste de las rutas por estrés
+        // térmico y comparativa fresca/rápida. Módulos aditivos; sin ellos
+        // (o sin meteo) el routing usa el coste clásico de sombra.
+        .then(() => cargarScript('js/utci-confort.js?v=utci-20261117-a').catch(() => { }))
+        .then(() => cargarScript('js/confort-ruta.js?v=utci-20261117-a').catch(() => { }))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
       return cargaMapaSombrasPromise;
     }

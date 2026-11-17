@@ -878,8 +878,12 @@ export default {
         }
         const om = 'https://api.open-meteo.com/v1/forecast' +
           `?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}` +
-          '&current=temperature_2m,cloudcover,relative_humidity_2m,uv_index' +
-          '&hourly=temperature_2m,cloudcover,relative_humidity_2m' +
+          // 17-nov-2026 (UTCI): se añaden viento a 10 m y radiación de onda
+          // corta (horaria). Son campos NUEVOS y aditivos: los clientes
+          // antiguos (microclima.js) los ignoran y el cliente UTCI
+          // (js/utci-confort.js) cae a su modelo solar si faltan.
+          '&current=temperature_2m,cloudcover,relative_humidity_2m,uv_index,wind_speed_10m' +
+          '&hourly=temperature_2m,cloudcover,relative_humidity_2m,wind_speed_10m,shortwave_radiation' +
           '&past_days=1&forecast_days=2&timezone=auto&timeformat=unixtime';
         const r = await fetch(om, {
           headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },

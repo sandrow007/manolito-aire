@@ -216,6 +216,7 @@
   var lienzo = null, ctx = null, dpr = 1;
   var gotas = [], salpicaduras = [];
   var animando = false, rafId = 0, ultimoFrameMs = 0, ultimoTickMs = 0;
+  var lienzoEnPantalla = true; // batería: la pintura se pausa si el mapa sale del viewport
   var FRAME_MS = 33; // ~30 fps
 
   function asegurarLienzo() {
@@ -230,6 +231,17 @@
       ctx = lienzo.getContext('2d');
       redimensionarLienzo();
       window.addEventListener('resize', redimensionarLienzo);
+      // Batería: si el usuario baja el scroll y el mapa queda fuera de
+      // pantalla, se deja de pintar (la animación sigue "viva" y retoma al
+      // volver, pero la GPU no trabaja para un canvas que nadie ve). Sin
+      // IntersectionObserver o con cualquier fallo, todo sigue como antes.
+      try {
+        if ('IntersectionObserver' in window) {
+          new IntersectionObserver(function (entradas) {
+            try { lienzoEnPantalla = !!(entradas[0] && entradas[0].isIntersecting); } catch (e) { }
+          }, { rootMargin: '80px' }).observe(lienzo);
+        }
+      } catch (e) { /* sin observer: se pinta siempre, comportamiento previo */ }
       return !!ctx;
     } catch (e) { lienzo = null; ctx = null; return false; }
   }
@@ -278,6 +290,10 @@
     var dt = Math.min(0.1, (ahora - (ultimoTickMs || ahora)) / 1000);
     ultimoFrameMs = ahora;
     ultimoTickMs = ahora;
+    // Fuera de pantalla (scroll): no se pinta nada este frame. El bucle
+    // sigue para retomar al instante al volver; dt viene acotado (0,1 s),
+    // así que las gotas no dan saltos al reanudar.
+    if (!lienzoEnPantalla) return;
 
     var w = lienzo.width, h = lienzo.height;
     ctx.clearRect(0, 0, w, h);

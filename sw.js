@@ -410,12 +410,42 @@ function cacheFirst(peticion) {
 	});
 }
 
-// Sirve la copia cacheada al instante (si existe) y SIEMPRE pide a red en
-// segundo plano para refrescarla: velocidad de cache-first sin congelar
-// el contenido. Así el planeta nuevo de OpenFreeMap entra solo.
+/* Ventana anti-revalidado (nov-2026, ahorro de batería): cada tesela única
+   se revalida en segundo plano como mucho 1 vez cada 10 minutos. Antes,
+   CADA petición de una tesela ya cacheada (volver a panear por la misma
+   zona, zoom in/out, recentrar) disparaba SIEMPRE una descarga en segundo
+   plano: la radio del móvil no descansa y eso gasta batería y calienta.
+   Con esta ventana la frescura se mantiene (la tesela que se sigue viendo
+   acaba revalidándose en ≤10 min, el planeta nuevo sigue entrando solo)
+   pero el número de peticiones de fondo cae en órdenes de magnitud. */
+const REVALIDACION_MINIMA_MS = 10 * 60 * 1000;
+const TOPE_REVALIDACIONES = 3000;
+const ultimaRevalidacion = new Map(); // url -> timestamp (memoria del SW)
+
+function marcarRevalidacion(clave, ahora) {
+	if (ultimaRevalidacion.size >= TOPE_REVALIDACIONES) {
+		// Map itera en orden de inserción: la primera es la más vieja.
+		ultimaRevalidacion.delete(ultimaRevalidacion.keys().next().value);
+	}
+	ultimaRevalidacion.set(clave, ahora);
+}
+
+// Sirve la copia cacheada al instante (si existe) y pide a red en
+// segundo plano para refrescarla, SALVO si esa tesela ya se revalidó hace
+// menos de REVALIDACION_MINIMA_MS: velocidad de cache-first sin congelar
+// el contenido y sin ahogar la radio del móvil.
 function staleWhileRevalidate(peticion) {
 	return caches.open(CACHE_ESTATICA).then(function(cache) {
 		return cache.match(peticion).then(function(guardada) {
+			const clave = peticion.url;
+			const ahora = Date.now();
+			const ultima = ultimaRevalidacion.get(clave) || 0;
+			if (guardada && (ahora - ultima) < REVALIDACION_MINIMA_MS) {
+				// Copia reciente (primera descarga o revalidación reciente):
+				// se sirve tal cual, cero red de fondo.
+				return guardada;
+			}
+			marcarRevalidacion(clave, ahora);
 			const promesaRed = fetch(peticion).then(function(respuesta) {
 				if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
 					cache.put(peticion, respuesta.clone())

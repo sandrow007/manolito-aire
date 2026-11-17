@@ -289,7 +289,12 @@
 // gana wind_speed_10m y shortwave_radiation en /prevision (aditivo).
 // Cambian worker.js, js/shadows-route.js, js/i18n.js (18 claves nuevas en
 // 7 idiomas), css/style.css, index.html y los dos js nuevos.
-const VERSION = '2026-11-17-l-utci';
+const VERSION = '2026-11-17-n-ez3d';
+// 2026-11-17-n: árboles 3D procedurales estilo ez-tree (MIT) para coníferas
+// y frondosas, en MÓDULO SEPARADO js/arboles-ez-3d.js. La albizia y el
+// naranjo (js/arboles-3d.js) quedan INTACTOS, byte a byte. Cambian index.html
+// (carga del módulo), js/shadows-route.js (hook nuevo manolitAireArbolesEZ)
+// y se añade js/arboles-ez-3d.js.
 // 2026-11-17-f: el coeficiente K de amortiguación del factor LUR del SQI
 // deja de ser el 0.5 fijo y pasa a depender de la zona Köppen-Geiger del
 // punto (Beck et al. 2018, rejilla local data/koppen-rejilla.json,

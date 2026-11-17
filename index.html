@@ -2782,6 +2782,12 @@
           cargarScript('js/arboles-sevilla.js?v=arboles-sevilla-20261117-a').catch((err) => console.error('No se ha podido cargar el inventario oficial de árboles:', err));
           return cargarScript('js/arboles-3d.js');
         })
+        .then(() =>
+          // EZ-TREE (nov-2026, ADITIVO): coníferas/frondosas procedurales.
+          // Módulo aparte: si falla, SOLO él falla y la cadena sigue.
+          cargarScript('js/arboles-ez-3d.js')
+            .catch((err) => console.error('Árboles EZ-TREE no cargados (el resto sigue igual):', err))
+        )
         .then(() => cargarScript('js/irradiacion-solar.js'))
         .then(() => cargarScript('js/microclima.js'))
         .then(() => cargarScript('js/rendimiento-movil.js'))

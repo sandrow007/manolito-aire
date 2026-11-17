@@ -12627,6 +12627,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         tipo: a.tipo,
       }));
 
+    // EZ-TREE (nov-2026, ADITIVO): TODOS los árboles clasificados (menos
+    // albizia y naranjo, que van a SU motor de siempre) con su tipo, para
+    // js/arboles-ez-3d.js. Si este hook no existiera, ese módulo no arranca
+    // y todo queda como siempre: aditivo y reversible.
+    window.manolitAireArbolesEZ = () => arbolesParaTodo()
+      .filter((a) => a.tipo !== 'albizia' && a.tipo !== 'naranjo' && a.tipo !== 'generico')
+      .map((a) => ({
+        lon: a.punto.geometry.coordinates[0],
+        lat: a.punto.geometry.coordinates[1],
+        altura: a.altura,
+        tipo: a.tipo,
+      }));
+
     // ADITIVO (nov-2026) para la alerta UV de la ruta: posición de TODOS
     // los árboles cargados (no solo los de modelo 3D) con su copa.
     window.manolitAireArbolesTodos = () => arbolesGrandes

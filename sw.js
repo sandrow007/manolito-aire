@@ -289,12 +289,7 @@
 // gana wind_speed_10m y shortwave_radiation en /prevision (aditivo).
 // Cambian worker.js, js/shadows-route.js, js/i18n.js (18 claves nuevas en
 // 7 idiomas), css/style.css, index.html y los dos js nuevos.
-const VERSION = '2026-11-17-m-eztrees';
-// 2026-11-17-m: árboles 3D procedurales estilo ez-tree (dgreenheck, MIT) para
-// coníferas/frondosas: pino, encina/roble, plátano, olmo, chopo, eucalipto,
-// tipuana, jacarandá, morera, ficus, paraíso y ginkgo. ADITIVO: albizia y
-// naranjo siguen con SUS modelos de siempre; palmera, cítricos, granado y
-// genéricos siguen planos. Cambian js/arboles-3d.js y js/shadows-route.js.
+const VERSION = '2026-11-17-l-utci';
 // 2026-11-17-f: el coeficiente K de amortiguación del factor LUR del SQI
 // deja de ser el 0.5 fijo y pasa a depender de la zona Köppen-Geiger del
 // punto (Beck et al. 2018, rejilla local data/koppen-rejilla.json,

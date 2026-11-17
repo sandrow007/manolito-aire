@@ -638,7 +638,7 @@
   // fruto/flor según su fenología. Solo reconstruye si cambia la estación.
   function aplicarEstacion(estacion) {
     if (estacion === estacionActual) return;
-    if (!variantesAlbizia.length && !variantesFrondosa.length) return; // onAdd aún no ha construido (diferido)
+    if (!variantesAlbizia.length) return; // onAdd aún no ha construido (diferido)
     var estA = ESTACIONES_ALBIZIA[estacion] || ESTACIONES_ALBIZIA.verano;
     var estN = ESTACIONES_NARANJO[estacion] || ESTACIONES_NARANJO.verano;
     estacionActual = estacion;
@@ -664,24 +664,6 @@
       vn.meshFlores.visible = estN.flores;
     }
     racimosVivos.length = 0; // reinicia la caída al cambiar de estación
-
-    // EZ-TREE (nov-2026): estaciones de coníferas/frondosas (perennes y
-    // caducas con su propia tabla). No toca albizia ni naranjo.
-    for (v = 0; v < variantesFrondosa.length; v++) {
-      var vf = variantesFrondosa[v];
-      var tabla = EZ_ESTACIONES[vf.especie.perenne ? 'perenne' : 'caduca'];
-      var estE = tabla[estacion] || tabla.verano;
-      if (vf.geoHojasActual) { vf.geoHojasActual.dispose(); vf.geoHojasActual = null; }
-      var geoE = geometriaHojasEZ(vf.descHojas, estE);
-      if (geoE) {
-        vf.geoHojasActual = geoE;
-        vf.meshHojas.geometry = geoE;
-        vf.meshHojas.visible = true;
-      } else {
-        vf.meshHojas.visible = false; // caduca desnuda en invierno
-      }
-    }
-
     refrescarInstancias(true);
     evaluarAnimacion();
   }
@@ -730,7 +712,7 @@
 
   function refrescarInstancias(forzar) {
     if (!listo || !activo) return;
-    if ((!variantesAlbizia.length && !variantesFrondosa.length) || !variantesNaranjo.length || !TMP_M4) return; // onAdd diferido: aún no hay nada que instanciar
+    if (!variantesAlbizia.length || !variantesNaranjo.length || !TMP_M4) return; // onAdd diferido: aún no hay nada que instanciar
     var arboles = arbolesEnVista();
 
     // Firma del estado: si los árboles, el zoom y la estación no han
@@ -747,17 +729,13 @@
     var mcRef = maplibregl.MercatorCoordinate.fromLngLat({ lng: cRef.lng, lat: cRef.lat }, 0);
     REF.x = mcRef.x; REF.y = mcRef.y; REF.z = mcRef.z;
 
-    var porVarianteA = [], porVarianteN = [], porTipoEZ = {};
+    var porVarianteA = [], porVarianteN = [];
     var v, i;
     for (v = 0; v < N_VARIANTES; v++) { porVarianteA.push([]); porVarianteN.push([]); }
-    variantesFrondosa.forEach(function (vf) { porTipoEZ[vf.tipo] = []; });
     for (i = 0; i < arboles.length; i++) {
       var a = arboles[i];
       var idx = Math.floor(hashCoords(a.lon, a.lat) * N_VARIANTES) % N_VARIANTES;
-      if (a.tipo === 'naranjo') porVarianteN[idx].push(a);
-      else if (a.tipo === 'albizia') porVarianteA[idx].push(a);
-      else if (porTipoEZ[a.tipo]) porTipoEZ[a.tipo].push(a);
-      // tipos sin modelo EZ/propio no llegan aquí (filtrados aguas arriba)
+      (a.tipo === 'naranjo' ? porVarianteN : porVarianteA)[idx].push(a);
     }
 
     racimosVivos.length = 0;
@@ -771,10 +749,7 @@
         var mc = maplibregl.MercatorCoordinate.fromLngLat({ lng: ar.lon, lat: ar.lat }, 0);
         var mScale = metrosAMercator(ar.lat);
         // Escala: la altura REAL del árbol (OSM) manda sobre el modelo.
-        // Los EZ-TREE (coníferas/frondosas altas) admiten más techo que
-        // albizia/naranjo, cuyo modelo ya nace a su altura real.
-        var techo = va.techoEscala || 1.8;
-        var sArbol = Math.max(0.55, Math.min(techo, (ar.altura || va.alturaModelo) / va.alturaModelo));
+        var sArbol = Math.max(0.55, Math.min(1.8, (ar.altura || va.alturaModelo) / va.alturaModelo));
         var s = mScale * sArbol;
         escV.set(s, s, s);
         // Posición RELATIVA a REF (origen local): la GPU suma números
@@ -817,11 +792,6 @@
       var vn = variantesNaranjo[v];
       instanciar(porVarianteN[v], vn, [vn.meshTroncos, vn.meshHojas, vn.meshFrutos, vn.meshFlores], false);
     }
-    // EZ-TREE: una sola variante por especie; usa la misma instancia con
-    // listas de su tipo. MAX_ARBOL global se respeta aguas arriba.
-    variantesFrondosa.forEach(function (vf) {
-      instanciar(porTipoEZ[vf.tipo] || [], vf, [vf.meshTroncos, vf.meshHojas], false);
-    });
     map.triggerRepaint();
   }
 
@@ -924,7 +894,6 @@
         TMP_ESC = new THREE.Vector3();
         TMP_PROY = new THREE.Matrix4();
         construirVariantes();
-        construirVariantesEZ();
       },
       render: function (gl, matrix) {
         if (!activo) return;
@@ -979,13 +948,11 @@
     activo = true;
     firmaInstancias = ''; // fuerza reinstanciado al activar
     if (!map.getLayer('capa-arboles-3d')) map.addLayer(crearCapa());
-    // Oculta SOLO la albizia, el naranjo y las especies EZ-TREE planos:
-    // el 3D los sustituye. Palera, cítricos y genéricos siguen planos.
+    // Oculta SOLO la albizia y el naranjo planos: el 3D los sustituye.
     try {
       if (map.getLayer('capa-arboles-globales-3d')) {
-        var sin3D = ['all'];
-        EZ_FORMAS_3D.forEach(function (f) { sin3D.push(['!=', ['get', 'forma'], f]); });
-        map.setFilter('capa-arboles-globales-3d', sin3D);
+        map.setFilter('capa-arboles-globales-3d',
+          ['all', ['!=', ['get', 'forma'], 'sombrilla'], ['!=', ['get', 'forma'], 'naranjo']]);
       }
     } catch (e) { /* si no se puede filtrar, conviven: no pasa nada */ }
     var estacion = (typeof window.manolitAireEstacionActual === 'function')
@@ -995,7 +962,7 @@
     var intentosEst = 0;
     (function aplicaCuandoListo() {
       try {
-        if (variantesAlbizia.length || variantesFrondosa.length) {
+        if (variantesAlbizia.length) {
           estacionActual = null; // fuerza reconstrucción de hojas
           aplicarEstacion(estacion);
         } else if (activo && ++intentosEst < 60) {
@@ -1015,207 +982,6 @@
       }
     } catch (e) { /* nada que restaurar */ }
     map.triggerRepaint();
-  }
-
-  // ==========================================================================
-  // FAMILIA EZ-TREE (nov-2026, ADITIVO): coníferas y frondosas procedurales
-  // inspiradas en ez-tree de dgreenheck (https://github.com/dgreenheck/ez-tree,
-  // MIT): tronco cónico con secciones, ramas hijas con ángulo/children por
-  // nivel, gnarliness (torcedura), force (viento de crecimiento) y copa de
-  // planos de hoja. Lo esencial del algoritmo está portado aquí a la misma
-  // infraestructura del motor (InstancedMesh + origen local), SIN tocar la
-  // albizia ni el naranjo (sus funciones y meshes quedan intactos).
-  // ==========================================================================
-  var variantesConifera = [];
-  var variantesFrondosa = [];
-
-  // Formas de la capa plana que este 3D sustituye (la albizia/naranjo van
-  // por su propio código de siempre, arriba).
-  var EZ_FORMAS_3D = ['conica', 'ancha_redondeada', 'ancha_irregular', 'oval_alargada'];
-
-  // Parámetros por especie (similar a TreeOptions de ez-tree, simplificado):
-  // niveles, hijos por nivel, ángulo de apertura, longitud y radio del tronco,
-  // torcedura (gnarliness) y paleta/tipo de hoja.
-  var EZ_ESPECIES = {
-    pino:          { niveles: 3, hijos: [2, 4, 3], angulo: 42, paleta: [0x2d5a3d, 0x3a6b4a, 0x24503a], hoja: 'aguja', perenne: true },
-    eucalipto:     { niveles: 3, hijos: [2, 3, 3], angulo: 38, paleta: [0x3d6b4a, 0x4d7d5a, 0x35604a], hoja: 'ovalada', perenne: true },
-    ginkgo:        { niveles: 3, hijos: [2, 3, 3], angulo: 40, paleta: [0x7cb342, 0x8bc34a, 0x6ba032], hoja: 'abanico', perenne: true },
-    encina_roble:  { niveles: 4, hijos: [2, 4, 4, 3], angulo: 48, paleta: [0x4f7a35, 0x5f8c42, 0x45703a], hoja: 'ovalada', perenne: true },
-    platanero:     { niveles: 4, hijos: [2, 4, 4, 3], angulo: 52, paleta: [0x4a8a3f, 0x5c9e4a, 0x3f7a38], hoja: 'ancha', perenne: false },
-    olmo:          { niveles: 4, hijos: [2, 4, 4, 3], angulo: 50, paleta: [0x5a8f3d, 0x6ba04a, 0x4a7c35], hoja: 'ovalada', perenne: false },
-    chopo:         { niveles: 4, hijos: [2, 3, 3, 3], angulo: 30, paleta: [0x4f9a45, 0x5faa52, 0x3f8a3c], hoja: 'ovalada', perenne: false, alargada: true },
-    tipuana:       { niveles: 4, hijos: [2, 4, 4, 3], angulo: 55, paleta: [0x5e9b4c, 0x6fab58, 0x4e8a42], hoja: 'ovalada', perenne: false },
-    jacaranda:     { niveles: 4, hijos: [2, 4, 4, 3], angulo: 54, paleta: [0x5f9e4f, 0x6fae58, 0x4f8a42], hoja: 'fina', perenne: false },
-    morera:        { niveles: 4, hijos: [2, 4, 4, 3], angulo: 50, paleta: [0x4e8f3f, 0x5e9f4c, 0x42803a], hoja: 'ancha', perenne: false },
-    ficus:         { niveles: 4, hijos: [2, 4, 4, 3], angulo: 50, paleta: [0x4d8a3e, 0x5d9a4a, 0x417c36], hoja: 'ancha', perenne: true },
-    paraiso:       { niveles: 4, hijos: [2, 4, 4, 3], angulo: 48, paleta: [0x5b9348, 0x6ba354, 0x4a8240], hoja: 'fina', perenne: false },
-  };
-
-  // Estaciones (coherente con fenologiaArbol de shadows-route.js: perennes
-  // siempre verdes; caducas pierden hoja en invierno y se doran en otoño).
-  var EZ_ESTACIONES = {
-    perenne: {
-      primavera: { escala: 0.95, densidad: 0.95, color: null, usoPaleta: true },
-      verano:    { escala: 1.0,  densidad: 1.0,  color: null, usoPaleta: true },
-      otono:     { escala: 1.0,  densidad: 0.85, color: null, usoPaleta: true },
-      invierno:  { escala: 1.0,  densidad: 0.85, color: null, usoPaleta: true },
-    },
-    caduca: {
-      primavera: { escala: 0.85, densidad: 0.8,  color: 0x8fbf5a, usoPaleta: false },
-      verano:    { escala: 1.0,  densidad: 1.0,  color: null, usoPaleta: true },
-      otono:     { escala: 0.85, densidad: 0.55, color: 0xc9862f, usoPaleta: false },
-      invierno:  { escala: 0.0,  densidad: 0.0,  color: null, usoPaleta: false },
-    },
-  };
-
-  // Altura de referencia por especie (las de TIPOS_ARBOL de shadows-route.js).
-  var EZ_ALTURAS = {
-    pino: 14, eucalipto: 18, ginkgo: 12, encina_roble: 10, platanero: 16,
-    olmo: 12, chopo: 15, tipuana: 12, jacaranda: 10, morera: 8, ficus: 8, paraiso: 10,
-  };
-
-  // Algoritmo de EZ-TREE simplificado: genera el esqueleto de ramas y puntos
-  // de enganche de hojas (de forma DETERMINISTA por semilla, como mulberry32).
-  function construirEsqueletoEZ(especie, rand, alargada) {
-    var segs = [];   // {a, b, r0, r1}
-    var puntas = []; // {pos, dir}
-    var nivel0Len = 2.2 + rand() * 0.6;
-    var nivel0Rad = 0.28 + rand() * 0.06;
-    var rad = nivel0Rad, len = nivel0Len;
-
-    function branch(origin, dir, len, rad, nivel) {
-      var gnarl = 0.18; // torcedura (gnarliness en ez-tree)
-      var end = origin.clone().addScaledVector(dir, len);
-      end.x += (rand() - 0.5) * gnarl * len;
-      end.y += (rand() - 0.5) * gnarl * len * 0.3;
-      end.z += (rand() - 0.5) * gnarl * len;
-      segs.push({ a: origin.clone(), b: end.clone(), r0: rad, r1: rad * 0.6 });
-      var esPunta = (nivel >= especie.niveles - 1);
-      if (esPunta) {
-        puntas.push({ pos: end.clone(), dir: dir.clone() });
-        return;
-      }
-      var nHijos = especie.hijos[nivel] || 3;
-      var spread = Math.max(0.25, (especie.angulo * Math.PI / 180) * (1 + nivel * 0.08));
-      if (alargada) spread *= 0.7; // chopo/eucalipto: porte estrecho
-      for (var i = 0; i < nHijos; i++) {
-        var theta = (i / nHijos) * Math.PI * 2 + rand() * 0.6;
-        var tilt = spread * (0.6 + rand() * 0.8);
-        var perp1 = new THREE.Vector3(1, 0, 0).cross(dir);
-        if (perp1.lengthSq() < 0.01) perp1.set(0, 0, 1);
-        else perp1.normalize();
-        var perp2 = dir.clone().cross(perp1).normalize();
-        var nd = dir.clone();
-        nd.addScaledVector(perp1, Math.cos(theta) * tilt)
-          .addScaledVector(perp2, Math.sin(theta) * tilt)
-          .addScaledVector(new THREE.Vector3(0, 1, 0), 0.12); // leve upward bias
-        nd.normalize();
-        var fLen = len * (0.72 - nivel * 0.04 + rand() * 0.12);
-        branch(end.clone(), nd, fLen, rad * 0.62, nivel + 1);
-      }
-    }
-
-    branch(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), nivel0Len, nivel0Rad, 0);
-    return { segs: segs, puntas: puntas };
-  }
-
-  // Hojas por punta: los planos de ez-tree (billboard simple). Tamaño según
-  // el tipo de hoja (aguja fina, abanico ginkgo, ancha de ficus…).
-  function descriptoresHojasEZ(puntas, rand, especie) {
-    var desc = [];
-    var tam = { aguja: [0.30, 0.07], ovalada: [0.24, 0.14], abanico: [0.20, 0.20], fina: [0.22, 0.09], ancha: [0.28, 0.18] };
-    var t = tam[especie.hoja] || tam.ovalada;
-    var nPorPunta = (especie.hoja === 'aguja') ? 22 : 10;
-    for (var p = 0; p < puntas.length; p++) {
-      for (var i = 0; i < nPorPunta; i++) {
-        var ang = rand() * Math.PI * 2;
-        var dist = 0.08 + rand() * 0.5;
-        desc.push({
-          x: puntas[p].pos.x + Math.cos(ang) * dist,
-          y: puntas[p].pos.y + (rand() - 0.35) * 0.4,
-          z: puntas[p].pos.z + Math.sin(ang) * dist,
-          rx: (rand() - 0.5) * 1.0,
-          ry: ang + rand() * 0.6,
-          rz: (rand() - 0.5) * 0.7,
-          tx: t[0], tz: t[1],
-          col: especie.paleta[Math.floor(rand() * especie.paleta.length)],
-        });
-      }
-    }
-    return desc;
-  }
-
-  // Geometría de hojas EZ por estación: escala y densidad.
-  function geometriaHojasEZ(desc, est) {
-    if (!desc.length || est.densidad <= 0 || est.escala <= 0) return null;
-    var geos = [], colores = [];
-    for (var i = 0; i < desc.length; i++) {
-      if ((i % 100) / 100 >= est.densidad) continue;
-      var d = desc[i];
-      var g = new THREE.PlaneGeometry(d.tx * est.escala, d.tz * est.escala);
-      g.applyMatrix4(new THREE.Matrix4().compose(
-        new THREE.Vector3(d.x, d.y, d.z),
-        new THREE.Quaternion().setFromEuler(new THREE.Euler(d.rx, d.ry, d.rz)),
-        new THREE.Vector3(1, 1, 1)
-      ));
-      geos.push(g);
-      colores.push(new THREE.Color(est.usoPaleta ? d.col : est.color));
-    }
-    return geos.length ? fusionarConColores(geos, colores) : null;
-  }
-
-  // Frondosa: tronco + ramas + copa de hojas (todo en la misma infra).
-  function construirArbolEZ(tipo, rand) {
-    var especie = EZ_ESPECIES[tipo];
-    var esq = construirEsqueletoEZ(especie, rand, !!especie.alargada);
-    var geoMadera = fusionar(esq.segs.map(function (s) {
-      return geometriaCilindro(s.a, s.b, s.r0, s.r1, 6);
-    }).filter(Boolean));
-    geoMadera.computeBoundingBox();
-    var descHojas = descriptoresHojasEZ(esq.puntas, rand, especie);
-    return { geoMadera: geoMadera, descHojas: descHojas, especie: especie };
-  }
-
-  function construirVariantesEZ() {
-    var barkMat = new THREE.MeshStandardMaterial({
-      color: 0x6b5138, flatShading: true, roughness: 1.0, metalness: 0.02,
-    });
-    var hojaMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff, flatShading: true, roughness: 1.0, metalness: 0.0,
-      vertexColors: true,
-      transparent: true, opacity: 0.88,
-      // Igual que la albizia: evita hoja negra en contraluz desde arriba.
-      emissive: 0x55853f, emissiveIntensity: 0.5,
-      side: THREE.DoubleSide,
-    });
-
-    function crearFamilia(tipos, semillaBase, destino) {
-      tipos.forEach(function (tipo, k) {
-        var rand = mulberry32(semillaBase + k * 7919);
-        var ez = construirArbolEZ(tipo, rand);
-        var geoHojas = geometriaHojasEZ(ez.descHojas, EZ_ESTACIONES[ez.especie.perenne ? 'perenne' : 'caduca'].verano);
-        var meshT = new THREE.InstancedMesh(ez.geoMadera, barkMat, MAX_ARBOL);
-        var meshH = new THREE.InstancedMesh(geoHojas || new THREE.BufferGeometry(), hojaMat, MAX_ARBOL);
-        meshT.count = 0; meshH.count = 0;
-        meshT.frustumCulled = false; meshH.frustumCulled = false;
-        scene.add(meshT); scene.add(meshH);
-        destino.push({
-          tipo: tipo,
-          // Altura REAL del modelo generado (bounding box): así la escala de
-          // instancia (altura OSM / altura modelo) saca el árbol a su tamaño
-          // real aunque el esqueleto procedural mida 5-6 m de nacimiento.
-          alturaModelo: Math.max(2, ez.geoMadera.boundingBox.max.y),
-          techoEscala: (EZ_ALTURAS[tipo] || 10) / Math.max(2, ez.geoMadera.boundingBox.max.y),
-          meshTroncos: meshT, meshHojas: meshH,
-          descHojas: ez.descHojas,
-          especie: ez.especie,
-          geoHojasActual: null,
-        });
-      });
-    }
-
-    // Una variante por especie (semillas deterministas, no clonan nunca).
-    crearFamilia(Object.keys(EZ_ESPECIES), 4400, variantesFrondosa);
   }
 
   function evaluar() {
@@ -1290,12 +1056,9 @@
         return { mallaReal: !!v.usaMallaReal, troncos: v.meshTroncos.count, hojas: v.meshHojas.count, frutos: v.meshFrutos.count };
       }),
       zoom: map ? map.getZoom() : -1,
-      ez: variantesFrondosa.map(function (v) {
-        return { tipo: v.tipo, troncos: v.meshTroncos.count, hojas: v.meshHojas.count };
-      }),
       // Referencias vivas (solo lectura/manipulación de depuración): el banco
       // de pruebas las usa para encender/apagar mallas y aislar problemas.
-      refs: { variantesAlbizia: variantesAlbizia, variantesNaranjo: variantesNaranjo, variantesFrondosa: variantesFrondosa },
+      refs: { variantesAlbizia: variantesAlbizia, variantesNaranjo: variantesNaranjo },
     };
   };
 

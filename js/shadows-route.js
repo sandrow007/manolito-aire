@@ -2846,9 +2846,27 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // AÑADIDO (función «cambiar fecha»): fecha elegida en el <input type="date">
   // del widget. null = hoy (comportamiento actual, idéntico a antes).
   let fechaManualFija = null;
+  // AÑADIDO: declarado a nivel de módulo (antes vivía dentro de
+  // inyectarControlesTiempo) para que el setter público de fecha pueda
+  // salir del modo solsticio. Mismo valor inicial y mismos usos.
+  let esFechaSolsticioActiva = false;
   const isoDeFecha = (d) => d.getFullYear() + '-' +
     String(d.getMonth() + 1).padStart(2, '0') + '-' +
     String(d.getDate()).padStart(2, '0');
+
+  // AÑADIDO: punto de entrada público para el <input type="date"> del widget
+  // solar VISIBLE (SVG de index.html): misma lógica que el date-input interno.
+  window.manolitAireFijarFecha = function (iso) {
+    const partes = String(iso || '').split('-').map(Number);
+    if (partes.length !== 3 || partes.some((n) => !isFinite(n))) return;
+    // Mediodía local para evitar sustos de zona horaria al mezclar con la hora.
+    fechaManualFija = new Date(partes[0], partes[1] - 1, partes[2], 12, 0, 0);
+    modoManual = true;
+    esFechaSolsticioActiva = false;
+    fechaBaseManual = new Date(fechaManualFija);
+    aplicarCambioDeHora(false);
+    actualizarEtiquetaTiempo(false);
+  };
   let sliderTiempo = null;
   let etiquetaTiempo = null;
   let temporizadorSlider = null;
@@ -4903,7 +4921,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       actualizarEtiquetaTiempo(esFechaSolsticioActiva);
     });
 
-    let esFechaSolsticioActiva = false;
+    // (esFechaSolsticioActiva vive a nivel de módulo, junto a fechaBaseManual;
+    // los handlers de aquí abajo la usan igual que antes.)
 
     // AÑADIDO (función «cambiar fecha»): <input type="date"> conectado a la
     // MISMA lógica que el slider (mismo fechaBaseManual + aplicarCambioDeHora).

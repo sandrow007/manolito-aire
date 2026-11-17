@@ -66,7 +66,37 @@
     return andaluciaPromesa;
   }
   window.manolitAireEnAndalucia = detectarAndalucia;
-  detectarAndalucia(); // se lanza al cargar para que la mascota ya lo tenga
+
+  /* AÑADIDO: la solicitud de ubicación JAMÁS se lanza sola al entrar en el
+     mapa. La ubicación es opcional: solo se consulta SIN AVISO si el permiso
+     ya estaba concedido de antes, o se reutiliza la primera posición que la
+     app obtenga por un camino iniciado por el usuario (botón «Mi ubicación»,
+     caminata…, evento 'manolitUbicacionNueva'). Sin permiso o sin lectura:
+     castellano neutro, cero prompts. */
+  function arranqueZonaSinPrompt() {
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then(function (estado) {
+          // 'granted' NO muestra prompt; 'prompt'/'denied' no se tocan.
+          if (estado && estado.state === 'granted') detectarAndalucia();
+        }).catch(function () { });
+      }
+    } catch (e) { }
+    try {
+      document.addEventListener('manolitUbicacionNueva', function (ev) {
+        try {
+          var lat = Number(ev.detail && ev.detail.lat);
+          var lon = Number(ev.detail && ev.detail.lon);
+          var en = Number.isFinite(lat) && Number.isFinite(lon) &&
+            lat >= 35.9 && lat <= 38.75 && lon >= -7.55 && lon <= -1.6;
+          window.__manolitEnAndalucia = en;
+          andaluciaPromesa = Promise.resolve(en);
+        } catch (e) { }
+      });
+    } catch (e) { }
+  }
+  arranqueZonaSinPrompt();
+
 
   const REGLA_ACENTO_CASTELLANO = '10. ACENTO: escribe en español neutro y estándar. No uses acento andaluz escrito: ni seseo ni ceceo, ni palabras como «illo», «quillo», «mi arma» o «pisha». Solo si el usuario escribe él mismo en andaluz, respóndele con naturalidad en su mismo registro, sin exagerar.';
   const REGLA_ACENTO_ANDALUZ = `10. ACENTO (el usuario está en Andalucía, confirmado por geolocalización): escribe en español con el habla real de Sevilla y su entorno, NO una caricatura de feria. En concreto:

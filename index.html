@@ -163,7 +163,7 @@
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
 <link rel="stylesheet" href="css/style.css?v=hud-navegacion-20261102-a">
-<link rel="stylesheet" href="css/sqi.css?v=sqi-widget-visible-20261117-d">
+<link rel="stylesheet" href="css/sqi.css?v=sqi-clicks-20261117-i">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -2691,7 +2691,7 @@
      cuando alguien le pregunta a ella. La usan parking, planetario y el
      widget; nadie más decide por su cuenta si es de día o de noche. -->
 <script src="js/sol.js" defer></script>
-<script src="js/chat.js?v=chat-sqi-koppen-20261117-a" defer></script>
+<script src="js/chat.js?v=sin-prompt-gps-20261117-j" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
 <script src="js/planetario.js" defer></script>
@@ -2749,7 +2749,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=resumen-mapa-20261117-h'))
+        .then(() => cargarScript('js/shadows-route.js?v=fecha-widget-20261117-i'))
         .then(() => {
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
@@ -3844,6 +3844,16 @@ svg{background:transparent;font-family:'Inter',system-ui,-apple-system,sans-seri
 <g id="bb"><text id="bt" x="0" y="-70" font-size="11" fill="#cfd5e2" text-anchor="middle" style="font-variant-numeric:tabular-nums">16:20</text></g>
 </g>
 
+<!-- AÑADIDO: selector de fecha (misma lógica de simulación que la hora).
+     Vive en la banda libre entre las pestañas y la línea de horas. -->
+<foreignObject x="10" y="56" width="322" height="28">
+<div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;justify-content:space-between;font-family:'Inter',system-ui,sans-serif;font-size:11px;color:#8a93a6;height:100%;">
+<span>Fecha</span>
+<input id="rsSolarFechaInput" type="date" aria-label="Fecha"
+  style="background:rgba(255,255,255,0.06);color:#eef1f6;border:1px solid rgba(255,255,255,0.14);border-radius:8px;padding:3px 8px;font:inherit;font-size:11px;" />
+</div>
+</foreignObject>
+
 <g class="btn-cap" id="btn-capturar" role="button" tabindex="0">
 <rect x="111.5" y="149.5" width="117" height="26" rx="13"/>
 <text id="capt" x="170" y="166.7" text-anchor="middle">Capturar vista</text>
@@ -3988,6 +3998,11 @@ press($("btn-capturar"),function(){
 
 window.addEventListener("resize",place);
 
+/* AÑADIDO: el selector de fecha del panel pide el modelo solar de OTRO día
+   (misma hora, misma ciudad). El botón «Ahora» sigue volviendo a hoy. */
+window.__rsSolarSetFecha=function(y,m,d){DAYS.hoy=[y,m,d];range();draw();};
+window.__rsSolarFechaHoy=function(){var n=new Date();DAYS.hoy=[n.getFullYear(),n.getMonth(),n.getDate()];range();draw();};
+
 /* El tiempo se inyecta mágicamente aquí desde la carga */
 range();T=nowT();layout();draw();
 if(document.fonts&&document.fonts.ready){document.fonts.ready.then(layout)}
@@ -4058,6 +4073,17 @@ svg#map #mk:focus,svg#map #mk:focus-visible{outline:none!important}
       var preset={inv:'rsBtnInvierno',hoy:'rsBtnAhora',ver:'rsBtnVerano'}[chip.getAttribute('data-d')];
       var button=preset&&document.getElementById(preset);
       if(button){button.click();setTimeout(syncMapTime,0);}
+      // AÑADIDO: las pestañas del widget también sincronizan el selector de
+      // fecha que añadimos al panel (Ahora → hoy; solsticios → su fecha).
+      try{
+        var dFecha=chip.getAttribute('data-d');
+        var inpFecha=document.getElementById('rsSolarFechaInput');
+        var yy=new Date().getFullYear();
+        var isoF=(dFecha==='inv')?(yy+'-12-21'):(dFecha==='ver')?(yy+'-06-21')
+          :(yy+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0'));
+        if(inpFecha&&inpFecha.value!==isoF)inpFecha.value=isoF;
+        if(dFecha==='hoy'&&window.__rsSolarFechaHoy)window.__rsSolarFechaHoy();
+      }catch(eF){}
       return;
     }
     if(event.target.closest&&event.target.closest('#btn-capturar')){
@@ -4065,6 +4091,21 @@ svg#map #mk:focus,svg#map #mk:focus-visible{outline:none!important}
       if(capture)capture.click();
     }
   });
+  // AÑADIDO: el <input type="date> del panel habla con el motor de la app
+  // (misma fecha/hora simulada) y con el modelo solar del propio widget.
+  try{
+    var inputFechaSolar=document.getElementById('rsSolarFechaInput');
+    if(inputFechaSolar){
+      var hoyIso=new Date();
+      inputFechaSolar.value=hoyIso.getFullYear()+'-'+String(hoyIso.getMonth()+1).padStart(2,'0')+'-'+String(hoyIso.getDate()).padStart(2,'0');
+      inputFechaSolar.addEventListener('change',function(){
+        var partes=String(inputFechaSolar.value||'').split('-').map(Number);
+        if(partes.length!==3||partes.some(function(n){return !isFinite(n);}))return;
+        if(typeof window.manolitAireFijarFecha==='function')window.manolitAireFijarFecha(inputFechaSolar.value);
+        if(typeof window.__rsSolarSetFecha==='function')window.__rsSolarSetFecha(partes[0],partes[1]-1,partes[2]);
+      });
+    }
+  }catch(eFecha){}
   positionOverlay();
   if('ResizeObserver'in window)new ResizeObserver(queuePosition).observe(routeMap);
 })();

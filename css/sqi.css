@@ -363,3 +363,7 @@
   #rsSqiMini .rs-sqi-mini-datos{gap:4px 10px;}
   #rsSqiMini .rs-sqi-mini-dato{font-size:10px;}
 }
+
+/* AÑADIDO: la tarjeta mini SQI debe responder a los clicks del usuario;
+   con pointer-events:none el enlace «Cómo se calcula» era inaccesible. */
+#rsSqiMini.rs-sqi-mini{ pointer-events:auto; }

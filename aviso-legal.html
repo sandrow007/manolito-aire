@@ -464,6 +464,40 @@
   y tu propio cuerpo.
 </p>
 
+<h2>26. Estimaciones de sombra, calidad del aire y radiación</h2>
+<p>
+  Los datos de sombra, calidad del aire y radiación mostrados en Manolit∞ Aire son estimaciones
+  calculadas a partir de modelos atmosféricos y geoespaciales que combinan fuentes públicas
+  (Copernicus CAMS vía Open-Meteo, OpenAQ, AEMET OpenData y OpenStreetMap) con un método de
+  ajuste local conocido como <strong>regresión por uso del suelo</strong>
+  (<i>land use regression</i>), empleado en epidemiología ambiental y estudios de calidad del
+  aire urbana para aproximar valores de baja resolución espacial a escala de calle.
+</p>
+<p>
+  El modelo incluye un coeficiente de amortiguación que pondera la influencia del gradiente local
+  de contaminación sobre la radiación difusa. Este coeficiente varía según la zona climática del
+  punto consultado, determinada automáticamente a partir de la clasificación Köppen-Geiger
+  (Beck et al., 2018). Los valores por clase climática son <strong>parámetros elegidos a mano
+  con justificación física razonada</strong> —no magnitudes medidas ni extraídas directamente de
+  la literatura—, y están documentados con su justificación en el repositorio público del
+  proyecto para su consulta y crítica.
+</p>
+<p>
+  Estos valores no constituyen una medición directa certificada por ninguna agencia meteorológica
+  o ambiental oficial, y pueden diferir de la realidad en un punto y momento concretos.
+  La herramienta tiene finalidad exclusivamente informativa y orientativa. No sustituye los avisos
+  oficiales de calidad del aire ni debe usarse como única base para decisiones médicas, de salud
+  pública o de seguridad. Para esas decisiones, en especial en personas con condiciones
+  respiratorias, consulta las fuentes oficiales de tu administración.
+</p>
+<p>
+  El código y la metodología completa son de código abierto bajo licencia AGPL-3.0 y están
+  disponibles en el
+  <a href="https://github.com/sandrow007/manolito-aire" target="_blank" rel="noopener">
+  repositorio del proyecto</a> para su consulta, auditoría y mejora por cualquier persona.
+  Manolit∞ y su creador no se hacen responsables de decisiones tomadas exclusivamente en base
+  a estos datos.
+</p>
 </div>
 
 <div class="footer">

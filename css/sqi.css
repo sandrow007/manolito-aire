@@ -86,6 +86,38 @@
 }
 .rs-sqi-pct-sim{font-size:1.05rem;font-weight:700;color:rgba(237,244,242,0.6);}
 
+/* ---- Aviso de transparencia (estimación + cómo se calcula) ---- */
+.rs-sqi-aviso,
+.rs-sqi-mini-aviso{
+  font-size:0.72rem;
+  line-height:1.5;
+  color:rgba(237,244,242,0.5);
+}
+.rs-sqi-aviso{
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.rs-sqi-mini-aviso{
+  margin-top:6px;
+}
+.rs-sqi-aviso a,
+.rs-sqi-mini-aviso a{
+  color:rgba(237,244,242,0.75);
+  font-weight:600;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.rs-sqi-aviso a:hover,
+.rs-sqi-mini-aviso a:hover{
+  color:#EDF4F2;
+}
+.rs-sqi-aviso a:focus-visible,
+.rs-sqi-mini-aviso a:focus-visible{
+  outline:2px solid var(--accent,#FF6B1A);
+  outline-offset:2px;
+}
+
 /* ---- Barra de escala con indicador ---- */
 .rs-sqi-barra{
   position:relative;

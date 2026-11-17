@@ -42,8 +42,15 @@
                 apenas se mueven).
      SVF  = fracción de cielo visible en el centroide (0-1), con los
             edificios OSM ya cargados en el mapa, radio 100 m, 8 direcciones.
-     DHIef = DHI x (1 + 0.5 x (factorLocal - 1)) x SVF
+     DHIef = DHI x (1 + K(clima) x (factorLocal - 1)) x SVF
      SQI  = clamp(0, 100, 100 x (1 - DHIef / GHI))
+     K(clima) = amortiguación del factor LUR según la zona climática
+            Köppen-Geiger del punto (Beck et al. 2018). Se lee de una
+            rejilla local de 0.1° (data/koppen-rejilla.json, preprocesada
+            offline con preprocesar_koppen.py) que se carga UNA vez al
+            arrancar: sin llamadas externas en tiempo de consulta. Cada
+            polígono usa el K de SU centroide; al mover el mapa a otra
+            ciudad el coeficiente cambia solo. Sin dato: fallback 0.45.
      Si GHI <= 10 W/m2 o el sol está bajo el horizonte: estado "noche", sin
      teñir y con la vista deshabilitada.
      AOD y PM2.5 siguen en el panel como dato de zona; lo que se baja a
@@ -79,11 +86,32 @@
     calibracionZona: '',
     calibracionTs: 0,
     ultimosMeteo: null,      // última respuesta buena (para la UI)
+    koppen: null,            // rejilla Köppen decodificada (null = aún no cargada)
+    koppenPromesa: null,     // carga única en vuelo de data/koppen-rejilla.json
     rafProgramado: false,
     timerReevaluacion: null,
     ultimaEval: 0
   };
 
+  // DOCUMENTACIÓN DE PARÁMETROS ELEGIDOS A MANO (metodologia.html):
+  // UMBRAL_AREA_GRANDE = 20000 m²: por encima se considera polígono enorme
+  //   (un parque, una plaza) y se muestrea por varios puntos interiores
+  //   promediando. 20000 m² ~ una manzana grande o un patio de colegio:
+  //   su SVF varía tanto de esquina a esquina que un solo centroide mintiría.
+  // RADIO_SVF = 100 m: radio de búsqueda del factor de cielo visible. En
+  //   calle urbana, el cañón lo definen los edificios de las dos filas
+  //   frente: con anchuras típicas de 15-40 m, 100 m recoge 2-3 alturas
+  //   por lado sin contar edificios que quedan ocultos tras otros (que ya
+  //   no aportan obstrucción real). Más radio añade coste y poco cambio.
+  // LOTE = 20 polígonos/tanda y RETRASO_REEVALUACION = 40 s: rendimiento,
+  //   no física. 20 mantiene cada tanda bajo unos pocos ms incluso en móvil;
+  //   40 s repasa la hora (el dato horario no cambia en menos de una hora)
+  //   sin martillar la API.
+  // TTL_CACHE = 20 min: compromiso entre frescura del pronóstico CAMS (se
+  //   actualiza cada hora) y número de peticiones. Una caché más corta solo
+  //   repetiría el mismo dato horario.
+  // OPENAQ_TTL = 30 min: las estaciones publican con latencia de minutos a
+  //   horas; repedir antes no aporta dato nuevo.
   var UMBRAL_AREA_GRANDE = 20000;   // m2: polígono enorme (un parque)
   var RADIO_SVF = 100;              // metros
   var LOTE = 20;                    // polígonos por tanda
@@ -95,6 +123,68 @@
   // dentro de los primeros 50-150 m y el verde próximo reduce la acumulación
   // local. Son PRIORS acotados, no mediciones: cuando OpenAQ tiene 2 o más
   // estaciones en la ciudad, los pesos se recalibran con sus lecturas.
+  //
+  // DOCUMENTACIÓN DE PARÁMETROS (metodologia.html · nov-2026):
+  // Cada valor elegido a mano, de dónde sale y por qué ese y no otro.
+  //
+  // RADIO_VIA = 150 m
+  //   De dónde: rango típico 50-150 m de los estudios LUR (p. ej.
+  //   Hoek et al. 2008, revisión de regresión por uso del suelo). La
+  //   concentración de NO2/PM junto a una vía cae ~60 % en los primeros
+  //   100 m y se asimila al fondo urbano hacia los 150-300 m.
+  //   Por qué 150: es el límite superior del rango; en una ciudad tan
+  //   compacta como Sevilla (manzanas de 60-100 m) la influencia directa
+  //   de una vía raramente llega más lejos, y cortar antes penalizaría
+  //   calles tranquilas pegadas a una avenida.
+  //
+  // DECAIMIENTO_VIA = 75 m (exp(-d/75))
+  //   De dónde: el e-fold de la pluma de tráfico. Con 75 m, a 25 m de la
+  //   vía queda el 72 % del aporte y a 150 m el 13 %: descenso exponencial
+  //   coherente con las curvas de dispersión de viales urbanos (p. ej.
+  //   modelo de calle CPR/OSPM). Elegido algo mayor que la mitad del radio
+  //   para que el aporte no muera demasiado pronto dentro del corte.
+  //
+  // RADIO_VERDE / DECAIMIENTO_VERDE = 150 m / 70 m
+  //   De dónde: los parques urbanos generan un efecto de limpieza local
+  //   (deposición y mezcla más limpia) medido en 100-300 m en estudios de
+  //   islands frescas y LUR con variable de verde NDVI. 150 m alinea el
+  //   alcance con el de la vía (mismo área de influencia) y 70 m hace que
+  //   un parque a <50 m cuente de verdad pero a 150 m apenas sume.
+  //
+  // CELDA_GRILLA = 0.0018° (~200 m)
+  //   De dónde: es el tamaño de celda del índice espacial que agrupa el
+  //   contexto de calle (vías, verde). 200 m coincide con la escala de
+  //   manzana/bloque urbana y con la resolución típica de las mallas LUR;
+  //   una celda mayor mezclaría zonas incompatibles, una menor multiplicaría
+  //   el coste de indexación sin cambiar el resultado.
+  //
+  // MAX_VIAS = 6000
+  //   De dónde: es un tope de rendimiento (mobile): el número máximo de
+  //   segmentos de vía indexados por vista. En una ciudad entera a zoom
+  //   medio no se llega a esa cifra; solo limita los peores casos de zoom
+  //   muy bajo para que el hilo no se sature.
+  //
+  // PRIOR b0=0, b1=0.45 (vía), b2=0.35 (verde), b3=0.30 (cañón)
+  //   De dónde: priors cualitativos, no coeficientes de una regresión
+  //   específica. b0=0 significa «a priori, el factor local es neutro».
+  //   b1=0.45 deja el aporte de la vía como el mayor peso (la evidencia
+  //   LUR indica que el tráfico es el predictor dominante en NO2/PM
+  //   urbana). b2=0.35 y b3=0.30 quedan algo por debajo porque verde y
+  //   cañón Street canyon moderan pero no dominan. La magnitud ~0.3-0.45
+  //   mantiene el factor local en un rango plausible (±40 %) antes de
+  //   calibrar: nunca se aleja tanto como para contradecir al dato base.
+  //   Se recalibran con regresión ridge contra OpenAQ cuando hay ≥2
+  //   estaciones: con pocas, los priors apenas se mueven (intencional:
+  //   mejor un prior razonable que una calibración con 2 puntos).
+  //
+  // FACTOR_MIN = 0.55 / FACTOR_MAX = 1.9
+  //   De dónde: acotado deliberado. 0.55 permite que un barrio con verde
+  //   y sin vía tenga ~45 % menos contaminación local que el fondo, algo
+  //   coherente con las diferencias intraurbanas medidas en Sevilla.
+  //   1.9 capta que una calle-canyon junto a una avenida puede doblar el
+  //   fondo, pero impide que el modelo invente valores extremos (x3 o
+  //   x4) sin evidencia local. Son límites de seguridad del prior, no
+  //   conclusiones físicas.
   var LUR = {
     RADIO_VIA: 150,          // corte: más lejos, la vía ya no suma
     DECAIMIENTO_VIA: 75,     // exp(-d/75)
@@ -107,6 +197,166 @@
     FACTOR_MAX: 1.9
   };
   var OPENAQ_TTL = 30 * 60 * 1000; // las estaciones no se repiden en media hora
+
+  /* ---------------------------------------------------------------------
+     COEFICIENTE K DE AMORTIGUACIÓN DEL FACTOR LUR, POR ZONA CLIMÁTICA
+     (Köppen-Geiger, Beck et al. 2018)
+
+     En dhiEf = DHI x (1 + K x (factorLocal - 1)) x SVF, el factorLocal se
+     calibra con PM2.5 EN SUPERFICIE (OpenAQ), pero la radiación difusa
+     depende del aerosol en COLUMNA. K responde a: ¿cuánto dice la
+     contaminación de superficie local sobre el aerosol de la columna que
+     tiene encima? Eso cambia con el clima, y por eso K no es una constante
+     universal: la física del lugar es distinta en Bilbao que en Sevilla.
+
+     La zona climática se lee de data/koppen-rejilla.json: rejilla global
+     de 0.1° preprocesada offline (preprocesar_koppen.py) desde el ráster
+     de 1 km de Beck et al. (2018), Scientific Data 5:180214, CC BY 4.0
+     (https://doi.org/10.6084/m9.figshare.6396959, periodo 1980-2016).
+     Se carga UNA vez al arrancar y cada consulta es un acceso por índice
+     en memoria: cero llamadas externas por punto. Los códigos 1-30 son
+     los del legend.txt oficial de Beck; 0 = océano o sin dato.
+
+     DOCUMENTACIÓN DE LOS VALORES (metodologia.html · nov-2026):
+     Son PRIORS ORDINALES elegidos a mano con dirección física defendible,
+     NO magnitudes medidas ni coeficientes de una regresión. Lo que está
+     justificado es el orden (BWh > Csa > Dfb > Cfb) y el porqué de cada
+     escalón, no el tercer decimal. Si algún día hay mediciones de difusa
+     bajo sombra por clima, esta tabla es lo primero que hay que recalibrar.
+
+     BWh / BWk = 0.60 (desierto)
+       Acoplamiento superficie-columna máximo: capa de mezcla muy alta y
+       convección extrema mezclan el polvo mineral (el aerosol dominante)
+       en toda la columna, y al no haber apenas nubes la difusa la domina
+       el aerosol. Lo que contamina en superficie está también arriba.
+     BSh / BSk = 0.55 (semiárido: Sevilla e interior sur peninsular)
+       Convección fuerte y intrusiones de polvo sahariano (calima): buen
+       acoplamiento. Un escalón bajo el desierto por la mayor nubosidad
+       invernal, que le quita peso al aerosol en la difusa anual.
+     Csa = 0.55 (mediterráneo de verano seco y caluroso)
+       Verano seco y muy convectivo: el polvo sahariano y el aerosol
+       urbano se mezclan bien verticalmente. El invierno húmedo y con
+       nubes baja la media anual respecto al semiárido puro, pero no lo
+       suficiente para bajar de escalón.
+     Csb / Csc = 0.50 (mediterráneo de verano templado o frío)
+       Misma estructura estacional que Csa pero menos extremo térmico:
+       convección y altura de la capa de mezcla algo menores.
+     Af / Am = 0.50 (tropical lluvioso y monzónico)
+       Convección extrema: el acoplamiento superficie-columna es alto
+       pese al lavado frecuente. El aerosol (biomasa quemada, urbano,
+       higroscópico por la humedad) llega eficazmente a la columna.
+     Cfa = 0.45 (subtropical húmedo)
+       La humedad alta hace crecer las partículas (crecimiento
+       higroscópico: cada una dispersa más luz), pero la nubosidad
+       frecuente diluye el peso del aerosol en la difusa. Término medio.
+     Aw = 0.45 (tropical de sabana)
+       Por analogía con Cfa: convección alta en la estación húmeda, pero
+       nubosidad y lavado intensos; en la seca domina el polvo y el humo
+       de quemas, sin llegar al acoplamiento del desierto.
+     Dfa / Dfb = 0.40 (continental húmedo: Europa central y del este)
+       Las inversiones invernales atrapan el aerosol (sulfatos, nitratos,
+       humo de biomasa y calefacción) en una capa delgada pegada al suelo,
+       desacoplada de la columna. La convección veraniega sube la media.
+     Dfc / Dfd = 0.35 (subártico)
+       Columna muy limpia, poco aerosol y inversiones largas: la
+       superficie dice poco de lo que hay arriba.
+     Cfb / Cfc = 0.35 (oceánico: norte atlántico, Bilbao, Galicia)
+       La difusa la domina la NUBOSIDAD, no el aerosol. Ventilación
+       horizontal fuerte, lavado frecuente por precipitación y capa
+       límite baja y desacoplada: el gradiente local de PM (aerosol
+       marino de fondo, poco acumulativo) apenas se traduce en difusa
+       extra. El escalón más bajo de los climas habitados densamente.
+     ET = 0.30 (tundra / alta montaña: Pirineos de altura, Svaneti)
+       Aire limpio y poco aerosol en columna. Efecto práctico pequeño:
+       sin vías pesadas el factorLocal ya cae a ~1 por sí solo.
+     Fallback = 0.45 (océano, sin dato, EF y clases no tabuladas)
+       Centro del rango, sin sesgar ni a limpio ni a sucio. EF (hielo
+       permanente) se deja aquí a propósito: allí el factorLocal es ~1
+       y el valor de K es irrelevante en la práctica.
+     --------------------------------------------------------------------- */
+  var K_DIFUSA_POR_CLASE = [
+    null, // 0: océano / sin dato -> fallback
+    0.50, //  1 Af
+    0.50, //  2 Am
+    0.45, //  3 Aw
+    0.60, //  4 BWh
+    0.60, //  5 BWk
+    0.55, //  6 BSh
+    0.55, //  7 BSk
+    0.55, //  8 Csa
+    0.50, //  9 Csb
+    0.50, // 10 Csc
+    null, // 11 Cwa (no tabulada -> fallback)
+    null, // 12 Cwb (no tabulada -> fallback)
+    null, // 13 Cwc (no tabulada -> fallback)
+    0.45, // 14 Cfa
+    0.35, // 15 Cfb
+    0.35, // 16 Cfc
+    null, // 17 Dsa (no tabulada -> fallback)
+    null, // 18 Dsb (no tabulada -> fallback)
+    null, // 19 Dsc (no tabulada -> fallback)
+    null, // 20 Dsd (no tabulada -> fallback)
+    null, // 21 Dwa (no tabulada -> fallback)
+    null, // 22 Dwb (no tabulada -> fallback)
+    null, // 23 Dwc (no tabulada -> fallback)
+    null, // 24 Dwd (no tabulada -> fallback)
+    0.40, // 25 Dfa
+    0.40, // 26 Dfb
+    0.35, // 27 Dfc
+    0.35, // 28 Dfd
+    0.30, // 29 ET
+    null  // 30 EF: sin efecto práctico (factorLocal ~1) -> fallback
+  ];
+  var K_DIFUSA_FALLBACK = 0.45;
+
+  // Carga única de la rejilla Köppen. Si falla la red o el asset, el modelo
+  // sigue con el fallback y no se reintenta en bucle: silencio total.
+  function cargarRejillaKoppen() {
+    if (S.koppenPromesa) return S.koppenPromesa;
+    S.koppenPromesa = fetchConReintentos('data/koppen-rejilla.json', 0).then(function (d) {
+      if (!d || !d.datos_b64 || !d.ancho || !d.alto) return null;
+      var bin = atob(d.datos_b64);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      S.koppen = { res: d.res, oeste: d.oeste, norte: d.norte,
+        ancho: d.ancho, alto: d.alto, datos: bytes };
+      // La rejilla llegó después del primer pintado (que usó fallback):
+      // se fuerza una reevaluación para aplicar el K real de cada punto.
+      S.sigGeometria = '';
+      programarEvaluacion();
+      return S.koppen;
+    }).catch(function () { return null; });
+    return S.koppenPromesa;
+  }
+
+  // K del punto consultado, por índice directo sobre la rejilla en memoria.
+  function coeficienteDifusaEn(lat, lon) {
+    var K = S.koppen;
+    if (!K) return K_DIFUSA_FALLBACK;
+    var col = Math.floor((lon - K.oeste) / K.res);
+    var fila = Math.floor((K.norte - lat) / K.res);
+    if (col < 0 || col >= K.ancho || fila < 0 || fila >= K.alto) return K_DIFUSA_FALLBACK;
+    var clase = K.datos[fila * K.ancho + col];
+    if (clase === 0) {
+      // Costa: una ciudad junto al mar puede caer en una celda 0.1° de
+      // océano (medido: San Sebastián). Se busca la celda de tierra más
+      // cercana en un radio de 2 celdas (~20 km) antes de rendirse al
+      // fallback: el clima de la orilla es el de la tierra adyacente.
+      var mejorDist = Infinity;
+      for (var df = -2; df <= 2; df++) {
+        for (var dc = -2; dc <= 2; dc++) {
+          var f2 = fila + df, c2 = col + dc;
+          if (f2 < 0 || f2 >= K.alto || c2 < 0 || c2 >= K.ancho) continue;
+          var v = K.datos[f2 * K.ancho + c2];
+          if (v === 0) continue;
+          var dist = df * df + dc * dc;
+          if (dist < mejorDist) { mejorDist = dist; clase = v; }
+        }
+      }
+    }
+    var k = K_DIFUSA_POR_CLASE[clase];
+    return k != null ? k : K_DIFUSA_FALLBACK;
+  }
 
   /* ---------------------------------------------------------------------
      Utilidades
@@ -132,6 +382,13 @@
   }
 
   function colorDeSqi(sqi) {
+    // DOCUMENTACIÓN (metodologia.html): cortes 85/65/40 elegidos para que
+    // las 4 clases reflejen pérdida real de protección, no cortes
+    // decorativos: SQI 100 = sombra sin difusa extra; ~85 aprox. el punto
+    // donde la difusa bajo techo ya es pequeña frente al calor del sol;
+    // 65 ~ «sigue protegiendo pero se nota el cielo cargado»; 40 = la
+    // sombra aporta poco (< 40 % de diferencia con el sol directo).
+    // Son umbrales de comunicación orientativa, no una escala física.
     if (sqi >= 85) return '#00B98A';
     if (sqi >= 65) return '#FFC033';
     if (sqi >= 40) return '#FF6B1A';
@@ -406,11 +663,19 @@
      descarga por polígono.
      --------------------------------------------------------------------- */
   function pesoViaDeClase(clase) {
+    // DOCUMENTACIÓN (metodologia.html): pesos por jerarquía OSM, elegidos a
+    // mano como proxy de intensidad de tráfico relativa. De dónde: la
+    // distribución de tráfico por clase de vía en redes urbanas españolas
+    // (IMEC/hectómetros de intensidad) muestra una caída aprox. geométrica
+    // autovía → residencial. Los valores son ordinales, no mediciones: lo
+    // importante es el orden (autovía ≫ residencial ≫ peatonal), que es
+    // robusto; los números concretos son priors que la calibración con
+    // OpenAQ compensa de forma agregada.
     switch (clase) {
       case 'motorway': case 'trunk': return 1.0;
-      case 'primary': return 0.85;
-      case 'secondary': return 0.6;
-      case 'tertiary': return 0.45;
+      case 'primary': return 0.85;   // avenidas urbanas: casi el máximo
+      case 'secondary': return 0.6;  // vía de distribución intermedia
+      case 'tertiary': return 0.45;  // calle importante sin arterial
       case 'unclassified': case 'residential': return 0.2;
       case 'living_street': case 'pedestrian': return 0.1;
       case 'service': case 'track': case 'path':
@@ -954,16 +1219,30 @@
             }
             // Ajuste local (LUR): la difusa sube donde el contexto de calle
             // acumula más carga (vía pesada, cañón cerrado) y baja con verde.
-            // Amortiguada al 50%: la difusa responde a los aerosoles, pero
-            // menos que la concentración en superficie.
+            // Amortiguada por K(clima): la difusa responde a los aerosoles,
+            // pero menos que la concentración en superficie.
             var factor = 1;
             try { factor = factorLocalDe(centroide, svf, clave); } catch (e) { factor = 1; }
-            var dhiEf = dhi * (1 + 0.5 * (factor - 1)) * svf;
+            // DOCUMENTACIÓN (metodologia.html): K limita la influencia del
+            // factor local LUR sobre la radiación difusa y depende de la
+            // zona Köppen-Geiger del centroide (tabla K_DIFUSA_POR_CLASE,
+            // priors ordinales documentados arriba). De dónde: en cielos
+            // reales la difusa aumenta menos que proporcionalmente con el
+            // aerosol cercano (parte de la difusa viene del aerosol de la
+            // columna completa, que ya trae CAMS), y cuánto dice la
+            // superficie sobre esa columna depende del clima: convección
+            // y polvo en el sur seco (K alto), nubosidad y desacoplamiento
+            // en el norte atlántico (K bajo). Aplicar el factor completo
+            // haría que una calle sucia «saltase» de categoría sin apoyo
+            // experimental; K deja visible el efecto sin exagerar.
+            var kDif = coeficienteDifusaEn(centroide[1], centroide[0]);
+            var dhiEf = dhi * (1 + kDif * (factor - 1)) * svf;
             var sqi = clamp(0, 100, Math.round(100 * (1 - dhiEf / ghi)));
             f2.properties.sqi = sqi;
             f2.properties.sqi_color = colorDeSqi(sqi);
             f2.properties.sqi_hora = hKey;
             f2.properties.sqi_f = Math.round(factor * 100) / 100;
+            f2.properties.sqi_k = kDif;
             f2.properties.sqi_svf = Math.round(svf * 100) / 100;
             svfMedio += svf; nSvf++;
             sumaSqi += sqi; nSqi++;
@@ -1078,7 +1357,9 @@
         '<div class="rs-sqi-mini-barra" aria-hidden="true">' +
         '<div class="rs-sqi-mini-indicador" id="rsSqiMiniIndicador"></div>' +
         '</div>' +
-        '<div class="rs-sqi-mini-datos" id="rsSqiMiniDatos"></div>';
+        '<div class="rs-sqi-mini-datos" id="rsSqiMiniDatos"></div>' +
+        '<div class="rs-sqi-mini-aviso">Estimación calculada con datos públicos. No es una medición directa de un sensor en este punto. ' +
+        '<a href="metodologia.html" target="_blank" rel="noopener">Cómo se calcula</a></div>';
       root.parentElement.insertBefore(mini, root.nextSibling);
       if (S.ultimoPintado) {
         pintarMini(S.ultimoPintado.noche, S.ultimoPintado.sqi,
@@ -1164,6 +1445,17 @@
     var caja = document.getElementById('rsSqiContexto');
     var titulo = document.getElementById('rsSqiContextoTitulo');
     var cuerpo = document.getElementById('rsSqiContextoCuerpo');
+
+    // Aviso de transparencia junto al dato: la tarjeta SQI se construye
+    // dinámicamente, así que se asegura el aviso en cada repintado.
+    if (card && !document.getElementById('rsSqiAvisoMetodo')) {
+      var aviso = document.createElement('div');
+      aviso.className = 'rs-sqi-aviso';
+      aviso.id = 'rsSqiAvisoMetodo';
+      aviso.innerHTML = 'Estimación calculada con datos públicos. No es una medición directa de un sensor en este punto. ' +
+        '<a href="metodologia.html" target="_blank" rel="noopener">Cómo se calcula</a>';
+      card.appendChild(aviso);
+    }
 
     if (card) card.classList.toggle('rs-sqi-noche', noche);
 
@@ -1265,6 +1557,9 @@
     try {
       if (window.manolitAireMap && window.turf) {
         S.map = window.manolitAireMap;
+        // Rejilla Köppen para el K de amortiguación: una sola descarga al
+        // arrancar; las consultas por punto son accesos en memoria.
+        try { cargarRejillaKoppen(); } catch (e) { }
         // La calidad de sombra vive SOLO dentro del widget de hora del mapa.
         // No hay tarjeta fuera del mapa y los bloques Aire/Previsión de la
         // página se quedan exactamente donde estaban.

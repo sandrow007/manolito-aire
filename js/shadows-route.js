@@ -1388,6 +1388,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // los árboles se movieran igual que las de los edificios.
   window.manolitAireHoraEfectiva = () => obtenerHoraEfectiva();
 
+  // Barra de estado para módulos aditivos que viven fuera de este archivo
+  // (js/lluvia.js la usa para avisar de que solo hay lluvia actual). Si
+  // nadie la llama, no cambia nada; mostrarEstado es la función de siempre.
+  window.manolitAireEstado = (texto, tipo) => mostrarEstado(texto, tipo);
+
   // Mismo punto de referencia solar que usan los edificios (el origen de
   // la ruta, tu posición al caminar, etc.), en vez de un centro de mapa
   // potencialmente distinto.

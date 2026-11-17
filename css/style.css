@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MANOLITO AIRE, hoja de estilos compartida
    Tokens de color separados por tema para poder cambiar
    claro/oscuro y el acento sin tocar el resto del CSS.
@@ -2737,6 +2737,10 @@ body.mode-peque .im-lost-btn{
 #main-content .rs-ico-nubes::before{
   -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 18.5a4 4 0 1 1 .4-7.98A5.5 5.5 0 0 1 18.2 12 3.5 3.5 0 0 1 17.5 18.5z'/%3E%3C/svg%3E");
           mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 18.5a4 4 0 1 1 .4-7.98A5.5 5.5 0 0 1 18.2 12 3.5 3.5 0 0 1 17.5 18.5z'/%3E%3C/svg%3E");
+}
+#main-content .rs-ico-lluvia::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 14.5a4 4 0 1 1 .4-7.98A5.5 5.5 0 0 1 18.2 8 3.5 3.5 0 0 1 17.5 14.5z'/%3E%3Cpath d='M8.5 17.5l-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 14.5a4 4 0 1 1 .4-7.98A5.5 5.5 0 0 1 18.2 8 3.5 3.5 0 0 1 17.5 14.5z'/%3E%3Cpath d='M8.5 17.5l-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5'/%3E%3C/svg%3E");
 }
 #main-content .rs-ico-microclima::before{
   -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13.6V5a2 2 0 1 1 4 0v8.6a4.5 4.5 0 1 1-4 0z'/%3E%3Cpath d='M12 9.5v4'/%3E%3C/svg%3E");

@@ -266,7 +266,17 @@
 // 2026-11-01-f: las políticas legales se localizan en las siete lenguas
 // ofrecidas; se añade georgiano y se invalida la caché de traducciones JS.
 // Cambian js/i18n-legal.js, js/i18n.js y las tres páginas legales.
-const VERSION = '2026-11-17-j-sin-prompt-gps';
+// 2026-11-17-k: capa de LLUVIA (js/lluvia.js, archivo nuevo): mancha de
+// precipitación OWM vía /tiles/lluvia (ruta nueva del worker, espejo de
+// /tiles/nubes) de lejos y gotas animadas en canvas a zoom ≥13 solo si
+// llueve ahora (/clima gana el campo aditivo lluvia_mm_h). Casilla nueva
+// rsToggleLluvia apagada por defecto. Además se enganchan la superficie
+// continua de aire (js/aire-superficie.js) y la nubosidad unificada del
+// microclima de la ronda anterior, que no habían invalidado caché.
+// Cambian worker.js, js/lluvia.js, js/aire-superficie.js, js/shadows-route.js,
+// js/microclima.js, js/i18n.js (2 claves nuevas en 7 idiomas), css/style.css
+// e index.html.
+const VERSION = '2026-11-17-k-lluvia';
 // 2026-11-17-f: el coeficiente K de amortiguación del factor LUR del SQI
 // deja de ser el 0.5 fijo y pasa a depender de la zona Köppen-Geiger del
 // punto (Beck et al. 2018, rejilla local data/koppen-rejilla.json,

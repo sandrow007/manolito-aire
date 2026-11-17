@@ -811,7 +811,7 @@ export default {
     }
 
     if (url.pathname === '/clima') {
-      const cieloDespejado = () => new Response(JSON.stringify({ nubes: 0, descripcion: '', humedad: null, amanecer: null, atardecer: null, temperatura: null }), {
+      const cieloDespejado = () => new Response(JSON.stringify({ nubes: 0, descripcion: '', humedad: null, amanecer: null, atardecer: null, temperatura: null, lluvia_mm_h: 0 }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
       });
@@ -836,6 +836,9 @@ export default {
           temperatura: isFinite(Number(d?.main?.temp)) ? Number(d.main.temp) : null,
           amanecer: d?.sys?.sunrise ?? null,
           atardecer: d?.sys?.sunset ?? null,
+          // Lluvia actual en mm/h (capa Lluvia del mapa). Campo nuevo y
+          // aditivo: los clientes viejos simplemente lo ignoran.
+          lluvia_mm_h: isFinite(Number(d?.rain?.['1h'])) ? Number(d.rain['1h']) : 0,
         };
         return new Response(JSON.stringify(salida), {
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
@@ -898,6 +901,47 @@ export default {
           });
         }
         const owm = `https://tile.openweathermap.org/map/clouds_new/${z}/${x}/${y}.png?appid=${env.OPENWEATHER_API_KEY}`;
+        const r = await fetch(owm, {
+          headers: { 'User-Agent': 'manolito-aire/1.0' },
+          cf: { cacheTtl: 600, cacheEverything: true },
+        });
+        if (!r.ok) throw new Error(`OpenWeatherMap tiles HTTP ${r.status}`);
+        return new Response(r.body, {
+          headers: {
+            'Content-Type': r.headers.get('Content-Type') || 'image/png',
+            'Cache-Control': 'public, max-age=600',
+            ...CORS_HEADERS
+          }
+        });
+      } catch (err) {
+        return teselaVacia();
+      }
+    }
+
+    // Teselas de PRECIPITACIÓN (capa Lluvia del mapa, js/lluvia.js).
+    // Mismo patrón que /tiles/nubes: misma clave, misma validación z/x/y,
+    // misma caché edge de 10 minutos y misma tesela transparente de respaldo.
+    // Solo cambia la capa de OWM: precipitation_new.
+    const mLluvia = url.pathname.match(/^\/tiles\/lluvia\/(\d+)\/(\d+)\/(\d+)\.png$/);
+    if (mLluvia) {
+      const teselaVacia = () => {
+        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+        return new Response(transparente, {
+          status: 200,
+          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=60', ...CORS_HEADERS }
+        });
+      };
+      try {
+        if (!env.OPENWEATHER_API_KEY) return teselaVacia();
+        const z = parseInt(mLluvia[1], 10), x = parseInt(mLluvia[2], 10), y = parseInt(mLluvia[3], 10);
+        const max = 2 ** z;
+        if (!(z >= 0 && z <= 19) || !(x >= 0 && x < max) || !(y >= 0 && y < max)) {
+          return new Response(JSON.stringify({ error: 'z/x/y fuera de rango' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+          });
+        }
+        const owm = `https://tile.openweathermap.org/map/precipitation_new/${z}/${x}/${y}.png?appid=${env.OPENWEATHER_API_KEY}`;
         const r = await fetch(owm, {
           headers: { 'User-Agent': 'manolito-aire/1.0' },
           cf: { cacheTtl: 600, cacheEverything: true },

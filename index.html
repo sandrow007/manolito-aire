@@ -1499,6 +1499,10 @@
       <p class="rs-capa-grupo-tit" data-i18n="groupEntornoClima">Entorno y clima</p>
       <div class="rs-capa-fila rs-capa-fila-btn rs-ico-arboles" id="rsMonteArboles"></div>
       <label class="rs-capa-fila rs-ico-nubes"><input type="checkbox" id="rsToggleNubes" checked> <span data-i18n="layerClouds">Nubes</span></label>
+      <!-- Lluvia (módulo aditivo js/lluvia.js): mancha OWM de lejos y gotas
+           animadas de cerca, solo si llueve de verdad ahora. Apagada por
+           defecto: ni teselas ni gotas hasta que la pidas. -->
+      <label class="rs-capa-fila rs-ico-lluvia"><input type="checkbox" id="rsToggleLluvia"> <span data-i18n="layerRain">Lluvia</span></label>
       <!-- Calidad del aire: SOLO España (fuera no hay fuente fiable). La fila
            nace oculta y la enseña shadows-route.js cuando el punto cae en
            territorio español. -->
@@ -2755,6 +2759,10 @@
           // engancha a la fuente 'aire-es' cuando shadows-route la crea.
           // Fallo silencioso: sin él, la capa de puntos sigue igual.
           cargarScript('js/aire-superficie.js').catch(() => { });
+          // Capa de lluvia (mancha OWM de lejos + gotas de cerca): módulo
+          // aditivo; se engancha a window.manolitAireMap y a su casilla
+          // rsToggleLluvia. Fallo silencioso: sin él no cambia nada.
+          cargarScript('js/lluvia.js').catch(() => { });
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
           cargarScript('js/fuentes-agua.js?v=osm-map-capasyagua-20261020').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));

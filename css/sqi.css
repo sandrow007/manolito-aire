@@ -367,3 +367,13 @@
 /* AÑADIDO: la tarjeta mini SQI debe responder a los clicks del usuario;
    con pointer-events:none el enlace «Cómo se calcula» era inaccesible. */
 #rsSqiMini.rs-sqi-mini{ pointer-events:auto; }
+
+/* Glosario desplegable: explica las siglas AOD, PM2.5 y DHI en el propio widget. */
+#rsSqiMini .rs-sqi-mini-glosario{font-size:10px;line-height:1.45;color:#AEB7C7;}
+#rsSqiMini .rs-sqi-mini-glosario summary{cursor:pointer;font-weight:600;color:#8FB3D9;list-style:none;user-select:none;}
+#rsSqiMini .rs-sqi-mini-glosario summary::-webkit-details-marker{display:none;}
+#rsSqiMini .rs-sqi-mini-glosario summary::before{content:"› ";}
+#rsSqiMini .rs-sqi-mini-glosario[open] summary::before{content:"⌄ ";}
+#rsSqiMini .rs-sqi-mini-glosario dl{margin:5px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;}
+#rsSqiMini .rs-sqi-mini-glosario li{list-style:none;}
+#rsSqiMini .rs-sqi-mini-glosario b{color:#EEF1F6;font-weight:700;}

@@ -1366,6 +1366,14 @@
         '<div class="rs-sqi-mini-indicador" id="rsSqiMiniIndicador"></div>' +
         '</div>' +
         '<div class="rs-sqi-mini-datos" id="rsSqiMiniDatos"></div>' +
+        '<details class="rs-sqi-mini-glosario">' +
+        '<summary>¿Qué significa cada dato?</summary>' +
+        '<ul>' +
+        '<li><b>AOD</b> — Espesor Óptico de Aerosoles: cuánta luz retiene el polvo en suspensión. Con calima, la sombra calienta más.</li>' +
+        '<li><b>PM2.5</b> — Partículas finas (menos de 2,5 µm) medidas a pie de calle: aire cargado, peor para respirar y más radiación difusa.</li>' +
+        '<li><b>DHI</b> — Radiación solar difusa: la que llega sin sol directo y sigue calentando dentro de la sombra.</li>' +
+        '</ul>' +
+        '</details>' +
         '<div class="rs-sqi-mini-aviso">Estimación calculada con datos públicos. No es una medición directa de un sensor en este punto. ' +
         '<a href="metodologia.html" target="_blank" rel="noopener">Cómo se calcula</a></div>';
       root.parentElement.insertBefore(mini, root.nextSibling);

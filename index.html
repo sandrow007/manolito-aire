@@ -163,7 +163,7 @@
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
 <link rel="stylesheet" href="css/style.css?v=hud-navegacion-20261102-a">
-<link rel="stylesheet" href="css/sqi.css?v=sqi-clicks-20261117-i">
+<link rel="stylesheet" href="css/sqi.css?v=sqi-glosario-20261117">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -2779,7 +2779,7 @@
         // Calidad de sombra (SQI, nov-2026): último de la cadena. Tiñe las
         // sombras que ya dibuja el mapa según su calidad térmica y muestra
         // el resultado en el widget solar visible. Presentación pura.
-        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-sombras-20261117-h'))
+        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-glosario-20261117'))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
       return cargaMapaSombrasPromise;
     }

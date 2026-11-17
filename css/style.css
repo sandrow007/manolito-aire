@@ -575,6 +575,9 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 .content h2{ font-family:var(--font-display); color:var(--sky-deep); font-size:1.25rem; margin-top:34px; }
 .content p{ color: var(--ink); }
 .content .lead{ font-size:1.05rem; color: var(--sky-mid); }
+.method-figure{ margin: 26px 0 0; }
+.method-figure img{ width:100%; height:auto; border-radius:16px; background:var(--mist); }
+.method-figure figcaption{ font-size:.85rem; color: var(--sky-mid); margin-top:10px; }
 
 /* ---------- gráfico de evolución ---------- */
 .forecast-section{ max-width: 1000px; margin: 46px auto 0; padding: 0 24px; }

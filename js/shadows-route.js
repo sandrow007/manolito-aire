@@ -2843,6 +2843,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   let modoManual = false;
   let fechaBaseManual = new Date();
+  // AÑADIDO (función «cambiar fecha»): fecha elegida en el <input type="date">
+  // del widget. null = hoy (comportamiento actual, idéntico a antes).
+  let fechaManualFija = null;
+  const isoDeFecha = (d) => d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
   let sliderTiempo = null;
   let etiquetaTiempo = null;
   let temporizadorSlider = null;
@@ -4636,6 +4642,159 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
   }
 
+  /* =================== AÑADIDO: panel de edificio (altura/ocultar) ===================
+     100% aditivo: no toca nada existente. Solo actúa si el edificio clicado
+     tiene dato OSM de altura (properties.height o properties.levels). El
+     cambio es visual y temporal (feature-state, se pierde al recargar). */
+  (function panelEdificioOSM() {
+    let panelEd = null;          // div flotante
+    let objetivoEd = null;       // { id, source, sourceLayer } del feature
+    let lngLatEd = null;         // para reubicar el panel al mover el mapa
+    let alturaOriginalEd = 0;
+    let edificiosModificados = 0; // para re-aplicar el paint tras recargar estilo
+
+    // Extiende el paint de la capa de edificios EN COLA del feature-state:
+    // si no hay feature-state puesto, el coalesce/case devuelve exactamente
+    // lo de antes (mismo color, misma altura, misma opacidad).
+    function extenderPaintEdificios() {
+      const idCapa = CONFIG.edificiosLayerId;
+      if (!idCapa || !map.getLayer(idCapa)) return;
+      try {
+        const alturaActual = map.getPaintProperty(idCapa, 'fill-extrusion-height');
+        if (!alturaActual || JSON.stringify(alturaActual).indexOf('feature-state') !== -1) return;
+        map.setPaintProperty(idCapa, 'fill-extrusion-height',
+          ['coalesce', ['feature-state', 'alturaOverride'], alturaActual]);
+        const opacidadActual = map.getPaintProperty(idCapa, 'fill-extrusion-opacity');
+        if (opacidadActual != null && JSON.stringify(opacidadActual).indexOf('feature-state') === -1) {
+          map.setPaintProperty(idCapa, 'fill-extrusion-opacity',
+            ['case', ['boolean', ['feature-state', 'oculto'], false], 0, opacidadActual]);
+        }
+      } catch (e) { /* el estilo puede estar a medio cargar; se reintenta luego */ }
+    }
+
+    // Tras un cambio de tema/estilo el paint vuelve al del estilo base:
+    // si había edificios modificados, se vuelve a extender el paint.
+    map.on('styledata', () => {
+      if (edificiosModificados > 0) extenderPaintEdificios();
+    });
+
+    function cerrarPanelEd() {
+      if (panelEd) { panelEd.remove(); panelEd = null; }
+      objetivoEd = null;
+      lngLatEd = null;
+    }
+
+    function reubicarPanelEd() {
+      if (!panelEd || !lngLatEd) return;
+      try {
+        const p = map.project(lngLatEd);
+        const caja = contenedorMapa.getBoundingClientRect();
+        panelEd.style.left = Math.min(Math.max(8, p.x - 90), caja.width - 200) + 'px';
+        panelEd.style.top = Math.max(8, p.y - 130) + 'px';
+      } catch (e) { /* el mapa aún no proyecta: se queda donde estaba */ }
+    }
+    map.on('move', reubicarPanelEd);
+
+    function abrirPanelEd(feature, puntoClick) {
+      const p = feature.properties || {};
+      // REGLA: solo si hay dato OSM de altura (height o levels).
+      const tieneHeight = p.height != null && isFinite(Number(p.height));
+      const tieneLevels = p.levels != null && isFinite(Number(p.levels));
+      if (!tieneHeight && !tieneLevels) return;
+      if (feature.id == null || !feature.source) return; // feature-state necesita id
+      alturaOriginalEd = Math.round(
+        Number(p.height ?? (tieneLevels ? Number(p.levels) * 3 : p.render_height)) || 0);
+
+      objetivoEd = { id: feature.id, source: feature.source, sourceLayer: feature.sourceLayer };
+      lngLatEd = puntoClick;
+      extenderPaintEdificios();
+      cerrarPanelEdPrevioYRecrear();
+    }
+
+    function cerrarPanelEdPrevioYRecrear() {
+      if (panelEd) panelEd.remove();
+      panelEd = document.createElement('div');
+      panelEd.id = 'rsPanelEdificio';
+      panelEd.setAttribute('role', 'dialog');
+      panelEd.setAttribute('aria-label', t('buildingPanel', 'Edificio'));
+      panelEd.style.cssText = 'position:absolute;z-index:30;width:180px;' +
+        'background:rgba(15,23,42,.96);border:1px solid rgba(255,107,26,.5);' +
+        'border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;' +
+        'box-shadow:0 6px 18px rgba(0,0,0,.4);color:#e8eef4;' +
+        'font:500 12px/1.4 system-ui,sans-serif;';
+
+      const filaAltura = document.createElement('label');
+      filaAltura.style.cssText = 'display:flex;align-items:center;gap:6px;';
+      const txtAltura = document.createElement('span');
+      txtAltura.textContent = t('buildingHeight', 'Altura (m)');
+      const inputAltura = document.createElement('input');
+      inputAltura.type = 'number';
+      inputAltura.min = '1';
+      inputAltura.step = '1';
+      inputAltura.value = String(alturaOriginalEd || '');
+      inputAltura.setAttribute('aria-label', t('buildingHeight', 'Altura (m)'));
+      inputAltura.style.cssText = 'width:64px;background:#0b1220;color:#e8eef4;' +
+        'border:1px solid rgba(255,107,26,.5);border-radius:8px;padding:4px 6px;' +
+        'font:inherit;';
+      filaAltura.append(txtAltura, inputAltura);
+
+      const filaBotonesEd = document.createElement('div');
+      filaBotonesEd.style.cssText = 'display:flex;gap:6px;';
+      const mkBoton = (texto, alPulsar) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = texto;
+        b.style.cssText = 'flex:1;background:rgba(255,107,26,.14);color:#ffb27a;' +
+          'border:1px solid rgba(255,107,26,.5);border-radius:8px;padding:5px 4px;' +
+          'font:inherit;cursor:pointer;';
+        b.addEventListener('click', alPulsar);
+        return b;
+      };
+      const btnOcultar = mkBoton(t('buildingHide', '👁 Ocultar'), () => {
+        if (!objetivoEd) return;
+        try { map.setFeatureState(objetivoEd, { oculto: true }); edificiosModificados++; } catch (e) { }
+      });
+      const btnRestaurar = mkBoton(t('buildingRestore', '↩ Restaurar'), () => {
+        if (!objetivoEd) return;
+        try { map.removeFeatureState(objetivoEd); edificiosModificados = Math.max(0, edificiosModificados - 1); } catch (e) { }
+        inputAltura.value = String(alturaOriginalEd || '');
+      });
+      const btnCerrar = mkBoton('✕', cerrarPanelEd);
+      btnCerrar.style.flex = '0 0 32px';
+      filaBotonesEd.append(btnOcultar, btnRestaurar, btnCerrar);
+
+      inputAltura.addEventListener('change', () => {
+        if (!objetivoEd) return;
+        const v = Number(inputAltura.value);
+        if (!isFinite(v) || v <= 0) { inputAltura.value = String(alturaOriginalEd || ''); return; }
+        try { map.setFeatureState(objetivoEd, { alturaOverride: v }); edificiosModificados++; } catch (e) { }
+      });
+
+      panelEd.append(filaAltura, filaBotonesEd);
+      contenedorMapa.appendChild(panelEd);
+      reubicarPanelEd();
+    }
+
+    // Clic en un edificio con dato OSM de altura → panel. Sin dato → nada.
+    // Los clics sintéticos de pulsación larga (sin e.point real) se ignoran.
+    map.on('click', (e) => {
+      if (!e || e.__pulsacionLarga || !e.point) return;
+      const idCapa = CONFIG.edificiosLayerId;
+      if (!idCapa || !map.getLayer(idCapa)) return;
+      let feats = [];
+      try {
+        feats = map.queryRenderedFeatures(e.point, { layers: [idCapa] });
+      } catch (err) { return; }
+      const conAltura = (feats || []).find((f) => {
+        const p = f.properties || {};
+        return (p.height != null && isFinite(Number(p.height))) ||
+               (p.levels != null && isFinite(Number(p.levels)));
+      });
+      if (!conAltura) { cerrarPanelEd(); return; }
+      abrirPanelEd(conAltura, e.lngLat);
+    });
+  })();
+
   function inyectarControlesTiempo() {
     if (document.getElementById('rsTimeControls')) return;
     inyectarEstilosPanel();
@@ -4733,7 +4892,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     sliderTiempo.addEventListener('input', () => {
       modoManual = true;
-      fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual : new Date();
+      // AÑADIDO: si el usuario eligió fecha en el date-input, esa fecha manda
+      // en vez de «hoy». Con fechaManualFija === null es EXACTAMENTE lo de antes.
+      fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual
+        : (fechaManualFija ? new Date(fechaManualFija) : new Date());
       // Debounce de 250 ms: arrastrar el slider NO recalcula la geometría 3D
       // en cada evento; solo al detenerse un momento (ahorro enorme de CPU).
       clearTimeout(temporizadorSlider);
@@ -4742,6 +4904,35 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     });
 
     let esFechaSolsticioActiva = false;
+
+    // AÑADIDO (función «cambiar fecha»): <input type="date"> conectado a la
+    // MISMA lógica que el slider (mismo fechaBaseManual + aplicarCambioDeHora).
+    const filaFecha = document.createElement('div');
+    filaFecha.className = 'rs-fila';
+    filaFecha.style.justifyContent = 'space-between';
+    const etiquetaFecha = document.createElement('span');
+    etiquetaFecha.textContent = t('dateLabel', 'Fecha');
+    etiquetaFecha.style.cssText = 'font-size:inherit;color:inherit;';
+    const inputFecha = document.createElement('input');
+    inputFecha.type = 'date';
+    inputFecha.id = 'rsFechaInput';
+    inputFecha.value = isoDeFecha(new Date());
+    inputFecha.setAttribute('aria-label', t('dateLabel', 'Fecha'));
+    inputFecha.style.cssText = 'background:rgba(251,250,247,.9);color:#1b2a33;' +
+      'border:1px solid rgba(255,107,26,.4);border-radius:8px;padding:3px 6px;' +
+      'font:inherit;font-size:inherit;';
+    inputFecha.addEventListener('change', () => {
+      const partes = String(inputFecha.value || '').split('-').map(Number);
+      if (partes.length !== 3 || partes.some((n) => !isFinite(n))) return;
+      // Mediodía local para evitar sustos de zona horaria al mezclar con la hora.
+      fechaManualFija = new Date(partes[0], partes[1] - 1, partes[2], 12, 0, 0);
+      modoManual = true;
+      esFechaSolsticioActiva = false;
+      fechaBaseManual = new Date(fechaManualFija);
+      aplicarCambioDeHora(false);
+      actualizarEtiquetaTiempo(false);
+    });
+    filaFecha.append(etiquetaFecha, inputFecha);
 
     const divisor = document.createElement('div');
     divisor.className = 'rs-divisor';
@@ -4771,6 +4962,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       modoManual = false;
       esFechaSolsticioActiva = false;
       fechaBaseManual = new Date();
+      // AÑADIDO: «Ahora» también suelta la fecha elegida a mano.
+      fechaManualFija = null;
+      if (inputFecha) inputFecha.value = isoDeFecha(new Date());
       sliderTiempo.value = String(minutosDesdeFecha(new Date()));
       aplicarCambioDeHora(false);
     });
@@ -4788,6 +4982,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       modoManual = true;
       esFechaSolsticioActiva = 'verano';
       fechaBaseManual = fechaSolsticio('verano');
+      // AÑADIDO: el preajuste de solsticio pisa la fecha manual.
+      fechaManualFija = null;
+      if (inputFecha) inputFecha.value = isoDeFecha(fechaBaseManual);
       sliderTiempo.value = '780';
       aplicarCambioDeHora('verano');
     });
@@ -4796,6 +4993,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       modoManual = true;
       esFechaSolsticioActiva = 'invierno';
       fechaBaseManual = fechaSolsticio('invierno');
+      // AÑADIDO: el preajuste de solsticio pisa la fecha manual.
+      fechaManualFija = null;
+      if (inputFecha) inputFecha.value = isoDeFecha(fechaBaseManual);
       sliderTiempo.value = '780';
       aplicarCambioDeHora('invierno');
     });
@@ -4811,7 +5011,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     filaBotones.append(btnMediodia, btnTarde, btnCapturar);
     // "Ahora / Verano / Invierno" forman un grupo lógico de preajustes;
     // display:contents mantiene el layout exacto sin cambiar el HTML visual.
-    cuerpo.append(filaEtiqueta, sliderTiempo, timeline, divisor, filaBotones, anunciadorHora);
+    cuerpo.append(filaEtiqueta, filaFecha, sliderTiempo, timeline, divisor, filaBotones, anunciadorHora);
     panel.append(cabecera, cuerpo);
     contenedorMapa.appendChild(panel);
 
@@ -6464,9 +6664,31 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   const inputDestino = document.getElementById('rsDestino');
   const btnBuscar = document.getElementById('rsBuscarBtn');
   const statusEl = document.getElementById('rsStatus');
+  // AÑADIDO: la tarjeta de resumen de ruta («Ruta: X km · Y min») vive DENTRO
+  // del mapa, no encima. Solo se mueve su etiqueta contenedora; el resto de
+  // mensajes de estado siguen apareciendo donde siempre, fuera del mapa.
+  const etiquetaEstado = statusEl ? statusEl.closest('label.rs-status-toggle') : null;
+  function fijarTarjetaRutaFlotante(dentro) {
+    if (!etiquetaEstado || !contenedorMapa) return;
+    if (dentro) {
+      if (etiquetaEstado.parentElement === contenedorMapa) return;
+      if (!etiquetaEstado.__sitioOriginal) {
+        etiquetaEstado.__sitioOriginal = {
+          padre: etiquetaEstado.parentElement,
+          antes: etiquetaEstado.nextElementSibling
+        };
+      }
+      contenedorMapa.appendChild(etiquetaEstado);
+    } else {
+      const sitio = etiquetaEstado.__sitioOriginal;
+      if (!sitio || etiquetaEstado.parentElement !== contenedorMapa) return;
+      sitio.padre.insertBefore(etiquetaEstado, sitio.antes);
+    }
+  }
 
   function mostrarEstado(texto, tipo) {
     statusEl.classList.remove('rs-status-ruta');
+    fijarTarjetaRutaFlotante(false);
     statusEl.textContent = texto;
     statusEl.style.color = tipo === 'error' ? leerVar('--breath-bad') : tipo === 'ok' ? leerVar('--breath-good') : leerVar('--sky-mid');
   }
@@ -7037,6 +7259,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const resumenRuta = `${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`;
                 mostrarEstado(resumenRuta, 'ok');
         statusEl.classList.add('rs-status-ruta');
+        // AÑADIDO: el resumen calculado se ve DENTRO del mapa (tarjeta flotante).
+        fijarTarjetaRutaFlotante(true);
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);

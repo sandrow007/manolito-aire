@@ -118,7 +118,9 @@
     { "@type": "Question", "name": "¿Qué me conviene más, andar, bici o bus?",
       "acceptedAnswer": { "@type": "Answer", "text": "Depende del día y del trayecto. Andando tienes la ruta con porcentaje de sombra medido sobre los edificios y los árboles, y la opción de ruta fresca. En bici llegas antes y ves los carriles, pero no medimos su sombra. En transporte público ves paradas y salidas en vivo, aunque no calculamos itinerarios. La web te da los datos de cada opción y tú decides." } },
     { "@type": "Question", "name": "¿El juego y el certificado guardan mis datos?",
-      "acceptedAnswer": { "@type": "Answer", "text": "No. El juego de Manolit∞ y el certificado de protección climática funcionan enteros en tu navegador. La puntuación y el nombre que escribas no salen de tu dispositivo ni se asocian a ninguna cuenta. Si borras los datos de navegación, desaparecen." } }
+      "acceptedAnswer": { "@type": "Answer", "text": "No. El juego de Manolit∞ y el certificado de protección climática funcionan enteros en tu navegador. La puntuación y el nombre que escribas no salen de tu dispositivo ni se asocian a ninguna cuenta. Si borras los datos de navegación, desaparecen." } },
+    { "@type": "Question", "name": "¿Por qué unas sombras salen verdes y otras rojas?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Porque ya no medimos solo dónde hay sombra, sino cuánto vale. Con polvo o aire cargado, la radiación difusa calienta también bajo techo. El índice de calidad de sombra (SQI) cruza la radiación de Copernicus, el cielo que se ve entre los edificios y un ajuste calle a calle que se calibra con las estaciones reales de OpenAQ. Además, el coeficiente que pondera ese ajuste no es el mismo en todas partes: se adapta a la zona climática del punto según la clasificación Köppen-Geiger (mapa de Beck et al. 2018), porque una sombra no vale lo mismo en Sevilla que en Bilbao. Son estimaciones razonadas y documentadas en la página de metodología, no mediciones certificadas." } }
   ]
 }
 </script>
@@ -2248,6 +2250,14 @@
     <summary data-i18n="faqQ17">¿El juego y el certificado guardan mis datos?</summary>
     <p data-i18n="faqA17">No. El juego de Manolit∞ y el certificado de protección climática funcionan enteros en tu navegador. La puntuación y el nombre que escribas no salen de tu dispositivo ni se asocian a ninguna cuenta. Si borras los datos de navegación, desaparecen.</p>
   </details>
+
+  <!-- 17-nov-2026: índice de calidad de sombra (SQI) con coeficiente
+       adaptativo por zona Köppen-Geiger. El JSON-LD FAQPage del head
+       lleva esta misma. -->
+  <details class="faq-item">
+    <summary data-i18n="faqQ18">¿Por qué unas sombras salen verdes y otras rojas?</summary>
+    <p data-i18n="faqA18">Porque ya no medimos solo dónde hay sombra, sino cuánto vale. Con polvo o aire cargado, la radiación difusa calienta también bajo techo. El índice de calidad de sombra (SQI) cruza la radiación de Copernicus, el cielo que se ve entre los edificios y un ajuste calle a calle que se calibra con las estaciones reales de OpenAQ. Además, el coeficiente que pondera ese ajuste no es el mismo en todas partes: se adapta a la zona climática del punto según la clasificación Köppen-Geiger (mapa de Beck et al. 2018), porque una sombra no vale lo mismo en Sevilla que en Bilbao. Son estimaciones razonadas y documentadas en la página de metodología, no mediciones certificadas.</p>
+  </details>
 </section>
 </main>
 
@@ -2659,7 +2669,7 @@
 
 <!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
 <script src="js/theme.js" defer></script>
-<script src="js/i18n.js?v=buscador-glass-20261101-b" defer></script>
+<script src="js/i18n.js?v=faq-sqi-20261117-a" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
 <script src="js/cookie-banner.js" defer></script>

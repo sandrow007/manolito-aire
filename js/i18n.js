@@ -1,4 +1,4 @@
-﻿// judges-file-ignore *
+// judges-file-ignore *
 // La extensión Judges marca este archivo por heurísticas que NO aplican
 // aquí: la web no tiene analítica ni servidores de terceros, todo se
 // calcula en el navegador del usuario (esa es la arquitectura de
@@ -389,6 +389,8 @@ const translations = {
 		faqA16: "Depende del día y del trayecto. Andando tienes la ruta con porcentaje de sombra medido sobre los edificios y los árboles, y la opción de ruta fresca. En bici llegas antes y ves los carriles, pero no medimos su sombra. En transporte público ves paradas y salidas en vivo, aunque no calculamos itinerarios. La web te da los datos de cada opción y tú decides.",
 		faqQ17: "¿El juego y el certificado guardan mis datos?",
 		faqA17: "No. El juego de Manolit∞ y el certificado de protección climática funcionan enteros en tu navegador. La puntuación y el nombre que escribas no salen de tu dispositivo ni se asocian a ninguna cuenta. Si borras los datos de navegación, desaparecen.",
+		faqQ18: "¿Por qué unas sombras salen verdes y otras rojas?",
+		faqA18: "Porque ya no medimos solo dónde hay sombra, sino cuánto vale. Con polvo o aire cargado, la radiación difusa calienta también bajo techo. El índice de calidad de sombra (SQI) cruza la radiación de Copernicus, el cielo que se ve entre los edificios y un ajuste calle a calle que se calibra con las estaciones reales de OpenAQ. Además, el coeficiente que pondera ese ajuste no es el mismo en todas partes: se adapta a la zona climática del punto según la clasificación Köppen-Geiger (mapa de Beck et al. 2018), porque una sombra no vale lo mismo en Sevilla que en Bilbao. Son estimaciones razonadas y documentadas en la página de metodología, no mediciones certificadas.",
 		gameIntroBtnAdult: "Ponte a prueba con Manolit∞",
 		footerVerCuentas: "Ver las cuentas",
 		seoGlobalTit: "El Google Maps de las sombras, en cualquier ciudad del mundo",
@@ -936,6 +938,8 @@ const translations = {
 		faqA16: "Depèn del dia i del trajecte. Anant a peu tens la ruta amb percentatge d'ombra mesurat sobre els edificis i els arbres, i l'opció de ruta fresca. En bici arribes abans i veus els carrils, però no en mesurem l'ombra. En transport públic veus parades i sortides en directe, encara que no calculem itineraris. La web et dóna les dades de cada opció i tu decideixes.",
 		faqQ17: "El joc i el certificat guarden les meves dades?",
 		faqA17: "No. El joc de Manolit∞ i el certificat de protecció climàtica funcionen sencers al teu navegador. La puntuació i el nom que escriguis no surten del teu dispositiu ni s'associen a cap compte. Si esborres les dades de navegació, desapareixen.",
+		faqQ18: "Per què unes ombres surten verdes i d'altres vermelles?",
+		faqA18: "Perquè ja no mesurem només on hi ha ombra, sinó quant val. Amb pols o aire carregat, la radiació difusa també escalfa sota sostre. L'índex de qualitat d'ombra (SQI) creua la radiació de Copernicus, el cel que es veu entre els edificis i un ajust carrer a carrer que es calibra amb les estacions reals d'OpenAQ. A més, el coeficient que pondera aquest ajust no és el mateix a tot arreu: s'adapta a la zona climàtica del punt segons la classificació Köppen-Geiger (mapa de Beck et al. 2018), perquè una ombra no val el mateix a Sevilla que a Bilbao. Són estimacions raonades i documentades a la pàgina de metodologia, no mesuraments certificats.",
 		gameIntroBtnAdult: "Posa't a prova amb Manolit∞",
 		footerVerCuentas: "Veure els comptes",
 		seoGlobalTit: "El Google Maps de les ombres, a qualsevol ciutat del món",
@@ -1473,6 +1477,8 @@ const translations = {
 		faqA16: "Egunaren eta ibilbidearen araberakoa da. Oinez, eraikinen eta zuhaitzen gainean neurtutako itzal-ehunekoa duen ibilbidea duzu, eta ibilbide freskoaren aukera. Bizikletaz lehenago iristen zara eta carriletak ikusten dituzu, baina ez dugu beren itzala neurtzen. Garraio publikoan geltokiak eta irteerak zuzenean ikusten dituzu, ibilbiderik kalkulatu gabe. Webeak aukera bakoitzaren datuak ematen dizkizu eta zuk erabakitzen duzu.",
 		faqQ17: "Jokoak eta ziurtagiriak nire datuak gordetzen al dituzte?",
 		faqA17: "Ez. Manolit∞ jokoa eta klima-babeseko ziurtagiriak zure nabigatzailean osoan funtzionatzen dute. Idazten duzun puntuazioa eta izena ez dira zure gailutik irteten eta ez dira kontu batekin lotzen. Nabigazio-datuak ezabatzen badituzu, desagertzen dira.",
+		faqQ18: "Zergatik ateratzen dira itzal batzuk berdeak eta beste batzuk gorriak?",
+		faqA18: "Ez dugulako jada itzala non dagoen bakarrik neurtzen, baizik eta zenbat balio duen. Hautsarekin edo aire kargatua izanda, erradiazio difusua azpian ere berotzen du. Itzala-kalitatearen adierazleak (SQI) Copernicuseko erradiazioa, eraikinen artean ikusten den zerua eta kalezulo-kalezuloko doitzea gurutzatzen ditu, OpenAQko geltoki errealekin kalibratzen dena. Gainera, doitze hori ponderatzen duen koefizientea ez da toki guztietan berdina: puntuaren klima-esparruan moldatzen da Köppen-Geiger sailkapenaren arabera (Beck et al. 2018, mapa), itzal batek ez duelako Sevillan eta Bilbon berdin balio. Zenbatespen arrazoituak eta metodologia-orrian dokumentatuak dira, ziurtatutako neurketak ez.",
 		gameIntroBtnAdult: "Probatu zeure burua Manolit∞-rekin",
 		footerVerCuentas: "Ikusi kontuak",
 		seoGlobalTit: "Itzalen Google Maps-a, munduko edozein hiritan",
@@ -2011,6 +2017,8 @@ const translations = {
 		faqA16: "Depende do día e do traxecto. Andando tes a ruta con porcentaxe de sombra medida sobre os edificios e as árbores, e a opción de ruta fresca. En bici chegas antes e ves os carrís, pero non medimos a súa sombra. En transporte público ves paradas e saídas en vivo, aínda que non calculamos itinerarios. A web dache os datos de cada opción e ti decides.",
 		faqQ17: "O xogo e o certificado gardan os meus datos?",
 		faqA17: "Non. O xogo de Manolit∞ e o certificado de protección climática funcionan enteiros no teu navegador. A puntuación e o nome que escribas non saen do teu dispositivo nin se asocian a ningunha conta. Se borras os datos de navegación, desaparecen.",
+		faqQ18: "Por que algunhas sombras saen verdes e outras vermellas?",
+		faqA18: "Porque xa non medimos só onde hai sombra, senón canto vale. Con po ou aire cargado, a radiación difusa tamén quenta baixo o tellado. O índice de calidade de sombra (SQI) cruza a radiación de Copernicus, o ceo que se ve entre os edificios e un axuste rúa a rúa que se calibra coas estacións reais de OpenAQ. Ademais, o coeficiente que pondera ese axuste non é o mesmo en todas partes: adáptase á zona climática do punto segundo a clasificación Köppen-Geiger (mapa de Beck et al. 2018), porque unha sombra non vale o mesmo en Sevilla ca en Bilbao. Son estimacións razoadas e documentadas na páxina de metodoloxía, non medicións certificadas.",
 		gameIntroBtnAdult: "Ponte a proba con Manolit∞",
 		footerVerCuentas: "Ver as contas",
 		seoGlobalTit: "O Google Maps das sombras, en calquera cidade do mundo",
@@ -2575,6 +2583,8 @@ const translations = {
 		faqA16: "It depends on the day and the trip. Walking gives you the route with a shade percentage measured over buildings and trees, and the fresh route option. By bike you arrive sooner and see the lanes, but we do not measure their shade. On public transport you see stops and live departures, though we do not plan itineraries. The website gives you the data for each option and you decide.",
 		faqQ17: "Does the game or the certificate store my data?",
 		faqA17: "No. The Manolit∞ game and the climate protection certificate run entirely in your browser. The score and the name you type never leave your device and are not linked to any account. If you clear your browsing data, they are gone.",
+		faqQ18: "Why do some shadows look green and others red?",
+		faqA18: "Because we no longer measure only where the shade is, but how much it is worth. With dust or dirty air, diffuse radiation also warms you under cover. The Shadow Quality Index (SQI) combines Copernicus radiation, the sky visible between the buildings and a street-by-street adjustment calibrated against real OpenAQ stations. On top of that, the coefficient weighting that adjustment is not the same everywhere: it adapts to the climate zone of the point using the Köppen-Geiger classification (Beck et al. 2018 map), because shade is not worth the same in Seville as in Bilbao. These are reasoned estimates, documented on the methodology page, not certified measurements.",
 		gameIntroBtnAdult: "Test yourself with Manolit∞",
 		footerVerCuentas: "See the accounts",
 		seoGlobalTit: "The Google Maps of shadows, in any city in the world",
@@ -3114,6 +3124,8 @@ const translations = {
 		faqA16: "ეს დღეზე და მარშრუტზეა დამოკიდებული. ფეხით სიარულს აქვს მარშრუტი ჩრდილის პროცენტით შენობებსა და ხეებზე და ახალი მარშრუტის ვარიანტით. ველოსიპედით ადრე ჩახვალ და ზოლებს ხედავ, მაგრამ მათ ჩრდილს არ ვზომავთ. საზოგადოებრივ ტრანსპორტზე ხედავ გაჩერებებსა და გასვლებს რეალურ დროში, თუმცა მარშრუტებს არ ვგეგმავთ. ვებგვერდი გაძლევს თითოეული ვარიანტის მონაცემებს და შენ წყვეტ.",
 		faqQ17: "თამაში და სერტიფიკატი ინახავს ჩემს მონაცემებს?",
 		faqA17: "არა. Manolit∞-ის თამაში და კლიმატის დაცვის სერტიფიკატი მთლიანად შენს ბრაუზერში მუშაობს. ქულა და სახელი, რომელსაც შეიყვან, შენს მოწყობილობას არ ტოვებს და არც ანგარიშთან არ იკავშირება. თუ ბრაუზერის მონაცემებს წაშლი, ისინი გაქრება.",
+		faqQ18: "რატომ არის ჩრდილები ზოგი მწვანე და ზოგი წითელი?",
+		faqA18: "იმიტომ, რომ ჩვენ აღარ ვზომავთ მხოლოდ სად არის ჩრდილი, არამედ რამდენად ღირს ის. მტვრით ან დაბინძურებული ჰაერით დiffუზური რადიაცია სახურავის ქვეშაც გათბობს. ჩრდილის ხარისხის ინდექსი (SQI) აერთიანებს Copernicus-ის რადიაციას, შენობებს შორის ხილულ ცას და ქუჩა-ქუჩით კორექტირებას, რომელიც OpenAQ-ის რეალური სადგურებით კალიბრირდება. გარდა ამისა, ამ კორექტირების წონის კოეფიციენტი ყველგან ერთნაირი არ არის: ის ერგება წერტილის კლიმატურ ზონას Köppen-Geiger-ის კლასიფიკაციით (Beck et al. 2018-ის რუკა), რადგან ჩრდილი სევილიაში ისე არ ღირს, როგორც ბილბაოში. ეს არის არგუმენტირებული შეფასებები, დოკუმენტირებული მეთოდოლოგიის გვერდზე, და არა სერტიფიცირებული გაზომვები.",
 		gameIntroBtnAdult: "გამოსცადე თავი Manolit∞-ით",
 		footerVerCuentas: "იხილე ანგარიშები",
 		seoGlobalTit: "ჩრდილების Google Maps, მსოფლიოს ნებისმიერ ქალაქში",

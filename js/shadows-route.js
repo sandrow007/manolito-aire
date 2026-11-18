@@ -3848,7 +3848,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             }
           }
           yaVolo = yaVolo || !!desdeBoton;
-          if (acc <= 15) dormirGPS(); // calibrado de verdad: GPS a dormir YA
+          // La lectura buena del flujo es ≤20 m (igual que el filtro de arriba).
+          // Apaga el watch en cuanto se alcanza: mantener GPS de alta precisión
+          // activo hasta ≤15 m causaba actualizaciones repetidas en móviles que
+          // ya habían alcanzado precisión suficiente, bloqueando el mapa.
+          if (acc <= 20) dormirGPS();
         },
         (err) => {
           // Permiso denegado: se avisa (si lo pediste tú) y se apaga.

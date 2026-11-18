@@ -269,10 +269,9 @@
     EZ_TIPOS.forEach(function (tipo, k) {
       var especie = EZ_ESPECIES[tipo];
       var preset = EZ_PRESETS[especie.preset];
-      var barkMat = new THREE.MeshStandardMaterial({ color: 0x594332, flatShading: true, roughness: 1.0, metalness: 0.02 });
-      var meshesHoja = Object.create(null);
       variantes[tipo] = [];
       for (var v = 0; v < N_VARIANTES; v++) {
+        var barkMat = new THREE.MeshStandardMaterial({ color: 0x594332, flatShading: true, roughness: 1.0, metalness: 0.02 });
         var rand = ezRng(preset.seed + k * 7919 + v * 131);
         var ramaje = construirEsqueleto(preset, rand);
         var geoMadera = fusionar(ramaje.madera);
@@ -283,10 +282,11 @@
         var meshT = new THREE.InstancedMesh(geoMadera, barkMat, MAX_ARBOL);
         meshT.count = 0; meshT.frustumCulled = false;
         scene.add(meshT);
+        var mallasHojas = Object.create(null);
         Object.keys(EZ_ESTACIONES[vfEstacionKey(especie)]).forEach(function (est) {
           var color = EZ_ESTACIONES[vfEstacionKey(especie)][est].color;
           var key = String(color);
-          if (meshesHoja[key]) return;
+          if (mallasHojas[key]) return;
           var material = new THREE.MeshStandardMaterial({
             color: color, flatShading: true, roughness: 1.0, metalness: 0.0,
             vertexColors: false, transparent: false,
@@ -295,12 +295,12 @@
           var meshH = new THREE.InstancedMesh(geoHojas, material, MAX_ARBOL);
           meshH.count = 0; meshH.frustumCulled = false;
           scene.add(meshH);
-          meshesHoja[key] = meshH;
+          mallasHojas[key] = meshH;
         });
         variantes[tipo].push({
           tipo: tipo, alturaModelo: altReal,
           techoEscala: (EZ_ALTURAS[tipo] || 10) / altReal,
-          meshTroncos: meshT, meshHojas: meshesHoja,
+          meshTroncos: meshT, meshHojas: mallasHojas,
           preset: preset, especie: especie, geoHojasActual: geoHojas,
         });
       }
@@ -319,7 +319,10 @@
         var est = tabla[estacion] || tabla.verano;
         vf.meshTroncos.material.color.setHex(0x594332);
         Object.keys(vf.meshHojas).forEach(function (color) {
-          vf.meshHojas[color].visible = color === String(est.color);
+          var mallaHojas = vf.meshHojas[color];
+          mallaHojas.visible = color === String(est.color);
+          mallaHojas.material.color.setHex(est.color);
+          mallaHojas.material.emissive.setHex(est.color);
         });
       });
     });
@@ -379,6 +382,7 @@
       for (var v = 0; v < lista.length; v++) {
         var vf = lista[v];
         var losMios = buckets[tipo + '#' + v] || [];
+        var mallasHojas = Object.keys(vf.meshHojas).map(function (color) { return vf.meshHojas[color]; });
         for (var i2 = 0; i2 < losMios.length; i2++) {
           var ar = losMios[i2];
           var mc = maplibregl.MercatorCoordinate.fromLngLat({ lng: ar.lon, lat: ar.lat }, 0);
@@ -388,12 +392,14 @@
           escV.set(s * sArbol, s * sArbol, s * sArbol);
           m4.compose(TMP_V3.set(mc.x - REF.x, mc.y - REF.y, mc.z - REF.z), QUAT_UP, escV);
           vf.meshTroncos.setMatrixAt(i2, m4);
-          vf.meshHojas.setMatrixAt(i2, m4);
+          for (var h = 0; h < mallasHojas.length; h++) mallasHojas[h].setMatrixAt(i2, m4);
         }
         vf.meshTroncos.count = losMios.length;
-        vf.meshHojas.count = losMios.length;
         vf.meshTroncos.instanceMatrix.needsUpdate = true;
-        vf.meshHojas.instanceMatrix.needsUpdate = true;
+        for (var h2 = 0; h2 < mallasHojas.length; h2++) {
+          mallasHojas[h2].count = losMios.length;
+          mallasHojas[h2].instanceMatrix.needsUpdate = true;
+        }
       }
     });
     map.triggerRepaint();
@@ -516,7 +522,12 @@
       enVista: map ? arbolesEZEnVista().length : -1,
       variantes: Object.keys(variantes).map(function (tipo) {
         return variantes[tipo].map(function (v) {
-          return { tipo: v.tipo, troncos: v.meshTroncos.count, hojas: v.meshHojas.count };
+          return {
+            tipo: v.tipo, troncos: v.meshTroncos.count,
+            hojas: Object.keys(v.meshHojas).reduce(function (total, color) {
+              return total + v.meshHojas[color].count;
+            }, 0),
+          };
         });
       }),
       zoom: map ? map.getZoom() : -1,

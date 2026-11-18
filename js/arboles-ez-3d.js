@@ -41,50 +41,61 @@
     olmo: 12, chopo: 15, tipuana: 12, jacaranda: 10, morera: 8, ficus: 8, paraiso: 10,
   };
 
-  // Parámetros por especie (TreeOptions simplificado de ez-tree).
+  // Presets REALES de ez-tree y adaptaciones locales de los cuatro perfiles.
+  var EZ_PRESETS = {
+    oak: { seed: 35729, type: 'deciduous', levels: 3, angle: [54, 58, 32], children: [6, 4, 3], length: [37.24, 11.08, 12.39, 7.16], radius: [1.41, 0.90, 0.69, 1.19], sections: [8, 6, 3, 1], segments: [7, 5, 3, 3], start: [0, 0.49, 0.06, 0.12], taper: [0.73, 0.42, 0.69, 0.75], gnarliness: [0, -0.1, -0.15, 0.09], twist: [-0.23, 0.42, 0, 0], force: 0.02, leafAngle: 42, leafCount: 18, leafStart: 0.16, leafSize: 2.5, leafVariance: 0.7, leafColor: 0x5c8e45, barkColor: 0xffd791 },
+    ash: { seed: 36330, type: 'deciduous', levels: 3, angle: [48, 75, 60], children: [7, 4, 3], length: [43.47, 27.14, 9.51, 4.6], radius: [2, 0.63, 0.76, 0.7], sections: [12, 8, 6, 4], segments: [12, 6, 4, 3], start: [0, 0.23, 0.33, 0], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0.03, 0.25, 0.2, 0.09], twist: [0.09, -0.07, 0, 0], force: 0.01, leafAngle: 55, leafCount: 16, leafStart: 0, leafSize: 2.67, leafVariance: 0.72, leafColor: 0x5c8e45, barkColor: 0xffd791 },
+    aspen: { seed: 18020, type: 'deciduous', levels: 2, angle: [75, 32, 7], children: [10, 3, 3], length: [50, 6.07, 11.19, 1], radius: [0.72, 0.41, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.59, 0.35, 0], taper: [0.37, 0.13, 0.7, 0.7], gnarliness: [0.05, 0.12, 0.12, 0.02], twist: [0, 0, 0, 0], force: 0.0148, leafAngle: 30, leafCount: 11, leafStart: 0.124, leafSize: 2.5, leafVariance: 0.7, leafColor: 0xa6c882, barkColor: 0xffd791 },
+    pine: { seed: 13977, type: 'evergreen', levels: 1, angle: [110, 16, 60], children: [82, 3, 5], length: [50, 23.87, 14.08, 1], radius: [1.05, 0.36, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.27, 0.14, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0.05, 0.08, 0, 0], twist: [0, 0, 0, 0], force: -0.003, leafAngle: 39, leafCount: 30, leafStart: 0.09, leafSize: 1.435, leafVariance: 0.201, leafColor: 0x4f7a3d, barkColor: 0xffffff },
+  };
   var EZ_ESPECIES = {
-    pino: { niveles: 3, hijos: [2, 4, 3], angulo: 42, paleta: [0x2d5a3d, 0x3a6b4a, 0x24503a], hoja: 'aguja', perenne: true },
-    eucalipto: { niveles: 3, hijos: [2, 3, 3], angulo: 38, paleta: [0x3d6b4a, 0x4d7d5a, 0x35604a], hoja: 'ovalada', perenne: true },
-    ginkgo: { niveles: 3, hijos: [2, 3, 3], angulo: 40, paleta: [0x7cb342, 0x8bc34a, 0x6ba032], hoja: 'abanico', perenne: true },
-    encina_roble: { niveles: 4, hijos: [2, 4, 4, 3], angulo: 48, paleta: [0x4f7a35, 0x5f8c42, 0x45703a], hoja: 'ovalada', perenne: true },
-    platanero: { niveles: 4, hijos: [2, 4, 4, 3], angulo: 52, paleta: [0x4a8a3f, 0x5c9e4a, 0x3f7a38], hoja: 'ancha', perenne: false },
-    olmo: { niveles: 4, hijos: [2, 4, 4, 3], angulo: 50, paleta: [0x5a8f3d, 0x6ba04a, 0x4a7c35], hoja: 'ovalada', perenne: false },
-    chopo: { niveles: 4, hijos: [2, 3, 3, 3], angulo: 30, paleta: [0x4f9a45, 0x5faa52, 0x3f8a3c], hoja: 'ovalada', perenne: false, alargada: true },
-    tipuana: { niveles: 4, hijos: [2, 4, 4, 3], angulo: 55, paleta: [0x5e9b4c, 0x6fab58, 0x4e8a42], hoja: 'ovalada', perenne: false },
-    jacaranda: { niveles: 4, hijos: [2, 4, 4, 3], angulo: 54, paleta: [0x5f9e4f, 0x6fae58, 0x4f8a42], hoja: 'fina', perenne: false },
-    morera: { niveles: 4, hijos: [2, 4, 4, 3], angulo: 50, paleta: [0x4e8f3f, 0x5e9f4c, 0x42803a], hoja: 'ancha', perenne: false },
-    ficus: { niveles: 4, hijos: [2, 4, 4, 3], angulo: 50, paleta: [0x4d8a3e, 0x5d9a4a, 0x417c36], hoja: 'ancha', perenne: true },
-    paraiso: { niveles: 4, hijos: [2, 4, 4, 3], angulo: 48, paleta: [0x5b9348, 0x6ba354, 0x4a8240], hoja: 'fina', perenne: false },
+    pino: { preset: 'pine', evergreen: true }, eucalipto: { preset: 'aspen', evergreen: true },
+    ginkgo: { preset: 'aspen', evergreen: false }, encina_roble: { preset: 'oak', evergreen: true },
+    platanero: { preset: 'ash', evergreen: false }, olmo: { preset: 'ash', evergreen: false },
+    chopo: { preset: 'aspen', evergreen: false }, tipuana: { preset: 'ash', evergreen: false },
+    jacaranda: { preset: 'ash', evergreen: false }, morera: { preset: 'oak', evergreen: false },
+    ficus: { preset: 'oak', evergreen: true }, paraiso: { preset: 'ash', evergreen: false },
   };
 
-  // Formas de la capa plana que este módulo oculta (SOLO estas; sombrilla y
-  // naranjo quedan en manos de arboles-3d.js, aquí NO se mencionan).
-  var EZ_FORMAS = ['conica', 'ancha_redondeada', 'ancha_irregular', 'oval_alargada'];
 
-  // Estaciones: perennes siempre verdes; caducas pierden hoja (invierno) y
-  // se doran (otoño), coherente con fenologiaArbol de shadows-route.js.
+
+  // Color estacional del follaje, por familia botánica.
   var EZ_ESTACIONES = {
     perenne: {
-      primavera: { escala: 0.95, densidad: 0.95 }, verano: { escala: 1.0, densidad: 1.0 },
-      otono: { escala: 1.0, densidad: 0.85 }, invierno: { escala: 1.0, densidad: 0.85 },
+      primavera: { color: 0x729b50 }, verano: { color: 0x4f7a3d },
+      otono: { color: 0x586e3c }, invierno: { color: 0x47643a },
     },
     caduca: {
-      primavera: { escala: 0.85, densidad: 0.8, color: 0x8fbf5a },
-      verano: { escala: 1.0, densidad: 1.0 },
-      otono: { escala: 0.85, densidad: 0.55, color: 0xc9862f },
-      invierno: { escala: 0, densidad: 0 },
+      primavera: { color: 0x8fbf5a }, verano: { color: 0x5c8e45 },
+      otono: { color: 0xc9862f }, invierno: { color: 0x746346 },
     },
   };
 
   // ---------- RNG determinista ----------
-  function mulberry32(semilla) {
-    var a = semilla >>> 0;
-    return function () {
-      a |= 0; a = (a + 0x6D2B79F5) | 0;
-      var t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  // RNG LCG de EZ-tree y permutación de slots angulares del skeleton.
+  function ezRng(seed) {
+    var mw = (123456789 + (seed >>> 0)) >>> 0;
+    var mz = (987654321 - (seed >>> 0)) >>> 0;
+    return function (max, min) {
+      if (max == null) max = 1;
+      if (min == null) min = 0;
+      mz = (Math.imul(36969, mz & 65535) + (mz >>> 16)) >>> 0;
+      mw = (Math.imul(18000, mw & 65535) + (mw >>> 16)) >>> 0;
+      var result = (((mz << 16) + (mw & 65535)) >>> 0) / 4294967296;
+      return (max - min) * result + min;
     };
+  }
+  function ezShuffledIndices(count, rand) {
+    var slots = [];
+    for (var i = 0; i < count; i++) slots.push(i);
+    for (var j = slots.length - 1; j > 0; j--) {
+      var k = Math.floor(rand() * (j + 1));
+      var tmp = slots[j]; slots[j] = slots[k]; slots[k] = tmp;
+    }
+    return slots;
+  }
+  function dirToEuler(dir) {
+    return new THREE.Euler(Math.atan2(dir.z, dir.y), 0, Math.atan2(-dir.x, Math.sqrt(dir.y * dir.y + dir.z * dir.z)));
   }
   function hashCoords(lon, lat) {
     var x = Math.sin(lon * 12.9898 + lat * 78.233) * 43758.5453;
@@ -98,7 +109,9 @@
   var map = null;
   var listo = false, cargandoThree = false, activo = false;
   var renderer = null, scene = null, camera = null, sol = null;
-  var variantes = [];         // una por tipo EZ
+  // Objeto por tipo; Array.length no cuenta propiedades string (variantes['pino']),
+  // y eso dejaba el motor permanentemente en cero.
+  var variantes = Object.create(null);
   var estacionActual = null;
   var QUAT_UP = null, TMP_M4 = null, TMP_V3 = null, TMP_ESC = null, TMP_PROY = null;
   var REF = { x: 0, y: 0, z: 0 };
@@ -106,6 +119,14 @@
 
   // ---------- Fusión de BufferGeometry indexadas ----------
   function fusionar(geos) {
+    if (!geos.length) {
+      var empty = new THREE.BufferGeometry();
+      empty.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
+      empty.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(0), 3));
+      empty.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(0), 2));
+      empty.setIndex([]);
+      return empty;
+    }
     var totalV = 0, totalI = 0, i;
     for (i = 0; i < geos.length; i++) {
       totalV += geos[i].attributes.position.count;
@@ -132,203 +153,183 @@
     out.setIndex(new THREE.BufferAttribute(idx, 1));
     return out;
   }
-  function fusionarConColores(geos, colores) {
-    var totalV = 0, totalI = 0, i;
-    for (i = 0; i < geos.length; i++) {
-      totalV += geos[i].attributes.position.count;
-      totalI += geos[i].index ? geos[i].index.count : geos[i].attributes.position.count;
-    }
-    var pos = new Float32Array(totalV * 3);
-    var nor = new Float32Array(totalV * 3);
-    var col = new Float32Array(totalV * 3);
-    var IdxArr = totalV > 65535 ? Uint32Array : Uint16Array;
-    var idx = new IdxArr(totalI);
-    var vo = 0, io = 0;
-    for (i = 0; i < geos.length; i++) {
-      var g = geos[i], c = colores[i], n = g.attributes.position.count;
-      pos.set(g.attributes.position.array, vo * 3);
-      nor.set(g.attributes.normal.array, vo * 3);
-      for (var k = 0; k < n; k++) {
-        col[(vo + k) * 3] = c.r; col[(vo + k) * 3 + 1] = c.g; col[(vo + k) * 3 + 2] = c.b;
-      }
-      var ni = g.index ? g.index.count : n;
-      for (var j = 0; j < ni; j++) idx[io + j] = (g.index ? g.index.array[j] : j) + vo;
-      vo += n; io += ni;
-      g.dispose();
-    }
-    var out = new THREE.BufferGeometry();
-    out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-    out.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    out.setIndex(new THREE.BufferAttribute(idx, 1));
-    return out;
-  }
 
-  function geometriaCilindro(a, b, r0, r1, segs) {
-    var dir = new THREE.Vector3().subVectors(b, a);
-    var len = dir.length();
-    if (len <= 0) return null;
-    var geo = new THREE.CylinderGeometry(r1, r0, len, segs || 6, 1);
-    var q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
-    var mid = a.clone().addScaledVector(dir, 0.5);
-    geo.applyMatrix4(new THREE.Matrix4().compose(mid, q, new THREE.Vector3(1, 1, 1)));
-    return geo;
-  }
+
+
 
   // ==========================================================================
-  // Esqueleto EZ-TREE (recursivo, ángulo/hijos por nivel, gnarliness)
+  // Port del generador de ez-tree (Tree.generateSkeleton/growBranch): cada
+  // nivel usa length/radius/sections/segments/start/taper/gnarliness/twist,
+  // las ramas hijas nacen alrededor de la rama padre y las hojas terminales
+  // se generan por slots. Los presets proceden de src/lib/presets.
   // ==========================================================================
-  function construirEsqueleto(especie, rand, alargada) {
-    var segs = [], puntas = [];
-    var nivel0Len = 2.2 + rand() * 0.6;
-    var nivel0Rad = 0.28 + rand() * 0.06;
-
-    function branch(origin, dir, len, rad, nivel) {
-      if (nivel > especie.niveles) return; // límite de profundidad: jamás desborda
-      var gnarl = 0.18;
-      var end = origin.clone().addScaledVector(dir, len);
-      end.x += (rand() - 0.5) * gnarl * len;
-      end.y += (rand() - 0.5) * gnarl * len * 0.3;
-      end.z += (rand() - 0.5) * gnarl * len;
-      segs.push({ a: origin.clone(), b: end.clone(), r0: rad, r1: rad * 0.6 });
-      if (nivel >= especie.niveles - 1) {
-        puntas.push({ pos: end.clone(), dir: dir.clone() });
-        return;
+  function construirEsqueleto(preset, rand) {
+    var ramas = [];
+    var hojas = [];
+    var up = new THREE.Vector3(0, 1, 0);
+    var maxItems = 3200; // defensa de memoria; los presets caben bajo este tope
+    var maxDepth = 4;
+    function grow(origin, dir, level, length, radius) {
+      if (level > maxDepth) throw new Error('EZ-TREE branch depth limit exceeded');
+      if (ramas.length >= maxItems || hojas.length >= maxItems || length < 0.08 || radius < 0.008) return;
+      var sectionCount = Math.max(1, Math.floor(preset.sections[level] || 1));
+      var segments = Math.max(3, Math.floor(preset.segments[level] || 3));
+      var taper = preset.taper[level] == null ? 0.7 : preset.taper[level];
+      var gnarl = preset.gnarliness[level] || 0;
+      var twist = preset.twist[level] || 0;
+      var previous = origin.clone();
+      var orientation = dirToEuler(dir);
+      var sectionEnds = [{ pos: origin.clone(), radius: radius, fraction: 0, orientation: orientation.clone() }];
+      var sectionLength = length / sectionCount / (preset.type === 'deciduous' ? Math.max(1, preset.levels - 1) : 1);
+      for (var s = 0; s < sectionCount; s++) {
+        var qStep = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+          rand(gnarl, -gnarl), twist, rand(gnarl, -gnarl)
+        ));
+        var stepDir = up.clone().applyQuaternion(new THREE.Quaternion().setFromEuler(orientation)).applyQuaternion(qStep).normalize();
+        var p = previous.clone().addScaledVector(stepDir, sectionLength);
+        var f = (s + 1) / sectionCount;
+        var sectionRadius = radius * (1 - f * (1 - taper));
+        if (s === sectionCount - 1 && level === preset.levels) sectionRadius = 0.001;
+        var geo = new THREE.CylinderGeometry(sectionRadius, sectionEnds[sectionEnds.length - 1].radius, sectionLength, segments, 1);
+        var axis = p.clone().sub(previous);
+        var q = new THREE.Quaternion().setFromUnitVectors(up, axis.clone().normalize());
+        geo.applyMatrix4(new THREE.Matrix4().compose(previous.clone().add(p).multiplyScalar(0.5), q, new THREE.Vector3(1, 1, 1)));
+        ramas.push(geo);
+        orientation.x += twist;
+        orientation.z += gnarl * (rand() - 0.5) + preset.force;
+        sectionEnds.push({ pos: p.clone(), radius: sectionRadius, fraction: f, orientation: orientation.clone() });
+        previous.copy(p);
       }
-      var nHijos = especie.hijos[nivel] || 3;
-      var spread = Math.max(0.25, (especie.angulo * Math.PI / 180) * (1 + nivel * 0.08));
-      if (alargada) spread *= 0.7;
-      for (var i = 0; i < nHijos; i++) {
-        var theta = (i / nHijos) * Math.PI * 2 + rand() * 0.6;
-        var tilt = spread * (0.6 + rand() * 0.8);
-        var perp1 = new THREE.Vector3(1, 0, 0).cross(dir);
-        if (perp1.lengthSq() < 0.01) perp1.set(0, 0, 1);
-        else perp1.normalize();
-        var perp2 = dir.clone().cross(perp1).normalize();
-        var nd = dir.clone();
-        nd.addScaledVector(perp1, Math.cos(theta) * tilt)
-          .addScaledVector(perp2, Math.sin(theta) * tilt)
-          .addScaledVector(new THREE.Vector3(0, 1, 0), 0.12);
-        nd.normalize();
-        branch(end.clone(), nd, len * (0.72 - nivel * 0.04 + rand() * 0.12), rad * 0.62, nivel + 1);
+
+      // EZ-tree genera hojas en las ramas terminales, con slots
+      // estratificados y orientación interpolada desde las secciones.
+      if (level === preset.levels) {
+        var radialOffset = rand();
+        var leafCount = preset.leafCount;
+        var heightStep = (1 - preset.leafStart) / leafCount;
+        var angleSlots = ezShuffledIndices(leafCount, rand);
+        for (var li = 0; li < leafCount && hojas.length < maxItems; li++) {
+          var leafStart = preset.leafStart + (li + rand()) * heightStep;
+          var sectionIndex = Math.min(sectionEnds.length - 1, Math.floor(leafStart * (sectionEnds.length - 1)));
+          var sectionA = sectionEnds[sectionIndex];
+          var sectionB = sectionEnds[Math.min(sectionIndex + 1, sectionEnds.length - 1)];
+          var alpha = (leafStart - sectionIndex / (sectionEnds.length - 1)) * (sectionEnds.length - 1);
+          var leafOrigin = sectionA.pos.clone().lerp(sectionB.pos, alpha);
+          var leafOrientation = sectionA.orientation.clone();
+          var radialJitter = rand(0.5, -0.5);
+          var radialAngle = 2 * Math.PI * (radialOffset + (angleSlots[li] + radialJitter) / leafCount);
+          var q1 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), preset.leafAngle * Math.PI / 180);
+          var q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), radialAngle);
+          var leafQ = new THREE.Quaternion().setFromEuler(leafOrientation).multiply(q2).multiply(q1);
+          var leafSize = preset.leafSize * (1 + rand(preset.leafVariance, -preset.leafVariance));
+          var leafGeo = new THREE.PlaneGeometry(leafSize, leafSize * 0.48);
+          leafGeo.applyMatrix4(new THREE.Matrix4().compose(leafOrigin, leafQ, new THREE.Vector3(1, 1, 1)));
+          hojas.push(leafGeo);
+        }
+      }
+
+      // Hijos EZ-tree: cantidad children[level], origen estratificado,
+      // ángulos y orientación compuestos con la rama padre.
+      if (level >= preset.levels || ramas.length >= maxItems) return;
+      var childCount = Math.max(0, Math.min(100, Math.floor(preset.children[level] || 0)));
+      if (!childCount) return;
+      var childLevel = level + 1;
+      var startMin = preset.start[childLevel] || 0;
+      var heightStep = (1 - startMin) / Math.max(1, childCount);
+      var angleSlots = ezShuffledIndices(childCount, rand);
+      var radialOffset = rand();
+      for (var c = 0; c < childCount && ramas.length < maxItems; c++) {
+        var childStart = startMin + (c + rand()) * heightStep;
+        var sectionIndex = Math.min(sectionEnds.length - 2, Math.floor(childStart * (sectionEnds.length - 1)));
+        var sectionA = sectionEnds[sectionIndex];
+        var sectionB = sectionEnds[Math.min(sectionIndex + 1, sectionEnds.length - 1)];
+        var alpha = (childStart - sectionIndex / (sectionEnds.length - 1)) * (sectionEnds.length - 1);
+        var childOrigin = sectionA.pos.clone().lerp(sectionB.pos, alpha);
+        var childRadius = Math.max(0.01, preset.radius[childLevel] * ((1 - alpha) * sectionA.radius + alpha * sectionB.radius));
+        var parentOrientation = sectionA.orientation.clone();
+        var radialJitter = rand(0.5, -0.5);
+        var radialAngle = 2 * Math.PI * (radialOffset + (angleSlots[c] + radialJitter) / childCount);
+        var childAngle = (preset.angle[childLevel] || 45) * Math.PI / 180;
+        var q1 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), childAngle);
+        var q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), radialAngle);
+        var childOrientation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().setFromEuler(parentOrientation).multiply(q2.multiply(q1)));
+        childOrientation.z += preset.force;
+        var childDirection = new THREE.Vector3(0, 1, 0).applyQuaternion(new THREE.Quaternion().setFromEuler(childOrientation));
+        grow(childOrigin, childDirection, childLevel, preset.length[childLevel], childRadius);
       }
     }
-    branch(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), nivel0Len, nivel0Rad, 0);
-    return { segs: segs, puntas: puntas };
+
+    grow(new THREE.Vector3(0, 0, 0), up, 0, preset.length[0], preset.radius[0]);
+    return { madera: ramas, hojas: hojas };
   }
 
-  // Hojas billboard por punta (tamaño según tipo de hoja).
-  function descriptoresHojas(puntas, rand, especie) {
-    var desc = [];
-    var tam = { aguja: [0.30, 0.07], ovalada: [0.24, 0.14], abanico: [0.20, 0.20], fina: [0.22, 0.09], ancha: [0.28, 0.18] };
-    var t = tam[especie.hoja] || tam.ovalada;
-    var nPorPunta = (especie.hoja === 'aguja') ? 22 : 10;
-    for (var p = 0; p < puntas.length; p++) {
-      for (var i = 0; i < nPorPunta; i++) {
-        var ang = rand() * Math.PI * 2;
-        var dist = 0.08 + rand() * 0.5;
-        desc.push({
-          x: puntas[p].pos.x + Math.cos(ang) * dist,
-          y: puntas[p].pos.y + (rand() - 0.35) * 0.4,
-          z: puntas[p].pos.z + Math.sin(ang) * dist,
-          rx: (rand() - 0.5) * 1.0, ry: ang + rand() * 0.6, rz: (rand() - 0.5) * 0.7,
-          tx: t[0], tz: t[1],
-          col: especie.paleta[Math.floor(rand() * especie.paleta.length)],
-        });
-      }
-    }
-    return desc;
-  }
 
-  function geometriaHojas(desc, est) {
-    if (!desc.length || est.densidad <= 0 || est.escala <= 0) return null;
-    var geos = [], colores = [];
-    for (var i = 0; i < desc.length; i++) {
-      if ((i % 100) / 100 >= est.densidad) continue;
-      var d = desc[i];
-      var g = new THREE.PlaneGeometry(d.tx * est.escala, d.tz * est.escala);
-      g.applyMatrix4(new THREE.Matrix4().compose(
-        new THREE.Vector3(d.x, d.y, d.z),
-        new THREE.Quaternion().setFromEuler(new THREE.Euler(d.rx, d.ry, d.rz)),
-        new THREE.Vector3(1, 1, 1)
-      ));
-      geos.push(g);
-      colores.push(new THREE.Color(est.color || d.col));
-    }
-    return geos.length ? fusionarConColores(geos, colores) : null;
-  }
 
   function construirVariantes() {
-    var barkMat = new THREE.MeshStandardMaterial({
-      color: 0x6b5138, flatShading: true, roughness: 1.0, metalness: 0.02,
-    });
-    var hojaMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff, flatShading: true, roughness: 1.0, metalness: 0.0,
-      vertexColors: true, transparent: true, opacity: 0.88,
-      emissive: 0x55853f, emissiveIntensity: 0.5, // anti-contraluz desde arriba
-      side: THREE.DoubleSide,
-    });
-
     EZ_TIPOS.forEach(function (tipo, k) {
+      var especie = EZ_ESPECIES[tipo];
+      var preset = EZ_PRESETS[especie.preset];
+      var barkMat = new THREE.MeshStandardMaterial({ color: 0x594332, flatShading: true, roughness: 1.0, metalness: 0.02 });
+      var meshesHoja = Object.create(null);
+      variantes[tipo] = [];
       for (var v = 0; v < N_VARIANTES; v++) {
-        var rand = mulberry32(7700 + k * 7919 + v * 131);
-        var especie = EZ_ESPECIES[tipo];
-        var esq = construirEsqueleto(especie, rand, !!especie.alargada);
-        var geoMadera = fusionar(esq.segs.map(function (s) {
-          return geometriaCilindro(s.a, s.b, s.r0, s.r1, 6);
-        }).filter(Boolean));
+        var rand = ezRng(preset.seed + k * 7919 + v * 131);
+        var ramaje = construirEsqueleto(preset, rand);
+        var geoMadera = fusionar(ramaje.madera);
         geoMadera.computeBoundingBox();
         var altReal = Math.max(2, geoMadera.boundingBox.max.y);
-        var descHojas = descriptoresHojas(esq.puntas, rand, especie);
-        var geoHojas = geometriaHojas(descHojas, EZ_ESTACIONES[especie.perenne ? 'perenne' : 'caduca'].verano) || new THREE.BufferGeometry();
-
+        var geoHojas = fusionar(ramaje.hojas);
+        geoHojas.computeBoundingBox(); geoHojas.computeBoundingSphere();
         var meshT = new THREE.InstancedMesh(geoMadera, barkMat, MAX_ARBOL);
-        var meshH = new THREE.InstancedMesh(geoHojas, hojaMat, MAX_ARBOL);
-        meshT.count = 0; meshH.count = 0;
-        meshT.frustumCulled = false; meshH.frustumCulled = false;
-        scene.add(meshT); scene.add(meshH);
-
-        variantes[tipo] = variantes[tipo] || [];
+        meshT.count = 0; meshT.frustumCulled = false;
+        scene.add(meshT);
+        Object.keys(EZ_ESTACIONES[vfEstacionKey(especie)]).forEach(function (est) {
+          var color = EZ_ESTACIONES[vfEstacionKey(especie)][est].color;
+          var key = String(color);
+          if (meshesHoja[key]) return;
+          var material = new THREE.MeshStandardMaterial({
+            color: color, flatShading: true, roughness: 1.0, metalness: 0.0,
+            vertexColors: false, transparent: false,
+            emissive: color, emissiveIntensity: 0.24, side: THREE.DoubleSide,
+          });
+          var meshH = new THREE.InstancedMesh(geoHojas, material, MAX_ARBOL);
+          meshH.count = 0; meshH.frustumCulled = false;
+          scene.add(meshH);
+          meshesHoja[key] = meshH;
+        });
         variantes[tipo].push({
-          tipo: tipo,
-          alturaModelo: altReal,
+          tipo: tipo, alturaModelo: altReal,
           techoEscala: (EZ_ALTURAS[tipo] || 10) / altReal,
-          meshTroncos: meshT, meshHojas: meshH,
-          descHojas: descHojas, especie: especie, geoHojasActual: null,
+          meshTroncos: meshT, meshHojas: meshesHoja,
+          preset: preset, especie: especie, geoHojasActual: geoHojas,
         });
       }
     });
   }
+
+  function vfEstacionKey(especie) { return especie.evergreen ? 'perenne' : 'caduca'; }
 
   // Aplica estación a TODAS las variantes EZ (reconstruye hojas solo al cambiar).
   function aplicarEstacion(estacion) {
-    if (estacion === estacionActual || !variantes.length) return;
+    if (estacion === estacionActual || !Object.keys(variantes).length) return;
     estacionActual = estacion;
-    variantes.forEach(function (lista) {
-      lista.forEach(function (vf) {
-        var tabla = EZ_ESTACIONES[vf.especie.perenne ? 'perenne' : 'caduca'];
+    Object.keys(variantes).forEach(function (tipo) {
+      variantes[tipo].forEach(function (vf) {
+        var tabla = EZ_ESTACIONES[vfEstacionKey(vf.especie)];
         var est = tabla[estacion] || tabla.verano;
-        if (vf.geoHojasActual) { vf.geoHojasActual.dispose(); vf.geoHojasActual = null; }
-        var geo = geometriaHojas(vf.descHojas, est);
-        if (geo) {
-          vf.geoHojasActual = geo;
-          vf.meshHojas.geometry = geo;
-          vf.meshHojas.visible = true;
-        } else {
-          vf.meshHojas.visible = false; // caduca desnuda en invierno
-        }
+        vf.meshTroncos.material.color.setHex(0x594332);
+        Object.keys(vf.meshHojas).forEach(function (color) {
+          vf.meshHojas[color].visible = color === String(est.color);
+        });
       });
     });
     refrescarInstancias(true);
   }
 
   // ==========================================================================
-  // Datos: árboles EZ en vista. Fuente = window.manolitAireArbolesTodos
-  // (shadows-route.js ya expone TODOS los árboles con su posición) +
-  // window.manolitoClasificarArbol si cada árbol lleva tags; si no, usa el
-  // tipo que arbolesParaTodo ya calcula (a.tipo via manolitAireArboles3D no
-  // nos vale: solo da albizia/naranjo). Buscamos un hook propio: si
-  // shadows-route aún no lo publica, devolvemos [] (sin romper nada).
+  // Datos EZ. Fuente pública manolitAireArbolesEZ, fusionada con inventario
+  // oficial de Sevilla por shadows-route/arboles-sevilla. No se accede al
+  // array privado de árboles ni se recategoriza Albizia/naranjo.
   // ==========================================================================
   function arbolesEZEnVista() {
     try {
@@ -348,7 +349,7 @@
   }
 
   function refrescarInstancias(forzar) {
-    if (!listo || !activo) return;
+    if (!listo || !activo || !TMP_M4 || !scene) return;
     var arboles = arbolesEZEnVista();
     var firma = (estacionActual || '') + '|' + map.getZoom().toFixed(2) + '|' + arboles.length;
     for (var f = 0; f < arboles.length; f++) {
@@ -363,27 +364,27 @@
 
     // Agrupación por (tipo, variante): el hash de coords decide la variante
     // y así cada árbol nace siempre con la MISMA forma.
-    var buckets = []; // buckets[k] = árboles para la variante k (índice plano)
+    var buckets = Object.create(null); // buckets por tipo y variante
     for (var i = 0; i < arboles.length; i++) {
       var a = arboles[i];
       var li = Math.floor(hashCoords(a.lon, a.lat) * N_VARIANTES) % N_VARIANTES;
-      buckets[li] = buckets[li] || [];
-      buckets[li].push(a);
+      var key = a.tipo + '#' + li;
+      buckets[key] = buckets[key] || [];
+      buckets[key].push(a);
     }
 
     var m4 = TMP_M4, escV = TMP_ESC;
-    var k = 0;
     Object.keys(EZ_ESPECIES).forEach(function (tipo) {
       var lista = variantes[tipo] || [];
-      for (var v = 0; v < lista.length; v++, k++) {
+      for (var v = 0; v < lista.length; v++) {
         var vf = lista[v];
-        var losMios = (buckets[v] || []).filter(function (a) { return a.tipo === tipo; });
+        var losMios = buckets[tipo + '#' + v] || [];
         for (var i2 = 0; i2 < losMios.length; i2++) {
           var ar = losMios[i2];
           var mc = maplibregl.MercatorCoordinate.fromLngLat({ lng: ar.lon, lat: ar.lat }, 0);
           var s = metrosAMercator(ar.lat);
-          var techo = vf.techoEscala || 1.8;
-          var sArbol = Math.max(0.55, Math.min(techo, (ar.altura || vf.alturaModelo) / vf.alturaModelo));
+          var alturaModeloDeseada = ar.altura || EZ_ALTURAS[tipo];
+          var sArbol = Math.max(0.3, Math.min(2.5, alturaModeloDeseada / vf.alturaModelo));
           escV.set(s * sArbol, s * sArbol, s * sArbol);
           m4.compose(TMP_V3.set(mc.x - REF.x, mc.y - REF.y, mc.z - REF.z), QUAT_UP, escV);
           vf.meshTroncos.setMatrixAt(i2, m4);
@@ -459,20 +460,9 @@
     activo = true;
     firmaInstancias = '';
     if (!map.getLayer('capa-arboles-ez-3d')) map.addLayer(crearCapa());
-    // Oculta SOLO las formas EZ planas. 'sombrilla' (albizia) y 'naranjo'
-    // quedan PROHIBIDAS aquí: las gestiona arboles-3d.js, que es suyo.
-    // IMPORTANTE: este filtro RECONSTRUYE SIEMPRE también las exclusiones
-    // de arboles-3d.js, para que nunca dejemos ver albizias/naranjos planos
-    // por encima de su 3D (ambos motores comparten la capa plana).
-    try {
-      if (map.getLayer('capa-arboles-globales-3d')) {
-        var f = ['all',
-          ['!=', ['get', 'forma'], 'sombrilla'],
-          ['!=', ['get', 'forma'], 'naranjo']];
-        EZ_FORMAS.forEach(function (fo) { f.push(['!=', ['get', 'forma'], fo]); });
-        map.setFilter('capa-arboles-globales-3d', f);
-      }
-    } catch (e) { /* conviven */ }
+    // El 3D EZ se dibuja encima de la capa plana. No se cambia el filtro
+    // compartido: evita interferir con las exclusiones originales de albizia
+    // y naranjo controladas exclusivamente por js/arboles-3d.js.
     var estacion = (typeof window.manolitAireEstacionActual === 'function')
       ? window.manolitAireEstacionActual() : 'verano';
     estacionActual = null;
@@ -481,50 +471,33 @@
 
   function desactivar() {
     activo = false;
-    try {
-      // Restaura el filtro CON las exclusiones de arboles-3d.js SIEMPRE:
-      // aunque este módulo se apague, la albizia y el naranjo planos siguen
-      // ocultos si su 3D (arboles-3d.js) sigue activo. Si su módulo también
-      // se apaga, él mismo pone setFilter(null) y todo vuelve.
-      if (map.getLayer('capa-arboles-globales-3d') &&
-          typeof window.manolitAireArboles3D === 'function' && !map.__manolitoArboles3DActivo !== true) {
-        // Si el motor principal NO está activo (su capa fue retirada),
-        // restauramos la vista plana completa.
-        var suCapa3D = map.getLayer('capa-arboles-3d');
-        if (!suCapa3D || map.getLayoutProperty('capa-arboles-3d', 'visibility') === 'none') {
-          map.setFilter('capa-arboles-globales-3d', null);
-        } else {
-          map.setFilter('capa-arboles-globales-3d',
-            ['all', ['!=', ['get', 'forma'], 'sombrilla'], ['!=', ['get', 'forma'], 'naranjo']]);
-        }
-      }
-    } catch (e) { /* nada */ }
+    // No se toca el filtro de la capa global: es propiedad del motor original.
     map.triggerRepaint();
   }
 
-  // PROBLEMA CONOCIDO Y SU SOLUCIÓN: ambos motores escriben el MISMO filtro
-  // de la capa plana. Para no pisarnos, este módulo RECONSTRUYE el filtro
-  // incluyendo las exclusiones de arboles-3d.js (sombrilla + naranjo) siempre
-  // que toque el filtro, y arboles-3d.js hace lo propio con las nuestras si
-  // existen (no las conoce, pero su setFilter(null) al desactivar restaura).
-  // Resultado: mientras cualquiera de los dos esté activo, la capa plana de
-  // EZ está oculta; al desactivarse ambos, todo vuelve.
+  // La capa de copas OSM se conserva sin cambios; el 3D EZ se renderiza encima.
+  // La vista sigue mostrando el cambio de geometría 3D y el módulo no tiene
+  // que competir por el filtro que protege albizia/naranjo.
 
   function evaluar() {
     if (!map) return;
     var debe = condicionesCumplidas();
+    if (window.THREE && !listo && !cargandoThree) {
+      listo = true; // Three.js del motor original ya está disponible globalmente
+    }
     if (debe && !listo && !cargandoThree) {
       cargandoThree = true;
       var s = document.createElement('script');
       s.src = 'js/three.min.js';
-      s.onload = function () { cargandoThree = false; listo = true; activar(); };
+      s.onload = function () {
+        cargandoThree = false;
+        if (!window.THREE) { evaluar(); return; }
+        listo = true;
+        activar();
+      };
       s.onerror = function () { cargandoThree = false; }; // sin THREE: nada EZ
       document.head.appendChild(s);
       return;
-    }
-    if (window.__manolitoArboles3D && window.THREE && !listo && !cargandoThree) {
-      // arboles-3d.js ya cargó THREE: lo aprovechamos sin segunda descarga.
-      listo = true; activar(); return;
     }
     if (!listo) return;
     if (debe && !activo) { activar(); }
@@ -541,9 +514,11 @@
     return {
       listo: listo, activo: activo, estacion: estacionActual,
       enVista: map ? arbolesEZEnVista().length : -1,
-      variantes: variantes.map ? variantes.filter(Boolean).map(function (l) {
-        return l.map(function (v) { return { tipo: v.tipo, troncos: v.meshTroncos.count }; });
-      }) : [],
+      variantes: Object.keys(variantes).map(function (tipo) {
+        return variantes[tipo].map(function (v) {
+          return { tipo: v.tipo, troncos: v.meshTroncos.count, hojas: v.meshHojas.count };
+        });
+      }),
       zoom: map ? map.getZoom() : -1,
     };
   };

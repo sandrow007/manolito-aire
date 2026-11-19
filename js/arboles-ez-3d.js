@@ -339,7 +339,7 @@
       if (typeof window.manolitAireArbolesEZ !== 'function') return [];
       var todas = window.manolitAireArbolesEZ() || [];
       var b = map.getBounds(), c = map.getCenter();
-      return todas.filter(function (a) {
+      var candidatas = todas.filter(function (a) {
         return EZ_ALTURAS[a.tipo] &&
           a.lon >= b.getWest() && a.lon <= b.getEast() &&
           a.lat >= b.getSouth() && a.lat <= b.getNorth();
@@ -347,16 +347,39 @@
         var d1 = (a1.lon - c.lng) * (a1.lon - c.lng) + (a1.lat - c.lat) * (a1.lat - c.lat);
         var d2 = (a2.lon - c.lng) * (a2.lon - c.lng) + (a2.lat - c.lat) * (a2.lat - c.lat);
         return d1 - d2;
-      }).slice(0, MAX_ARBOL);
+      });
+      // Selecciona primero los árboles más cercanos, pero deja separación
+      // suficiente para distinguir las copas en plantaciones densas.
+      var separados = [];
+      for (var i = 0; i < candidatas.length && separados.length < MAX_ARBOL; i++) {
+        var actual = candidatas[i];
+        var radio = Math.max(1.5, Math.min(5, actual.radioCopaM || 2.5));
+        var demasiadoCerca = separados.some(function (previo) {
+          var latMedia = (actual.lat + previo.lat) * 0.5 * Math.PI / 180;
+          var dx = (actual.lon - previo.lon) * 111320 * Math.cos(latMedia);
+          var dy = (actual.lat - previo.lat) * 111320;
+          var radioPrevio = Math.max(1.5, Math.min(5, previo.radioCopaM || 2.5));
+          return Math.hypot(dx, dy) < (radio + radioPrevio) * 0.72;
+        });
+        if (!demasiadoCerca) separados.push(actual);
+      }
+      return separados;
     } catch (e) { return []; }
   }
+
+  // El motor plano consulta los ejemplares que este módulo está dibujando
+  // para no pintar una segunda copa exactamente en el mismo punto.
+  window.manolitAireArbolesEZVisibles = function () {
+    if (!activo || !map || map.getZoom() < ZOOM_MIN) return [];
+    return arbolesEZEnVista().map(function (a) { return { lon: a.lon, lat: a.lat }; });
+  };
 
   function refrescarInstancias(forzar) {
     if (!listo || !activo || !TMP_M4 || !scene) return;
     var arboles = arbolesEZEnVista();
     var firma = (estacionActual || '') + '|' + map.getZoom().toFixed(2) + '|' + arboles.length;
     for (var f = 0; f < arboles.length; f++) {
-      firma += '|' + arboles[f].tipo + ',' + arboles[f].lon.toFixed(6) + ',' + arboles[f].lat.toFixed(6) + ',' + (arboles[f].altura || 0);
+      firma += '|' + arboles[f].tipo + ',' + arboles[f].lon.toFixed(6) + ',' + arboles[f].lat.toFixed(6) + ',' + (arboles[f].altura || 0) + ',' + (arboles[f].radioCopaM || 0);
     }
     if (!forzar && firma === firmaInstancias) return;
     firmaInstancias = firma;
@@ -473,12 +496,20 @@
       ? window.manolitAireEstacionActual() : 'verano';
     estacionActual = null;
     aplicarEstacion(estacion);
+    // Actualiza la capa plana después de que el motor 3D quede operativo.
+    setTimeout(function () {
+      try { if (typeof window.manolitAireRecalcularArboles === 'function') window.manolitAireRecalcularArboles(true); } catch (e) { /* sin efecto colateral */ }
+    }, 0);
   }
 
   function desactivar() {
     activo = false;
     // No se toca el filtro de la capa global: es propiedad del motor original.
     map.triggerRepaint();
+    // Al alejarse, vuelve a dibujar las copas planas que sustituía el 3D.
+    setTimeout(function () {
+      try { if (typeof window.manolitAireRecalcularArboles === 'function') window.manolitAireRecalcularArboles(true); } catch (e) { /* sin efecto colateral */ }
+    }, 0);
   }
 
   // La capa de copas OSM se conserva sin cambios; el 3D EZ se renderiza encima.

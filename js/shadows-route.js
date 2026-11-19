@@ -11734,13 +11734,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       const longitudKm = turf.length(linea, { units: 'kilometers' });
       if (!isFinite(longitudKm) || longitudKm <= 0) return [];
-      const SEPARACION_KM = 0.009; // 9 m entre árbol y árbol
+      const SEPARACION_KM = 0.009; // separación urbana típica: 9 m
       const puntos = [];
-      // Primer árbol en el arranque de la línea y luego uno cada 9 m;
-      // el último tramo (<4,5 m) no genera árbol extra para no amontonar.
-      const nArboles = Math.max(1, Math.round(longitudKm / SEPARACION_KM) + 1);
+      // Reparte los árboles uniformemente por toda la hilera, incluidos sus
+      // extremos, para que el último tramo no quede artificialmente corto.
+      const nIntervalos = Math.max(1, Math.round(longitudKm / SEPARACION_KM));
+      const nArboles = nIntervalos + 1;
       for (let i = 0; i < nArboles; i++) {
-        const d = Math.min(i * SEPARACION_KM, longitudKm);
+        const d = longitudKm * i / nIntervalos;
         const p = turf.along(linea, d, { units: 'kilometers' });
         const [lon, lat] = p.geometry.coordinates;
         puntos.push({ type: 'node', lat, lon, tags: el.tags });
@@ -11820,10 +11821,25 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
               // cae a <7 m de este nodo OSM, el dato oficial (con especie,
               // altura y perímetro medidos) gana y el de OSM no se añade.
               // Así no se dibuja el mismo árbol dos veces.
-              const duplicado = typeof window.manolitAireArbolesOficialesDuplicado === 'function'
-                ? window.manolitAireArbolesOficialesDuplicado(el.lon ?? cand.lon, el.lat ?? cand.lat)
+              const duplicadoOficial = typeof window.manolitAireArbolesOficialesDuplicado === 'function'
+                ? window.manolitAireArbolesOficialesDuplicado(cand.lon, cand.lat)
                 : null;
-              if (!duplicado) arbolesGrandes.push(arbol);
+              // Una misma celda/vía puede volver a llegar en consultas Overpass
+              // solapadas. No acumular copias casi idénticas en la sesión.
+              const cosLat = Math.cos(cand.lat * Math.PI / 180);
+              const duplicadoOSM = !duplicadoOficial && arbolesGrandes.some((previo) => {
+                const [lonPrevio, latPrevio] = previo.punto.geometry.coordinates;
+                const dx = (lonPrevio - cand.lon) * cosLat * 111320;
+                const dy = (latPrevio - cand.lat) * 110540;
+                // En las hileras sintéticas, comparar también con el tamaño
+                // de copa para absorber solapes por diferencias de alineación.
+                const esMismaHilera = cand.tags && cand.tags.natural === 'tree_row';
+                const radioMinimo = esMismaHilera
+                  ? Math.min(8, Math.max(3.5, (arbol.radioCopaM + (previo.radioCopaM || 0)) * 0.45))
+                  : 1.5;
+                return dx * dx + dy * dy < radioMinimo * radioMinimo;
+              });
+              if (!duplicadoOficial && !duplicadoOSM) arbolesGrandes.push(arbol);
             }
             // INP (2026-09-12): tramos de 80 en vez de 200. Con miles de
             // árboles, 200 seguidos secuestraban el hilo ~200-300 ms y un
@@ -11871,6 +11887,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const MAX_ARBOLES_DECORADOS = 150;
 
       // ------- DESCAMUFLAJE 3D (ADITIVO sep-2026) -------
+      // Las copas planas se ocultan solo mientras el modelo EZ 3D está activo
+      // y cerca de un ejemplar 3D, evitando dibujar ambas copas superpuestas.
+      const arbolesEZ3D = typeof window.manolitAireArbolesEZVisibles === 'function'
+        ? window.manolitAireArbolesEZVisibles()
+        : [];
+      const cercaDeEZ3D = (lon, lat) => {
+        const cosLat = Math.cos(lat * Math.PI / 180);
+        for (const p of arbolesEZ3D) {
+          const dx = (p.lon - lon) * cosLat * 111320;
+          const dy = (p.lat - lat) * 110540;
+          if (dx * dx + dy * dy < 1) return true;
+        }
+        return false;
+      };
       // En OSM a veces el MISMO árbol está dos veces: una con especie
       // (Citrus × … → modelo 3D real) y otra sin etiquetar a 2-3 m. Esa
       // segunda copia dibujaba su copa plana ATRAVESADA en la copa 3D: el
@@ -11898,7 +11928,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const [lon, lat] = a.punto.geometry.coordinates;
         // Si este árbol "normal" está pegado a un naranjo/albizia con
         // modelo 3D real, no se pinta en plano: es el camuflaje del cubo.
-        if (a.tipo !== 'albizia' && a.tipo !== 'naranjo' && cercaDeProtegido3D(lon, lat)) continue;
+        if (cercaDeProtegido3D(lon, lat)) continue;
+        // El modelo EZ ocupa ya este ejemplar; su geometría plana duplicaría
+        // tronco y copa. Solo filtramos cuando la capa 3D está activa.
+        if (cercaDeEZ3D(lon, lat)) continue;
         // Fenología (solo naranjo y albizia; null = como siempre).
         const feno = fenologiaArbol(a.tipo, estacion, progresoEstacion(obtenerHoraEfectiva()));
         const factorHoja = feno ? (0.30 + 0.70 * feno.densidadHoja) : 1;
@@ -12602,10 +12635,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // fusión de js/arboles-sevilla.js cuando ya está descargado, así los
     // árboles oficiales también alcanzan el motor 3D sin duplicar OSM.)
     const arbolesParaTodo = () => {
-      const fusion = (typeof window.manolitAireArbolesFusionados === 'function')
+      // La fusión siempre es la fuente de verdad: puede tener la misma longitud
+      // aunque haya sustituido duplicados OSM por ejemplares oficiales.
+      return (typeof window.manolitAireArbolesFusionados === 'function')
         ? window.manolitAireArbolesFusionados(arbolesGrandes)
         : arbolesGrandes;
-      return fusion.length > arbolesGrandes.length ? fusion : arbolesGrandes;
     };
     window.manolitAireAlbizias = () => arbolesParaTodo()
       .filter((a) => a.tipo === 'albizia')
@@ -12641,6 +12675,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         lon: a.punto.geometry.coordinates[0],
         lat: a.punto.geometry.coordinates[1],
         altura: a.altura,
+        radioCopaM: a.radioCopaM,
         tipo: a.tipo,
       }));
 

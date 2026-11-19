@@ -289,7 +289,10 @@
 // gana wind_speed_10m y shortwave_radiation en /prevision (aditivo).
 // Cambian worker.js, js/shadows-route.js, js/i18n.js (18 claves nuevas en
 // 7 idiomas), css/style.css, index.html y los dos js nuevos.
-const VERSION = '2026-11-18-a-ez3d-fix';
+const VERSION = '2026-11-19-a-arboles-coherentes';
+// 2026-11-19-a: árboles visibles sin copias OSM ni copas planas duplicadas;
+// separación del 3D conforme al tamaño de copa y carga versionada de módulos.
+// Cambian index.html, js/shadows-route.js, js/arboles-3d.js y js/arboles-ez-3d.js.
 // 2026-11-18-a: se corrige el render 3D EZ de Sevilla: se actualizarán todas
 // las mallas de hojas de cada variante, evitando la excepción al acercar el mapa.
 // Cambia js/arboles-ez-3d.js.

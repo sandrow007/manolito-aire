@@ -36,7 +36,8 @@
     'eucalipto', 'tipuana', 'jacaranda', 'morera', 'ficus', 'paraiso', 'ginkgo',
     'almez', 'brachychiton', 'robinia', 'fresno', 'cipres', 'sophora',
     'gleditsia', 'ligustrum', 'cercis', 'magnolia', 'catalpa', 'casuarina',
-    'palmera'];
+    'palmera', 'palmera_datilera', 'palmera_canaria', 'palmera_washingtonia',
+    'olivo'];
 
   // Alturas de referencia (las de TIPOS_ARBOL).
   var EZ_ALTURAS = {
@@ -45,7 +46,8 @@
     almez: 12, brachychiton: 12, robinia: 12, fresno: 14,
     cipres: 12, sophora: 11,
     gleditsia: 11, ligustrum: 7, cercis: 6, magnolia: 10, catalpa: 10, casuarina: 16,
-    palmera: 12,
+    palmera: 12, palmera_datilera: 12, palmera_canaria: 13,
+    palmera_washingtonia: 14, olivo: 8,
   };
 
   // Presets REALES de ez-tree y adaptaciones locales de los cuatro perfiles.
@@ -80,7 +82,17 @@
     // punta. Para palmera/datilera/washingtonia, abundantes en Sevilla y
     // en toda ciudad cálida. Estilo del repo pero adaptado a porte real.
     palm: { seed: 45107, type: 'evergreen', levels: 0, angle: [104, 0, 0], children: [0, 0, 0], length: [38, 1, 1, 1], radius: [0.85, 0.4, 0.7, 0.7], sections: [10, 1, 1, 1], segments: [8, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.55, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 68, leafCount: 26, leafStart: 0.9, leafSize: 5.2, leafVariance: 0.25, leafColor: 0x4f7a3d, barkColor: 0x9a7a56 },
-    palm_small: { seed: 45109, type: 'evergreen', levels: 0, angle: [98, 0, 0], children: [0, 0, 0], length: [24, 1, 1, 1], radius: [0.62, 0.4, 0.7, 0.7], sections: [8, 1, 1, 1], segments: [7, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.5, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 62, leafCount: 20, leafStart: 0.88, leafSize: 3.6, leafVariance: 0.25, leafColor: 0x5c8e45, barkColor: 0x8a6a48 },
+    // --- 4 presets EZ MÁS (nov-2026): palmeras bien definidas por especie y
+    // olivo. Datilera: tronco fino y esbelto con corona de hojas caídas;
+    // canaria (Phoenix canariensis): tronco más grueso y corona densa y
+    // esférica; washingtonia: la más alta, tronco columnar y hojas en abanico
+    // más abiertas; olivo: tronco corto con copa baja, plateada y redondeada
+    // (siempre verde). Todos con gnarliness/twist/force a cero, como el resto.
+    palm_datilera: { seed: 45121, type: 'evergreen', levels: 0, angle: [96, 0, 0], children: [0, 0, 0], length: [42, 1, 1, 1], radius: [0.62, 0.4, 0.7, 0.7], sections: [12, 1, 1, 1], segments: [8, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.5, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 74, leafCount: 28, leafStart: 0.92, leafSize: 5.4, leafVariance: 0.2, leafColor: 0x5c8e45, barkColor: 0x8a6a48 },
+     palm_canaria: { seed: 45233, type: 'evergreen', levels: 0, angle: [88, 0, 0], children: [0, 0, 0], length: [40, 1, 1, 1], radius: [1.05, 0.4, 0.7, 0.7], sections: [12, 1, 1, 1], segments: [9, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.45, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 58, leafCount: 34, leafStart: 0.86, leafSize: 4.8, leafVariance: 0.18, leafColor: 0x4f7a3d, barkColor: 0x9a7a56 },
+     palm_washingtonia: { seed: 45347, type: 'evergreen', levels: 0, angle: [100, 0, 0], children: [0, 0, 0], length: [50, 1, 1, 1], radius: [0.78, 0.4, 0.7, 0.7], sections: [13, 1, 1, 1], segments: [8, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.55, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 80, leafCount: 30, leafStart: 0.93, leafSize: 5.0, leafVariance: 0.22, leafColor: 0x679245, barkColor: 0x7a5c40 },
+     olivo: { seed: 45459, type: 'evergreen', levels: 2, angle: [42, 52, 0], children: [5, 4, 3], length: [18.5, 9.4, 1, 1], radius: [1.6, 0.95, 0.7, 0.7], sections: [8, 6, 1, 1], segments: [7, 5, 3, 3], start: [0, 0.32, 0, 0], taper: [0.62, 0.55, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 34, leafCount: 16, leafStart: 0.28, leafSize: 1.35, leafVariance: 0.55, leafColor: 0x8aa07a, barkColor: 0x8a7a5c },
+palm_small: { seed: 45109, type: 'evergreen', levels: 0, angle: [98, 0, 0], children: [0, 0, 0], length: [24, 1, 1, 1], radius: [0.62, 0.4, 0.7, 0.7], sections: [8, 1, 1, 1], segments: [7, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.5, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 62, leafCount: 20, leafStart: 0.88, leafSize: 3.6, leafVariance: 0.25, leafColor: 0x5c8e45, barkColor: 0x8a6a48 },
   };
   // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
   // REUTILIZAN los presets de arriba según su silueta real (nada de presets
@@ -112,7 +124,14 @@
     magnolia: { preset: 'oak', evergreen: true },             // Magnolia grandiflora, perenne de copa densa
     catalpa: { preset: 'oak_large', evergreen: false },       // Catalpa bignonioides, copa ancha
     casuarina: { preset: 'pine', evergreen: true },           // Casuarina equisetifolia, porte de cola de caballo
-    palmera: { preset: 'palm', evergreen: true },             // Phoenix/Washingtonia: tronco recto + corona
+    palmera: { preset: 'palm', evergreen: true },             // resto de palmáceos sin nombre exacto
+    // --- 4 especies NUEVAS (nov-2026): palmeras bien diferenciadas entre sí
+    // (datilera, canaria y washingtonia, que antes iban todas al preset genérico
+    // 'palm') y el olivo, abundantísimo en Sevilla y sin modelo EZ hasta hoy.
+    palmera_datilera: { preset: 'palm_datilera', evergreen: true },      // Phoenix dactylifera: esbelta, hojas caídas
+    palmera_canaria: { preset: 'palm_canaria', evergreen: true },        // Phoenix canariensis: tronco grueso, corona esférica
+    palmera_washingtonia: { preset: 'palm_washingtonia', evergreen: true }, // Washingtonia: la más alta, hojas en abanico
+    olivo: { preset: 'olivo', evergreen: true },                         // Olea europaea: copa baja plateada
   };
   // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
   // REUTILIZAN los presets de arriba según su silueta real (nada de presets

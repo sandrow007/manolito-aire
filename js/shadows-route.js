@@ -11072,12 +11072,53 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       forma: 'palmera',
       color: '#7a9b4a',
     },
+    // --- 4 palmeras/porte palmáceo con modelo EZ propio (nov-2026): se declaran
+    // ANTES de 'palmera' para que sus keywords específicas ganen a las genéricas
+    // ('palma', 'palm', 'phoenix'...) de esa entrada.
+    palmera_datilera: {
+      keywords: ['dactylifera', 'datilera', 'dátil', 'date palm'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 2.2,
+      forma: 'palmera',
+      color: '#7a9b4a',
+    },
+    palmera_canaria: {
+      keywords: ['canariensis', 'canary', 'palmera canaria'],
+      alturaMediaM: 13,
+      radioCopaMedioM: 2.6,
+      forma: 'palmera',
+      color: '#7a9b4a',
+    },
     pino: {
       keywords: ['pinus', 'pino', 'pine', 'cedrus', 'cedro', 'cedar', 'abeto', 'fir'],
       alturaMediaM: 14,
       radioCopaMedioM: 3.0,
       forma: 'conica',
       color: '#2d5a3d',
+    },
+    // --- 4 porte palmáceo/olivo con modelo EZ propio (nov-2026): después de
+    // 'pino' a propósito, para que "Pinus canariensis" siga siendo pino y no
+    // palmera canaria por la keyword 'canariensis'.
+    palmera_datilera: {
+      keywords: ['dactylifera', 'datilera', 'dátil', 'date palm'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 2.2,
+      forma: 'palmera',
+      color: '#7a9b4a',
+    },
+    palmera_canaria: {
+      keywords: ['canariensis', 'canary', 'palmera canaria'],
+      alturaMediaM: 13,
+      radioCopaMedioM: 2.6,
+      forma: 'palmera',
+      color: '#7a9b4a',
+    },
+    palmera_washingtonia: {
+      keywords: ['washingtonia', 'palmera de california', 'abanico'],
+      alturaMediaM: 14,
+      radioCopaMedioM: 2.4,
+      forma: 'palmera',
+      color: '#7a9b4a',
     },
     encina_roble: {
       keywords: ['quercus', 'encina', 'roble', 'oak', 'alcornoque', 'cork oak', 'quejigo'],

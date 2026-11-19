@@ -47,6 +47,10 @@ export const NIVELES = [
   { id: 'prevencion', duracion: 45, objetivo: 20, spawnMs: 580, caidaMs: 1800, probTema: 0.26, temaPuntos: 15, correcta: 2 }
 ];
 
+// El corpus ciudadano tiene opciones reordenadas en algunas preguntas;
+// índices de respuesta correcta por nivel (índice base cero).
+const CORRECTAS_CIUDADANO = [1, 1, 1, 1, 2, 2];
+
 /* ---------------- textos del juego, los 6 idiomas ----------------
    Cada bloque lleva la interfaz, la intro, las lecciones, las
    preguntas con su feedback y la pantalla final. Si falta una clave
@@ -2339,7 +2343,10 @@ export function iniciarJuegoManolit(contenedor, opciones = {}) {
       b.addEventListener('click', () => {
         if (estado.respondida) return;
         estado.respondida = true;
-        estado.fbBien = i === nv.correcta;
+        const respuestaCorrecta = estado.modo === 'ciudadano'
+          ? CORRECTAS_CIUDADANO[estado.nivel]
+          : nv.correcta;
+        estado.fbBien = i === respuestaCorrecta;
         for (const x of ops.querySelectorAll('button')) x.disabled = true;
         const fbTxt = estado.fbBien ? nt.fbOk : nt.fbNo;
         const fb = nodo('p', 'jm-fb ' + (estado.fbBien ? 'jm-bien' : 'jm-casi'), fbTxt);

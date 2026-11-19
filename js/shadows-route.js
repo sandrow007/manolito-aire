@@ -11073,7 +11073,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       color: '#7a9b4a',
     },
     pino: {
-      keywords: ['pinus', 'pino', 'pine', 'cedrus', 'cedro', 'cedar', 'ciprés', 'cypress', 'cupressus', 'abeto', 'fir'],
+      keywords: ['pinus', 'pino', 'pine', 'cedrus', 'cedro', 'cedar', 'abeto', 'fir'],
       alturaMediaM: 14,
       radioCopaMedioM: 3.0,
       forma: 'conica',
@@ -11205,6 +11205,102 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       forma: 'oval_alargada',
       color: '#7cb342',
     },
+    // --- 4 especies NUEVAS (nov-2026): las más abundantes del inventario
+    // oficial que aún no tenían tipo propio (iban a 'generico' y por eso no
+    // salían en EZ). Solo entradas nuevas: no se toca nada existente.
+    almez: {
+      keywords: ['celtis', 'almez', 'latonero', 'hackberry', 'nettle tree'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_redondeada',
+      color: '#5a9440',
+    },
+    brachychiton: {
+      keywords: ['brachychiton', 'braquiquito', 'belote', 'arbol botella'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#679d3e',
+    },
+    robinia: {
+      keywords: ['robinia', 'falsa acacia', 'black locust'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#619b46',
+    },
+    algarrobo: {
+      keywords: ['ceratonia', 'algarrobo', 'algarroba', 'carob', 'st john\'s bread'],
+      alturaMediaM: 9,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_irregular',
+      color: '#4e8a38',
+    },
+    fresno: {
+      keywords: ['fraxinus', 'fresno', 'ash tree', 'fraxino'],
+      alturaMediaM: 14,
+      radioCopaMedioM: 4.0,
+      forma: 'oval_alargada',
+      color: '#5f9443',
+    },
+    cipres: {
+      keywords: ['cupressus', 'cipres', 'ciprés', 'cypress', 'ciprés mediterráneo'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 1.8,
+      forma: 'conica', // forma YA SOPORTADA por las copas planas/sombras
+      color: '#3d6b34',
+    },
+    sophora: {
+      keywords: ['styphnolobium', 'sophora japonica', 'sophora', 'acacia de japón', 'arbol de las pagodas', 'pagoda tree', 'koelreuteria'],
+      alturaMediaM: 11,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#639b45',
+    },
+    // --- 6 especies del parque de María Luisa (nov-2026). Solo entradas
+    // nuevas: nada existente cambia.
+    gleditsia: {
+      keywords: ['gleditsia', 'acacia de tres espinas', 'honey locust', 'triacanthos'],
+      alturaMediaM: 11,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_redondeada',
+      color: '#63a048',
+    },
+    ligustrum: {
+      keywords: ['ligustrum', 'ligustro', 'privet', 'aligustre'],
+      alturaMediaM: 7,
+      radioCopaMedioM: 3.0,
+      forma: 'redondeada',
+      color: '#4f8f3a',
+    },
+    cercis: {
+      keywords: ['cercis', 'arbol de judas', 'árbol de judas', 'judas tree', 'redbud', 'siliquastrum'],
+      alturaMediaM: 6,
+      radioCopaMedioM: 3.5,
+      forma: 'ancha_redondeada',
+      color: '#5f9a4a',
+    },
+    magnolia: {
+      keywords: ['magnolia', 'magnolio'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#3f7a38',
+    },
+    catalpa: {
+      keywords: ['catalpa'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 5.0,
+      forma: 'ancha_redondeada',
+      color: '#5d9a44',
+    },
+    casuarina: {
+      keywords: ['casuarina', 'pino australiano', 'beefwood'],
+      alturaMediaM: 16,
+      radioCopaMedioM: 3.5,
+      forma: 'oval_alargada',
+      color: '#487a3c',
+    },
     generico: {
       alturaMediaM: CONFIG.alturaEstimadaSinDatoM,
       radioCopaMedioM: CONFIG.radioCopaPorDefectoM,
@@ -11271,6 +11367,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         altura = clasificacion.alturaMediaM;
       }
     }
+
+    // Tope sanitario GLOBAL (nov-2026): el inventario oficial trae alturas
+    // imposibles (46 ejemplares por encima de 35 m: un Brachychiton de 810 m,
+    // naranjos de 666 m...) y OSM a veces trae la altura en cm (height=1800).
+    // Un capatope evita torres-árbol gigantes en cualquier ciudad.
+    altura = Math.min(altura, 40);
 
     if (diametroCopa == null) {
       const circ = leerNumero(tags, ['circumference', 'circumference_dbh', 'dbh']);

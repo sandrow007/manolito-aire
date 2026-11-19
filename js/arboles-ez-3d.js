@@ -33,21 +33,58 @@
 
   // Tipos con modelo EZ (los MISMOS nombres que TIPOS_ARBOL de shadows-route.js).
   var EZ_TIPOS = ['pino', 'encina_roble', 'platanero', 'olmo', 'chopo',
-    'eucalipto', 'tipuana', 'jacaranda', 'morera', 'ficus', 'paraiso', 'ginkgo'];
+    'eucalipto', 'tipuana', 'jacaranda', 'morera', 'ficus', 'paraiso', 'ginkgo',
+    'almez', 'brachychiton', 'robinia', 'fresno', 'cipres', 'sophora',
+    'gleditsia', 'ligustrum', 'cercis', 'magnolia', 'catalpa', 'casuarina',
+    'palmera'];
 
   // Alturas de referencia (las de TIPOS_ARBOL).
   var EZ_ALTURAS = {
     pino: 14, eucalipto: 18, ginkgo: 12, encina_roble: 10, platanero: 16,
     olmo: 12, chopo: 15, tipuana: 12, jacaranda: 10, morera: 8, ficus: 8, paraiso: 10,
+    almez: 12, brachychiton: 12, robinia: 12, fresno: 14,
+    cipres: 12, sophora: 11,
+    gleditsia: 11, ligustrum: 7, cercis: 6, magnolia: 10, catalpa: 10, casuarina: 16,
+    palmera: 12,
   };
 
   // Presets REALES de ez-tree y adaptaciones locales de los cuatro perfiles.
+  // NOTA (nov-2026, ¡NUNCA MÁS ÁRBOLES ARQUEADOS!): gnarliness/twist/force a
+  // cero en TODOS los presets. La torcedura del repo produce troncos en
+  // serpiente y ramas en codo que en ciudad parecen árboles rotos; los
+  // ejemplares urbanos reales son rectos y con la copa arriba.
   var EZ_PRESETS = {
-    oak: { seed: 35729, type: 'deciduous', levels: 3, angle: [54, 58, 32], children: [6, 4, 3], length: [37.24, 11.08, 12.39, 7.16], radius: [1.41, 0.90, 0.69, 1.19], sections: [8, 6, 3, 1], segments: [7, 5, 3, 3], start: [0, 0.49, 0.06, 0.12], taper: [0.73, 0.42, 0.69, 0.75], gnarliness: [0, -0.1, -0.15, 0.09], twist: [-0.23, 0.42, 0, 0], force: 0.02, leafAngle: 42, leafCount: 18, leafStart: 0.16, leafSize: 2.5, leafVariance: 0.7, leafColor: 0x5c8e45, barkColor: 0xffd791 },
-    ash: { seed: 36330, type: 'deciduous', levels: 3, angle: [48, 75, 60], children: [7, 4, 3], length: [43.47, 27.14, 9.51, 4.6], radius: [2, 0.63, 0.76, 0.7], sections: [12, 8, 6, 4], segments: [12, 6, 4, 3], start: [0, 0.23, 0.33, 0], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0.03, 0.25, 0.2, 0.09], twist: [0.09, -0.07, 0, 0], force: 0.01, leafAngle: 55, leafCount: 16, leafStart: 0, leafSize: 2.67, leafVariance: 0.72, leafColor: 0x5c8e45, barkColor: 0xffd791 },
-    aspen: { seed: 18020, type: 'deciduous', levels: 2, angle: [75, 32, 7], children: [10, 3, 3], length: [50, 6.07, 11.19, 1], radius: [0.72, 0.41, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.59, 0.35, 0], taper: [0.37, 0.13, 0.7, 0.7], gnarliness: [0.05, 0.12, 0.12, 0.02], twist: [0, 0, 0, 0], force: 0.0148, leafAngle: 30, leafCount: 11, leafStart: 0.124, leafSize: 2.5, leafVariance: 0.7, leafColor: 0xa6c882, barkColor: 0xffd791 },
-    pine: { seed: 13977, type: 'evergreen', levels: 1, angle: [110, 16, 60], children: [82, 3, 5], length: [50, 23.87, 14.08, 1], radius: [1.05, 0.36, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.27, 0.14, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0.05, 0.08, 0, 0], twist: [0, 0, 0, 0], force: -0.003, leafAngle: 39, leafCount: 30, leafStart: 0.09, leafSize: 1.435, leafVariance: 0.201, leafColor: 0x4f7a3d, barkColor: 0xffffff },
+    oak: { seed: 35729, type: 'deciduous', levels: 3, angle: [54, 58, 32], children: [6, 4, 3], length: [37.24, 11.08, 12.39, 7.16], radius: [1.41, 0.90, 0.69, 1.19], sections: [8, 6, 3, 1], segments: [7, 5, 3, 3], start: [0, 0.49, 0.06, 0.12], taper: [0.73, 0.42, 0.69, 0.75], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 42, leafCount: 18, leafStart: 0.16, leafSize: 2.5, leafVariance: 0.7, leafColor: 0x5c8e45, barkColor: 0xffd791 },
+    ash: { seed: 36330, type: 'deciduous', levels: 3, angle: [48, 75, 60], children: [7, 4, 3], length: [43.47, 27.14, 9.51, 4.6], radius: [2, 0.63, 0.76, 0.7], sections: [12, 8, 6, 4], segments: [12, 6, 4, 3], start: [0, 0.23, 0.33, 0], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 55, leafCount: 16, leafStart: 0, leafSize: 2.67, leafVariance: 0.72, leafColor: 0x5c8e45, barkColor: 0xffd791 },
+    aspen: { seed: 18020, type: 'deciduous', levels: 2, angle: [75, 32, 7], children: [10, 3, 3], length: [50, 6.07, 11.19, 1], radius: [0.72, 0.41, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.59, 0.35, 0], taper: [0.37, 0.13, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 30, leafCount: 11, leafStart: 0.124, leafSize: 2.5, leafVariance: 0.7, leafColor: 0xa6c882, barkColor: 0xffd791 },
+    pine: { seed: 13977, type: 'evergreen', levels: 1, angle: [110, 16, 60], children: [82, 3, 5], length: [50, 23.87, 14.08, 1], radius: [1.05, 0.36, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.27, 0.14, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 39, leafCount: 30, leafStart: 0.09, leafSize: 1.435, leafVariance: 0.201, leafColor: 0x4f7a3d, barkColor: 0xffffff },
+
+    // --- 4 presets EZ-TREE NUEVOS (nov-2026), tomados tal cual del repo
+    // dgreenheck/ez-tree (MIT) para las 4 especies más abundantes de Sevilla
+    // que aún no tenían modelo EZ: almez, brachychiton, robinia y fresno.
+    oak_large: { seed: 23399, type: 'deciduous', levels: 3, angle: [54, 43, 32], children: [9, 5, 3], length: [47.7, 29.39, 17.62, 7.16], radius: [3, 0.69, 0.69, 1.19], sections: [16, 9, 8, 3], segments: [12, 5, 3, 3], start: [0, 0.35, 0.1, 0], taper: [0.73, 0.42, 0.69, 0.75], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 36, leafCount: 10, leafStart: 0.45, leafSize: 2.2, leafVariance: 0.7, leafColor: 0xd5cdad, barkColor: 0xffd791 },
+    aspen_large: { seed: 30631, type: 'deciduous', levels: 2, angle: [47, 63, 7], children: [10, 6, 3], length: [69.6, 18.56, 11.19, 1], radius: [1.11, 0.58, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.62, 0.05, 0], taper: [0.7, 0.13, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 36, leafCount: 20, leafStart: 0.4, leafSize: 2.0, leafVariance: 0.7, leafColor: 0xfd2f26, barkColor: 0xffffff },
+    ash_large: { seed: 29919, type: 'deciduous', levels: 3, angle: [39, 39, 51], children: [10, 4, 3], length: [45, 29.42, 15.3, 4.6], radius: [3.03, 0.53, 0.79, 1.11], sections: [12, 8, 6, 4], segments: [8, 6, 4, 3], start: [0, 0.32, 0.34, 0], taper: [0.7, 0.62, 0.76, 0], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 30, leafCount: 10, leafStart: 0.4, leafSize: 2.2, leafVariance: 0.72, leafColor: 0xffffff, barkColor: 0xce9a5e },
+    pine_large: { seed: 44166, type: 'evergreen', levels: 1, angle: [129, 16, 60], children: [100, 3, 5], length: [65.25, 34.85, 27.25, 1], radius: [1.27, 0.37, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.293, 0.14, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 17, leafCount: 18, leafStart: 0.25, leafSize: 1.8, leafVariance: 0.201, leafColor: 0xffffff, barkColor: 0xffffff },
+
+    // --- 2 presets EZ-TREE MÁS (nov-2026), también del repo dgreenheck/ez-tree:
+    // perfil estrecho/compacto para ciprés (columna mediterránea) y copa
+    // pequeña abierta para sophora (acacia de Japón, Sophora/Styphnolobium
+    // japonicum: 7.382 ejemplares sumando ambos nombres del inventario).
+    // Alturas reales urbanas.
+    pine_small: { seed: 11744, type: 'evergreen', levels: 1, angle: [117, 60, 60], children: [60, 5, 3], length: [39.55, 12.12, 10, 1], radius: [0.55, 0.41, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.16, 0.3, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 10, leafCount: 21, leafStart: 0, leafSize: 0.965, leafVariance: 0.7, leafColor: 0x3d5c33, barkColor: 0x8a7a5c },
+    oak_small: { seed: 30895, type: 'deciduous', levels: 3, angle: [54, 58, 32], children: [4, 2, 3], length: [28.08, 4.55, 9.78, 7.16], radius: [1, 1.02, 0.69, 1.19], sections: [16, 9, 8, 1], segments: [7, 5, 3, 3], start: [0, 0.49, 0.06, 0.12], taper: [0.73, 0.42, 0.69, 0.75], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 42, leafCount: 14, leafStart: 0.16, leafSize: 1.38, leafVariance: 0.7, leafColor: 0x5c8e45, barkColor: 0xffd791 },
+
+    // --- PALMERA EZ (nov-2026): tronco recto único (levels=1, sin hijos
+    // laterales hasta arriba) y corona de hojas radiales descendentes en la
+    // punta. Para palmera/datilera/washingtonia, abundantes en Sevilla y
+    // en toda ciudad cálida. Estilo del repo pero adaptado a porte real.
+    palm: { seed: 45107, type: 'evergreen', levels: 0, angle: [104, 0, 0], children: [0, 0, 0], length: [38, 1, 1, 1], radius: [0.85, 0.4, 0.7, 0.7], sections: [10, 1, 1, 1], segments: [8, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.55, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 68, leafCount: 26, leafStart: 0.9, leafSize: 5.2, leafVariance: 0.25, leafColor: 0x4f7a3d, barkColor: 0x9a7a56 },
+    palm_small: { seed: 45109, type: 'evergreen', levels: 0, angle: [98, 0, 0], children: [0, 0, 0], length: [24, 1, 1, 1], radius: [0.62, 0.4, 0.7, 0.7], sections: [8, 1, 1, 1], segments: [7, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.5, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 62, leafCount: 20, leafStart: 0.88, leafSize: 3.6, leafVariance: 0.25, leafColor: 0x5c8e45, barkColor: 0x8a6a48 },
   };
+  // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
+  // REUTILIZAN los presets de arriba según su silueta real (nada de presets
+  // nuevos): el coste en KB es solo la entrada de 1 línea por especie.
   var EZ_ESPECIES = {
     pino: { preset: 'pine', evergreen: true }, eucalipto: { preset: 'aspen', evergreen: true },
     ginkgo: { preset: 'aspen', evergreen: false }, encina_roble: { preset: 'oak', evergreen: true },
@@ -55,7 +92,31 @@
     chopo: { preset: 'aspen', evergreen: false }, tipuana: { preset: 'ash', evergreen: false },
     jacaranda: { preset: 'ash', evergreen: false }, morera: { preset: 'oak', evergreen: false },
     ficus: { preset: 'oak', evergreen: true }, paraiso: { preset: 'ash', evergreen: false },
+    // --- 4 especies NUEVAS de Sevilla (nov-2026), una por estación dominante
+    // del arbolado urbano. Almez y brachychiton casi siempre verdes en la
+    // calle (perennes), robinia y fresno caducos con ciclo estacional:
+    almez: { preset: 'oak_large', evergreen: true },          // Celtis australis, 12.689 ejemplares
+    brachychiton: { preset: 'aspen_large', evergreen: true }, // Brachychiton populneus, 7.822
+    robinia: { preset: 'ash_large', evergreen: false },       // Robinia pseudoacacia, 3.141
+    fresno: { preset: 'pine_large', evergreen: false },       // Fraxinus angustifolia, 1.568
+    // --- 2 especies MÁS (nov-2026): siguientes en abundancia sin modelo propio.
+    // Ciprés perenne (silueta de columna, siempre verde) y sophora caduco
+    // (flor amarilla a final de verano, copa abierta). 3.294 y 3.291 ejemplares.
+    cipres: { preset: 'pine_small', evergreen: true },        // Cupressus sempervirens, 3.294
+    sophora: { preset: 'oak_small', evergreen: false },       // Sophora/Styphnolobium japonicum, 7.382
+    // --- 6 especies del parque de María Luisa (nov-2026), reutilizando los
+    // presets del repo por silueta parecida (cero peso nuevo en el bundle):
+    gleditsia: { preset: 'ash', evergreen: false },           // Gleditsia triacanthos, 1.600 (acacia de 3 espinas)
+    ligustrum: { preset: 'oak_small', evergreen: true },      // Ligustrum japonicum/lucidum, 7.400
+    cercis: { preset: 'oak_small', evergreen: false },        // Cercis siliquastrum, 1.395 (árbol de Judas)
+    magnolia: { preset: 'oak', evergreen: true },             // Magnolia grandiflora, perenne de copa densa
+    catalpa: { preset: 'oak_large', evergreen: false },       // Catalpa bignonioides, copa ancha
+    casuarina: { preset: 'pine', evergreen: true },           // Casuarina equisetifolia, porte de cola de caballo
+    palmera: { preset: 'palm', evergreen: true },             // Phoenix/Washingtonia: tronco recto + corona
   };
+  // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
+  // REUTILIZAN los presets de arriba según su silueta real (nada de presets
+  // nuevos): el coste en KB es solo la entrada de 1 línea por especie.
 
 
 
@@ -279,6 +340,19 @@
         var altReal = Math.max(2, geoMadera.boundingBox.max.y);
         var geoHojas = fusionar(ramaje.hojas);
         geoHojas.computeBoundingBox(); geoHojas.computeBoundingSphere();
+        // NORMALIZACIÓN (nov-2026, FIX gigantes de verdad): los presets del
+        // repo nacen en unidades arbitrarias (oak_large ~95, pine ~50). Antes
+        // se escalaban en vivo con deseada/altReal, pero el suelo de 0.4 del
+        // clamp OBLIGABA a inflar los modelos altos: un fresno de 14 m con
+        // modelo de 55 unidades se dibujaba a 0.4x55 = 22 m. Ahora el modelo
+        // se reescala UNA vez a su altura de referencia (EZ_ALTURAS) y la
+        // escala en vivo queda ~1.0 con clamps estrechos: tamaño siempre
+        // fiel al dato (altura real del inventario/OSM) sin sorpresas.
+        var fNorm = (EZ_ALTURAS[tipo] || 10) / altReal;
+        geoMadera.scale(fNorm, fNorm, fNorm);
+        geoHojas.scale(fNorm, fNorm, fNorm);
+        geoMadera.computeBoundingBox();
+        altReal = EZ_ALTURAS[tipo] || 10;
         var meshT = new THREE.InstancedMesh(geoMadera, barkMat, MAX_ARBOL);
         meshT.count = 0; meshT.frustumCulled = false;
         scene.add(meshT);
@@ -411,7 +485,10 @@
           var mc = maplibregl.MercatorCoordinate.fromLngLat({ lng: ar.lon, lat: ar.lat }, 0);
           var s = metrosAMercator(ar.lat);
           var alturaModeloDeseada = ar.altura || EZ_ALTURAS[tipo];
-          var sArbol = Math.max(0.3, Math.min(2.5, alturaModeloDeseada / vf.alturaModelo));
+          // Modelos YA normalizados a EZ_ALTURAS: la escala solo ajusta al
+          // dato real del árbol (altura medida), con margen estrecho.
+          var deseada = Math.min(alturaModeloDeseada, (EZ_ALTURAS[tipo] || 10) * 1.25);
+          var sArbol = Math.max(0.5, Math.min(1.25, deseada / vf.alturaModelo));
           escV.set(s * sArbol, s * sArbol, s * sArbol);
           m4.compose(TMP_V3.set(mc.x - REF.x, mc.y - REF.y, mc.z - REF.z), QUAT_UP, escV);
           vf.meshTroncos.setMatrixAt(i2, m4);

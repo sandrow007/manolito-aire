@@ -289,7 +289,38 @@
 // gana wind_speed_10m y shortwave_radiation en /prevision (aditivo).
 // Cambian worker.js, js/shadows-route.js, js/i18n.js (18 claves nuevas en
 // 7 idiomas), css/style.css, index.html y los dos js nuevos.
-const VERSION = '2026-11-19-a-arboles-coherentes';
+const VERSION = '2026-11-19-f-palmeras-rectas';
+// 2026-11-19-f: (1) ¡NUNCA MÁS ÁRBOLES ARQUEADOS!: gnarliness/twist/force a
+// cero en TODOS los presets EZ (troncos y ramas rectos, copa arriba).
+// (2) Palmera EZ nueva (palmera/datilera/washingtonia): tronco recto único
+// y corona de 26 hojas radiales en la punta; 12 m normalizados. Abunda en
+// Sevilla y en toda ciudad cálida de OSM.
+// Cambian js/arboles-ez-3d.js, js/shadows-route.js y sw.js.
+// 2026-11-19-e: FIX DEFINITIVO de gigantes: cada modelo EZ se NORMALIZA a su
+// altura de referencia (EZ_ALTURAS) al construirlo; antes el suelo 0.4 del
+// clamp de escala OBLIGABA a inflar los presets altos del repo (oak_large ~95
+// unidades) y salían árboles de 20-30 m en la Plaza de España. Ahora la
+// escala en vivo es ~1.0 y el tamaño lo manda el dato real (altura medida).
+// Cambian js/arboles-ez-3d.js y sw.js.
+// 2026-11-19-d: FIX de gigantes e inclinaciones EZ: presets _large con hojas
+// que nacen a media rama (leafStart 0.4+) y de tamaño normal (2.0-2.2 en vez
+// de 4.5), fuerza lateral reducida (force 0.02->0.008) y escala del motor
+// acotada a 1.15x hacia arriba con altura deseada techo por especie. Adiós
+// torres y árboles arqueados de María Luisa. Cambian js/arboles-ez-3d.js y sw.js.
+// 2026-11-19-c: parque de María Luisa: 6 especies EZ más (gleditsia,
+// ligustro, cercis, magnolia, catalpa, casuarina), reutilizando presets del
+// repo (cero peso). FIX del gigantismo: tope de escala del motor EZ de 2.5x
+// a 1.8x y capar alturas imposibles del inventario (810 m...) a 40 m.
+// Cambian js/shadows-route.js, js/arboles-ez-3d.js y sw.js (purga de caché).
+// 2026-11-19-b: 10 especies EZ completas (círculo cerrado): se suman almez,
+// brachychiton, robinia, fresno, ciprés y sophora/acacia de Japón a los
+// presets existentes. Keywords nuevas en TIPOS_ARBOL (shadows-route.js) para
+// que la clasificación funcione GLOBAL con cualquier árbol de OSM etiquetado
+// (Madrid, Tokio, donde sea), no solo con el inventario de Sevilla.
+// Arreglos: 'ciprés/cypress/cupressus' quitadas de 'pino' (iban antes y el
+// ciprés nunca llegaba a su entrada) y forma columnar_estrecha (no existía
+// en ninguna tabla) pasa a conica, ya soportada en todo el pipeline.
+// Cambian js/shadows-route.js, js/arboles-ez-3d.js y sw.js (purga de caché).
 // 2026-11-19-a: árboles visibles sin copias OSM ni copas planas duplicadas;
 // separación del 3D conforme al tamaño de copa y carga versionada de módulos.
 // Cambian index.html, js/shadows-route.js, js/arboles-3d.js y js/arboles-ez-3d.js.

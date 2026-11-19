@@ -2753,7 +2753,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=arboles-coherentes-20261119-a'))
+        .then(() => cargarScript('js/shadows-route.js?v=arboles-palmeras-rectas-20261119-f'))
         .then(() => {
           // Superficie continua de calidad del aire: módulo aditivo que se
           // engancha a la fuente 'aire-es' cuando shadows-route la crea.
@@ -2780,12 +2780,12 @@
           // fusiona con los árboles de OSM ganando el oficial si chocan.
           // Su fallo no detiene arboles-3d ni el resto de módulos.
           cargarScript('js/arboles-sevilla.js?v=arboles-sevilla-20261118-worker-a').catch((err) => console.error('No se ha podido cargar el inventario oficial de árboles:', err));
-          return cargarScript('js/arboles-3d.js?v=arboles-coherentes-20261119-a');
+          return cargarScript('js/arboles-3d.js?v=arboles-palmeras-rectas-20261119-f');
         })
         .then(() =>
           // EZ-TREE (nov-2026, ADITIVO): coníferas/frondosas procedurales.
           // Módulo aparte: si falla, SOLO él falla y la cadena sigue.
-          cargarScript('js/arboles-ez-3d.js?v=arboles-coherentes-20261119-a')
+          cargarScript('js/arboles-ez-3d.js?v=arboles-palmeras-rectas-20261119-f')
             .catch((err) => console.error('Árboles EZ-TREE no cargados (el resto sigue igual):', err))
         )
         .then(() => cargarScript('js/irradiacion-solar.js'))

@@ -11,8 +11,15 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Manolit∞ Aire. Calidad del aire y sombra solar en tiempo real">
 <meta property="og:description" content="Aire en vivo, rutas con sombra 3D e histórico de irradiación solar hora a hora con datos reales de la NASA. Gratis y sin registro. Sin publicidad: telemetría real de 30 días: 0,38 MB y ~2 ml de agua por visita, mientras la publicidad programática gasta ~375 litros cada segundo.">
-<meta property="og:image" content="https://manolitoaire.com/compartir.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://manolitoaire.com/og-image.png">
+<meta property="og:image:secure_url" content="https://manolitoaire.com/og-image.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Manolit∞ Aire: rutas por la sombra 3D, edificios, fuentes de agua y árboles">
+<meta itemprop="image" content="https://manolitoaire.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://manolitoaire.com/og-image.png">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",

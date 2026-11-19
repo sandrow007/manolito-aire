@@ -289,7 +289,14 @@
 // gana wind_speed_10m y shortwave_radiation en /prevision (aditivo).
 // Cambian worker.js, js/shadows-route.js, js/i18n.js (18 claves nuevas en
 // 7 idiomas), css/style.css, index.html y los dos js nuevos.
-const VERSION = '2026-11-19-f-palmeras-rectas';
+const VERSION = '2026-11-19-g-og-image-social';
+// 2026-11-19-g: Corrección de vista previa en redes sociales (WhatsApp, Telegram,
+// Twitter/X, iMessage): sustitución de compartir.png (1080x1920 vertical, 671 KB,
+// rechazada por exceder los límites de WhatsApp y relación de aspecto) por
+// og-image.png (1200x630 horizontal 1.91:1 estándar, 52 KB con logo de Manolit∞,
+// edificios 3D y sol). Se añaden metadatos completos og:image:secure_url,
+// og:image:width, og:image:height, og:image:type, itemprop="image" y twitter:image
+// en index.html y todas las páginas del sitio.
 // 2026-11-19-f: (1) ¡NUNCA MÁS ÁRBOLES ARQUEADOS!: gnarliness/twist/force a
 // cero en TODOS los presets EZ (troncos y ramas rectos, copa arriba).
 // (2) Palmera EZ nueva (palmera/datilera/washingtonia): tronco recto único

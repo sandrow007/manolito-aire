@@ -35,12 +35,8 @@
   if (window.__manolitoArbolesSevilla) return;
   window.__manolitoArbolesSevilla = true;
 
-  // El GeoJSON vive comprimido (.gz) para poder desplegar en Cloudflare
-  // (límite de 25 MiB por asset). El worker lo sirve con Content-Encoding:
-  // gzip, así que el navegador lo descomprime de forma transparente.
-  // Fallback: si el worker no lo transforma, se descomprime aquí con
-  // DecompressionStream('gzip').
-  var GEOJSON_URL = 'data/arboles-inventario-sevilla.geojson.gz';
+  // El GeoJSON vive comprimido (.gz) para respetar el límite de assets de
+  // Cloudflare. Su lectura y el filtrado espacial se ejecutan en un Web Worker.
   // Bbox aproximado de Sevilla: fuera de aquí el inventario no existe y no
   // tiene sentido ni descargarlo ni mezclarlo (ahorra red en otras ciudades).
   var SEVILLA = { oeste: -6.12, este: -5.80, sur: 37.28, norte: 37.46 };
@@ -50,6 +46,9 @@
     cargado: false,
     cargando: null,   // promesa en curso
     features: [],     // árboles del inventario ya convertidos
+    worker: null,
+    consultas: new Map(),
+    siguienteConsulta: 1,
   };
 
   function enSevilla(map) {
@@ -60,20 +59,64 @@
     } catch (e) { return false; }
   }
 
-  // Rejilla espacial del inventario para descartes O(log 1) al pintar
+  // Rejilla espacial sobre el subconjunto de la vista (máximo 1400 árboles).
   var CELDA = 0.004;
   function celdaDe(lon, lat) { return Math.floor(lat / CELDA) + ',' + Math.floor(lon / CELDA); }
-  var rejilla = null;
+  var rejilla = new Map();
 
   function construirRejilla() {
     rejilla = new Map();
     for (var i = 0; i < estado.features.length; i++) {
       var a = estado.features[i];
-      var [lon, lat] = a.punto.geometry.coordinates;
-      var k = celdaDe(lon, lat);
+      var c = a.punto.geometry.coordinates;
+      var k = celdaDe(c[0], c[1]);
       if (!rejilla.has(k)) rejilla.set(k, []);
       rejilla.get(k).push(a);
     }
+  }
+
+  function obtenerWorker() {
+    if (estado.worker) return estado.worker;
+    if (typeof Worker !== 'function') return null;
+    try {
+      var worker = new Worker('js/arboles-sevilla-worker.js?v=20261118-a');
+      worker.onmessage = function (evento) {
+        var m = evento.data || {};
+        var pendiente = estado.consultas.get(m.id);
+        if (!pendiente) return;
+        estado.consultas.delete(m.id);
+        if (m.error) pendiente.reject(new Error(m.error));
+        else pendiente.resolve(m.features || []);
+      };
+      worker.onerror = function (evento) {
+        estado.consultas.forEach(function (p) { p.reject(new Error(evento.message || 'Error en worker')); });
+        estado.consultas.clear();
+        try { worker.terminate(); } catch (e) { /* sin acción */ }
+        estado.worker = null;
+      };
+      estado.worker = worker;
+      return worker;
+    } catch (e) { return null; }
+  }
+
+  function consultarWorker(caja) {
+    var worker = obtenerWorker();
+    if (!worker) return Promise.reject(new Error('Web Worker no disponible'));
+    var id = estado.siguienteConsulta++;
+    return new Promise(function (resolve, reject) {
+      estado.consultas.set(id, { resolve: resolve, reject: reject });
+      worker.postMessage({ tipo: 'consulta', id: id, caja: caja, centro: [(caja[0] + caja[2]) / 2, (caja[1] + caja[3]) / 2] });
+    });
+  }
+
+  function obtenerOficialesEnBounds(bounds) {
+    if (!estado.features.length) return [];
+    var oeste = bounds.getWest(), este = bounds.getEast();
+    var sur = bounds.getSouth(), norte = bounds.getNorth();
+    return estado.features.filter(function (a) {
+      var c = a.punto.geometry.coordinates;
+      return c[0] >= oeste && c[0] <= este && c[1] >= sur && c[1] <= norte;
+    });
   }
 
   // ¿Hay árbol del INVENTARIO a <7 m de este punto OSM? Devuelve el árbol
@@ -86,7 +129,7 @@
 
   // ¿Hay árbol del inventario a menos de DISTANCIA_DUP_M de (lon, lat)?
   function hayInventarioCerca(lon, lat) {
-    if (!rejilla) return false;
+    if (!rejilla || !estado.features.length) return null;
     var cy = Math.floor(lat / CELDA), cx = Math.floor(lon / CELDA);
     var cosLat = Math.cos(lat * Math.PI / 180);
     for (var dy = -1; dy <= 1; dy++) {
@@ -94,9 +137,9 @@
         var grupo = rejilla.get((cy + dy) + ',' + (cx + dx));
         if (!grupo) continue;
         for (var i = 0; i < grupo.length; i++) {
-          var [glon, glat] = grupo[i].punto.geometry.coordinates;
-          var dmx = (glon - lon) * cosLat * 111320;
-          var dmy = (glat - lat) * 110540;
+          var c = grupo[i].punto.geometry.coordinates;
+          var dmx = (c[0] - lon) * cosLat * 111320;
+          var dmy = (c[1] - lat) * 110540;
           if (dmx * dmx + dmy * dmy < DISTANCIA_DUP_M * DISTANCIA_DUP_M) return grupo[i];
         }
       }
@@ -146,59 +189,9 @@
     };
   }
 
-  function cargar() {
-    if (estado.cargado) return Promise.resolve(true);
-    if (estado.cargando) return estado.cargando;
-    estado.cargando = fetch(GEOJSON_URL)
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.arrayBuffer();
-      })
-      .then(function (buf) {
-        // A prueba de servidores: algunos sirven el .gz ya descomprimido
-        // (content-encoding tratado por el navegador o el CDN) y otros lo
-        // dan crudo aunque la cabecera diga gzip. No nos fiamos de
-        // cabeceras: miramos los bytes mágicos 1F 8B.
-        var bytes = new Uint8Array(buf);
-        if (bytes.length > 2 && bytes[0] === 0x1F && bytes[1] === 0x8B) {
-          return descomprimirGzip(buf);
-        }
-        return JSON.parse(new TextDecoder().decode(bytes));
-      })
-      .then(function (geo) { return aplicarGeojson(geo); })
-      .catch(function (e) {
-        console.warn('[arboles-sevilla] Inventario oficial no disponible:', e && e.message);
-        estado.cargando = null; // permite reintentar más tarde
-        return false;
-      });
-    return estado.cargando;
-  }
 
-  // Descompresión manual de gzip en navegadores con DecompressionStream
-  // (Chrome 80+, Safari 16.4+, Firefox 113+). Si no está, la capa oficial
-  // de árboles no carga y el resto de la app sigue igual que antes.
-  function descomprimirGzip(buf) {
-    if (typeof DecompressionStream !== 'function') {
-      throw new Error('Descompresión gzip no disponible');
-    }
-    var ds = new DecompressionStream('gzip');
-    return new Response(new Response(buf).body.pipeThrough(ds)).json();
-  }
 
-  function aplicarGeojson(geo) {
-    var turf = window.turf;
-    if (!turf || !geo || !Array.isArray(geo.features)) throw new Error('GeoJSON/turf no disponible');
-    var lista = [];
-    for (var i = 0; i < geo.features.length; i++) {
-      var a = convertirFeature(geo.features[i], turf);
-      if (a) lista.push(a);
-    }
-    estado.features = lista;
-    construirRejilla();
-    estado.cargado = true;
-    console.info('[arboles-sevilla] Inventario cargado:', lista.length, 'árboles oficiales');
-    return true;
-  }
+
 
   // ---------------------------------------------------------------------------
   // API pública. shadows-route.js y arboles-3d.js la consultan si existe.
@@ -206,14 +199,8 @@
 
   // Árboles del inventario en la vista (para quien quiera solo la capa oficial)
   window.manolitAireArbolesOficiales = function (bounds) {
-    if (!estado.cargado || !estado.features.length) return [];
-    if (!bounds) return estado.features;
-    if (!bounds.getWest) return estado.features;
-    return estado.features.filter(function (a) {
-      var [lon, lat] = a.punto.geometry.coordinates;
-      return lon >= bounds.getWest() && lon <= bounds.getEast() &&
-        lat >= bounds.getSouth() && lat <= bounds.getNorth();
-    });
+    if (!bounds || !bounds.getWest) return estado.features;
+    return obtenerOficialesEnBounds(bounds);
   };
 
   // Fusión SIN DUPLICADOS: oficial + osm. Un árbol OSM se descarta si hay
@@ -240,10 +227,48 @@
     return salida;
   };
 
-  // Descarga perezosa: la llama shadows-route.js al mover el mapa por Sevilla
+  // Descarga perezosa y por vista: el worker consulta solo el rectángulo
+  // visible; nunca se parsean ni se recorren los 188.000 árboles en el hilo UI.
   window.manolitAireArbolesOficialesCargarSiToca = function (map) {
     if (!map || !enSevilla(map)) return Promise.resolve(false);
-    return cargar();
+    var b = map.getBounds();
+    var caja = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+    // Al alejarse mucho, conserva un vecindario razonable alrededor del centro
+    // y limita la capa oficial a 1400 puntos para no saturar fuentes ni render.
+    if (Math.abs(caja[2] - caja[0]) > 0.12 || Math.abs(caja[3] - caja[1]) > 0.10) {
+      caja = [Math.max(caja[0], -6.12), Math.max(caja[1], 37.28), Math.min(caja[2], -5.80), Math.min(caja[3], 37.46)];
+      var mitadLon = (caja[0] + caja[2]) / 2, mitadLat = (caja[1] + caja[3]) / 2;
+      caja = [Math.max(caja[0], mitadLon - 0.06), Math.max(caja[1], mitadLat - 0.05), Math.min(caja[2], mitadLon + 0.06), Math.min(caja[3], mitadLat + 0.05)];
+    }
+    return consultarWorker(caja)
+      .then(function (features) {
+        var convertidos = [];
+        for (var i = 0; i < features.length; i++) {
+          var arbol = convertirFeature(features[i], window.turf);
+          if (arbol) convertidos.push(arbol);
+        }
+        estado.features = estado.features.filter(function (a) {
+          var c = a.punto.geometry.coordinates;
+          return c[0] < caja[0] || c[0] > caja[2] || c[1] < caja[1] || c[1] > caja[3];
+        }).concat(convertidos);
+        construirRejilla();
+        estado.cargado = true;
+        var centroConsulta = [(caja[0] + caja[2]) / 2, (caja[1] + caja[3]) / 2];
+        var dCentro = function (a) {
+          var c = a.punto.geometry.coordinates;
+          var dx = (c[0] - centroConsulta[0]) * Math.cos(centroConsulta[1] * Math.PI / 180);
+          var dy = c[1] - centroConsulta[1];
+          return dx * dx + dy * dy;
+        };
+        estado.features.sort(function (a, b) { return dCentro(a) - dCentro(b); });
+        if (estado.features.length > 1400) estado.features.length = 1400;
+        construirRejilla();
+        return true;
+      })
+      .catch(function (e) {
+        console.warn('[arboles-sevilla] Consulta del inventario no disponible:', e && e.message);
+        return false;
+      });
   };
 
   // Telemetría ligera por consola (window.manolitAireArbolesOficialesDebug)

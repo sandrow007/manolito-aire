@@ -2779,7 +2779,7 @@
           // Ayuntamiento). Carga en paralelo y aditiva: shadows-route.js lo
           // fusiona con los árboles de OSM ganando el oficial si chocan.
           // Su fallo no detiene arboles-3d ni el resto de módulos.
-          cargarScript('js/arboles-sevilla.js?v=arboles-sevilla-20261117-a').catch((err) => console.error('No se ha podido cargar el inventario oficial de árboles:', err));
+          cargarScript('js/arboles-sevilla.js?v=arboles-sevilla-20261118-worker-a').catch((err) => console.error('No se ha podido cargar el inventario oficial de árboles:', err));
           return cargarScript('js/arboles-3d.js');
         })
         .then(() =>

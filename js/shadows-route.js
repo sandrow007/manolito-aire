@@ -1822,9 +1822,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       // La capa de sombra de los árboles la crea arboles-globales.js; si ya
       // existe, se atenúa con el mismo factor (comunicación sin romper nada).
+      // Igual que en 'capa-sombras': donde sqi-calidad-sombra.js ya pintó
+      // sqi_color (calidad de sombra del árbol) ese color manda.
       if (map.getLayer('capa-sombra-arboles-globales')) {
         map.setPaintProperty('capa-sombra-arboles-globales', 'fill-opacity', 0.26 * f);
-        map.setPaintProperty('capa-sombra-arboles-globales', 'fill-color', colorSombra);
+        map.setPaintProperty('capa-sombra-arboles-globales', 'fill-color', ['coalesce', ['get', 'sqi_color'], colorSombra]);
       }
     } catch (e) { /* alguna capa aún no existe: se aplicará en la próxima pasada */ }
 

@@ -1079,6 +1079,134 @@
     } catch (e) { }
   }
 
+  /* ---------------------------------------------------------------------
+     Tinte SQI de las sombras de los ÁRBOLES (fuente
+     'arboles-globales-sombra', capa 'capa-sombra-arboles-globales').
+     Mismo mecanismo, mismo colorDeSqi y misma meteorología en caché que
+     los edificios: el árbol se adapta a los colores de calidad de sombra.
+     ADITIVO: si la fuente/capa no existe (módulo de árboles viejo o
+     apagado), no hace nada y no toca nada más.
+     --------------------------------------------------------------------- */
+  function asegurarPaintColorArboles() {
+    try {
+      if (!S.map.getLayer('capa-sombra-arboles-globales')) return;
+      S.map.setPaintProperty('capa-sombra-arboles-globales', 'fill-color',
+        ['coalesce', ['get', 'sqi_color'], '#0b1220']);
+      S.map.setPaintProperty('capa-sombra-arboles-globales', 'fill-color-transition',
+        { duration: 300, delay: 0 });
+    } catch (e) { }
+  }
+
+  function evaluarSombrasArboles() {
+    if (S.calculandoArboles || S.pintandoArboles) {
+      S.reintentosArboles = (S.reintentosArboles || 0) + 1;
+      if (S.reintentosArboles <= 25 && !S.timerRetryArboles) {
+        S.timerRetryArboles = setTimeout(function () {
+          S.timerRetryArboles = null;
+          evaluarSombrasArboles();
+        }, 900);
+      }
+      return;
+    }
+    S.reintentosArboles = 0;
+    var src;
+    try { src = S.map.getSource('arboles-globales-sombra'); } catch (e) { return; }
+    if (!src) return;
+    var datos;
+    try { datos = src._data || (src.serialize && src.serialize().data); } catch (e) { return; }
+    var feats = datos && datos.features ? datos.features : [];
+    if (!feats.length) { asegurarPaintColorArboles(); return; }
+    var fecha = fechaEfectiva();
+    var hKey = horaKeyDe(fecha);
+    var centro = S.map.getCenter();
+    var lat = centro.lat, lon = centro.lng;
+
+    // Firma: mismos criterios que los edificios (nº de polígonos + hora).
+    var sig = feats.length + '|' + hKey;
+    if (sig === S.sigGeometriaArboles) {
+      var completos = true;
+      for (var c = 0; c < feats.length; c++) {
+        if (!feats[c].properties || feats[c].properties.sqi_hora !== hKey) { completos = false; break; }
+      }
+      if (completos) return;
+    }
+
+    S.calculandoArboles = true;
+    meteoDeZona(lat, lon, hKey).then(function (meteo) {
+      if (!meteo) { S.calculandoArboles = false; return; }
+      var serie = serieHoraria(meteo);
+      var idx = indiceDeHora(serie, fecha);
+      var ghi = idx >= 0 ? serie.ghi[idx] : null;
+      var dhi = idx >= 0 ? serie.dhi[idx] : null;
+      var noche = !solVisible(fecha, lat, lon) || !isFinite(ghi) || ghi === null || ghi <= 10;
+
+      var copias = [];
+      for (var i = 0; i < feats.length; i++) {
+        var f = feats[i];
+        var copia = { type: 'Feature', geometry: f.geometry, properties: {} };
+        var props = f.properties || {};
+        for (var k in props) copia.properties[k] = props[k];
+        copias.push(copia);
+      }
+
+      var pendientes = copias.slice();
+      function tanda() {
+        var procesados = 0;
+        while (pendientes.length && procesados < LOTE) {
+          var f2 = pendientes.shift();
+          procesados++;
+          try {
+            if (noche) {
+              delete f2.properties.sqi_color;
+              delete f2.properties.sqi;
+              delete f2.properties.sqi_hora;
+              continue;
+            }
+            if (!isFinite(dhi) || dhi === null || !isFinite(ghi) || ghi <= 0) {
+              delete f2.properties.sqi_color;
+              delete f2.properties.sqi;
+              delete f2.properties.sqi_hora;
+              continue;
+            }
+            var centroide = turf.centroid(f2).geometry.coordinates;
+            var svf;
+            try { svf = svfDeCentroide(centroide, 'arb:' + centroide[0].toFixed(5) + ',' + centroide[1].toFixed(5)); } catch (e) { svf = 1; }
+            var factor = 1;
+            try { factor = factorLocalDe(centroide, svf, 'arb:' + centroide[0].toFixed(5) + ',' + centroide[1].toFixed(5)); } catch (e) { factor = 1; }
+            var kDif = coeficienteDifusaEn(centroide[1], centroide[0]);
+            var dhiEf = dhi * (1 + kDif * (factor - 1)) * svf;
+            var sqi = clamp(0, 100, Math.round(100 * (1 - dhiEf / ghi)));
+            f2.properties.sqi = sqi;
+            f2.properties.sqi_color = colorDeSqi(sqi);
+            f2.properties.sqi_hora = hKey;
+          } catch (e) { /* un polígono que falle no rompe la tanda */ }
+        }
+        if (pendientes.length) {
+          setTimeout(tanda, 0);
+        } else {
+          S.pintandoArboles = true;
+          try {
+            src.setData({ type: 'FeatureCollection', features: copias });
+            asegurarPaintColorArboles();
+          } catch (e) { }
+          setTimeout(function () { S.pintandoArboles = false; }, 100);
+          S.calculandoArboles = false;
+          S.sigGeometriaArboles = sig;
+        }
+      }
+      tanda();
+    }).catch(function () { S.calculandoArboles = false; });
+  }
+
+  function programarEvaluacionArboles() {
+    if (S.rafProgramadoArboles) return;
+    S.rafProgramadoArboles = true;
+    setTimeout(function () {
+      S.rafProgramadoArboles = false;
+      evaluarSombrasArboles();
+    }, 700);
+  }
+
   function solVisible(fecha, lat, lon) {
     try {
       if (window.SunCalc && SunCalc.getPosition) {
@@ -1592,6 +1720,9 @@
         }, 1000);
 
         try { S.map.on('sourcedata', function (e) { if (e && e.sourceId === 'sombras' && !S.pintando) programarEvaluacion(); }); } catch (e) { }
+        // Tinte SQI de las sombras de los árboles (aditivo): cada vez que el
+        // motor de árboles publica sombras nuevas, se recalcula su color.
+        try { S.map.on('sourcedata', function (e) { if (e && e.sourceId === 'arboles-globales-sombra' && !S.pintandoArboles) programarEvaluacionArboles(); }); } catch (e) { }
         try { S.map.on('styledata', function () { if (!S.capaEdificios) S.capaEdificios = detectarCapaEdificios(); }); } catch (e) { }
         S.capaEdificios = detectarCapaEdificios();
         // AÑADIDO: al conmutar «Sombras» se enseña/oculta la tarjeta de

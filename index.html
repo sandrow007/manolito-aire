@@ -1432,7 +1432,7 @@
   <!-- Fila de acciones: ambos botones comparten fila con 8px de gap;
        cada uno flex-1, así caben sin romperse. -->
   <div class="rs-fila-botones">
-    <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar ruta</button>
+    <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar</button>
     <div id="rsParkingAction"></div>
   </div>
   <!-- Cierre del panel flotante en escritorio (nov-2026): la X vive
@@ -2692,7 +2692,7 @@
 
 <!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
 <script src="js/theme.js" defer></script>
-<script src="js/i18n.js?v=faq-sqi-20261117-a" defer></script>
+<script src="js/i18n.js?v=buscar-20261120-b" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
 <script src="js/cookie-banner.js" defer></script>
@@ -2759,7 +2759,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=buscador-sqi-20261120-a'))
+        .then(() => cargarScript('js/shadows-route.js?v=buscar-lugar-20261120-b'))
         .then(() => {
           // Superficie continua de calidad del aire: módulo aditivo que se
           // engancha a la fuente 'aire-es' cuando shadows-route la crea.

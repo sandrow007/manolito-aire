@@ -296,7 +296,12 @@
 // (2) Buscador: un solo lugar basta — texto solo en origen (o destino) y
 //     «Buscar ruta» lleva el mapa al sitio, sin exigir los dos campos.
 //     Cambia js/shadows-route.js.
-const VERSION = '2026-11-20-a-sqi-arboles-buscador';
+// 2026-11-20-b: búsqueda de UN solo lugar = solo MIRAR: sin origen no se
+//     lanzan resúmenes de bici/coche ni distancias (antes sacaba km/min
+//     absurdos desde un punto que el usuario nunca pidió) y se limpian los
+//     resúmenes de una búsqueda anterior. El botón dice «Buscar» (antes
+//     «Buscar ruta»). Cambian js/shadows-route.js, js/i18n.js e index.html.
+const VERSION = '2026-11-20-b-buscar-lugar';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

@@ -7227,7 +7227,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         mostrarEstado(t('placeFound', 'Lugar encontrado. Ya puedes verlo en el mapa o trazarte la ruta desde aquí.'), 'ok');
         ponerCargando(false);
         map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
-        try { lanzarResumenesModos(); } catch (e) { /* opcional */ }
+        // Solo se ha PEDIDO MIRAR un lugar: sin origen no hay distancias que
+        // mostrar. Se limpian los resúmenes bici/coche de una búsqueda
+        // anterior para que no aparezcan cifras sin sentido (km/min desde un
+        // punto que el usuario nunca pidió).
+        try {
+          document.getElementById('rsResumenBici')?.querySelector('.rs-res-min')?.closest('.rs-res-modo')?.remove();
+          document.getElementById('rsResumenCoche')?.querySelector('.rs-res-min')?.closest('.rs-res-modo')?.remove();
+        } catch (e) { /* sin resúmenes previos: nada que limpiar */ }
       } catch (err) {
         console.debug(err);
         mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');

@@ -289,7 +289,14 @@
 // gana wind_speed_10m y shortwave_radiation en /prevision (aditivo).
 // Cambian worker.js, js/shadows-route.js, js/i18n.js (18 claves nuevas en
 // 7 idiomas), css/style.css, index.html y los dos js nuevos.
-const VERSION = '2026-11-19-h-arboles-ez-completos';
+// 2026-11-20-a: (1) SQI también en los ÁRBOLES: las sombras de árboles se
+//     tiñen con el color de calidad de sombra (verde/ámbar/naranja/rojo),
+//     mismo mecanismo y colores que los edificios. Cambian
+//     js/sqi-calidad-sombra.js y js/shadows-route.js.
+// (2) Buscador: un solo lugar basta — texto solo en origen (o destino) y
+//     «Buscar ruta» lleva el mapa al sitio, sin exigir los dos campos.
+//     Cambia js/shadows-route.js.
+const VERSION = '2026-11-20-a-sqi-arboles-buscador';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

@@ -2759,7 +2759,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=arboles-ez-completo-20261119-h'))
+        .then(() => cargarScript('js/shadows-route.js?v=buscador-sqi-20261120-a'))
         .then(() => {
           // Superficie continua de calidad del aire: módulo aditivo que se
           // engancha a la fuente 'aire-es' cuando shadows-route la crea.
@@ -2808,7 +2808,7 @@
         // Calidad de sombra (SQI, nov-2026): último de la cadena. Tiñe las
         // sombras que ya dibuja el mapa según su calidad térmica y muestra
         // el resultado en el widget solar visible. Presentación pura.
-        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-glosario-20261117'))
+        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-arboles-20261120-a'))
         // Confort térmico UTCI (nov-2026): coste de las rutas por estrés
         // térmico y comparativa fresca/rápida. Módulos aditivos; sin ellos
         // (o sin meteo) el routing usa el coste clásico de sombra.

@@ -7210,6 +7210,31 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     const textoOrigen = inputOrigen.value.trim();
     const textoDestino = inputDestino.value.trim();
+    // BÚSQUEDA DE UN SOLO SITIO (nov-2026): si solo hay texto en UN campo
+    // (origen o destino) y el otro está vacío, ese texto se toma como el
+    // lugar a buscar: se geocodifica y el mapa lleva hasta él, sin exigir
+    // marcar origen y destino a la vez. Mismo flujo que siempre: si hay los
+    // dos textos, se calcula la ruta; si solo hay destino, origen = GPS.
+    if (textoOrigen && !textoDestino) {
+      ponerCargando(true);
+      mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
+      try {
+        const punto = await resolverPunto(inputOrigen);
+        seleccionPorInput.delete(inputOrigen); // era una búsqueda, no un origen fijado
+        inputOrigen.value = '';
+        seleccionPorInput.set(inputDestino, punto);
+        inputDestino.value = punto.nombre || textoOrigen;
+        mostrarEstado(t('placeFound', 'Lugar encontrado. Ya puedes verlo en el mapa o trazarte la ruta desde aquí.'), 'ok');
+        ponerCargando(false);
+        map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
+        try { lanzarResumenesModos(); } catch (e) { /* opcional */ }
+      } catch (err) {
+        console.debug(err);
+        mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+        ponerCargando(false);
+      }
+      return;
+    }
     if (!textoDestino) {
       mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
       return;
@@ -7842,6 +7867,28 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     if (modo === 'bici') {
       const textoDestino = inputDestino.value.trim();
+      const textoOrigenBici = inputOrigen.value.trim();
+      // BÚSQUEDA DE UN SOLO SITIO (nov-2026): texto solo en el origen de bici
+      // = buscar ese lugar y llevar el mapa hasta él (sin exigir destino).
+      if (!textoDestino && textoOrigenBici) {
+        ponerCargando(true);
+        mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
+        try {
+          const punto = await resolverPunto(inputOrigen);
+          seleccionPorInput.delete(inputOrigen);
+          inputOrigen.value = '';
+          seleccionPorInput.set(inputDestino, punto);
+          inputDestino.value = punto.nombre || textoOrigenBici;
+          mostrarEstado(t('placeFound', 'Lugar encontrado. Ya puedes verlo en el mapa o trazarte la ruta desde aquí.'), 'ok');
+          map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
+        } catch (err) {
+          console.debug(err);
+          mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+        } finally {
+          ponerCargando(false);
+        }
+        return;
+      }
       if (!textoDestino) {
         mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
         if (inputDestino) inputDestino.focus();
@@ -7874,6 +7921,28 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     if (modo === 'coche') {
       const textoDestino = inputDestino.value.trim();
+      const textoOrigenCoche = inputOrigen.value.trim();
+      // BÚSQUEDA DE UN SOLO SITIO (nov-2026): texto solo en el origen de coche
+      // = buscar ese lugar y llevar el mapa hasta él (sin exigir destino).
+      if (!textoDestino && textoOrigenCoche) {
+        ponerCargando(true);
+        mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
+        try {
+          const punto = await resolverPunto(inputOrigen);
+          seleccionPorInput.delete(inputOrigen);
+          inputOrigen.value = '';
+          seleccionPorInput.set(inputDestino, punto);
+          inputDestino.value = punto.nombre || textoOrigenCoche;
+          mostrarEstado(t('placeFound', 'Lugar encontrado. Ya puedes verlo en el mapa o trazarte la ruta desde aquí.'), 'ok');
+          map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
+        } catch (err) {
+          console.debug(err);
+          mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+        } finally {
+          ponerCargando(false);
+        }
+        return;
+      }
       if (!textoDestino) {
         mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
         if (inputDestino) inputDestino.focus();

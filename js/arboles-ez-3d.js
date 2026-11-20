@@ -28,7 +28,11 @@
   window.__manolitoArbolesEZ3D = true;
 
   var ZOOM_MIN = 16;          // algo más conservador que el motor principal
-  var MAX_ARBOL = 30;         // tope propio (independiente del motor principal)
+  // (nov-2026) MAPA COMPLETO: antes 30 y con un filtro de separación que
+  // tiraba la mayoría de un paseo arbolado. Ahora 200 árboles por vista: en
+  // un encuadre de calle a zoom 17 entran todos los de la manzana y ya no
+  // hay huecos "sin árboles" en medio de una alineación.
+  var MAX_ARBOL = 200;
   var N_VARIANTES = 2;        // variantes deterministas por especie
 
   // Tipos con modelo EZ (los MISMOS nombres que TIPOS_ARBOL de shadows-route.js).
@@ -37,7 +41,13 @@
     'almez', 'brachychiton', 'robinia', 'fresno', 'cipres', 'sophora',
     'gleditsia', 'ligustrum', 'cercis', 'magnolia', 'catalpa', 'casuarina',
     'palmera', 'palmera_datilera', 'palmera_canaria', 'palmera_washingtonia',
-    'olivo'];
+    'olivo',
+    // --- 5 especies MÁS (nov-2026, ronda final): árboles de alineado y de
+    // jardín abundantísimos en el inventario oficial que antes se quedaban
+    // sin copa 3D. Cada una con SU preset (sacados de los medium/small del
+    // repo dgreenheck/ez-tree, MIT): lagerstroemia, bauhinia, grevillea,
+    // algarrobo y laurel.
+    'lagerstroemia', 'bauhinia', 'grevillea', 'algarrobo', 'laurel'];
 
   // Alturas de referencia (las de TIPOS_ARBOL).
   var EZ_ALTURAS = {
@@ -48,6 +58,8 @@
     gleditsia: 11, ligustrum: 7, cercis: 6, magnolia: 10, catalpa: 10, casuarina: 16,
     palmera: 12, palmera_datilera: 12, palmera_canaria: 13,
     palmera_washingtonia: 14, olivo: 8,
+    // --- 5 especies MÁS (nov-2026): alturas medias reales de alineado urbano.
+    lagerstroemia: 6, bauhinia: 8, grevillea: 13, algarrobo: 9, laurel: 8,
   };
 
   // Presets REALES de ez-tree y adaptaciones locales de los cuatro perfiles.
@@ -93,6 +105,21 @@
      palm_washingtonia: { seed: 45347, type: 'evergreen', levels: 0, angle: [100, 0, 0], children: [0, 0, 0], length: [50, 1, 1, 1], radius: [0.78, 0.4, 0.7, 0.7], sections: [13, 1, 1, 1], segments: [8, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.55, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 80, leafCount: 30, leafStart: 0.93, leafSize: 5.0, leafVariance: 0.22, leafColor: 0x679245, barkColor: 0x7a5c40 },
      olivo: { seed: 45459, type: 'evergreen', levels: 2, angle: [42, 52, 0], children: [5, 4, 3], length: [18.5, 9.4, 1, 1], radius: [1.6, 0.95, 0.7, 0.7], sections: [8, 6, 1, 1], segments: [7, 5, 3, 3], start: [0, 0.32, 0, 0], taper: [0.62, 0.55, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 34, leafCount: 16, leafStart: 0.28, leafSize: 1.35, leafVariance: 0.55, leafColor: 0x8aa07a, barkColor: 0x8a7a5c },
 palm_small: { seed: 45109, type: 'evergreen', levels: 0, angle: [98, 0, 0], children: [0, 0, 0], length: [24, 1, 1, 1], radius: [0.62, 0.4, 0.7, 0.7], sections: [8, 1, 1, 1], segments: [7, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.5, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 62, leafCount: 20, leafStart: 0.88, leafSize: 3.6, leafVariance: 0.25, leafColor: 0x5c8e45, barkColor: 0x8a6a48 },
+
+// --- 5 PRESETS MÁS (nov-2026), sacados de los perfiles medium/small del
+// repo dgreenheck/ez-tree (MIT). Mismo criterio que el resto del archivo:
+// el porte real manda y gnarliness/twist/force quedan a CERO para que
+// ningún árbol vuelva a salir arqueado.
+// ash_medium: fractal medio del repo → bauhinia (copa aérea, flores lilas).
+ash_medium: { seed: 27411, type: 'deciduous', levels: 3, angle: [44, 61, 55], children: [8, 4, 3], length: [41.2, 24.6, 10.4, 4.6], radius: [1.85, 0.59, 0.72, 0.7], sections: [10, 8, 6, 4], segments: [9, 6, 4, 3], start: [0, 0.26, 0.32, 0], taper: [0.7, 0.68, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 52, leafCount: 14, leafStart: 0.05, leafSize: 2.3, leafVariance: 0.62, leafColor: 0x6f9f4c, barkColor: 0xce9a5e },
+// oak_medium: copa ancha y media del repo → laurel (densa, siempre verde).
+oak_medium: { seed: 33007, type: 'deciduous', levels: 3, angle: [54, 52, 32], children: [6, 4, 3], length: [36.4, 20.1, 11.6, 7.16], radius: [1.75, 0.8, 0.69, 1.19], sections: [12, 8, 6, 2], segments: [9, 5, 3, 3], start: [0, 0.42, 0.08, 0.12], taper: [0.73, 0.42, 0.69, 0.75], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 42, leafCount: 16, leafStart: 0.18, leafSize: 2.1, leafVariance: 0.66, leafColor: 0x4c7d3a, barkColor: 0x8a7150 },
+// oak_bushy: copa baja y compacta → lagerstroemia (árbol de Júpiter, 6 m).
+oak_bushy: { seed: 31187, type: 'deciduous', levels: 3, angle: [58, 62, 36], children: [5, 4, 3], length: [20.6, 9.2, 6.4, 4.2], radius: [1.15, 0.72, 0.55, 0.8], sections: [10, 7, 5, 2], segments: [8, 5, 3, 3], start: [0, 0.55, 0.1, 0.12], taper: [0.7, 0.4, 0.66, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 46, leafCount: 13, leafStart: 0.2, leafSize: 1.55, leafVariance: 0.6, leafColor: 0x628f42, barkColor: 0x9b8460 },
+// pine_medium: conífera ovoide del repo → grevillea (roble sedoso, 13 m).
+pine_medium: { seed: 15883, type: 'evergreen', levels: 1, angle: [112, 22, 60], children: [70, 4, 5], length: [46.5, 28.4, 16.2, 1], radius: [0.92, 0.34, 0.7, 0.7], sections: [11, 9, 7, 5], segments: [8, 6, 4, 3], start: [0, 0.24, 0.18, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 26, leafCount: 24, leafStart: 0.12, leafSize: 1.5, leafVariance: 0.28, leafColor: 0x5e7f47, barkColor: 0x9a7a56 },
+// aspen_small: tronco corto y copa globosa del repo → algarrobo (Ceratonia).
+aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], children: [8, 4, 3], length: [26.8, 8.4, 9.2, 1], radius: [0.78, 0.46, 0.7, 0.7], sections: [10, 8, 6, 4], segments: [8, 6, 4, 3], start: [0, 0.48, 0.28, 0], taper: [0.5, 0.18, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 38, leafCount: 12, leafStart: 0.18, leafSize: 1.9, leafVariance: 0.62, leafColor: 0x4e7a38, barkColor: 0x8a7150 },
   };
   // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
   // REUTILIZAN los presets de arriba según su silueta real (nada de presets
@@ -132,6 +159,14 @@ palm_small: { seed: 45109, type: 'evergreen', levels: 0, angle: [98, 0, 0], chil
     palmera_canaria: { preset: 'palm_canaria', evergreen: true },        // Phoenix canariensis: tronco grueso, corona esférica
     palmera_washingtonia: { preset: 'palm_washingtonia', evergreen: true }, // Washingtonia: la más alta, hojas en abanico
     olivo: { preset: 'olivo', evergreen: true },                         // Olea europaea: copa baja plateada
+    // --- 5 especies MÁS (nov-2026): las que quedaban sin copa 3D y son
+    // legión en el inventario oficial (lagerstroemia ~1.9k, bauhinia ~1.2k,
+    // grevillea ~1.1k, algarrobo ~700, laurel ~600). Cada una con su preset.
+    lagerstroemia: { preset: 'oak_bushy', evergreen: false },   // Lagerstroemia indica: copa baja, flores rosas
+    bauhinia: { preset: 'ash_medium', evergreen: false },       // Bauhinia variegata/purpurea: copa aérea, flor lila
+    grevillea: { preset: 'pine_medium', evergreen: true },      // Grevillea robusta: porte piramidal, hoja fina
+    algarrobo: { preset: 'aspen_small', evergreen: true },      // Ceratonia siliqua: copa globosa, perenne
+    laurel: { preset: 'oak_medium', evergreen: true },          // Laurus nobilis: copa densa, perenne
   };
   // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
   // REUTILIZAN los presets de arriba según su silueta real (nada de presets
@@ -383,7 +418,13 @@ palm_small: { seed: 45109, type: 'evergreen', levels: 0, angle: [98, 0, 0], chil
           var material = new THREE.MeshStandardMaterial({
             color: color, flatShading: true, roughness: 1.0, metalness: 0.0,
             vertexColors: false, transparent: false,
-            emissive: color, emissiveIntensity: 0.24, side: THREE.DoubleSide,
+            // (nov-2026) ÁRBOLES OSCUROS AL MIRAR DESDE ARRIBA: el mapa se ve
+            // en picado y la cara interior de cada plano de hoja quedaba en
+            // contraluz (hoja casi negra → copa sucia). Igual que en la
+            // albizia y el naranjo, el emisivo del PROPIO color de la hoja al
+            // 0.55 mantiene las copas legibles desde cualquier pitch y deja
+            // que el sol real siga marcando el sombreado en las caras de luz.
+            emissive: color, emissiveIntensity: 0.55, side: THREE.DoubleSide,
           });
           var meshH = new THREE.InstancedMesh(geoHojas, material, MAX_ARBOL);
           meshH.count = 0; meshH.frustumCulled = false;
@@ -431,28 +472,53 @@ palm_small: { seed: 45109, type: 'evergreen', levels: 0, angle: [98, 0, 0], chil
     try {
       if (typeof window.manolitAireArbolesEZ !== 'function') return [];
       var todas = window.manolitAireArbolesEZ() || [];
+      // (nov-2026) LÍMITES REALES DEL CANVAS. getBounds() de MapLibre se limita
+      // a lat[-85,85] y, con pitch, no cubre lo que se ve arriba del todo: por
+      // eso el borde superior del mapa se quedaba sin árboles. Aquí se calculan
+      // las 4 esquinas reales (con o sin inclinación) y se usa su envolvente.
       var b = map.getBounds(), c = map.getCenter();
+      // Colchón del 10 %: las esquinas del lienzo se quedan cortas cuando
+      // MapLibre aún está asentando el render; sin él, los árboles del borde
+      // aparecían y desaparecían al mover un píxel.
+      var margenLon = Math.max(0.0004, (b.getEast() - b.getWest()) * 0.1);
+      var margenLat = Math.max(0.0004, (b.getNorth() - b.getSouth()) * 0.1);
+      var lonW = b.getWest() - margenLon, lonE = b.getEast() + margenLon;
+      var latS = b.getSouth() - margenLat, latN = b.getNorth() + margenLat;
+      try {
+        var lienzo = map.getCanvas();
+        var w = lienzo.clientWidth, h = lienzo.clientHeight;
+        var esquinas = [[0, 0], [w, 0], [0, h], [w, h]];
+        for (var e = 0; e < esquinas.length; e++) {
+          var p = map.unproject(esquinas[e]);
+          if (!isFinite(p.lng) || !isFinite(p.lat)) continue;
+          if (p.lng < lonW) lonW = p.lng;
+          if (p.lng > lonE) lonE = p.lng;
+          if (p.lat < latS) latS = p.lat;
+          if (p.lat > latN) latN = p.lat;
+        }
+      } catch (e2) { /* sin esquinas: nos quedamos con getBounds() */ }
       var candidatas = todas.filter(function (a) {
         return EZ_ALTURAS[a.tipo] &&
-          a.lon >= b.getWest() && a.lon <= b.getEast() &&
-          a.lat >= b.getSouth() && a.lat <= b.getNorth();
+          a.lon >= lonW && a.lon <= lonE &&
+          a.lat >= latS && a.lat <= latN;
       }).sort(function (a1, a2) {
         var d1 = (a1.lon - c.lng) * (a1.lon - c.lng) + (a1.lat - c.lat) * (a1.lat - c.lat);
         var d2 = (a2.lon - c.lng) * (a2.lon - c.lng) + (a2.lat - c.lat) * (a2.lat - c.lat);
         return d1 - d2;
       });
-      // Selecciona primero los árboles más cercanos, pero deja separación
-      // suficiente para distinguir las copas en plantaciones densas.
+      // (nov-2026) ANTES se descartaban los ejemplares cuya copa tocaba la del
+      // vecino (factor 0.72): en una alineación de plátanos ESO ES CASI TODOS,
+      // y el mapa quedaba con árboles sueltos en vez de una fila. Ahora solo
+      // se quitan los que caen PRÁCTICAMENTE ENCIMA (dos nodos del mismo
+      // árbol: OSM duplicado, inventario + OSM…), a menos de 1,2 m.
       var separados = [];
       for (var i = 0; i < candidatas.length && separados.length < MAX_ARBOL; i++) {
         var actual = candidatas[i];
-        var radio = Math.max(1.5, Math.min(5, actual.radioCopaM || 2.5));
         var demasiadoCerca = separados.some(function (previo) {
           var latMedia = (actual.lat + previo.lat) * 0.5 * Math.PI / 180;
           var dx = (actual.lon - previo.lon) * 111320 * Math.cos(latMedia);
           var dy = (actual.lat - previo.lat) * 111320;
-          var radioPrevio = Math.max(1.5, Math.min(5, previo.radioCopaM || 2.5));
-          return Math.hypot(dx, dy) < (radio + radioPrevio) * 0.72;
+          return dx * dx + dy * dy < 1.2 * 1.2;
         });
         if (!demasiadoCerca) separados.push(actual);
       }
@@ -541,6 +607,11 @@ palm_small: { seed: 45109, type: 'evergreen', levels: 0, angle: [98, 0, 0], chil
         camera = new THREE.Camera();
         camera.matrixAutoUpdate = false;
         scene.add(new THREE.HemisphereLight(0xfff4de, 0x4a5a3a, 0.95));
+        // (nov-2026) Luz ambiental extra: con el cielo/césped del hemisférico
+        // los planos de hoja vistos desde arriba se apagaban (la normal mira
+        // al suelo). Un AmbientLight suave devuelve volumen a la copa sin
+        // lavar la luz direccional del sol.
+        scene.add(new THREE.AmbientLight(0xffffff, 0.35));
         sol = new THREE.DirectionalLight(0xffffff, 1.0);
         sol.position.set(10, 18, 7);
         scene.add(sol);

@@ -11219,11 +11219,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       color: '#4d8a3e',
     },
     laurel: {
+      // (nov-2026) La definición completa está MÁS ABAJO, junto a las 5
+      // especies nuevas: aquí se deja solo la keyword para no duplicar la
+      // silueta (antes este laurel salía genérico por no tener preset EZ).
       keywords: ['laurus', 'laurel'],
       alturaMediaM: 8,
-      radioCopaMedioM: 2.5,
-      forma: 'oval_alargada',
-      color: '#3f7d38',
+      radioCopaMedioM: 3.0,
+      forma: 'ancha_redondeada',
+      color: '#3f7a38',
     },
     granado: {
       keywords: ['punica', 'granado', 'pomegranate'],
@@ -11341,6 +11344,40 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       radioCopaMedioM: 3.5,
       forma: 'oval_alargada',
       color: '#487a3c',
+    },
+    laurel: {
+      keywords: ['laurus', 'laurel'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 3.0,
+      forma: 'ancha_redondeada',
+      color: '#3f7a38',
+    },
+    // --- 4 especies MÁS (nov-2026): árboles de alineado y de jardín que hasta
+    // ahora caían en 'generico' y por eso se quedaban SIN copa 3D aunque el
+    // inventario oficial los tenga a miles. Solo entradas nuevas: nada
+    // existente cambia de clasificación (sus keywords no chocan con las de
+    // arriba y van DESPUÉS de albizia, robinia, sophora y gleditsia).
+    // 'laurel' ya existía arriba (solo le cambiamos la silueta, no el tipo).
+    lagerstroemia: {
+      keywords: ['lagerstroemia', 'arbol de jupiter', 'árbol de júpiter', 'jupiter tree', 'crepe myrtle', 'crape myrtle'],
+      alturaMediaM: 6,
+      radioCopaMedioM: 2.8,
+      forma: 'redondeada',
+      color: '#5f9a4a',
+    },
+    bauhinia: {
+      keywords: ['bauhinia', 'pata de vaca', 'orquidea de los pobres', 'orquídea de los pobres', 'orchid tree', 'mountain ebony'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#66a04e',
+    },
+    grevillea: {
+      keywords: ['grevillea', 'roble sedoso', 'roble australiano', 'silky oak'],
+      alturaMediaM: 13,
+      radioCopaMedioM: 3.2,
+      forma: 'oval_alargada',
+      color: '#4e7a42',
     },
     generico: {
       alturaMediaM: CONFIG.alturaEstimadaSinDatoM,
@@ -11919,6 +11956,31 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       };
     }
 
+    // (nov-2026) CAJA CON COLCHÓN: map.getBounds() se corta en lat ±85 y, con
+    // el mapa inclinado, no incluye lo que asoma por arriba del todo. Se piden
+    // las 4 esquinas reales del lienzo y además un 30 % extra: así los árboles
+    // del borde (que con pitch se ven en pantalla) entran en la consulta y el
+    // mapa deja de quedarse "sin árboles" en la franja superior.
+    function cajaDeVista() {
+      const b = map.getBounds();
+      let oeste = b.getWest(), este = b.getEast(), sur = b.getSouth(), norte = b.getNorth();
+      try {
+        const lienzo = map.getCanvas();
+        const ancho = lienzo.clientWidth, alto = lienzo.clientHeight;
+        [[0, 0], [ancho, 0], [0, alto], [ancho, alto]].forEach((esquina) => {
+          const p = map.unproject(esquina);
+          if (!isFinite(p.lng) || !isFinite(p.lat)) return;
+          if (p.lng < oeste) oeste = p.lng;
+          if (p.lng > este) este = p.lng;
+          if (p.lat < sur) sur = p.lat;
+          if (p.lat > norte) norte = p.lat;
+        });
+      } catch (e) { /* sin esquinas: nos quedamos con getBounds() */ }
+      const colchonLon = Math.max(0.0008, (este - oeste) * 0.3);
+      const colchonLat = Math.max(0.0008, (norte - sur) * 0.3);
+      return { bounds: b, oeste: oeste - colchonLon, este: este + colchonLon, sur: sur - colchonLat, norte: norte + colchonLat };
+    }
+
     async function cargarArbolesDeLaVista() {
       if (!capaVisible || consultaEnCurso) return;
       const bounds = map.getBounds();
@@ -11940,7 +12002,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
       consultaEnCurso = true;
       try {
-        const bbox = [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()];
+        const vista = cajaDeVista();
+        const bbox = [vista.sur, vista.oeste, vista.norte, vista.este];
         const datos = await consultarOverpass(bbox);
         const elementos = datos.elements || [];
         if (forzarAhora) {

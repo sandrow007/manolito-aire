@@ -289,7 +289,19 @@
 // gana wind_speed_10m y shortwave_radiation en /prevision (aditivo).
 // Cambian worker.js, js/shadows-route.js, js/i18n.js (18 claves nuevas en
 // 7 idiomas), css/style.css, index.html y los dos js nuevos.
-const VERSION = '2026-11-19-g-og-image-social';
+const VERSION = '2026-11-19-h-arboles-ez-completos';
+// 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
+// (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
+//     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).
+// (2) La consulta de OSM pide las 4 esquinas reales del lienzo + 30 % de
+//     colchón: con el mapa inclinado el borde de arriba ya no queda vacío.
+// (3) 5 especies más con preset EZ propio sacado del repo dgreenheck/ez-tree
+//     (ash_medium, oak_medium, oak_bushy, pine_medium, aspen_small):
+//     lagerstroemia, bauhinia, grevillea, algarrobo y laurel, más keywords
+//     nuevas en TIPOS_ARBOL para que no caigan en 'generico'.
+// (4) Copas legibles desde arriba: emissive de hoja 0.24 -> 0.55 y
+//     AmbientLight 0.35 en la escena EZ (antes salían casi negras en picado).
+// Cambian js/arboles-ez-3d.js, js/shadows-route.js, index.html y sw.js.
 // 2026-11-19-g: Corrección de vista previa en redes sociales (WhatsApp, Telegram,
 // Twitter/X, iMessage): sustitución de compartir.png (1080x1920 vertical, 671 KB,
 // rechazada por exceder los límites de WhatsApp y relación de aspecto) por

@@ -325,7 +325,16 @@
 //     con fenología). Verificado importando el Worker: HTTP 200 y el
 //     sistema recibido por el modelo contiene todo el contenido del SQI.
 //     Cambian worker.js y sw.js.
-const VERSION = '2026-11-20-d-chat-sqi';
+// 2026-11-20-e: REINICIAR BORRA TAMBIÉN EL ÁREA DEL LUGAR BUSCADO. Al pulsar
+//     «Reiniciar» el resalte azul de ciudad/barrio/calle (capa
+//     capa-lugar-buscado) se quedaba pintado en el mapa. Ahora
+//     reiniciarTodo() limpia la fuente 'lugar-buscado' mediante el puente
+//     manolitAireMarcarLugarBuscado(null), con optional chaining para que
+//     un puente ausente nunca rompa el reinicio. Verificado: marcado=1,
+//     tras reiniciar=0, doble reinicio=0 sin errores, y se puede volver a
+//     marcar (sigue en 1).
+//     Cambian js/shadows-route.js y sw.js.
+const VERSION = '2026-11-20-e-reinicio-lugar';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

@@ -1100,6 +1100,56 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       'capa-puntos-manuales'
     );
 
+    /* -------- Resalte del lugar buscado (nov-2026, ADITIVO) --------
+       Al buscar ciudad/provincia/barrio/calle y pulsar «Buscar», Nominatim
+       entrega el polígono del área (polygon_geojson=1) y aquí se dibuja
+       destacado como hace Google: relleno azul suave + borde sólido. Si
+       el resultado es un punto (una dirección con número), no hay polígono
+       y simplemente no se dibuja nada. Su ausencia jamás rompe nada. */
+    map.addSource('lugar-buscado', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-lugar-buscado',
+      type: 'fill',
+      source: 'lugar-buscado',
+      paint: {
+        'fill-color': '#3b82f6',
+        'fill-opacity': 0.10,
+      },
+    });
+    map.addLayer({
+      id: 'capa-lugar-buscado-borde',
+      type: 'line',
+      source: 'lugar-buscado',
+      paint: {
+        'line-color': '#3b82f6',
+        'line-width': 3,
+        'line-opacity': 0.9,
+      },
+    });
+
+    function marcarLugarBuscado(geometria) {
+      try {
+        const vacio = !geometria;
+        map.getSource('lugar-buscado')?.setData(vacio ? turf.featureCollection([]) : { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: geometria }] });
+      } catch (e) { /* el resalte es decorativo: nunca rompe */ }
+    }
+
+    function encuadrarGeometria(geometria) {
+      try {
+        if (!geometria) return false;
+        const caja = turf.bbox({ type: 'Feature', geometry: geometria, properties: {} });
+        // Un lugar puntual (calle muy corta) puede dar caja degenerada.
+        if (!caja || !isFinite(caja[0])) return false;
+        map.fitBounds(caja, { padding: 60, duration: 1200, maxZoom: 16 });
+        return true;
+      } catch (e) { return false; }
+    }
+
+    // Puente seguro para el buscador (otro ámbito): si este módulo aún no
+    // arrancó, las llamadas simplemente no pintan nada.
+    window.manolitAireMarcarLugarBuscado = marcarLugarBuscado;
+    window.manolitAireEncuadrarGeometria = encuadrarGeometria;
+
     inyectarControlesTiempo();
     inyectarControlesMapa();
     cargarPuntoCompartido();
@@ -5855,6 +5905,36 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     throw new Error(`${t('notFound', 'No se ha encontrado')}: "${direccionTexto}". ${t('tryFormat', 'Prueba a escribirla como calle, número, ciudad')}.`);
   }
 
+  /* -------- Geocodificación con polígono del área (nov-2026, ADITIVO) ---
+     Igual que geocodificar() pero pidiendo polygon_geojson=1: Nominatim
+     devuelve la geometría del área (límite administrativo de ciudad,
+     provincia, barrio… o la calle entera como línea). Si no hay polígono
+     (dirección puntual) o falla, devuelve null y el resalte no se dibuja.
+     Nunca sustituye a geocodificar(): solo la complementa. */
+  async function geocodificarConPoligono(direccionTexto, input) {
+    try {
+      const centroCercano = await obtenerCentroPreferido(input);
+      const url = new URL(CONFIG.nominatimUrl, window.location.origin);
+      url.searchParams.set('q', direccionTexto);
+      url.searchParams.set('format', 'json');
+      url.searchParams.set('limit', '1');
+      url.searchParams.set('polygon_geojson', '1');
+      url.searchParams.set('addressdetails', '1');
+      if (centroCercano) aplicarPreferenciaCercania(url, centroCercano);
+      const datos = await fetchConReintentos(url.toString(), { headers: { 'Accept-Language': 'es' } });
+      if (!Array.isArray(datos) || !datos.length) return null;
+      const r = datos[0];
+      const geo = r && r.geojson;
+      if (!geo || !geo.type) return null;
+      // Solo aceptamos las formas que delimitan un área o una línea (calle).
+      if (geo.type !== 'Polygon' && geo.type !== 'MultiPolygon' && geo.type !== 'LineString' && geo.type !== 'MultiLineString') return null;
+      return { lat: parseFloat(r.lat), lon: parseFloat(r.lon), nombre: r.display_name, geometria: geo };
+    } catch (e) {
+      console.debug('[resalte-lugar] Sin polígono para:', direccionTexto);
+      return null;
+    }
+  }
+
   async function geocodificarInverso(lat, lon) {
     try {
       const url = new URL(CONFIG.nominatimReverseUrl, window.location.origin);
@@ -7203,6 +7283,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return geocodificar(texto, input);
   }
 
+  /* -------- Resalte seguro desde el buscador (fuera del ámbito del mapa) --
+     El buscador llama a estas funciones; si el módulo del mapa aún no
+     arrancó, no pasa nada (guard de tipo). */
+  function resaltarLugarBuscado(geometria) {
+    try { window.manolitAireMarcarLugarBuscado?.(geometria || null); } catch (e) { }
+  }
+  function encuadrarLugarBuscado(geometria) {
+    try { return window.manolitAireEncuadrarGeometria ? window.manolitAireEncuadrarGeometria(geometria) : false; } catch (e) { return false; }
+  }
+
   async function manejarBusqueda(origenDirecto, destinoDirecto) {
     if (origenDirecto && destinoDirecto) {
       return ejecutarBusquedaConPuntos(origenDirecto, destinoDirecto);
@@ -7226,7 +7316,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         inputDestino.value = punto.nombre || textoOrigen;
         mostrarEstado(t('placeFound', 'Lugar encontrado. Ya puedes verlo en el mapa o trazarte la ruta desde aquí.'), 'ok');
         ponerCargando(false);
-        map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
+        // Resalte del área/calle buscada como hace Google (aditivo): el
+        // polígono manda para encuadrar; sin él, vuelo al punto de siempre.
+        let encuadrado = false;
+        try {
+          const conPoligono = await geocodificarConPoligono(textoOrigen, inputOrigen);
+          if (conPoligono && conPoligono.geometria) {
+            resaltarLugarBuscado(conPoligono.geometria);
+            encuadrado = encuadrarLugarBuscado(conPoligono.geometria);
+          }
+        } catch (e) { /* resalte decorativo */ }
+        if (!encuadrado) resaltarLugarBuscado(null);
+        if (!encuadrado) map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
         // Solo se ha PEDIDO MIRAR un lugar: sin origen no hay distancias que
         // mostrar. Se limpian los resúmenes bici/coche de una búsqueda
         // anterior para que no aparezcan cifras sin sentido (km/min desde un
@@ -7341,6 +7442,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
     mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
+    // Con ruta real el resalte del lugar buscado sobra: la ruta ya guía.
+    try { resaltarLugarBuscado(null); } catch (e) { }
 
     try {
       const ruta = await calcularRutaConPrioridadSombra(origen, destino);
@@ -7887,7 +7990,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           seleccionPorInput.set(inputDestino, punto);
           inputDestino.value = punto.nombre || textoOrigenBici;
           mostrarEstado(t('placeFound', 'Lugar encontrado. Ya puedes verlo en el mapa o trazarte la ruta desde aquí.'), 'ok');
-          map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
+          // Resalte del área/calle buscada (aditivo, como en caminar).
+          let encuadrado = false;
+          try {
+            const conPoligono = await geocodificarConPoligono(textoOrigenBici, inputOrigen);
+            if (conPoligono && conPoligono.geometria) {
+              resaltarLugarBuscado(conPoligono.geometria);
+              encuadrado = encuadrarLugarBuscado(conPoligono.geometria);
+            }
+          } catch (e) { /* resalte decorativo */ }
+          if (!encuadrado) resaltarLugarBuscado(null);
+          if (!encuadrado) map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
         } catch (err) {
           console.debug(err);
           mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
@@ -7941,7 +8054,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           seleccionPorInput.set(inputDestino, punto);
           inputDestino.value = punto.nombre || textoOrigenCoche;
           mostrarEstado(t('placeFound', 'Lugar encontrado. Ya puedes verlo en el mapa o trazarte la ruta desde aquí.'), 'ok');
-          map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
+          // Resalte del área/calle buscada (aditivo, como en caminar).
+          let encuadrado = false;
+          try {
+            const conPoligono = await geocodificarConPoligono(textoOrigenCoche, inputOrigen);
+            if (conPoligono && conPoligono.geometria) {
+              resaltarLugarBuscado(conPoligono.geometria);
+              encuadrado = encuadrarLugarBuscado(conPoligono.geometria);
+            }
+          } catch (e) { /* resalte decorativo */ }
+          if (!encuadrado) resaltarLugarBuscado(null);
+          if (!encuadrado) map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
         } catch (err) {
           console.debug(err);
           mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');

@@ -301,7 +301,20 @@
 //     absurdos desde un punto que el usuario nunca pidió) y se limpian los
 //     resúmenes de una búsqueda anterior. El botón dice «Buscar» (antes
 //     «Buscar ruta»). Cambian js/shadows-route.js, js/i18n.js e index.html.
-const VERSION = '2026-11-20-b-buscar-lugar';
+// 2026-11-20-c: RESALTE DEL LUGAR BUSCADO (como Google). Al buscar una
+//     ciudad, provincia, barrio o calle con «Buscar» y sin origen, se pide a
+//     Nominatim el polígono del área (polygon_geojson=1) y se dibuja
+//     delimitada: relleno azul suave + borde sólido (capa-lugar-buscado y
+//     capa-lugar-buscado-borde), con la cámara encuadrada al área entera en
+//     vez de a un punto. Si el resultado es una dirección puntual sin
+//     polígono, no se pinta nada y se hace el vuelo de siempre.
+//     Funciona en los tres modos (caminar/bici/coche) y se limpia al
+//     calcular una ruta. Verificado: capas, colores, encuadre de polígono,
+//     calle (LineString) y provincia (MultiPolygon), limpieza y casos sin
+//     geometría. Además se corrige una coma doble de sintaxis en
+//     js/i18n-legal.js (met_glop) que rompía ese archivo completo.
+//     Cambian js/shadows-route.js, js/i18n-legal.js e index.html.
+const VERSION = '2026-11-20-c-resalte-lugar';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

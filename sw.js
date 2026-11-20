@@ -314,7 +314,18 @@
 //     geometría. Además se corrige una coma doble de sintaxis en
 //     js/i18n-legal.js (met_glop) que rompía ese archivo completo.
 //     Cambian js/shadows-route.js, js/i18n-legal.js e index.html.
-const VERSION = '2026-11-20-c-resalte-lugar';
+// 2026-11-20-d: EL CHAT YA SABE DE CALIDAD DE SOMBRA (SQI). El prompt del
+//     servidor (SYSTEM_PROMPT_AIRE en worker.js) solo describía «sombras y
+//     mapa» en general: el detalle del SQI que el cliente enviaba
+//     (js/chat.js) se descartaba, así que el chat de producción no conocía
+//     la escala verde/ámbar/naranja/rojo, ni AOD/PM2.5/DHI, ni Köppen.
+//     Ahora el prompt del Worker incluye una sección 2b completa del SQI,
+//     una entrada en la especialidad catedrática y las funciones nuevas
+//     (búsqueda de un solo lugar con área delimitada en azul, árboles 3D
+//     con fenología). Verificado importando el Worker: HTTP 200 y el
+//     sistema recibido por el modelo contiene todo el contenido del SQI.
+//     Cambian worker.js y sw.js.
+const VERSION = '2026-11-20-d-chat-sqi';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

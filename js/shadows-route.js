@@ -3631,6 +3631,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       seleccionPorInput.delete(inputDestino);
       map.getSource('ruta')?.setData(turf.featureCollection([]));
       map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
+      // (nov-2026) El resalte del lugar buscado (área azul de ciudad, barrio
+      // o calle) es estado del buscador: Reiniciar debe borrarlo también,
+      // como todo lo demás. Si la fuente o el puente aún no existen, no
+      // pasa nada: es decorativo y nunca debe romper el reinicio.
+      try { window.manolitAireMarcarLugarBuscado?.(null); } catch (e) { /* sin resalte activo */ }
       try { limpiarAlertasUvRuta(); } catch (e) { /* la capa UV aún no existe */ }
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
       map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));

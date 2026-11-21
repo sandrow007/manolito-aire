@@ -12445,6 +12445,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           !(feno && feno.densidadHoja === 0) &&
           (forma === 'naranjo' ? map.getZoom() >= 14 : map.getZoom() >= 17);
 
+        // (nov-2026) NARANJO Y ALBIZIA: junto a su malla 3D, el motor plano
+        // dejaba ADEMÁS sus DOS copas planas encima (baseM 3,0 + 5,2 m desde
+        // el suelo): una capa verde plana que tapaba la malla real por arriba
+        // y convertía el naranjo en "un árbol con hojas" (superpuestas al
+        // dosel 3D). Aquí solo se pinta el TRONCO; la malla viva y su peso lo
+        // siguen llevando js/arboles-3d.js, intacto. Igual que las palmeras.
+        const usa3DPropio = (a.tipo === 'naranjo' || a.tipo === 'albizia') && cercaDeProtegido3D(lon, lat);
+
         if (usaCopaRealista) {
           const bultos = crearCopaRealista(a, forma, alturaTroncoM, factorHoja, feno, lon, lat);
           for (const b of bultos) features.push(b);
@@ -12459,6 +12467,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           const copa = crearFormaCopa(a.punto, radioCorona / 1000, 'palmera', lon, lat);
           copa.properties = { altura: a.altura, baseM: alturaTroncoM * 0.995, alturaTotalM: a.altura, nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
           features.push(copa);
+        } else if (usa3DPropio) {
+          // Tronco ya pintado: las copas planas sobraban encima de la malla.
         } else {
           // Copa inferior: forma realista según especie. En las especies con
           // fenología (naranjo/albizia) la copa se encoge con la pérdida de

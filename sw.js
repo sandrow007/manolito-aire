@@ -357,7 +357,16 @@
 //     estimarDimensionesArbol. Ahora, si la altura no es verosímil (<6 m),
 //     manda el porte adulto de la ESPECIE (datilera 12 m, canaria 13 m,
 //     washingtonia 14 m); los datos fiables (>=6 m) siguen mandando.
-// Cambian js/arboles-ez-3d.js, index.html (?v=) y sw.js.
+// Cambian js/shadows-route.js, js/arboles-ez-3d.js, index.html (?v=) y sw.js.
+// 2026-11-21-d: NARANJO Y ALBIZIA SIN COPAS PLANAS ENCIMA ("árboles con
+// hojas" en las esquinas de los naranjos). Junto a un naranjo/albizia 3D, el
+// motor plano pinta TRES cosas para el mismo ejemplar: el TRONCO (solo, bien)
+// y las DOS copas planas de siempre (dos poligonos apilados de baseM 3,0 y
+// 5,2 m). Las copas planas tapaban por arriba la malla real desde el suelo y
+// hacían que el naranjo pareciera un árbol de hojas planas. Ahora, junto a
+// ellos, solo va el tronco. Nada cambia para albizia/naranjo ni en ningun
+// otro caso (sin 3D, lejos o naranjo de invierno siguen igual).
+// Cambia js/shadows-route.js.
 // 2026-11-21-c: DOS CORONAS EN LA PALMERA (la causa de "árboles con hojas").
 // (1) Con el motor EZ 3D activo, la palmera pintaba ADEMÁS la copa plana de
 //     siempre, y con DOS pisos (uno de 0,15 y otro de 0,05 de la altura por
@@ -369,7 +378,7 @@
 // (3) Altura de palmeras: si la del inventario no es verosímil (<6 m), manda
 //     el porte de la especie (datilera 12, canaria 13, washingtonia 14 m).
 // Cambian js/shadows-route.js, js/arboles-ez-3d.js, index.html (?v=) y sw.js.
-const VERSION = '2026-11-21-c-palmera-una-corona';
+const VERSION = '2026-11-21-d-naranjo-sin-copas-planas';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

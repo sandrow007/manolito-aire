@@ -358,7 +358,11 @@
 //     manda el porte adulto de la ESPECIE (datilera 12 m, canaria 13 m,
 //     washingtonia 14 m); los datos fiables (>=6 m) siguen mandando.
 // Cambian js/shadows-route.js, js/arboles-ez-3d.js, index.html (?v=) y sw.js.
-// 2026-11-21-d: NARANJO Y ALBIZIA SIN COPAS PLANAS ENCIMA ("árboles con
+// 2026-11-21-e: (1) PALMERAS VISIBLES. La corona plana se pinta SIEMPRE para
+// forma palmera (un solo feature, el de la foto, a ras de frondes). La rama
+// que la condicionaba a estar cerca del 3D dejaba las palmeras sin copa y
+// pareciar desaparecer.
+// (2) NARANJO Y ALBIZIA SIN COPAS PLANAS ENCIMA ("árboles con
 // hojas" en las esquinas de los naranjos). Junto a un naranjo/albizia 3D, el
 // motor plano pinta TRES cosas para el mismo ejemplar: el TRONCO (solo, bien)
 // y las DOS copas planas de siempre (dos poligonos apilados de baseM 3,0 y
@@ -378,7 +382,7 @@
 // (3) Altura de palmeras: si la del inventario no es verosímil (<6 m), manda
 //     el porte de la especie (datilera 12, canaria 13, washingtonia 14 m).
 // Cambian js/shadows-route.js, js/arboles-ez-3d.js, index.html (?v=) y sw.js.
-const VERSION = '2026-11-21-d-naranjo-sin-copas-planas';
+const VERSION = '2026-11-21-e-palmeras-visibles';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

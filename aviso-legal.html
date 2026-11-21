@@ -168,20 +168,35 @@
 <h2 data-i18n-legal="avis_21">9. Visualización de Árboles en 3D con OpenStreetMap</h2>
 <p data-i18n-legal="avis_22">
   La capa de <strong>árboles en 3D</strong> muestra la vegetación urbana registrada en 
-  <strong>OpenStreetMap</strong> dentro del área visible del mapa. La información técnica de cada ejemplar 
+  <strong>OpenStreetMap</strong> dentro del área visible del mapa. Dentro de Sevilla, esa capa se completa y 
+  enriquece con el <a href="https://www.sevilla.org/se-mueve/parques-y-jardines" target="_blank" rel="noopener">inventario 
+  de arbolado de Parques y Jardines del Ayuntamiento de Sevilla</a> (datos abiertos del portal 
+  <a href="https://www.sevilla.org/se-mueve" target="_blank" rel="noopener">SeMueve / datos abiertos</a>), 
+  que aporta la especie, la altura y el perímetro medidos de cada ejemplar oficial. La información técnica de cada árbol 
   (como la altura del árbol o el diámetro de copa) es aportada por voluntarios y comunidad de mapeo, 
   por lo que podría estar incompleta en algunas zonas. Cuando no existe ese registro exacto, nuestro simulador 
   de clima urbano utiliza valores estimados (altura estándar de 6 metros y copa de 2,2 metros de radio) 
   para lograr una <strong>representación 3D aproximada</strong> y calcular su sombra sobre el asfalto.
 </p>
 
- <p data-i18n-legal="avis_23">
-  Los árboles se dibujan en el modelo como volúmenes simplificados (mediante un tronco y una copa escalonada) 
+  <p data-i18n-legal="avis_23">
+    Los árboles se dibujan en el modelo como volúmenes simplificados (mediante un tronco y una copa escalonada) 
   y sus proyecciones se calculan con el mismo método geométrico que las <strong>sombras de los edificios</strong>. 
   Por lo tanto, la forma, la altura y la proyección de la <strong>sombra de cada árbol</strong> son <b>aproximadas</b> 
   y tienen únicamente una finalidad ilustrativa dentro del diseño urbano. No deben utilizarse para fines técnicos, 
   estudios de paisajismo, gestión de <strong>inventario forestal</strong> urbano ni normativas de seguridad vial o civil.
 </p>
+
+  <p data-i18n-legal="avis_61">
+    Los <strong>árboles en 3D con porte real</strong> (naranjos, albizias, palmeras, ailantos, lagunarias, taxodios y otras
+  especies con su forma propia) se generan en el navegador con <a href="https://github.com/dgreenheck/ez-tree" target="_blank" rel="noopener"><strong>ez-tree</strong></a>,
+  un generador procedimental de árboles en Three.js creado por <a href="https://github.com/dgreenheck" target="_blank" rel="noopener"><strong>David Greenheck</strong></a>
+  y publicado bajo licencia MIT. Su algoritmo de esqueleto recursivo (niveles, ramificación, ángulos y semilla determinista)
+  es lo que permite dibujar cada árbol del mapa con la silueta de su especie sin descargar ni un solo modelo pesado.
+  <strong>Gracias por regalar esta maravilla al open source, David: sin tu trabajo, nuestro mapa no tendría sombra de árbol que valga.</strong>
+  El inventario de especies del parque de María Luisa proviene del <a href="https://www.sevilla.org/se-mueve/parques-y-jardines" target="_blank" rel="noopener">Ayuntamiento de Sevilla</a>
+  (datos abiertos, portal SeMueve).
+  </p>
 
   <h2 data-i18n-legal="avis_24">10. Simulador y Algoritmo de Posición Solar</h2>
 <p data-i18n-legal="avis_25">

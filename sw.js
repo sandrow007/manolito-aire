@@ -334,7 +334,20 @@
 //     tras reiniciar=0, doble reinicio=0 sin errores, y se puede volver a
 //     marcar (sigue en 1).
 //     Cambian js/shadows-route.js y sw.js.
-const VERSION = '2026-11-20-e-reinicio-lugar';
+// 2026-11-21-a: ARBOLADO MÁS COHERENTE Y PALMERAS REALES.
+// (1) Palmeras EZ rehechas: generador propio (NO el port fractal de ez-tree
+//     que las dibujaba como "árbol con hojas en la punta"). Fuste con base
+//     abultada + anillos + corona de frondes en arco continuo, verde todo el
+//     año, dátiles en la datilera. 4 especies bien diferenciadas.
+// (2) 4 géneros más del parque de María Luisa con modelo EZ propio (antes
+//     caían en 'generico' sin copa 3D): ailanto, lagunaria, taxodio, tejo.
+// (3) Clasificador: orden de palmáceas corregido — Phoenix dactylifera ya no
+//     cae en 'palmera' genérica y "Pinus canariensis" vuelve a ser PINO (lo
+//     se lo robaba la keyword 'canariensis' de la palmera canaria).
+// (4) Madera por especie en el motor EZ (palmeras con su pardo-gris de fuste).
+// Cambian js/arboles-ez-3d.js, js/shadows-route.js, index.html (?v=) y sw.js
+// (purga de caché).
+const VERSION = '2026-11-21-a-palmeras-nuevas';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

@@ -47,7 +47,9 @@
     // sin copa 3D. Cada una con SU preset (sacados de los medium/small del
     // repo dgreenheck/ez-tree, MIT): lagerstroemia, bauhinia, grevillea,
     // algarrobo y laurel.
-    'lagerstroemia', 'bauhinia', 'grevillea', 'algarrobo', 'laurel'];
+    'lagerstroemia', 'bauhinia', 'grevillea', 'algarrobo', 'laurel',
+    // --- 4 GÉNEROS MÁS (nov-2026): Parque de María Luisa completo.
+    'ailanto', 'lagunaria', 'taxodio', 'tejo'];
 
   // Alturas de referencia (las de TIPOS_ARBOL).
   var EZ_ALTURAS = {
@@ -58,8 +60,17 @@
     gleditsia: 11, ligustrum: 7, cercis: 6, magnolia: 10, catalpa: 10, casuarina: 16,
     palmera: 12, palmera_datilera: 12, palmera_canaria: 13,
     palmera_washingtonia: 14, olivo: 8,
+    // (nov-2026) la datilera y la canaria son las que MÁS se dibujan en
+    // Sevilla (409 datileras y 124 canarias en el inventario oficial), y
+    // 'phoenix' también las clasifica genéricamente: al subir un poco su
+    // altura de referencia y su escala (ver refrescarInstancias) se ven por
+    // encima de los naranjos del paseo, como las reales, sin ser gigantes.
     // --- 5 especies MÁS (nov-2026): alturas medias reales de alineado urbano.
     lagerstroemia: 6, bauhinia: 8, grevillea: 13, algarrobo: 9, laurel: 8,
+    // --- 4 GÉNEROS MÁS (nov-2026): los más numerosos del parque de María
+    // Luisa que todavía no tenían tipo propio y caían en 'generico' (sin
+    // copa 3D). Alturas medias reales de ejemplares urbanos/adultos.
+    ailanto: 12, lagunaria: 9, taxodio: 16, tejo: 10,
   };
 
   // Presets REALES de ez-tree y adaptaciones locales de los cuatro perfiles.
@@ -89,20 +100,50 @@
     pine_small: { seed: 11744, type: 'evergreen', levels: 1, angle: [117, 60, 60], children: [60, 5, 3], length: [39.55, 12.12, 10, 1], radius: [0.55, 0.41, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.16, 0.3, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 10, leafCount: 21, leafStart: 0, leafSize: 0.965, leafVariance: 0.7, leafColor: 0x3d5c33, barkColor: 0x8a7a5c },
     oak_small: { seed: 30895, type: 'deciduous', levels: 3, angle: [54, 58, 32], children: [4, 2, 3], length: [28.08, 4.55, 9.78, 7.16], radius: [1, 1.02, 0.69, 1.19], sections: [16, 9, 8, 1], segments: [7, 5, 3, 3], start: [0, 0.49, 0.06, 0.12], taper: [0.73, 0.42, 0.69, 0.75], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 42, leafCount: 14, leafStart: 0.16, leafSize: 1.38, leafVariance: 0.7, leafColor: 0x5c8e45, barkColor: 0xffd791 },
 
-    // --- PALMERA EZ (nov-2026): tronco recto único (levels=1, sin hijos
-    // laterales hasta arriba) y corona de hojas radiales descendentes en la
-    // punta. Para palmera/datilera/washingtonia, abundantes en Sevilla y
-    // en toda ciudad cálida. Estilo del repo pero adaptado a porte real.
-    palm: { seed: 45107, type: 'evergreen', levels: 0, angle: [104, 0, 0], children: [0, 0, 0], length: [38, 1, 1, 1], radius: [0.85, 0.4, 0.7, 0.7], sections: [10, 1, 1, 1], segments: [8, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.55, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 68, leafCount: 26, leafStart: 0.9, leafSize: 5.2, leafVariance: 0.25, leafColor: 0x4f7a3d, barkColor: 0x9a7a56 },
+    // --- PALMERAS (nov-2026, REHECHAS): ya no son "árboles fractales con
+    // hojas en la punta". Cada una tiene sus medidas reales (fuste, base
+    // abultada, anillos, corona en arco) y las usa construirPalmera().
+    // Medidas: altura de referencia, radios del fuste en metros, proporción
+    // de follaje, radio de corona, apertura de frondes por nivel (grados
+    // respecto a la vertical), arqueo, número de frondes y ancho del limbo.
+    palm: { seed: 45107, type: 'evergreen', palm: {
+      altura: 12, radioBase: 0.34, radioAlto: 0.21, follaje: 0.86, corona: 0.26,
+      anillos: 18, anilloCada: 3, segmentos: 7, curva: 0.012,
+      frondes: 22, arqueo: 1.05, apertura: [34, 6, -26], largo: [1, 0.92, 0.8],
+      segmentosFronde: 4, grosorFronde: 0.055, anchoFronde: 0.62, datiles: false,
+      barkColor: 0x8c7a5e,
+      follajeHex: { primavera: 0x6f9a44, verano: 0x59893a, otono: 0x567f38, invierno: 0x4e7534 },
+    } },
     // --- 4 presets EZ MÁS (nov-2026): palmeras bien definidas por especie y
     // olivo. Datilera: tronco fino y esbelto con corona de hojas caídas;
     // canaria (Phoenix canariensis): tronco más grueso y corona densa y
     // esférica; washingtonia: la más alta, tronco columnar y hojas en abanico
     // más abiertas; olivo: tronco corto con copa baja, plateada y redondeada
-    // (siempre verde). Todos con gnarliness/twist/force a cero, como el resto.
-    palm_datilera: { seed: 45121, type: 'evergreen', levels: 0, angle: [96, 0, 0], children: [0, 0, 0], length: [42, 1, 1, 1], radius: [0.62, 0.4, 0.7, 0.7], sections: [12, 1, 1, 1], segments: [8, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.5, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 74, leafCount: 28, leafStart: 0.92, leafSize: 5.4, leafVariance: 0.2, leafColor: 0x5c8e45, barkColor: 0x8a6a48 },
-     palm_canaria: { seed: 45233, type: 'evergreen', levels: 0, angle: [88, 0, 0], children: [0, 0, 0], length: [40, 1, 1, 1], radius: [1.05, 0.4, 0.7, 0.7], sections: [12, 1, 1, 1], segments: [9, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.45, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 58, leafCount: 34, leafStart: 0.86, leafSize: 4.8, leafVariance: 0.18, leafColor: 0x4f7a3d, barkColor: 0x9a7a56 },
-     palm_washingtonia: { seed: 45347, type: 'evergreen', levels: 0, angle: [100, 0, 0], children: [0, 0, 0], length: [50, 1, 1, 1], radius: [0.78, 0.4, 0.7, 0.7], sections: [13, 1, 1, 1], segments: [8, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.55, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 80, leafCount: 30, leafStart: 0.93, leafSize: 5.0, leafVariance: 0.22, leafColor: 0x679245, barkColor: 0x7a5c40 },
+    // (siempre verde).
+    palm_datilera: { seed: 45121, type: 'evergreen', palm: {
+      altura: 12, radioBase: 0.40, radioAlto: 0.26, follaje: 0.84, corona: 0.28,
+      anillos: 20, anilloCada: 3, segmentos: 8, curva: 0.02,
+      frondes: 24, arqueo: 1.25, apertura: [30, 2, -32], largo: [1, 0.94, 0.8],
+      segmentosFronde: 4, grosorFronde: 0.07, anchoFronde: 0.86, datiles: true, grosorDatile: 0.055,
+      barkColor: 0x9c8460,
+      follajeHex: { primavera: 0x7aa04a, verano: 0x628f42, otono: 0x5c8a3c, invierno: 0x517d36 },
+    } },
+    palm_canaria: { seed: 45233, type: 'evergreen', palm: {
+      altura: 13, radioBase: 0.58, radioAlto: 0.40, follaje: 0.78, corona: 0.30,
+      anillos: 16, anilloCada: 1, segmentos: 8, curva: 0.008,
+      frondes: 28, arqueo: 0.85, apertura: [52, 22, -8], largo: [1, 0.95, 0.85],
+      segmentosFronde: 4, grosorFronde: 0.105, anchoFronde: 0.95, datiles: false,
+      barkColor: 0x7f6a4c,
+      follajeHex: { primavera: 0x6d9a40, verano: 0x5c8a3a, otono: 0x578336, invierno: 0x4f7a32 },
+    } },
+    palm_washingtonia: { seed: 45347, type: 'evergreen', palm: {
+      altura: 14, radioBase: 0.30, radioAlto: 0.24, follaje: 0.90, corona: 0.31,
+      anillos: 20, anilloCada: 2, segmentos: 7, curva: 0.016,
+      frondes: 22, arqueo: 0.45, apertura: [72, 46, 14], largo: [1, 0.92, 0.78],
+      segmentosFronde: 3, grosorFronde: 0.045, anchoFronde: 1.25, datiles: false,
+      barkColor: 0x8a6f50,
+      follajeHex: { primavera: 0x7aa650, verano: 0x6a9a45, otono: 0x638f40, invierno: 0x58823a },
+    } },
      olivo: { seed: 45459, type: 'evergreen', levels: 2, angle: [42, 52, 0], children: [5, 4, 3], length: [18.5, 9.4, 1, 1], radius: [1.6, 0.95, 0.7, 0.7], sections: [8, 6, 1, 1], segments: [7, 5, 3, 3], start: [0, 0.32, 0, 0], taper: [0.62, 0.55, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 34, leafCount: 16, leafStart: 0.28, leafSize: 1.35, leafVariance: 0.55, leafColor: 0x8aa07a, barkColor: 0x8a7a5c },
 palm_small: { seed: 45109, type: 'evergreen', levels: 0, angle: [98, 0, 0], children: [0, 0, 0], length: [24, 1, 1, 1], radius: [0.62, 0.4, 0.7, 0.7], sections: [8, 1, 1, 1], segments: [7, 3, 3, 3], start: [0, 0, 0, 0], taper: [0.5, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 62, leafCount: 20, leafStart: 0.88, leafSize: 3.6, leafVariance: 0.25, leafColor: 0x5c8e45, barkColor: 0x8a6a48 },
 
@@ -118,6 +159,22 @@ oak_medium: { seed: 33007, type: 'deciduous', levels: 3, angle: [54, 52, 32], ch
 oak_bushy: { seed: 31187, type: 'deciduous', levels: 3, angle: [58, 62, 36], children: [5, 4, 3], length: [20.6, 9.2, 6.4, 4.2], radius: [1.15, 0.72, 0.55, 0.8], sections: [10, 7, 5, 2], segments: [8, 5, 3, 3], start: [0, 0.55, 0.1, 0.12], taper: [0.7, 0.4, 0.66, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 46, leafCount: 13, leafStart: 0.2, leafSize: 1.55, leafVariance: 0.6, leafColor: 0x628f42, barkColor: 0x9b8460 },
 // pine_medium: conífera ovoide del repo → grevillea (roble sedoso, 13 m).
 pine_medium: { seed: 15883, type: 'evergreen', levels: 1, angle: [112, 22, 60], children: [70, 4, 5], length: [46.5, 28.4, 16.2, 1], radius: [0.92, 0.34, 0.7, 0.7], sections: [11, 9, 7, 5], segments: [8, 6, 4, 3], start: [0, 0.24, 0.18, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 26, leafCount: 24, leafStart: 0.12, leafSize: 1.5, leafVariance: 0.28, leafColor: 0x5e7f47, barkColor: 0x9a7a56 },
+// --- 4 PRESETS MÁS (nov-2026): los géneros del parque de María Luisa que
+// caían en 'generico'. Mismo criterio (gnarliness/twist/force a CERO y porte
+// real por delante de la silueta del repo).
+// aspen_tall: copa alta y densa, tronco columnar → ailanto (Ailanthus, 39).
+// Construido sobre la geometría DENSA de ash (probada en el resto del mapa)
+// con base de copa alta (0.52) para el porte columnar del árbol del cielo.
+aspen_tall: { seed: 21341, type: 'deciduous', levels: 3, angle: [50, 62, 50], children: [9, 5, 3], length: [43.5, 26.4, 11.8, 4.6], radius: [1.95, 0.64, 0.76, 0.7], sections: [12, 8, 6, 4], segments: [9, 6, 4, 3], start: [0, 0.34, 0.30, 0], taper: [0.7, 0.66, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 44, leafCount: 22, leafStart: 0.10, leafSize: 2.3, leafVariance: 0.65, leafColor: 0x679b48, barkColor: 0xb59a78 },
+// oak_compact: copa redondeada, cerrada y baja → lagunaria (37). Base de
+// oak_medium: copa ancha y llena desde media altura.
+oak_compact: { seed: 24709, type: 'deciduous', levels: 3, angle: [54, 54, 32], children: [7, 5, 3], length: [31, 20.1, 11.6, 7.16], radius: [1.62, 0.8, 0.69, 1.19], sections: [12, 8, 6, 2], segments: [9, 5, 3, 3], start: [0, 0.36, 0.08, 0.12], taper: [0.73, 0.42, 0.69, 0.75], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 44, leafCount: 26, leafStart: 0.12, leafSize: 2.15, leafVariance: 0.6, leafColor: 0x4f7a3d, barkColor: 0x8f7a5e },
+// pine_column: conífera cónica de ribera → taxodio (27). Base pine_large,
+// con la copa arrancando más baja y más ancha.
+pine_column: { seed: 17651, type: 'evergreen', levels: 1, angle: [120, 24, 60], children: [100, 5, 5], length: [46.8, 30.2, 16.2, 1], radius: [0.99, 0.35, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.13, 0.2, 0.3], taper: [0.68, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 20, leafCount: 30, leafStart: 0.05, leafSize: 1.6, leafVariance: 0.3, leafColor: 0x62704a, barkColor: 0x7f6a4e },
+// pine_narrow: columna densa y estrecha → tejo/Thuja (Thuja, Podocarpus).
+// Base pine_small, algo más corta y con más hijos para la columna tupida.
+pine_narrow: { seed: 13109, type: 'evergreen', levels: 1, angle: [104, 52, 60], children: [86, 6, 5], length: [36.5, 14.4, 11.8, 1], radius: [0.74, 0.4, 0.7, 0.7], sections: [12, 9, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.10, 0.24, 0.3], taper: [0.72, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 30, leafCount: 26, leafStart: 0.02, leafSize: 1.35, leafVariance: 0.28, leafColor: 0x3f6038, barkColor: 0x8a6a4a },
 // aspen_small: tronco corto y copa globosa del repo → algarrobo (Ceratonia).
 aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], children: [8, 4, 3], length: [26.8, 8.4, 9.2, 1], radius: [0.78, 0.46, 0.7, 0.7], sections: [10, 8, 6, 4], segments: [8, 6, 4, 3], start: [0, 0.48, 0.28, 0], taper: [0.5, 0.18, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 38, leafCount: 12, leafStart: 0.18, leafSize: 1.9, leafVariance: 0.62, leafColor: 0x4e7a38, barkColor: 0x8a7150 },
   };
@@ -167,6 +224,13 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
     grevillea: { preset: 'pine_medium', evergreen: true },      // Grevillea robusta: porte piramidal, hoja fina
     algarrobo: { preset: 'aspen_small', evergreen: true },      // Ceratonia siliqua: copa globosa, perenne
     laurel: { preset: 'oak_medium', evergreen: true },          // Laurus nobilis: copa densa, perenne
+    // --- 4 GÉNEROS MÁS (nov-2026): los que más se ven en el parque de María
+    // Luisa sin tipo propio (iban a 'generico', sin copa 3D). Cada uno con su
+    // preset del repo adaptado por silueta; nada existente cambia.
+    ailanto: { preset: 'aspen_tall', evergreen: false },        // Ailanthus altissima, 39 + 4 de su variedad
+    lagunaria: { preset: 'oak_compact', evergreen: true },      // Lagunaria patersonii (pica-pica), 37
+    taxodio: { preset: 'pine_column', evergreen: false },       // Taxodium distichum, caduca de ribera, 27
+    tejo: { preset: 'pine_narrow', evergreen: true },           // Thuja/Podocarpus, 9 de columna densa
   };
   // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
   // REUTILIZAN los presets de arriba según su silueta real (nada de presets
@@ -279,6 +343,187 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
   // se generan por slots. Los presets proceden de src/lib/presets.
   // ==========================================================================
   function construirEsqueleto(preset, rand) {
+    // (nov-2026) Las palmeras NO son árboles: un port de ramas fractales
+    // les daba un "árbol con hojas verdes en la punta" (el tronco se
+    // estrechaba como una rama y las hojas eran elipses horizontales
+    // flotando). Ahora tienen SU generador: fuste esbelto con base
+    // abultada, anillos y corona de frondes en arco. El resto de tipos
+    // sigue exactamente con el port de ez-tree.
+    if (preset.palm) return construirPalmera(preset, rand);
+    return construirArbol(preset, rand);
+  }
+
+  // ==========================================================================
+  // PALMERA (nov-2026). Geometrías pensadas para verse REALES a tamaño de
+  // calle y desde arriba:
+  //   - Fuste: tronco único, liso o escamoso, con base abultada y anillos
+  //     reales (no un cono), ligeramente curvado como muchos ejemplares de
+  //     alineado. El engrosamiento de la base es el detalle que más delata a
+  //     una palmera mal dibujada, y aquí está en todas.
+  //   - Corona: frondes en ARCO (suben del cogollo y bajan en curva) hechas
+  //     con segmentos encadenados, no planos sueltos. Phoenix: pinnadas y
+  //     péndulas; Washingtonia: abanico en V abierto; genérica: intermedia.
+  //   - Remate: cogollo cerrado en la punta + (datilera) racimos de dátiles.
+  // Todo determinista por semilla y con topes de presupuesto (memoria).
+  // ==========================================================================
+  function construirPalmera(preset, rand) {
+    var madera = [];
+    var hojas = [];
+    var frutos = [];
+    var M = preset.palm;
+    var hP = M.altura, radioBase = M.radioBase, radioAlto = M.radioAlto;
+    var radioCorona = hP * M.corona;
+    // Troncos/madera propios de cada especie: el árbol fractal trae una
+    // corteza más oscura (0x6b533c); las palmeras, su fuste pardo-gris.
+    var corteza = preset.palm ? preset.palm.barkColor : preset.barkColor;
+
+    // --- FUSTE: anillos apilados con radio que se afina desde la base.
+    var anillos = M.anillos;
+    var y = 0;
+    for (var a = 0; a < anillos; a++) {
+      var t0 = a / anillos, t1 = (a + 1) / anillos;
+      var y1 = hP * t1;
+      // Base abultada (0.62 → 1) en el primer 15 % y afilado suave arriba.
+      var rT0 = radioAlto + (radioBase - radioAlto) * Math.pow(1 - t0, 0.75) * (t0 < 0.15 ? 1 + 0.28 * (1 - t0 / 0.15) : 1);
+      if (t0 === 0) rT0 *= 0.86;  // el corte del suelo: base redondeada
+      var rT1 = radioAlto + (radioBase - radioAlto) * Math.pow(1 - t1, 0.75) * (t1 < 0.15 ? 1 + 0.28 * (1 - t1 / 0.15) : 1);
+      // curvatura suave del fuste (solo visual, simula ejemplares inclinados)
+      var cx0 = M.curva * hP * Math.sin(t0 * Math.PI * 0.85), cx1 = M.curva * hP * Math.sin(t1 * Math.PI * 0.85);
+      var geo = new THREE.CylinderGeometry(rT1, rT0, y1 - y, M.segmentos, 1);
+      geo.applyMatrix4(new THREE.Matrix4().makeTranslation((cx0 + cx1) * 0.5, (y + y1) * 0.5, 0));
+      madera.push(geo);
+      // Anillo/cicatriz: un toroide achatado cada `anilloCada` tramos (las
+      // cicatrices de las frondes viejas). Barato: solo si hay presupuesto.
+      if (a % M.anilloCada === 0 && a > 0) {
+        var tor = new THREE.CylinderGeometry(rT1 * 1.06, rT1 * 1.06, (y1 - y) * 0.55, M.segmentos, 1, true);
+        tor.applyMatrix4(new THREE.Matrix4().makeTranslation(cx1, y1, 0));
+        madera.push(tor);
+      }
+      y = y1;
+    }
+    // Coronamiento: cogollo verde compacto que cierra la punta del fuste.
+    var cxTop = M.curva * hP * Math.sin(Math.PI * 0.85);
+    var cogollo = new THREE.SphereGeometry(radioAlto * 1.9, 8, 6);
+    cogollo.scale(1, 0.75, 1);
+    cogollo.applyMatrix4(new THREE.Matrix4().makeTranslation(cxTop, hP, 0));
+    hojas.push(cogollo);
+
+    // --- CORONA: N frondes en arco, en TRES pisos (alto, medio y péndulo).
+    // Cada fronde es UNA cinta continua de anchura variable que serpentea
+    // por su raquis: antes eran quads sueltos por segmento, cada uno con su
+    // propia rotación, y la corona salía "trocada" con huecos entre trozos.
+    var nFrondes = M.frondes;
+    var semillaAng = rand() * Math.PI * 2;
+    var raizFronde = new THREE.Vector3(cxTop, hP - radioAlto * 0.35, 0);
+    for (var f = 0; f < nFrondes; f++) {
+      var nivel = f % 3;               // 0 = alta y arqueada, 1 = media, 2 = péndula
+      var ang = semillaAng + (f / nFrondes) * Math.PI * 2 + rand(0.16, -0.16);
+      // Ángulo de salida respecto a la horizontal: + sube, - cae.
+      var apertura = (M.apertura[nivel] + rand(8, -8)) * Math.PI / 180;
+      var largo = radioCorona * (M.largo[nivel] + rand(0.1, -0.1));
+      var segs = M.segmentosFronde;
+      var dirT = new THREE.Vector3(Math.cos(ang), 0, Math.sin(ang));
+      var dirL = new THREE.Vector3(-Math.sin(ang), 0, Math.cos(ang));
+
+      // 1) Raquis (nervio central): puntos de la curva del fronde.
+      var puntos = [raizFronde.clone()];
+      for (var s = 1; s <= segs; s++) {
+        var u = s / segs;
+        // Arco: sale casi recto y cae cada vez más (droop cuadrático).
+        var angActual = apertura - M.arqueo * u * u;
+        var paso = largo / segs;
+        var prev = puntos[puntos.length - 1];
+        puntos.push(new THREE.Vector3(
+          prev.x + dirT.x * Math.cos(angActual) * paso,
+          prev.y + Math.sin(angActual) * paso,
+          prev.z + dirT.z * Math.cos(angActual) * paso
+        ));
+      }
+      for (var r2 = 1; r2 < puntos.length; r2++) {
+        var u2 = r2 / segs;
+        var g = geometriaCilindro(puntos[r2 - 1].clone(), puntos[r2].clone(),
+          M.grosorFronde * (1 - 0.8 * u2), M.grosorFronde * (0.2 - 0.14 * u2) + 0.006, 3);
+        if (g) madera.push(g);
+      }
+
+      // 2) Limbo: cinta continua (perfil de foliolo) a lo largo del raquis.
+      //    Ancha en el centro, aguda en la punta; el perfil se estrecha en
+      //    la base (pecíolo) y se abre enseguida.
+      var wMax = M.anchoFronde * 0.5;
+      var fila = [];
+      for (var q = 0; q <= segs; q++) {
+        var uq = q / segs;
+        // forma del limbo: 0 en la base, máximo ~0.6 y afilado en la punta
+        var perfil = Math.sin(Math.min(1, uq * 1.02) * Math.PI) * (0.55 + 0.45 * (1 - uq));
+        var ancho = Math.max(0.025, wMax * perfil);
+        // ondulación suave del limbo (pennas de Phoenix y abanico de Washingtonia)
+        var ondula = Math.sin(uq * 9 + f * 1.7) * ancho * 0.18;
+        var p0 = puntos[q];
+        fila.push({
+          izq: new THREE.Vector3(p0.x + dirL.x * (ancho + ondula), p0.y - ancho * 0.28, p0.z + dirL.z * (ancho + ondula)),
+          der: new THREE.Vector3(p0.x - dirL.x * (ancho - ondula), p0.y - ancho * 0.28, p0.z - dirL.z * (ancho - ondula)),
+        });
+      }
+      var pos = [], nor = [];
+      var norHoja = new THREE.Vector3().crossVectors(dirL, new THREE.Vector3(0, 1, 0)).normalize();
+      if (!isFinite(norHoja.x)) norHoja.set(0, 1, 0);
+      for (var q2 = 0; q2 < fila.length; q2++) {
+        pos.push(fila[q2].izq.x, fila[q2].izq.y, fila[q2].izq.z);
+        pos.push(fila[q2].der.x, fila[q2].der.y, fila[q2].der.z);
+        nor.push(norHoja.x, norHoja.y, norHoja.z, norHoja.x, norHoja.y, norHoja.z);
+      }
+      var ind = [];
+      for (var q3 = 0; q3 < fila.length - 1; q3++) {
+        var a = q3 * 2, b = a + 1, c = a + 2, d = a + 3;
+        ind.push(a, c, b, b, c, d);
+      }
+      var cinta = new THREE.BufferGeometry();
+      cinta.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+      cinta.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(nor), 3));
+      cinta.setIndex(ind);
+      hojas.push(cinta);
+
+      // Dátiles colgando del cogollo (solo la datilera): racimos naranjas.
+      if (M.datiles && f % 2 === 0) {
+        var plan = largo * 0.6;
+        for (var d = 0; d < plan; d += 0.11) {
+          var lado = (d * 37.1 + f * 11.7) % 2 < 1 ? 1 : -1;
+          var anchura = wMax * (0.35 + 0.55 * Math.sin((d / plan) * Math.PI));
+          var off = lado * anchura * (0.25 + 0.65 * ((d * 91.3 + f) % 1));
+          var gd = new THREE.SphereGeometry(M.grosorDatile * (0.8 + 0.45 * ((d * 53.7 + f) % 1)), 5, 4);
+          gd.scale(1, 1.4, 1);
+          gd.applyMatrix4(new THREE.Matrix4().makeTranslation(
+            raizFronde.x + dirT.x * Math.cos(apertura) * d + dirL.x * off,
+            raizFronde.y + Math.sin(apertura) * d - 0.38 * d * d / plan - M.grosorDatile,
+            raizFronde.z + dirT.z * Math.cos(apertura) * d + dirL.z * off
+          ));
+          frutos.push(gd);
+        }
+      }
+    }
+    return { madera: madera, hojas: hojas, frutos: frutos };
+  }
+
+  // Segmento de cilindro entre dos puntos (a→b) con radios r0→r1. Reutilizado
+  // por la palmera; el resto del módulo usa el port de ez-tree.
+  function geometriaCilindro(a, b, r0, r1, segs) {
+    var dir = new THREE.Vector3().subVectors(b, a);
+    var largo = dir.length();
+    if (!(largo > 1e-5) || !(r0 > 0) || !(r1 > 0)) return null;
+    var g = new THREE.CylinderGeometry(Math.max(0.002, r1), Math.max(0.002, r0), largo, segs, 1, false);
+    var q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+    var medio = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
+    g.applyMatrix4(new THREE.Matrix4().compose(medio, q, new THREE.Vector3(1, 1, 1)));
+    return g;
+  }
+
+  // Corteza oscura del árbol fractal (el pardo que el motor plano ya usaba).
+  var CORTEZA_ARBOL = 0x6b533c;
+
+  // ==========================================================================
+  // ÁRBOLES (port de ez-tree: Tree.generateSkeleton/growBranch)
+  // ==========================================================================
+  function construirArbol(preset, rand) {
     var ramas = [];
     var hojas = [];
     var up = new THREE.Vector3(0, 1, 0);
@@ -381,6 +626,7 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
 
 
   function construirVariantes() {
+    var matDatile = null;   // material único para los frutos de todas las datileras
     EZ_TIPOS.forEach(function (tipo, k) {
       var especie = EZ_ESPECIES[tipo];
       var preset = EZ_PRESETS[especie.preset];
@@ -393,6 +639,7 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
         geoMadera.computeBoundingBox();
         var altReal = Math.max(2, geoMadera.boundingBox.max.y);
         var geoHojas = fusionar(ramaje.hojas);
+        var geoFrutos = ramaje.frutos && ramaje.frutos.length ? fusionar(ramaje.frutos) : null;
         geoHojas.computeBoundingBox(); geoHojas.computeBoundingSphere();
         // NORMALIZACIÓN (nov-2026, FIX gigantes de verdad): los presets del
         // repo nacen en unidades arbitrarias (oak_large ~95, pine ~50). Antes
@@ -405,16 +652,31 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
         var fNorm = (EZ_ALTURAS[tipo] || 10) / altReal;
         geoMadera.scale(fNorm, fNorm, fNorm);
         geoHojas.scale(fNorm, fNorm, fNorm);
+        if (geoFrutos) geoFrutos.scale(fNorm, fNorm, fNorm);
         geoMadera.computeBoundingBox();
         altReal = EZ_ALTURAS[tipo] || 10;
+        // Madera de LA ESPECIE: palmera con su fuste pardo-gris; el resto
+        // con el pardo oscuro de siempre (0x594332, no cambiado).
+        barkMat.color.setHex(preset.palm ? (preset.palm.barkColor || 0x8c7a5e) : 0x594332);
+        if (preset.palm) barkMat.roughness = 0.92;
         var meshT = new THREE.InstancedMesh(geoMadera, barkMat, MAX_ARBOL);
         meshT.count = 0; meshT.frustumCulled = false;
         scene.add(meshT);
         var mallasHojas = Object.create(null);
         Object.keys(EZ_ESTACIONES[vfEstacionKey(especie)]).forEach(function (est) {
           var color = EZ_ESTACIONES[vfEstacionKey(especie)][est].color;
+          // La palmera conserva SIEMPRE su verde de fronda (el de la especie),
+          // solo algo más apagado en invierno; no debe pasar a ocre/otoño.
+          if (preset.palm) color = preset.palm.follajeHex ? preset.palm.follajeHex[est] || preset.palm.follajeHex.verano : color;
           var key = String(color);
           if (mallasHojas[key]) return;
+          // (nov-2026) Las HOJAS de palmera no pueden llevar el emisivo 0.55
+          // del resto: los frondes son cintas anchas que se miran de plano
+          // desde el mapa en picado y, con ese emisivo, la corona salía como
+          // un disco verde plano sin volumen. Con 0.22 las cintas conservan
+          // luz propia (no se apagan en contraluz) pero el sol marca el
+          // arqueo de cada fronde y la corona se lee en 3D.
+          var esPalmaFollaje = !!preset.palm;
           var material = new THREE.MeshStandardMaterial({
             color: color, flatShading: true, roughness: 1.0, metalness: 0.0,
             vertexColors: false, transparent: false,
@@ -424,19 +686,36 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
             // albizia y el naranjo, el emisivo del PROPIO color de la hoja al
             // 0.55 mantiene las copas legibles desde cualquier pitch y deja
             // que el sol real siga marcando el sombreado en las caras de luz.
-            emissive: color, emissiveIntensity: 0.55, side: THREE.DoubleSide,
+            emissive: color, emissiveIntensity: esPalmaFollaje ? 0.22 : 0.55,
+            side: THREE.DoubleSide,
           });
           var meshH = new THREE.InstancedMesh(geoHojas, material, MAX_ARBOL);
           meshH.count = 0; meshH.frustumCulled = false;
           scene.add(meshH);
           mallasHojas[key] = meshH;
         });
+        // Dátiles (solo datilera): esferas naranjas achatadas colgando del
+        // cogollo, un solo material compartido por la variante.
+        var meshF = null;
+        if (geoFrutos) {
+          if (!matDatile) matDatile = new THREE.MeshStandardMaterial({
+            color: 0xd98a2b, flatShading: true, roughness: 0.75, metalness: 0,
+            emissive: 0xa8631c, emissiveIntensity: 0.35,
+          });
+          meshF = new THREE.InstancedMesh(geoFrutos, matDatile, MAX_ARBOL);
+          meshF.count = 0; meshF.frustumCulled = false;
+          scene.add(meshF);
+        }
         variantes[tipo].push({
           tipo: tipo, alturaModelo: altReal,
           techoEscala: (EZ_ALTURAS[tipo] || 10) / altReal,
-          meshTroncos: meshT, meshHojas: mallasHojas,
+          meshTroncos: meshT, meshHojas: mallasHojas, meshFrutos: meshF,
           preset: preset, especie: especie, geoHojasActual: geoHojas,
         });
+        // Las hojas se resuelven SOLO en aplicarEstacion() (una pasada para
+        // todos los tipos). Aquí se ocultan para que un cambio de tipo no
+        // pueda dejar visible una época de otro árbol.
+        Object.keys(mallasHojas).forEach(function (kc) { mallasHojas[kc].visible = false; });
       }
     });
   }
@@ -451,13 +730,22 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
       variantes[tipo].forEach(function (vf) {
         var tabla = EZ_ESTACIONES[vfEstacionKey(vf.especie)];
         var est = tabla[estacion] || tabla.verano;
-        vf.meshTroncos.material.color.setHex(0x594332);
+        // Corteza: la de la ESPECIE si la tiene (palmeras), si no el pardo de
+        // siempre. Cada variante tiene su propio material, así que esto no
+        // afecta a ningún otro tipo.
+        var palma = vf.preset.palm;
+        vf.meshTroncos.material.color.setHex(palma && palma.barkColor ? palma.barkColor : 0x594332);
         Object.keys(vf.meshHojas).forEach(function (color) {
           var mallaHojas = vf.meshHojas[color];
-          mallaHojas.visible = color === String(est.color);
-          mallaHojas.material.color.setHex(est.color);
-          mallaHojas.material.emissive.setHex(est.color);
+          // La palmera conserva el verde de fronda todo el año (solo oscurece
+          // un poco en invierno): nunca dorada, nunca desnuda.
+          var hex = est.color;
+          if (palma && palma.follajeHex) hex = palma.follajeHex[estacion] || palma.follajeHex.verano;
+          mallaHojas.visible = String(hex) === color;
+          mallaHojas.material.color.setHex(hex);
+          mallaHojas.material.emissive.setHex(hex);
         });
+        if (vf.meshFrutos) vf.meshFrutos.visible = !!(palma && palma.datiles);
       });
     });
     refrescarInstancias(true);
@@ -573,14 +861,27 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
           // Modelos YA normalizados a EZ_ALTURAS: la escala solo ajusta al
           // dato real del árbol (altura medida), con margen estrecho.
           var deseada = Math.min(alturaModeloDeseada, (EZ_ALTURAS[tipo] || 10) * 1.25);
-          var sArbol = Math.max(0.5, Math.min(1.25, deseada / vf.alturaModelo));
+          // (nov-2026) PALMERAS: su porte real manda, sin encogerse. El
+          // inventario mide bien la altura, pero una datilera de 7 m no debe
+          // quedar a ras del seto. Se acepta un poco más de recorrido de
+          // escala SOLO en palmáceas (0.62 → 1.35) y se mantiene el clamp
+          // estrecho de siempre para el resto de árboles.
+          var esPalma = !!vf.preset.palm;
+          var sArbol = esPalma
+            ? Math.max(0.62, Math.min(1.35, deseada / vf.alturaModelo))
+            : Math.max(0.5, Math.min(1.25, deseada / vf.alturaModelo));
           escV.set(s * sArbol, s * sArbol, s * sArbol);
           m4.compose(TMP_V3.set(mc.x - REF.x, mc.y - REF.y, mc.z - REF.z), QUAT_UP, escV);
           vf.meshTroncos.setMatrixAt(i2, m4);
           for (var h = 0; h < mallasHojas.length; h++) mallasHojas[h].setMatrixAt(i2, m4);
+          if (vf.meshFrutos) vf.meshFrutos.setMatrixAt(i2, m4);
         }
         vf.meshTroncos.count = losMios.length;
         vf.meshTroncos.instanceMatrix.needsUpdate = true;
+        if (vf.meshFrutos) {
+          vf.meshFrutos.count = losMios.length;
+          vf.meshFrutos.instanceMatrix.needsUpdate = true;
+        }
         for (var h2 = 0; h2 < mallasHojas.length; h2++) {
           mallasHojas[h2].count = losMios.length;
           mallasHojas[h2].instanceMatrix.needsUpdate = true;

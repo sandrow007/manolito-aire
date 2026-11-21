@@ -11271,27 +11271,33 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   /* ---------------- Tipología de árboles (forma + sombra realista) ---------------- */
 
   const TIPOS_ARBOL = {
-    palmera: {
-      keywords: ['phoenix', 'washingtonia', 'palma', 'palm', 'date palm', 'datilera'],
-      alturaMediaM: 10,
-      radioCopaMedioM: 2.0,
-      forma: 'palmera',
-      color: '#7a9b4a',
-    },
-    // --- 4 palmeras/porte palmáceo con modelo EZ propio (nov-2026): se declaran
-    // ANTES de 'palmera' para que sus keywords específicas ganen a las genéricas
-    // ('palma', 'palm', 'phoenix'...) de esa entrada.
+    // --- PALMÁCEAS (nov-2026, orden corregido). Antes 'palmera' iba PRIMERA con
+    // las keywords genéricas ('phoenix', 'washingtonia', 'palm'…) y se comía a
+    // las específicas: TODAS las Phoenix acababan como 'palmera' y un
+    // "Pinus canariensis" salía como palmera canaria. Ahora:
+    //   1º datilera y canaria (keywords de especie, con el género Phoenix)
+    //   2º washingtonia (género Washingtonia)
+    //   3º pino (Pinus…, sigue ganando a 'canariensis' por 'pinus')
+    //   4º 'palmera' genérica, la última de la familia.
+    // Albizia y naranjo NO se tocan: quedan donde estaban.
     palmera_datilera: {
-      keywords: ['dactylifera', 'datilera', 'dátil', 'date palm'],
+      keywords: ['dactylifera', 'datilera', 'dátil', 'date palm', 'phoenix dactylifera'],
       alturaMediaM: 12,
       radioCopaMedioM: 2.2,
       forma: 'palmera',
       color: '#7a9b4a',
     },
     palmera_canaria: {
-      keywords: ['canariensis', 'canary', 'palmera canaria'],
+      keywords: ['phoenix canariensis', 'palmera canaria', 'canary island date palm'],
       alturaMediaM: 13,
       radioCopaMedioM: 2.6,
+      forma: 'palmera',
+      color: '#7a9b4a',
+    },
+    palmera_washingtonia: {
+      keywords: ['washingtonia', 'palmera de california', 'abanico'],
+      alturaMediaM: 14,
+      radioCopaMedioM: 2.4,
       forma: 'palmera',
       color: '#7a9b4a',
     },
@@ -11302,27 +11308,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       forma: 'conica',
       color: '#2d5a3d',
     },
-    // --- 4 porte palmáceo/olivo con modelo EZ propio (nov-2026): después de
-    // 'pino' a propósito, para que "Pinus canariensis" siga siendo pino y no
-    // palmera canaria por la keyword 'canariensis'.
-    palmera_datilera: {
-      keywords: ['dactylifera', 'datilera', 'dátil', 'date palm'],
-      alturaMediaM: 12,
-      radioCopaMedioM: 2.2,
-      forma: 'palmera',
-      color: '#7a9b4a',
-    },
-    palmera_canaria: {
-      keywords: ['canariensis', 'canary', 'palmera canaria'],
-      alturaMediaM: 13,
-      radioCopaMedioM: 2.6,
-      forma: 'palmera',
-      color: '#7a9b4a',
-    },
-    palmera_washingtonia: {
-      keywords: ['washingtonia', 'palmera de california', 'abanico'],
-      alturaMediaM: 14,
-      radioCopaMedioM: 2.4,
+    // Palmáceo sin especie reconocible (Phoenix sp, "palmera canaria" abreviada
+    // "canariensis"…): va DESPUÉS de pino, así "Pinus canariensis" sigue
+    // siendo pino por 'pinus' y no se lo roba la 'canariensis' de la palmera.
+    palmera: {
+      keywords: ['phoenix', 'palma', 'palm', 'datilera', 'canariensis'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 2.0,
       forma: 'palmera',
       color: '#7a9b4a',
     },
@@ -11591,6 +11583,45 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       forma: 'redondeada',
       color: '#7fb069',
     },
+    // --- 4 GÉNEROS MÁS (nov-2026): los ejemplares del parque de María Luisa
+    // que caían en 'generico' (sin tipo, sin copa 3D). Solo entradas nuevas,
+    // DESPUÉS de 'generico' a propósito: no cambian la clasificación de
+    // ninguna especie existente (sus keywords son únicas) y el bucle de
+    // clasificarArbol se queda con la primera que encaje como hasta ahora.
+    ailanto: {
+      keywords: ['ailanthus', 'ailanto', 'árbol del cielo', 'arbol del cielo', 'tree of heaven', 'altissima'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.0,
+      forma: 'oval_alargada',
+      color: '#679b48',
+    },
+    lagunaria: {
+      keywords: ['lagunaria', 'patersonii', 'pica pica', 'pica-pica'],
+      alturaMediaM: 9,
+      radioCopaMedioM: 3.5,
+      forma: 'ancha_redondeada',
+      color: '#4f7a3d',
+      // Solo si no ha encajado nada más específico (ver segunda pasada).
+      debil: true,
+    },
+    taxodio: {
+      keywords: ['taxodium', 'taxodio', 'ciprés calvo', 'cipres calvo', 'bald cypress'],
+      alturaMediaM: 16,
+      radioCopaMedioM: 3.5,
+      forma: 'conica',
+      color: '#62704a',
+    },
+    tejo: {
+      keywords: ['thuja', 'tuya', 'tejo', 'yew', 'podocarpus', 'podocarpo', 'araucaria'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 1.8,
+      forma: 'conica',
+      color: '#3f6038',
+      // Segundo pase. OJO: 'araucaria' contiene 'arauca' y podría colarse en
+      // descripciones de otras especies; 'tejo' no se parece a nada ya
+      // clasificado (ni a 'té', ni a 'plátano'), así que aquí no hay colisión.
+      debil: true,
+    },
   };
 
   // Expuestas para js/arboles-sevilla.js: el inventario oficial del Ayto.
@@ -11628,13 +11659,25 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       (tags['wikipedia:genus'] || '').replace(/^[a-z-]+:/i, ''),
     ].join(' ').toLowerCase();
 
-    for (const [tipo, info] of Object.entries(TIPOS_ARBOL)) {
-      if (tipo === 'generico') continue;
-      for (const kw of info.keywords) {
-        if (texto.includes(kw.toLowerCase())) return { tipo, ...info };
+    // DOS PASES (nov-2026): primero las especies con keywords fuertes (las de
+    // siempre, en el mismo orden) y, solo si ninguna encaja, las nuevas con
+    // keywords cortas o ambíguas marcadas 'debil'. Así una descripción como
+    // "Platanus, pica pica en la corteza" sigue siendo plátano y el ajo/tejo
+    // no se roba ejemplares de otros árboles. Si no hay coincidencia, se
+    // devuelve 'generico' exactamente como antes.
+    function buscarPorKeyword(texto, debiles) {
+      for (const [tipo, info] of Object.entries(TIPOS_ARBOL)) {
+        if (tipo === 'generico') continue;
+        if (!!info.debil !== debiles) continue;
+        for (const kw of info.keywords) {
+          if (texto.includes(kw.toLowerCase())) return { tipo, ...info };
+        }
       }
+      return null;
     }
-    return { tipo: 'generico', ...TIPOS_ARBOL.generico };
+
+    return buscarPorKeyword(texto, false) || buscarPorKeyword(texto, true) ||
+      { tipo: 'generico', ...TIPOS_ARBOL.generico };
   }
 
   function estimarDimensionesArbol(tags, clasificacion) {

@@ -12398,6 +12398,34 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         }
         return false;
       };
+      // (nov-2026) ¿La malla 3D de arboles-3d.js dibuja ESTE ejemplar? Ese
+      // motor empareja por cercanía al centro con tope de 40: los que quedan
+      // fuera NO tienen malla. Aquí se replica su criterio con su lista real
+      // y su mismo radio (1,5-5 m): el motor plano calla las copas SOLO del
+      // ejemplar que de verdad est. en 3D y el resto (fuera del tope 40, o
+      // fuera de Sevilla) mantiene las suyas de siempre.
+      const mallaTieneEsteEjemplar = (a, lon, lat) => {
+        try {
+          const lista = (typeof window.manolitAireArboles3D === 'function')
+            ? window.manolitAireArboles3D() : null;
+          if (!Array.isArray(lista)) return true; // sin hook: comportamiento de antes
+          const c = map.getCenter();
+          const cerca = lista.slice().sort((p, q) => {
+            const dp = (p.lon - c.lng) ** 2 + (p.lat - c.lat) ** 2;
+            const dq = (q.lon - c.lng) ** 2 + (q.lat - c.lat) ** 2;
+            return dp - dq;
+          }).slice(0, 40);
+          const cosLat = Math.cos(lat * Math.PI / 180);
+          for (const p of cerca) {
+            if (p.tipo !== a.tipo) continue;
+            const dx = (p.lon - lon) * cosLat * 111320;
+            const dy = (p.lat - lat) * 110540;
+            const radio = Math.max(1.5, Math.min(5, p.radioCopaM || 2.5));
+            if (dx * dx + dy * dy <= radio * radio) return true;
+          }
+          return false;
+        } catch (e) { return true; }
+      };
 
       const features = [];
       for (const a of enVista) {
@@ -12448,10 +12476,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         // (nov-2026) NARANJO Y ALBIZIA: junto a su malla 3D, el motor plano
         // dejaba ADEMÁS sus DOS copas planas encima (baseM 3,0 + 5,2 m desde
         // el suelo): una capa verde plana que tapaba la malla real por arriba
-        // y convertía el naranjo en "un árbol con hojas" (superpuestas al
-        // dosel 3D). Aquí solo se pinta el TRONCO; la malla viva y su peso lo
-        // siguen llevando js/arboles-3d.js, intacto. Igual que las palmeras.
+        // y convertía el naranjo en "un árbol con hojas".
+        // OJO, DOS MOTORES DISTINTOS: maps de arboles-3d.js dibuja solo 40
+        // (los más cercanos) dentro de la vista; el resto NO tiene malla.
+        // Por eso hay que comprobar que ESTE ejemplar está realmente entre los
+        // 40 dibujados (dirección + radio de copa), no solo que haya un
+        // naranjo/albizia cerca: antes, lo que quedaba fuera del tope 40 se
+        // quedaba sin nada encima del tronco.
         const usa3DPropio = (a.tipo === 'naranjo' || a.tipo === 'albizia') && cercaDeProtegido3D(lon, lat);
+        const loDibujaMalla3D = usa3DPropio && mallaTieneEsteEjemplar(a, lon, lat);
 
         if (usaCopaRealista) {
           const bultos = crearCopaRealista(a, forma, alturaTroncoM, factorHoja, feno, lon, lat);
@@ -12467,7 +12500,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           const copa = crearFormaCopa(a.punto, radioCorona / 1000, 'palmera', lon, lat);
           copa.properties = { altura: a.altura, baseM: alturaTroncoM * 0.995, alturaTotalM: a.altura, nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
           features.push(copa);
-        } else if (usa3DPropio) {
+        } else if (usa3DPropio && loDibujaMalla3D) {
           // Tronco ya pintado: las copas planas sobraban encima de la malla.
         } else {
           // Copa inferior: forma realista según especie. En las especies con
@@ -12484,6 +12517,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           const copaSuperior = crearFormaCopa(a.punto, radioSuperior / 1000, formaSuperior, lon, lat + 0.0001);
           copaSuperior.properties = { altura: a.altura, baseM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), alturaTotalM: alturaTroncoM + (a.altura - alturaTroncoM) * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
           features.push(copaSuperior);
+        }
+        // (nov-2026) TRASVASE AL MOTOR EZ: si el módulo no alcanza este
+        // ejemplar (200 más cercanos por vista, o un OSM con nombre raro que
+        // el motor EZ no dibuja), aquí NO puede quedarse sin copa. En ese caso
+        // se le devuelven las dos copas planas de siempre: un árbol nunca
+        // desaparece. Solo aplica a tipos que EZ dibuja, así que fuera de
+        // Sevilla (solo OSM) todo sigue exactamente igual que siempre.
+        if (usa3DPropio && !loDibujaMalla3D) {
+          const rI = a.radioCopaM * factorHoja;
+          const ci = crearFormaCopa(a.punto, rI / 1000, forma, lon, lat);
+          ci.properties = { altura: a.altura, baseM: alturaTroncoM, alturaTotalM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
+          features.push(ci);
+          const cs = crearFormaCopa(a.punto, (a.radioCopaM * 0.65) / 1000, forma, lon, lat + 0.0001);
+          cs.properties = { altura: a.altura, baseM: alturaTroncoM + alturaCopaInferiorM * (0.5 + 0.5 * factorHoja), alturaTotalM: alturaTroncoM + (a.altura - alturaTroncoM) * (0.5 + 0.5 * factorHoja), nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
+          features.push(cs);
         }
 
         // ------- Frutos, flores y hojas cayendo (v8, solo naranjo/albizia) -------

@@ -12209,10 +12209,28 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       return limpia || null;
     }
 
+    // (nov-2026) SEVILLA: con el inventario oficial de arbolado del Ayto.
+    // COMPLETO (js/arboles-sevilla.js), los nodos de OSM SIN IDENTIFICAR
+    // (sin species/genus/nota de nombre → caen en tipo 'generico') sobran:
+    // solo pintan el árbol básico con hojas encima de un dato oficial vecino
+    // o de un hueco real del mapa. Regla: dentro del bbox de Sevilla, un nodo
+    // OSM sin ninguna etiqueta identificativa no se dibuja. FUERA de Sevilla
+    // no cambia nada (ahí OSM sin etiquetar es lo único que hay).
+    const SEVILLA_BBOX = { oeste: -6.12, este: -5.80, sur: 37.28, norte: 37.46 };
+    function dentroDeSevilla(lon, lat) {
+      return lon >= SEVILLA_BBOX.oeste && lon <= SEVILLA_BBOX.este &&
+        lat >= SEVILLA_BBOX.sur && lat <= SEVILLA_BBOX.norte;
+    }
+
     function procesarElementoOSM(el) {
       if (el.type !== 'node' || el.lat == null || el.lon == null) return null;
       const tags = el.tags || {};
       const clasificacion = clasificarArbol(tags);
+      // Filtro anti-genéricos de Sevilla (ver comentario arriba). Las
+      // hileras sintéticas (tree_row) sin especie también caen: en Sevilla
+      // el inventario oficial ya trae árbol por árbol con especie medida.
+      if (clasificacion.tipo === 'generico' && !tags.species && !tags['species:es'] &&
+        !tags.genus && !tags['genus:es'] && !tags.name && dentroDeSevilla(el.lon, el.lat)) return null;
       const { altura, radioCopaM } = estimarDimensionesArbol(tags, clasificacion);
       if (altura <= CONFIG.alturaMinimaM) return null;
       const nombre = tags.species || tags['species:es'] || tags.genus || nombreDeWikipedia(tags) || clasificacion.tipo || 'Árbol';

@@ -91,7 +91,13 @@
     oak: { seed: 35729, type: 'deciduous', levels: 3, angle: [54, 58, 32], children: [6, 4, 3], length: [37.24, 11.08, 12.39, 7.16], radius: [1.41, 0.90, 0.69, 1.19], sections: [8, 6, 3, 1], segments: [7, 5, 3, 3], start: [0, 0.49, 0.06, 0.12], taper: [0.73, 0.42, 0.69, 0.75], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 42, leafCount: 18, leafStart: 0.16, leafSize: 2.5, leafVariance: 0.7, leafColor: 0x5c8e45, barkColor: 0xffd791 },
     ash: { seed: 36330, type: 'deciduous', levels: 3, angle: [48, 75, 60], children: [7, 4, 3], length: [43.47, 27.14, 9.51, 4.6], radius: [2, 0.63, 0.76, 0.7], sections: [12, 8, 6, 4], segments: [12, 6, 4, 3], start: [0, 0.23, 0.33, 0], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 55, leafCount: 16, leafStart: 0, leafSize: 2.67, leafVariance: 0.72, leafColor: 0x5c8e45, barkColor: 0xffd791 },
     aspen: { seed: 18020, type: 'deciduous', levels: 2, angle: [75, 32, 7], children: [10, 3, 3], length: [50, 6.07, 11.19, 1], radius: [0.72, 0.41, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.59, 0.35, 0], taper: [0.37, 0.13, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 30, leafCount: 11, leafStart: 0.124, leafSize: 2.5, leafVariance: 0.7, leafColor: 0xa6c882, barkColor: 0xffd791 },
-    pine: { seed: 13977, type: 'evergreen', levels: 1, angle: [110, 16, 60], children: [82, 3, 5], length: [50, 23.87, 14.08, 1], radius: [1.05, 0.36, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.27, 0.14, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 39, leafCount: 30, leafStart: 0.09, leafSize: 1.435, leafVariance: 0.201, leafColor: 0x4f7a3d, barkColor: 0xffffff },
+        // (nov-2026) PINO REHECHO: antes salía un árbol de hojas cualquiera.
+    // Lo que hace que PAREZCA PINO: (1) ramas de verticilo casi HORIZONTALES
+    // (72° respecto a la vertical) saliendo desde MUY ABAJO del tronco (start
+    // 0.06), que con la copa arriba dan la silueta cónica; (2) MUCHAS acículas
+    // finas (leafCount 36) y PEQUEÑAS (0.95) pegadas a la rama (leafAngle 24°):
+    // masa de agujas, no elipses de hoja ancha; (3) verde oscuro de conífera.
+    pine: { seed: 13977, type: 'evergreen', levels: 1, angle: [110, 72, 60], children: [70, 3, 5], length: [50, 21.5, 14.08, 1], radius: [1.05, 0.36, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.06, 0.14, 0.3], taper: [0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 24, leafCount: 36, leafStart: 0.04, leafSize: 0.95, leafVariance: 0.30, leafColor: 0x2f5230, barkColor: 0x6b4f35 },
 
     // --- 4 presets EZ-TREE NUEVOS (nov-2026), tomados tal cual del repo
     // dgreenheck/ez-tree (MIT) para las 4 especies más abundantes de Sevilla

@@ -347,7 +347,18 @@
 // (4) Madera por especie en el motor EZ (palmeras con su pardo-gris de fuste).
 // Cambian js/arboles-ez-3d.js, js/shadows-route.js, index.html (?v=) y sw.js
 // (purga de caché).
-const VERSION = '2026-11-21-a-palmeras-nuevas';
+// 2026-11-21-b: FIX DE ALTURA EN PALMERAS + PURGA DE CACHÉ DEL SW.
+// (1) El fix de palmeras anteriores (2026-11-21-a) y este NO llegaban al
+//     navegador: arboles-ez-3d.js es cache-first en el SW y la VERSION no
+//     había cambiado, así que seguía sirviéndose la copia vieja. Subir
+//     VERSION borra las cachés viejas y fuerza la descarga del módulo nuevo.
+// (2) PALMERAS: las 147 con altura 1-5 m del inventario (y 26 sin dato)
+//     salían todas enanas e iguales por el suelo de 6 m de
+//     estimarDimensionesArbol. Ahora, si la altura no es verosímil (<6 m),
+//     manda el porte adulto de la ESPECIE (datilera 12 m, canaria 13 m,
+//     washingtonia 14 m); los datos fiables (>=6 m) siguen mandando.
+// Cambian js/arboles-ez-3d.js, index.html (?v=) y sw.js.
+const VERSION = '2026-11-21-b-palmeras-altura';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

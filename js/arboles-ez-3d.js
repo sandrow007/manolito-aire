@@ -857,7 +857,17 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
           var ar = losMios[i2];
           var mc = maplibregl.MercatorCoordinate.fromLngLat({ lng: ar.lon, lat: ar.lat }, 0);
           var s = metrosAMercator(ar.lat);
+          // (nov-2026) FIX DE ALTURA EN PALMERAS: el inventario oficial trae
+          // 147 palmeras con altura 1-5 m (ejemplares jóvenes o mal medidas)
+          // y 26 sin dato; estimarDimensionesArbol() les aplica su suelo de
+          // 6 m y salían TODAS iguales, enanas y a media altura. Como el
+          // modelo ya está normalizado a la altura de la ESPECIE, aquí el
+          // porte adulto manda: el dato de altura solo se respeta cuando es
+          // verosímil (>= 6 m), como ya hacía el clamp de palmáceas.
           var alturaModeloDeseada = ar.altura || EZ_ALTURAS[tipo];
+          if (vf.preset.palm && (!ar.altura || ar.altura < 6)) {
+            alturaModeloDeseada = EZ_ALTURAS[tipo] || 12;
+          }
           // Modelos YA normalizados a EZ_ALTURAS: la escala solo ajusta al
           // dato real del árbol (altura medida), con margen estrecho.
           var deseada = Math.min(alturaModeloDeseada, (EZ_ALTURAS[tipo] || 10) * 1.25);

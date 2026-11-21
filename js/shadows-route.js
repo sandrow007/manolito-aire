@@ -11577,6 +11577,28 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       forma: 'oval_alargada',
       color: '#4e7a42',
     },
+    // --- FIRMIANA SIMPLEX (árbol de las pagodas): 1.085 ejemplares en el
+    // inventario oficial y clásico del Parque de María Luisa. Copa ovalada
+    // y elevada, tronco derecho y liso, hoja grande de plátano, verde claro.
+    firmiana: {
+      keywords: ['firmiana', 'firmiana simplex', 'arbol de las pagodas', 'árbol de las pagodas', 'parasol chino', 'chinese parasol', 'sterculia platanifolia'],
+      alturaMediaM: 11,
+      radioCopaMedioM: 2.8,
+      forma: 'oval_alargada',
+      color: '#7fae52',
+    },
+    // --- FICUS DE COPA ALTA: microcarpa, benjamina, elastica, retusa...
+    // Cientos de ejemplares en el inventario oficial y los árboles más
+    // grandes del parque. Va ANTES de 'ficus' (que usa solo la palabra
+    // genérica): así "Ficus microcarpa" recibe su copa densa y real y
+    // "Ficus sp" sigue clasificándose exactamente igual que siempre.
+    ficus_alto: {
+      keywords: ['ficus microcarpa', 'ficus benjamina', 'ficus nitida', 'ficus retusa', 'ficus elastica', 'ficus macrophylla', 'ficus rubiginosa', 'ficus lyrata', 'laurel de indias', 'higuera de hoja de laurel', 'benjamin fig', 'weeping fig', 'indian laurel fig'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#4f8a3c',
+    },
     generico: {
       alturaMediaM: CONFIG.alturaEstimadaSinDatoM,
       radioCopaMedioM: CONFIG.radioCopaPorDefectoM,
@@ -12426,6 +12448,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (usaCopaRealista) {
           const bultos = crearCopaRealista(a, forma, alturaTroncoM, factorHoja, feno, lon, lat);
           for (const b of bultos) features.push(b);
+        } else if (forma === 'palmera' && cercaDeEZ3D(lon, lat)) {
+          // (nov-2026) PALMERA: UNA SOLA CORONA, LA DEL 3D. Mientras el motor
+          // EZ dibujaba la palmera se pintaba ADEMAS una copa plana de dos
+          // pisos: el resultado parecía "un árbol con hojas" en vez de un
+          // fuste con corona. Con el 3D activo, este es el ÚNICO feature de
+          // copa (la corona a ras de frondes) para que sombras y solape
+          // sigan teniendo su silueta sin duplicar el dosel.
+          const radioCorona = a.radioCopaM * 0.90 * factorHoja;
+          const copa = crearFormaCopa(a.punto, radioCorona / 1000, 'palmera', lon, lat);
+          copa.properties = { altura: a.altura, baseM: alturaTroncoM * 0.995, alturaTotalM: a.altura, nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
+          features.push(copa);
         } else {
           // Copa inferior: forma realista según especie. En las especies con
           // fenología (naranjo/albizia) la copa se encoge con la pérdida de

@@ -358,7 +358,18 @@
 //     manda el porte adulto de la ESPECIE (datilera 12 m, canaria 13 m,
 //     washingtonia 14 m); los datos fiables (>=6 m) siguen mandando.
 // Cambian js/arboles-ez-3d.js, index.html (?v=) y sw.js.
-const VERSION = '2026-11-21-b-palmeras-altura';
+// 2026-11-21-c: DOS CORONAS EN LA PALMERA (la causa de "árboles con hojas").
+// (1) Con el motor EZ 3D activo, la palmera pintaba ADEMÁS la copa plana de
+//     siempre, y con DOS pisos (uno de 0,15 y otro de 0,05 de la altura por
+//     encima): una columna de hasta 4,7 m de follaje plano encima de su
+//     fuste, de ahí que parecieran árboles. Ahora, junto al 3D, hay UN solo
+//     feature de corona (el de la foto, a ras de frondes). Sin EZ, etc.
+// (2) 2 árboles más del parque con modelo EZ propio: firmiana (árbol de las
+//     pagodas, 1.085) y ficus_alto (microcarpa/benjamina/elastica, 602).
+// (3) Altura de palmeras: si la del inventario no es verosímil (<6 m), manda
+//     el porte de la especie (datilera 12, canaria 13, washingtonia 14 m).
+// Cambian js/shadows-route.js, js/arboles-ez-3d.js, index.html (?v=) y sw.js.
+const VERSION = '2026-11-21-c-palmera-una-corona';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

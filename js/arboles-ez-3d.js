@@ -48,6 +48,11 @@
     // repo dgreenheck/ez-tree, MIT): lagerstroemia, bauhinia, grevillea,
     // algarrobo y laurel.
     'lagerstroemia', 'bauhinia', 'grevillea', 'algarrobo', 'laurel',
+    // --- 2 ÁRBOLES MÁS (nov-2026, ronda parque): los dos que quedaban
+    // abundantes en el inventario oficial sin copa 3D. firmiana = árbol de
+    // las pagodas (1.085 ejemplares); ficus_alto = microcarpa/benjamina/
+    // elastica (602 con nombre concreto, los grandes del parque).
+    'firmiana', 'ficus_alto',
     // --- 4 GÉNEROS MÁS (nov-2026): Parque de María Luisa completo.
     'ailanto', 'lagunaria', 'taxodio', 'tejo'];
 
@@ -71,6 +76,10 @@
     // Luisa que todavía no tenían tipo propio y caían en 'generico' (sin
     // copa 3D). Alturas medias reales de ejemplares urbanos/adultos.
     ailanto: 12, lagunaria: 9, taxodio: 16, tejo: 10,
+    // --- 2 ÁRBOLES MÁS (nov-2026): alturas medias reales de parque.
+    // firmiana: copa ovalada elevada, tronco derecho (8-15 m).
+    // ficus_alto: microcarpa/benjamina en parque, copa ancha y densa (8-10 m).
+    firmiana: 11, ficus_alto: 8,
   };
 
   // Presets REALES de ez-tree y adaptaciones locales de los cuatro perfiles.
@@ -177,6 +186,21 @@ pine_column: { seed: 17651, type: 'evergreen', levels: 1, angle: [120, 24, 60], 
 pine_narrow: { seed: 13109, type: 'evergreen', levels: 1, angle: [104, 52, 60], children: [86, 6, 5], length: [36.5, 14.4, 11.8, 1], radius: [0.74, 0.4, 0.7, 0.7], sections: [12, 9, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.10, 0.24, 0.3], taper: [0.72, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 30, leafCount: 26, leafStart: 0.02, leafSize: 1.35, leafVariance: 0.28, leafColor: 0x3f6038, barkColor: 0x8a6a4a },
 // aspen_small: tronco corto y copa globosa del repo → algarrobo (Ceratonia).
 aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], children: [8, 4, 3], length: [26.8, 8.4, 9.2, 1], radius: [0.78, 0.46, 0.7, 0.7], sections: [10, 8, 6, 4], segments: [8, 6, 4, 3], start: [0, 0.48, 0.28, 0], taper: [0.5, 0.18, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 38, leafCount: 12, leafStart: 0.18, leafSize: 1.9, leafVariance: 0.62, leafColor: 0x4e7a38, barkColor: 0x8a7150 },
+// --- 2 PRESETS MÁS (nov-2026, ronda parque de María Luisa). Mismo criterio
+// de siempre: gnarliness/twist/force a CERO (nada arqueado) y el porte real
+// por delante de la silueta del repo.
+// ficus_ancho: FICUS DE PARQUE (microcarpa, benjamina, elastica, retusa).
+// Lo que los distingue de verdad: tronco corto y grueso que se divide en
+// ramas horizontales, copa BAJA, ancha y muy densa (llega casi al suelo en
+// los ejemplares viejos), y copa más ancha que alta. Base de copa muy baja
+// (0.18), pocos niveles y mucho hijo por nivel para la densidad; hojas
+// grandes (2.4) para el follaje tupido. copa radio ~2.0x altura.
+ficus_ancho: { seed: 27431, type: 'deciduous', levels: 3, angle: [72, 58, 40], children: [9, 6, 4], length: [17.5, 15.2, 9.8, 5.4], radius: [2.35, 0.86, 0.62, 0.55], sections: [10, 8, 6, 3], segments: [9, 7, 5, 3], start: [0, 0.18, 0.22, 0.1], taper: [0.62, 0.5, 0.62, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 46, leafCount: 20, leafStart: 0, leafSize: 2.4, leafVariance: 0.55, leafColor: 0x3f7a33, barkColor: 0x7d6a52 },
+// firmiana: ÁRBOL DE LAS PAGODAS (Firmiana simplex). Tronco derecho, liso
+// y verde, copa OVALADA y ELEVADA, poco densa en la base (hoja grande de
+// plátano arriba). Base de copa alta (0.46) y ancho moderado: copa más
+// estrecha que el ficus, como el porte real de la especie.
+firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], children: [7, 4, 3], length: [33.4, 18.6, 10.2, 5.2], radius: [1.42, 0.6, 0.58, 0.52], sections: [12, 8, 6, 3], segments: [9, 6, 4, 3], start: [0, 0.46, 0.3, 0.1], taper: [0.74, 0.6, 0.66, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 46, leafCount: 16, leafStart: 0.06, leafSize: 2.6, leafVariance: 0.5, leafColor: 0x7fae52, barkColor: 0x8f9a6a },
   };
   // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
   // REUTILIZAN los presets de arriba según su silueta real (nada de presets
@@ -231,6 +255,10 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
     lagunaria: { preset: 'oak_compact', evergreen: true },      // Lagunaria patersonii (pica-pica), 37
     taxodio: { preset: 'pine_column', evergreen: false },       // Taxodium distichum, caduca de ribera, 27
     tejo: { preset: 'pine_narrow', evergreen: true },           // Thuja/Podocarpus, 9 de columna densa
+    // --- 2 ÁRBOLES MÁS (nov-2026): los que quedaban abundantes en el parque
+    // sin copa 3D. Presets propios (ficus_ancho / firmiana) definidos arriba.
+    firmiana: { preset: 'firmiana', evergreen: false },         // Firmiana simplex, 1.085 (árbol de las pagodas)
+    ficus_alto: { preset: 'ficus_ancho', evergreen: true },     // Ficus microcarpa/benjamina/elastica, 602 (perennes)
   };
   // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
   // REUTILIZAN los presets de arriba según su silueta real (nada de presets

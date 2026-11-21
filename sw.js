@@ -382,7 +382,13 @@
 // (3) Altura de palmeras: si la del inventario no es verosímil (<6 m), manda
 //     el porte de la especie (datilera 12, canaria 13, washingtonia 14 m).
 // Cambian js/shadows-route.js, js/arboles-ez-3d.js, index.html (?v=) y sw.js.
-const VERSION = '2026-11-21-e-palmeras-visibles';
+// 2026-11-21-f: (1) SEVILLA SIN ÁRBOLES OSM GENÉRICOS: con el inventario
+//     oficial completo, los nodos de OSM sin species/genus/nombre ya no se
+//     dibujan dentro del bbox de Sevilla (fuera, sin cambios). Cambia
+//     js/shadows-route.js. (2) PINO EZ REHECHO: silueta cónica con ramas de
+//     verticilo casi horizontales desde abajo, acículas finas/oscuras y
+//     corteza parda. Cambia js/arboles-ez-3d.js. Ambos con ?v= en index.html.
+const VERSION = '2026-11-21-f-sevilla-sin-genericos-pino-real';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

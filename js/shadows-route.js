@@ -12452,12 +12452,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         // dosel 3D). Aquí solo se pinta el TRONCO; la malla viva y su peso lo
         // siguen llevando js/arboles-3d.js, intacto. Igual que las palmeras.
         const usa3DPropio = (a.tipo === 'naranjo' || a.tipo === 'albizia') && cercaDeProtegido3D(lon, lat);
-        void usa3DPropio;
 
         if (usaCopaRealista) {
           const bultos = crearCopaRealista(a, forma, alturaTroncoM, factorHoja, feno, lon, lat);
           for (const b of bultos) features.push(b);
-        } else if (forma === 'palmera' && usaCopaRealista) {
+        } else if (forma === 'palmera') {
           // (nov-2026) PALMERA: UNA SOLA CORONA, LA DEL 3D. Mientras el motor
           // EZ dibujaba la palmera se pintaba ADEMAS una copa plana de dos
           // pisos: el resultado parecía "un árbol con hojas" en vez de un
@@ -12468,14 +12467,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           const copa = crearFormaCopa(a.punto, radioCorona / 1000, 'palmera', lon, lat);
           copa.properties = { altura: a.altura, baseM: alturaTroncoM * 0.995, alturaTotalM: a.altura, nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
           features.push(copa);
-        } else if (forma === 'palmera') {
-          // (nov-2026, REVERTIDO) Aquí llegué a pintar UNA sola corona cuando
-          // la palmera estaba cerca del 3D EZ: dejó las palmeras SIN NINGÚN
-          // feature de copa en el escenario real (parecían desaparecer), así
-          // que esta rama queda VACÍA a propósito y la palmera cae en los dos
-          // pisos de siempre, exactamente como antes. No se borra ningún dato:
-          // así una palmera nunca se queda sin nada encima del tronco.
-        } else {
+        } else if (usa3DPropio) {
           // Tronco ya pintado: las copas planas sobraban encima de la malla.
         } else {
           // Copa inferior: forma realista según especie. En las especies con

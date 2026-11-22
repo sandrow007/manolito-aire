@@ -388,7 +388,7 @@
 //     js/shadows-route.js. (2) PINO EZ REHECHO: silueta cónica con ramas de
 //     verticilo casi horizontales desde abajo, acículas finas/oscuras y
 //     corteza parda. Cambia js/arboles-ez-3d.js. Ambos con ?v= en index.html.
-const VERSION = '2026-11-21-f-sevilla-sin-genericos-pino-real';
+const VERSION = '2026-11-22-a-lluvia-sin-colgar';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

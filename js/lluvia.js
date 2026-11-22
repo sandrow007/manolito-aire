@@ -152,15 +152,18 @@
     try {
       // Mancha azul grisácea: la precipitación de OWM ya nace azul; se le
       // quita saturación para grisarla y se deja respirar el mapa base.
+      // Techo bajo: la mancha acompaña, nunca tapa. El degradado empieza
+      // antes (zoom 9) para que al acercarse el mapa quede limpio antes.
       mapa.setPaintProperty(CAPA_ID, 'raster-opacity', ['interpolate', ['linear'], ['zoom'],
-        8, oscuro ? 0.62 : 0.7,
-        10, oscuro ? 0.34 : 0.38,
-        12.5, 0]);
+        8, oscuro ? 0.4 : 0.45,
+        9.5, oscuro ? 0.3 : 0.34,
+        11.5, 0]);
       // Mismo truco que las nubes: en modo oscuro el canvas lleva filtro
       // invert(), así que la mancha "nace oscura" y el filtro la aclara.
       mapa.setPaintProperty(CAPA_ID, 'raster-brightness-max', oscuro ? 0.16 : 1);
       mapa.setPaintProperty(CAPA_ID, 'raster-brightness-min', 0);
-      mapa.setPaintProperty(CAPA_ID, 'raster-saturation', -0.45);
+      mapa.setPaintProperty(CAPA_ID, 'raster-saturation', -0.6);
+      mapa.setPaintProperty(CAPA_ID, 'raster-contrast', 0.08);
     } catch (e) { /* capa a medio crear */ }
   }
 
@@ -189,6 +192,11 @@
         var antes = null;
         try {
           var capas = (mapa.getStyle() && mapa.getStyle().layers) || [];
+          // Orden preferido: bajo edificios 3D; si no hay, bajo etiquetas;
+          // si tampoco, bajo la primera capa fill (carreteras, polígonos).
+          // Sin NINGUNA de las tres, antes sigue null y la capa va al final
+          // PERO con el techo de opacidad de aplicarEstiloRaster (0,45) ya
+          // no puede tapar el mapa aunque llegue arriba.
           for (var i = 0; i < capas.length; i++) {
             if (capas[i].type === 'fill-extrusion') { antes = capas[i].id; break; }
           }
@@ -197,7 +205,12 @@
               if (capas[j].type === 'symbol') { antes = capas[j].id; break; }
             }
           }
-        } catch (e) { /* sin estilo aún: encima y ya se reordenará */ }
+          if (!antes) {
+            for (var k = 0; k < capas.length; k++) {
+              if (capas[k].type === 'fill') { antes = capas[k].id; break; }
+            }
+          }
+        } catch (e) { /* sin estilo aún: el styledata lo reinstalará */ }
         mapa.addLayer({
           id: CAPA_ID,
           type: 'raster',
@@ -314,7 +327,16 @@
         continue;
       }
       var kx = g.deriva / g.vel; // pendiente de la caída
-      ctx.strokeStyle = 'rgba(235,242,250,' + g.alfa.toFixed(3) + ')';
+      // Dos pasadas: una gruesa y tenue (velo de agua) y una fina y clara
+      // (el hilo de la gota). Misma geometría, doble lectura de profundidad.
+      ctx.strokeStyle = 'rgba(210,225,242,' + (g.alfa * 0.55).toFixed(3) + ')';
+      ctx.lineWidth = Math.max(1.4, 1.8 * dpr);
+      ctx.beginPath();
+      ctx.moveTo(g.x, g.y);
+      ctx.lineTo(g.x - kx * g.largo, g.y - g.largo);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(240,247,255,' + g.alfa.toFixed(3) + ')';
+      ctx.lineWidth = Math.max(1, 0.9 * dpr);
       ctx.beginPath();
       ctx.moveTo(g.x, g.y);
       ctx.lineTo(g.x - kx * g.largo, g.y - g.largo);
@@ -413,8 +435,10 @@
     mapa.on('zoomend', evaluar);
     // Movimiento: solo repite la llamada si caducó la caché o cambió la celda.
     mapa.on('moveend', function () { if (encendida()) refrescarLluvia(); });
-    // Reloj solar: cualquier cambio de hora reevalúa (lectura barata, sin red).
-    document.addEventListener('input', function () { evaluar(); }, true);
+    // Reloj solar: la vigilia de 30 s de abajo reevalúa sola; un listener
+    // global de 'input' en captura disparaba evaluar() decenas de veces por
+    // segundo con cada slider (rehacer setLayoutProperty en ráfaga) y eso
+    // se notaba como mapa colgado. Eliminado (nov-2026).
     // Pestaña oculta: paramos la animación; al volver, evaluamos de nuevo.
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) pararGotas(); else evaluar();

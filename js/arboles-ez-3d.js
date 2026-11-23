@@ -54,7 +54,12 @@
     // elastica (602 con nombre concreto, los grandes del parque).
     'firmiana', 'ficus_alto',
     // --- 4 GÉNEROS MÁS (nov-2026): Parque de María Luisa completo.
-    'ailanto', 'lagunaria', 'taxodio', 'tejo'];
+    'ailanto', 'lagunaria', 'taxodio', 'tejo',
+    // --- 3 ÁRBOLES NUEVOS (nov-2026, 2ª ronda María Luisa): los géneros
+    // aún sin modelo del parque según el inventario oficial. schinus =
+    // pimiento (758), acer = arce negundo (699), chorisia = palo borracho
+    // / Ceiba speciosa (254), el de los troncos botella de María Luisa.
+    'schinus', 'acer', 'chorisia'];
 
   // Alturas de referencia (las de TIPOS_ARBOL).
   var EZ_ALTURAS = {
@@ -76,6 +81,9 @@
     // Luisa que todavía no tenían tipo propio y caían en 'generico' (sin
     // copa 3D). Alturas medias reales de ejemplares urbanos/adultos.
     ailanto: 12, lagunaria: 9, taxodio: 16, tejo: 10,
+    // --- 3 ÁRBOLES NUEVOS (nov-2026, 2ª ronda María Luisa). Alturas medias
+    // reales: pimiento llorón 10 m, arce negundo 9 m, palo borracho 12 m.
+    schinus: 10, acer: 9, chorisia: 12,
     // --- 2 ÁRBOLES MÁS (nov-2026): alturas medias reales de parque.
     // firmiana: copa ovalada elevada, tronco derecho (8-15 m).
     // ficus_alto: microcarpa/benjamina en parque, copa ancha y densa (8-10 m).
@@ -97,7 +105,12 @@
     // 0.06), que con la copa arriba dan la silueta cónica; (2) MUCHAS acículas
     // finas (leafCount 36) y PEQUEÑAS (0.95) pegadas a la rama (leafAngle 24°):
     // masa de agujas, no elipses de hoja ancha; (3) verde oscuro de conífera.
-    pine: { seed: 13977, type: 'evergreen', levels: 1, angle: [110, 72, 60], children: [70, 3, 5], length: [50, 21.5, 14.08, 1], radius: [1.05, 0.36, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.06, 0.14, 0.3], taper: [0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 24, leafCount: 36, leafStart: 0.04, leafSize: 0.95, leafVariance: 0.30, leafColor: 0x2f5230, barkColor: 0x6b4f35 },
+    // (nov-2026, 2ª ronda) PINO afinado de nuevo: ramas aún más horizontales
+    // (80°), MÁS verticilos y más bajos (children 78, start 0.03) para la
+    // silueta cónica desde casi el suelo; acículas más finas y numerosas
+    // (leafCount 44, leafSize 1.1, varianza baja) para masa de agujas densa,
+    // y ramas más finas (radius[1] 0.24) para que no parezcan brazos.
+    pine: { seed: 13977, type: 'evergreen', levels: 1, angle: [110, 80, 60], children: [78, 3, 5], length: [50, 23.5, 14.08, 1], radius: [1.05, 0.24, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.03, 0.14, 0.3], taper: [0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 28, leafCount: 44, leafStart: 0.02, leafSize: 1.1, leafVariance: 0.22, leafColor: 0x2c4a2b, barkColor: 0x6b4f35 },
 
     // --- 4 presets EZ-TREE NUEVOS (nov-2026), tomados tal cual del repo
     // dgreenheck/ez-tree (MIT) para las 4 especies más abundantes de Sevilla
@@ -202,6 +215,22 @@ aspen_small: { seed: 20563, type: 'deciduous', levels: 2, angle: [68, 42, 7], ch
 // (0.18), pocos niveles y mucho hijo por nivel para la densidad; hojas
 // grandes (2.4) para el follaje tupido. copa radio ~2.0x altura.
 ficus_ancho: { seed: 27431, type: 'deciduous', levels: 3, angle: [72, 58, 40], children: [9, 6, 4], length: [17.5, 15.2, 9.8, 5.4], radius: [2.35, 0.86, 0.62, 0.55], sections: [10, 8, 6, 3], segments: [9, 7, 5, 3], start: [0, 0.18, 0.22, 0.1], taper: [0.62, 0.5, 0.62, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 46, leafCount: 20, leafStart: 0, leafSize: 2.4, leafVariance: 0.55, leafColor: 0x3f7a33, barkColor: 0x7d6a52 },
+// --- 3 PRESETS NUEVOS (nov-2026, 2ª ronda María Luisa). Mismo criterio:
+// gnarliness/twist/force a CERO y porte real por delante.
+// schinus: PIMIENTO (Schinus molle). Copas colgantes de ramas finas y
+// abiertas con follaje fino tipo hebra: ramas que bajan (ángulos > 60°
+// en niveles 2-3), muchos hijos por nivel y hojas pequeñas (1.3).
+schinus: { seed: 29521, type: 'evergreen', levels: 3, angle: [38, 66, 70], children: [8, 6, 4], length: [30.5, 20.2, 12.6, 6.2], radius: [1.35, 0.5, 0.4, 0.34], sections: [10, 7, 5, 3], segments: [9, 6, 4, 3], start: [0, 0.4, 0.24, 0.14], taper: [0.72, 0.62, 0.66, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 58, leafCount: 24, leafStart: 0.05, leafSize: 1.3, leafVariance: 0.5, leafColor: 0x6f9a50, barkColor: 0x8a7a62 },
+// acer: ARCE NEGUNDO (Acer negundo). Copa redondeada, densa y regular,
+// tronco corto que se parte pronto en ramas ascendentes: base oak_compact
+// con base de copa algo más alta y hoja mediana.
+acer: { seed: 30577, type: 'deciduous', levels: 3, angle: [50, 56, 40], children: [8, 5, 3], length: [29.5, 19.8, 11.2, 6.4], radius: [1.55, 0.72, 0.6, 0.52], sections: [12, 8, 6, 3], segments: [9, 6, 4, 3], start: [0, 0.32, 0.16, 0.08], taper: [0.73, 0.52, 0.66, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 44, leafCount: 22, leafStart: 0.08, leafSize: 2.05, leafVariance: 0.58, leafColor: 0x6ca048, barkColor: 0x9a8a70 },
+// chorisia: PALO BORRACHO (Ceiba/Chorisia speciosa). SU detalle: tronco
+// BOTELLA, grueso abajo y afinándose de golpe, verde-grisáceo; copa alta
+// y algo abierta con hojas grandes. radius[0] 2.8 + taper bajo 0.55 y
+// pocas secciones dan el engordamiento de la base; start 0.55 eleva la
+// copa y deja el fuste desnudo, como los ejemplares del parque.
+chorisia: { seed: 31621, type: 'deciduous', levels: 3, angle: [44, 58, 46], children: [6, 5, 3], length: [30, 18.4, 11, 5.6], radius: [2.8, 0.66, 0.56, 0.5], sections: [8, 7, 5, 3], segments: [10, 6, 4, 3], start: [0, 0.55, 0.26, 0.1], taper: [0.55, 0.6, 0.66, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 48, leafCount: 15, leafStart: 0.05, leafSize: 2.75, leafVariance: 0.5, leafColor: 0x5f9e4a, barkColor: 0x7e8a68 },
 // firmiana: ÁRBOL DE LAS PAGODAS (Firmiana simplex). Tronco derecho, liso
 // y verde, copa OVALADA y ELEVADA, poco densa en la base (hoja grande de
 // plátano arriba). Base de copa alta (0.46) y ancho moderado: copa más
@@ -265,6 +294,12 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     // sin copa 3D. Presets propios (ficus_ancho / firmiana) definidos arriba.
     firmiana: { preset: 'firmiana', evergreen: false },         // Firmiana simplex, 1.085 (árbol de las pagodas)
     ficus_alto: { preset: 'ficus_ancho', evergreen: true },     // Ficus microcarpa/benjamina/elastica, 602 (perennes)
+    // --- 3 ÁRBOLES NUEVOS (nov-2026, 2ª ronda María Luisa). Cada uno con
+    // SU preset propio; el pimiento es perenne de copa colgante, el arce
+    // negundo caduco de copa regular y el palo borracho caduco con flor rosa.
+    schinus: { preset: 'schinus', evergreen: true },            // Schinus molle, 758 (pimiento)
+    acer: { preset: 'acer', evergreen: false },                 // Acer negundo, 699 (arce negundo)
+    chorisia: { preset: 'chorisia', evergreen: false },         // Ceiba speciosa, 254 (palo borracho)
   };
   // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
   // REUTILIZAN los presets de arriba según su silueta real (nada de presets

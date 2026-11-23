@@ -11302,7 +11302,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       color: '#7a9b4a',
     },
     pino: {
-      keywords: ['pinus', 'pino', 'pine', 'cedrus', 'cedro', 'cedar', 'abeto', 'fir'],
+      // (nov-2026) SIN 'fir': capturaba "Fi"rmiana" simplex" (1.085 ejemplares
+      // del parque de María Luisa salían de PINO). 'abeto' ya cubre Abies;
+      // si hiciera falta Pinus fir-…, siempre gana la 'pinus'.
+      keywords: ['pinus', 'pino', 'pine', 'cedrus', 'cedro', 'cedar', 'abeto'],
       alturaMediaM: 14,
       radioCopaMedioM: 3.0,
       forma: 'conica',
@@ -11580,8 +11583,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // --- FIRMIANA SIMPLEX (árbol de las pagodas): 1.085 ejemplares en el
     // inventario oficial y clásico del Parque de María Luisa. Copa ovalada
     // y elevada, tronco derecho y liso, hoja grande de plátano, verde claro.
+    // (nov-2026) ANTES del pino a propósito: la keyword 'fir' del pino
+    // capturaba "fi"rmiana". Firmiana va ahora en el primer pase y gana.
     firmiana: {
-      keywords: ['firmiana', 'firmiana simplex', 'arbol de las pagodas', 'árbol de las pagodas', 'parasol chino', 'chinese parasol', 'sterculia platanifolia'],
+      keywords: ['firmiana', 'arbol de las pagodas', 'árbol de las pagodas', 'parasol chino', 'chinese parasol', 'sterculia platanifolia'],
       alturaMediaM: 11,
       radioCopaMedioM: 2.8,
       forma: 'oval_alargada',
@@ -11643,6 +11648,34 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // descripciones de otras especies; 'tejo' no se parece a nada ya
       // clasificado (ni a 'té', ni a 'plátano'), así que aquí no hay colisión.
       debil: true,
+    },
+    // --- 3 GÉNEROS MÁS (nov-2026, 2ª ronda María Luisa): los aún sin tipo
+    // según el inventario oficial. Keywords únicas, sin choque con las de
+    // arriba ('molle' solo existe en Schinus; 'negundo' solo en Acer;
+    // 'chorisia'/'speciosa'/'palo borracho' solo en Ceiba).
+    // OJO firmiana: la keyword 'fir' del pino capturaba a Firmiana ("fir"miana)
+    // porque entra en el 1er pase; por eso firmiana va ANTES en el orden, con
+    // keyword FUERTE, y se queda con la primera coincidencia como siempre.
+    schinus: {
+      keywords: ['schinus', 'molle', 'pimiento', 'falso pimiento', 'pepper tree', 'aguareiro'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_irregular',
+      color: '#6f9a50',
+    },
+    acer: {
+      keywords: ['acer negundo', 'arce negundo', 'negundo', 'box elder', 'arce'],
+      alturaMediaM: 9,
+      radioCopaMedioM: 3.8,
+      forma: 'ancha_redondeada',
+      color: '#6ca048',
+    },
+    chorisia: {
+      keywords: ['chorisia', 'ceiba speciosa', 'speciosa', 'palo borracho', 'silk floss', 'kirchneriana'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#5f9e4a',
     },
   };
 

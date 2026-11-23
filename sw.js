@@ -489,7 +489,6 @@ const HOSTS_DINAMICOS = [
 	'overpass-api.de',
 	'lz4.overpass-api.de',
 	'overpass.kumi.systems',
-	'overpass.nchc.org.tw',
 ];
 
 /* Respuestas geográficas de fuentes: uso en memoria de la página, sin caché

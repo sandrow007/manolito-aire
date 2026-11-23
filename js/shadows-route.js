@@ -11248,9 +11248,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       'https://overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
       'https://overpass.private.coffee/api/interpreter',
-      'https://overpass.nchc.org.tw/api/interpreter',
-      // OJO: overpass.osm.ch está devolviendo respuestas 200 VACÍAS y
-      // corruptas (timestamp_osm_base:"116617"), fuera de la lista.
+      // OJO: el espejo de Taiwán (overpass.nchc.org.tw) cayó — el dominio ya no
+      // resuelve (NXDOMAIN, verificado 2026-11-23). Tampoco overpass.osm.ch:
+      // está devolviendo respuestas 200 VACÍAS y corruptas (timestamp_osm_base:"116617"), fuera de la lista.
     ],
     overpassTimeoutS: 15,
 

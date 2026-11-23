@@ -212,7 +212,6 @@ export default {
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://overpass.private.coffee/api/interpreter',
-          'https://overpass.nchc.org.tw/api/interpreter',
         ];
         const obtenerBBoxConsulta = () => {
           const query = new URLSearchParams(rawBody).get('data') || '';
@@ -399,7 +398,6 @@ export default {
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://overpass.private.coffee/api/interpreter',
-          'https://overpass.nchc.org.tw/api/interpreter',
         ];
         const intentarEspejo = async (espejo) => {
           const controller = new AbortController();
@@ -501,7 +499,6 @@ export default {
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://overpass.private.coffee/api/interpreter',
-          'https://overpass.nchc.org.tw/api/interpreter',
         ];
         const intentarEspejo = async (espejo) => {
           const controller = new AbortController();

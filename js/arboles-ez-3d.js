@@ -125,13 +125,13 @@
     // 52 por rama, finas (1.05), muy pegadas (leafAngle 22°) y oscuras.
     // (nov-2026, ronda PINO) VALORES EXACTOS del pino de EZ-Tree tal como los
     // enseña su propia UI (la captura del jefe): Tree Type Evergreen, Levels 2,
-    // Angle Level 1 = 106, Level 2 = 16, Level 3 = 60, y el resto del preset
-    // pine_medium del repo dgreenheck/ez-tree (MIT), sin retocar a mano. Ese es
-    // el perfil de EZ-Tree (ramas de verticilo largas pegadas al tronco, copa
-    // en pisos hasta la cima) que hasta ahora no era el que se dibujaba aquí.
-    // OJO: children 20 (no 70) para no tocar el tope maxItems = 3200 del motor;
-    // es el único ajuste y no cambia la silueta, solo el nº de ramas por piso.
-    pine: { seed: 15883, type: 'evergreen', levels: 2, angle: [106, 16, 60], children: [20, 4, 5], length: [46.5, 28.4, 16.2, 1], radius: [0.92, 0.34, 0.7, 0.7], sections: [11, 9, 7, 5], segments: [8, 6, 4, 3], start: [0, 0.24, 0.18, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 26, leafCount: 24, leafStart: 0.12, leafSize: 1.5, leafVariance: 0.28, leafColor: 0x5e7f47, barkColor: 0x9a7a56 },
+    // Angle Level 1 = 106, Level 2 = 16, Level 3 = 60. El generador local indexa
+    // los ángulos por nivel (índice 0 reservado al tronco), así que el 106 va en
+    // angle[1], no en angle[0]: antes las ramas principales recibían 16° y se
+    // pegaban al eje en vez de formar los pisos abiertos del pino de referencia.
+    // Se conserva pine_medium para el resto del preset; solo children queda en
+    // 20 (en vez de 70) para respetar maxItems=3200 sin cortar ramas a medias.
+    pine: { seed: 15883, type: 'evergreen', levels: 2, angle: [0, 106, 16, 60], children: [20, 4, 5], length: [46.5, 18.5, 8.5, 1], radius: [0.92, 0.34, 0.7, 0.7], sections: [11, 9, 7, 5], segments: [8, 6, 4, 3], start: [0, 0.24, 0.18, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 26, leafCount: 32, leafStart: 0.12, leafSize: 1.25, leafVariance: 0.28, leafColor: 0x355638, barkColor: 0x9a7a56, coniferNeedles: true },
 
     // --- 4 presets EZ-TREE NUEVOS (nov-2026), tomados tal cual del repo
     // dgreenheck/ez-tree (MIT) para las 4 especies más abundantes de Sevilla
@@ -630,6 +630,33 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
   // Corteza oscura del árbol fractal (el pardo que el motor plano ya usaba).
   var CORTEZA_ARBOL = 0x6b533c;
 
+  // Acículas triangulares reunidas en pequeños penachos. Se usa solo cuando
+  // el preset lo pide (pino); los demás árboles conservan sus planos de hoja.
+  function crearPenachoAciculas(tamano, rand) {
+    var positions = [], indices = [];
+    var cantidad = 7;
+    for (var n = 0; n < cantidad; n++) {
+      var azimut = n * Math.PI * 2 / cantidad + rand(0.22, -0.22);
+      var apertura = rand(0.92, 0.48);
+      var largo = tamano * rand(0.78, 0.55);
+      var dx = Math.cos(apertura);
+      var dy = Math.sin(apertura) * Math.cos(azimut);
+      var dz = Math.sin(apertura) * Math.sin(azimut);
+      var px = 0, py = Math.cos(azimut) * tamano * 0.035, pz = Math.sin(azimut) * tamano * 0.035;
+      var wx = 0, wy = -Math.sin(azimut) * tamano * 0.018, wz = Math.cos(azimut) * tamano * 0.018;
+      var base = positions.length / 3;
+      positions.push(px - wx, py - wy, pz - wz);
+      positions.push(px + wx, py + wy, pz + wz);
+      positions.push(px + dx * largo, py + dy * largo, pz + dz * largo);
+      indices.push(base, base + 1, base + 2);
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
+  }
+
   // ==========================================================================
   // ÁRBOLES (port de ez-tree: Tree.generateSkeleton/growBranch)
   // ==========================================================================
@@ -692,7 +719,12 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
           var q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), radialAngle);
           var leafQ = new THREE.Quaternion().setFromEuler(leafOrientation).multiply(q2).multiply(q1);
           var leafSize = preset.leafSize * (1 + rand(preset.leafVariance, -preset.leafVariance));
-          var leafGeo = new THREE.PlaneGeometry(leafSize, leafSize * 0.48);
+          // El pino no usa el mismo plano ancho que las especies caducas:
+          // cada punto de follaje lleva un penacho de acículas finas, como en
+          // la referencia EZ-Tree. La rama y los demás presets no cambian.
+          var leafGeo = preset.coniferNeedles
+            ? crearPenachoAciculas(leafSize, rand)
+            : new THREE.PlaneGeometry(leafSize, leafSize * 0.48);
           leafGeo.applyMatrix4(new THREE.Matrix4().compose(leafOrigin, leafQ, new THREE.Vector3(1, 1, 1)));
           hojas.push(leafGeo);
         }
@@ -725,7 +757,16 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
         var childOrientation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().setFromEuler(parentOrientation).multiply(q2.multiply(q1)));
         childOrientation.z += preset.force;
         var childDirection = new THREE.Vector3(0, 1, 0).applyQuaternion(new THREE.Quaternion().setFromEuler(childOrientation));
-        grow(childOrigin, childDirection, childLevel, preset.length[childLevel], childRadius);
+        var childLength = preset.length[childLevel];
+        // Solo en pinos, las ramas principales se acortan progresivamente al
+        // subir por el tronco: conserva la silueta cónica del árbol de referencia
+        // en vez de repetir radios idénticos y producir una estrella/columna.
+        if (preset.coniferNeedles && level === 0 && childLevel === 1) {
+          var crownStart = preset.start[childLevel] || 0;
+          var remainingCrown = Math.max(0, (1 - childStart) / Math.max(0.01, 1 - crownStart));
+          childLength *= Math.max(0.12, Math.min(1, remainingCrown));
+        }
+        grow(childOrigin, childDirection, childLevel, childLength, childRadius);
       }
     }
 

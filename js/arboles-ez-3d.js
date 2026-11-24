@@ -114,12 +114,16 @@
     // 0.06), que con la copa arriba dan la silueta cónica; (2) MUCHAS acículas
     // finas (leafCount 36) y PEQUEÑAS (0.95) pegadas a la rama (leafAngle 24°):
     // masa de agujas, no elipses de hoja ancha; (3) verde oscuro de conífera.
-    // (nov-2026, 2ª ronda) PINO afinado de nuevo: ramas aún más horizontales
-    // (80°), MÁS verticilos y más bajos (children 78, start 0.03) para la
-    // silueta cónica desde casi el suelo; acículas más finas y numerosas
-    // (leafCount 44, leafSize 1.1, varianza baja) para masa de agujas densa,
-    // y ramas más finas (radius[1] 0.24) para que no parezcan brazos.
-    pine: { seed: 13977, type: 'evergreen', levels: 1, angle: [110, 80, 60], children: [78, 3, 5], length: [50, 23.5, 14.08, 1], radius: [1.05, 0.24, 0.7, 0.7], sections: [12, 10, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.03, 0.14, 0.3], taper: [0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 28, leafCount: 44, leafStart: 0.02, leafSize: 1.1, leafVariance: 0.22, leafColor: 0x2c4a2b, barkColor: 0x6b4f35 },
+    // (nov-2026, 3ª ronda) PINO en versión CONÍFERA REAL, como la captura:
+    // tronco esbelto desnudo con ramas SÓLO desde la mitad hacia arriba,
+    // cada verticilo de ramas casi horizontales (82°), y CADA RAMA con su
+    // propia masa de acículas en penacho que se acorta hacia la cima —
+    // eso forma los pisos cónicos de pino piñonero, no un cilindro de hojas.
+    // levels: 2 (tronco + verticilos), ramas de nivel 1 largas en la base
+    // (23 u) y cortas arriba via start 0.5 + longitud fija: los que se ven
+    // más bajos, más largos (el propio frustum hace el cono). Acículas:
+    // 52 por rama, finas (1.05), muy pegadas (leafAngle 22°) y oscuras.
+    pine: { seed: 13977, type: 'evergreen', levels: 2, angle: [112, 82, 60], children: [2, 58, 5], length: [56, 23.5, 14.08, 1], radius: [1.0, 0.26, 0.7, 0.7], sections: [10, 8, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.5, 0.12, 0.3], taper: [0.66, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 22, leafCount: 52, leafStart: 0.02, leafSize: 1.05, leafVariance: 0.2, leafColor: 0x2c4a2b, barkColor: 0x6b4f35 },
 
     // --- 4 presets EZ-TREE NUEVOS (nov-2026), tomados tal cual del repo
     // dgreenheck/ez-tree (MIT) para las 4 especies más abundantes de Sevilla

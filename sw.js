@@ -399,7 +399,12 @@
 //     antes colada como sophora), tamarix (538) y paulownia (127).
 // Cambian js/arboles-3d.js, js/shadows-route.js, js/arboles-ez-3d.js e
 // index.html (?v=). NO se toca la malla del naranjo ni la de la albizia.
-const VERSION = '2026-11-24-a-naranjo-albizia-restaurados';
+// 2026-11-24-b: PINO CONÍFERA REAL (como la captura). Tronco esbelto
+//     desnudo hasta media altura, verticilos de ramas horizontales (82°)
+//     con penacho denso de acículas finas por rama (52 x 1.05, verde
+//     oscuro) que se acortan hacia la cima: pisos cónicos de pino real.
+//     Solo cambia js/arboles-ez-3d.js e index.html (?v=).
+const VERSION = '2026-11-24-b-pino-conifera';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

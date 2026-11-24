@@ -123,7 +123,15 @@
     // (23 u) y cortas arriba via start 0.5 + longitud fija: los que se ven
     // más bajos, más largos (el propio frustum hace el cono). Acículas:
     // 52 por rama, finas (1.05), muy pegadas (leafAngle 22°) y oscuras.
-    pine: { seed: 13977, type: 'evergreen', levels: 2, angle: [112, 82, 60], children: [2, 58, 5], length: [56, 23.5, 14.08, 1], radius: [1.0, 0.26, 0.7, 0.7], sections: [10, 8, 8, 6], segments: [8, 6, 4, 3], start: [0, 0.5, 0.12, 0.3], taper: [0.66, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 22, leafCount: 52, leafStart: 0.02, leafSize: 1.05, leafVariance: 0.2, leafColor: 0x2c4a2b, barkColor: 0x6b4f35 },
+    // (nov-2026, ronda PINO) VALORES EXACTOS del pino de EZ-Tree tal como los
+    // enseña su propia UI (la captura del jefe): Tree Type Evergreen, Levels 2,
+    // Angle Level 1 = 106, Level 2 = 16, Level 3 = 60, y el resto del preset
+    // pine_medium del repo dgreenheck/ez-tree (MIT), sin retocar a mano. Ese es
+    // el perfil de EZ-Tree (ramas de verticilo largas pegadas al tronco, copa
+    // en pisos hasta la cima) que hasta ahora no era el que se dibujaba aquí.
+    // OJO: children 20 (no 70) para no tocar el tope maxItems = 3200 del motor;
+    // es el único ajuste y no cambia la silueta, solo el nº de ramas por piso.
+    pine: { seed: 15883, type: 'evergreen', levels: 2, angle: [106, 16, 60], children: [20, 4, 5], length: [46.5, 28.4, 16.2, 1], radius: [0.92, 0.34, 0.7, 0.7], sections: [11, 9, 7, 5], segments: [8, 6, 4, 3], start: [0, 0.24, 0.18, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 26, leafCount: 24, leafStart: 0.12, leafSize: 1.5, leafVariance: 0.28, leafColor: 0x5e7f47, barkColor: 0x9a7a56 },
 
     // --- 4 presets EZ-TREE NUEVOS (nov-2026), tomados tal cual del repo
     // dgreenheck/ez-tree (MIT) para las 4 especies más abundantes de Sevilla

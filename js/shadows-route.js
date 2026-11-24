@@ -11496,7 +11496,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       color: '#3d6b34',
     },
     sophora: {
-      keywords: ['styphnolobium', 'sophora japonica', 'sophora', 'acacia de japón', 'arbol de las pagodas', 'pagoda tree', 'koelreuteria'],
+      keywords: ['styphnolobium', 'sophora japonica', 'sophora', 'acacia de japón', 'arbol de las pagodas', 'pagoda tree'],
       alturaMediaM: 11,
       radioCopaMedioM: 4.0,
       forma: 'ancha_redondeada',
@@ -11676,6 +11676,32 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       radioCopaMedioM: 4.0,
       forma: 'ancha_redondeada',
       color: '#5f9e4a',
+    },
+    // --- 3 GÉNEROS MÁS (nov-2026, 3ª ronda): los siguientes con más ejemplares
+    // del inventario oficial que caían en 'generico' (sin copa 3D). Keywords
+    // únicas, sin choque con las de arriba.
+    // OJO koelreuteria: estaba DENTRO de las keywords de 'sophora' (2.559
+    // ejemplares iban a esa copa equivocada). Ahora tiene SU tipo y su copa.
+    koelreuteria: {
+      keywords: ['koelreuteria', 'paniculata', 'arbol del jabon', 'árbol del jabón', 'soplillo', 'golden rain tree', 'china tree'],
+      alturaMediaM: 11,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_irregular',
+      color: '#6fa04c',
+    },
+    tamarix: {
+      keywords: ['tamarix', 'tamariz', 'tamarisco', 'taray', 'salt cedar', 'tamarisk'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 3.0,
+      forma: 'ancha_irregular',
+      color: '#7fa883',
+    },
+    paulownia: {
+      keywords: ['paulownia', 'tomentosa', 'pawlonia', 'princesa', 'empress tree', 'kiri'],
+      alturaMediaM: 13,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_redondeada',
+      color: '#699e46',
     },
   };
 

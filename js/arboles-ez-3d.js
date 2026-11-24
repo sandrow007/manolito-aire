@@ -240,6 +240,20 @@ acer: { seed: 30577, type: 'deciduous', levels: 3, angle: [50, 56, 40], children
 // pocas secciones dan el engordamiento de la base; start 0.55 eleva la
 // copa y deja el fuste desnudo, como los ejemplares del parque.
 chorisia: { seed: 31621, type: 'deciduous', levels: 3, angle: [44, 58, 46], children: [6, 5, 3], length: [30, 18.4, 11, 5.6], radius: [2.8, 0.66, 0.56, 0.5], sections: [8, 7, 5, 3], segments: [10, 6, 4, 3], start: [0, 0.55, 0.26, 0.1], taper: [0.55, 0.6, 0.66, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 48, leafCount: 15, leafStart: 0.05, leafSize: 2.75, leafVariance: 0.5, leafColor: 0x5f9e4a, barkColor: 0x7e8a68 },
+// --- 3 PRESETS MÁS (nov-2026, 3ª ronda). Mismo criterio: gnarliness/twist/
+// force a CERO y el porte real por delante de la silueta del repo.
+// koelreuteria: ÁRBOL DEL JABÓN / SOPLILLO (Koelreuteria paniculata).
+// Copa ancha y abierta, algo irregular, ramas ascendentes y hoja compuesta
+// media: base ash con copa más baja y hojas algo mayores.
+koelreuteria: { seed: 32711, type: 'deciduous', levels: 3, angle: [46, 58, 48], children: [7, 5, 3], length: [31.5, 19.6, 11.4, 5.8], radius: [1.5, 0.62, 0.54, 0.48], sections: [11, 8, 5, 3], segments: [9, 6, 4, 3], start: [0, 0.38, 0.24, 0.1], taper: [0.72, 0.6, 0.64, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 48, leafCount: 18, leafStart: 0.06, leafSize: 2.2, leafVariance: 0.55, leafColor: 0x6fa04c, barkColor: 0x8f8266 },
+// tamarix: TAMARIZ / TAMARISCO (Tamarix gallica). Silueta ÚNICA: arbusto
+// alto de ramas finísimas casi verticales desde abajo y follaje aguja
+// minúscula y dispersa (plumas verdes grises). Muchos hijos y ramas finas.
+tamarix: { seed: 33877, type: 'deciduous', levels: 3, angle: [30, 26, 22], children: [9, 7, 5], length: [24, 14.5, 9.2, 4.6], radius: [0.85, 0.3, 0.18, 0.14], sections: [8, 6, 4, 2], segments: [7, 5, 3, 3], start: [0, 0.22, 0.2, 0.18], taper: [0.6, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 30, leafCount: 30, leafStart: 0.02, leafSize: 0.85, leafVariance: 0.45, leafColor: 0x7fa883, barkColor: 0x6e5a44 },
+// paulownia: PAULONIA (Paulownia tomentosa). Copa grande, redondeada y
+// abierta con HOJAS ENORMES (hasta 30 cm): tronco corto, ramas gruesas
+// ascendentes y hoja grande (3.0) para su follaje característico.
+paulownia: { seed: 34921, type: 'deciduous', levels: 3, angle: [44, 54, 44], children: [6, 4, 3], length: [26.5, 17.2, 10.4, 5.4], radius: [2.05, 0.78, 0.6, 0.5], sections: [11, 8, 5, 3], segments: [10, 6, 4, 3], start: [0, 0.34, 0.2, 0.08], taper: [0.68, 0.55, 0.62, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 50, leafCount: 14, leafStart: 0.04, leafSize: 3.0, leafVariance: 0.55, leafColor: 0x699e46, barkColor: 0x8a7a5e },
 // firmiana: ÁRBOL DE LAS PAGODAS (Firmiana simplex). Tronco derecho, liso
 // y verde, copa OVALADA y ELEVADA, poco densa en la base (hoja grande de
 // plátano arriba). Base de copa alta (0.46) y ancho moderado: copa más
@@ -309,6 +323,12 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     schinus: { preset: 'schinus', evergreen: true },            // Schinus molle, 758 (pimiento)
     acer: { preset: 'acer', evergreen: false },                 // Acer negundo, 699 (arce negundo)
     chorisia: { preset: 'chorisia', evergreen: false },         // Ceiba speciosa, 254 (palo borracho)
+    // --- 3 ÁRBOLES MÁS (nov-2026, 3ª ronda). Cada uno con SU preset propio:
+    // koelreuteria caduco de copa abierta, tamarix caduco de follaje pluma
+    // y paulownia caduco de hoja enorme.
+    koelreuteria: { preset: 'koelreuteria', evergreen: false }, // Koelreuteria paniculata, 2.559
+    tamarix: { preset: 'tamarix', evergreen: false },           // Tamarix gallica, 538 (tamariz)
+    paulownia: { preset: 'paulownia', evergreen: false },       // Paulownia tomentosa, 127
   };
   // NOTA (nov-2026): gleditsia/ligustrum/cercis/magnolia/catalpa/casuarina
   // REUTILIZAN los presets de arriba según su silueta real (nada de presets

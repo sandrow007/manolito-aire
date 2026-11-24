@@ -388,7 +388,18 @@
 //     js/shadows-route.js. (2) PINO EZ REHECHO: silueta cónica con ramas de
 //     verticilo casi horizontales desde abajo, acículas finas/oscuras y
 //     corteza parda. Cambia js/arboles-ez-3d.js. Ambos con ?v= en index.html.
-const VERSION = '2026-11-22-a-lluvia-sin-colgar';
+// 2026-11-24-a: NARANJO/ALBIZIA RESTAURADOS y 3 especies más.
+// (1) El motor propio de naranjo/albizia (js/arboles-3d.js) vuelve a SU
+//     selección original (en vista, cercanía al centro, tope 40): nada de
+//     EZ ni filtros nuevos, como se pidió.
+// (2) El motor plano (js/shadows-route.js) devuelve su guardia original:
+//     naranjo/albizia NUNCA se saltan el descamuflaje y pintan SIEMPRE sus
+//     copas planas como antes de los EZ (sin mallaTieneEsteEjemplar).
+// (3) 3 géneros más con preset EZ propio y keywords: koelreuteria (2.559,
+//     antes colada como sophora), tamarix (538) y paulownia (127).
+// Cambian js/arboles-3d.js, js/shadows-route.js, js/arboles-ez-3d.js e
+// index.html (?v=). NO se toca la malla del naranjo ni la de la albizia.
+const VERSION = '2026-11-24-a-naranjo-albizia-restaurados';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

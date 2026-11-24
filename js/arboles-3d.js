@@ -686,30 +686,19 @@
     } catch (e) { return []; }
     var b = map.getBounds();
     var c = map.getCenter();
-    var candidatas = todas.filter(function (a) {
+    // RESTAURADO (nov-2026): selección original del motor propio (el estado
+    // de a9693a9/8f317e7). El filtro de separación por radios de copa se
+    // retiró: se quedaba en las zonas densas (el paseo de naranjos) con 10
+    // árboles en vez de los 40 que tocan. De vuelta al criterio de siempre:
+    // en vista, por cercanía al centro y tope de MAX_ARBOL (40).
+    return todas.filter(function (a) {
       return a.lon >= b.getWest() && a.lon <= b.getEast() &&
              a.lat >= b.getSouth() && a.lat <= b.getNorth();
     }).sort(function (a1, a2) { // las más cercanas al centro primero
       var d1 = (a1.lon - c.lng) * (a1.lon - c.lng) + (a1.lat - c.lat) * (a1.lat - c.lat);
       var d2 = (a2.lon - c.lng) * (a2.lon - c.lng) + (a2.lat - c.lat) * (a2.lat - c.lat);
       return d1 - d2;
-    });
-    // No solapar copas 3D: en zonas densas se priorizan los ejemplares
-    // cercanos al centro, respetando su radio de copa cuando está disponible.
-    var separados = [];
-    for (var i = 0; i < candidatas.length && separados.length < MAX_ARBOL; i++) {
-      var actual = candidatas[i];
-      var radio = Math.max(1.5, Math.min(5, actual.radioCopaM || 2.5));
-      var demasiadoCerca = separados.some(function (previo) {
-        var latMedia = (actual.lat + previo.lat) * 0.5 * Math.PI / 180;
-        var dx = (actual.lon - previo.lon) * 111320 * Math.cos(latMedia);
-        var dy = (actual.lat - previo.lat) * 111320;
-        var radioPrevio = Math.max(1.5, Math.min(5, previo.radioCopaM || 2.5));
-        return Math.hypot(dx, dy) < (radio + radioPrevio) * 0.72;
-      });
-      if (!demasiadoCerca) separados.push(actual);
-    }
-    return separados;
+    }).slice(0, MAX_ARBOL);
   }
 
   // ==========================================================================

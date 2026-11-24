@@ -59,7 +59,13 @@
     // aún sin modelo del parque según el inventario oficial. schinus =
     // pimiento (758), acer = arce negundo (699), chorisia = palo borracho
     // / Ceiba speciosa (254), el de los troncos botella de María Luisa.
-    'schinus', 'acer', 'chorisia'];
+    'schinus', 'acer', 'chorisia',
+    // --- 3 ÁRBOLES MÁS (nov-2026, 3ª ronda): los géneros aún sin tipo
+    // con más ejemplares del inventario oficial que caían en 'generico':
+    // koelreuteria (2.559, el más numeroso de todos los sin modelo),
+    // tamarix (538) y trachycarpus/palmera de abanico (ya en 'palmera')...:
+    // tamarix, koelreuteria y paulownia (127).
+    'koelreuteria', 'tamarix', 'paulownia'];
 
   // Alturas de referencia (las de TIPOS_ARBOL).
   var EZ_ALTURAS = {
@@ -84,6 +90,9 @@
     // --- 3 ÁRBOLES NUEVOS (nov-2026, 2ª ronda María Luisa). Alturas medias
     // reales: pimiento llorón 10 m, arce negundo 9 m, palo borracho 12 m.
     schinus: 10, acer: 9, chorisia: 12,
+    // --- 3 ÁRBOLES MÁS (nov-2026, 3ª ronda). Alturas medias reales:
+    // koelreuteria 11 m, tamarix 8 m, paulownia 13 m.
+    koelreuteria: 11, tamarix: 8, paulownia: 13,
     // --- 2 ÁRBOLES MÁS (nov-2026): alturas medias reales de parque.
     // firmiana: copa ovalada elevada, tronco derecho (8-15 m).
     // ficus_alto: microcarpa/benjamina en parque, copa ancha y densa (8-10 m).

@@ -910,6 +910,17 @@
       .fa-directions svg { display:block; flex:0 0 auto; width:64px; height:auto; max-height:76px; margin-inline:-6px; }
       .fa-directions span { display:none; }
       @media (prefers-reduced-motion:no-preference) { .fa-map-popup .maplibregl-popup-content { animation:fa-pop-in .2s cubic-bezier(.2,.8,.2,1) both; } @keyframes fa-pop-in { from { opacity:0; transform:translateY(6px) scale(.97); } to { opacity:1; transform:none; } } }
+      /* Móvil (nov-2026): el popup salía enorme porque el icono «IR HASTA
+         AQUÍ» se comía la tarjeta. Solo se reduce el POPUP de la fuente;
+         colores, estructura y datos quedan idénticos. */
+      @media (max-width:640px) {
+        .fa-card { width:min(212px, calc(100vw - 40px)); min-width:0; padding:11px 13px 12px; border-radius:16px; font-size:13px; }
+        .fa-eyebrow { margin:0 24px 2px 0; font-size:9px; }
+        .fa-title { margin-right:24px; font-size:14px; line-height:1.25; }
+        .fa-directions { min-height:36px; margin-top:9px; border-radius:11px; }
+        .fa-directions svg { width:44px; max-height:50px; }
+        .fa-map-popup .maplibregl-popup-close-button { top:6px; right:6px; width:24px; height:24px; font-size:16px; line-height:24px; }
+      }
     `;
     document.head.appendChild(estilo);
   }

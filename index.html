@@ -1433,6 +1433,13 @@
        cada uno flex-1, así caben sin romperse. -->
   <div class="rs-fila-botones">
     <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar</button>
+    <!-- Atajo «Iniciar caminata» pegado a Buscar (nov-2026): nace APILADO
+         dentro de #rsParkingAction, así que no añade ni una columna al
+         buscador; sale justo al lado de Buscar al calcular la ruta. Es una
+         puerta ADITIVA: solo pulsa #rsBtnWalk, no tiene lógica propia. -->
+    <div class="rs-accion-caminar" id="rsAccionCaminar" hidden>
+      <button type="button" id="rsBtnCaminarResumen" data-i18n="walkModeStart" aria-label="Iniciar caminata" title="Iniciar caminata">Iniciar caminata</button>
+    </div>
     <div id="rsParkingAction"></div>
   </div>
   <!-- Cierre del panel flotante en escritorio (nov-2026): la X vive

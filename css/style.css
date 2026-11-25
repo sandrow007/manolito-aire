@@ -5851,6 +5851,10 @@ body.modo-accesible #main-content .rs-form .rs-field input[type="text"]{
      de parking. Sigue activando #rsBtnWalk; no duplica la lógica de ruta. */
   #main-content .rs-form #rsAccionCaminar:not([hidden]){grid-column:4;grid-row:1;display:flex;justify-self:stretch;min-width:0}
   #main-content .rs-form #rsAccionCaminar:not([hidden]) + #rsParkingAction{display:none !important}
+  /* Fuera del móvil: el «Buscar aparcamiento» del buscador no se muestra;
+     la capa sigue accesible desde la botonera de capas del mapa. */
+  #main-content .rs-form #rsParkingAction{display:none !important}
+  #main-content .rs-form #rsAccionCaminar:not([hidden]){grid-column:4;grid-row:1;display:flex;justify-self:stretch;min-width:0}
   #main-content .rs-form #rsAccionCaminar:not([hidden]) #rsBtnCaminarResumen{
     width:100%;min-width:0;padding:0 5px;border-radius:999px;font-size:0 !important;gap:3px;
     background:rgba(255,107,26,.16);border-color:rgba(255,107,26,.38);

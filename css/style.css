@@ -5719,6 +5719,8 @@ html[lang="ar"] #main-content .rs-form .rs-field input[type="text"]{
     min-height:42px;
   }
   #main-content .rs-form .rs-modo-ruta{ gap:6px; }
+  #main-content .rs-form .rs-barra .rs-invertir-ruta,
+  #main-content .rs-form .rs-barra #rsBtnInvertirRuta{display:none !important;visibility:hidden !important;pointer-events:none !important;width:0 !important;min-width:0 !important;height:0 !important;padding:0 !important;margin:0 !important}
 }
 
 /* Área táctil cómoda sin engordar el dibujo de los controles. */
@@ -5726,7 +5728,7 @@ html[lang="ar"] #main-content .rs-form .rs-field input[type="text"]{
   #main-content #rsMapControls button{ height:40px; min-height:40px; }
   #main-content .rs-form,
   #main-content .rs-form.rs-form-flotante{ top:50px; }
-  #main-content .rs-form .rs-modo-ruta button{ height:30px; min-height:30px; }
+  #main-content .rs-form .rs-modo-ruta button{ height:28px; min-height:28px; }
   /* Con los resúmenes visibles la píldora crece a dos líneas: la altura
      fija de 30px cortaría el texto pequeño. */
   #main-content .rs-form .rs-modo-ruta.con-resumenes button{ height:auto; min-height:30px; }
@@ -5734,9 +5736,9 @@ html[lang="ar"] #main-content .rs-form .rs-field input[type="text"]{
   #main-content .rs-form #rsBuscarBtn,
   #main-content .rs-form .rs-parking-action,
   #main-content .rs-form #rsBtnCerrarForm{
-    height:44px;
-    min-height:44px !important;
-    max-height:44px;
+    height:38px;
+    min-height:38px !important;
+    max-height:38px;
   }
 }
 
@@ -5813,6 +5815,48 @@ body.modo-accesible #main-content .rs-form .rs-field input[type="text"]{
     grid-template-columns:minmax(0,1fr) minmax(0,1fr) 34px 34px 28px;
     gap:2px;
   }
+}
+
+/* Ajuste móvil del buscador: panel más ligero, menos alto y sin el
+   conmutador gris de invertir en el centro de los dos campos. */
+@media (max-width:760px){
+  #main-content .rs-form,
+  #main-content .rs-form.rs-form-flotante{
+    top:42px;
+    width:calc(100% - 24px);
+    max-width:480px;
+    padding:4px 7px;
+    gap:1px;
+    border:1px solid rgba(255,255,255,.64);
+    border-radius:14px;
+    background:rgba(248,251,252,.78);
+    -webkit-backdrop-filter:blur(16px) saturate(1.2);
+    backdrop-filter:blur(16px) saturate(1.2);
+    box-shadow:0 5px 18px rgba(17,42,52,.18),inset 0 1px 0 rgba(255,255,255,.72);
+  }
+  #main-content .rs-form .rs-modo-ruta{gap:3px;padding:0 2px}
+  #main-content .rs-form .rs-modo-ruta button{height:27px;min-height:27px;padding:1px 7px;font-size:10px !important}
+  #main-content .rs-form .rs-barra .rs-invertir-ruta,
+  #main-content .rs-form .rs-barra #rsBtnInvertirRuta,
+  #main-content .rs-form .rs-barra .rs-vdiv{display:none !important;visibility:hidden !important;pointer-events:none !important;width:0 !important;min-width:0 !important;height:0 !important;padding:0 !important;margin:0 !important}
+  #main-content .rs-form .rs-barra{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px minmax(72px,auto) 28px;gap:2px}
+  #main-content .rs-form .rs-barra .rs-field:nth-child(1){grid-column:1;grid-row:1}
+  #main-content .rs-form .rs-barra .rs-field:nth-child(3){grid-column:2;grid-row:1}
+  #main-content .rs-form .rs-field input[type="text"],
+  #main-content .rs-form #rsBuscarBtn,
+  #main-content .rs-form .rs-parking-action,
+  #main-content .rs-form #rsBtnCerrarForm{height:34px;min-height:34px !important;max-height:34px}
+  #main-content .rs-form #rsBtnCaminarResumen{height:34px;min-height:34px;max-height:34px}
+  /* Cuando la ruta está lista, el acceso a pie ocupa el hueco del atajo
+     de parking. Sigue activando #rsBtnWalk; no duplica la lógica de ruta. */
+  #main-content .rs-form #rsAccionCaminar:not([hidden]){grid-column:4;grid-row:1;display:flex;justify-self:stretch;min-width:0}
+  #main-content .rs-form #rsAccionCaminar:not([hidden]) + #rsParkingAction{display:none !important}
+  #main-content .rs-form #rsAccionCaminar:not([hidden]) #rsBtnCaminarResumen{
+    width:100%;min-width:0;padding:0 5px;border-radius:999px;font-size:0 !important;gap:3px;
+    background:rgba(255,107,26,.16);border-color:rgba(255,107,26,.38);
+  }
+  #main-content .rs-form #rsAccionCaminar:not([hidden]) #rsBtnCaminarResumen::after{content:"Iniciar";font-size:11px;font-weight:700}
+  #main-content .rs-form #rsAccionCaminar:not([hidden]) #rsBtnCaminarResumen::before{width:13px;height:13px}
 }
 
 /* El color sigue al lienzo del mapa, no al tema general de la web. */

@@ -359,24 +359,26 @@
       .mp-option-distance{font-size:9px;color:#819098;white-space:nowrap;margin-top:2px}
       .mp-no-options{font-size:10px;line-height:1.4;color:#77868d;padding:5px 0}
       @media(max-width:580px){
-        .mp-parking-results{width:min(340px,calc(100vw - 20px));max-width:calc(100vw - 20px);max-height:min(48vh,360px);max-height:min(48dvh,360px)}
-        .mp-results-title{padding:8px 34px 7px 10px;font-size:10px}
+        .maplibregl-popup.mp-parking-popup{max-width:calc(100vw - 32px)!important}
+        .maplibregl-popup.mp-parking-popup .maplibregl-popup-content{max-width:calc(100vw - 32px);border-radius:13px;background:rgba(250,253,253,.88);-webkit-backdrop-filter:blur(14px) saturate(1.15);backdrop-filter:blur(14px) saturate(1.15);box-shadow:0 7px 20px rgba(17,42,52,.22)}
+        .mp-parking-results{width:min(310px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:min(38vh,300px);max-height:min(38dvh,300px);background:rgba(250,253,253,.88)}
+        .mp-results-title{padding:6px 30px 5px 8px;font-size:10px}
         .mp-parking-grid{grid-template-columns:minmax(0,1fr)}
-        .mp-selected-parking{padding:9px}
-        .mp-parking-symbol{flex-basis:40px;width:40px;height:40px}
+        .mp-selected-parking{padding:7px}
+        .mp-parking-symbol{flex-basis:38px;width:38px;height:38px}
         .mp-parking-symbol svg{width:32px;height:32px}
         .mp-parking-sun-scene{flex-basis:38px;width:38px;height:38px;max-width:38px}
         .mp-parking-name{font-size:13px}
-        .mp-parking-status{margin-left:-9px;margin-right:-9px;padding:6px 9px}
-        .mp-parking-data{gap:8px;padding-top:8px}
-        .mp-parking-options{border-left:0;border-top:1px solid #e2eaed;padding:8px 9px;background:#fbfcfd}
-        .mp-options-title{margin-bottom:6px}
-        .mp-parking-options-list{display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding:1px 1px 5px;scroll-snap-type:x proximity}
-        .mp-parking-option{flex:0 0 min(78%,225px);width:auto;min-height:66px;padding:7px;border:1px solid #e3e9ec;border-radius:8px;background:#fff;scroll-snap-align:start}
-        .mp-parking-option:last-child{border-bottom:1px solid #e3e9ec}
-        .mp-option-symbol{flex-basis:30px;width:30px;height:30px}
-        .mp-parking-footer{margin-top:7px;padding-top:6px}
-        .mp-parking-drive{margin-top:8px;width:100%}
+        .mp-parking-status{min-height:34px;margin:7px -8px 0;padding:6px 8px}
+        .mp-parking-data{gap:6px;padding-top:6px}
+        .mp-parking-footer{margin-top:5px;padding-top:5px}
+        .mp-parking-drive{margin-top:6px;padding:7px 10px;width:100%}
+        .mp-parking-options{border-left:0;border-top:1px solid rgba(210,222,226,.8);padding:7px 8px;background:rgba(247,250,251,.72)}
+        .mp-options-title{margin-bottom:5px}
+        .mp-parking-options-list{display:flex;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding:1px 1px 4px;scroll-snap-type:x proximity}
+        .mp-parking-option{flex:0 0 min(72%,205px);width:auto;min-height:58px;padding:6px;border:1px solid rgba(220,229,232,.9);border-radius:8px;background:rgba(255,255,255,.76);scroll-snap-align:start}
+        .mp-parking-option:last-child{border-bottom:1px solid rgba(220,229,232,.9)}
+        .mp-option-symbol{flex-basis:28px;width:28px;height:28px}
       }
       @media(prefers-reduced-motion:no-preference){.mp-parking-option{transition:color .15s ease,background .15s ease}}
     `;

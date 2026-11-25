@@ -408,17 +408,19 @@
 //     precipitación pasa de una mancha azul grisácea (opacidad 0,45) a
 //     una paleta meteorológica graduada tipo MSN/Windy: cian tenue para
 //     llovizna, azul vivo para lluvia, ámbar para chubasco, magenta para
-//     tormenta. Se aplica con raster-color (interpolate linear sobre
-//     raster-value) + raster-hue-rotate, sin animaciones ni trabajo por
-//     frame: son paint-properties que MapLibre aplica con shaders en el
-//     siguiente repintado. La opacidad techo sube a 0,75 (era 0,45) y
-//     sigue desvaneciéndose al acercarse para que las gotas de cerca
-//     sigan gobernando, como hasta ahora. Sin cambios en la lógica de
-//     tiles, en el bucle de las gotas, ni en los temporizadores: no
-//     calienta el móvil. Placeholders origen/destino en ES/CA/EU/GL/EN/
-//     KA/AR (js/i18n.js) e index.html pasan a "Selecciona punto de
-//     origen/destino" en los 7 idiomas para guiar al peatón como hace
-//     Google Maps. Cambian js/lluvia.js, js/i18n.js, index.html y sw.js.
+//     tormenta. Se aplica con raster-hue-rotate + saturación y contraste
+//     subidos (raster-color NO existe en MapLibre 4.7.1, la web la carga,
+//     comprobado contra su bundle: se usa lo que 4.7.1 soporta), sin
+//     animaciones ni trabajo por frame: son paint-properties que MapLibre
+//     aplica con shaders en el siguiente repintado. La opacidad techo
+//     sube a 0,75 (era 0,45) y sigue desvaneciéndose al acercarse para
+//     que las gotas de cerca sigan gobernando, como hasta ahora. Sin
+//     cambios en la lógica de tiles, en el bucle de las gotas, ni en los
+//     temporizadores: no calienta el móvil. Placeholders origen/destino
+//     en ES/CA/EU/GL/EN/KA/AR (js/i18n.js) e index.html pasan a
+//     "Selecciona punto de origen/destino" en los 7 idiomas para guiar
+//     al peatón como hace Google Maps. Cambian js/lluvia.js, js/i18n.js,
+//     index.html y sw.js.
 const VERSION = '2026-11-25-a-lluvia-mapa-tiempo';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación

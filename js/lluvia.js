@@ -169,21 +169,28 @@
       // invert(), así que la mancha "nace oscura" y el filtro la aclara.
       mapa.setPaintProperty(CAPA_ID, 'raster-brightness-max', oscuro ? 0.55 : 1);
       mapa.setPaintProperty(CAPA_ID, 'raster-brightness-min', oscuro ? 0.12 : 0.04);
-      mapa.setPaintProperty(CAPA_ID, 'raster-saturation', oscuro ? 0.85 : 1.1);
-      mapa.setPaintProperty(CAPA_ID, 'raster-contrast', oscuro ? 0.22 : 0.28);
       // Matiz hacia tonos meteorológicos: cian -> azul -> ámbar -> magenta
       // (rota el azul original hacia el lado cálido del espectro).
       mapa.setPaintProperty(CAPA_ID, 'raster-hue-rotate', oscuro ? -8 : -14);
-      // Rampa gamma para acentuar los volúmenes fuertes (los chubascos
-      // resaltan sin apagar la llovizna).
-      mapa.setPaintProperty(CAPA_ID, 'raster-color', [
-        'interpolate', ['linear'], ['raster-value'],
-        0.00, [0.00, 0.00, 0.00, 0.00],
-        0.10, oscuro ? [0.10, 0.32, 0.45, 0.55] : [0.10, 0.45, 0.62, 0.75],
-        0.35, oscuro ? [0.18, 0.55, 0.80, 0.85] : [0.22, 0.62, 0.92, 0.95],
-        0.65, oscuro ? [0.85, 0.70, 0.30, 0.95] : [1.00, 0.78, 0.20, 1.00],
-        1.00, oscuro ? [0.95, 0.30, 0.65, 1.00] : [1.00, 0.28, 0.62, 1.00]
-      ]);
+      // NOTA (nov-2026): MapLibre 4.7.1 (la versión que carga esta web) NO
+      // soporta 'raster-color' ni la expresión 'raster-value' (llegaron en
+      // la 5.x). Comprobado contra el bundle real de unpkg. La paleta
+      // graduada por volumen se consigue AQUÍ con las propiedades que
+      // 4.7.1 sí soporta: los tiles de OWM ya codifican el volumen como
+      // intensidad de color, así que saturación + contraste + brillo
+      // amplifican la diferencia entre llovizna (tenue) y tormenta
+      // (intensa), y el hue-rotate lleva el conjunto hacia tonos cálidos
+      // tipo mapa del tiempo. Sin llamadas que fallen en silencio.
+      // Saturación > 1: la llovizna débil casi desaparece (su píxel tiene
+      // poca saturación de base) y el chubasco denso se enciende.
+      mapa.setPaintProperty(CAPA_ID, 'raster-saturation', oscuro ? 1.3 : 1.6);
+      // Contraste alto: separa los niveles de intensidad dentro del tile,
+      // exactamente lo que busca una escala "por volumen".
+      mapa.setPaintProperty(CAPA_ID, 'raster-contrast', oscuro ? 0.3 : 0.42);
+      // El degradado de opacidad de arriba ya hace el papel de rampa de
+      // transparencia: menos agua = píxel casi transparente, más agua =
+      // color pleno. Es el mismo efecto visual que una rampa de color,
+      // con los primitivos de 4.7.1.
     } catch (e) { /* capa a medio crear */ }
   }
 

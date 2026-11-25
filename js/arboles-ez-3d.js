@@ -658,18 +658,28 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     return geo;
   }
 
-  // Pino de silueta propia: líder recto, pisos radiales de ramas que se
-  // acortan hacia la cima y agujas triangulares finas. Aislado del generador
-  // fractal para no cambiar ni una especie de hoja ancha.
+  // Pino de silueta propia: líder recto, copa CONO CONTINUO (no pisos
+  // sueltos: las ramas nacen solapadas para que no queden huecos entre
+  // verticilos) y acículas finas triangulares pegadas a cada rama.
+  // Aislado del generador fractal para no cambiar ni una especie de hoja ancha.
   function construirPinoReal(preset, rand) {
     var madera = [], follaje = [];
     var alto = preset.length[0] || 14;
     var arriba = new THREE.Vector3(0, 1, 0);
-    var niveles = 7;
-    var ramasPorNivel = 9;
+    // (nov-2026) COPA CÓNICA DE VERDAD: antes 7 niveles arrancando al 56 % de
+    // la altura daban un "castillo de discos" con el tronco pelado abajo.
+    // Ahora 11 niveles desde el 32 % y más ramas por nivel: el volumen del
+    // cono se rellena sin huecos entre pisos.
+    var niveles = 11;
+    var ramasPorNivel = 11;
     var segmentosTronco = 18;
     var radioBase = preset.radius[0] || 0.24;
     var radioCima = 0.035;
+    // Presupuesto de acículas por árbol. En móvil el modelo se instancia 200
+    // veces con MAX_ARBOL, así que el tope no es capricho: por encima de
+    // ~4.500 caras por copa la batería se nota.
+    var MAX_PENACHOS = 520;
+    var penachos = 0;
 
     for (var t = 0; t < segmentosTronco; t++) {
       var y0 = alto * t / segmentosTronco;
@@ -684,23 +694,26 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     }
 
     function agujasEn(pos, eje, escala) {
+      if (penachos >= MAX_PENACHOS) return;
+      penachos++;
       var positions = [], indices = [];
       var dir = eje.clone().normalize();
       var lateral = new THREE.Vector3().crossVectors(dir, arriba);
       if (lateral.lengthSq() < 0.001) lateral.set(1, 0, 0);
       lateral.normalize();
       var plano = new THREE.Vector3().crossVectors(dir, lateral).normalize();
-      // Acículas más numerosas, radiales y ligeramente ascendentes: el pino
-      // no debe leerse como ramas desnudas desde el picado del mapa.
-      var cuenta = 13;
+      // (nov-2026) MÁS acículas y MÁS finas: antes 13 por penacho con ancho
+      // 0.045·escala (se leían como palas). Ahora 17 y ancho 0.028, algo más
+      // pegadas a la rama y con menos voladizo lateral: masa de agujas.
+      var cuenta = 17;
       for (var n = 0; n < cuenta; n++) {
         var ang = n * Math.PI * 2 / cuenta + rand(0.2, -0.2);
         var radial = lateral.clone().multiplyScalar(Math.cos(ang)).addScaledVector(plano, Math.sin(ang));
-        var puntaDir = dir.clone().multiplyScalar(0.32).addScaledVector(radial, 0.78).addScaledVector(arriba, 0.34).normalize();
-        var largo = escala * rand(0.92, 0.68);
-        var ancho = escala * 0.045;
+        var puntaDir = dir.clone().multiplyScalar(0.55).addScaledVector(radial, 0.62).addScaledVector(arriba, 0.22).normalize();
+        var largo = escala * rand(0.92, 0.66);
+        var ancho = escala * 0.028;
         var base = positions.length / 3;
-        var raiz = pos.clone().addScaledVector(radial, escala * 0.06);
+        var raiz = pos.clone().addScaledVector(radial, escala * 0.05);
         var lado = new THREE.Vector3().crossVectors(puntaDir, radial).normalize().multiplyScalar(ancho);
         var punta = raiz.clone().addScaledVector(puntaDir, largo);
         positions.push(raiz.x - lado.x, raiz.y - lado.y, raiz.z - lado.z);
@@ -715,37 +728,42 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
       follaje.push(geo);
     }
 
-    // Las ramas nacen en verticilos regulares. Las inferiores son largas y
-    // casi horizontales; cada piso superior es más corto y queda dentro del
-    // contorno triangular de la copa.
+    // Verticilos solapados: la copa arranca en el 32 % de la altura y cada
+    // piso se acorta siguiendo el radio del cono, con un pequeño solape con
+    // el piso siguiente para que la silueta sea continua al mirar en picado.
+    var Y_INICIO = 0.32;
+    var Y_FIN = 0.99;
     for (var nivel = 0; nivel < niveles; nivel++) {
       var progreso = nivel / (niveles - 1);
-      var y = alto * (0.56 + progreso * 0.40);
-      // Piñonero adulto: copa alta y abierta, no forma de abeto. La longitud
-      // máxima de los pisos está a media copa y cae con fuerza hacia la punta.
-      var anchoPiso = Math.sin(Math.PI * Math.pow(progreso, 0.78));
-      var largoRama = (preset.length[1] || 3.25) * (0.20 + 0.80 * anchoPiso) + 0.18;
-      var radioRama = 0.075 * (1 - progreso * 0.78);
+      var y = alto * (Y_INICIO + progreso * (Y_FIN - Y_INICIO));
+      // Radio del cono en este piso: máximo abajo, mínimo arriba. El 0.28
+      // evita que la punta quede plana; el solape 1.12 cierra los huecos.
+      var radioCono = (preset.length[1] || 3.25) * (1 - progreso) + 0.28;
+      var largoRama = radioCono * 1.12;
+      var radioRama = 0.075 * (1 - progreso * 0.82);
       var giro = rand(0, Math.PI * 2);
       for (var b = 0; b < ramasPorNivel; b++) {
         var angulo = giro + b * Math.PI * 2 / ramasPorNivel;
         var horizontal = new THREE.Vector3(Math.cos(angulo), 0, Math.sin(angulo));
         var raizRama = new THREE.Vector3(0, y, 0);
+        // Las inferiores caen un poco (pino piñonero) y las altas suben: al
+        // mezclarse, el contorno sale cónico en vez de escalonado.
+        var caida = (1 - progreso) * -0.13 + progreso * 0.20;
         var puntaRama = raizRama.clone().addScaledVector(horizontal, largoRama)
-          .addScaledVector(arriba, largoRama * 0.055);
+          .addScaledVector(arriba, largoRama * caida);
         var ramaGeo = geometriaCilindro(raizRama, puntaRama, radioRama, Math.max(0.012, radioRama * 0.16), 5);
         if (ramaGeo) madera.push(ramaGeo);
 
-        var pasosAgujas = Math.max(5, Math.ceil(largoRama / 0.16));
+        var pasosAgujas = Math.max(4, Math.ceil(largoRama / 0.22));
         var ejeRama = puntaRama.clone().sub(raizRama).normalize();
         for (var k = 0; k <= pasosAgujas; k++) {
           var u = k / pasosAgujas;
           var centro = raizRama.clone().lerp(puntaRama, u);
-          var tamano = 0.76 * (0.82 + u * 0.18) * (0.92 - progreso * 0.12);
+          var tamano = 0.66 * (0.86 + u * 0.14) * (1 - progreso * 0.10);
           agujasEn(centro, ejeRama, tamano);
-          if (u > 0.18 && u < 0.88 && k % 2 === 0) {
+          if (u > 0.2 && u < 0.85 && k % 2 === 0) {
             var lateralAguja = new THREE.Vector3(-horizontal.z, 0, horizontal.x);
-            agujasEn(centro, lateralAguja, tamano * 0.82);
+            agujasEn(centro, lateralAguja, tamano * 0.78);
           }
         }
       }

@@ -421,7 +421,7 @@
 //     "Selecciona punto de origen/destino" en los 7 idiomas para guiar
 //     al peatón como hace Google Maps. Cambian js/lluvia.js, js/i18n.js,
 //     index.html y sw.js.
-const VERSION = '2026-11-25-a-lluvia-mapa-tiempo';
+const VERSION = '2026-11-25-b-lluvia-mapa-gotas';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

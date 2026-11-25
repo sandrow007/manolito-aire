@@ -33,10 +33,15 @@
   var CAPA_ID = 'capa-lluvia-owm';
   var REFRESCO_MS = 10 * 60 * 1000;   // OWM renueva sus tiles cada ~10 min
   var CELDA_GRADOS = 0.4;             // ~40 km: la lluvia no cambia por calle
-  var ZOOM_GOTAS = 13;                // a partir de aquí: gotas, no mancha
+  // (nov-2026) Zoom mínimo para que aparezcan las gotas: de 13 a 12. A partir de
+  // aquí se ve el detalle de la lluvia en lugar de la mancha de precipitación.
+  var ZOOM_GOTAS = 12;                // a partir de aquí: gotas, no mancha
   var RELOJ_TOLERANCIA_MS = 45 * 60 * 1000; // presente = ±45 min del reloj
-  var MAX_GOTAS = 150;                // tope de batería
-  var MAX_GOTAS_FLOJO = 70;           // móviles modestos (hardwareConcurrency)
+  // (nov-2026) Lluvia más visible al hacer zoom: subo el tope de gotas dentro
+  // de un margen seguro para móvil (150→220 / 70→95). Sigue siendo trabajo
+  // por frame barato: rectas cortas, sin filtros, sin blend modes.
+  var MAX_GOTAS = 220;                // tope de batería
+  var MAX_GOTAS_FLOJO = 95;           // móviles modestos (hardwareConcurrency)
 
   var mapa = null;
   var selloTiles = Date.now();
@@ -302,11 +307,14 @@
     return {
       x: Math.random() * w,
       y: -20 * dpr - Math.random() * h * 0.3,
-      largo: (7 + Math.random() * 9 + intensidad * 5) * dpr,
+      // (nov-2026) Gotas más visibles al hacer zoom: largo subido (7-21 +5
+      // → 10-26 +8). En zoom alto se leen como chorro, no como puntos.
+      largo: (10 + Math.random() * 16 + intensidad * 8) * dpr,
       vel: (260 + Math.random() * 240 + intensidad * 160) * dpr, // px/s
       deriva: (28 + Math.random() * 42) * dpr,                   // diagonal ligera
       suelo: h * (0.55 + Math.random() * 0.45),                  // dónde "aterriza"
-      alfa: 0.28 + Math.random() * 0.3,
+      // (nov-2026) Un pelo más opacas para que destaquen sobre el raster MSN.
+      alfa: 0.38 + Math.random() * 0.32,
     };
   }
 
@@ -338,7 +346,10 @@
     var w = lienzo.width, h = lienzo.height;
     ctx.clearRect(0, 0, w, h);
 
-    // Gotas: rayitas finas blancas semitransparentes en diagonal ligera.
+    // Gotas: rayitas blancas semitransparentes en diagonal ligera.
+    // (nov-2026) Trazo un pelo más grueso para que se lean al hacer zoom sobre
+    // el raster MSN: velo 1.8→2.2, hilo 0.9→1.1. Sigue siendo 2 strokes por
+    // gota, sin filtros ni blend modes: coste en GPU despreciable.
     ctx.lineCap = 'round';
     ctx.lineWidth = Math.max(1, 1 * dpr);
     for (var i = 0; i < gotas.length; i++) {
@@ -356,14 +367,14 @@
       var kx = g.deriva / g.vel; // pendiente de la caída
       // Dos pasadas: una gruesa y tenue (velo de agua) y una fina y clara
       // (el hilo de la gota). Misma geometría, doble lectura de profundidad.
-      ctx.strokeStyle = 'rgba(210,225,242,' + (g.alfa * 0.55).toFixed(3) + ')';
-      ctx.lineWidth = Math.max(1.4, 1.8 * dpr);
+      ctx.strokeStyle = 'rgba(210,225,242,' + (g.alfa * 0.6).toFixed(3) + ')';
+      ctx.lineWidth = Math.max(1.6, 2.2 * dpr);
       ctx.beginPath();
       ctx.moveTo(g.x, g.y);
       ctx.lineTo(g.x - kx * g.largo, g.y - g.largo);
       ctx.stroke();
       ctx.strokeStyle = 'rgba(240,247,255,' + g.alfa.toFixed(3) + ')';
-      ctx.lineWidth = Math.max(1, 0.9 * dpr);
+      ctx.lineWidth = Math.max(1, 1.1 * dpr);
       ctx.beginPath();
       ctx.moveTo(g.x, g.y);
       ctx.lineTo(g.x - kx * g.largo, g.y - g.largo);

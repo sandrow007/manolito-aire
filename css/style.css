@@ -1220,13 +1220,6 @@ body.modo-accesible .rs-btn-escuchar[aria-pressed="true"]{ background:#000 !impo
   background:#202124;
   color:#fff;
 }
-/* Móvil: la hoja ocupa casi todo el ancho y hasta la mitad de la pantalla. */
-@media (max-width:640px){
-  .rs-pasos-en-mapa{
-    width:calc(100% - 16px);
-    bottom:8px;
-  }
-}
 /* Icono de escuchar: botón redondo compacto junto a «Ver indicaciones». */
 .rs-btn-icono-escuchar{
   width:36px; height:36px; padding:0 !important;

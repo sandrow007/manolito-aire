@@ -150,20 +150,40 @@
     if (!mapa || !mapa.getLayer(CAPA_ID)) return;
     var oscuro = mapaOscuro();
     try {
-      // Mancha azul grisácea: la precipitación de OWM ya nace azul; se le
-      // quita saturación para grisarla y se deja respirar el mapa base.
-      // Techo bajo: la mancha acompaña, nunca tapa. El degradado empieza
-      // antes (zoom 9) para que al acercarse el mapa quede limpio antes.
+      // Mapa meteorológico: la precipitación de OWM entra azul y aquí se
+      // re-tiñe con una escala graduada tipo MSN Weather / Windy:
+      //   llovizna  -> cian tenue   (volumen bajo)
+      //   lluvia    -> azul vivo    (volumen medio)
+      //   chubasco  -> ámbar        (volumen alto)
+      //   tormenta  -> magenta      (volumen extremo)
+      // Sin animaciones y sin trabajo por frame: son paint-properties que
+      // MapLibre aplica con shaders cuando recalcula el tile, ya existente.
+      // Opacidad techo más alta (0,75) para que la mancha se lea bien
+      // desde lejos; se sigue desvaneciendo al acercarse (las gotas
+      // mandan de cerca, como siempre).
       mapa.setPaintProperty(CAPA_ID, 'raster-opacity', ['interpolate', ['linear'], ['zoom'],
-        8, oscuro ? 0.4 : 0.45,
-        9.5, oscuro ? 0.3 : 0.34,
+        8,   oscuro ? 0.62 : 0.75,
+        9.5, oscuro ? 0.50 : 0.62,
         11.5, 0]);
       // Mismo truco que las nubes: en modo oscuro el canvas lleva filtro
       // invert(), así que la mancha "nace oscura" y el filtro la aclara.
-      mapa.setPaintProperty(CAPA_ID, 'raster-brightness-max', oscuro ? 0.16 : 1);
-      mapa.setPaintProperty(CAPA_ID, 'raster-brightness-min', 0);
-      mapa.setPaintProperty(CAPA_ID, 'raster-saturation', -0.6);
-      mapa.setPaintProperty(CAPA_ID, 'raster-contrast', 0.08);
+      mapa.setPaintProperty(CAPA_ID, 'raster-brightness-max', oscuro ? 0.55 : 1);
+      mapa.setPaintProperty(CAPA_ID, 'raster-brightness-min', oscuro ? 0.12 : 0.04);
+      mapa.setPaintProperty(CAPA_ID, 'raster-saturation', oscuro ? 0.85 : 1.1);
+      mapa.setPaintProperty(CAPA_ID, 'raster-contrast', oscuro ? 0.22 : 0.28);
+      // Matiz hacia tonos meteorológicos: cian -> azul -> ámbar -> magenta
+      // (rota el azul original hacia el lado cálido del espectro).
+      mapa.setPaintProperty(CAPA_ID, 'raster-hue-rotate', oscuro ? -8 : -14);
+      // Rampa gamma para acentuar los volúmenes fuertes (los chubascos
+      // resaltan sin apagar la llovizna).
+      mapa.setPaintProperty(CAPA_ID, 'raster-color', [
+        'interpolate', ['linear'], ['raster-value'],
+        0.00, [0.00, 0.00, 0.00, 0.00],
+        0.10, oscuro ? [0.10, 0.32, 0.45, 0.55] : [0.10, 0.45, 0.62, 0.75],
+        0.35, oscuro ? [0.18, 0.55, 0.80, 0.85] : [0.22, 0.62, 0.92, 0.95],
+        0.65, oscuro ? [0.85, 0.70, 0.30, 0.95] : [1.00, 0.78, 0.20, 1.00],
+        1.00, oscuro ? [0.95, 0.30, 0.65, 1.00] : [1.00, 0.28, 0.62, 1.00]
+      ]);
     } catch (e) { /* capa a medio crear */ }
   }
 

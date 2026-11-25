@@ -399,8 +399,17 @@
       seccion.hidden = true;
       return;
     }
-    for (const texto of pasosActuales) {
+    for (let i = 0; i < pasosActuales.length; i++) {
       const li = document.createElement('li');
+      // Flecha de maniobra estilo Google Maps (nov-2026): cada paso lleva
+      // delante su flecha (recto, izquierda, derecha, leve, vuelta,
+      // rotonda, llegada). El tipo lo trae el guiado de la ruta; si no hay
+      // guiado para ese paso, sale sin flecha y no se rompe nada.
+      const guiado = pasosGuiadosActuales[i];
+      const tipo = guiado && guiado.tipo ? String(guiado.tipo) : '';
+      if (tipo) {
+        li.setAttribute('data-tipo-paso', tipo);
+      }
       li.textContent = texto;
       lista.appendChild(li);
     }

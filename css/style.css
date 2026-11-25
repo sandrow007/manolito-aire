@@ -1243,6 +1243,61 @@ body.modo-accesible .rs-btn-escuchar[aria-pressed="true"]{ background:#000 !impo
     bottom:8px;
   }
 }
+/* Flechas de maniobra estilo Google Maps (nov-2026): cada paso de la lista
+   de indicaciones lleva delante la flecha de su giro, pintada con mask
+   (hereda el color del texto). Sin flecha si el paso no trae tipo. */
+.rs-lista-pasos li{
+  display:flex; align-items:flex-start; gap:8px;
+}
+.rs-lista-pasos li::before{
+  content:''; flex:0 0 auto; width:18px; height:18px; margin-top:1px;
+  background-color:var(--sky-deep, #0E3B47);
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  -webkit-mask-position:center; mask-position:center;
+  -webkit-mask-size:contain; mask-size:contain;
+}
+/* Paso sin tipo: sin flecha (regla neutralizada). */
+.rs-lista-pasos li:not([data-tipo-paso])::before{ content:none; }
+/* Recto / seguir */
+.rs-lista-pasos li[data-tipo-paso="continue"]::before,
+.rs-lista-pasos li[data-tipo-paso="depart"]::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20V5'/%3E%3Cpath d='M6 11l6-6 6 6'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20V5'/%3E%3Cpath d='M6 11l6-6 6 6'/%3E%3C/svg%3E");
+}
+/* Giro a la derecha / leve derecha */
+.rs-lista-pasos li[data-tipo-paso="right"]::before,
+.rs-lista-pasos li[data-tipo-paso="slight-right"]::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 21v-7a4 4 0 0 1 4-4h5'/%3E%3Cpath d='M13 5l5 5-5 5'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 21v-7a4 4 0 0 1 4-4h5'/%3E%3Cpath d='M13 5l5 5-5 5'/%3E%3C/svg%3E");
+  transform:scaleX(.88) rotate(15deg);
+  transform-origin:center;
+}
+.rs-lista-pasos li[data-tipo-paso="right"]::before{ transform:none; }
+/* Giro a la izquierda / leve izquierda: la misma flecha, reflejada. */
+.rs-lista-pasos li[data-tipo-paso="left"]::before,
+.rs-lista-pasos li[data-tipo-paso="slight-left"]::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 21v-7a4 4 0 0 1 4-4h5'/%3E%3Cpath d='M13 5l5 5-5 5'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 21v-7a4 4 0 0 1 4-4h5'/%3E%3Cpath d='M13 5l5 5-5 5'/%3E%3C/svg%3E");
+  transform:scaleX(-1);
+}
+.rs-lista-pasos li[data-tipo-paso="slight-left"]::before{ transform:scaleX(-1) scaleX(.88) rotate(15deg); }
+/* Vuelta (U-turn) */
+.rs-lista-pasos li[data-tipo-paso="uturn"]::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 20V8a4 4 0 0 1 8 0v6'/%3E%3Cpath d='M13 12l3 4 3-4'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 20V8a4 4 0 0 1 8 0v6'/%3E%3Cpath d='M13 12l3 4 3-4'/%3E%3C/svg%3E");
+}
+/* Rotonda */
+.rs-lista-pasos li[data-tipo-paso="roundabout"]::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='9' r='4'/%3E%3Cpath d='M12 13v8'/%3E%3Cpath d='M9 12l-4 3'/%3E%3Cpath d='M15 12l4 3'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='9' r='4'/%3E%3Cpath d='M12 13v8'/%3E%3Cpath d='M9 12l-4 3'/%3E%3Cpath d='M15 12l4 3'/%3E%3C/svg%3E");
+}
+/* Llegada: pin de destino */
+.rs-lista-pasos li[data-tipo-paso="arrive"]::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E");
+}
+/* En modo accesible prevalece el alto contraste: flecha del color del texto. */
+body.modo-accesible .rs-lista-pasos li::before{ background-color:currentColor; }
 /* Icono de escuchar: botón redondo compacto junto a «Ver indicaciones». */
 .rs-btn-icono-escuchar{
   width:36px; height:36px; padding:0 !important;

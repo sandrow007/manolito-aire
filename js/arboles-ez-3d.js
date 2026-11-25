@@ -687,11 +687,14 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     var radioBase = preset.radius[0] || 0.24;
     var radioCima = 0.035;
     // Presupuesto de acículas por árbol. En móvil el modelo se instancia 200
-    // veces con MAX_ARBOL, así que el tope no es capricho. Se reparte
-    // PROPORCIONALMENTE entre todas las ramas (ver pasosPorRama más abajo):
-    // si se cortara por orden de construcción, los pisos bajos se comen el
-    // presupuesto y la punta sale pelada.
-    var MAX_PENACHOS = 520;
+    // veces con MAX_ARBOL, así que el tope no es capricho: con 420 penachos
+    // son ~7.300 caras por copa, y al dibujarse con InstancedMesh (una sola
+    // draw call para los 200 árboles) el coste real es de una geometría.
+    // Se reparte PROPORCIONALMENTE por la longitud de cada piso (ver abajo):
+    // si se cortara por orden de construcción, los pisos bajos se comerían el
+    // presupuesto y la punta saldría pelada.
+    var MAX_PENACHOS = 420;
+    var penachos = 0;
 
     for (var t = 0; t < segmentosTronco; t++) {
       var y0 = alto * t / segmentosTronco;
@@ -745,17 +748,25 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     // el piso siguiente para que la silueta sea continua al mirar en picado.
     var Y_INICIO = 0.32;
     var Y_FIN = 0.99;
-    // Reparto del presupuesto: cuántos penachos tocan por rama. Se calcula
-    // UNA vez y se usa en cada verticilo, así la copa queda homogénea.
-    var totalRamas = niveles * ramasPorNivel;
-    var penachosPorRama = Math.max(2, Math.floor(MAX_PENACHOS / (totalRamas * 1.45)));
+    // Reparto del presupuesto PROPORCIONAL a la longitud del piso: los pisos
+    // bajos son anchos y necesitan más penachos, los altos menos. Se calcula
+    // la suma de longitudes y cada piso recibe su parte del total. Así la copa
+    // queda homogénea y nunca se agota el presupuesto antes de llegar arriba.
+    var sumaLargos = 0, largosPiso = [], iNivel;
+    for (iNivel = 0; iNivel < niveles; iNivel++) {
+      var pr = iNivel / (niveles - 1);
+      var largo = ((preset.length[1] || 3.25) * (1 - pr) + 0.28) * 1.12;
+      largosPiso.push(largo);
+      sumaLargos += largo * ramasPorNivel;
+    }
+    var penachosPorUnidad = MAX_PENACHOS / Math.max(1, sumaLargos);
     for (var nivel = 0; nivel < niveles; nivel++) {
       var progreso = nivel / (niveles - 1);
       var y = alto * (Y_INICIO + progreso * (Y_FIN - Y_INICIO));
       // Radio del cono en este piso: máximo abajo, mínimo arriba. El 0.28
       // evita que la punta quede plana; el solape 1.12 cierra los huecos.
       var radioCono = (preset.length[1] || 3.25) * (1 - progreso) + 0.28;
-      var largoRama = radioCono * 1.12;
+      var largoRama = largosPiso[nivel] || (radioCono * 1.12);
       var radioRama = 0.075 * (1 - progreso * 0.82);
       var giro = rand(0, Math.PI * 2);
       for (var b = 0; b < ramasPorNivel; b++) {
@@ -770,7 +781,8 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
         var ramaGeo = geometriaCilindro(raizRama, puntaRama, radioRama, Math.max(0.012, radioRama * 0.16), 5);
         if (ramaGeo) madera.push(ramaGeo);
 
-        var pasosAgujas = Math.max(2, Math.min(penachosPorRama, Math.ceil(largoRama / 0.62)));
+        // Pasos de acículas proporcionales a la longitud real de esta rama.
+        var pasosAgujas = Math.max(1, Math.round(largoRama * penachosPorUnidad));
         var ejeRama = puntaRama.clone().sub(raizRama).normalize();
         for (var k = 0; k <= pasosAgujas; k++) {
           if (penachos >= MAX_PENACHOS) break;

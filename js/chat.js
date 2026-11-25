@@ -53,8 +53,10 @@
             try {
               const lat = Number(pos && pos.coords && pos.coords.latitude);
               const lon = Number(pos && pos.coords && pos.coords.longitude);
-              resolve(Number.isFinite(lat) && Number.isFinite(lon) &&
-                lat >= 35.9 && lat <= 38.75 && lon >= -7.55 && lon <= -1.6);
+              const en = Number.isFinite(lat) && Number.isFinite(lon) &&
+                lat >= 35.9 && lat <= 38.75 && lon >= -7.55 && lon <= -1.6;
+              window.__manolitGpsEnAndalucia = en;
+              resolve(en || window.__manolitZonaMapa === true);
             } catch (e) { castellano(); }
           },
           castellano,
@@ -66,6 +68,69 @@
     return andaluciaPromesa;
   }
   window.manolitAireEnAndalucia = detectarAndalucia;
+
+  /* ---- Andalucía también por el ENCUADRE del mapa (viewport) ----
+     El brief pide que el acento cambie si el GPS está en Andalucía **o** si
+     el mapa está enfocando Andalucía. El rectángulo es el mismo que usa el
+     GPS (una sola fuente de verdad para los dos caminos), así que GPS y
+     viewport nunca se contradicen en los bordes. Si el mapa aún no existe,
+     esta comprobación no aporta nada y se queda lo que diga el GPS. */
+  const ANDALUCIA_RECT = { latMin: 35.9, latMax: 38.75, lonMin: -7.55, lonMax: -1.6 };
+  function enAndaluciaCoords(lat, lon) {
+    const la = Number(lat), lo = Number(lon);
+    return Number.isFinite(la) && Number.isFinite(lo) &&
+      la >= ANDALUCIA_RECT.latMin && la <= ANDALUCIA_RECT.latMax &&
+      lo >= ANDALUCIA_RECT.lonMin && lo <= ANDALUCIA_RECT.lonMax;
+  }
+  // ¿El encuadre actual del mapa está sobre Andalucía? Se mira el centro
+  // ("enfocar" = tener la zona en el punto de mira) y, si el mapa está
+  // bastante cerca, también que el viewport la toque. Fuera de eso, false.
+  function mapaEnfocaAndalucia() {
+    try {
+      const m = window.manolitAireMap;
+      if (!m || typeof m.getCenter !== 'function') return null;
+      const c = m.getCenter();
+      if (enAndaluciaCoords(c.lat, c.lng)) return true;
+      if (typeof m.getBounds === 'function' && typeof m.getZoom === 'function' && m.getZoom() >= 8) {
+        const b = m.getBounds();
+        const toca = !(b.getSouth() > ANDALUCIA_RECT.latMax || b.getNorth() < ANDALUCIA_RECT.latMin ||
+          b.getWest() > ANDALUCIA_RECT.lonMax || b.getEast() < ANDALUCIA_RECT.lonMin);
+        return toca;
+      }
+      return false;
+    } catch (e) { return null; }
+  }
+  // Recalcula la zona combinando GPS y encuadre y la publica en el mismo
+  // booleano global que ya leen el chat y la mascota del mapa.
+  function aplicarZonaMapa() {
+    const porMapa = mapaEnfocaAndalucia();
+    window.__manolitZonaMapa = porMapa;
+    if (porMapa === true) {
+      window.__manolitEnAndalucia = true;
+      andaluciaPromesa = Promise.resolve(true);
+    } else if (porMapa === false && !window.__manolitGpsEnAndalucia) {
+      // El mapa ya no enfoca Andalucía y el GPS tampoco está allí.
+      window.__manolitEnAndalucia = false;
+    }
+    return window.__manolitEnAndalucia === true;
+  }
+  // Engancha el viewport en cuanto el mapa exista (sondeo suave, sin coste
+  // si el mapa no llega) y reevalúa al terminar cada movimiento.
+  (function engancharZonaAlMapa() {
+    let intentos = 0;
+    const esperar = () => {
+      const m = window.manolitAireMap;
+      if (m && typeof m.on === 'function') {
+        try {
+          m.on('moveend', () => aplicarZonaMapa());
+          aplicarZonaMapa();
+        } catch (e) { }
+        return;
+      }
+      if (intentos++ < 240) setTimeout(esperar, 500); // hasta ~2 min
+    };
+    esperar();
+  })();
 
   /* AÑADIDO: la solicitud de ubicación JAMÁS se lanza sola al entrar en el
      mapa. La ubicación es opcional: solo se consulta SIN AVISO si el permiso
@@ -89,8 +154,9 @@
           var lon = Number(ev.detail && ev.detail.lon);
           var en = Number.isFinite(lat) && Number.isFinite(lon) &&
             lat >= 35.9 && lat <= 38.75 && lon >= -7.55 && lon <= -1.6;
-          window.__manolitEnAndalucia = en;
-          andaluciaPromesa = Promise.resolve(en);
+          window.__manolitGpsEnAndalucia = en;
+          window.__manolitEnAndalucia = en || window.__manolitZonaMapa === true;
+          andaluciaPromesa = Promise.resolve(window.__manolitEnAndalucia);
         } catch (e) { }
       });
     } catch (e) { }
@@ -198,11 +264,18 @@ SALUD: información educativa y sentido común (protección, horarios, hidrataci
 6. COHERENCIA: si la pregunta ya fue respondida, usa exactamente la respuesta previa.
 9. BÚSQUEDA DE AGUA: cuando la persona solicite esa función, incluye una sección destacada con el título exacto «Buscame fuente de agua más cercana». Si no hay ubicación disponible, pídela amablemente (ciudad, dirección o coordenadas). No inventes la fuente, la distancia ni una ruta; usa únicamente resultados calculados por la aplicación y explica que el recorrido está dibujado en el mapa propio de Manolit. No generes enlaces a otros servicios de mapas. Las fuentes públicas cartografiadas no garantizan disponibilidad ni potabilidad actual.
 10. ACENTO: escribe en español neutro y estándar. No uses acento andaluz escrito: ni seseo ni ceceo, ni palabras como «illo», «quillo», «mi arma» o «pisha». Solo si el usuario escribe él mismo en andaluz, respóndele con naturalidad en su mismo registro, sin exagerar.
+11. CONTROL DE LA APP (function calling): si el usuario te pide una acción sobre la app (mover el mapa, cambiar la hora o fecha del simulador, encender o apagar una capa, trazar una ruta en caminar/bici/coche, buscar una fuente de agua, poner vista 2D/3D, iniciar o detener la caminata o el seguimiento de ruta), NO lo describas: ejecuta la herramienta correspondiente y confirma en una frase lo que ya se ha hecho en el mapa. Si no hay herramienta adecuada, no inventes que algo ha cambiado. Herramientas disponibles: ${(window.ManolitTools && typeof window.ManolitTools.lista === 'function') ? window.ManolitTools.lista().join(', ') : 'centrar_mapa, fijar_hora, capa, trazar_ruta, buscar_fuente_agua, vista_3d, seguimiento_ruta'}.
 
 [FIN DE INSTRUCCIONES SISTEMA]`;
 
   async function askManolito(question) {
     const uiLang = getRobustLang();
+    // Zona real (GPS + encuadre del mapa) ANTES de montar el contexto: es lo
+    // que decide si Manolito habla en andaluz o en castellano neutro. Antes
+    // se calculaba el contexto por zona pero se enviaba siempre el neutro.
+    let enAndalucia = window.__manolitEnAndalucia === true;
+    try { enAndalucia = aplicarZonaMapa() || enAndalucia; } catch (e) { }
+    const systemPrompt = contextoSegunZona(enAndalucia);
 
     if (typeof cookiesAccepted === 'function' && !cookiesAccepted()) {
       return "Conexión bloqueada. Acepta las cookies para interactuar con la IA.";
@@ -217,7 +290,7 @@ SALUD: información educativa y sentido común (protección, horarios, hidrataci
       historyText += "-------------------------\n";
     }
 
-    const fullContext = `${MANOLITO_SYSTEM_CONTEXT}
+    const fullContext = `${systemPrompt}
 
 ${historyText}
 
@@ -256,7 +329,8 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
           body: JSON.stringify({
             message: question,
             idioma: uiLang,
-            systemPrompt: MANOLITO_SYSTEM_CONTEXT,
+            systemPrompt: systemPrompt,
+            enAndalucia: enAndalucia,
             history: chatHistory.slice(-6)
           })
         });
@@ -282,7 +356,7 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
     if (!finalAnswer && OPENROUTER_API_KEY) {
       try {
         const messagesForOR = [
-          { role: "system", content: MANOLITO_SYSTEM_CONTEXT },
+          { role: "system", content: systemPrompt },
           ...chatHistory.map(m => ({
             role: m.role,
             content: m.content
@@ -614,6 +688,116 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
     }
   }
 
+  // 25-nov-2026: capa de HERRAMIENTAS (Function Calling) para dar al chat la
+  // MISMA capacidad de control que la UI. Se ejecuta antes del router de
+  // acciones históricas y solo actúa cuando la petición es inequívoca; si no
+  // reconoce nada, devuelve null y todo sigue exactamente igual que antes.
+  // Cada ejecución reutiliza el control real de la interfaz vía
+  // window.ManolitTools (clic en el mismo botón/casilla, misma API pública).
+  async function intentarHerramienta(pregunta) {
+    if (!window.ManolitTools || typeof window.ManolitTools.ejecutar !== 'function') return null;
+    const txt = String(pregunta || '').trim();
+    if (!txt) return null;
+    const ejecutar = (nombre, args) => window.ManolitTools.ejecutar(nombre, args || {});
+    // ¿La petición habla de una ACCIÓN sobre la app? Si no, no se toca nada
+    // (las preguntas de conocimiento, que son la mayoría, salen aquí sin
+    // coste y sin riesgo de ejecutar algo que el usuario no ha pedido).
+    const verboAccion = /\b(pon|poner|ponme|cambia|cambiar|fija|fijar|enciende|encender|activa|activar|apaga|apagar|quita|desactiva|acerca|acercar|aleja|alejar|centra|centrar|vete|ll[eé]vame|mu[eé]strame|traz(a|ar)|dib[uú]ja(me)?|inicia|iniciar|arranca|arrancar|det[eé]n|detener|parar|termina|terminar|cancela|orienta|orientar|nivela|busca|buscar|calcula|calcular|consulta|s[ií]gueme|pasa|vuelve)\b/i.test(txt);
+    const hablaDeLaApp = /\b(mapa|vista|hora|simulador|sol|sombras?|capas?|ruta|camino|seguimiento|fuentes?|caminata|bici|bicicleta|coche|2d|3d|norte|agua|[aá]rboles|nubes|aire|microclima|edificios?|transporte|carriles?)\b/i.test(txt);
+    if (!verboAccion && !hablaDeLaApp) return null;
+    try {
+      // --- Hora del simulador: «pon las 18:30», «cambia la hora a las 17» ---
+      const mHora = txt.match(/\b(?:pon(?:er)?|cambia|cambiar|fija|fijar|ponme)\b[^0-9]{0,20}\b(\d{1,2})(?::(\d{2}))?\b/i)
+        || txt.match(/\ba las\s+(\d{1,2})(?::(\d{2}))?\b/i);
+      if (mHora && /\b(hora|simulador|sombras?|sol)\b/i.test(txt)) {
+        const h = Number(mHora[1]);
+        const m = mHora[2] ? Number(mHora[2]) : 0;
+        if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+          const r = await ejecutar('fijar_hora', { hora: h, minutos: m });
+          if (r && r.ok) return r.respuesta;
+        }
+      }
+      // --- Hora real / solsticios / fecha ---
+      if (/\b(hora real|ahora mismo|pon(?:lo)? en ahora|vuelve a la hora)\b/i.test(txt)) {
+        const r = await ejecutar('hora_ahora');
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/\bsolsticio\b/i.test(txt)) {
+        const est = /invierno/i.test(txt) ? 'invierno' : (/verano/i.test(txt) ? 'verano' : null);
+        if (est) { const r = await ejecutar('solsticio', { estacion: est }); if (r && r.ok) return r.respuesta; }
+      }
+      const mFecha = txt.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+      if (mFecha && /\b(fecha|d[ií]a|simulador)\b/i.test(txt)) {
+        const r = await ejecutar('fijar_fecha', { fecha: mFecha[0] });
+        if (r && r.ok) return r.respuesta;
+      }
+      // --- Capas: «enciende/apaga las sombras / los árboles / …» ---
+      const quiereCapa = /\b(enciende|encender|activa|activar|apaga|apagar|quita|desactiva)\b/i.test(txt);
+      if (quiereCapa) {
+        const encendida = !/\b(apaga|apagar|quita|desactiva)\b/i.test(txt);
+        const capas = [
+          [/\bsombras?\b/i, 'sombras'], [/\bsol\b/i, 'sol'], [/\b[aá]rboles?\b/i, 'arboles'],
+          [/\bnubes?\b/i, 'nubes'], [/\blluvia\b/i, 'lluvia'], [/\baire\b/i, 'aire'],
+          [/\bmicroclima\b/i, 'microclima'], [/\bedificios?\b/i, 'edificios'],
+          [/\bfuentes? de agua\b/i, 'fuentes_agua'], [/\bcarriles? bici\b/i, 'carriles_bici'],
+          [/\btransporte p[uú]blico\b/i, 'transporte']
+        ];
+        for (const [re, nombre] of capas) {
+          if (re.test(txt)) {
+            const r = await ejecutar('capa', { nombre, encendida });
+            if (r && r.ok) return r.respuesta;
+          }
+        }
+      }
+      // --- Vista 2D / 3D ---
+      if (/\b(vista|mapa|pon(?:lo)?|pasar a)\b[^.]{0,12}\b3d\b/i.test(txt) || /\b3d\b[^.]{0,12}\b(vista|mapa)\b/i.test(txt)) {
+        const activa = !/\b(quita|apaga|desactiva|vuelve a 2d|2d)\b/i.test(txt);
+        const r = await ejecutar('vista_3d', { activa });
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/\b(vista 2d|en 2d|plano)\b/i.test(txt)) {
+        const r = await ejecutar('vista_3d', { activa: false });
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/\b(norte|orienta(?:r)?(?: el mapa)?|nivela)\b/i.test(txt) && /\b(mapa|vista|br[uú]jula)\b/i.test(txt)) {
+        const r = await ejecutar('orientar_norte');
+        if (r && r.ok) return r.respuesta;
+      }
+      // --- Seguimiento de ruta (RouteTracker) ---
+      if (/\b(det[eé]n|para|parar|termina|terminar|cancela)\b[^.]{0,20}\bseguimiento\b/i.test(txt)) {
+        const r = await ejecutar('seguimiento_ruta', { activo: false });
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/\b(seguimiento|modo ruta|sigue(?:me)? (?:la|mi) ruta|tracking)\b/i.test(txt)) {
+        const modo = /\bbici\b/i.test(txt) ? 'bici' : (/\bcoche\b/i.test(txt) ? 'coche' : 'caminar');
+        const objetivo = /\bsol\b/i.test(txt) ? 'sol' : (/\bagua\b|fuente/i.test(txt) ? 'agua' : 'sombra');
+        const r = await ejecutar('seguimiento_ruta', { activo: true, modo, objetivo });
+        if (r && r.ok) return r.respuesta;
+      }
+      // --- Sombra en mi avance (consulta puntual, modo coche sin avisos) ---
+      if (/\b(c[oó]mo (est[aá]|va)|qu[eé] tal)\b[^.?!]{0,30}\b(sombra|sol)\b/i.test(txt) && /\b(avance|voy|conduciendo|coche|camino|andando|bici|ruta)\b/i.test(txt)) {
+        const r = await ejecutar('sombra_en_mi_avance', {});
+        if (r && r.ok) return r.respuesta;
+      }
+      // --- Centrar mapa en un lugar ---
+      const mCentrar = txt.match(/\b(?:centra(?:r)?(?: el mapa)?(?: en)?|ve(?:te)? a|lleva(?:me)? (?:el mapa )?a|mu[eé]strame)\s+(.+?)\s*$/i);
+      if (mCentrar && !/\b(ruta|camino|hasta|fuente|agua|parada|aparcamiento)\b/i.test(txt)) {
+        const r = await ejecutar('centrar_mapa', { lugar: mCentrar[1].replace(/[?.!,;]+$/, '').trim() });
+        if (r && r.ok) return r.respuesta;
+      }
+      // --- Zoom explícito ---
+      if (/\b(acerca|acercar|zoom in)\b/i.test(txt) && /\bmapa\b/i.test(txt)) {
+        const r = await ejecutar('acercar', {});
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/\b(aleja|alejar|zoom out)\b/i.test(txt) && /\bmapa\b/i.test(txt)) {
+        const r = await ejecutar('alejar', {});
+        if (r && r.ok) return r.respuesta;
+      }
+    } catch (e) { /* cualquier fallo: que responda el camino de siempre */ }
+    return null;
+  }
+
   // 07-oct-2026 (): intents que EJECUTAN, no solo responden.
   // «Aparcamiento / dónde aparco» enciende la capa de aparcamientos (en la
   // zona visible o en el sitio que nombre la frase) por el evento público
@@ -799,6 +983,8 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
         }
         return;
       }
+      const herramienta = await intentarHerramienta(question);
+      if (herramienta) { addBubble(herramienta, 'mano'); return; }
       const accion = await intentarAccionDirecta(question);
       if (accion) { addBubble(accion, 'mano'); return; }
       const aireLocal = await intentarAireInternacional(question);
@@ -886,5 +1072,79 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
       if (!overlay || !overlay.classList.contains('open')) return;
       addBubble(String(text), who === 'user' ? 'user' : 'mano');
     } catch (e) { /* sin chat visible no hay nada que hacer */ }
+  };
+
+  /* ---- AVISO PROACTIVO EN CADA CHECKPOINT DE RUTA (nov-2026) ----
+     js/route-tracker-service.js emite 'manolito:checkpoint' con la
+     comparativa estado_anterior vs estado_actual + distancia + tiempo. Aquí
+     se convierte en un turno breve del LLM SOLO si el chat está abierto (y
+     el usuario no está escribiendo), respetando la regla de «nunca
+     interrumpir». Se encola para no solapar dos avisos seguidos. */
+  let avisoRutaEnCurso = false;
+  const avisosRutaPendientes = [];
+
+  function formatearDetalleCheckpoint(d) {
+    if (!d) return '';
+    const partes = [];
+    const km = Number(d.distanciaAcumuladaKm) || 0;
+    partes.push('Distancia acumulada: ' + (km >= 1 ? km.toFixed(2) + ' km' : Math.round(d.distanciaAcumuladaM) + ' m'));
+    partes.push('Tiempo transcurrido: ' + (Number(d.tiempoTranscurridoMin) || 0) + ' min');
+    partes.push('Modo: ' + (d.modo === 'bici' ? 'bicicleta' : d.modo === 'coche' ? 'coche' : 'a pie'));
+    partes.push('Objetivo: ' + (d.objetivo === 'sol' ? 'buscar sol' : d.objetivo === 'agua' ? 'buscar fuentes de agua' : 'buscar sombra'));
+    const a = d.anterior, c = d.actual;
+    if (c) {
+      partes.push('Ahora mismo ' + (c.haySol === true ? 'da el sol' : c.haySol === false ? 'no da el sol (noche)' : 'no se pudo leer el sol') +
+        (c.sombraPct === 100 ? ' y el punto está en sombra' : c.sombraPct === 0 ? ' y el punto está al sol' : ''));
+    }
+    if (a && c) {
+      if (a.haySol != null && c.haySol != null && a.haySol !== c.haySol) {
+        partes.push(c.haySol ? 'Antes estabas a la sombra y ahora te da el sol' : 'Antes te daba el sol y ahora vas a la sombra');
+      } else if (a.sombraPct != null && c.sombraPct != null && a.sombraPct !== c.sombraPct) {
+        partes.push('Cambio de sombra respecto al punto anterior');
+      } else {
+        partes.push('Sin cambio relevante de sol/sombra respecto al punto anterior');
+      }
+    }
+    if (c && c.fuentes && c.fuentes.distanciaM != null) {
+      partes.push('Fuente de agua cercana: ' + c.fuentes.nombre + ' a ' + Math.round(c.fuentes.distanciaM) + ' m');
+    }
+    return partes.join('; ');
+  }
+
+  async function procesarAvisoRuta(detalle) {
+    try {
+      const overlay = document.getElementById('chatOverlay');
+      if (!overlay || !overlay.classList.contains('open')) return; // chat cerrado: silencio
+      const input = document.getElementById('chatInputField');
+      if (input && document.activeElement === input && String(input.value || '').trim()) {
+        return; // el usuario está escribiendo: no le cortamos
+      }
+      const datos = formatearDetalleCheckpoint(detalle);
+      const pregunta = 'AVISO INTERNO DE SEGUIMIENTO DE RUTA (no es del usuario; genera tú un aviso corto y útil en 1-2 frases, en primera persona del plural, sin listas): ' + datos + '.';
+      const respuesta = await askManolito(pregunta);
+      if (respuesta) addBubble(respuesta, 'mano');
+    } finally {
+      avisoRutaEnCurso = false;
+      if (avisosRutaPendientes.length) {
+        const siguiente = avisosRutaPendientes.shift();
+        avisoRutaEnCurso = true;
+        procesarAvisoRuta(siguiente);
+      }
+    }
+  }
+
+  window.manolitAireAvisoRuta = function (detalle) {
+    try {
+      if (!detalle) return;
+      if (avisoRutaEnCurso) {
+        // Solo guardamos el último: en una cola larga, los intermedios
+        // pierden sentido con la posición actual.
+        avisosRutaPendientes.length = 0;
+        avisosRutaPendientes.push(detalle);
+        return;
+      }
+      avisoRutaEnCurso = true;
+      procesarAvisoRuta(detalle);
+    } catch (e) { avisoRutaEnCurso = false; }
   };
 })();

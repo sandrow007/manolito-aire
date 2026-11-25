@@ -1513,6 +1513,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // su propio new Date(). Esto es lo que faltaba para que las sombras de
   // los árboles se movieran igual que las de los edificios.
   window.manolitAireHoraEfectiva = () => obtenerHoraEfectiva();
+  // Entrada de reloj para el seguimiento de ruta inteligente. A diferencia
+  // de fijar la hora del slider, conserva la fecha absoluta de viaje y llama
+  // al mismo recálculo del motor (edificios, árboles, luz, ruta y accesibilidad).
+  window.manolitAireFijarHoraEfectiva = (fecha) => {
+    if (!(fecha instanceof Date) || isNaN(fecha.getTime())) return false;
+    modoManual = true;
+    esFechaSolsticioActiva = false;
+    fechaManualFija = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 12, 0, 0);
+    fechaBaseManual = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 0, 0, 0, 0);
+    if (sliderTiempo) sliderTiempo.value = String(fecha.getHours() * 60 + fecha.getMinutes());
+    if (etiquetaTiempo) actualizarEtiquetaTiempo(false);
+    aplicarCambioDeHora(false);
+    return true;
+  };
 
   // Barra de estado para módulos aditivos que viven fuera de este archivo
   // (js/lluvia.js la usa para avisar de que solo hay lluvia actual). Si
@@ -5073,6 +5087,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     sliderTiempo.addEventListener('input', () => {
       modoManual = true;
+      // Si hay un trayecto en marcha, la hora que acaba de pedir el usuario
+      // manda: el reloj del viaje se pausa para no pisársela en el siguiente
+      // checkpoint (sin tracker activo, pausar() no hace nada).
+      try {
+        if (window.ManolitRouteTracker && typeof window.ManolitRouteTracker.pausar === 'function') {
+          window.ManolitRouteTracker.pausar('manual');
+        }
+      } catch (eRTp) { }
       // AÑADIDO: si el usuario eligió fecha en el date-input, esa fecha manda
       // en vez de «hoy». Con fechaManualFija === null es EXACTAMENTE lo de antes.
       fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual
@@ -5196,6 +5218,56 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     cuerpo.append(filaEtiqueta, filaFecha, sliderTiempo, timeline, divisor, filaBotones, anunciadorHora);
     panel.append(cabecera, cuerpo);
     contenedorMapa.appendChild(panel);
+
+    /* ---- Botón «Modo ruta» (nov-2026): UI del RouteTracker --------------
+       Nace aquí, en el MISMO bloque síncrono que el panel de hora, así que
+       siempre aparece junto a «Iniciar caminata» (ese botón se crea unas
+       líneas más arriba). Enciende/apaga el seguimiento de
+       js/route-tracker-service.js en el modo de viaje activo del panel de
+       rutas (window.__manolitoModoRuta): el chat y la UI comparten estado.
+       Aditivo: si el servicio no está cargado, avisa y no hace nada más. */
+    (function crearBotonModoRuta() {
+      if (document.getElementById('rsBtnModoRuta')) return;
+      const ref = document.getElementById('rsBtnWalk');
+      if (!ref || !ref.parentNode) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'rsBtnModoRuta';
+      btn.className = 'rs-btn-modo-ruta';
+      btn.textContent = t('routeTrackerStart', 'Modo ruta');
+      btn.title = t('routeTrackerHint', 'Avisa de sol, sombra y fuentes mientras te mueves (100 m a pie, 1,5 km en bici).');
+      btn.setAttribute('aria-pressed', 'false');
+      btn.addEventListener('click', () => {
+        const RT = window.ManolitRouteTracker;
+        if (!RT) {
+          mostrarEstado(t('routeTrackerNoService', 'El servicio de ruta todavía no está cargado.'), 'error');
+          return;
+        }
+        if (RT.estado().activo) {
+          const fin = RT.parar();
+          btn.classList.remove('rs-activo');
+          btn.setAttribute('aria-pressed', 'false');
+          btn.textContent = t('routeTrackerStart', 'Modo ruta');
+          mostrarEstado(t('routeTrackerStopped', 'Seguimiento de ruta detenido.') + ' ' +
+            (fin.distanciaAcumuladaM / 1000).toFixed(2) + ' km.');
+          return;
+        }
+        const modo = window.__manolitoModoRuta || 'caminar';
+        const r = RT.iniciar({ modo: modo, objetivo: 'sombra' });
+        if (!r.ok) {
+          mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
+          return;
+        }
+        btn.classList.add('rs-activo');
+        btn.setAttribute('aria-pressed', 'true');
+        btn.textContent = t('routeTrackerStop', 'Detener ruta');
+        const umbral = r.umbralM > 0
+          ? (r.umbralM >= 1000 ? (r.umbralM / 1000) + ' km' : r.umbralM + ' m')
+          : t('routeTrackerCarOff', 'sin avisos automáticos en coche');
+        mostrarEstado(t('routeTrackerStarted', 'Seguimiento de ruta activo:') + ' ' + umbral + '.');
+      });
+      ref.insertAdjacentElement('afterend', btn);
+    })();
 
     asegurarActivacionSolar();
     actualizarEtiquetaTiempo(false);
@@ -6150,7 +6222,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     let bearingAnterior = null;
     grupos.forEach((g, i) => {
       const metros = redondearMetros(g.metros);
-      const calle = nombreCalleBonito(g.nombre);
       const bearingIni = turf.bearing(g.coords[0], g.coords[1]);
       const bearingFin = turf.bearing(g.coords[g.coords.length - 2], g.coords[g.coords.length - 1]);
       const { frase, consejo } = textoSombra(fraccionSombraTramo(g.coords, sombras, indiceSombrasGuia), metros);
@@ -6161,7 +6232,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // «Calle sin nombre» fuera (nov-2026): si el tramo no tiene nombre en
       // OSM, la frase se reconstruye SIN la calle, como en Google Maps.
       const tieneNombre = !!(g.nombre && String(g.nombre).trim());
-      const calle = tieneNombre ? String(g.nombre).trim() : '';
+      // (nov-2026) `calle` se declara AQUÍ una sola vez: antes había dos
+      // declaraciones del mismo nombre en el mismo bloque, lo que abortaba
+      // TODO js/shadows-route.js con «Identifier 'calle' has already been
+      // declared» (el mapa no arrancaba). Valor idéntico al de siempre:
+      // nombre bonito del tramo, o '' si no tiene nombre en OSM.
+      const calle = nombreCalleBonito(g.nombre) || '';
       if (i === 0) {
         tipoPaso = 'depart';
         texto = calle
@@ -10423,6 +10499,54 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function detenerManolitPaseo() {
       if (manolit.paseoTimer) { clearTimeout(manolit.paseoTimer); manolit.paseoTimer = null; }
     }
+    /* ----- MODO RUTA (nov-2026): botón del RouteTracker junto a los demás ----
+       Se crea AQUÍ, con el mismo patrón (cuandoExista) con el que ya se
+       engancha «Paseo virtual 3D»: en este punto el botón de caminata ya
+       existe seguro. Enciende/apaga js/route-tracker-service.js en el modo
+       de viaje activo del panel de rutas (window.__manolitoModoRuta), así
+       que chat y UI comparten un único estado. Aditivo: sin el servicio solo
+       avisa. */
+    cuandoExista('#rsBtnWalk', (ref) => {
+      if (document.getElementById('rsBtnModoRuta')) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'rsBtnModoRuta';
+      btn.className = 'rs-btn-modo-ruta';
+      btn.textContent = t('routeTrackerStart', 'Modo ruta');
+      btn.title = t('routeTrackerHint', 'Avisa de sol, sombra y fuentes mientras te mueves (100 m a pie, 1,5 km en bici).');
+      btn.setAttribute('aria-pressed', 'false');
+      btn.addEventListener('click', () => {
+        const RT = window.ManolitRouteTracker;
+        if (!RT) {
+          mostrarEstado(t('routeTrackerNoService', 'El servicio de ruta todavía no está cargado.'), 'error');
+          return;
+        }
+        if (RT.estado().activo) {
+          const fin = RT.parar();
+          btn.classList.remove('rs-activo');
+          btn.setAttribute('aria-pressed', 'false');
+          btn.textContent = t('routeTrackerStart', 'Modo ruta');
+          mostrarEstado(t('routeTrackerStopped', 'Seguimiento de ruta detenido.') + ' ' +
+            (fin.distanciaAcumuladaM / 1000).toFixed(2) + ' km.');
+          return;
+        }
+        const modo = window.__manolitoModoRuta || 'caminar';
+        const r = RT.iniciar({ modo: modo, objetivo: 'sombra' });
+        if (!r.ok) {
+          mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
+          return;
+        }
+        btn.classList.add('rs-activo');
+        btn.setAttribute('aria-pressed', 'true');
+        btn.textContent = t('routeTrackerStop', 'Detener ruta');
+        const umbral = r.umbralM > 0
+          ? (r.umbralM >= 1000 ? (r.umbralM / 1000) + ' km' : r.umbralM + ' m')
+          : t('routeTrackerCarOff', 'sin avisos automáticos en coche');
+        mostrarEstado(t('routeTrackerStarted', 'Seguimiento de ruta activo:') + ' ' + umbral + '.');
+      });
+      ref.insertAdjacentElement('afterend', btn);
+    });
+
     cuandoExista('#rsBtnPaseo', (btn) => {
       btn.addEventListener('click', () => {
         setTimeout(() => {
@@ -12140,6 +12264,54 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       } catch (e) {
         console.debug('[arboles-globales] No se pudieron restaurar las capas tras recargar el estilo:', e.message);
       }
+    });
+
+    /* ----- MODO RUTA (nov-2026): botón del RouteTracker -------------------
+       Nace aquí, en el arranque del mapa, con el mismo patrón (cuandoExista)
+       que el enganche del «Paseo virtual 3D» (que sí se ejecuta). En este
+       punto el botón «Iniciar caminata» ya existe. Enciende/apaga
+       js/route-tracker-service.js en el modo de viaje activo del panel de
+       rutas (window.__manolitoModoRuta): chat y UI comparten un único
+       estado. Aditivo: sin el servicio, solo avisa y no toca nada. */
+    cuandoExista('#rsBtnWalk', (ref) => {
+      if (document.getElementById('rsBtnModoRuta')) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'rsBtnModoRuta';
+      btn.className = 'rs-btn-modo-ruta';
+      btn.textContent = t('routeTrackerStart', 'Modo ruta');
+      btn.title = t('routeTrackerHint', 'Avisa de sol, sombra y fuentes mientras te mueves (100 m a pie, 1,5 km en bici).');
+      btn.setAttribute('aria-pressed', 'false');
+      btn.addEventListener('click', () => {
+        const RT = window.ManolitRouteTracker;
+        if (!RT) {
+          mostrarEstado(t('routeTrackerNoService', 'El servicio de ruta todavía no está cargado.'), 'error');
+          return;
+        }
+        if (RT.estado().activo) {
+          const fin = RT.parar();
+          btn.classList.remove('rs-activo');
+          btn.setAttribute('aria-pressed', 'false');
+          btn.textContent = t('routeTrackerStart', 'Modo ruta');
+          mostrarEstado(t('routeTrackerStopped', 'Seguimiento de ruta detenido.') + ' ' +
+            (fin.distanciaAcumuladaM / 1000).toFixed(2) + ' km.');
+          return;
+        }
+        const modo = window.__manolitoModoRuta || 'caminar';
+        const r = RT.iniciar({ modo: modo, objetivo: 'sombra' });
+        if (!r.ok) {
+          mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
+          return;
+        }
+        btn.classList.add('rs-activo');
+        btn.setAttribute('aria-pressed', 'true');
+        btn.textContent = t('routeTrackerStop', 'Detener ruta');
+        const umbral = r.umbralM > 0
+          ? (r.umbralM >= 1000 ? (r.umbralM / 1000) + ' km' : r.umbralM + ' m')
+          : t('routeTrackerCarOff', 'sin avisos automáticos en coche');
+        mostrarEstado(t('routeTrackerStarted', 'Seguimiento de ruta activo:') + ' ' + umbral + '.');
+      });
+      ref.insertAdjacentElement('afterend', btn);
     });
 
     let capaVisible = true;

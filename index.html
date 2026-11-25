@@ -417,6 +417,7 @@
 <base target="_blank">
 </head>
 <body>
+<pre id="qa-out" style="display:none"></pre>
 
 <a href="#main-content" class="skip-link" data-i18n="skipToContent">Saltar al contenido principal</a>
 
@@ -2708,6 +2709,12 @@
      cuando alguien le pregunta a ella. La usan parking, planetario y el
      widget; nadie más decide por su cuenta si es de día o de noche. -->
 <script src="js/sol.js" defer></script>
+<!-- 25-nov-2026: herramientas (Function Calling) y servicio de ruta
+     inteligente. Carga ANTES que chat.js para que el chat tenga el catálogo
+     de herramientas listo desde el primer mensaje. Son aditivos: si fallan,
+     el chat y el mapa siguen funcionando como siempre. -->
+<script src="js/manolito-tools.js?v=ruta-inteligente-20261125-a" defer></script>
+<script src="js/route-tracker-service.js?v=ruta-inteligente-20261125-a" defer></script>
 <script src="js/chat.js?v=sin-prompt-gps-20261117-j" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>

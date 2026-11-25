@@ -67,6 +67,60 @@
   }
   window.manolitAireEnAndalucia = detectarAndalucia;
 
+  /* ---- Andalucía también por el ENCUADRE del mapa (viewport) ----
+     El acento cambia si el GPS está en Andalucía O si el mapa la está
+     enfocando. Solo LEE el centro del mapa (getCenter); no mueve, no
+     redimensiona ni toca ninguna capa ni widget: el mapa queda igual.
+     Mismo rectángulo que el GPS para que los dos caminos no se contradigan. */
+  const ANDALUCIA_RECT = { latMin: 35.9, latMax: 38.75, lonMin: -7.55, lonMax: -1.6 };
+  function enAndaluciaCoords(lat, lon) {
+    const la = Number(lat), lo = Number(lon);
+    return Number.isFinite(la) && Number.isFinite(lo) &&
+      la >= ANDALUCIA_RECT.latMin && la <= ANDALUCIA_RECT.latMax &&
+      lo >= ANDALUCIA_RECT.lonMin && lo <= ANDALUCIA_RECT.lonMax;
+  }
+  function mapaEnfocaAndalucia() {
+    try {
+      const m = window.manolitAireMap;
+      if (!m || typeof m.getCenter !== 'function') return null;
+      const c = m.getCenter();
+      if (enAndaluciaCoords(c.lat, c.lng)) return true;
+      if (typeof m.getBounds === 'function' && typeof m.getZoom === 'function' && m.getZoom() >= 8) {
+        const b = m.getBounds();
+        return !(b.getSouth() > ANDALUCIA_RECT.latMax || b.getNorth() < ANDALUCIA_RECT.latMin ||
+          b.getWest() > ANDALUCIA_RECT.lonMax || b.getEast() < ANDALUCIA_RECT.lonMin);
+      }
+      return false;
+    } catch (e) { return null; }
+  }
+  function aplicarZonaMapa() {
+    const porMapa = mapaEnfocaAndalucia();
+    window.__manolitZonaMapa = porMapa;
+    if (porMapa === true) {
+      window.__manolitEnAndalucia = true;
+      andaluciaPromesa = Promise.resolve(true);
+    } else if (porMapa === false && !window.__manolitGpsEnAndalucia) {
+      window.__manolitEnAndalucia = false;
+    }
+    return window.__manolitEnAndalucia === true;
+  }
+  // Se engancha a moveend SOLO para leer el encuadre. Ningún efecto visual.
+  (function engancharZonaAlMapa() {
+    let intentos = 0;
+    const esperar = () => {
+      const m = window.manolitAireMap;
+      if (m && typeof m.on === 'function') {
+        try {
+          m.on('moveend', () => aplicarZonaMapa());
+          aplicarZonaMapa();
+        } catch (e) { }
+        return;
+      }
+      if (intentos++ < 240) setTimeout(esperar, 500);
+    };
+    esperar();
+  })();
+
   /* AÑADIDO: la solicitud de ubicación JAMÁS se lanza sola al entrar en el
      mapa. La ubicación es opcional: solo se consulta SIN AVISO si el permiso
      ya estaba concedido de antes, o se reutiliza la primera posición que la
@@ -89,8 +143,9 @@
           var lon = Number(ev.detail && ev.detail.lon);
           var en = Number.isFinite(lat) && Number.isFinite(lon) &&
             lat >= 35.9 && lat <= 38.75 && lon >= -7.55 && lon <= -1.6;
-          window.__manolitEnAndalucia = en;
-          andaluciaPromesa = Promise.resolve(en);
+          window.__manolitGpsEnAndalucia = en;
+          window.__manolitEnAndalucia = en || window.__manolitZonaMapa === true;
+          andaluciaPromesa = Promise.resolve(window.__manolitEnAndalucia);
         } catch (e) { }
       });
     } catch (e) { }
@@ -198,11 +253,16 @@ SALUD: información educativa y sentido común (protección, horarios, hidrataci
 6. COHERENCIA: si la pregunta ya fue respondida, usa exactamente la respuesta previa.
 9. BÚSQUEDA DE AGUA: cuando la persona solicite esa función, incluye una sección destacada con el título exacto «Buscame fuente de agua más cercana». Si no hay ubicación disponible, pídela amablemente (ciudad, dirección o coordenadas). No inventes la fuente, la distancia ni una ruta; usa únicamente resultados calculados por la aplicación y explica que el recorrido está dibujado en el mapa propio de Manolit. No generes enlaces a otros servicios de mapas. Las fuentes públicas cartografiadas no garantizan disponibilidad ni potabilidad actual.
 10. ACENTO: escribe en español neutro y estándar. No uses acento andaluz escrito: ni seseo ni ceceo, ni palabras como «illo», «quillo», «mi arma» o «pisha». Solo si el usuario escribe él mismo en andaluz, respóndele con naturalidad en su mismo registro, sin exagerar.
+11. CONTROL DE LA APP (function calling): si el usuario te pide una acción sobre la app (mover el mapa, cambiar la hora o fecha del simulador, encender o apagar una capa, trazar una ruta en caminar/bici/coche, buscar una fuente de agua, poner vista 2D/3D, iniciar o detener la caminata o el seguimiento de ruta), NO lo describas: ejecútala con la herramienta correspondiente y confirma en una frase lo que ya se ha hecho. Si no hay herramienta adecuada, no inventes que algo ha cambiado.
 
 [FIN DE INSTRUCCIONES SISTEMA]`;
 
   async function askManolito(question) {
     const uiLang = getRobustLang();
+    // Zona real (GPS + encuadre del mapa): decide acento andaluz o neutro.
+    let enAndalucia = window.__manolitEnAndalucia === true;
+    try { enAndalucia = aplicarZonaMapa() || enAndalucia; } catch (e) { }
+    const systemPrompt = contextoSegunZona(enAndalucia);
 
     if (typeof cookiesAccepted === 'function' && !cookiesAccepted()) {
       return "Conexión bloqueada. Acepta las cookies para interactuar con la IA.";
@@ -217,7 +277,7 @@ SALUD: información educativa y sentido común (protección, horarios, hidrataci
       historyText += "-------------------------\n";
     }
 
-    const fullContext = `${MANOLITO_SYSTEM_CONTEXT}
+    const fullContext = `${systemPrompt}
 
 ${historyText}
 
@@ -256,7 +316,8 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
           body: JSON.stringify({
             message: question,
             idioma: uiLang,
-            systemPrompt: MANOLITO_SYSTEM_CONTEXT,
+            systemPrompt: systemPrompt,
+            enAndalucia: enAndalucia,
             history: chatHistory.slice(-6)
           })
         });
@@ -282,7 +343,7 @@ RESPUESTA REQUERIDA: En el mismo idioma del usuario.
     if (!finalAnswer && OPENROUTER_API_KEY) {
       try {
         const messagesForOR = [
-          { role: "system", content: MANOLITO_SYSTEM_CONTEXT },
+          { role: "system", content: systemPrompt },
           ...chatHistory.map(m => ({
             role: m.role,
             content: m.content
@@ -620,6 +681,122 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
   // 'manolito:activar-parking'. «Modo vago / busca la mejor sombra» enciende
   // las sombras y los árboles del mapa sin pedir parámetros. Todo aditivo:
   // si los módulos no están cargados, el chat sigue respondiendo igual.
+
+  // 25-nov-2026: HERRAMIENTAS del chat (function calling). El módulo se
+  // descarga BAJO DEMANDA desde js/manolito-tools.js: ni el mapa, ni el HTML,
+  // ni el CSS saben de él. Si no llega, el chat funciona exactamente igual.
+  let herramientasCargando = null;
+  function asegurarHerramientas() {
+    if (window.ManolitTools && typeof window.ManolitTools.ejecutar === 'function') {
+      return Promise.resolve(window.ManolitTools);
+    }
+    if (herramientasCargando) return herramientasCargando;
+    herramientasCargando = new Promise((resolve) => {
+      try {
+        const s = document.createElement('script');
+        s.src = 'js/manolito-tools.js?v=ruta-inteligente-20261125-a';
+        s.async = true;
+        s.onload = () => { herramientasCargando = null; resolve(window.ManolitTools || null); };
+        s.onerror = () => { herramientasCargando = null; resolve(null); };
+        document.body.appendChild(s);
+      } catch (e) { herramientasCargando = null; resolve(null); }
+    });
+    return herramientasCargando;
+  }
+
+  async function intentarHerramienta(pregunta) {
+    const txt = String(pregunta || '').trim();
+    if (!txt) return null;
+    const T = await asegurarHerramientas();
+    if (!T || typeof T.ejecutar !== 'function') return null;
+    const ejecutar = (nombre, args) => T.ejecutar(nombre, args || {});
+    const verboAccion = /(pon|poner|ponme|cambia|cambiar|fija|fijar|enciende|encender|activa|activar|apaga|apagar|quita|desactiva|acerca|acercar|aleja|alejar|centra|centrar|vete|ll[eé]vame|mu[eé]strame|traz|dib[uú]ja|inicia|iniciar|arranca|det[eé]n|detener|parar|termina|cancela|orienta|nivela|busca|buscar|calcula|consulta|s[ií]gueme|vuelve)/i.test(txt);
+    const hablaDeLaApp = /(mapa|vista|hora|simulador|sol|sombra|capa|ruta|camino|seguimiento|fuente|caminata|bici|coche|2d|3d|norte|agua|rboles|nubes|aire|microclima|edificio|transporte|carril)/i.test(txt);
+    if (!verboAccion && !hablaDeLaApp) return null;
+    try {
+      const mHora = txt.match(/(?:pon(?:er)?|cambia|cambiar|fija|fijar|ponme)[^0-9]{0,20}(\d{1,2})(?::(\d{2}))?/i)
+        || txt.match(/a las\s+(\d{1,2})(?::(\d{2}))?/i);
+      if (mHora && /(hora|simulador|sombra|sol)/i.test(txt)) {
+        const h = Number(mHora[1]);
+        const m = mHora[2] ? Number(mHora[2]) : 0;
+        if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+          const r = await ejecutar('fijar_hora', { hora: h, minutos: m });
+          if (r && r.ok) return r.respuesta;
+        }
+      }
+      if (/(hora real|ahora mismo|vuelve a la hora)/i.test(txt)) {
+        const r = await ejecutar('hora_ahora');
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/solsticio/i.test(txt)) {
+        const est = /invierno/i.test(txt) ? 'invierno' : (/verano/i.test(txt) ? 'verano' : null);
+        if (est) { const r = await ejecutar('solsticio', { estacion: est }); if (r && r.ok) return r.respuesta; }
+      }
+      const mFecha = txt.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (mFecha && /(fecha|d[ií]a|simulador)/i.test(txt)) {
+        const r = await ejecutar('fijar_fecha', { fecha: mFecha[0] });
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/(enciende|encender|activa|activar|apaga|apagar|quita|desactiva)/i.test(txt)) {
+        const encendida = !/(apaga|apagar|quita|desactiva)/i.test(txt);
+        const capas = [
+          [/sombras?/i, 'sombras'], [/(^|\s)sol(\s|$)/i, 'sol'], [/rboles/i, 'arboles'],
+          [/nubes?/i, 'nubes'], [/lluvia/i, 'lluvia'], [/(^|\s)aire(\s|$)/i, 'aire'],
+          [/microclima/i, 'microclima'], [/edificios?/i, 'edificios'],
+          [/fuentes? de agua/i, 'fuentes_agua'], [/carriles? bici/i, 'carriles_bici'],
+          [/transporte/i, 'transporte']
+        ];
+        for (const [re, nombre] of capas) {
+          if (re.test(txt)) {
+            const r = await ejecutar('capa', { nombre, encendida });
+            if (r && r.ok) return r.respuesta;
+          }
+        }
+      }
+      if (/3d/i.test(txt) && /(vista|mapa|pasar|pon)/i.test(txt)) {
+        const activa = !/(quita|apaga|desactiva|2d)/i.test(txt);
+        const r = await ejecutar('vista_3d', { activa });
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/(vista 2d|en 2d|plano)/i.test(txt)) {
+        const r = await ejecutar('vista_3d', { activa: false });
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/(norte|orienta|nivela)/i.test(txt) && /(mapa|vista|br[uú]jula)/i.test(txt)) {
+        const r = await ejecutar('orientar_norte');
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/(det[eé]n|parar|termina|cancela)[^.]{0,20}seguimiento/i.test(txt)) {
+        const r = await ejecutar('seguimiento_ruta', { activo: false });
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/(seguimiento|modo ruta|sigue(me)? (la|mi) ruta|tracking)/i.test(txt)) {
+        const modo = /bici/i.test(txt) ? 'bici' : (/coche/i.test(txt) ? 'coche' : 'caminar');
+        const objetivo = /(^|\s)sol(\s|$)/i.test(txt) ? 'sol' : (/(agua|fuente)/i.test(txt) ? 'agua' : 'sombra');
+        const r = await ejecutar('seguimiento_ruta', { activo: true, modo, objetivo });
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/(c[oó]mo (est[aá]|va)|qu[eé] tal)[^.?!]{0,30}(sombra|sol)/i.test(txt) && /(avance|voy|conduciendo|coche|camino|andando|bici|ruta)/i.test(txt)) {
+        const r = await ejecutar('sombra_en_mi_avance', {});
+        if (r && r.ok) return r.respuesta;
+      }
+      const mCentrar = txt.match(/(?:centra(?:r)?(?: el mapa)?(?: en)?|vete a|lleva(?:me)? (?:el mapa )?a|mu[eé]strame)\s+(.+?)\s*$/i);
+      if (mCentrar && !/(ruta|camino|hasta|fuente|agua|parada|aparcamiento)/i.test(txt)) {
+        const r = await ejecutar('centrar_mapa', { lugar: mCentrar[1].replace(/[?.!,;]+$/, '').trim() });
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/(acerca|acercar|zoom in)/i.test(txt) && /mapa/i.test(txt)) {
+        const r = await ejecutar('acercar', {});
+        if (r && r.ok) return r.respuesta;
+      }
+      if (/(aleja|alejar|zoom out)/i.test(txt) && /mapa/i.test(txt)) {
+        const r = await ejecutar('alejar', {});
+        if (r && r.ok) return r.respuesta;
+      }
+    } catch (e) { /* cualquier fallo: sigue el camino de siempre */ }
+    return null;
+  }
+
   async function intentarAccionDirecta(pregunta) {
     const txt = String(pregunta || '');
     try {
@@ -799,6 +976,8 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
         }
         return;
       }
+      const herramienta = await intentarHerramienta(question);
+      if (herramienta) { addBubble(herramienta, 'mano'); return; }
       const accion = await intentarAccionDirecta(question);
       if (accion) { addBubble(accion, 'mano'); return; }
       const aireLocal = await intentarAireInternacional(question);
@@ -870,6 +1049,70 @@ Inténtalo de nuevo en unos segundos. Mientras tanto, las preguntas rápidas de 
 
   // Si tu HTML llama a estas funciones con onclick="askCustom()", etc.,
   // necesitan existir en window porque ahora viven dentro de una IIFE.
+
+  // 25-nov-2026: aviso proactivo de los puntos de control del servicio de
+  // ruta. Solo habla si el chat está abierto; si nadie emite el evento, no
+  // se ejecuta nunca.
+  let avisoRutaEnCurso = false;
+  const avisosRutaPendientes = [];
+
+  function textoDelCheckpoint(d) {
+    if (!d) return '';
+    const partes = [];
+    const km = Number(d.distanciaAcumuladaKm) || 0;
+    partes.push('Distancia: ' + (km >= 1 ? km.toFixed(2) + ' km' : Math.round(d.distanciaAcumuladaM || 0) + ' m'));
+    partes.push('Tiempo: ' + (Number(d.tiempoTranscurridoMin) || 0) + ' min');
+    partes.push('Modo: ' + (d.modo === 'bici' ? 'bicicleta' : d.modo === 'coche' ? 'coche' : 'a pie'));
+    partes.push('Objetivo: ' + (d.objetivo === 'sol' ? 'buscar sol' : d.objetivo === 'agua' ? 'fuentes de agua' : 'buscar sombra'));
+    const a = d.anterior, c = d.actual;
+    if (c) {
+      if (c.haySol === true) partes.push('ahora da el sol');
+      else if (c.haySol === false) partes.push('ahora no da el sol');
+      if (c.sombraPct === 100) partes.push('estás en sombra');
+      else if (c.sombraPct === 0) partes.push('estás al sol');
+    }
+    if (a && c && a.haySol != null && c.haySol != null && a.haySol !== c.haySol) {
+      partes.push(c.haySol ? 'antes ibas a la sombra y ahora te da el sol' : 'antes te daba el sol y ahora vas a la sombra');
+    }
+    if (c && c.fuentes && c.fuentes.distanciaM != null) {
+      partes.push('fuente cercana: ' + c.fuentes.nombre + ' a ' + Math.round(c.fuentes.distanciaM) + ' m');
+    }
+    return partes.join('; ');
+  }
+
+  async function procesarAvisoRuta(detalle) {
+    try {
+      const overlay = document.getElementById('chatOverlay');
+      if (!overlay || !overlay.classList.contains('open')) return;
+      const input = document.getElementById('chatInputField');
+      if (input && document.activeElement === input && String(input.value || '').trim()) return;
+      const datos = textoDelCheckpoint(detalle);
+      if (!datos) return;
+      const respuesta = await askManolito('AVISO INTERNO DE SEGUIMIENTO (no es del usuario; contesta con un aviso corto y útil en 1-2 frases, en primera persona del plural, sin listas): ' + datos + '.');
+      if (respuesta) addBubble(respuesta, 'mano');
+    } finally {
+      avisoRutaEnCurso = false;
+      if (avisosRutaPendientes.length) {
+        const siguiente = avisosRutaPendientes.shift();
+        avisoRutaEnCurso = true;
+        procesarAvisoRuta(siguiente);
+      }
+    }
+  }
+
+  window.manolitAireAvisoRuta = function (detalle) {
+    try {
+      if (!detalle) return;
+      if (avisoRutaEnCurso) {
+        avisosRutaPendientes.length = 0;
+        avisosRutaPendientes.push(detalle);
+        return;
+      }
+      avisoRutaEnCurso = true;
+      procesarAvisoRuta(detalle);
+    } catch (e) { avisoRutaEnCurso = false; }
+  };
+
   window.openChat = openChat;
   window.closeChat = closeChat;
   window.askQuick = askQuick;

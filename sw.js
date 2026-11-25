@@ -404,6 +404,21 @@
 //     con penacho denso de acículas finas por rama (52 x 1.05, verde
 //     oscuro) que se acortan hacia la cima: pisos cónicos de pino real.
 //     Solo cambia js/arboles-ez-3d.js e index.html (?v=).
+// 2026-11-25-a: LLUVIA COMO MAPA DEL TIEMPO. La capa raster de
+//     precipitación pasa de una mancha azul grisácea (opacidad 0,45) a
+//     una paleta meteorológica graduada tipo MSN/Windy: cian tenue para
+//     llovizna, azul vivo para lluvia, ámbar para chubasco, magenta para
+//     tormenta. Se aplica con raster-color (interpolate linear sobre
+//     raster-value) + raster-hue-rotate, sin animaciones ni trabajo por
+//     frame: son paint-properties que MapLibre aplica con shaders en el
+//     siguiente repintado. La opacidad techo sube a 0,75 (era 0,45) y
+//     sigue desvaneciéndose al acercarse para que las gotas de cerca
+//     sigan gobernando, como hasta ahora. Sin cambios en la lógica de
+//     tiles, en el bucle de las gotas, ni en los temporizadores: no
+//     calienta el móvil. Placeholders origen/destino en ES/CA/EU/GL/EN/
+//     KA/AR (js/i18n.js) e index.html pasan a "Selecciona punto de
+//     origen/destino" en los 7 idiomas para guiar al peatón como hace
+//     Google Maps. Cambian js/lluvia.js, js/i18n.js, index.html y sw.js.
 const VERSION = '2026-11-25-a-lluvia-mapa-tiempo';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación

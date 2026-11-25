@@ -404,7 +404,7 @@
 //     con penacho denso de acículas finas por rama (52 x 1.05, verde
 //     oscuro) que se acortan hacia la cima: pisos cónicos de pino real.
 //     Solo cambia js/arboles-ez-3d.js e index.html (?v=).
-const VERSION = '2026-11-24-b-pino-conifera';
+const VERSION = '2026-11-25-a-lluvia-mapa-tiempo';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

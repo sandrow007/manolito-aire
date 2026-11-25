@@ -33,15 +33,10 @@
   var CAPA_ID = 'capa-lluvia-owm';
   var REFRESCO_MS = 10 * 60 * 1000;   // OWM renueva sus tiles cada ~10 min
   var CELDA_GRADOS = 0.4;             // ~40 km: la lluvia no cambia por calle
-  // (nov-2026) Zoom mínimo para que aparezcan las gotas: de 13 a 12. A partir de
-  // aquí se ve el detalle de la lluvia en lugar de la mancha de precipitación.
-  var ZOOM_GOTAS = 12;                // a partir de aquí: gotas, no mancha
+  var ZOOM_GOTAS = 13;                // a partir de aquí: gotas, no mancha
   var RELOJ_TOLERANCIA_MS = 45 * 60 * 1000; // presente = ±45 min del reloj
-  // (nov-2026) Lluvia más visible al hacer zoom: subo el tope de gotas dentro
-  // de un margen seguro para móvil (150→220 / 70→95). Sigue siendo trabajo
-  // por frame barato: rectas cortas, sin filtros, sin blend modes.
-  var MAX_GOTAS = 220;                // tope de batería
-  var MAX_GOTAS_FLOJO = 95;           // móviles modestos (hardwareConcurrency)
+  var MAX_GOTAS = 150;                // tope de batería
+  var MAX_GOTAS_FLOJO = 70;           // móviles modestos (hardwareConcurrency)
 
   var mapa = null;
   var selloTiles = Date.now();
@@ -155,47 +150,20 @@
     if (!mapa || !mapa.getLayer(CAPA_ID)) return;
     var oscuro = mapaOscuro();
     try {
-      // Mapa meteorológico: la precipitación de OWM entra azul y aquí se
-      // re-tiñe con una escala graduada tipo MSN Weather / Windy:
-      //   llovizna  -> cian tenue   (volumen bajo)
-      //   lluvia    -> azul vivo    (volumen medio)
-      //   chubasco  -> ámbar        (volumen alto)
-      //   tormenta  -> magenta      (volumen extremo)
-      // Sin animaciones y sin trabajo por frame: son paint-properties que
-      // MapLibre aplica con shaders cuando recalcula el tile, ya existente.
-      // Opacidad techo más alta (0,75) para que la mancha se lea bien
-      // desde lejos; se sigue desvaneciendo al acercarse (las gotas
-      // mandan de cerca, como siempre).
+      // Mancha azul grisácea: la precipitación de OWM ya nace azul; se le
+      // quita saturación para grisarla y se deja respirar el mapa base.
+      // Techo bajo: la mancha acompaña, nunca tapa. El degradado empieza
+      // antes (zoom 9) para que al acercarse el mapa quede limpio antes.
       mapa.setPaintProperty(CAPA_ID, 'raster-opacity', ['interpolate', ['linear'], ['zoom'],
-        8,   oscuro ? 0.62 : 0.75,
-        9.5, oscuro ? 0.50 : 0.62,
+        8, oscuro ? 0.4 : 0.45,
+        9.5, oscuro ? 0.3 : 0.34,
         11.5, 0]);
       // Mismo truco que las nubes: en modo oscuro el canvas lleva filtro
       // invert(), así que la mancha "nace oscura" y el filtro la aclara.
-      mapa.setPaintProperty(CAPA_ID, 'raster-brightness-max', oscuro ? 0.55 : 1);
-      mapa.setPaintProperty(CAPA_ID, 'raster-brightness-min', oscuro ? 0.12 : 0.04);
-      // Matiz hacia tonos meteorológicos: cian -> azul -> ámbar -> magenta
-      // (rota el azul original hacia el lado cálido del espectro).
-      mapa.setPaintProperty(CAPA_ID, 'raster-hue-rotate', oscuro ? -8 : -14);
-      // NOTA (nov-2026): MapLibre 4.7.1 (la versión que carga esta web) NO
-      // soporta 'raster-color' ni la expresión 'raster-value' (llegaron en
-      // la 5.x). Comprobado contra el bundle real de unpkg. La paleta
-      // graduada por volumen se consigue AQUÍ con las propiedades que
-      // 4.7.1 sí soporta: los tiles de OWM ya codifican el volumen como
-      // intensidad de color, así que saturación + contraste + brillo
-      // amplifican la diferencia entre llovizna (tenue) y tormenta
-      // (intensa), y el hue-rotate lleva el conjunto hacia tonos cálidos
-      // tipo mapa del tiempo. Sin llamadas que fallen en silencio.
-      // Saturación > 1: la llovizna débil casi desaparece (su píxel tiene
-      // poca saturación de base) y el chubasco denso se enciende.
-      mapa.setPaintProperty(CAPA_ID, 'raster-saturation', oscuro ? 1.3 : 1.6);
-      // Contraste alto: separa los niveles de intensidad dentro del tile,
-      // exactamente lo que busca una escala "por volumen".
-      mapa.setPaintProperty(CAPA_ID, 'raster-contrast', oscuro ? 0.3 : 0.42);
-      // El degradado de opacidad de arriba ya hace el papel de rampa de
-      // transparencia: menos agua = píxel casi transparente, más agua =
-      // color pleno. Es el mismo efecto visual que una rampa de color,
-      // con los primitivos de 4.7.1.
+      mapa.setPaintProperty(CAPA_ID, 'raster-brightness-max', oscuro ? 0.16 : 1);
+      mapa.setPaintProperty(CAPA_ID, 'raster-brightness-min', 0);
+      mapa.setPaintProperty(CAPA_ID, 'raster-saturation', -0.6);
+      mapa.setPaintProperty(CAPA_ID, 'raster-contrast', 0.08);
     } catch (e) { /* capa a medio crear */ }
   }
 
@@ -307,14 +275,11 @@
     return {
       x: Math.random() * w,
       y: -20 * dpr - Math.random() * h * 0.3,
-      // (nov-2026) Gotas más visibles al hacer zoom: largo subido (7-21 +5
-      // → 10-26 +8). En zoom alto se leen como chorro, no como puntos.
-      largo: (10 + Math.random() * 16 + intensidad * 8) * dpr,
+      largo: (7 + Math.random() * 9 + intensidad * 5) * dpr,
       vel: (260 + Math.random() * 240 + intensidad * 160) * dpr, // px/s
       deriva: (28 + Math.random() * 42) * dpr,                   // diagonal ligera
       suelo: h * (0.55 + Math.random() * 0.45),                  // dónde "aterriza"
-      // (nov-2026) Un pelo más opacas para que destaquen sobre el raster MSN.
-      alfa: 0.38 + Math.random() * 0.32,
+      alfa: 0.28 + Math.random() * 0.3,
     };
   }
 
@@ -346,10 +311,7 @@
     var w = lienzo.width, h = lienzo.height;
     ctx.clearRect(0, 0, w, h);
 
-    // Gotas: rayitas blancas semitransparentes en diagonal ligera.
-    // (nov-2026) Trazo un pelo más grueso para que se lean al hacer zoom sobre
-    // el raster MSN: velo 1.8→2.2, hilo 0.9→1.1. Sigue siendo 2 strokes por
-    // gota, sin filtros ni blend modes: coste en GPU despreciable.
+    // Gotas: rayitas finas blancas semitransparentes en diagonal ligera.
     ctx.lineCap = 'round';
     ctx.lineWidth = Math.max(1, 1 * dpr);
     for (var i = 0; i < gotas.length; i++) {
@@ -367,14 +329,14 @@
       var kx = g.deriva / g.vel; // pendiente de la caída
       // Dos pasadas: una gruesa y tenue (velo de agua) y una fina y clara
       // (el hilo de la gota). Misma geometría, doble lectura de profundidad.
-      ctx.strokeStyle = 'rgba(210,225,242,' + (g.alfa * 0.6).toFixed(3) + ')';
-      ctx.lineWidth = Math.max(1.6, 2.2 * dpr);
+      ctx.strokeStyle = 'rgba(210,225,242,' + (g.alfa * 0.55).toFixed(3) + ')';
+      ctx.lineWidth = Math.max(1.4, 1.8 * dpr);
       ctx.beginPath();
       ctx.moveTo(g.x, g.y);
       ctx.lineTo(g.x - kx * g.largo, g.y - g.largo);
       ctx.stroke();
       ctx.strokeStyle = 'rgba(240,247,255,' + g.alfa.toFixed(3) + ')';
-      ctx.lineWidth = Math.max(1, 1.1 * dpr);
+      ctx.lineWidth = Math.max(1, 0.9 * dpr);
       ctx.beginPath();
       ctx.moveTo(g.x, g.y);
       ctx.lineTo(g.x - kx * g.largo, g.y - g.largo);

@@ -1513,20 +1513,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // su propio new Date(). Esto es lo que faltaba para que las sombras de
   // los árboles se movieran igual que las de los edificios.
   window.manolitAireHoraEfectiva = () => obtenerHoraEfectiva();
-  // Entrada de reloj para el seguimiento de ruta inteligente. A diferencia
-  // de fijar la hora del slider, conserva la fecha absoluta de viaje y llama
-  // al mismo recálculo del motor (edificios, árboles, luz, ruta y accesibilidad).
-  window.manolitAireFijarHoraEfectiva = (fecha) => {
-    if (!(fecha instanceof Date) || isNaN(fecha.getTime())) return false;
-    modoManual = true;
-    esFechaSolsticioActiva = false;
-    fechaManualFija = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 12, 0, 0);
-    fechaBaseManual = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 0, 0, 0, 0);
-    if (sliderTiempo) sliderTiempo.value = String(fecha.getHours() * 60 + fecha.getMinutes());
-    if (etiquetaTiempo) actualizarEtiquetaTiempo(false);
-    aplicarCambioDeHora(false);
-    return true;
-  };
 
   // Barra de estado para módulos aditivos que viven fuera de este archivo
   // (js/lluvia.js la usa para avisar de que solo hay lluvia actual). Si
@@ -3581,8 +3567,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnCaminar.type = 'button';
     btnCaminar.id = 'rsBtnWalk';
     btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
-    btnCaminar.setAttribute('aria-label', btnCaminar.textContent);
-    btnCaminar.title = btnCaminar.textContent;
 
     // Guía por voz: nace CON el panel (2026-09-12, CLS). Antes la inyectaba
     // el módulo de voz segundos después junto a "Iniciar caminata" y toda
@@ -3619,11 +3603,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       atajo.addEventListener('click', () => {
         document.getElementById('rsBtnWalk')?.click();
         // Refleja el estado real del botón original para que el atajo no
-        // mienta: si la caminata está en marcha, se lee «Detener».
-        const activo = document.getElementById('rsBtnWalk')?.classList.contains('rs-activo');
-        atajo.textContent = t(activo ? 'walkModeStop' : 'walkModeStart', activo ? 'Detener caminata' : 'Iniciar caminata').split(' ')[0];
-        atajo.setAttribute('aria-label', t(activo ? 'walkModeStop' : 'walkModeStart', activo ? 'Detener caminata' : 'Iniciar caminata'));
-        atajo.title = atajo.getAttribute('aria-label');
+        // mienta: si la caminata está en marcha, se lee «Detener caminata».
+        atajo.textContent = t(
+          document.getElementById('rsBtnWalk')?.classList.contains('rs-activo') ? 'walkModeStop' : 'walkModeStart',
+          document.getElementById('rsBtnWalk')?.classList.contains('rs-activo') ? 'Detener caminata' : 'Iniciar caminata'
+        );
       });
     })();
 
@@ -4104,8 +4088,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       manolitPuente.ultimoLonCaminata = null;
             btnCaminar.classList.remove('rs-activo');
       btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
-      btnCaminar.setAttribute('aria-label', btnCaminar.textContent);
-      btnCaminar.title = btnCaminar.textContent;
       sincronizarAtajoCaminar();
     }
 
@@ -4114,9 +4096,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const atajo = document.getElementById('rsBtnCaminarResumen');
       if (!atajo) return;
       const andando = btnCaminar.classList.contains('rs-activo');
-      atajo.textContent = andando ? t('walkModeStop', 'Detener caminata').split(' ')[0] : t('walkModeStart', 'Iniciar caminata').split(' ')[0];
-      atajo.setAttribute('aria-label', andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata'));
-      atajo.title = atajo.getAttribute('aria-label');
+      atajo.textContent = andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata');
       atajo.classList.toggle('rs-activo', andando);
       atajo.setAttribute('aria-pressed', andando ? 'true' : 'false');
     }
@@ -4145,8 +4125,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
             btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
-      btnCaminar.setAttribute('aria-label', btnCaminar.textContent);
-      btnCaminar.title = btnCaminar.textContent;
       sincronizarAtajoCaminar();
       mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
       // Si hay una ruta calculada con indicaciones, arranca la guía por voz:
@@ -4692,9 +4670,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       actualizarBotonCompartirPunto();
       actualizarMascotaDestino(ultimoDestinoMarcador, true);
-      // El atajo «Iniciar» sale aquí también (nov-2026): hay un punto
-      // marcado sin ruta; su lógica propia no se toca, solo se enseña.
-      mostrarAtajoCaminar(true);
       manolitPuente.ocultarIndicadores();
       map.flyTo({
         center: [lng, lat],
@@ -4800,8 +4775,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           };
           actualizarBotonCompartirPunto();
           actualizarMascotaDestino(ultimoDestinoMarcador, true);
-          // El atajo «Iniciar» también con pulsación larga sobre el mapa.
-          mostrarAtajoCaminar(true);
           map.flyTo({
             center: [punto.lng, punto.lat],
             zoom: Math.min(17, Math.max(map.getZoom(), 16)),
@@ -5087,14 +5060,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     sliderTiempo.addEventListener('input', () => {
       modoManual = true;
-      // Si hay un trayecto en marcha, la hora que acaba de pedir el usuario
-      // manda: el reloj del viaje se pausa para no pisársela en el siguiente
-      // checkpoint (sin tracker activo, pausar() no hace nada).
-      try {
-        if (window.ManolitRouteTracker && typeof window.ManolitRouteTracker.pausar === 'function') {
-          window.ManolitRouteTracker.pausar('manual');
-        }
-      } catch (eRTp) { }
       // AÑADIDO: si el usuario eligió fecha en el date-input, esa fecha manda
       // en vez de «hoy». Con fechaManualFija === null es EXACTAMENTE lo de antes.
       fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual
@@ -5218,56 +5183,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     cuerpo.append(filaEtiqueta, filaFecha, sliderTiempo, timeline, divisor, filaBotones, anunciadorHora);
     panel.append(cabecera, cuerpo);
     contenedorMapa.appendChild(panel);
-
-    /* ---- Botón «Modo ruta» (nov-2026): UI del RouteTracker --------------
-       Nace aquí, en el MISMO bloque síncrono que el panel de hora, así que
-       siempre aparece junto a «Iniciar caminata» (ese botón se crea unas
-       líneas más arriba). Enciende/apaga el seguimiento de
-       js/route-tracker-service.js en el modo de viaje activo del panel de
-       rutas (window.__manolitoModoRuta): el chat y la UI comparten estado.
-       Aditivo: si el servicio no está cargado, avisa y no hace nada más. */
-    (function crearBotonModoRuta() {
-      if (document.getElementById('rsBtnModoRuta')) return;
-      const ref = document.getElementById('rsBtnWalk');
-      if (!ref || !ref.parentNode) return;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'rsBtnModoRuta';
-      btn.className = 'rs-btn-modo-ruta';
-      btn.textContent = t('routeTrackerStart', 'Modo ruta');
-      btn.title = t('routeTrackerHint', 'Avisa de sol, sombra y fuentes mientras te mueves (100 m a pie, 1,5 km en bici).');
-      btn.setAttribute('aria-pressed', 'false');
-      btn.addEventListener('click', () => {
-        const RT = window.ManolitRouteTracker;
-        if (!RT) {
-          mostrarEstado(t('routeTrackerNoService', 'El servicio de ruta todavía no está cargado.'), 'error');
-          return;
-        }
-        if (RT.estado().activo) {
-          const fin = RT.parar();
-          btn.classList.remove('rs-activo');
-          btn.setAttribute('aria-pressed', 'false');
-          btn.textContent = t('routeTrackerStart', 'Modo ruta');
-          mostrarEstado(t('routeTrackerStopped', 'Seguimiento de ruta detenido.') + ' ' +
-            (fin.distanciaAcumuladaM / 1000).toFixed(2) + ' km.');
-          return;
-        }
-        const modo = window.__manolitoModoRuta || 'caminar';
-        const r = RT.iniciar({ modo: modo, objetivo: 'sombra' });
-        if (!r.ok) {
-          mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
-          return;
-        }
-        btn.classList.add('rs-activo');
-        btn.setAttribute('aria-pressed', 'true');
-        btn.textContent = t('routeTrackerStop', 'Detener ruta');
-        const umbral = r.umbralM > 0
-          ? (r.umbralM >= 1000 ? (r.umbralM / 1000) + ' km' : r.umbralM + ' m')
-          : t('routeTrackerCarOff', 'sin avisos automáticos en coche');
-        mostrarEstado(t('routeTrackerStarted', 'Seguimiento de ruta activo:') + ' ' + umbral + '.');
-      });
-      ref.insertAdjacentElement('afterend', btn);
-    })();
 
     asegurarActivacionSolar();
     actualizarEtiquetaTiempo(false);
@@ -6222,69 +6137,43 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     let bearingAnterior = null;
     grupos.forEach((g, i) => {
       const metros = redondearMetros(g.metros);
+      const calle = nombreCalleBonito(g.nombre);
       const bearingIni = turf.bearing(g.coords[0], g.coords[1]);
       const bearingFin = turf.bearing(g.coords[g.coords.length - 2], g.coords[g.coords.length - 1]);
       const { frase, consejo } = textoSombra(fraccionSombraTramo(g.coords, sombras, indiceSombrasGuia), metros);
       const colaSombra = frase ? '. ' + frase : '';
 
       let texto;
-      let tipoPaso;
-      // «Calle sin nombre» fuera (nov-2026): si el tramo no tiene nombre en
-      // OSM, la frase se reconstruye SIN la calle, como en Google Maps.
-      const tieneNombre = !!(g.nombre && String(g.nombre).trim());
-      // (nov-2026) `calle` se declara AQUÍ una sola vez: antes había dos
-      // declaraciones del mismo nombre en el mismo bloque, lo que abortaba
-      // TODO js/shadows-route.js con «Identifier 'calle' has already been
-      // declared» (el mapa no arrancaba). Valor idéntico al de siempre:
-      // nombre bonito del tramo, o '' si no tiene nombre en OSM.
-      const calle = nombreCalleBonito(g.nombre) || '';
       if (i === 0) {
-        tipoPaso = 'depart';
-        texto = calle
-          ? tp('stepDepart', 'Sal por {calle} hacia el {dir}, {metros} metros', { calle, dir: direccionCardinalTexto(bearingIni), metros })
-          : tp('stepDepartSin', 'Sal hacia el {dir}, {metros} metros', { dir: direccionCardinalTexto(bearingIni), metros });
-        texto += colaSombra + '.';
+        texto = tp('stepDepart', 'Sal por {calle} hacia el {dir}, {metros} metros', {
+          calle, dir: direccionCardinalTexto(bearingIni), metros,
+        }) + colaSombra + '.';
       } else {
         const giro = normalizarGiro(bearingAnterior, bearingIni);
         const abs = Math.abs(giro);
         if (abs < 25) {
-          tipoPaso = 'continue';
-          texto = calle
-            ? tp('stepContinue', 'Sigue por {calle} durante {metros} metros', { calle, metros })
-            : tp('stepContinueSin', 'Sigue {metros} metros', { metros });
-          texto += colaSombra + '.';
+          texto = tp('stepContinue', 'Sigue por {calle} durante {metros} metros', { calle, metros }) + colaSombra + '.';
         } else if (abs > 135) {
-          tipoPaso = 'uturn';
-          texto = calle
-            ? tp('stepUturn', 'Da la vuelta y toma {calle}, {metros} metros', { calle, metros })
-            : tp('stepUturnSin', 'Da la vuelta y sigue {metros} metros', { metros });
-          texto += colaSombra + '.';
+          texto = tp('stepUturn', 'Da la vuelta y toma {calle}, {metros} metros', { calle, metros }) + colaSombra + '.';
         } else {
           const leve = abs < 60;
           const clave = giro < 0 ? (leve ? 'stepSlightLeft' : 'stepTurnLeft') : (leve ? 'stepSlightRight' : 'stepTurnRight');
           const fallback = giro < 0
             ? (leve ? 'Gira levemente a la izquierda en {calle} y sigue {metros} metros' : 'Gira a la izquierda en {calle} y sigue {metros} metros')
             : (leve ? 'Gira levemente a la derecha en {calle} y sigue {metros} metros' : 'Gira a la derecha en {calle} y sigue {metros} metros');
-          const fallbackSin = giro < 0
-            ? (leve ? 'Gira levemente a la izquierda y sigue {metros} metros' : 'Gira a la izquierda y sigue {metros} metros')
-            : (leve ? 'Gira levemente a la derecha y sigue {metros} metros' : 'Gira a la derecha y sigue {metros} metros');
-          tipoPaso = giro < 0 ? (leve ? 'slight-left' : 'left') : (leve ? 'slight-right' : 'right');
-          texto = calle
-            ? tp(clave, fallback, { calle, metros })
-            : tp(clave + 'Sin', fallbackSin, { metros });
-          texto += colaSombra + '.';
+          texto = tp(clave, fallback, { calle, metros }) + colaSombra + '.';
         }
       }
       if (consejo) texto += ' ' + consejo;
       pasos.push(texto);
-      guiados.push({ texto, punto: g.coords[0], tipo: tipoPaso });
+      guiados.push({ texto, punto: g.coords[0] });
       bearingAnterior = bearingFin;
     });
 
     const textoLlegada = t('stepArrive', 'Has llegado a tu destino.');
     pasos.push(textoLlegada);
     const ultimoGrupo = grupos[grupos.length - 1];
-    guiados.push({ texto: textoLlegada, punto: ultimoGrupo.coords[ultimoGrupo.coords.length - 1], esLlegada: true, tipo: 'arrive' });
+    guiados.push({ texto: textoLlegada, punto: ultimoGrupo.coords[ultimoGrupo.coords.length - 1], esLlegada: true });
     return { pasos, guiados };
   }
 
@@ -6301,6 +6190,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const indiceSombrasGuia = (sombras && sombras.length) ? crearIndiceSombras(sombras) : null;
 
     for (const s of pasosOsrm) {
+      const calle = nombreCalleBonito(s.name);
       const metros = redondearMetros(s.distance || 0);
       const coords = s.geometry?.coordinates || [];
       const { frase, consejo } = textoSombra(fraccionSombraTramo(coords, sombras, indiceSombrasGuia), metros);
@@ -6308,31 +6198,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const maniobra = s.maneuver || {};
       const tipo = maniobra.type || '';
       const mod = maniobra.modifier || '';
-      // «Calle sin nombre» fuera (nov-2026): si OSRM no sabe el nombre,
-      // la frase se reconstruye SIN la calle, como Google Maps.
-      const tieneNombre = !!(s.name && s.name.trim());
-      const calle = tieneNombre ? s.name.trim() : '';
 
       let texto = null;
-      let tipoPaso = tipo === 'roundabout' || tipo === 'rotary' ? 'roundabout' : (tipo === 'arrive' ? 'arrive' : (tipo === 'depart' ? 'depart' : (mod === 'uturn' ? 'uturn' : (mod.includes('left') ? (mod.includes('slight') ? 'slight-left' : 'left') : (mod.includes('right') ? (mod.includes('slight') ? 'slight-right' : 'right') : 'continue')))));
       if (tipo === 'depart') {
         const dir = coords.length >= 2 ? direccionCardinalTexto(turf.bearing(coords[0], coords[1])) : '';
-        texto = calle
-          ? tp('stepDepart', 'Sal por {calle} hacia el {dir}, {metros} metros', { calle, dir, metros })
-          : tp('stepDepartSin', 'Sal hacia el {dir}, {metros} metros', { dir, metros });
-        texto += colaSombra + '.';
+        texto = tp('stepDepart', 'Sal por {calle} hacia el {dir}, {metros} metros', { calle, dir, metros }) + colaSombra + '.';
       } else if (tipo === 'arrive') {
         texto = t('stepArrive', 'Has llegado a tu destino.');
       } else if (tipo === 'roundabout' || tipo === 'rotary') {
-        texto = calle
-          ? tp('stepRoundabout', 'En la rotonda, toma la salida hacia {calle} y sigue {metros} metros', { calle, metros })
-          : tp('stepRoundaboutSin', 'En la rotonda, toma la salida y sigue {metros} metros', { metros });
-        texto += colaSombra + '.';
+        texto = tp('stepRoundabout', 'En la rotonda, toma la salida hacia {calle} y sigue {metros} metros', { calle, metros }) + colaSombra + '.';
       } else if (mod === 'uturn') {
-        texto = calle
-          ? tp('stepUturn', 'Da la vuelta y toma {calle}, {metros} metros', { calle, metros })
-          : tp('stepUturnSin', 'Da la vuelta y sigue {metros} metros', { metros });
-        texto += colaSombra + '.';
+        texto = tp('stepUturn', 'Da la vuelta y toma {calle}, {metros} metros', { calle, metros }) + colaSombra + '.';
       } else if (mod.includes('left') || mod.includes('right')) {
         const izq = mod.includes('left');
         const leve = mod.includes('slight');
@@ -6340,18 +6216,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const fallback = izq
           ? (leve ? 'Gira levemente a la izquierda en {calle} y sigue {metros} metros' : 'Gira a la izquierda en {calle} y sigue {metros} metros')
           : (leve ? 'Gira levemente a la derecha en {calle} y sigue {metros} metros' : 'Gira a la derecha en {calle} y sigue {metros} metros');
-        const fallbackSin = izq
-          ? (leve ? 'Gira levemente a la izquierda y sigue {metros} metros' : 'Gira a la izquierda y sigue {metros} metros')
-          : (leve ? 'Gira levemente a la derecha y sigue {metros} metros' : 'Gira a la derecha y sigue {metros} metros');
-        texto = calle
-          ? tp(clave, fallback, { calle, metros })
-          : tp(clave + 'Sin', fallbackSin, { metros });
-        texto += colaSombra + '.';
+        texto = tp(clave, fallback, { calle, metros }) + colaSombra + '.';
       } else if (metros > 0) {
-        texto = calle
-          ? tp('stepContinue', 'Sigue por {calle} durante {metros} metros', { calle, metros })
-          : tp('stepContinueSin', 'Sigue {metros} metros', { metros });
-        texto += colaSombra + '.';
+        texto = tp('stepContinue', 'Sigue por {calle} durante {metros} metros', { calle, metros }) + colaSombra + '.';
       }
       if (texto) {
         if (consejo && tipo !== 'arrive') texto += ' ' + consejo;
@@ -6359,7 +6226,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         // Punto de la maniobra: donde empieza este paso, para la guía GPS.
         const puntoManiobra = Array.isArray(maniobra.location) ? maniobra.location
           : (coords.length ? coords[0] : null);
-        if (puntoManiobra) guiados.push({ texto, punto: puntoManiobra, esLlegada: tipo === 'arrive', tipo: tipoPaso });
+        if (puntoManiobra) guiados.push({ texto, punto: puntoManiobra, esLlegada: tipo === 'arrive' });
       }
     }
     // Si OSRM no cerró con "arrive", lo añadimos nosotros.
@@ -6369,7 +6236,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       pasos.push(textoLlegada);
       const ultCoords = pasosOsrm[pasosOsrm.length - 1]?.geometry?.coordinates;
       const puntoFin = ultCoords?.length ? ultCoords[ultCoords.length - 1] : null;
-      if (puntoFin) guiados.push({ texto: textoLlegada, punto: puntoFin, esLlegada: true, tipo: 'arrive' });
+      if (puntoFin) guiados.push({ texto: textoLlegada, punto: puntoFin, esLlegada: true });
     }
     return { pasos, guiados };
   }
@@ -6805,11 +6672,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (!destino || !Number.isFinite(Number(destino.lat)) || !Number.isFinite(Number(destino.lon))) return false;
     try {
       let origen;
-      // Dos puntos marcados a mano (nov-2026): si el destino lleva
-      // puntoPartida, ese es el origen de verdad y NUNCA se pide GPS.
-      // Antes el origen se resolvía antes de mirar puntoPartida y el GPS
-      // saltaba sin haberlo pedido el usuario.
-      if (destino.puntoPartida &&
+      if (modoForzado === 'caminar' && destino.puntoPartida &&
           Number.isFinite(Number(destino.puntoPartida.lat)) && Number.isFinite(Number(destino.puntoPartida.lon)) &&
           !mismoPunto(destino.puntoPartida, destino)) {
         origen = { lat: Number(destino.puntoPartida.lat), lon: Number(destino.puntoPartida.lon), nombre: destino.puntoPartida.nombre || t('pointMap', 'Punto marcado en el mapa') };
@@ -8297,20 +8160,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btnCamUbiIdioma = document.getElementById('rsCamUbicacion');
     if (btnCamUbiIdioma) btnCamUbiIdioma.title = t('myLocationHint', 'Usa tu GPS: Manolit∞ será tu punto de ubicación en el mapa; otros lugares pueden aparecer como puntos.');
         const btnWalk = document.getElementById('rsBtnWalk');
-    if (btnWalk && !btnWalk.classList.contains('rs-activo')) {
-      btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
-      btnWalk.setAttribute('aria-label', btnWalk.textContent);
-      btnWalk.title = btnWalk.textContent;
-    }
+    if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
     // El atajo del resumen habla el mismo idioma que el botón de siempre.
-    // En pantalla solo se lee «Iniciar» / «Detener» (el nombre largo queda
-    // en el aria-label); el icono de Manolit lo pinta el CSS.
     const atajoCaminar = document.getElementById('rsBtnCaminarResumen');
     if (atajoCaminar) {
       const andando = !!(btnWalk && btnWalk.classList.contains('rs-activo'));
-      atajoCaminar.textContent = andando ? t('walkModeStop', 'Detener caminata').split(' ')[0] : t('walkModeStart', 'Iniciar caminata').split(' ')[0];
-      atajoCaminar.setAttribute('aria-label', andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata'));
-      atajoCaminar.title = atajoCaminar.getAttribute('aria-label');
+      atajoCaminar.textContent = andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata');
     }
 
     const btnPaseo = document.getElementById('rsBtnPaseo');
@@ -10499,54 +10354,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function detenerManolitPaseo() {
       if (manolit.paseoTimer) { clearTimeout(manolit.paseoTimer); manolit.paseoTimer = null; }
     }
-    /* ----- MODO RUTA (nov-2026): botón del RouteTracker junto a los demás ----
-       Se crea AQUÍ, con el mismo patrón (cuandoExista) con el que ya se
-       engancha «Paseo virtual 3D»: en este punto el botón de caminata ya
-       existe seguro. Enciende/apaga js/route-tracker-service.js en el modo
-       de viaje activo del panel de rutas (window.__manolitoModoRuta), así
-       que chat y UI comparten un único estado. Aditivo: sin el servicio solo
-       avisa. */
-    cuandoExista('#rsBtnWalk', (ref) => {
-      if (document.getElementById('rsBtnModoRuta')) return;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'rsBtnModoRuta';
-      btn.className = 'rs-btn-modo-ruta';
-      btn.textContent = t('routeTrackerStart', 'Modo ruta');
-      btn.title = t('routeTrackerHint', 'Avisa de sol, sombra y fuentes mientras te mueves (100 m a pie, 1,5 km en bici).');
-      btn.setAttribute('aria-pressed', 'false');
-      btn.addEventListener('click', () => {
-        const RT = window.ManolitRouteTracker;
-        if (!RT) {
-          mostrarEstado(t('routeTrackerNoService', 'El servicio de ruta todavía no está cargado.'), 'error');
-          return;
-        }
-        if (RT.estado().activo) {
-          const fin = RT.parar();
-          btn.classList.remove('rs-activo');
-          btn.setAttribute('aria-pressed', 'false');
-          btn.textContent = t('routeTrackerStart', 'Modo ruta');
-          mostrarEstado(t('routeTrackerStopped', 'Seguimiento de ruta detenido.') + ' ' +
-            (fin.distanciaAcumuladaM / 1000).toFixed(2) + ' km.');
-          return;
-        }
-        const modo = window.__manolitoModoRuta || 'caminar';
-        const r = RT.iniciar({ modo: modo, objetivo: 'sombra' });
-        if (!r.ok) {
-          mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
-          return;
-        }
-        btn.classList.add('rs-activo');
-        btn.setAttribute('aria-pressed', 'true');
-        btn.textContent = t('routeTrackerStop', 'Detener ruta');
-        const umbral = r.umbralM > 0
-          ? (r.umbralM >= 1000 ? (r.umbralM / 1000) + ' km' : r.umbralM + ' m')
-          : t('routeTrackerCarOff', 'sin avisos automáticos en coche');
-        mostrarEstado(t('routeTrackerStarted', 'Seguimiento de ruta activo:') + ' ' + umbral + '.');
-      });
-      ref.insertAdjacentElement('afterend', btn);
-    });
-
     cuandoExista('#rsBtnPaseo', (btn) => {
       btn.addEventListener('click', () => {
         setTimeout(() => {
@@ -12264,54 +12071,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       } catch (e) {
         console.debug('[arboles-globales] No se pudieron restaurar las capas tras recargar el estilo:', e.message);
       }
-    });
-
-    /* ----- MODO RUTA (nov-2026): botón del RouteTracker -------------------
-       Nace aquí, en el arranque del mapa, con el mismo patrón (cuandoExista)
-       que el enganche del «Paseo virtual 3D» (que sí se ejecuta). En este
-       punto el botón «Iniciar caminata» ya existe. Enciende/apaga
-       js/route-tracker-service.js en el modo de viaje activo del panel de
-       rutas (window.__manolitoModoRuta): chat y UI comparten un único
-       estado. Aditivo: sin el servicio, solo avisa y no toca nada. */
-    cuandoExista('#rsBtnWalk', (ref) => {
-      if (document.getElementById('rsBtnModoRuta')) return;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'rsBtnModoRuta';
-      btn.className = 'rs-btn-modo-ruta';
-      btn.textContent = t('routeTrackerStart', 'Modo ruta');
-      btn.title = t('routeTrackerHint', 'Avisa de sol, sombra y fuentes mientras te mueves (100 m a pie, 1,5 km en bici).');
-      btn.setAttribute('aria-pressed', 'false');
-      btn.addEventListener('click', () => {
-        const RT = window.ManolitRouteTracker;
-        if (!RT) {
-          mostrarEstado(t('routeTrackerNoService', 'El servicio de ruta todavía no está cargado.'), 'error');
-          return;
-        }
-        if (RT.estado().activo) {
-          const fin = RT.parar();
-          btn.classList.remove('rs-activo');
-          btn.setAttribute('aria-pressed', 'false');
-          btn.textContent = t('routeTrackerStart', 'Modo ruta');
-          mostrarEstado(t('routeTrackerStopped', 'Seguimiento de ruta detenido.') + ' ' +
-            (fin.distanciaAcumuladaM / 1000).toFixed(2) + ' km.');
-          return;
-        }
-        const modo = window.__manolitoModoRuta || 'caminar';
-        const r = RT.iniciar({ modo: modo, objetivo: 'sombra' });
-        if (!r.ok) {
-          mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
-          return;
-        }
-        btn.classList.add('rs-activo');
-        btn.setAttribute('aria-pressed', 'true');
-        btn.textContent = t('routeTrackerStop', 'Detener ruta');
-        const umbral = r.umbralM > 0
-          ? (r.umbralM >= 1000 ? (r.umbralM / 1000) + ' km' : r.umbralM + ' m')
-          : t('routeTrackerCarOff', 'sin avisos automáticos en coche');
-        mostrarEstado(t('routeTrackerStarted', 'Seguimiento de ruta activo:') + ' ' + umbral + '.');
-      });
-      ref.insertAdjacentElement('afterend', btn);
     });
 
     let capaVisible = true;

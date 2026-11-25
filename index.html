@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -417,7 +417,6 @@
 <base target="_blank">
 </head>
 <body>
-<pre id="qa-out" style="display:none"></pre>
 
 <a href="#main-content" class="skip-link" data-i18n="skipToContent">Saltar al contenido principal</a>
 
@@ -1386,6 +1385,7 @@
          en el mapa, en texto ordenado, con lectura por voz (TTS del propio
          navegador, sin servicios externos). Pensado para personas ciegas o
          con baja visión, y útil para cualquiera. -->
+<div class="map-wrap">
 <div class="rs-form">
   <!-- Selector de modo del buscador UNIFICADO (nov-2026): un solo par de
        campos origen/destino para los tres motores (andar, bici, coche).
@@ -1418,14 +1418,14 @@
 <div class="rs-barra">
   <div class="rs-field">
     <label for="rsOrigen" class="visually-hidden" data-i18n="origin">Origen</label>
-    <input type="text" id="rsOrigen" name="origen" placeholder="Selecciona punto de origen" data-i18n-placeholder="originPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasOrigen" aria-autocomplete="list">
+    <input type="text" id="rsOrigen" name="origen" placeholder="Punto de origen" data-i18n-placeholder="originPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasOrigen" aria-autocomplete="list">
     <ul class="rs-sugerencias" id="rsSugerenciasOrigen" role="listbox" data-i18n-aria-label="origin" aria-label="Origen"></ul>
   </div>
   <div class="rs-vdiv" aria-hidden="true"></div>
   <button type="button" id="rsBtnInvertirRuta" class="rs-invertir-ruta" data-i18n-aria-label="reverseRoute" aria-label="Invertir origen y destino" title="Invertir origen y destino"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-3-3M17 17H4l3 3"/><path d="M20 7l-3 3M4 17l3-3"/></svg></button>
   <div class="rs-field">
     <label for="rsDestino" class="visually-hidden" data-i18n="destiny">Destino</label>
-    <input type="text" id="rsDestino" name="destino" placeholder="Selecciona punto de destino" data-i18n-placeholder="destinationPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasDestino" aria-autocomplete="list">
+    <input type="text" id="rsDestino" name="destino" placeholder="Punto de destino" data-i18n-placeholder="destinationPlaceholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rsSugerenciasDestino" aria-autocomplete="list">
     <ul class="rs-sugerencias" id="rsSugerenciasDestino" role="listbox" data-i18n-aria-label="destiny" aria-label="Destino"></ul>
   </div>
   <div class="rs-vdiv" aria-hidden="true"></div>
@@ -1438,9 +1438,7 @@
          buscador; sale justo al lado de Buscar al calcular la ruta. Es una
          puerta ADITIVA: solo pulsa #rsBtnWalk, no tiene lógica propia. -->
     <div class="rs-accion-caminar" id="rsAccionCaminar" hidden>
-      <!-- Texto corto «Iniciar»: el aria-label conserva el nombre completo
-           para lectores de pantalla; el icono lo pinta el CSS (logo Manolit). -->
-      <button type="button" id="rsBtnCaminarResumen" aria-label="Iniciar caminata" title="Iniciar caminata">Iniciar</button>
+      <button type="button" id="rsBtnCaminarResumen" data-i18n="walkModeStart" aria-label="Iniciar caminata" title="Iniciar caminata">Iniciar caminata</button>
     </div>
     <div id="rsParkingAction"></div>
   </div>
@@ -1450,6 +1448,7 @@
   <button type="button" id="rsBtnCerrarForm" data-i18n-aria-label="closeLbl" aria-label="Cerrar">
     <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M1.5 1.5l11 11M12.5 1.5l-11 11" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
   </button>
+</div>
 </div>
   <div id="shadowRouteMap">
   <!-- Indicaciones paso a paso DENTRO del mapa (nov-2026): nace pegado
@@ -2709,12 +2708,6 @@
      cuando alguien le pregunta a ella. La usan parking, planetario y el
      widget; nadie más decide por su cuenta si es de día o de noche. -->
 <script src="js/sol.js" defer></script>
-<!-- 25-nov-2026: herramientas (Function Calling) y servicio de ruta
-     inteligente. Carga ANTES que chat.js para que el chat tenga el catálogo
-     de herramientas listo desde el primer mensaje. Son aditivos: si fallan,
-     el chat y el mapa siguen funcionando como siempre. -->
-<script src="js/manolito-tools.js?v=ruta-inteligente-20261125-a" defer></script>
-<script src="js/route-tracker-service.js?v=ruta-inteligente-20261125-a" defer></script>
 <script src="js/chat.js?v=sin-prompt-gps-20261117-j" defer></script>
 <script src="js/app.js" defer></script>
 <script src="js/air-forecast.js" defer></script>
@@ -2805,7 +2798,7 @@
         .then(() =>
           // EZ-TREE (nov-2026, ADITIVO): coníferas/frondosas procedurales.
           // Módulo aparte: si falla, SOLO él falla y la cadena sigue.
-          cargarScript('js/arboles-ez-3d.js?v=pino-conifera-20261124-h')
+          cargarScript('js/arboles-ez-3d.js?v=pino-conifera-20261124-c')
             .catch((err) => console.error('Árboles EZ-TREE no cargados (el resto sigue igual):', err))
         )
         .then(() => cargarScript('js/irradiacion-solar.js'))

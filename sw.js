@@ -404,36 +404,7 @@
 //     con penacho denso de acículas finas por rama (52 x 1.05, verde
 //     oscuro) que se acortan hacia la cima: pisos cónicos de pino real.
 //     Solo cambia js/arboles-ez-3d.js e index.html (?v=).
-// 2026-11-25-a: LLUVIA COMO MAPA DEL TIEMPO. La capa raster de
-//     precipitación pasa de una mancha azul grisácea (opacidad 0,45) a
-//     una paleta meteorológica graduada tipo MSN/Windy: cian tenue para
-//     llovizna, azul vivo para lluvia, ámbar para chubasco, magenta para
-//     tormenta. Se aplica con raster-hue-rotate + saturación y contraste
-//     subidos (raster-color NO existe en MapLibre 4.7.1, la web la carga,
-//     comprobado contra su bundle: se usa lo que 4.7.1 soporta), sin
-//     animaciones ni trabajo por frame: son paint-properties que MapLibre
-//     aplica con shaders en el siguiente repintado. La opacidad techo
-//     sube a 0,75 (era 0,45) y sigue desvaneciéndose al acercarse para
-//     que las gotas de cerca sigan gobernando, como hasta ahora. Sin
-//     cambios en la lógica de tiles, en el bucle de las gotas, ni en los
-//     temporizadores: no calienta el móvil. Placeholders origen/destino
-//     en ES/CA/EU/GL/EN/KA/AR (js/i18n.js) e index.html pasan a
-//     "Selecciona punto de origen/destino" en los 7 idiomas para guiar
-//     al peatón como hace Google Maps. Cambian js/lluvia.js, js/i18n.js,
-//     index.html y sw.js.
-// 2026-11-25-c: PINO MEJORADO. La copa del pino salía como "castillo de
-//     discos": 7 verticilos arrancando al 56 % de la altura, con el tronco
-//     pelado abajo y acículas anchas. construirPinoReal() pasa a copa CÓNICA
-//     CONTINUA: 11 verticilos desde el 32 % de altura, 11 ramas por piso,
-//     radio del cono decreciente (sin huecos entre pisos) y caída invertida
-//     de ramas (bajan abajo, suben arriba). Acículas: 17 por penacho en vez
-//     de 13 y ancho 0.028 en vez de 0.045 (aguja, no pala), con tope de 520
-//     penachos por árbol para no cargar la batería en móvil. Color propio de
-//     conífera (0x355638, verde oscuro azulado) en vez del verde de hoja
-//     ancha de EZ_ESTACIONES.perenne. Preset pine: length[1] 3.25→3.9 (copa
-//     más ancha), radius[0] 0.24→0.26, start 0.24→0.32. Solo cambian
-//     js/arboles-ez-3d.js y sw.js. El resto de especies EZ queda intacto.
-const VERSION = '2026-11-25-c-pino-conico';
+const VERSION = '2026-11-24-b-pino-conifera';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

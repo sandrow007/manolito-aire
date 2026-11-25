@@ -131,7 +131,18 @@
     // pegaban al eje en vez de formar los pisos abiertos del pino de referencia.
     // Se conserva pine_medium para el resto del preset; solo children queda en
     // 20 (en vez de 70) para respetar maxItems=3200 sin cortar ramas a medias.
-    pine: { seed: 15883, type: 'evergreen', levels: 2, angle: [0, 106, 16, 60], children: [7, 5, 5], length: [14, 3.25, 1.2, 1], radius: [0.24, 0.075, 0.7, 0.7], sections: [11, 9, 7, 5], segments: [8, 6, 4, 3], start: [0, 0.24, 0.18, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 26, leafCount: 32, leafStart: 0.12, leafSize: 1.25, leafVariance: 0.28, leafColor: 0x355638, barkColor: 0x9a7a56, coniferNeedles: true },
+    // (nov-2026, RONDA DEFINITIVA) PINO PIÑONERO / CONÍFERA URBANA.
+    // El aspecto anterior ("castillo de discos" con tronco pelado y palas
+    // anchas) salía del preset viejo, desfasado respecto a lo que pedía su
+    // propio comentario. Ahora los valores acompañan a construirPinoReal():
+    //   length[0] = 14 m de alto (altura media urbana de piñonero)
+    //   length[1] = 3.9 de radio de copa en la base (proporción real: copa
+    //               ancha arriba de la mitad, cónica, no columnar)
+    //   radius[0] = 0.26 de fuste (esbelto, no poste)
+    //   leafSize/leafCount aquí NO los usa construirPinoReal (usa sus
+    //               propios penachos), se mantienen coherentes por si algún
+    //               día vuelve al generador fractal.
+    pine: { seed: 15883, type: 'evergreen', levels: 2, angle: [0, 106, 16, 60], children: [7, 5, 5], length: [14, 3.9, 1.2, 1], radius: [0.26, 0.075, 0.7, 0.7], sections: [11, 9, 7, 5], segments: [8, 6, 4, 3], start: [0, 0.32, 0.18, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 26, leafCount: 32, leafStart: 0.12, leafSize: 1.25, leafVariance: 0.28, leafColor: 0x355638, barkColor: 0x9a7a56, coniferNeedles: true },
 
     // --- 4 presets EZ-TREE NUEVOS (nov-2026), tomados tal cual del repo
     // dgreenheck/ez-tree (MIT) para las 4 especies más abundantes de Sevilla
@@ -676,10 +687,11 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     var radioBase = preset.radius[0] || 0.24;
     var radioCima = 0.035;
     // Presupuesto de acículas por árbol. En móvil el modelo se instancia 200
-    // veces con MAX_ARBOL, así que el tope no es capricho: por encima de
-    // ~4.500 caras por copa la batería se nota.
+    // veces con MAX_ARBOL, así que el tope no es capricho. Se reparte
+    // PROPORCIONALMENTE entre todas las ramas (ver pasosPorRama más abajo):
+    // si se cortara por orden de construcción, los pisos bajos se comen el
+    // presupuesto y la punta sale pelada.
     var MAX_PENACHOS = 520;
-    var penachos = 0;
 
     for (var t = 0; t < segmentosTronco; t++) {
       var y0 = alto * t / segmentosTronco;
@@ -733,6 +745,10 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     // el piso siguiente para que la silueta sea continua al mirar en picado.
     var Y_INICIO = 0.32;
     var Y_FIN = 0.99;
+    // Reparto del presupuesto: cuántos penachos tocan por rama. Se calcula
+    // UNA vez y se usa en cada verticilo, así la copa queda homogénea.
+    var totalRamas = niveles * ramasPorNivel;
+    var penachosPorRama = Math.max(2, Math.floor(MAX_PENACHOS / (totalRamas * 1.45)));
     for (var nivel = 0; nivel < niveles; nivel++) {
       var progreso = nivel / (niveles - 1);
       var y = alto * (Y_INICIO + progreso * (Y_FIN - Y_INICIO));
@@ -754,9 +770,10 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
         var ramaGeo = geometriaCilindro(raizRama, puntaRama, radioRama, Math.max(0.012, radioRama * 0.16), 5);
         if (ramaGeo) madera.push(ramaGeo);
 
-        var pasosAgujas = Math.max(4, Math.ceil(largoRama / 0.22));
+        var pasosAgujas = Math.max(2, Math.min(penachosPorRama, Math.ceil(largoRama / 0.62)));
         var ejeRama = puntaRama.clone().sub(raizRama).normalize();
         for (var k = 0; k <= pasosAgujas; k++) {
+          if (penachos >= MAX_PENACHOS) break;
           var u = k / pasosAgujas;
           var centro = raizRama.clone().lerp(puntaRama, u);
           var tamano = 0.66 * (0.86 + u * 0.14) * (1 - progreso * 0.10);
@@ -920,6 +937,13 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
           // La palmera conserva SIEMPRE su verde de fronda (el de la especie),
           // solo algo más apagado en invierno; no debe pasar a ocre/otoño.
           if (preset.palm) color = preset.palm.follajeHex ? preset.palm.follajeHex[est] || preset.palm.follajeHex.verano : color;
+          // (nov-2026) El PINO es conífera: su copa tira a verde oscuro azulado
+          // de aguja, no al verde vivo de hoja ancha de EZ_ESTACIONES.perenne.
+          // Se usa su leafColor (0x355638) con una variación mínima por
+          // estación para que en invierno no desentone. Solo afecta a 'pino'.
+          if (tipo === 'pino') {
+            color = est === 'invierno' ? 0x2c4a30 : (est === 'otono' ? 0x314f34 : 0x355638);
+          }
           var key = String(color);
           if (mallasHojas[key]) return;
           // (nov-2026) Las HOJAS de palmera no pueden llevar el emisivo 0.55

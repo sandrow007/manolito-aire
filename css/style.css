@@ -421,10 +421,26 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
    navegador en iPhone/Android, que con vh recortaba el mapa). */
 #shadowRouteMap{
   width:100%;
-  height: clamp(440px, 62svh, 760px);
-  height: clamp(440px, 62dvh, 760px);
+  min-height: clamp(300px, 34svh, 420px);
+  min-height: clamp(300px, 34dvh, 420px);
   background:var(--mist);
 }
+/* En escritorio el panel de indicaciones ya no vive dentro del mapa:
+     fluye en la página, apilado justo debajo del buscador. */
+  #shadowRouteMap .rs-pasos-en-mapa{
+    position:static;
+    width:auto;
+    transform:none;
+    margin:10px 0;
+  }
+  body.modo-accesible #shadowRouteMap .rs-pasos-en-mapa{
+    position:static;
+    width:auto;
+    transform:none;
+    background:#fff !important;
+    color:#000 !important;
+    border-color:#000 !important;
+  }
 
 /* En móvil el mapa de sombras rompe el margen lateral y crece hasta
    casi toda la pantalla útil, respetando los bordes seguros del iPhone
@@ -4227,6 +4243,16 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   background:rgba(22,26,32,0.82);
   box-shadow:0 10px 32px rgba(10,25,35,.28);
 }
+/* El buscador a pantalla completa: sigue flotando pero FUERA del mapa
+   (posición fija sobre el viewport, ya dentro de .map-wrap en el DOM). */
+#main-content .rs-form.rs-form-flotante{
+  position:fixed !important;
+  top:44px;
+  left:50%;
+  transform:translateX(-50%);
+  width:calc(100% - 16px);
+  max-width:920px;
+}
 
 /* ============================================================
    BUSCADOR DE RUTA FLOTANTE EN ESCRITORIO (nov-2026, >=768px)
@@ -4238,13 +4264,15 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
    tonalidades.
    ============================================================ */
 @media (min-width:768px){
-  /* .panel — cristal, tal cual el diseño */
+  /* .panel — cristal, tal cual el diseño.
+     (nov-2026): en escritorio también vive FUERA del mapa, en el flujo
+     de la página; solo se le da el aspecto de cristal. */
   #main-content .rs-form{
-    position:absolute;
-    top:60px; left:50%;
-    transform:translateX(-50%);
-    width:100%; max-width:900px;
-    margin:0; box-sizing:border-box;
+    position:static !important;
+    top:auto; left:auto; transform:none;
+    width:100%; max-width:none;
+    margin:0 auto 10px;
+    box-sizing:border-box;
     z-index:30;
     background:rgba(22,26,32,0.55);
     backdrop-filter:blur(28px) saturate(160%);
@@ -4766,12 +4794,17 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   transition:background .18s ease, border-color .18s ease, color .18s ease;
 }
 #main-content .rs-accion-caminar #rsBtnCaminarResumen::before{
-  content:''; flex:0 0 auto; width:14px; height:14px; background-color:currentColor;
-  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.2' cy='4.6' r='1.6'/%3E%3Cpath d='M9.5 20l2-4.8-1.6-2.4.9-3.8 2.9 1.7 2.2.7'/%3E%3Cpath d='M10.8 9.2 8.6 12l-2 .7'/%3E%3Cpath d='m13 10.8.9 3.7 2.6 4.7'/%3E%3C/svg%3E");
-          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.2' cy='4.6' r='1.6'/%3E%3Cpath d='M9.5 20l2-4.8-1.6-2.4.9-3.8 2.9 1.7 2.2.7'/%3E%3Cpath d='M10.8 9.2 8.6 12l-2 .7'/%3E%3Cpath d='m13 10.8.9 3.7 2.6 4.7'/%3E%3C/svg%3E");
+  /* Logo Manolit (el pin direccional del logo nuestro, con su vesica
+     oscura y su resplandor rojo/cian, SIN el círculo amarillo): mismo
+     trazo que las fuentes de agua, en línea, al lado del texto. */
+  content:''; flex:0 0 auto; width:20px; height:26px;
+  background-color:currentColor;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-30 0 260 320'%3E%3Cdefs%3E%3Cfilter id='glowManolitCaminar' x='-40%25' y='-40%25' width='180%25' height='180%25'%3E%3CfeGaussianBlur stdDeviation='5' result='blur'/%3E%3CfeMerge%3E%3CfeMergeNode in='blur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg transform='rotate(18 100 160)' filter='url(%23glowManolitCaminar)'%3E%3Cpath d='M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z' fill='rgba(8,12,20,0.92)' stroke='%23ff2a4b' stroke-width='13' stroke-linejoin='round'/%3E%3Cpath d='M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z' fill='none' stroke='%23ff2a4b' stroke-width='13' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M60,165 Q80,155 100,165 T140,165' fill='none' stroke='%2300e5ff' stroke-width='11' stroke-linecap='round'/%3E%3Cpath d='M65,180 Q82.5,172 100,180 T135,180' fill='none' stroke='%2300e5ff' stroke-width='9' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-30 0 260 320'%3E%3Cdefs%3E%3Cfilter id='glowManolitCaminar2' x='-40%25' y='-40%25' width='180%25' height='180%25'%3E%3CfeGaussianBlur stdDeviation='5' result='blur'/%3E%3CfeMerge%3E%3CfeMergeNode in='blur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Cg transform='rotate(18 100 160)' filter='url(%23glowManolitCaminar2)'%3E%3Cpath d='M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z' fill='rgba(8,12,20,0.92)' stroke='%23ff2a4b' stroke-width='13' stroke-linejoin='round'/%3E%3Cpath d='M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z' fill='none' stroke='%23ff2a4b' stroke-width='13' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M60,165 Q80,155 100,165 T140,165' fill='none' stroke='%2300e5ff' stroke-width='11' stroke-linecap='round'/%3E%3Cpath d='M65,180 Q82.5,172 100,180 T135,180' fill='none' stroke='%2300e5ff' stroke-width='9' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
   -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
   -webkit-mask-position:center; mask-position:center;
   -webkit-mask-size:contain; mask-size:contain;
+  filter:drop-shadow(0 1px 3px rgba(22,35,46,.28));
 }
 #main-content .rs-accion-caminar #rsBtnCaminarResumen:hover{
   background:rgba(255,107,26,0.20);
@@ -4794,7 +4827,7 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
     padding:0; border-radius:10px;
     font-size:0 !important;
   }
-  #main-content .rs-accion-caminar #rsBtnCaminarResumen::before{ width:18px; height:18px; }
+  #main-content .rs-accion-caminar #rsBtnCaminarResumen::before{ width:16px; height:20px; }
 }
 @media (prefers-reduced-motion:reduce){
   #main-content .rs-accion-caminar #rsBtnCaminarResumen{ transition:none !important; }
@@ -5322,10 +5355,10 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
 /* El buscador flota también en móvil. Ya no añade altura al mapa. */
 #main-content .rs-form,
 #main-content .rs-form.rs-form-flotante{
-  position:absolute;
-  top:44px;
-  left:50%;
-  transform:translateX(-50%);
+  position:static;
+  width:100%;
+  max-width:none;
+  margin:0 auto 10px;
   display:grid;
   grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto 30px;
   grid-auto-rows:auto;
@@ -5357,6 +5390,24 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
   background:rgba(255,255,255,.96) !important;
   box-shadow:0 2px 6px rgba(60,64,67,.20) !important;
   color:#202124 !important;
+}
+/* El buscador de ruta vive FUERA del mapa (nov-2026): apilado en el flujo
+   de la página, encima del lienzo, tanto en móvil como en escritorio. */
+#main-content .rs-form{
+  position:static !important;
+  top:auto; left:auto; transform:none;
+  width:100%;
+  max-width:none;
+  margin:0 auto 10px;
+}
+#main-content .rs-form.rs-form-flotante{
+  position:fixed !important;
+  top:44px;
+  left:50%;
+  transform:translateX(-50%);
+  width:calc(100% - 16px);
+  max-width:920px;
+  z-index:30;
 }
 /* El desplegable de sugerencias cuelga del mismo buscador: mismo blanco
    translúcido en los dos temas, no el menú oscuro de la consola que
@@ -5856,11 +5907,11 @@ body.modo-accesible #main-content .rs-form .rs-field input[type="text"]{
   #main-content .rs-form #rsParkingAction{display:none !important}
   #main-content .rs-form #rsAccionCaminar:not([hidden]){grid-column:4;grid-row:1;display:flex;justify-self:stretch;min-width:0}
   #main-content .rs-form #rsAccionCaminar:not([hidden]) #rsBtnCaminarResumen{
-    width:100%;min-width:0;padding:0 5px;border-radius:999px;font-size:0 !important;gap:3px;
+    width:100%;min-width:0;padding:0 5px;border-radius:999px;gap:3px;
     background:rgba(255,107,26,.16);border-color:rgba(255,107,26,.38);
   }
-  #main-content .rs-form #rsAccionCaminar:not([hidden]) #rsBtnCaminarResumen::after{content:"Iniciar";font-size:11px;font-weight:700}
-  #main-content .rs-form #rsAccionCaminar:not([hidden]) #rsBtnCaminarResumen::before{width:13px;height:13px}
+  /* Sin ::after: el texto «Iniciar» ya vive en el botón de verdad. */
+  #main-content .rs-form #rsAccionCaminar:not([hidden]) #rsBtnCaminarResumen::before{width:14px;height:18px}
 }
 
 /* El color sigue al lienzo del mapa, no al tema general de la web. */

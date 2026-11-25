@@ -3567,6 +3567,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnCaminar.type = 'button';
     btnCaminar.id = 'rsBtnWalk';
     btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
+    btnCaminar.setAttribute('aria-label', btnCaminar.textContent);
+    btnCaminar.title = btnCaminar.textContent;
 
     // Guía por voz: nace CON el panel (2026-09-12, CLS). Antes la inyectaba
     // el módulo de voz segundos después junto a "Iniciar caminata" y toda
@@ -3603,11 +3605,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       atajo.addEventListener('click', () => {
         document.getElementById('rsBtnWalk')?.click();
         // Refleja el estado real del botón original para que el atajo no
-        // mienta: si la caminata está en marcha, se lee «Detener caminata».
-        atajo.textContent = t(
-          document.getElementById('rsBtnWalk')?.classList.contains('rs-activo') ? 'walkModeStop' : 'walkModeStart',
-          document.getElementById('rsBtnWalk')?.classList.contains('rs-activo') ? 'Detener caminata' : 'Iniciar caminata'
-        );
+        // mienta: si la caminata está en marcha, se lee «Detener».
+        const activo = document.getElementById('rsBtnWalk')?.classList.contains('rs-activo');
+        atajo.textContent = t(activo ? 'walkModeStop' : 'walkModeStart', activo ? 'Detener caminata' : 'Iniciar caminata').split(' ')[0];
+        atajo.setAttribute('aria-label', t(activo ? 'walkModeStop' : 'walkModeStart', activo ? 'Detener caminata' : 'Iniciar caminata'));
+        atajo.title = atajo.getAttribute('aria-label');
       });
     })();
 
@@ -4088,6 +4090,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       manolitPuente.ultimoLonCaminata = null;
             btnCaminar.classList.remove('rs-activo');
       btnCaminar.textContent = t('walkModeStart', 'Iniciar caminata');
+      btnCaminar.setAttribute('aria-label', btnCaminar.textContent);
+      btnCaminar.title = btnCaminar.textContent;
       sincronizarAtajoCaminar();
     }
 
@@ -4096,7 +4100,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const atajo = document.getElementById('rsBtnCaminarResumen');
       if (!atajo) return;
       const andando = btnCaminar.classList.contains('rs-activo');
-      atajo.textContent = andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata');
+      atajo.textContent = andando ? t('walkModeStop', 'Detener caminata').split(' ')[0] : t('walkModeStart', 'Iniciar caminata').split(' ')[0];
+      atajo.setAttribute('aria-label', andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata'));
+      atajo.title = atajo.getAttribute('aria-label');
       atajo.classList.toggle('rs-activo', andando);
       atajo.setAttribute('aria-pressed', andando ? 'true' : 'false');
     }
@@ -4125,6 +4131,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
             btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
+      btnCaminar.setAttribute('aria-label', btnCaminar.textContent);
+      btnCaminar.title = btnCaminar.textContent;
       sincronizarAtajoCaminar();
       mostrarEstado(t('walkModeTracking', 'Siguiendo tu ubicación…'));
       // Si hay una ruta calculada con indicaciones, arranca la guía por voz:
@@ -4670,6 +4678,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       actualizarBotonCompartirPunto();
       actualizarMascotaDestino(ultimoDestinoMarcador, true);
+      // El atajo «Iniciar» sale aquí también (nov-2026): hay un punto
+      // marcado sin ruta; su lógica propia no se toca, solo se enseña.
+      mostrarAtajoCaminar(true);
       manolitPuente.ocultarIndicadores();
       map.flyTo({
         center: [lng, lat],
@@ -4775,6 +4786,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           };
           actualizarBotonCompartirPunto();
           actualizarMascotaDestino(ultimoDestinoMarcador, true);
+          // El atajo «Iniciar» también con pulsación larga sobre el mapa.
+          mostrarAtajoCaminar(true);
           map.flyTo({
             center: [punto.lng, punto.lat],
             zoom: Math.min(17, Math.max(map.getZoom(), 16)),
@@ -6672,7 +6685,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (!destino || !Number.isFinite(Number(destino.lat)) || !Number.isFinite(Number(destino.lon))) return false;
     try {
       let origen;
-      if (modoForzado === 'caminar' && destino.puntoPartida &&
+      // Dos puntos marcados a mano (nov-2026): si el destino lleva
+      // puntoPartida, ese es el origen de verdad y NUNCA se pide GPS.
+      // Antes el origen se resolvía antes de mirar puntoPartida y el GPS
+      // saltaba sin haberlo pedido el usuario.
+      if (destino.puntoPartida &&
           Number.isFinite(Number(destino.puntoPartida.lat)) && Number.isFinite(Number(destino.puntoPartida.lon)) &&
           !mismoPunto(destino.puntoPartida, destino)) {
         origen = { lat: Number(destino.puntoPartida.lat), lon: Number(destino.puntoPartida.lon), nombre: destino.puntoPartida.nombre || t('pointMap', 'Punto marcado en el mapa') };
@@ -8160,12 +8177,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btnCamUbiIdioma = document.getElementById('rsCamUbicacion');
     if (btnCamUbiIdioma) btnCamUbiIdioma.title = t('myLocationHint', 'Usa tu GPS: Manolit∞ será tu punto de ubicación en el mapa; otros lugares pueden aparecer como puntos.');
         const btnWalk = document.getElementById('rsBtnWalk');
-    if (btnWalk && !btnWalk.classList.contains('rs-activo')) btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
+    if (btnWalk && !btnWalk.classList.contains('rs-activo')) {
+      btnWalk.textContent = t('walkModeStart', 'Iniciar caminata');
+      btnWalk.setAttribute('aria-label', btnWalk.textContent);
+      btnWalk.title = btnWalk.textContent;
+    }
     // El atajo del resumen habla el mismo idioma que el botón de siempre.
+    // En pantalla solo se lee «Iniciar» / «Detener» (el nombre largo queda
+    // en el aria-label); el icono de Manolit lo pinta el CSS.
     const atajoCaminar = document.getElementById('rsBtnCaminarResumen');
     if (atajoCaminar) {
       const andando = !!(btnWalk && btnWalk.classList.contains('rs-activo'));
-      atajoCaminar.textContent = andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata');
+      atajoCaminar.textContent = andando ? t('walkModeStop', 'Detener caminata').split(' ')[0] : t('walkModeStart', 'Iniciar caminata').split(' ')[0];
+      atajoCaminar.setAttribute('aria-label', andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata'));
+      atajoCaminar.title = atajoCaminar.getAttribute('aria-label');
     }
 
     const btnPaseo = document.getElementById('rsBtnPaseo');

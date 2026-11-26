@@ -373,14 +373,19 @@
   html.manolito-idioma-pendiente #manolitoSplash{ opacity:0; visibility:hidden; pointer-events:none; }
   #idiomaInicioGate{
     position:fixed; inset:0; z-index:100001;
-    display:flex; align-items:center; justify-content:center; padding:clamp(14px,3vw,28px);
+    display:flex; padding:clamp(12px,2.5vw,24px);
+    overflow-y:auto; overflow-x:hidden;
     background:#03050F;
     opacity:1; visibility:visible; transition:opacity .2s ease, visibility .2s ease;
   }
   #idiomaInicioGate.cerrando{ opacity:0; visibility:hidden; pointer-events:none; }
   .idioma-inicio-card{
-    width:min(360px,100%); color:#EAF1FF;
-    padding:0;
+    width:min(380px,100%); color:#EAF1FF; box-sizing:border-box;
+    position:relative; z-index:1; margin:auto; flex:0 0 auto;
+    padding:16px 22px 20px; border-radius:18px;
+    background:rgba(3,5,15,.72);
+    backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
+    box-shadow:0 12px 50px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.07);
   }
   .idioma-inicio-titulo{ display:none; }
   .idioma-inicio-sub{ display:none; }
@@ -403,72 +408,49 @@
     outline:3px solid var(--accent,#FF6B1A); outline-offset:2px;
     box-shadow:0 0 0 4px rgba(255,107,26,.2);
   }
-  /* Logo ORIGINAL de Manolit: los mismos trazos, colores y grosores del
-     icono de la app y del splash (index.html: P_SHIELD/P_SUN/P_INF/P_WAVE).
-     Nada inventado. */
+  /* Logo ORIGINAL de Manolit: la misma ilustración de la decoración del
+     index (symbol #manolitSideArtwork) con sus sombras de colores
+     proyectadas ENTERAS. El viewBox 0 140 650 370 abarca la silueta y las
+     4 sombras completas (antes 150 90 350 380 las cortaba por los lados y
+     por abajo). La caja es panorámica por culpa de las sombras: se centra
+     con márgenes negativos para que el escudo quede sobre los botones. */
   .idioma-inicio-logo{
-    display:block; width:240px; height:auto; margin:0 auto 8px;
+    --lw:437px;
+    display:block; width:var(--lw); height:auto;
+    margin:0 calc((100% - var(--lw))/2) 6px;
   }
-  /* La tarjeta (logo + botones) siempre por encima de las palabras. */
-  .idioma-inicio-card{ position:relative; z-index:1; }
   /* «Bienvenido» en decenas de idiomas por TODA la pantalla, estilo nube
-     (referencia del usuario): densa, centrada, sin huecos, en los colores
-     del logo. Nubes arriba y abajo (ordenador y móvil) + columnas laterales
-     solo en ordenador. Estático: nada gira ni cambia. */
+     densa (referencia del usuario): el script de la puerta repite la lista
+     barajada hasta llenar la ventana, así queda compacta y sin huecos en
+     cualquier pantalla. Fija (no se mueve si la tarjeta hace scroll) y
+     estática: nada gira ni cambia. */
   .idioma-alrededor{
-    position:absolute; inset:0; z-index:0; overflow:hidden;
+    position:fixed; inset:0; z-index:0; overflow:hidden;
+    display:flex; flex-wrap:wrap; justify-content:center; align-content:center;
+    column-gap:clamp(14px,1.7vw,26px); row-gap:clamp(6px,1vh,12px);
+    padding:clamp(12px,2vh,22px) clamp(14px,1.8vw,26px);
     pointer-events:none; user-select:none;
     font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   }
-  .ia-nube{
-    position:absolute; left:0; right:0; display:flex; flex-wrap:wrap;
-    justify-content:center; align-items:baseline;
-    column-gap:18px; row-gap:2px; padding:0 14px;
-  }
-  .ia-sup{ top:12px; }
-  .ia-inf{ bottom:12px; }
-  /* Columnas LATERALES ANCHAS que rellenan toda la banda entre el borde de
-     la pantalla y la tarjeta: sin huecos vacíos (petición expresa). Las
-     líneas se reparten por toda la altura (space-evenly), no amontonadas. */
-  .ia-col{
-    position:absolute; top:118px; bottom:76px; padding:14px;
-    display:flex; flex-wrap:wrap; align-content:space-evenly; justify-content:center;
-    gap:12px 16px;
-  }
-  .ia-izq{ left:1%; right:calc(50% + 195px); }
-  .ia-der{ right:1%; left:calc(50% + 195px); }
-  .ia{
-    font-size:var(--fs,13px); font-weight:var(--fw,600);
-    color:var(--c,#ff2a4b); white-space:nowrap;
-    transform:rotate(var(--r,0deg)); opacity:.85;
-  }
-  /* Móvil: sin columnas (no hay sitio), palabras algo más pequeñas y sin
-     rotaciones raras; se ocultan las marcadas con .ia-m para que quepa. */
-  @media (max-width:700px){
-    .ia-col{ display:none; }
-    .ia-m{ display:none; }
-    .ia-sup{ top:6px; }
-    .ia-inf{ bottom:6px; }
-    .ia-nube{ column-gap:10px; padding:0 8px; }
-    .ia{ font-size:calc(var(--fs,13px)*0.78); transform:none; }
-  }
-  /* Pantallas bajas (portátiles 768px): la tarjeta con el logo de la
-     decoración no cabe centrada sin pisar las nubes. Se arranca justo bajo
-     la nube superior y se compacta (botones 44px) para dejar sitio a la
-     nube inferior. */
-  @media (max-height:820px){
-    #idiomaInicioGate{ align-items:flex-start; }
-    .idioma-inicio-card{ margin-top:92px; }
-    .idioma-inicio-logo{ width:190px; }
+  .ia{ font-weight:600; white-space:nowrap; opacity:.9; line-height:1.15; }
+  /* Pantallas bajas (portátiles): se compacta la tarjeta para que los 7
+     idiomas quepan sin scroll; si aun así no cabe, la puerta desliza. */
+  @media (max-height:860px){
+    .idioma-inicio-card{ padding-top:12px; padding-bottom:14px; }
+    .idioma-inicio-logo{ --lw:330px; margin-bottom:2px; }
     .idioma-inicio-grid{ gap:8px; }
-    .idioma-inicio-btn{ min-height:44px; }
+    .idioma-inicio-btn{ min-height:44px; padding:8px 10px; }
+  }
+  @media (max-height:560px){
+    .idioma-inicio-logo{ --lw:260px; }
+    .idioma-inicio-btn{ min-height:40px; }
+  }
+  @media (max-width:700px){
+    .idioma-inicio-card{ padding:12px 16px 14px; border-radius:14px; }
+    .idioma-inicio-logo{ --lw:290px; }
   }
   html:not(.manolito-idioma-pendiente) #idiomaInicioGate{
     opacity:0; visibility:hidden; pointer-events:none;
-  }
-  @media (max-height:430px){
-    .idioma-inicio-card{ padding:12px; }
-    .idioma-inicio-btn{ min-height:44px; }
   }
 </style>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -489,150 +471,19 @@
 <a href="#main-content" class="skip-link" data-i18n="skipToContent">Saltar al contenido principal</a>
 
 <div id="idiomaInicioGate">
-  <!-- «Bienvenido» en decenas de idiomas ALREDEDOR de la pantalla, en los
-       colores del logo. Estático: nada gira ni cambia. Vive FUERA de la
-       tarjeta para posicionarse respecto a toda la ventana. -->
-  <div class="idioma-alrededor" aria-hidden="true">
-    <div class="ia-nube ia-sup">
-      <span class="ia" style="--fs:30px;--fw:800;--c:#ff2a4b;--r:-2deg">BIENVENIDO</span>
-      <span class="ia ia-m" style="--fs:15px;--c:#ffcc00">BENVINGUT</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff">ONGI ETORRI</span>
-      <span class="ia ia-m" style="--fs:17px;--c:#ff2a4b;--r:2deg">BENVIDO</span>
-      <span class="ia" style="--fs:34px;--fw:800;--c:#00e5ff;--r:-1deg">WELCOME</span>
-      <span class="ia" style="--fs:22px;--fw:700;--c:#ffcc00">BIENVENUE</span>
-      <span class="ia" style="--fs:18px;--c:#ff2a4b">BENVENUTO</span>
-      <span class="ia" style="--fs:20px;--fw:700;--c:#00e5ff;--r:2deg">BEM-VINDO</span>
-      <span class="ia ia-m" style="--fs:16px;--c:#ffcc00;--r:-3deg">WILLKOMMEN</span>
-      <span class="ia" style="--fs:13px;--c:#ff2a4b">WELKOM</span>
-      <span class="ia" style="--fs:17px;--c:#00e5ff">VÄLKOMMEN</span>
-      <span class="ia ia-m" style="--fs:13px;--c:#ffcc00">VELKOMMEN</span>
-      <span class="ia" style="--fs:15px;--c:#ff2a4b;--r:3deg">TERVETULOA</span>
-      <span class="ia ia-m" style="--fs:14px;--c:#ffcc00">BUN VENIT</span>
-      <span class="ia" style="--fs:19px;--fw:700;--c:#ff2a4b;--r:-2deg">DOBRODOŠLI</span>
-      <span class="ia ia-m" style="--fs:15px;--c:#00e5ff">VÍTEJTE</span>
-      <span class="ia" style="--fs:22px;--fw:700;--c:#00e5ff;--r:-3deg">CROESO</span>
-      <span class="ia" style="--fs:15px;--c:#ff2a4b">FÁILTE</span>
-      <span class="ia" style="--fs:18px;--fw:700;--c:#ffcc00;--r:2deg">WITAMY</span>
-      <span class="ia ia-m" style="--fs:14px;--c:#ff2a4b">HOŞ GELDİNİZ</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff">ΚΑΛΩΣ ΗΡΘΑΤΕ</span>
-      <span class="ia ia-m" style="--fs:14px;--c:#ffcc00;--r:4deg">MERHBA</span>
-      <span class="ia" style="--fs:13px;--c:#ff2a4b">SELAMAT DATANG</span>
-      <span class="ia ia-m" style="--fs:11px;--c:#00e5ff">MALIGAYANG PAGDATING</span>
-      <span class="ia" style="--fs:16px;--fw:700;--c:#ffcc00">KARIBU</span>
-      <span class="ia ia-m" style="--fs:13px;--c:#00e5ff">BONVENON</span>
-      <span class="ia" style="--fs:13px;--c:#ff2a4b">BI XÊR HATÎ</span>
-      <span class="ia ia-m" style="--fs:11px;--c:#ffcc00">SANNU DA ZUWA</span>
-      <span class="ia" style="--fs:12px;--c:#00e5ff">Ẹ KU ABỌ</span>
-      <span class="ia ia-m" style="--fs:12px;--c:#ff2a4b">እንኳን ደህና መጡ</span>
-      <span class="ia" style="--fs:13px;--c:#ffcc00">AKWAABA</span>
-      <span class="ia ia-m" style="--fs:11px;--c:#00e5ff">TERE TULEMAST</span>
-      <span class="ia" style="--fs:24px;--fw:800;--c:#ff2a4b;--r:1deg">BIENVENIDOS</span>
-      <span class="ia ia-m" style="--fs:13px;--c:#ffcc00">MABUHAY</span>
-    </div>
-    <div class="ia-col ia-izq">
-      <span class="ia" style="--fs:20px;--c:#ff2a4b">Bienvenido</span>
-      <span class="ia" style="--fs:13px;--c:#ffcc00">Benvingut</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff">Ongi etorri</span>
-      <span class="ia" style="--fs:14px;--c:#ff2a4b">Benvido</span>
-      <span class="ia" style="--fs:18px;--c:#00e5ff;--r:-2deg">Welcome</span>
-      <span class="ia" style="--fs:15px;--c:#ffcc00">Bienvenue</span>
-      <span class="ia" style="--fs:14px;--c:#ff2a4b">Benvenuto</span>
-      <span class="ia" style="--fs:15px;--c:#00e5ff">Bem-vindo</span>
-      <span class="ia" style="--fs:13px;--c:#ffcc00">Witamy</span>
-      <span class="ia" style="--fs:15px;--c:#ff2a4b;--r:2deg">Croeso</span>
-      <span class="ia" style="--fs:12px;--c:#00e5ff">Fáilte</span>
-      <span class="ia" style="--fs:13px;--c:#ffcc00">Välkommen</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b">Welkom</span>
-      <span class="ia" style="--fs:12px;--c:#00e5ff">Velkommen</span>
-      <span class="ia" style="--fs:13px;--c:#ffcc00">Tervetuloa</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b">Vítejte</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff">Bun venit</span>
-      <span class="ia" style="--fs:14px;--c:#ffcc00">Dobrodošli</span>
-      <span class="ia" style="--fs:14px;--c:#ff2a4b;--r:-2deg">Willkommen</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff">Karibu</span>
-      <span class="ia" style="--fs:12px;--c:#ffcc00">Merhba</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b">Hoş geldiniz</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff;--r:2deg">Akwaaba</span>
-      <span class="ia" style="--fs:13px;--c:#ff2a4b">Üdvözöljük</span>
-      <span class="ia" style="--fs:12px;--c:#ffcc00">Mirë se vjen</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff">Merħba</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b">Sveiki</span>
-      <span class="ia" style="--fs:12px;--c:#ffcc00">Sveiki atvykę</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff">Velkomin</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b">Dobrodošla</span>
-    </div>
-    <div class="ia-col ia-der">
-      <span class="ia" style="--fs:20px;--c:#00e5ff">Welcome</span>
-      <span class="ia" style="--fs:14px;--c:#ffcc00">Bienvenido</span>
-      <span class="ia" style="--fs:13px;--c:#ff2a4b">Benvingut</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff">Benvido</span>
-      <span class="ia" style="--fs:12px;--c:#ffcc00">Ongi etorri</span>
-      <span class="ia" style="--fs:15px;--c:#ff2a4b">Bienvenue</span>
-      <span class="ia" style="--fs:14px;--c:#00e5ff">Willkommen</span>
-      <span class="ia" style="--fs:13px;--c:#ffcc00">Bem-vindo</span>
-      <span class="ia" style="--fs:13px;--c:#ff2a4b">Benvenuto</span>
-      <span class="ia" style="--fs:14px;--c:#00e5ff;--r:2deg">Witamy</span>
-      <span class="ia" style="--fs:13px;--c:#ffcc00">Croeso</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b">Fáilte</span>
-      <span class="ia" style="--fs:12px;--c:#00e5ff">Välkommen</span>
-      <span class="ia" style="--fs:12px;--c:#ffcc00">Welkom</span>
-      <span class="ia" style="--fs:13px;--c:#ff2a4b">Velkommen</span>
-      <span class="ia" style="--fs:12px;--c:#00e5ff">Tervetuloa</span>
-      <span class="ia" style="--fs:12px;--c:#ffcc00">Bun venit</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b">Vítejte</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff">Dobrodošli</span>
-      <span class="ia" style="--fs:12px;--c:#ffcc00">Selamat datang</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b;--r:-2deg">Bonvenon</span>
-      <span class="ia" style="--fs:12px;--c:#00e5ff">Καλώς ήρθατε</span>
-      <span class="ia" style="--fs:13px;--c:#ff2a4b">Tere tulemast</span>
-      <span class="ia" style="--fs:12px;--c:#ffcc00">Sveiki</span>
-      <span class="ia" style="--fs:12px;--c:#00e5ff">Velkomin</span>
-      <span class="ia" style="--fs:13px;--c:#ffcc00;--r:2deg">Merħba</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b">Mirë se vjen</span>
-      <span class="ia" style="--fs:12px;--c:#00e5ff">Dobrodošla</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b;--r:-2deg">Üdvözöljük</span>
-    </div>
-    <div class="ia-nube ia-inf">
-      <span class="ia" style="--fs:22px;--fw:700;--c:#ffcc00">أهلاً بك</span>
-      <span class="ia ia-m" style="--fs:15px;--c:#00e5ff">مرحباً</span>
-      <span class="ia" style="--fs:16px;--c:#ff2a4b">ברוכים הבאים</span>
-      <span class="ia ia-m" style="--fs:14px;--c:#ffcc00">خوش آمدید</span>
-      <span class="ia" style="--fs:20px;--fw:700;--c:#ff2a4b;--r:2deg">स्वागत है</span>
-      <span class="ia ia-m" style="--fs:14px;--c:#00e5ff">স্বাগতম</span>
-      <span class="ia" style="--fs:13px;--c:#ffcc00">ਸੁਆਗਤ ਹੈ</span>
-      <span class="ia ia-m" style="--fs:13px;--c:#ff2a4b">સ્વાગત છે</span>
-      <span class="ia" style="--fs:13px;--c:#00e5ff">ସ୍ୱାଗତ</span>
-      <span class="ia ia-m" style="--fs:14px;--c:#ffcc00">வரவேற்பு</span>
-      <span class="ia" style="--fs:15px;--c:#ff2a4b">స్వాగతం</span>
-      <span class="ia ia-m" style="--fs:14px;--c:#00e5ff">ಸ್ವಾಗತ</span>
-      <span class="ia" style="--fs:14px;--c:#ffcc00">സ്വാഗതം</span>
-      <span class="ia ia-m" style="--fs:14px;--c:#ff2a4b">ආයුබෝවන්</span>
-      <span class="ia" style="--fs:16px;--fw:700;--c:#00e5ff;--r:-2deg">ยินดีต้อนรับ</span>
-      <span class="ia ia-m" style="--fs:12px;--c:#ffcc00">ຍິນດີຕ້ອນຮັບ</span>
-      <span class="ia" style="--fs:12px;--c:#ff2a4b">សូមស្វាគមន៍</span>
-      <span class="ia" style="--fs:26px;--fw:800;--c:#00e5ff;--r:2deg">欢迎</span>
-      <span class="ia ia-m" style="--fs:15px;--c:#ffcc00">歡迎</span>
-      <span class="ia" style="--fs:20px;--fw:700;--c:#ff2a4b">ようこそ</span>
-      <span class="ia ia-m" style="--fs:18px;--c:#00e5ff;--r:-3deg">환영합니다</span>
-      <span class="ia" style="--fs:12px;--c:#ffcc00">いらっしゃいませ</span>
-      <span class="ia ia-m" style="--fs:12px;--c:#ff2a4b">ТАВТАЙ МОРИЛНО УУ</span>
-      <span class="ia" style="--fs:14px;--c:#00e5ff">ЛАСКАВО ПРОСИМО</span>
-      <span class="ia ia-m" style="--fs:14px;--c:#ffcc00;--r:1deg">ДОБРЕ ДОШЛИ</span>
-      <span class="ia" style="--fs:13px;--c:#ff2a4b">ДОБРОДОШЛИ</span>
-      <span class="ia ia-m" style="--fs:16px;--c:#00e5ff;--r:-4deg">ALOHA</span>
-      <span class="ia" style="--fs:14px;--c:#ffcc00">BULA</span>
-      <span class="ia ia-m" style="--fs:13px;--c:#ff2a4b">HALO</span>
-      <span class="ia" style="--fs:16px;--c:#00e5ff">您好</span>
-    </div>
-  </div>
+  <!-- «Bienvenido» en decenas de idiomas por TODA la pantalla (nube densa,
+       referencia del usuario), en los colores del logo. Lo genera el script
+       de más abajo repitiendo la lista barajada hasta llenar la ventana.
+       Estático: nada gira ni cambia. -->
+  <div class="idioma-alrededor" aria-hidden="true"></div>
   <div class="idioma-inicio-card" role="dialog" aria-modal="true" aria-labelledby="idiomaInicioTitulo">
     <p class="idioma-inicio-titulo" id="idiomaInicioTitulo">Elige tu idioma</p>
     <p class="idioma-inicio-sub">Selecciona el idioma para arrancar la web.</p>
     <!-- Logo de la decoración del index (symbol #manolitSideArtwork): el
          escudo con sol, infinito y olas MÁS sus sombras de colores
-         proyectadas, exactamente igual que en el splash y los raíles
-         laterales. Se reutiliza tal cual, sin redibujar nada. -->
-    <svg class="idioma-inicio-logo" viewBox="150 90 350 380" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><use href="#manolitSideArtwork" width="600" height="600"/></svg>
+         proyectadas ENTERAS (el viewBox cubre la ilustración completa,
+         nada cortado). Se reutiliza tal cual, sin redibujar nada. -->
+    <svg class="idioma-inicio-logo" viewBox="0 140 650 370" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><use href="#manolitSideArtwork" width="600" height="600"/></svg>
     <div class="idioma-inicio-grid" role="group" aria-label="Selector inicial de idioma">
       <button type="button" class="idioma-inicio-btn" data-lang="es">Español</button>
       <button type="button" class="idioma-inicio-btn" data-lang="ca">Català</button>
@@ -644,6 +495,108 @@
     </div>
   </div>
 </div>
+<script>
+  /* Nube «Bienvenido»: rellena TODA la ventana, densa y sin huecos
+     (referencia del usuario), en los 3 colores del logo. Baraja la lista
+     con una semilla fija (mismo reparto en cada carga) y la repite hasta
+     cubrir la altura; se reconstruye al cambiar el tamaño de la ventana.
+     Estático: una vez puesta, nada se mueve ni cambia. */
+  (function () {
+    if (!(window.__manolitoEsperaIdioma && !window.__manolitoIdiomaResuelto)) return;
+    var cont = document.querySelector('#idiomaInicioGate .idioma-alrededor');
+    if (!cont) return;
+    var R = '#ff2a4b', Y = '#ffcc00', C = '#00e5ff';
+    var PALABRAS = [
+      ['BIENVENIDO',30,R,800],['BENVINGUT',15,Y],['ONGI ETORRI',13,C],['BENVIDO',17,R],
+      ['WELCOME',34,C,800],['BIENVENUE',22,Y,700],['BENVENUTO',18,R],['BEM-VINDO',20,C,700],
+      ['WILLKOMMEN',16,Y],['WELKOM',13,R],['VÄLKOMMEN',17,C],['VELKOMMEN',13,Y],
+      ['TERVETULOA',15,R],['BUN VENIT',14,Y],['DOBRODOŠLI',19,R,700],['VÍTEJTE',15,C],
+      ['CROESO',22,C,700],['FÁILTE',15,R],['WITAMY',18,Y,700],['HOŞ GELDİNİZ',14,R],
+      ['ΚΑΛΩΣ ΗΡΘΑΤΕ',13,C],['MERHBA',14,Y],['SELAMAT DATANG',13,R],['MALIGAYANG PAGDATING',11,C],
+      ['KARIBU',16,Y,700],['BONVENON',13,C],['BI XÊR HATÎ',13,R],['SANNU DA ZUWA',11,Y],
+      ['Ẹ KU ABỌ',12,C],['እንኳን ደህና መጡ',12,R],['AKWAABA',13,Y],['TERE TULEMAST',11,C],
+      ['BIENVENIDOS',24,R,800],['MABUHAY',13,Y],['ÜDVÖZÖLJÜK',13,R],['MIRË SE VJEN',12,Y],
+      ['أهلاً بك',22,Y,700],['مرحباً',15,C],['ברוכים הבאים',16,R],['خوش آمدید',14,Y],
+      ['स्वागत है',20,R,700],['স্বাগতম',14,C],['ਸੁਆਗਤ ਹੈ',13,Y],['સ્વાગત છે',13,R],
+      ['ସ୍ୱାଗତ',13,C],['வரவேற்பு',14,Y],['స్వాగతం',15,R],['ಸ್ವಾಗತ',14,C],
+      ['സ്വാഗതം',14,Y],['ආයුබෝවන්',14,R],['ยินดีต้อนรับ',16,C,700],['ຍິນດີຕ້ອນຮັບ',12,Y],
+      ['សូមស្វាគមន៍',12,R],['欢迎',26,C,800],['歡迎',15,Y],['ようこそ',20,R,700],
+      ['환영합니다',18,C],['いらっしゃいませ',12,Y],['ТАВТАЙ МОРИЛНО УУ',12,R],['ЛАСКАВО ПРОСИМО',14,C],
+      ['ДОБРЕ ДОШЛИ',14,Y],['ДОБРОДОШЛИ',13,R],['ALOHA',16,C],['BULA',14,Y],
+      ['HALO',13,R],['您好',16,C],['მოგესალმებით',13,Y],['ԲԱՐԻ ԳԱԼՈՒՍՏ',13,C],
+      ['ҚОШ КЕЛДІҢІЗ',12,R],['XOŞ GƏLMİSİNİZ',12,Y],['XUSH KELIBSIZ',13,C],['CHÀO MỪNG',14,R],
+      ['ДОБРЕ ДОЈДОВТЕ',12,Y],['VÍTAJTE',13,C],['BENVINGUTS',13,R],['SVEIKI ATVYKĘ',12,R],
+      ['Bienvenido',20,R],['Welcome',18,C],['Bienvenue',15,Y],['Benvenuto',14,R],
+      ['Bem-vindo',15,C],['Willkommen',14,Y],['Välkommen',13,R],['Tervetuloa',13,C],
+      ['Croeso',15,Y],['Witamy',14,R],['Dobrodošli',14,C],['Bun venit',13,R],
+      ['Fáilte',12,Y],['Welkom',12,C],['Velkommen',12,R],['Vítejte',12,Y],
+      ['Merħba',13,C],['Akwaaba',13,R],['Üdvözöljük',13,Y],['Mirë se vjen',12,C],
+      ['Sveiki',12,R],['Velkomin',12,Y],['Dobrodošla',12,C],['Tere tulemast',13,R]
+    ];
+    function rng(seed) {
+      return function () {
+        seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+        var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    function construir() {
+      cont.textContent = '';
+      var esc = Math.max(0.6, Math.min(1, cont.clientWidth / 1100));
+      var objetivo = cont.clientHeight * 1.02;
+      for (var ronda = 0; ronda < 8; ronda++) {
+        var rand = rng(8 + ronda * 97);
+        var orden = PALABRAS.slice();
+        for (var i = orden.length - 1; i > 0; i--) {
+          var j = Math.floor(rand() * (i + 1));
+          var tmp = orden[i]; orden[i] = orden[j]; orden[j] = tmp;
+        }
+        for (var k = 0; k < orden.length; k++) {
+          var p = orden[k];
+          var s = document.createElement('span');
+          s.className = 'ia';
+          s.textContent = p[0];
+          s.style.fontSize = Math.max(10, Math.round(p[1] * esc)) + 'px';
+          s.style.color = p[2];
+          if (p[3]) s.style.fontWeight = p[3];
+          cont.appendChild(s);
+        }
+        if (cont.scrollHeight >= objetivo) break;
+      }
+      // Ni una palabra a medias en los bordes: las que asoman fuera se
+      // ocultan enteras (se queda su hueco, no se re-maqueta nada).
+      recortar();
+    }
+    function recortar() {
+      var W = cont.clientWidth, H = cont.clientHeight;
+      var hijos = cont.children;
+      for (var n = 0; n < hijos.length; n++) {
+        var el = hijos[n];
+        if (el.offsetLeft < 6 || el.offsetTop < 4 ||
+            el.offsetLeft + el.offsetWidth > W - 6 ||
+            el.offsetTop + el.offsetHeight > H - 4) {
+          el.style.visibility = 'hidden';
+        }
+      }
+    }
+    construir();
+    // Las fuentes de escrituras exóticas (CJK, árabe, indicas...) pueden
+    // resolverse DESPUÉS del montaje y re-maquetar las líneas: se repite
+    // el recorte cuando la página y las fuentes ya están listas.
+    window.addEventListener('load', function () { if (document.contains(cont)) recortar(); });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () { if (document.contains(cont)) recortar(); });
+    }
+    var temporizador = null;
+    var alRedimensionar = function () {
+      if (!document.contains(cont)) { window.removeEventListener('resize', alRedimensionar); return; }
+      clearTimeout(temporizador);
+      temporizador = setTimeout(construir, 180);
+    };
+    window.addEventListener('resize', alRedimensionar);
+  })();
+</script>
 <script>
   (function () {
     const gate = document.getElementById('idiomaInicioGate');

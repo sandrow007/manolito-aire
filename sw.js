@@ -439,7 +439,14 @@
 //     de luz absurdos) y copa en racimo: cada hoja es ahora 2 planos
 //     pequeños cruzados y desplazados en vez de una pala plana gigante.
 //     Cambian js/arboles-ez-3d.js e index.html (?v=).
-const VERSION = '2026-11-26-arboles-racimo-sombreado';
+// 2026-11-26-widget: FALLO DE MUERTE corregido. Al calcular una ruta, las
+//     tarjetas (resumen, encuesta CO2, UTCI) empujan el mapa hacia abajo
+//     pero el widget solar y la tarjeta SQI (rsSqiMini) se quedaban en sus
+//     coordenadas viejas, flotando FUERA del mapa sobre el fondo oscuro.
+//     El puente rsSolarWidgetBridge (index.html) ahora observa el tamaño
+//     del body con ResizeObserver y re-ancla el widget siempre. Solo
+//     cambia index.html.
+const VERSION = '2026-11-26-widget-anclado-al-mapa';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

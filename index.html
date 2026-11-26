@@ -4247,6 +4247,14 @@ svg#map #mk:focus,svg#map #mk:focus-visible{outline:none!important}
   document.addEventListener('webkitfullscreenchange',queuePosition);
   if(window.MutationObserver)new MutationObserver(queuePosition).observe(document.body,{attributes:true,attributeFilter:['class']});
   if(window.visualViewport)visualViewport.addEventListener('resize',queuePosition,{passive:true});
+  // (nov-2026) FALLO DE MUERTE CORREGIDO: al calcular una ruta aparecen
+  // tarjetas ENCIMA del mapa (resumen, encuesta CO2, panel UTCI) y el mapa
+  // baja por la página, pero este overlay solo se reposicionaba con resize
+  // de ventana: el widget solar y la tarjeta SQI quedaban flotando FUERA
+  // del mapa sobre el fondo muerto. Observando el tamaño del body se
+  // detecta cualquier cambio de altura del contenido y el widget sigue
+  // SIEMPRE anclado dentro del mapa.
+  if(window.ResizeObserver)new ResizeObserver(queuePosition).observe(document.body);
   function syncMapTime(){
     var clock=root.querySelector('#bt');
     var slider=document.getElementById('rsTimeSlider');

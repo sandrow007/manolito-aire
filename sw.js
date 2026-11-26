@@ -415,7 +415,22 @@
 //     Verde propio de conífera (0x355638) en vez del verde de hoja ancha.
 //     Solo cambia js/arboles-ez-3d.js: el resto de especies EZ, el
 //     naranjo y la albizia quedan exactamente igual.
-const VERSION = '2026-11-25-d-pino-pinionero';
+// 2026-11-26-a: INDICACIONES CON LADO DE LA SOMBRA + MICROCLIMA SUAVE.
+// (1) Las indicaciones de ruta dicen por qué LADO de la calle va la sombra
+//     ("La sombra va por tu lado izquierdo/derecho", "Hay sombra en los dos
+//     lados") y, en tramos largos al sol, si el sol te da de cara o de
+//     espaldas. Se muestrea cada acera a ~7 m del eje con el mismo índice
+//     espacial de siempre. Cambian js/shadows-route.js y js/i18n.js.
+// (2) Microclima del suelo DIFUMINADO: de círculos duros (lunar de puntos)
+//     a lienzo en miniatura escalado con bilineal: mapa de calor continuo.
+//     Botón "i" de la leyenda con objetivo táctil de 26 px (en móvil no se
+//     podía abrir la nota). Cambia js/microclima.js.
+// (3) Con microclima activo, la temperatura (aire + rango de suelo) se
+//     muestra en un chip dentro del widget de sombra SQI, junto al
+//     glosario; el glosario re-ancla la tarjeta al abrirse (en móvil el
+//     contenido se salía de pantalla). Cambian js/sqi-calidad-sombra.js y
+//     css/sqi.css.
+const VERSION = '2026-11-26-a-lado-sombra-microclima';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

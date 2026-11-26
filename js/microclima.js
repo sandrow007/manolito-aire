@@ -482,11 +482,22 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    // Pasada 1 (por tandas): temperatura por celda + rango para normalizar
-    const celdas = [];
+    // Pasada 1 (por tandas): temperatura por celda + rango para normalizar.
+    // (nov-2026) DIFUMINADO REAL: antes cada celda pintaba un círculo sólido
+    // de radio 0.72·rejilla y la capa salía como un lunar de puntos con
+    // bordes duros. Ahora cada celda pinta UN píxel de un lienzo en
+    // miniatura (pasada 2) que se escala al tamaño del mapa con
+    // interpolación bilineal: la capa queda continua, como un mapa de calor.
+    // cols/rows = número EXACTO de iteraciones del bucle (la primera celda
+    // está a media rejilla del borde): si sobrara una columna/fila en la
+    // miniatura, quedaría transparente y se estiraría como banda vacía.
+    const cols = Math.max(1, Math.ceil((w - REJILLA_PX / 2) / REJILLA_PX));
+    const rows = Math.max(1, Math.ceil((h - REJILLA_PX / 2) / REJILLA_PX));
+    const celdasT = new Float32Array(cols * rows).fill(NaN);
     let tMin = Infinity, tMax = -Infinity, fila = 0;
-    for (let y = REJILLA_PX / 2; y < h; y += REJILLA_PX) {
-      for (let x = REJILLA_PX / 2; x < w; x += REJILLA_PX) {
+    for (let y = REJILLA_PX / 2; y < h; y += REJILLA_PX, fila++) {
+      let col = 0;
+      for (let x = REJILLA_PX / 2; x < w; x += REJILLA_PX, col++) {
         const lngLat = mapa.unproject([x, y]);
         const tipo = clasificarPunto(idx, lngLat.lng, lngLat.lat);
         const E = expoPorTipo[tipo] || expoPorTipo.urbano_generico;
@@ -495,25 +506,34 @@
         // material acumuló durante las últimas horas se nota igualmente.
         const expo = (E.s0 * (enSombra ? FACTOR_SOMBRA : 1) + E.resto) / E.peso;
         const t = tBase + offsetEfectivo(tipo, datosHora.humedad) * expo;
-        celdas.push({ x, y, t });
+        celdasT[fila * cols + col] = t;
         if (t < tMin) tMin = t;
         if (t > tMax) tMax = t;
       }
-      fila++;
       if (fila % FILAS_POR_TANDA === 0) {
         await ceder();                       // cede el hilo: la página respira
         if (miVersion !== versionCalculo) return; // el mapa se movió: aborta
       }
     }
 
-    // Pasada 2: pintar (rápida, solo dibujo)
-    const radio = REJILLA_PX * 0.72;
-    for (const c of celdas) {
-      ctx.fillStyle = colorPara(c.t, tMin, tMax);
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, radio, 0, Math.PI * 2);
-      ctx.fill();
+    // Pasada 2: 1 píxel por celda en la miniatura y escalado suave a toda
+    // la pantalla (imageSmoothing bilineal; en retina el canvas ya va con
+    // DPR y la interpolación se hace sobre píxeles CSS, como el resto).
+    let mini = canvas.__lienzoMiniatura;
+    if (!mini) { mini = document.createElement('canvas'); canvas.__lienzoMiniatura = mini; }
+    mini.width = cols; mini.height = rows;
+    const mctx = mini.getContext('2d');
+    for (let f2 = 0; f2 < rows; f2++) {
+      for (let c2 = 0; c2 < cols; c2++) {
+        const tv = celdasT[f2 * cols + c2];
+        if (!isFinite(tv)) continue;
+        mctx.fillStyle = colorPara(tv, tMin, tMax);
+        mctx.fillRect(c2, f2, 1, 1);
+      }
     }
+    ctx.imageSmoothingEnabled = true;
+    try { ctx.imageSmoothingQuality = 'high'; } catch (e) {}
+    ctx.drawImage(mini, 0, 0, cols, rows, -REJILLA_PX / 2, -REJILLA_PX / 2, w + REJILLA_PX, h + REJILLA_PX);
     if (miVersion !== versionCalculo) return;
 
     const coords = [
@@ -542,6 +562,12 @@
       }, antesDe || undefined);
     }
     actualizarLeyenda(tMin, tMax);
+
+    // (nov-2026) La temperatura queda disponible para el widget de sombra
+    // (SQI): allí se muestra el chip «🌡 aire X° · suelo Y–Z°» junto al
+    // glosario. Al apagarse la capa, apagar() lo limpia y avisa igualmente.
+    window.__manolitMicroclimaDatos = { aire: tBase, tMin, tMax, futuro: esFuturo };
+    try { document.dispatchEvent(new CustomEvent('manolito-microclima-datos', { detail: window.__manolitMicroclimaDatos })); } catch (e) {}
   }
 
   /* ---- leyenda: esquina inferior DERECHA, con botón de cerrar ---- */
@@ -563,11 +589,11 @@
           '<span>Microclima</span>' +
           '<button id="microclima-info-btn" aria-expanded="false" title="Qué es esta capa" ' +
           'style="pointer-events:auto;cursor:pointer;border:1px solid rgba(255,255,255,0.4);background:transparent;' +
-          'color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;line-height:1;padding:0;">i</button>' +
+          'color:#fff;border-radius:50%;width:26px;height:26px;font-size:12px;line-height:1;padding:0;touch-action:manipulation;">i</button>' +
         '</div>' +
         '<button id="microclima-cerrar-btn" title="Ocultar (la capa sigue activa en el mapa)" ' +
         'style="pointer-events:auto;cursor:pointer;border:none;background:transparent;color:#fff;' +
-        'opacity:0.75;font-size:15px;line-height:1;padding:0 2px;">×</button>' +
+        'opacity:0.75;font-size:17px;line-height:1;padding:4px 8px;touch-action:manipulation;">×</button>' +
       '</div>' +
       '<div style="height:7px;border-radius:4px;margin-top:4px;background:linear-gradient(90deg,hsl(220,85%,55%),hsl(120,85%,55%),hsl(60,85%,55%),hsl(0,85%,55%));"></div>' +
       `<div style="display:flex;justify-content:space-between;font-size:10px;margin-top:2px;"><span>${tMin.toFixed(0)}°C</span><span>${tMax.toFixed(0)}°C</span></div>` +
@@ -714,6 +740,9 @@
   function apagar() {
     activo = false;
     versionCalculo++; // aborta cualquier cálculo en curso
+    // Avisa al widget de sombra: sin capa no hay chip de temperatura.
+    window.__manolitMicroclimaDatos = null;
+    try { document.dispatchEvent(new CustomEvent('manolito-microclima-datos', { detail: null })); } catch (e) {}
     clearTimeout(temporizador);
     clearInterval(temporizadorReloj);
     esFuturo = false;

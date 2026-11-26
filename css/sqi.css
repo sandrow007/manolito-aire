@@ -377,3 +377,26 @@
 #rsSqiMini .rs-sqi-mini-glosario dl{margin:5px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;}
 #rsSqiMini .rs-sqi-mini-glosario li{list-style:none;}
 #rsSqiMini .rs-sqi-mini-glosario b{color:#EEF1F6;font-weight:700;}
+
+/* (nov-2026) Móvil: el glosario del mini widget necesita un objetivo táctil
+   decente; además el JS re-ancla la tarjeta en cada toggle para que al
+   abrirse no crezca fuera de pantalla (parecía que "no abría"). */
+#rsSqiMini .rs-sqi-mini-glosario summary{
+  padding:7px 2px;
+  min-height:30px;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+#rsSqiMini .rs-sqi-mini-glosario ul{margin:2px 0 4px;padding-left:2px;display:flex;flex-direction:column;gap:4px;}
+
+/* Chip de temperatura del microclima dentro del widget de sombra: se
+   muestra junto al glosario cuando la capa de microclima está activa. */
+#rsSqiMini .rs-sqi-mini-temp{
+  margin-top:5px;
+  font-size:11px;
+  line-height:1.3;
+  color:#FFD27A;
+  font-variant-numeric:tabular-nums;
+}
+#rsSqiMini .rs-sqi-mini-temp b{color:#FFF;}
+#rsSqiMini .rs-sqi-mini-temp i{opacity:0.7;font-style:normal;font-size:9.5px;}

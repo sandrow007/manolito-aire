@@ -1494,6 +1494,7 @@
         '<div class="rs-sqi-mini-indicador" id="rsSqiMiniIndicador"></div>' +
         '</div>' +
         '<div class="rs-sqi-mini-datos" id="rsSqiMiniDatos"></div>' +
+        '<div class="rs-sqi-mini-temp" id="rsSqiMiniTemp" hidden></div>' +
         '<details class="rs-sqi-mini-glosario">' +
         '<summary>¿Qué significa cada dato?</summary>' +
         '<ul>' +
@@ -1505,13 +1506,46 @@
         '<div class="rs-sqi-mini-aviso">Estimación calculada con datos públicos. No es una medición directa de un sensor en este punto. ' +
         '<a href="metodologia.html" target="_blank" rel="noopener">Cómo se calcula</a></div>';
       root.parentElement.insertBefore(mini, root.nextSibling);
+      // (nov-2026) MÓVIL: al abrir el glosario la tarjeta crece hacia abajo
+      // y en pantallas pequeñas el contenido quedaba fuera de vista
+      // (parecía que «no abría»). Se re-ancla la tarjeta en cada toggle.
+      var glosarioMini = mini.querySelector('.rs-sqi-mini-glosario');
+      if (glosarioMini) glosarioMini.addEventListener('toggle', posicionarWidgetMini);
       if (S.ultimoPintado) {
         pintarMini(S.ultimoPintado.noche, S.ultimoPintado.sqi,
           S.ultimoPintado.aod, S.ultimoPintado.pm, S.ultimoPintado.dhi);
       }
     }
+    // Chip de temperatura del microclima (llega por evento; si la capa ya
+    // estaba activa antes de montar el widget, se pinta con lo último).
+    if (!S.microEscuchando) {
+      S.microEscuchando = true;
+      document.addEventListener('manolito-microclima-datos', pintarTemperaturaMicroclima);
+    }
+    pintarTemperaturaMicroclima();
     posicionarWidgetMini();
     return true;
+  }
+
+  // (nov-2026) CHIP MICROCLIMA: con la capa de temperatura del suelo activa,
+  // su temperatura se muestra AQUÍ, en el widget de la sombra, junto al
+  // glosario. Sin capa de microclima el chip se oculta y no ocupa sitio.
+  function pintarTemperaturaMicroclima() {
+    var el = document.getElementById('rsSqiMiniTemp');
+    if (!el) return;
+    var d = window.__manolitMicroclimaDatos;
+    if (!d || !isFinite(d.aire)) {
+      el.hidden = true;
+      el.textContent = '';
+      posicionarWidgetMini();
+      return;
+    }
+    var suelo = (isFinite(d.tMin) && isFinite(d.tMax))
+      ? ' · suelo <b>' + Math.round(d.tMin) + '–' + Math.round(d.tMax) + '°</b>' : '';
+    el.innerHTML = '🌡 aire <b>' + Math.round(d.aire) + '°</b>' + suelo +
+      (d.futuro ? ' <i>(previsión)</i>' : '');
+    el.hidden = false;
+    posicionarWidgetMini();
   }
 
   function pintarMini(noche, sqi, aod, pm, dhi) {

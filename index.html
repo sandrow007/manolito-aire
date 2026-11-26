@@ -169,7 +169,7 @@
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
 <link rel="stylesheet" href="css/style.css?v=hud-navegacion-20261102-a">
-<link rel="stylesheet" href="css/sqi.css?v=sqi-glosario-20261117">
+<link rel="stylesheet" href="css/sqi.css?v=sqi-temp-movil-20261126">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -2802,7 +2802,7 @@
             .catch((err) => console.error('Árboles EZ-TREE no cargados (el resto sigue igual):', err))
         )
         .then(() => cargarScript('js/irradiacion-solar.js'))
-        .then(() => cargarScript('js/microclima.js'))
+        .then(() => cargarScript('js/microclima.js?v=microclima-difuminado-20261126'))
         .then(() => cargarScript('js/rendimiento-movil.js'))
         // 07-oct-2026 (): aparcamientos y planificador de
         // viaje en UN solo módulo nuevo y aditivo. Carga al final y se
@@ -2815,7 +2815,7 @@
         // Calidad de sombra (SQI, nov-2026): último de la cadena. Tiñe las
         // sombras que ya dibuja el mapa según su calidad térmica y muestra
         // el resultado en el widget solar visible. Presentación pura.
-        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-arboles-20261120-a'))
+        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-temp-movil-20261126'))
         // Confort térmico UTCI (nov-2026): coste de las rutas por estrés
         // térmico y comparativa fresca/rápida. Módulos aditivos; sin ellos
         // (o sin meteo) el routing usa el coste clásico de sombra.

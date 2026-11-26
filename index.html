@@ -168,7 +168,7 @@
      huerfano al retirar el preload; se elimina 31-oct-2026.) -->
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
-<link rel="stylesheet" href="css/style.css?v=hud-navegacion-20261102-a">
+<link rel="stylesheet" href="css/style.css?v=widgets-mapa-20261126-a">
 <link rel="stylesheet" href="css/sqi.css?v=sqi-temp-movil-20261126">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
@@ -1374,10 +1374,6 @@
     </div>
   </div>
 
-<label class="rs-status-toggle">
-      <input class="rs-status-expand visually-hidden" type="checkbox" aria-controls="rsModoRuta rsOrigen rsDestino rsBuscarBtn rsPanelBici rsPanelViaje">
-      <span id="rsStatus" class="chat-status" style="margin:8px 0 14px;" role="status" aria-live="polite" aria-atomic="true"></span>
-    </label>
     <!-- Resumen accesible de la ruta: el mapa es un canvas y un lector de
          pantalla no puede verlo; esta región role="status" lleva siempre el
          mismo dato en texto (distancia, duración, % sombra y posición del
@@ -1395,6 +1391,7 @@
          navegador, sin servicios externos). Pensado para personas ciegas o
          con baja visión, y útil para cualquiera. -->
 <div class="map-wrap">
+<div class="rs-map-ui" id="rsMapUi">
 <div class="rs-form">
   <!-- Selector de modo del buscador UNIFICADO (nov-2026): un solo par de
        campos origen/destino para los tres motores (andar, bici, coche).
@@ -1438,25 +1435,21 @@
     <ul class="rs-sugerencias" id="rsSugerenciasDestino" role="listbox" data-i18n-aria-label="destiny" aria-label="Destino"></ul>
   </div>
   <div class="rs-vdiv" aria-hidden="true"></div>
-  <!-- Fila de acciones: ambos botones comparten fila con 8px de gap;
-       cada uno flex-1, así caben sin romperse. -->
   <div class="rs-fila-botones">
     <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar</button>
-    <!-- Atajo «Iniciar caminata» pegado a Buscar (nov-2026): nace APILADO
-         dentro de #rsParkingAction, así que no añade ni una columna al
-         buscador; sale justo al lado de Buscar al calcular la ruta. Es una
-         puerta ADITIVA: solo pulsa #rsBtnWalk, no tiene lógica propia. -->
     <div class="rs-accion-caminar" id="rsAccionCaminar" hidden>
       <button type="button" id="rsBtnCaminarResumen" data-i18n="walkModeStart" aria-label="Iniciar caminata" title="Iniciar caminata">Iniciar caminata</button>
     </div>
-    <div id="rsParkingAction"></div>
   </div>
-  <!-- Cierre del panel flotante en escritorio (nov-2026): la X vive
-       DENTRO del panel. En móvil el CSS la oculta y el formulario sigue
-       apilado como siempre. -->
   <button type="button" id="rsBtnCerrarForm" data-i18n-aria-label="closeLbl" aria-label="Cerrar">
     <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M1.5 1.5l11 11M12.5 1.5l-11 11" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
   </button>
+</div>
+<div class="rs-route-info" id="rsRouteInfo">
+  <label class="rs-status-toggle">
+    <input class="rs-status-expand visually-hidden" type="checkbox" aria-controls="rsModoRuta rsOrigen rsDestino rsBuscarBtn rsPanelBici rsPanelViaje">
+    <span id="rsStatus" class="chat-status" style="margin:8px 0 14px;" role="status" aria-live="polite" aria-atomic="true"></span>
+  </label>
 </div>
 </div>
   <div id="shadowRouteMap">

@@ -6235,16 +6235,88 @@ body.modo-accesible #main-content .rs-form #rsDestino{
   background:rgba(230,62,95,.14);
   border-inline-start-color:var(--breath-bad, #E63E5F);
 }
-/* Dentro del mapa flota bajo la tarjeta de la ruta; la posición vertical
-   la ajusta confort-ruta.js midiendo la tarjeta (top en línea). */
-#main-content .map-wrap > #rsConfortRuta{
-  position:absolute; left:12px; z-index:29;
-  width:max-content; max-width:min(430px, calc(100% - 24px));
-  margin:0;
-}
-@media (max-width:480px){
-  #main-content .map-wrap > #rsConfortRuta{ left:8px; max-width:calc(100% - 16px); }
-}
 @media (prefers-reduced-motion: reduce){
   #main-content #rsConfortRuta{ transition:none; }
+}
+
+/* El buscador y toda la información de la ruta comparten una sola capa
+   dentro del mapa. La columna se adapta al alto disponible sin empujar
+   contenido fuera del marco ni modificar el lienzo del mapa. */
+#main-content .rs-map-ui{
+  position:absolute;
+  top:44px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:30;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  width:calc(100% - 16px);
+  max-width:920px;
+  max-height:calc(100% - 52px);
+  pointer-events:none;
+}
+#main-content .rs-map-ui .rs-form,
+#main-content .rs-map-ui .rs-form.rs-form-flotante{
+  position:relative;
+  top:auto;
+  left:auto;
+  transform:none;
+  flex:0 0 auto;
+  width:100%;
+  max-width:920px;
+  pointer-events:auto;
+}
+#main-content .rs-route-info{
+  display:flex;
+  flex:0 1 auto;
+  flex-direction:column;
+  align-items:stretch;
+  gap:6px;
+  width:min(440px,100%);
+  max-width:100%;
+  min-height:0;
+  margin-top:6px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+  pointer-events:auto;
+}
+#main-content .rs-route-info .rs-status-toggle,
+#main-content .rs-route-info .rs-status-toggle:has(#rsStatus.rs-status-ruta){
+  position:static;
+  flex:0 0 auto;
+  width:100%;
+  max-width:100%;
+  margin:0;
+}
+#main-content .rs-route-info .rs-status-toggle #rsStatus.rs-status-ruta{ margin:0 !important; }
+#main-content .rs-route-info .co2-caja,
+#main-content .rs-route-info #rsConfortRuta{
+  position:static;
+  flex:0 0 auto;
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+  margin:0;
+}
+#main-content .rs-form .rs-barra #rsAccionCaminar{ grid-column:4; grid-row:1; }
+#main-content .map-wrap:has(#rsBtnAbrirForm.rs-visible) .rs-route-info{ margin-top:44px; }
+body.manolito-fs #main-content .rs-route-info #rsStatus{ display:block; }
+@media (max-width:760px){
+  #main-content .rs-map-ui{
+    top:44px;
+    width:calc(100% - 8px);
+    max-width:none;
+  }
+  #main-content .rs-form .rs-barra{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) 34px auto 28px;
+  }
+}
+@media (pointer:coarse){
+  #main-content .rs-map-ui{ top:50px; }
+}
+@media (prefers-reduced-motion:reduce){
+  #main-content .rs-route-info{ scroll-behavior:auto; }
 }

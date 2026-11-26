@@ -446,7 +446,10 @@
 //     El puente rsSolarWidgetBridge (index.html) ahora observa el tamaño
 //     del body con ResizeObserver y re-ancla el widget siempre. Solo
 //     cambia index.html.
-const VERSION = '2026-11-26-widget-anclado-al-mapa';
+// 2026-11-26-widgets-mapa-a: el resumen, CO2 y confort nacen y permanecen
+//     dentro del mapa, también en pantalla completa. Se elimina del
+//     buscador el botón Buscar aparcamiento; la capa sigue en Capas.
+const VERSION = '2026-11-26-widgets-mapa-a';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

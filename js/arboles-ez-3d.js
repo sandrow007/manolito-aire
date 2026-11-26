@@ -143,6 +143,16 @@
     //               propios penachos), se mantienen coherentes por si algún
     //               día vuelve al generador fractal.
     pine: { seed: 15883, type: 'evergreen', levels: 2, angle: [0, 106, 16, 60], children: [7, 5, 5], length: [14, 3.9, 1.2, 1], radius: [0.26, 0.075, 0.7, 0.7], sections: [11, 9, 7, 5], segments: [8, 6, 4, 3], start: [0, 0.32, 0.18, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 26, leafCount: 32, leafStart: 0.12, leafSize: 1.25, leafVariance: 0.28, leafColor: 0x355638, barkColor: 0x9a7a56, coniferNeedles: true },
+    // (26-nov-2026) PINO exportado del editor de ez-trees, TAL CUAL lo pasó
+    // el jefe (seed 55661): evergreen de 1 nivel, 76 ramas casi horizontales
+    // (104°) desde el 27 % del fuste (por eso el tronco sale desnudo abajo),
+    // copa de agujas en racimos (30 slots por rama, tamaño 1.435). Convertido
+    // del JSON del editor (claves "1"/"2"/"3" → arrays planos; gnarliness,
+    // twist y force del editor se respetan). La especie 'pino' lo usa con el
+    // port fractal (construirArbol), que es la silueta de la captura; el
+    // antiguo cono de penachos (construirPinoReal) queda solo para un
+    // hipotético preset con legacyCono. Casuarina sigue con 'pine'.
+    pine_ez: { seed: 55661, type: 'evergreen', levels: 1, angle: [0, 104, 91, 27], children: [76, 6, 5], length: [55.3, 29.7, 8.9, 37], radius: [1.31, 0.47, 0.7, 3.47], sections: [15, 12, 7, 5], segments: [4, 8, 7, 11], start: [0, 0.27, 0.14, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0.04, -0.05, 0.03, -0.06], twist: [-0.08, -0.18, 0.04, -0.12], force: -0.003, leafAngle: 39, leafCount: 30, leafStart: 0.09, leafSize: 1.435, leafVariance: 0.201, leafColor: 0xffffff, barkColor: 0xffffff },
 
     // --- 4 presets EZ-TREE NUEVOS (nov-2026), tomados tal cual del repo
     // dgreenheck/ez-tree (MIT) para las 4 especies más abundantes de Sevilla
@@ -287,7 +297,7 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
   // REUTILIZAN los presets de arriba según su silueta real (nada de presets
   // nuevos): el coste en KB es solo la entrada de 1 línea por especie.
   var EZ_ESPECIES = {
-    pino: { preset: 'pine', evergreen: true }, eucalipto: { preset: 'aspen', evergreen: true },
+    pino: { preset: 'pine_ez', evergreen: true }, eucalipto: { preset: 'aspen', evergreen: true },
     ginkgo: { preset: 'aspen', evergreen: false }, encina_roble: { preset: 'oak', evergreen: true },
     platanero: { preset: 'ash', evergreen: false }, olmo: { preset: 'ash', evergreen: false },
     chopo: { preset: 'aspen', evergreen: false }, tipuana: { preset: 'ash', evergreen: false },
@@ -464,7 +474,11 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
   // se generan por slots. Los presets proceden de src/lib/presets.
   // ==========================================================================
   function construirEsqueleto(preset, rand, tipo) {
-    if (tipo === 'pino') return construirPinoReal(preset, rand);
+    // (26-nov-2026) El pino YA NO usa el cono de penachos: su preset
+    // pine_ez es el del editor de ez-trees y se genera con el port fractal
+    // (misma ruta que pine_large/pine_small). El cono solo se conservaría
+    // para un preset marcado con legacyCono (ninguno hoy).
+    if (tipo === 'pino' && preset.legacyCono) return construirPinoReal(preset, rand);
     // (nov-2026) Las palmeras NO son árboles: un port de ramas fractales
     // les daba un "árbol con hojas verdes en la punta" (el tronco se
     // estrechaba como una rama y las hojas eran elipses horizontales

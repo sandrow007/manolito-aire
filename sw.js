@@ -404,7 +404,17 @@
 //     con penacho denso de acículas finas por rama (52 x 1.05, verde
 //     oscuro) que se acortan hacia la cima: pisos cónicos de pino real.
 //     Solo cambia js/arboles-ez-3d.js e index.html (?v=).
-const VERSION = '2026-11-24-b-pino-conifera';
+// 2026-11-25-d: PINO PIÑONERO DEFINITIVO (construirPinoReal). El pino
+//     sale del generador fractal (que daba el "castillo de discos" con
+//     tronco pelado y palas anchas) y pasa a silueta propia: líder recto,
+//     copa CÓNICA CONTINUA de 11 verticilos solapados desde el 32 % de la
+//     altura (sin huecos entre pisos) y acículas finas triangulares (17
+//     por penacho, ancho 0.028) pegadas a cada rama, con tope de 420
+//     penachos por árbol repartidos en proporción a la longitud del piso.
+//     Verde propio de conífera (0x355638) en vez del verde de hoja ancha.
+//     Solo cambia js/arboles-ez-3d.js: el resto de especies EZ, el
+//     naranjo y la albizia quedan exactamente igual.
+const VERSION = '2026-11-25-d-pino-pinionero';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

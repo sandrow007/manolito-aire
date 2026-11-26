@@ -833,17 +833,34 @@ class ManolitoPantallaCompleta {
 }
 const controlPantallaCompleta = new ManolitoPantallaCompleta();
 
-// El buscador y las tarjetas de ruta viven siempre dentro de .map-wrap.
-// La pantalla completa solo cambia su presentación, nunca su ubicación.
+// Buscador unificado a pantalla completa (nov-2026): el formulario de ruta
+// vive en el flujo de la pagina, fuera del lienzo. Al entrar en fullscreen
+// (nativo o plan B CSS de iPhone) se traslada DENTRO de .map-wrap con la
+// clase .rs-form-flotante (cristal translucido en css/style.css), para
+// buscar y trazar rutas sin salir del mapa. Al salir vuelve a su sitio.
+// El plan B solo conmuta una clase en <body>: la vigila un MutationObserver;
+// el fullscreen nativo avisa con fullscreenchange (mas abajo).
+let buscadorAnclaFlotante = null;
 function sincronizarBuscadorFlotante() {
   const form = document.querySelector('#main-content .rs-form');
-  const wrap = document.querySelector('#main-content .map-wrap');
+  const wrap = document.querySelector('.map-wrap');
   if (!form || !wrap) return;
   const expandido = !!(document.fullscreenElement || document.body.classList.contains('manolito-fs'));
-  form.classList.toggle('rs-form-flotante', expandido);
-  if (expandido) {
+  if (expandido && form.parentElement !== wrap) {
+    if (!buscadorAnclaFlotante) buscadorAnclaFlotante = { padre: form.parentElement, siguiente: form.nextSibling };
+    wrap.appendChild(form);
+    form.classList.add('rs-form-flotante');
+    // Si el formulario estaba plegado (resumen de ruta calculada), se
+    // despliega: a pantalla completa el buscador debe quedar usable ya.
     const expandir = document.querySelector('#main-content .rs-status-expand');
     if (expandir) expandir.checked = true;
+  } else if (!expandido && form.classList.contains('rs-form-flotante')) {
+    const ancla = buscadorAnclaFlotante;
+    buscadorAnclaFlotante = null;
+    if (ancla && ancla.padre) {
+      ancla.padre.insertBefore(form, (ancla.siguiente && ancla.siguiente.parentNode === ancla.padre) ? ancla.siguiente : null);
+    }
+    form.classList.remove('rs-form-flotante');
   }
 }
 if (window.MutationObserver) {
@@ -6898,17 +6915,31 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   const inputDestino = document.getElementById('rsDestino');
   const btnBuscar = document.getElementById('rsBuscarBtn');
   const statusEl = document.getElementById('rsStatus');
+  // AÑADIDO: la tarjeta de resumen de ruta («Ruta: X km · Y min») vive DENTRO
+  // del mapa, no encima. Solo se mueve su etiqueta contenedora; el resto de
+  // mensajes de estado siguen apareciendo donde siempre, fuera del mapa.
   const etiquetaEstado = statusEl ? statusEl.closest('label.rs-status-toggle') : null;
-  function asegurarTarjetaRutaEnMapa() {
-    const destino = document.getElementById('rsRouteInfo');
-    if (etiquetaEstado && destino && etiquetaEstado.parentElement !== destino) {
-      destino.appendChild(etiquetaEstado);
+  function fijarTarjetaRutaFlotante(dentro) {
+    if (!etiquetaEstado || !contenedorMapa) return;
+    if (dentro) {
+      if (etiquetaEstado.parentElement === contenedorMapa) return;
+      if (!etiquetaEstado.__sitioOriginal) {
+        etiquetaEstado.__sitioOriginal = {
+          padre: etiquetaEstado.parentElement,
+          antes: etiquetaEstado.nextElementSibling
+        };
+      }
+      contenedorMapa.appendChild(etiquetaEstado);
+    } else {
+      const sitio = etiquetaEstado.__sitioOriginal;
+      if (!sitio || etiquetaEstado.parentElement !== contenedorMapa) return;
+      sitio.padre.insertBefore(etiquetaEstado, sitio.antes);
     }
   }
 
   function mostrarEstado(texto, tipo) {
     statusEl.classList.remove('rs-status-ruta');
-    asegurarTarjetaRutaEnMapa();
+    fijarTarjetaRutaFlotante(false);
     statusEl.textContent = texto;
     statusEl.style.color = tipo === 'error' ? leerVar('--breath-bad') : tipo === 'ok' ? leerVar('--breath-good') : leerVar('--sky-mid');
   }
@@ -7533,10 +7564,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
         const resumenRuta = `${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`;
                 mostrarEstado(resumenRuta, 'ok');
-        // La clase mantiene activa la tarjeta dentro del mapa y permite a
-        // confort-ruta.js seguir la vida de la ruta.
+        // (nov-2026) El resumen de la ruta llega al panel del buscador por el
+        // mensaje de estado y al widget solar por sus horquillas: la tarjeta
+        // flotante del mapa sobraba. Ya NO se mete dentro del mapa (el CSS
+        // .rs-status-ruta sigue ahí por si algún día se vuelve a usar).
+        // OJO: la clase se mantiene porque es el latido que sigue
+        // confort-ruta.js para saber que hay ruta viva; sin ella, el panel
+        // UTCI se cerraría solo a los 700 ms.
         statusEl.classList.add('rs-status-ruta');
-        asegurarTarjetaRutaEnMapa();
+        fijarTarjetaRutaFlotante(false);
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);

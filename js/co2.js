@@ -92,7 +92,7 @@ window.ManolitCO2 = (function () {
     /* (nov-2026) Cristal glossy, elegante y más pequeño: mismo lenguaje que
        las tarjetas flotantes del mapa (cristal oscuro translúcido, desenfoque
        y filo de acento), pero un punto más luminoso para que respire sobre
-       el mapa. Se adapta al móvil por debajo de 640 px. */
+       la página. Se adapta al móvil por debajo de 640 px. */
     var css = ''
       + '.co2-caja{margin:0 0 10px;padding:9px 12px;max-width:min(440px,100%);box-sizing:border-box;'
       + 'border:1px solid rgba(255,255,255,.14);border-top-color:rgba(255,255,255,.26);'
@@ -203,10 +203,12 @@ window.ManolitCO2 = (function () {
       caja = document.createElement('div');
       caja.id = 'co2Box';
       caja.className = 'co2-caja';
-      var contenedor = document.getElementById('rsRouteInfo');
-      var ancla = contenedor && contenedor.querySelector('.rs-status-toggle');
-      if (!ancla) { caja = null; return; }
-      ancla.insertAdjacentElement('afterend', caja);
+      var status = document.getElementById('rsStatus');
+      if (status && status.parentNode) {
+        status.insertAdjacentElement('afterend', caja);
+      } else {
+        return;
+      }
     }
     pintar();
   }

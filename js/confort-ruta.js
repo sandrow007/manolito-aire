@@ -289,8 +289,9 @@
 
   function asegurarDom() {
     if (dom.panel) return true;
-    var contenedor = document.getElementById('rsRouteInfo');
-    if (!contenedor) return false;
+    var estado = document.getElementById('rsStatus');
+    if (!estado) return false;
+    var ancla = estado.closest('label.rs-status-toggle') || estado;
     var panel = document.createElement('div');
     panel.id = 'rsConfortRuta';
     panel.hidden = true;
@@ -301,7 +302,7 @@
       '</div>' +
       '<p class="rs-confort-confianza"><span class="rs-conf-punto" aria-hidden="true"></span><span class="rs-conf-texto"></span></p>' +
       '<p class="rs-confort-aviso"></p>';
-    contenedor.appendChild(panel);
+    ancla.insertAdjacentElement('afterend', panel);
     dom.panel = panel;
     dom.fresca = panel.querySelector('.rs-confort-fresca');
     dom.rapida = panel.querySelector('.rs-confort-rapida');
@@ -314,10 +315,27 @@
     return String(Math.max(0, Math.round(min)));
   }
 
+  // La etiqueta de estado se MUEVE dentro del mapa cuando hay ruta
+  // (fijarTarjetaRutaFlotante de shadows-route.js): el panel sigue a su
+  // ancla allá donde esté, y dentro del mapa flota justo debajo de la
+  // tarjeta de la ruta sin taparla.
   function reanclar() {
-    var contenedor = document.getElementById('rsRouteInfo');
-    if (contenedor && dom.panel.parentElement !== contenedor) {
-      contenedor.appendChild(dom.panel);
+    var estado = document.getElementById('rsStatus');
+    if (!estado || !dom.panel) return;
+    var ancla = estado.closest('label.rs-status-toggle') || estado;
+    if (dom.panel.previousElementSibling !== ancla) {
+      ancla.insertAdjacentElement('afterend', dom.panel);
+    }
+  }
+
+  function posicionarEnMapa() {
+    if (!dom.panel) return;
+    var wrap = dom.panel.closest ? dom.panel.closest('.map-wrap') : null;
+    if (!wrap) { dom.panel.style.top = ''; return; }
+    var estado = document.getElementById('rsStatus');
+    var etiqueta = estado && estado.closest('label.rs-status-toggle');
+    if (etiqueta && etiqueta.parentElement === wrap) {
+      dom.panel.style.top = (etiqueta.offsetTop + etiqueta.offsetHeight + 6) + 'px';
     }
   }
 
@@ -379,6 +397,7 @@
     }
 
     dom.panel.hidden = false;
+    posicionarEnMapa();
   }
 
   function mostrar(ruta) {
@@ -431,6 +450,11 @@
   function arrancar() {
     asegurarDom();
     vigilarEstado();
+    try {
+      window.addEventListener('resize', function () {
+        if (dom.panel && !dom.panel.hidden) posicionarEnMapa();
+      }, { passive: true });
+    } catch (e) { }
     try {
       document.addEventListener('langChanged', function () {
         if (ultimaRuta && dom.panel && !dom.panel.hidden) pintar(ultimaRuta);

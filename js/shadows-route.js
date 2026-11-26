@@ -12145,6 +12145,44 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     })(50);
 
     let arbolesGrandes = [];
+    // Rejilla espacial para el anti-duplicado OSM. Antes se hacía un
+    // .some() contra TODOS los árboles acumulados por cada elemento nuevo:
+    // O(n²). Tras visitar una zona con miles de árboles (p. ej. Sevilla),
+    // irse a otra ciudad bloqueaba el hilo principal decenas de segundos
+    // (Chrome proponía cerrar la página). Con la rejilla cada consulta es
+    // O(1) sobre las 9 celdas vecinas (~85 m de lado, cubre el radio de
+    // dedup de 8 m con margen).
+    const CELDA_OSM = 0.001;
+    let rejillaOsm = new Map();
+    const claveCeldaOsm = (lon, lat) => Math.floor(lat / CELDA_OSM) + ',' + Math.floor(lon / CELDA_OSM);
+    function indexarArbolOsm(a) {
+      const [lon, lat] = a.punto.geometry.coordinates;
+      const k = claveCeldaOsm(lon, lat);
+      if (!rejillaOsm.has(k)) rejillaOsm.set(k, []);
+      rejillaOsm.get(k).push(a);
+    }
+    function reconstruirRejillaOsm() {
+      rejillaOsm = new Map();
+      for (const a of arbolesGrandes) indexarArbolOsm(a);
+    }
+    function hayDuplicadoOsmCerca(lon, lat, radioPara) {
+      const cosLat = Math.cos(lat * Math.PI / 180);
+      const cy = Math.floor(lat / CELDA_OSM), cx = Math.floor(lon / CELDA_OSM);
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const grupo = rejillaOsm.get((cy + dy) + ',' + (cx + dx));
+          if (!grupo) continue;
+          for (const previo of grupo) {
+            const radioMinimo = radioPara(previo);
+            const [lonPrevio, latPrevio] = previo.punto.geometry.coordinates;
+            const dxc = (lonPrevio - lon) * cosLat * 111320;
+            const dyc = (latPrevio - lat) * 110540;
+            if (dxc * dxc + dyc * dyc < radioMinimo * radioMinimo) return true;
+          }
+        }
+      }
+      return false;
+    }
     const celdasConsultadas = new Set();
     let consultaEnCurso = false;
 
@@ -12390,7 +12428,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             const [lonA, latA] = a.punto.geometry.coordinates;
             return !(latA >= bbox[0] && lonA >= bbox[1] && latA <= bbox[2] && lonA <= bbox[3]);
           });
+          reconstruirRejillaOsm();
         }
+        let procesados = 0;
         for (const el of elementos) {
           // Las hileras (way natural=tree_row) se expanden primero en
           // puntos cada ~9 m; los nodos sueltos pasan tal cual.
@@ -12409,26 +12449,29 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
               // Una misma celda/vía puede volver a llegar en consultas Overpass
               // solapadas. No acumular copias casi idénticas en la sesión.
               const cosLat = Math.cos(cand.lat * Math.PI / 180);
-              const duplicadoOSM = !duplicadoOficial && arbolesGrandes.some((previo) => {
-                const [lonPrevio, latPrevio] = previo.punto.geometry.coordinates;
-                const dx = (lonPrevio - cand.lon) * cosLat * 111320;
-                const dy = (latPrevio - cand.lat) * 110540;
+              const duplicadoOSM = !duplicadoOficial && (() => {
                 // En las hileras sintéticas, comparar también con el tamaño
                 // de copa para absorber solapes por diferencias de alineación.
                 const esMismaHilera = cand.tags && cand.tags.natural === 'tree_row';
-                const radioMinimo = esMismaHilera
+                return hayDuplicadoOsmCerca(cand.lon, cand.lat, (previo) => esMismaHilera
                   ? Math.min(8, Math.max(3.5, (arbol.radioCopaM + (previo.radioCopaM || 0)) * 0.45))
-                  : 1.5;
-                return dx * dx + dy * dy < radioMinimo * radioMinimo;
-              });
-              if (!duplicadoOficial && !duplicadoOSM) arbolesGrandes.push(arbol);
+                  : 1.5);
+              })();
+              if (!duplicadoOficial && !duplicadoOSM) {
+                arbolesGrandes.push(arbol);
+                indexarArbolOsm(arbol);
+              }
             }
             // INP (2026-09-12): tramos de 80 en vez de 200. Con miles de
             // árboles, 200 seguidos secuestraban el hilo ~200-300 ms y un
             // toque en el mapa esperaba eso (INP 592 ms medido en el
             // panel de Cloudflare). Con 80 el navegador atiende el dedo
-            // entre tramo y tramo; el total tarda lo mismo.
-            if (arbolesGrandes.length % 80 === 0) await cederAlNavegador();
+            // entre tramo y tramo; el total tarda lo mismo. El contador va
+            // por candidatos PROCESADOS (no por árboles añadidos): si una
+            // zona llega llena de duplicados, la longitud no crece y el
+            // reparto al navegador nunca se producía.
+            procesados++;
+            if (procesados % 80 === 0) await cederAlNavegador();
           }
         }
         // Sello del refresco de 12 h (sep-2026): datos OSM recién bajados.

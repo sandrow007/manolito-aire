@@ -382,10 +382,16 @@
   .idioma-inicio-card{
     width:min(380px,100%); color:#EAF1FF; box-sizing:border-box;
     position:relative; z-index:1; margin:auto; flex:0 0 auto;
-    padding:16px 22px 20px; border-radius:18px;
-    background:rgba(3,5,15,.72);
-    backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
-    box-shadow:0 12px 50px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.07);
+    padding:0;
+  }
+  /* Integrado, no una pantalla pegada encima: sin panel rectangular.
+     Solo un halo radial que apaga las palabras detrás del logo y los
+     botones para que se lean; se desvanece sin bordes duros. */
+  .idioma-inicio-card::before{
+    content:""; position:absolute; z-index:-1;
+    left:-70px; right:-70px; top:-55px; bottom:-45px;
+    background:radial-gradient(50% 55% at 50% 46%,
+      rgba(3,5,15,.92) 0%, rgba(3,5,15,.62) 48%, rgba(3,5,15,0) 76%);
   }
   .idioma-inicio-titulo{ display:none; }
   .idioma-inicio-sub{ display:none; }
@@ -436,7 +442,6 @@
   /* Pantallas bajas (portátiles): se compacta la tarjeta para que los 7
      idiomas quepan sin scroll; si aun así no cabe, la puerta desliza. */
   @media (max-height:860px){
-    .idioma-inicio-card{ padding-top:12px; padding-bottom:14px; }
     .idioma-inicio-logo{ --lw:330px; margin-bottom:2px; }
     .idioma-inicio-grid{ gap:8px; }
     .idioma-inicio-btn{ min-height:44px; padding:8px 10px; }
@@ -446,7 +451,6 @@
     .idioma-inicio-btn{ min-height:40px; }
   }
   @media (max-width:700px){
-    .idioma-inicio-card{ padding:12px 16px 14px; border-radius:14px; }
     .idioma-inicio-logo{ --lw:290px; }
   }
   html:not(.manolito-idioma-pendiente) #idiomaInicioGate{

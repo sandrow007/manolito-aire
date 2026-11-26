@@ -403,22 +403,33 @@
     outline:3px solid var(--accent,#FF6B1A); outline-offset:2px;
     box-shadow:0 0 0 4px rgba(255,107,26,.2);
   }
-  /* Logo Manolit (colores de marca) y «Bienvenido» rotativo en la puerta
-     de idioma (nov-2026). El logo es el SVG de la marca; la palabra rota
-     por JS cada ~2,4 s y con reduced-motion se queda fija. */
+  /* Logo ORIGINAL de Manolit: los mismos trazos, colores y grosores del
+     icono de la app y del splash (index.html: P_SHIELD/P_SUN/P_INF/P_WAVE).
+     Nada inventado. */
   .idioma-inicio-logo{
-    display:block; width:78px; height:auto; margin:0 auto 4px;
-    filter:drop-shadow(0 4px 18px rgba(255,42,75,.35));
+    display:block; width:140px; height:auto; margin:0 auto 12px;
   }
-  .idioma-bienvenida{
-    margin:2px 0 14px; min-height:1.4em; text-align:center;
-    font-size:clamp(17px,2.6vw,22px); font-weight:800; letter-spacing:.04em;
-    color:#ffcc00; text-shadow:0 0 14px rgba(0,229,255,.35);
-    opacity:1; transition:opacity .28s ease;
+  /* «Bienvenido» en decenas de idiomas ALREDEDOR de la pantalla (a los
+     lados, arriba y abajo; petición expresa: NUNCA una palabra fija en el
+     centro cambiando). Estático, decorativo, en los colores del logo. */
+  .idioma-alrededor{
+    position:absolute; inset:0; z-index:0; overflow:hidden;
+    pointer-events:none; user-select:none;
+    font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   }
-  .idioma-bienvenida.cambio{ opacity:0; }
-  @media (prefers-reduced-motion:reduce){
-    .idioma-bienvenida{ transition:none; }
+  .idioma-alrededor .ia{
+    position:absolute; transform:translate(-50%,-50%) rotate(var(--r,0deg));
+    font-size:var(--fs,12px); font-weight:600; letter-spacing:.08em;
+    white-space:nowrap; opacity:.5;
+  }
+  .idioma-alrededor .c1{ color:#ff2a4b; }
+  .idioma-alrededor .c2{ color:#ffcc00; }
+  .idioma-alrededor .c3{ color:#00e5ff; }
+  .idioma-alrededor .ia-grande{ opacity:.15; font-weight:800; }
+  .idioma-inicio-card{ position:relative; z-index:1; }
+  /* En pantallas estrechas no hay sitio a los lados: solo arriba y abajo */
+  @media (max-width:700px){
+    .idioma-alrededor .ia-lado{ display:none; }
   }
   html:not(.manolito-idioma-pendiente) #idiomaInicioGate{
     opacity:0; visibility:hidden; pointer-events:none;
@@ -446,14 +457,45 @@
 <a href="#main-content" class="skip-link" data-i18n="skipToContent">Saltar al contenido principal</a>
 
 <div id="idiomaInicioGate">
+  <!-- «Bienvenido» en decenas de idiomas ALREDEDOR de la pantalla, en los
+       colores del logo. Estático: nada gira ni cambia. Vive FUERA de la
+       tarjeta para posicionarse respecto a toda la ventana. -->
+  <div class="idioma-alrededor" aria-hidden="true">
+    <span class="ia c1 ia-lado" style="left:4%;top:16%;--r:-5deg">Bienvenido</span>
+    <span class="ia c2 ia-lado" style="left:5%;top:26%;--r:4deg">Welcome</span>
+    <span class="ia c3 ia-lado" style="left:4%;top:36%;--r:-3deg">Bienvenue</span>
+    <span class="ia c1 ia-lado" style="left:5%;top:46%;--r:5deg">Benvenuto</span>
+    <span class="ia c2 ia-lado" style="left:4%;top:56%;--r:-4deg">Bem-vindo</span>
+    <span class="ia c3 ia-lado" style="left:5%;top:66%;--r:3deg">Willkommen</span>
+    <span class="ia c1 ia-lado" style="left:4%;top:76%;--r:-5deg">Welkom</span>
+    <span class="ia c2 ia-lado" style="left:95%;top:15%;--r:5deg">Benvingut</span>
+    <span class="ia c3 ia-lado" style="left:94%;top:25%;--r:-4deg">Ongi etorri</span>
+    <span class="ia c1 ia-lado" style="left:95%;top:35%;--r:6deg">Benvido</span>
+    <span class="ia c2 ia-lado" style="left:94%;top:45%;--r:-6deg">Witamy</span>
+    <span class="ia c3 ia-lado" style="left:95%;top:55%;--r:4deg">Vítejte</span>
+    <span class="ia c1 ia-lado" style="left:94%;top:65%;--r:-3deg">Välkommen</span>
+    <span class="ia c2 ia-lado" style="left:95%;top:75%;--r:5deg">Tervetuloa</span>
+    <span class="ia c1 ia-lado" style="left:4%;top:7%;--r:-4deg">Bun venit</span>
+    <span class="ia c3 ia-lado" style="left:95%;top:7%;--r:4deg">Dobrodošli</span>
+    <span class="ia c3 ia-lado" style="left:4%;top:88%;--r:-6deg">Καλώς ήρθατε</span>
+    <span class="ia c1 ia-lado" style="left:95%;top:88%;--r:5deg">Hoş geldiniz</span>
+    <span class="ia c1" style="left:14%;top:6%;--r:-3deg">欢迎</span>
+    <span class="ia c2" style="left:37%;top:4%;--r:2deg">ようこそ</span>
+    <span class="ia c3" style="left:63%;top:6%;--r:-2deg">환영합니다</span>
+    <span class="ia c1" style="left:86%;top:5%;--r:3deg">მოგესალმებით</span>
+    <span class="ia c2" style="left:12%;top:95%;--r:2deg">أهلاً بك</span>
+    <span class="ia c3" style="left:33%;top:96%;--r:-3deg">ברוכים הבאים</span>
+    <span class="ia c1" style="left:55%;top:94%;--r:3deg">स्वागत है</span>
+    <span class="ia c2" style="left:78%;top:95%;--r:-2deg">ยินดีต้อนรับ</span>
+    <span class="ia c1 ia-grande" style="left:50%;top:2.5%;--fs:26px">Croeso</span>
+    <span class="ia c2 ia-grande" style="left:50%;top:98%;--fs:26px">Fáilte</span>
+  </div>
   <div class="idioma-inicio-card" role="dialog" aria-modal="true" aria-labelledby="idiomaInicioTitulo">
     <p class="idioma-inicio-titulo" id="idiomaInicioTitulo">Elige tu idioma</p>
     <p class="idioma-inicio-sub">Selecciona el idioma para arrancar la web.</p>
-    <!-- Logo Manolit con los colores de la marca y «Bienvenido» rotativo en
-         decenas de idiomas (TODOS menos ruso, a petición expresa). Es
-         decorativo (aria-hidden): rota cada ~2,4 s y se apaga al cerrar. -->
-    <svg class="idioma-inicio-logo" viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs><filter id="glowBienvenida" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g filter="url(#glowBienvenida)"><path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="13" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="11"/><path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/><path d="M65,180 Q82.5,172 100,180 T135,180" fill="none" stroke="#00e5ff" stroke-width="9" stroke-linecap="round"/></g></svg>
-    <p class="idioma-bienvenida" id="idiomaBienvenida" aria-hidden="true">Bienvenido</p>
+    <!-- Logo ORIGINAL de Manolit (mismos trazos y grosores del icono de la
+         app: escudo, sol, infinito y olas). -->
+    <svg class="idioma-inicio-logo" viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(255,42,75,0.05)" stroke="#ff2a4b" stroke-width="4" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="3"/><path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="4" stroke-linecap="round"/><path d="M65,175 Q82.5,167 100,175 T135,175" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/></svg>
     <div class="idioma-inicio-grid" role="group" aria-label="Selector inicial de idioma">
       <button type="button" class="idioma-inicio-btn" data-lang="es">Español</button>
       <button type="button" class="idioma-inicio-btn" data-lang="ca">Català</button>
@@ -526,27 +568,6 @@
       resolverIdioma(langElegido, true);
     });
     pintarSeleccion();
-    // «Bienvenido» rotativo en decenas de idiomas (TODOS menos ruso, a
-    // petición expresa: sin cirílico): solo decoración; se apaga al cerrar
-    // la puerta y con reduced-motion no rota.
-    (function rotarBienvenida() {
-      const el = gate.querySelector('#idiomaBienvenida');
-      if (!el) return;
-      const PALABRAS = ['Bienvenido','Benvingut','Ongi etorri','Benvido','Welcome','Bienvenue','Benvenuto','Bem-vindo','Willkommen','Welkom','Välkommen','Velkommen','Tervetuloa','Tere tulemast','Sveiki','Sveiki atvykę','Witamy','Vítejte','Vitajte','Üdvözöljük','Bun venit','Dobrodošli','Dobrodošla','Croeso','Fáilte','Bonvenon','Hoş geldiniz','Καλώς ήρθατε','მოგესალმებით','Բարի գալուստ','أهلاً بك','ברוכים הבאים','خوش آمدید','Bi xêr hatî','Karibu','Sannu da zuwa','Ẹ ku abọ','እንኳን ደህና መጡ','Merhba','Selamat datang','Maligayang pagdating','स्वागत है','স্বাগতম','ਸੁਆਗਤ ਹੈ','સ્વાગત છે','ସ୍ୱାଗତ','வரவேற்பு','స్వాగతం','ಸ್ವಾಗತ','സ്വാഗതം','ආයුබෝවන්','ยินดีต้อนรับ','ຍິນດີຕ້ອນຮັບ','សូមស្វាគមន៍','欢迎','ようこそ','환영합니다'];
-      const REDUCIDO = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (REDUCIDO) return;
-      let i = 0;
-      const paso = function () {
-        if (cerrado || !document.body.contains(el)) { clearInterval(timer); return; }
-        el.classList.add('cambio');
-        setTimeout(function () {
-          i = (i + 1) % PALABRAS.length;
-          el.textContent = PALABRAS[i];
-          el.classList.remove('cambio');
-        }, 280);
-      };
-      const timer = setInterval(paso, 2400);
-    })();
     autoCierre = setTimeout(() => resolverIdioma(langElegido, huboEleccionManual), 30000);
     const primerBtn = gate.querySelector('button[data-lang]');
     if (primerBtn) setTimeout(() => primerBtn.focus(), 0);

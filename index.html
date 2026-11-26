@@ -403,6 +403,23 @@
     outline:3px solid var(--accent,#FF6B1A); outline-offset:2px;
     box-shadow:0 0 0 4px rgba(255,107,26,.2);
   }
+  /* Logo Manolit (colores de marca) y «Bienvenido» rotativo en la puerta
+     de idioma (nov-2026). El logo es el SVG de la marca; la palabra rota
+     por JS cada ~2,4 s y con reduced-motion se queda fija. */
+  .idioma-inicio-logo{
+    display:block; width:78px; height:auto; margin:0 auto 4px;
+    filter:drop-shadow(0 4px 18px rgba(255,42,75,.35));
+  }
+  .idioma-bienvenida{
+    margin:2px 0 14px; min-height:1.4em; text-align:center;
+    font-size:clamp(17px,2.6vw,22px); font-weight:800; letter-spacing:.04em;
+    color:#ffcc00; text-shadow:0 0 14px rgba(0,229,255,.35);
+    opacity:1; transition:opacity .28s ease;
+  }
+  .idioma-bienvenida.cambio{ opacity:0; }
+  @media (prefers-reduced-motion:reduce){
+    .idioma-bienvenida{ transition:none; }
+  }
   html:not(.manolito-idioma-pendiente) #idiomaInicioGate{
     opacity:0; visibility:hidden; pointer-events:none;
   }
@@ -432,6 +449,11 @@
   <div class="idioma-inicio-card" role="dialog" aria-modal="true" aria-labelledby="idiomaInicioTitulo">
     <p class="idioma-inicio-titulo" id="idiomaInicioTitulo">Elige tu idioma</p>
     <p class="idioma-inicio-sub">Selecciona el idioma para arrancar la web.</p>
+    <!-- Logo Manolit con los colores de la marca y «Bienvenido» rotativo en
+         decenas de idiomas (TODOS menos ruso, a petición expresa). Es
+         decorativo (aria-hidden): rota cada ~2,4 s y se apaga al cerrar. -->
+    <svg class="idioma-inicio-logo" viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs><filter id="glowBienvenida" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g filter="url(#glowBienvenida)"><path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="13" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="11"/><path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/><path d="M65,180 Q82.5,172 100,180 T135,180" fill="none" stroke="#00e5ff" stroke-width="9" stroke-linecap="round"/></g></svg>
+    <p class="idioma-bienvenida" id="idiomaBienvenida" aria-hidden="true">Bienvenido</p>
     <div class="idioma-inicio-grid" role="group" aria-label="Selector inicial de idioma">
       <button type="button" class="idioma-inicio-btn" data-lang="es">Español</button>
       <button type="button" class="idioma-inicio-btn" data-lang="ca">Català</button>
@@ -504,6 +526,27 @@
       resolverIdioma(langElegido, true);
     });
     pintarSeleccion();
+    // «Bienvenido» rotativo en decenas de idiomas (TODOS menos ruso, a
+    // petición expresa: sin cirílico): solo decoración; se apaga al cerrar
+    // la puerta y con reduced-motion no rota.
+    (function rotarBienvenida() {
+      const el = gate.querySelector('#idiomaBienvenida');
+      if (!el) return;
+      const PALABRAS = ['Bienvenido','Benvingut','Ongi etorri','Benvido','Welcome','Bienvenue','Benvenuto','Bem-vindo','Willkommen','Welkom','Välkommen','Velkommen','Tervetuloa','Tere tulemast','Sveiki','Sveiki atvykę','Witamy','Vítejte','Vitajte','Üdvözöljük','Bun venit','Dobrodošli','Dobrodošla','Croeso','Fáilte','Bonvenon','Hoş geldiniz','Καλώς ήρθατε','მოგესალმებით','Բարի գալուստ','أهلاً بك','ברוכים הבאים','خوش آمدید','Bi xêr hatî','Karibu','Sannu da zuwa','Ẹ ku abọ','እንኳን ደህና መጡ','Merhba','Selamat datang','Maligayang pagdating','स्वागत है','স্বাগতম','ਸੁਆਗਤ ਹੈ','સ્વાગત છે','ସ୍ୱାଗତ','வரவேற்பு','స్వాగతం','ಸ್ವಾಗತ','സ്വാഗതം','ආයුබෝවන්','ยินดีต้อนรับ','ຍິນດີຕ້ອນຮັບ','សូមស្វាគមន៍','欢迎','ようこそ','환영합니다'];
+      const REDUCIDO = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (REDUCIDO) return;
+      let i = 0;
+      const paso = function () {
+        if (cerrado || !document.body.contains(el)) { clearInterval(timer); return; }
+        el.classList.add('cambio');
+        setTimeout(function () {
+          i = (i + 1) % PALABRAS.length;
+          el.textContent = PALABRAS[i];
+          el.classList.remove('cambio');
+        }, 280);
+      };
+      const timer = setInterval(paso, 2400);
+    })();
     autoCierre = setTimeout(() => resolverIdioma(langElegido, huboEleccionManual), 30000);
     const primerBtn = gate.querySelector('button[data-lang]');
     if (primerBtn) setTimeout(() => primerBtn.focus(), 0);

@@ -430,7 +430,16 @@
 //     glosario; el glosario re-ancla la tarjeta al abrirse (en móvil el
 //     contenido se salía de pantalla). Cambian js/sqi-calidad-sombra.js y
 //     css/sqi.css.
-const VERSION = '2026-11-26-a-lado-sombra-microclima';
+// 2026-11-26-feria: se restaura el aviso de la feria de Mairena (splash,
+//     intro SEO y sección "Manolit∞ sale a la calle") que se había perdido
+//     al sobrescribir index.html en 003dcbc. Solo cambia index.html.
+// 2026-11-26-arboles: mejora general de los árboles EZ (menos palmeras,
+//     albizia y naranjo, que se quedan como están): corteza con sombreado
+//     suave (el tronco ya no sale facetado "redondo redondo" con anillos
+//     de luz absurdos) y copa en racimo: cada hoja es ahora 2 planos
+//     pequeños cruzados y desplazados en vez de una pala plana gigante.
+//     Cambian js/arboles-ez-3d.js e index.html (?v=).
+const VERSION = '2026-11-26-arboles-racimo-sombreado';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

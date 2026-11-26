@@ -824,7 +824,7 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     var ramas = [];
     var hojas = [];
     var up = new THREE.Vector3(0, 1, 0);
-    var maxItems = 3200; // defensa de memoria; los presets caben bajo este tope
+    var maxItems = 5600; // defensa de memoria; con el racimo de 2 planos por slot de hoja los presets caben bajo este tope
     var maxDepth = 4;
     function grow(origin, dir, level, length, radius) {
       if (level > maxDepth) throw new Error('EZ-TREE branch depth limit exceeded');
@@ -879,9 +879,23 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
           var q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), radialAngle);
           var leafQ = new THREE.Quaternion().setFromEuler(leafOrientation).multiply(q2).multiply(q1);
           var leafSize = preset.leafSize * (1 + rand(preset.leafVariance, -preset.leafVariance));
-          var leafGeo = new THREE.PlaneGeometry(leafSize, leafSize * 0.48);
-          leafGeo.applyMatrix4(new THREE.Matrix4().compose(leafOrigin, leafQ, new THREE.Vector3(1, 1, 1)));
-          hojas.push(leafGeo);
+          // (nov-2026) RACIMO, NO PALA: antes cada slot era UN plano de
+          // leafSize entero (2-3 m) y la copa salía hecha de paletas planas
+          // gigantes. Ahora cada slot genera 2 planos más pequeños, girados
+          // y desplazados alrededor del punto del raquis: la masa foliar se
+          // lee como follaje con volumen y rompe la silueta de cartulina.
+          for (var lh = 0; lh < 2 && hojas.length < maxItems; lh++) {
+            var escalaHoja = leafSize * (lh === 0 ? 0.62 : 0.5) * (1 + rand(0.18, -0.18));
+            var leafGeo = new THREE.PlaneGeometry(escalaHoja, escalaHoja * 0.48);
+            var qHoja = leafQ.clone()
+              .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand(Math.PI, -Math.PI)))
+              .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), rand(0.5, -0.5)));
+            var origenHoja = leafOrigin.clone().add(new THREE.Vector3(
+              rand(0.5, -0.5), rand(0.35, -0.2), rand(0.5, -0.5)
+            ).multiplyScalar(leafSize * 0.42));
+            leafGeo.applyMatrix4(new THREE.Matrix4().compose(origenHoja, qHoja, new THREE.Vector3(1, 1, 1)));
+            hojas.push(leafGeo);
+          }
         }
       }
 
@@ -930,7 +944,13 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
       var preset = EZ_PRESETS[especie.preset];
       variantes[tipo] = [];
       for (var v = 0; v < N_VARIANTES; v++) {
-        var barkMat = new THREE.MeshStandardMaterial({ color: 0x594332, flatShading: true, roughness: 1.0, metalness: 0.02 });
+        // (nov-2026) SOMBREADO SUAVE EN LA CORTEZA: con flatShading cada
+        // sección del tronco se iluminaba por caras y el fuste salía
+        // "redondo redondo" con anillos claros/oscuros absurdos. Los
+        // cilindros ya traen normales suaves, así que basta apagar el
+        // flatShading para que el tronco se lea como un fuste continuo.
+        // Las palmeras (que ya gustan tal cual) conservan su shading plano.
+        var barkMat = new THREE.MeshStandardMaterial({ color: 0x594332, flatShading: !!preset.palm, roughness: 1.0, metalness: 0.02 });
         var rand = ezRng(preset.seed + k * 7919 + v * 131);
         var ramaje = construirEsqueleto(preset, rand, tipo);
         var geoMadera = fusionar(ramaje.madera);

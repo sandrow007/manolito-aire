@@ -6121,9 +6121,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (analisis.lado === 'ambos') extra = t('shadeBothSides', 'Hay sombra en los dos lados de la calle.');
     } else if (fraccion <= 0.25) {
       frase = t('shadeSun', 'tramo al sol');
-      // Sol de cara o de espaldas: solo si el tramo tiene recorrido, que en
-      // una esquina de 10 m no aporta nada.
-      if (dirSol != null && rumboTramo != null && metros >= 60) {
+      // Aunque el CENTRO de la calle vaya al sol, una acera puede ir a la
+      // sombra: es justo el aviso que le salva al peatón, así que manda
+      // sobre el "sol de cara/espalda" (que se reserva para cuando no hay
+      // lado bueno). Solo en tramos con recorrido: en 10 m no aporta.
+      if (analisis.lado === 'izquierda') extra = t('shadeSideLeft', 'La sombra va por tu lado izquierdo.');
+      else if (analisis.lado === 'derecha') extra = t('shadeSideRight', 'La sombra va por tu lado derecho.');
+      else if (analisis.lado === 'ambos') extra = t('shadeBothSides', 'Hay sombra en los dos lados de la calle.');
+      else if (dirSol != null && rumboTramo != null && metros >= 60) {
         const rel = Math.abs(normalizarGiro(rumboTramo, dirSol));
         if (rel < 40) extra = t('shadeSunFront', 'El sol te da de cara.');
         else if (rel > 140) extra = t('shadeSunBack', 'El sol te da en la espalda.');

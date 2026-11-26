@@ -4743,32 +4743,52 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 }
 
 /* Atajo «Iniciar caminata» JUSTO al lado de «Buscar» (nov-2026): nace
-   oculto y shadows-route.js lo enciende al calcular una ruta. Es un CTA de
-   verdad, hermanado con #rsBuscarBtn: misma altura y misma píldora, para
-   que en móvil no haya que rebuscarlo en la botonera deslizante del mapa. */
+   oculto y shadows-route.js lo enciende al calcular una ruta. Se acopla al
+   tamaño de los botones de la barra en cada ancho, sin destacar: píldora de
+   32px como «Buscar» (768-900px), botón plano de 40px (≥901px, bloque más
+   abajo) e icono de 34×42px como «Buscar» en móvil (≤760px). */
 #main-content .rs-accion-caminar{
   display:flex;
   margin:0;
 }
 #main-content .rs-accion-caminar[hidden]{ display:none; }
 #main-content .rs-accion-caminar #rsBtnCaminarResumen{
-  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  display:inline-flex; align-items:center; justify-content:center; gap:5px;
   height:32px; min-height:32px; max-height:32px; box-sizing:border-box;
-  padding:0 12px;
+  padding:0 14px;
   border:1px solid rgba(255,107,26,0.22);
   border-radius:999px;
   background:var(--mui-accent-tint);
   color:var(--mui-accent);
-  font-size:12px !important; font-weight:600; letter-spacing:-0.01em;
+  font-size:12px !important; font-weight:500; letter-spacing:-0.01em;
   white-space:nowrap;
   box-shadow:none;
   cursor:pointer;
   transition:background .18s ease, border-color .18s ease, color .18s ease;
 }
 /* Icono: el logo oficial Manolit «IR HASTA AQUÍ» va INLINE en el botón
-   (nov-2026); aquí solo se le da tamaño de pictograma. */
+   (nov-2026); tamaño de pictograma, igual que el icono de «Buscar». */
 #main-content .rs-accion-caminar #rsBtnCaminarResumen .rs-atajo-logo{
-  flex:0 0 auto; display:block; height:19px; width:auto;
+  flex:0 0 auto; display:block; height:16px; width:auto;
+}
+/* ≥901px: «Buscar» y los botones de la barra van PLANOS (texto, sin píldora
+   ni fondo); el atajo se acopla a esa misma presentación y a su tamaño.
+   Los !important replican el bloque plano de #rsBuscarBtn (misma técnica). */
+@media (min-width:901px){
+  #main-content .rs-accion-caminar #rsBtnCaminarResumen{
+    width:auto; min-width:0; height:40px; min-height:40px !important; max-height:40px;
+    margin:0; padding:4px 8px !important; gap:5px;
+    border:0 !important; border-bottom:1px solid transparent !important; border-radius:0 !important;
+    background:none !important; color:inherit !important; text-shadow:inherit;
+    box-shadow:none !important;
+    font-size:12px !important; font-weight:600 !important; line-height:1 !important;
+    transition:border-color 160ms ease, opacity 160ms ease;
+  }
+  #main-content .rs-accion-caminar #rsBtnCaminarResumen .rs-atajo-logo{ height:15px; }
+  #main-content .rs-accion-caminar #rsBtnCaminarResumen:hover,
+  #main-content .rs-accion-caminar #rsBtnCaminarResumen:active{
+    background:none !important; border-color:transparent !important; border-bottom-color:currentColor !important;
+  }
 }
 #main-content .rs-accion-caminar #rsBtnCaminarResumen:hover{
   background:rgba(255,107,26,0.20);
@@ -4783,15 +4803,15 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
 #main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-accion-caminar #rsBtnCaminarResumen {
   color:#202124;
 }
-/* En móvil el hueco al lado de Buscar es mínimo: el botón pasa a icono
-   compacto (misma altura que Buscar), sin texto, con el aria-label intacto. */
-@media (max-width:640px){
+/* En móvil (≤760px la barra pasa a celdas de 34px) el botón es SOLO icono,
+   idéntico a «Buscar»: 34×42, sin texto, con el aria-label intacto. */
+@media (max-width:760px){
   #main-content .rs-accion-caminar #rsBtnCaminarResumen{
     width:34px; min-width:34px; height:42px; min-height:42px; max-height:42px;
     padding:0; border-radius:10px;
     font-size:0 !important;
   }
-  #main-content .rs-accion-caminar #rsBtnCaminarResumen .rs-atajo-logo{ height:24px; }
+  #main-content .rs-accion-caminar #rsBtnCaminarResumen .rs-atajo-logo{ height:20px; }
   #main-content .rs-accion-caminar #rsBtnCaminarResumen .rs-atajo-caminar-txt{ display:none; }
 }
 @media (prefers-reduced-motion:reduce){

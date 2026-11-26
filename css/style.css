@@ -4765,13 +4765,10 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
   cursor:pointer;
   transition:background .18s ease, border-color .18s ease, color .18s ease;
 }
-#main-content .rs-accion-caminar #rsBtnCaminarResumen::before{
-  content:''; flex:0 0 auto; width:14px; height:14px; background-color:currentColor;
-  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.2' cy='4.6' r='1.6'/%3E%3Cpath d='M9.5 20l2-4.8-1.6-2.4.9-3.8 2.9 1.7 2.2.7'/%3E%3Cpath d='M10.8 9.2 8.6 12l-2 .7'/%3E%3Cpath d='m13 10.8.9 3.7 2.6 4.7'/%3E%3C/svg%3E");
-          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13.2' cy='4.6' r='1.6'/%3E%3Cpath d='M9.5 20l2-4.8-1.6-2.4.9-3.8 2.9 1.7 2.2.7'/%3E%3Cpath d='M10.8 9.2 8.6 12l-2 .7'/%3E%3Cpath d='m13 10.8.9 3.7 2.6 4.7'/%3E%3C/svg%3E");
-  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
-  -webkit-mask-position:center; mask-position:center;
-  -webkit-mask-size:contain; mask-size:contain;
+/* Icono: el logo oficial Manolit «IR HASTA AQUÍ» va INLINE en el botón
+   (nov-2026); aquí solo se le da tamaño de pictograma. */
+#main-content .rs-accion-caminar #rsBtnCaminarResumen .rs-atajo-logo{
+  flex:0 0 auto; display:block; height:19px; width:auto;
 }
 #main-content .rs-accion-caminar #rsBtnCaminarResumen:hover{
   background:rgba(255,107,26,0.20);
@@ -4794,7 +4791,8 @@ html.rtl #main-content .rs-form .rs-field input[type="text"]{
     padding:0; border-radius:10px;
     font-size:0 !important;
   }
-  #main-content .rs-accion-caminar #rsBtnCaminarResumen::before{ width:18px; height:18px; }
+  #main-content .rs-accion-caminar #rsBtnCaminarResumen .rs-atajo-logo{ height:24px; }
+  #main-content .rs-accion-caminar #rsBtnCaminarResumen .rs-atajo-caminar-txt{ display:none; }
 }
 @media (prefers-reduced-motion:reduce){
   #main-content .rs-accion-caminar #rsBtnCaminarResumen{ transition:none !important; }

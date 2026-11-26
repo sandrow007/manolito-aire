@@ -168,7 +168,7 @@
      huerfano al retirar el preload; se elimina 31-oct-2026.) -->
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
-<link rel="stylesheet" href="css/style.css?v=hud-navegacion-20261102-a">
+<link rel="stylesheet" href="css/style.css?v=atajo-logo-20261126">
 <link rel="stylesheet" href="css/sqi.css?v=sqi-temp-movil-20261126">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
@@ -1442,14 +1442,12 @@
        cada uno flex-1, así caben sin romperse. -->
   <div class="rs-fila-botones">
     <button id="rsBuscarBtn" class="im-lost-btn" data-i18n="searchBtn">Buscar</button>
-    <!-- Atajo «Iniciar caminata» pegado a Buscar (nov-2026): nace APILADO
-         dentro de #rsParkingAction, así que no añade ni una columna al
-         buscador; sale justo al lado de Buscar al calcular la ruta. Es una
-         puerta ADITIVA: solo pulsa #rsBtnWalk, no tiene lógica propia. -->
+    <!-- Atajo «Iniciar caminata» pegado a Buscar (nov-2026): sale justo al
+         lado de Buscar al calcular la ruta. Es una puerta ADITIVA: solo
+         pulsa #rsBtnWalk, no tiene lógica propia. -->
     <div class="rs-accion-caminar" id="rsAccionCaminar" hidden>
-      <button type="button" id="rsBtnCaminarResumen" data-i18n="walkModeStart" aria-label="Iniciar caminata" title="Iniciar caminata">Iniciar caminata</button>
+      <button type="button" id="rsBtnCaminarResumen" aria-label="Iniciar caminata" title="Iniciar caminata"><svg class="rs-atajo-logo" viewBox="0 0 260 390" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs><filter id="glowAtajoCaminar" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g transform="translate(30,0)" filter="url(#glowAtajoCaminar)"><g transform="rotate(18 100 160)"><path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="13" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="11"/><path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/><path d="M65,180 Q82.5,172 100,180 T135,180" fill="none" stroke="#00e5ff" stroke-width="9" stroke-linecap="round"/></g><text x="100" y="322" text-anchor="middle" fill="#06262b" font-family="system-ui,'Segoe UI',sans-serif" font-size="34" font-weight="800" letter-spacing="1">IR HASTA<tspan x="100" dy="38">AQUÍ</tspan></text><circle cx="46" cy="318" r="4" fill="#06262b"/><circle cx="62" cy="318" r="4" fill="#06262b"/><circle cx="154" cy="318" r="4" fill="#06262b"/><circle cx="170" cy="318" r="4" fill="#06262b"/></g></svg><span class="rs-atajo-caminar-txt">Iniciar</span></button>
     </div>
-    <div id="rsParkingAction"></div>
   </div>
   <!-- Cierre del panel flotante en escritorio (nov-2026): la X vive
        DENTRO del panel. En móvil el CSS la oculta y el formulario sigue
@@ -1466,7 +1464,7 @@
        solo se muestra cuando hay ruta calculada. -->
   <section id="rsPasosSection" class="rs-pasos rs-pasos-en-mapa" aria-labelledby="rsPasosTitulo" hidden>
     <div class="rs-pasos-cabecera">
-      <h3 id="rsPasosTitulo" data-i18n="stepsTitle"><svg id="rsPasosLogo" viewBox="0 0 260 340" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs><filter id="glowPasos" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g transform="translate(30,0)" filter="url(#glowPasos)"><g transform="rotate(18 100 160)"><path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="13" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="11"/><path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/><path d="M65,180 Q82.5,172 100,180 T135,180" fill="none" stroke="#00e5ff" stroke-width="9" stroke-linecap="round"/></g><text x="100" y="322" text-anchor="middle" fill="#06262b" font-family="system-ui,'Segoe UI',sans-serif" font-size="34" font-weight="800" letter-spacing="1">IR HASTA<tspan x="100" dy="38">AQUÍ</tspan></text><circle cx="46" cy="318" r="4" fill="#06262b"/><circle cx="62" cy="318" r="4" fill="#06262b"/><circle cx="154" cy="318" r="4" fill="#06262b"/><circle cx="170" cy="318" r="4" fill="#06262b"/></g></svg><span data-i18n="stepsTitle">Indicaciones paso a paso</span></h3>
+      <h3 id="rsPasosTitulo" data-i18n="stepsTitle"><svg id="rsPasosLogo" viewBox="0 0 260 390" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><defs><filter id="glowPasos" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g transform="translate(30,0)" filter="url(#glowPasos)"><g transform="rotate(18 100 160)"><path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="13" stroke-linejoin="round"/><circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="11"/><path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/><path d="M65,180 Q82.5,172 100,180 T135,180" fill="none" stroke="#00e5ff" stroke-width="9" stroke-linecap="round"/></g><text x="100" y="322" text-anchor="middle" fill="#06262b" font-family="system-ui,'Segoe UI',sans-serif" font-size="34" font-weight="800" letter-spacing="1">IR HASTA<tspan x="100" dy="38">AQUÍ</tspan></text><circle cx="46" cy="318" r="4" fill="#06262b"/><circle cx="62" cy="318" r="4" fill="#06262b"/><circle cx="154" cy="318" r="4" fill="#06262b"/><circle cx="170" cy="318" r="4" fill="#06262b"/></g></svg><span data-i18n="stepsTitle">Indicaciones paso a paso</span></h3>
       <button id="rsBtnEscucharPasos" type="button" class="rs-btn-escuchar" aria-pressed="false" data-i18n="stepsListen">Escuchar indicaciones</button>
     </div>
     <ol id="rsListaPasos" class="rs-lista-pasos"></ol>
@@ -2852,7 +2850,7 @@
 
 <!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
 <script src="js/theme.js" defer></script>
-<script src="js/i18n.js?v=buscar-20261120-b" defer></script>
+<script src="js/i18n.js?v=iniciar-corto-20261126" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
 <script src="js/cookie-banner.js" defer></script>
@@ -2914,12 +2912,12 @@
       // las librerias y shadows-route lo llama cuando enseña la distancia.
       cargaMapaSombrasPromise = Promise.all([
         cargarScript('js/a11y-guia.js'),
-        cargarScript('js/co2.js'),
+        cargarScript('js/co2.js?v=co2-fuera-mapa-20261126'),
         cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=naranjo-albizia-restaurados-20261124-a'))
+        .then(() => cargarScript('js/shadows-route.js?v=resumen-dentro-mapa-20261126'))
         .then(() => {
           // Superficie continua de calidad del aire: módulo aditivo que se
           // engancha a la fuente 'aire-es' cuando shadows-route la crea.
@@ -2931,7 +2929,7 @@
           cargarScript('js/lluvia.js').catch(() => { });
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
-          cargarScript('js/fuentes-agua.js?v=osm-map-capasyagua-20261020').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));
+          cargarScript('js/fuentes-agua.js?v=logo-centrado-20261126').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));
           // Capa de transporte público (Transitous, con respaldo Overpass en
           // el Worker). Aditiva; su fallo no detiene árboles, irradiación ni
           // aparcamientos. Cambiar versión para invalidar cualquier copia
@@ -2960,7 +2958,7 @@
         // 07-oct-2026 (): aparcamientos y planificador de
         // viaje en UN solo módulo nuevo y aditivo. Carga al final y se
         // engancha al mapa por window.manolitAireMap, como arboles-3d.js.
-        .then(() => cargarScript('js/aparcamientos-viaje.js?v=hud-navegacion-20261102-a'))
+        .then(() => cargarScript('js/aparcamientos-viaje.js?v=sin-boton-parking-20261126'))
         // HUD de navegación (nov-2026): último de la cadena, presentación
         // flotante sobre el mapa. Lee las rutas por window.__manolitHud* y
         // engancha su GPS propio; no toca la lógica de ruta ni cámara.

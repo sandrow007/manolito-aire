@@ -930,7 +930,7 @@
   // con su resplandor, y debajo la leyenda «IR HASTA AQUÍ» con los puntitos de
   // caminito que vienen de la marca. Va dentro del botón turquesa del popup.
   const ICONO_DIRECCION =
-    '<svg viewBox="0 0 260 340" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" role="img">' +
+    '<svg viewBox="0 0 260 390" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" role="img">' +
     '<defs><filter id="glowFuenteDireccion" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
     '<g transform="translate(30,0)" filter="url(#glowFuenteDireccion)">' +
     '<g transform="rotate(18 100 160)">' +

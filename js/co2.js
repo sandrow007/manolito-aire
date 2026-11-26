@@ -203,9 +203,12 @@ window.ManolitCO2 = (function () {
       caja = document.createElement('div');
       caja.id = 'co2Box';
       caja.className = 'co2-caja';
-      var status = document.getElementById('rsStatus');
-      if (status && status.parentNode) {
-        status.insertAdjacentElement('afterend', caja);
+      /* Anclaje FUERA del mapa: con ruta activa, shadows-route.js mueve la
+         etiqueta de #rsStatus dentro de .map-wrap (tarjeta flotante); esta
+         caja se cuelga de #rsLiveSummary, que no se mueve nunca. */
+      var ancla = document.getElementById('rsLiveSummary') || document.getElementById('rsStatus');
+      if (ancla && ancla.parentNode) {
+        ancla.insertAdjacentElement('afterend', caja);
       } else {
         return;
       }

@@ -3603,10 +3603,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       atajo.addEventListener('click', () => {
         document.getElementById('rsBtnWalk')?.click();
         // Refleja el estado real del botón original para que el atajo no
-        // mienta: si la caminata está en marcha, se lee «Detener caminata».
-        atajo.textContent = t(
-          document.getElementById('rsBtnWalk')?.classList.contains('rs-activo') ? 'walkModeStop' : 'walkModeStart',
-          document.getElementById('rsBtnWalk')?.classList.contains('rs-activo') ? 'Detener caminata' : 'Iniciar caminata'
+        // mienta: si la caminata está en marcha, se lee «Detener». Solo se
+        // toca el span de texto: el logo SVG del botón es fijo.
+        const txtAtajo = atajo.querySelector('.rs-atajo-caminar-txt');
+        if (txtAtajo) txtAtajo.textContent = t(
+          document.getElementById('rsBtnWalk')?.classList.contains('rs-activo') ? 'walkModeStopShort' : 'walkModeStartShort',
+          document.getElementById('rsBtnWalk')?.classList.contains('rs-activo') ? 'Detener' : 'Iniciar'
         );
       });
     })();
@@ -4096,7 +4098,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const atajo = document.getElementById('rsBtnCaminarResumen');
       if (!atajo) return;
       const andando = btnCaminar.classList.contains('rs-activo');
-      atajo.textContent = andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata');
+      const txtCaminar = atajo.querySelector('.rs-atajo-caminar-txt');
+      if (txtCaminar) txtCaminar.textContent = andando ? t('walkModeStopShort', 'Detener') : t('walkModeStartShort', 'Iniciar');
       atajo.classList.toggle('rs-activo', andando);
       atajo.setAttribute('aria-pressed', andando ? 'true' : 'false');
     }
@@ -7564,15 +7567,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
         const resumenRuta = `${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`;
                 mostrarEstado(resumenRuta, 'ok');
-        // (nov-2026) El resumen de la ruta llega al panel del buscador por el
-        // mensaje de estado y al widget solar por sus horquillas: la tarjeta
-        // flotante del mapa sobraba. Ya NO se mete dentro del mapa (el CSS
-        // .rs-status-ruta sigue ahí por si algún día se vuelve a usar).
-        // OJO: la clase se mantiene porque es el latido que sigue
-        // confort-ruta.js para saber que hay ruta viva; sin ella, el panel
-        // UTCI se cerraría solo a los 700 ms.
+        // El resumen de la ruta («Ruta: X km · Y min») se enseña DENTRO del
+        // mapa: fijarTarjetaRutaFlotante(true) traslada la etiqueta de estado
+        // a .map-wrap (el CSS .map-wrap .rs-status-toggle:has(...) la deja
+        // flotando arriba a la izquierda). OJO: la clase se mantiene porque
+        // es el latido que sigue confort-ruta.js para saber que hay ruta
+        // viva; sin ella, el panel UTCI se cerraría solo a los 700 ms.
         statusEl.classList.add('rs-status-ruta');
-        fijarTarjetaRutaFlotante(false);
+        fijarTarjetaRutaFlotante(true);
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);
@@ -8223,7 +8225,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const atajoCaminar = document.getElementById('rsBtnCaminarResumen');
     if (atajoCaminar) {
       const andando = !!(btnWalk && btnWalk.classList.contains('rs-activo'));
-      atajoCaminar.textContent = andando ? t('walkModeStop', 'Detener caminata') : t('walkModeStart', 'Iniciar caminata');
+      const txtAtajoCaminar = atajoCaminar.querySelector('.rs-atajo-caminar-txt');
+      if (txtAtajoCaminar) txtAtajoCaminar.textContent = andando ? t('walkModeStopShort', 'Detener') : t('walkModeStartShort', 'Iniciar');
     }
 
     const btnPaseo = document.getElementById('rsBtnPaseo');

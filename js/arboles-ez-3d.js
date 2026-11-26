@@ -131,7 +131,18 @@
     // pegaban al eje en vez de formar los pisos abiertos del pino de referencia.
     // Se conserva pine_medium para el resto del preset; solo children queda en
     // 20 (en vez de 70) para respetar maxItems=3200 sin cortar ramas a medias.
-    pine: { seed: 15883, type: 'evergreen', levels: 2, angle: [0, 106, 16, 60], children: [20, 4, 5], length: [46.5, 18.5, 8.5, 1], radius: [0.92, 0.34, 0.7, 0.7], sections: [11, 9, 7, 5], segments: [8, 6, 4, 3], start: [0, 0.24, 0.18, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 26, leafCount: 32, leafStart: 0.12, leafSize: 1.25, leafVariance: 0.28, leafColor: 0x355638, barkColor: 0x9a7a56, coniferNeedles: true },
+    // (nov-2026, RONDA DEFINITIVA) PINO PIÑONERO / CONÍFERA URBANA.
+    // El aspecto anterior ("castillo de discos" con tronco pelado y palas
+    // anchas) salía del preset viejo, desfasado respecto a lo que pedía su
+    // propio comentario. Ahora los valores acompañan a construirPinoReal():
+    //   length[0] = 14 m de alto (altura media urbana de piñonero)
+    //   length[1] = 3.9 de radio de copa en la base (proporción real: copa
+    //               ancha arriba de la mitad, cónica, no columnar)
+    //   radius[0] = 0.26 de fuste (esbelto, no poste)
+    //   leafSize/leafCount aquí NO los usa construirPinoReal (usa sus
+    //               propios penachos), se mantienen coherentes por si algún
+    //               día vuelve al generador fractal.
+    pine: { seed: 15883, type: 'evergreen', levels: 2, angle: [0, 106, 16, 60], children: [7, 5, 5], length: [14, 3.9, 1.2, 1], radius: [0.26, 0.075, 0.7, 0.7], sections: [11, 9, 7, 5], segments: [8, 6, 4, 3], start: [0, 0.32, 0.18, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0, 0, 0, 0], twist: [0, 0, 0, 0], force: 0, leafAngle: 26, leafCount: 32, leafStart: 0.12, leafSize: 1.25, leafVariance: 0.28, leafColor: 0x355638, barkColor: 0x9a7a56, coniferNeedles: true },
 
     // --- 4 presets EZ-TREE NUEVOS (nov-2026), tomados tal cual del repo
     // dgreenheck/ez-tree (MIT) para las 4 especies más abundantes de Sevilla
@@ -452,7 +463,8 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
   // las ramas hijas nacen alrededor de la rama padre y las hojas terminales
   // se generan por slots. Los presets proceden de src/lib/presets.
   // ==========================================================================
-  function construirEsqueleto(preset, rand) {
+  function construirEsqueleto(preset, rand, tipo) {
+    if (tipo === 'pino') return construirPinoReal(preset, rand);
     // (nov-2026) Las palmeras NO son árboles: un port de ramas fractales
     // les daba un "árbol con hojas verdes en la punta" (el tronco se
     // estrechaba como una rama y las hojas eran elipses horizontales
@@ -657,6 +669,137 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     return geo;
   }
 
+  // Pino de silueta propia: líder recto, copa CONO CONTINUO (no pisos
+  // sueltos: las ramas nacen solapadas para que no queden huecos entre
+  // verticilos) y acículas finas triangulares pegadas a cada rama.
+  // Aislado del generador fractal para no cambiar ni una especie de hoja ancha.
+  function construirPinoReal(preset, rand) {
+    var madera = [], follaje = [];
+    var alto = preset.length[0] || 14;
+    var arriba = new THREE.Vector3(0, 1, 0);
+    // (nov-2026) COPA CÓNICA DE VERDAD: antes 7 niveles arrancando al 56 % de
+    // la altura daban un "castillo de discos" con el tronco pelado abajo.
+    // Ahora 11 niveles desde el 32 % y más ramas por nivel: el volumen del
+    // cono se rellena sin huecos entre pisos.
+    var niveles = 11;
+    var ramasPorNivel = 11;
+    var segmentosTronco = 18;
+    var radioBase = preset.radius[0] || 0.24;
+    var radioCima = 0.035;
+    // Presupuesto de acículas por árbol. En móvil el modelo se instancia 200
+    // veces con MAX_ARBOL, así que el tope no es capricho: con 420 penachos
+    // son ~7.300 caras por copa, y al dibujarse con InstancedMesh (una sola
+    // draw call para los 200 árboles) el coste real es de una geometría.
+    // Se reparte PROPORCIONALMENTE por la longitud de cada piso (ver abajo):
+    // si se cortara por orden de construcción, los pisos bajos se comerían el
+    // presupuesto y la punta saldría pelada.
+    var MAX_PENACHOS = 420;
+    var penachos = 0;
+
+    for (var t = 0; t < segmentosTronco; t++) {
+      var y0 = alto * t / segmentosTronco;
+      var y1 = alto * (t + 1) / segmentosTronco;
+      var f0 = t / segmentosTronco, f1 = (t + 1) / segmentosTronco;
+      var p0 = new THREE.Vector3(0, y0, 0);
+      var p1 = new THREE.Vector3(0, y1, 0);
+      var r0 = radioBase * (1 - f0) + radioCima * f0;
+      var r1 = radioBase * (1 - f1) + radioCima * f1;
+      var tronco = geometriaCilindro(p0, p1, r0, r1, 8);
+      if (tronco) madera.push(tronco);
+    }
+
+    function agujasEn(pos, eje, escala) {
+      if (penachos >= MAX_PENACHOS) return;
+      penachos++;
+      var positions = [], indices = [];
+      var dir = eje.clone().normalize();
+      var lateral = new THREE.Vector3().crossVectors(dir, arriba);
+      if (lateral.lengthSq() < 0.001) lateral.set(1, 0, 0);
+      lateral.normalize();
+      var plano = new THREE.Vector3().crossVectors(dir, lateral).normalize();
+      // (nov-2026) MÁS acículas y MÁS finas: antes 13 por penacho con ancho
+      // 0.045·escala (se leían como palas). Ahora 17 y ancho 0.028, algo más
+      // pegadas a la rama y con menos voladizo lateral: masa de agujas.
+      var cuenta = 17;
+      for (var n = 0; n < cuenta; n++) {
+        var ang = n * Math.PI * 2 / cuenta + rand(0.2, -0.2);
+        var radial = lateral.clone().multiplyScalar(Math.cos(ang)).addScaledVector(plano, Math.sin(ang));
+        var puntaDir = dir.clone().multiplyScalar(0.55).addScaledVector(radial, 0.62).addScaledVector(arriba, 0.22).normalize();
+        var largo = escala * rand(0.92, 0.66);
+        var ancho = escala * 0.028;
+        var base = positions.length / 3;
+        var raiz = pos.clone().addScaledVector(radial, escala * 0.05);
+        var lado = new THREE.Vector3().crossVectors(puntaDir, radial).normalize().multiplyScalar(ancho);
+        var punta = raiz.clone().addScaledVector(puntaDir, largo);
+        positions.push(raiz.x - lado.x, raiz.y - lado.y, raiz.z - lado.z);
+        positions.push(raiz.x + lado.x, raiz.y + lado.y, raiz.z + lado.z);
+        positions.push(punta.x, punta.y, punta.z);
+        indices.push(base, base + 1, base + 2);
+      }
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      follaje.push(geo);
+    }
+
+    // Verticilos solapados: la copa arranca en el 32 % de la altura y cada
+    // piso se acorta siguiendo el radio del cono, con un pequeño solape con
+    // el piso siguiente para que la silueta sea continua al mirar en picado.
+    var Y_INICIO = 0.32;
+    var Y_FIN = 0.99;
+    // Reparto del presupuesto PROPORCIONAL a la longitud del piso: los pisos
+    // bajos son anchos y necesitan más penachos, los altos menos. Se calcula
+    // la suma de longitudes y cada piso recibe su parte del total. Así la copa
+    // queda homogénea y nunca se agota el presupuesto antes de llegar arriba.
+    var sumaLargos = 0, largosPiso = [], iNivel;
+    for (iNivel = 0; iNivel < niveles; iNivel++) {
+      var pr = iNivel / (niveles - 1);
+      var largo = ((preset.length[1] || 3.25) * (1 - pr) + 0.28) * 1.12;
+      largosPiso.push(largo);
+      sumaLargos += largo * ramasPorNivel;
+    }
+    var penachosPorUnidad = MAX_PENACHOS / Math.max(1, sumaLargos);
+    for (var nivel = 0; nivel < niveles; nivel++) {
+      var progreso = nivel / (niveles - 1);
+      var y = alto * (Y_INICIO + progreso * (Y_FIN - Y_INICIO));
+      // Radio del cono en este piso: máximo abajo, mínimo arriba. El 0.28
+      // evita que la punta quede plana; el solape 1.12 cierra los huecos.
+      var radioCono = (preset.length[1] || 3.25) * (1 - progreso) + 0.28;
+      var largoRama = largosPiso[nivel] || (radioCono * 1.12);
+      var radioRama = 0.075 * (1 - progreso * 0.82);
+      var giro = rand(0, Math.PI * 2);
+      for (var b = 0; b < ramasPorNivel; b++) {
+        var angulo = giro + b * Math.PI * 2 / ramasPorNivel;
+        var horizontal = new THREE.Vector3(Math.cos(angulo), 0, Math.sin(angulo));
+        var raizRama = new THREE.Vector3(0, y, 0);
+        // Las inferiores caen un poco (pino piñonero) y las altas suben: al
+        // mezclarse, el contorno sale cónico en vez de escalonado.
+        var caida = (1 - progreso) * -0.13 + progreso * 0.20;
+        var puntaRama = raizRama.clone().addScaledVector(horizontal, largoRama)
+          .addScaledVector(arriba, largoRama * caida);
+        var ramaGeo = geometriaCilindro(raizRama, puntaRama, radioRama, Math.max(0.012, radioRama * 0.16), 5);
+        if (ramaGeo) madera.push(ramaGeo);
+
+        // Pasos de acículas proporcionales a la longitud real de esta rama.
+        var pasosAgujas = Math.max(1, Math.round(largoRama * penachosPorUnidad));
+        var ejeRama = puntaRama.clone().sub(raizRama).normalize();
+        for (var k = 0; k <= pasosAgujas; k++) {
+          if (penachos >= MAX_PENACHOS) break;
+          var u = k / pasosAgujas;
+          var centro = raizRama.clone().lerp(puntaRama, u);
+          var tamano = 0.66 * (0.86 + u * 0.14) * (1 - progreso * 0.10);
+          agujasEn(centro, ejeRama, tamano);
+          if (u > 0.2 && u < 0.85 && k % 2 === 0) {
+            var lateralAguja = new THREE.Vector3(-horizontal.z, 0, horizontal.x);
+            agujasEn(centro, lateralAguja, tamano * 0.78);
+          }
+        }
+      }
+    }
+    return { madera: madera, hojas: follaje };
+  }
+
   // ==========================================================================
   // ÁRBOLES (port de ez-tree: Tree.generateSkeleton/growBranch)
   // ==========================================================================
@@ -719,12 +862,7 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
           var q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), radialAngle);
           var leafQ = new THREE.Quaternion().setFromEuler(leafOrientation).multiply(q2).multiply(q1);
           var leafSize = preset.leafSize * (1 + rand(preset.leafVariance, -preset.leafVariance));
-          // El pino no usa el mismo plano ancho que las especies caducas:
-          // cada punto de follaje lleva un penacho de acículas finas, como en
-          // la referencia EZ-Tree. La rama y los demás presets no cambian.
-          var leafGeo = preset.coniferNeedles
-            ? crearPenachoAciculas(leafSize, rand)
-            : new THREE.PlaneGeometry(leafSize, leafSize * 0.48);
+          var leafGeo = new THREE.PlaneGeometry(leafSize, leafSize * 0.48);
           leafGeo.applyMatrix4(new THREE.Matrix4().compose(leafOrigin, leafQ, new THREE.Vector3(1, 1, 1)));
           hojas.push(leafGeo);
         }
@@ -758,14 +896,6 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
         childOrientation.z += preset.force;
         var childDirection = new THREE.Vector3(0, 1, 0).applyQuaternion(new THREE.Quaternion().setFromEuler(childOrientation));
         var childLength = preset.length[childLevel];
-        // Solo en pinos, las ramas principales se acortan progresivamente al
-        // subir por el tronco: conserva la silueta cónica del árbol de referencia
-        // en vez de repetir radios idénticos y producir una estrella/columna.
-        if (preset.coniferNeedles && level === 0 && childLevel === 1) {
-          var crownStart = preset.start[childLevel] || 0;
-          var remainingCrown = Math.max(0, (1 - childStart) / Math.max(0.01, 1 - crownStart));
-          childLength *= Math.max(0.12, Math.min(1, remainingCrown));
-        }
         grow(childOrigin, childDirection, childLevel, childLength, childRadius);
       }
     }
@@ -785,7 +915,7 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
       for (var v = 0; v < N_VARIANTES; v++) {
         var barkMat = new THREE.MeshStandardMaterial({ color: 0x594332, flatShading: true, roughness: 1.0, metalness: 0.02 });
         var rand = ezRng(preset.seed + k * 7919 + v * 131);
-        var ramaje = construirEsqueleto(preset, rand);
+        var ramaje = construirEsqueleto(preset, rand, tipo);
         var geoMadera = fusionar(ramaje.madera);
         geoMadera.computeBoundingBox();
         var altReal = Math.max(2, geoMadera.boundingBox.max.y);
@@ -819,6 +949,13 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
           // La palmera conserva SIEMPRE su verde de fronda (el de la especie),
           // solo algo más apagado en invierno; no debe pasar a ocre/otoño.
           if (preset.palm) color = preset.palm.follajeHex ? preset.palm.follajeHex[est] || preset.palm.follajeHex.verano : color;
+          // (nov-2026) El PINO es conífera: su copa tira a verde oscuro azulado
+          // de aguja, no al verde vivo de hoja ancha de EZ_ESTACIONES.perenne.
+          // Se usa su leafColor (0x355638) con una variación mínima por
+          // estación para que en invierno no desentone. Solo afecta a 'pino'.
+          if (tipo === 'pino') {
+            color = est === 'invierno' ? 0x2c4a30 : (est === 'otono' ? 0x314f34 : 0x355638);
+          }
           var key = String(color);
           if (mallasHojas[key]) return;
           // (nov-2026) Las HOJAS de palmera no pueden llevar el emisivo 0.55

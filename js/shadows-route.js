@@ -6062,7 +6062,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return d;
   }
 
-  function fraccionSombraTramo(coords, sombras, indiceSombras) {
+  function analisisSombraTramo(coords, sombras, indiceSombras) {
     // null = no hay sombras calculadas (de noche, capa apagada…): no se dice nada.
     if (!sombras || !sombras.length || !coords || coords.length < 2) return null;
     try {
@@ -6072,22 +6072,69 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // Índice espacial (una vez por guía completa, lo crea el llamante):
       // cada punto medio consulta solo su celda, mismo resultado.
       const indice = indiceSombras || crearIndiceSombras(sombras);
-      let enSombra = 0;
+      let enSombra = 0, izqSombra = 0, derSombra = 0;
       for (const tramo of tramos) {
         const c = tramo.geometry.coordinates;
         const medio = c[Math.floor(c.length / 2)] || c[0];
         if (indice.consultar(medio[0], medio[1])) enSombra++;
+        // (nov-2026) LADO DE LA SOMBRA: además del centro de la calle se
+        // mira cada acera (~7 m perpendicular al rumbo de marcha). Si en
+        // una hay sombra y en la otra no, la indicación puede decir por
+        // qué lado ir protegido, que es lo que importa al caminar.
+        const rumbo = turf.bearing(c[0], c[c.length - 1]);
+        const pIzq = turf.destination(medio, 0.007, rumbo - 90, { units: 'kilometers' }).geometry.coordinates;
+        const pDer = turf.destination(medio, 0.007, rumbo + 90, { units: 'kilometers' }).geometry.coordinates;
+        if (indice.consultar(pIzq[0], pIzq[1])) izqSombra++;
+        if (indice.consultar(pDer[0], pDer[1])) derSombra++;
       }
-      return enSombra / tramos.length;
+      const total = tramos.length;
+      const fIzq = izqSombra / total, fDer = derSombra / total;
+      // Solo se afirma un lado cuando la diferencia es clara: con sombras
+      // repartidas o intermitentes no se manda al peatón a ninguna acera.
+      let lado = null;
+      if (fIzq >= 0.55 && fDer >= 0.55) lado = 'ambos';
+      else if (fIzq >= 0.5 && fIzq - fDer >= 0.3) lado = 'izquierda';
+      else if (fDer >= 0.5 && fDer - fIzq >= 0.3) lado = 'derecha';
+      else if (fIzq < 0.2 && fDer < 0.2) lado = 'ninguno';
+      return { fraccion: enSombra / total, lado };
     } catch (e) { return null; }
   }
 
-  function textoSombra(fraccion, metros) {
-    if (fraccion == null) return { frase: '', consejo: '' };
-    let frase;
-    if (fraccion >= 0.6) frase = t('shadeShade', 'tramo en sombra');
-    else if (fraccion <= 0.25) frase = t('shadeSun', 'tramo al sol');
-    else frase = t('shadeMixed', 'tramo con sol y sombra');
+  function direccionSolEn(punto) {
+    // Rumbo del sol (0=N, horario) para cruzarlo con el de la calle: en
+    // tramos soleados se avisa si lo llevas de cara o de espaldas.
+    // null de noche o sin datos: no se dice nada.
+    try {
+      if (!punto) return null;
+      const pos = SunCalc.getPosition(obtenerHoraEfectiva(), punto[1], punto[0]);
+      if (!pos || pos.altitude <= 0) return null;
+      return ((pos.azimuth * 180) / Math.PI + 180) % 360;
+    } catch (e) { return null; }
+  }
+
+  function textoSombra(analisis, metros, rumboTramo, dirSol) {
+    if (!analisis || analisis.fraccion == null) return { frase: '', consejo: '' };
+    const fraccion = analisis.fraccion;
+    let frase, extra = '';
+    if (fraccion >= 0.6) {
+      frase = t('shadeShade', 'tramo en sombra');
+      if (analisis.lado === 'ambos') extra = t('shadeBothSides', 'Hay sombra en los dos lados de la calle.');
+    } else if (fraccion <= 0.25) {
+      frase = t('shadeSun', 'tramo al sol');
+      // Sol de cara o de espaldas: solo si el tramo tiene recorrido, que en
+      // una esquina de 10 m no aporta nada.
+      if (dirSol != null && rumboTramo != null && metros >= 60) {
+        const rel = Math.abs(normalizarGiro(rumboTramo, dirSol));
+        if (rel < 40) extra = t('shadeSunFront', 'El sol te da de cara.');
+        else if (rel > 140) extra = t('shadeSunBack', 'El sol te da en la espalda.');
+      }
+    } else {
+      frase = t('shadeMixed', 'tramo con sol y sombra');
+      if (analisis.lado === 'izquierda') extra = t('shadeSideLeft', 'La sombra va por tu lado izquierdo.');
+      else if (analisis.lado === 'derecha') extra = t('shadeSideRight', 'La sombra va por tu lado derecho.');
+      else if (analisis.lado === 'ambos') extra = t('shadeBothSides', 'Hay sombra en los dos lados de la calle.');
+    }
+    if (extra) frase += '. ' + extra;
     // Consejo de calor solo donde de verdad duele: tramo largo y casi sin sombra.
     const consejo = (fraccion <= 0.25 && metros >= 120)
       ? t('shadeTip', 'Consejo: es un tramo largo al sol, ve despacio, camina por el lado con edificios y lleva agua.')
@@ -6134,13 +6181,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // El índice espacial se crea UNA vez para toda la guía (antes cada
     // calle barría todas las sombras de nuevo).
     const indiceSombrasGuia = (sombras && sombras.length) ? crearIndiceSombras(sombras) : null;
+    // Rumbo del sol UNA vez por guía: a escala de paseo no cambia, y sirve
+    // para avisar "sol de cara / de espaldas" en los tramos soleados.
+    const dirSolGuia = direccionSolEn(grupos[0].coords[0]);
     let bearingAnterior = null;
     grupos.forEach((g, i) => {
       const metros = redondearMetros(g.metros);
       const calle = nombreCalleBonito(g.nombre);
       const bearingIni = turf.bearing(g.coords[0], g.coords[1]);
       const bearingFin = turf.bearing(g.coords[g.coords.length - 2], g.coords[g.coords.length - 1]);
-      const { frase, consejo } = textoSombra(fraccionSombraTramo(g.coords, sombras, indiceSombrasGuia), metros);
+      const { frase, consejo } = textoSombra(analisisSombraTramo(g.coords, sombras, indiceSombrasGuia), metros, bearingIni, dirSolGuia);
       const colaSombra = frase ? '. ' + frase : '';
 
       let texto;
@@ -6188,12 +6238,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // Índice espacial UNA vez para toda la guía (antes cada paso barría
     // todas las sombras de nuevo, sep-2026).
     const indiceSombrasGuia = (sombras && sombras.length) ? crearIndiceSombras(sombras) : null;
+    // Rumbo del sol una vez por guía (igual que en el grafo propio).
+    const dirSolGuia = direccionSolEn(pasosOsrm[0]?.geometry?.coordinates?.[0] || pasosOsrm[0]?.maneuver?.location);
 
     for (const s of pasosOsrm) {
       const calle = nombreCalleBonito(s.name);
       const metros = redondearMetros(s.distance || 0);
       const coords = s.geometry?.coordinates || [];
-      const { frase, consejo } = textoSombra(fraccionSombraTramo(coords, sombras, indiceSombrasGuia), metros);
+      const rumboPaso = coords.length >= 2 ? turf.bearing(coords[0], coords[1]) : null;
+      const { frase, consejo } = textoSombra(analisisSombraTramo(coords, sombras, indiceSombrasGuia), metros, rumboPaso, dirSolGuia);
       const colaSombra = frase ? '. ' + frase : '';
       const maniobra = s.maneuver || {};
       const tipo = maniobra.type || '';

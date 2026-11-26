@@ -409,8 +409,9 @@
 //     tronco pelado y palas anchas) y pasa a silueta propia: líder recto,
 //     copa CÓNICA CONTINUA de 11 verticilos solapados desde el 32 % de la
 //     altura (sin huecos entre pisos) y acículas finas triangulares (17
-//     por penacho, ancho 0.028) pegadas a cada rama, con tope de 420
-//     penachos por árbol repartidos en proporción a la longitud del piso.
+//     por penacho, ancho 0.028) pegadas a cada rama, con tope de 520
+//     penachos por árbol repartidos con cuenta EXACTA por bisección (la
+//     proporción por longitud dejaba la punta pelada por encima de 9 m).
 //     Verde propio de conífera (0x355638) en vez del verde de hoja ancha.
 //     Solo cambia js/arboles-ez-3d.js: el resto de especies EZ, el
 //     naranjo y la albizia quedan exactamente igual.

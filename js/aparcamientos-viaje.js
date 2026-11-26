@@ -1170,7 +1170,13 @@
 
   async function planificar(origenTexto, destinoTexto, opciones) {
     if (!map) return;
-    if (viaje.panel && viaje.panel.hasAttribute('hidden') && !(opciones && opciones.unified)) viaje.panel.removeAttribute('hidden');
+    // Buscador unificado (nov-2026): en el buscador único el panel de viaje
+    // NUNCA se abre por su cuenta — el estado y los datos van al resumen del
+    // modo coche. Antes se quedaba abierto ocupando una fila entera del
+    // formulario (hueco grande vacío), que es lo que veía el usuario.
+    if (opciones && opciones.unified) {
+      if (viaje.panel) { viaje.panel.classList.remove('rs-panel-viaje-abierto'); viaje.panel.setAttribute('hidden', ''); }
+    } else if (viaje.panel && viaje.panel.hasAttribute('hidden')) viaje.panel.removeAttribute('hidden');
 
     var dTxt = String(destinoTexto != null ? destinoTexto : (viaje.inputDestino ? viaje.inputDestino.value : '')).trim();
     var oTxt = String(origenTexto != null ? origenTexto : (viaje.inputOrigen ? viaje.inputOrigen.value : '')).trim();
@@ -1219,10 +1225,13 @@
     var min = Math.round(ruta.duracionS / 60);
     var tiempoTxt = min >= 60 ? Math.floor(min / 60) + ' h ' + (min % 60) + ' min' : min + ' min';
 
-    decirEstado(t('tripSummary', 'Viaje trazado') + ' · ' + kmTxt + ' km · ' + tiempoTxt + '. ' + t('tripParkingOn', 'Abajo tienes los aparcamientos del destino, con anillo los que están a la sombra.'));
+    decirEstado(t('tripSummary', 'Viaje trazado') + ' · ' + kmTxt + ' km · ' + tiempoTxt + '.');
 
+    // Bloqueo de auto-expand (nov-2026): al trazar una ruta en coche la app
+    // ya NO enciende por su cuenta las sombras, ni el aparcamiento, ni mueve
+    // la cámara a la llegada (prepararLlegada). El buscador arranca y se
+    // queda compacto; esas capas solo se activan si el usuario lo pide.
     clearTimeout(viaje.temporizadorLlegada);
-    viaje.temporizadorLlegada = setTimeout(function () { prepararLlegada(destino); }, CONFIG.esperaLlegadaMs);
     return { origen: origen, destino: destino, ruta: ruta };
   }
 

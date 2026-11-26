@@ -21,4 +21,8 @@ wrangler.json
 __pycache__
 *.pyc
 *.bak
+# Datos de árboles de Sevilla por encima del límite de 25 MiB por asset:
+# se sirven sus versiones .gz (worker.js añade Content-Encoding: gzip).
+data/arboles-inventario-sevilla.geojson
+Parques_y_Jardines_Inventario_de_Arboles_sevilla.csv
 .github/Protocolo Manolit.md

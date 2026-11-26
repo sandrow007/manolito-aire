@@ -4,12 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Manolit∞ Aire · La comparativa, sin maquillaje</title>
-    <meta name="description" content="Comparativa clara de Manolit∞ Aire: rutas peatonales por sombra, capas climáticas, ventajas y límites frente a SIG, simuladores solares y apps de navegación. Datos, privacidad y advertencias en lenguaje claro." />
+    <meta name="description" content="Comparativa de Manolit∞ Aire: ruta a pie por sombra y calidad real de la sombra (SQI) según el aire, frente a SIG, simuladores solares y apps de navegación." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Manolit∞ Aire" />
+    <meta property="og:url" content="https://manolitoaire.com/manolito-aire-comparativa.html" />
     <meta property="og:title" content="Manolit∞ Aire · La comparativa, sin maquillaje" />
     <meta property="og:description" content="Comparativa clara de Manolit∞ Aire: rutas peatonales por sombra, capas climáticas, ventajas y límites frente a SIG, simuladores solares y apps de navegación." />
+    <meta property="og:image" content="https://manolitoaire.com/og-image.png" />
+    <meta property="og:image:secure_url" content="https://manolitoaire.com/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Manolit∞ Aire: rutas por la sombra 3D, edificios, fuentes de agua y árboles" />
+    <meta itemprop="image" content="https://manolitoaire.com/og-image.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Manolit∞ Aire · La comparativa, sin maquillaje" />
     <meta name="twitter:description" content="Comparativa clara de Manolit∞ Aire: rutas peatonales por sombra, capas climáticas, ventajas y límites frente a SIG, simuladores solares y apps de navegación." />
+    <meta name="twitter:image" content="https://manolitoaire.com/og-image.png" />
     <!-- Metadatos alineados con el texto visible de la sección de prioridad de la sombra. -->
     <link rel="canonical" href="https://manolitoaire.com/manolito-aire-comparativa.html" />
     <script type="application/ld+json">
@@ -754,6 +765,69 @@
         </div>
     </div>
 
+    <!-- NUEVO (nov-2026): el índice SQI y el coeficiente Köppen -->
+    <h2>La sombra con calidad, no solo con color</h2>
+    <p class="lead">
+        Hasta ahora las sombras decían dónde había sombra. Ahora también dicen cuánto vale esa sombra:
+        con polvo o aire cargado, la radiación difusa calienta también bajo la sombra, y el mapa lo pinta
+        con un índice de calidad de sombra (SQI) que va del verde (protege de verdad) al rojo (ilusoria).
+        Por eso ya no se trata solo de saber dónde hay sombra en el mapa, sino de cuánto vale esa sombra,
+        qué porcentaje de protección real te da y por qué. Cuanto más contaminado está el aire, peor sombra,
+        hasta el punto de que en los peores casos estar a la sombra se parece bastante más a estar al sol
+        de lo que pensamos.
+    </p>
+
+    <div class="formula-box">SQI = 100 × (1 − (DHI × (1 + K × (factorLUR − 1)) × SVF) / GHI)</div>
+
+    <div class="grid-2">
+        <div class="card">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 20h18M6 20V9l6-5 6 5v11"/>
+                    <path d="M10 20v-6h4v6"/>
+                </svg>
+                <h4>De kilómetro a calle</h4>
+            </div>
+            <p>Los datos de aerosoles de Copernicus CAMS llegan con resolución de kilómetros: pintarlos igual en toda la ciudad mentiría. Un modelo de <strong>regresión por uso del suelo</strong> baja ese dato a escala de calle usando las vías, el verde y los edificios que ya están en el mapa, y se calibra con las estaciones reales de OpenAQ cuando hay al menos dos en la ciudad. Una avenida con tráfico y una calle residencial a 100 metros no pintan igual.</p>
+        </div>
+        <div class="card gold-border">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v4M12 22v-4M4 12H2M22 12h-2M19.07 4.93l-2.83 2.83M4.93 19.07l2.83-2.83M19.07 19.07l-2.83-2.83M4.93 4.93l2.83 2.83"/>
+                    <circle cx="12" cy="12" r="4"/>
+                </svg>
+                <h4>La física del lugar, no la del promedio</h4>
+            </div>
+            <p>El factor local se mide con partículas <strong>en superficie</strong>, pero la radiación difusa depende del aerosol en <strong>columna</strong>, y cuánto dice la superficie de la columna cambia con el clima. Por eso el coeficiente K se adapta automáticamente a la zona Köppen-Geiger del punto (mapa global de Beck et al. 2018, guardado en local, sin llamadas externas por consulta): 0.55 en Sevilla, 0.35 en Bilbao, 0.40 en Berlín. El modelo sabe que una sombra no vale lo mismo en todos los sitios.</p>
+        </div>
+    </div>
+    <div class="grid-2">
+        <div class="card cloud-border">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 12l2 2 4-4"/>
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                <h4>Honestos hasta el final</h4>
+            </div>
+            <p>Los valores de K por clima son <strong>elecciones razonadas a mano con justificación física</strong>, no mediciones de laboratorio, y lo dice la propia app: cada polígono lleva su K aplicado (propiedad <i>sqi_k</i>) y la tabla completa está documentada en el código y en la página de metodología, para que cualquiera la lea, critique y mejore. Si un día hay mediciones de difusa bajo sombra por clima, esa tabla es lo primero que se recalibra.</p>
+        </div>
+        <div class="card purple-border">
+            <div class="icon-title">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+                </svg>
+                <h4>Rápido y sin peso</h4>
+            </div>
+            <p>El mapa climático cabe en una rejilla local de unos 200 KB comprimida que se descarga una vez al arrancar; cada consulta es un acceso por índice en memoria. Sin lenguajes de servidor, sin puntos en polígono pesados en tiempo real: el índice se calcula por lotes de polígonos, un SQI por sombra, y la sombra que no se puede evaluar simplemente no se tiñe. El mapa nunca se rompe por un dato.</p>
+        </div>
+    </div>
+    <p style="font-size:0.9rem; color:#94a3b8;">
+        El detalle de la fórmula, la tabla de coeficientes por clase climática y las fuentes (Beck et al. 2018, CC BY 4.0) en la
+        <a href="metodologia.html" target="_self">página de metodología</a>.
+    </p>
+
     <div class="separator"></div>
 
     <!-- ECOSISTEMA MANOLIT∞ -->
@@ -840,6 +914,7 @@
                 <tr><th scope="row">Sombras urbanas por hora</th><td><span class="check">Sí</span>: geometría solar + edificios y árboles cartografiados; precisión orientativa.</td><td><span class="warn">Sí, con datos, extensiones y configuración</span>; precisión según el modelo.</td><td><span class="check">Suele ofrecer análisis solar detallado</span>; capacidades y método dependen del producto.</td><td><span class="cross">No suele incluir simulación urbana 3D de sombras</span>.</td></tr>
                 <tr><th scope="row">Nubosidad integrada</th><td><span class="check">Capa de nubes y atenuación visual</span> a partir de datos meteorológicos externos.</td><td><span class="warn">Depende de las fuentes y del análisis configurado</span>.</td><td><span class="warn">Depende del producto</span>; análisis de cielo despejado no equivale a nube observada en vivo.</td><td><span class="warn">Puede mostrar tiempo</span>, pero no necesariamente recalcula sombras o rutas con nubes.</td></tr>
                 <tr><th scope="row">Calidad del aire</th><td><span class="check">Sí</span>: modelos CAMS/Open-Meteo y datos/estaciones disponibles para España; cobertura no universal.</td><td><span class="warn">Posible al incorporar fuentes externas</span>.</td><td><span class="cross">No suele ser su especialidad</span>.</td><td><span class="warn">Varía por app y ciudad</span>.</td></tr>
+                <tr><th scope="row">Calidad térmica de la sombra</th><td><span class="check">Índice SQI por polígono</span>: factor de cielo visible, regresión por uso del suelo calle a calle y coeficiente de amortiguación adaptativo por zona climática (Köppen-Geiger); orientativo y documentado.</td><td><span class="warn">Posible con análisis propio</span>; no suele ofrecerse como dato peatonal listo para usar.</td><td><span class="warn">Pueden ofrecer análisis radiativos</span>; su objetivo suele ser el recurso solar, no el confort bajo sombra.</td><td><span class="cross">No suele indicar calidad de la sombra</span>.</td></tr>
                 <tr><th scope="row">Fuentes de agua y aparcamiento</th><td><span class="check">Capas cartográficas</span>; no confirma potabilidad, plazas libres ni acceso.</td><td><span class="warn">Posible si se dispone de los datos</span>.</td><td><span class="cross">No es su función habitual</span>.</td><td><span class="warn">Puede mostrar puntos de interés</span>; disponibilidad y detalle varían.</td></tr>
                 <tr><th scope="row">Bici y transporte público</th><td><span class="check">Carriles bici, rutas en bicicleta y paradas/salidas donde hay datos</span>; no planifica itinerarios ni transbordos de transporte público.</td><td><span class="warn">Posible con datos y configuración</span>.</td><td><span class="cross">No es su función habitual</span>.</td><td><span class="check">Habitual en apps multimodales</span>; depende de cobertura y operador.</td></tr>
                 <tr><th scope="row">Datos y cobertura</th><td><span class="warn">OpenStreetMap y proveedores abiertos/externos</span>; cobertura, altura y actualización varían por zona.</td><td><span class="warn">Fuentes propias, públicas o contratadas</span>; requieren validar licencia y calidad.</td><td><span class="warn">Modelos, bases cartográficas o datos de pago</span>, según proveedor.</td><td><span class="warn">Cartografía y tráfico de cada proveedor</span>; cobertura desigual.</td></tr>
@@ -853,7 +928,7 @@
         </table>
     </div>
     <div class="comparison-callout">
-        <p><strong>Lo que Manolit∞ hace especialmente bien:</strong> poner juntas la ruta peatonal orientada a la sombra, el sol por hora, las capas de edificios/árboles/nubes y herramientas ciudadanas como aire, agua y aparcamiento, sin cobrar ni exigir registro.</p>
+        <p><strong>Lo que Manolit∞ hace especialmente bien:</strong> poner juntas la ruta peatonal orientada a la sombra, la calidad térmica de cada sombra (índice SQI), el sol por hora, las capas de edificios/árboles/nubes y herramientas ciudadanas como aire, agua y aparcamiento, sin cobrar ni exigir registro.</p>
         <p style="margin-bottom:0"><strong>Lo que no pretende sustituir:</strong> un levantamiento LiDAR validado, un SIG profesional, una simulación fotovoltaica certificable, navegación turn-by-turn con garantías, ni datos oficiales en tiempo real. Si necesitas una decisión técnica, sanitaria o de seguridad, contrasta con la fuente oficial o un profesional.</p>
     </div>
     <p class="comparison-sources">Nota metodológica: descripción funcional de Manolit∞ contrastada con las secciones y servicios enlazados en este sitio; las demás columnas son categorías generales, no auditorías ni comparaciones de marcas concretas. No se atribuye a todas las herramientas de una categoría el mismo precio o las mismas funciones. Más detalles sobre capas, datos, privacidad y límites: <a href="aviso-legal.html">aviso legal</a> y <a href="privacidad.html">política de privacidad</a>. <a href="https://renderizado-lidar-esp.sandro-a007.workers.dev/" target="_blank" rel="noopener">Renderizado LiDAR</a> es una herramienta separada de la familia, no una función integrada en Manolit∞ Aire.</p>
@@ -1377,6 +1452,7 @@
         <span>Manolit∞ Aire · Proyecto ciudadano sin ánimo de lucro · © 2026 Sandro · Obra registrada en Propiedad Intelectual, Junta de Andalucía, Consejería de Cultura y Deporte · Nº Expediente: RTA-3147-26 · Nº Registro: 2026999010353785 · 28/08/2026 · AGPL-3.0</span>
         <span>
             <a href="aviso-legal.html" target="_self">Aviso legal</a>
+            · <a href="metodologia.html" target="_self">Metodología</a>
             · <a href="privacidad.html" target="_self">Privacidad</a>
             · <a href="https://manolitoaire.com" target="_blank">manolitoaire.com</a>
         </span>

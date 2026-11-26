@@ -1,0 +1,402 @@
+/* ==========================================================================
+   CALIDAD DE SOMBRA (SQI) — Manolit∞ Aire (nov-2026)
+   Tarjeta oscura con pestañas bajo el mapa. Colores de la paleta del
+   sistema y radio de los tokens --ux-radius-*. Sin animaciones pesadas,
+   solo transición de color de 300 ms donde toca.
+   ========================================================================== */
+
+.rs-sqi{max-width:720px;margin:26px auto 0;padding:0 16px;}
+.rs-sqi .map-head{margin-bottom:10px;}
+.rs-sqi .map-title{margin:0;}
+
+.rs-sqi-card{
+  background:#10151B;
+  color:#EDF4F2;
+  border:1px solid var(--mui-line,rgba(255,255,255,0.09));
+  border-radius:var(--ux-radius-panel,12px);
+  padding:14px;
+  box-shadow:0 8px 28px rgba(0,0,0,0.25);
+}
+
+/* ---- Pestañas ---- */
+.rs-sqi-tabs{
+  display:flex;
+  gap:6px;
+  margin-bottom:14px;
+}
+.rs-sqi-tab{
+  flex:1;
+  appearance:none;
+  border:1px solid var(--mui-line,rgba(255,255,255,0.09));
+  background:rgba(255,255,255,0.04);
+  color:rgba(237,244,242,0.72);
+  font:inherit;
+  font-size:0.95rem;
+  font-weight:600;
+  padding:9px 6px;
+  border-radius:var(--ux-radius-control,8px);
+  cursor:pointer;
+  transition:background 0.2s ease,color 0.2s ease,border-color 0.2s ease;
+}
+.rs-sqi-tab:hover{background:rgba(255,255,255,0.08);}
+.rs-sqi-tab-activa{
+  background:rgba(255,255,255,0.12);
+  color:#EDF4F2;
+  border-color:rgba(255,255,255,0.22);
+}
+.rs-sqi-tab:focus-visible{outline:2px solid var(--accent,#FF6B1A);outline-offset:2px;}
+.rs-sqi-vista[hidden]{display:none;}
+
+/* Las vistas Aire/Previsión acogen secciones ya existentes de la página:
+   se les quita el margen exterior para que queden dentro de la tarjeta. */
+.rs-sqi-vista .forecast-section,
+.rs-sqi-vista #rsAqiPanel{margin:0 0 4px !important;}
+.rs-sqi-vista .forecast-section .map-head{margin-top:2px;}
+
+/* ---- Cabecera: estado + porcentaje ---- */
+.rs-sqi-cabecera{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+.rs-sqi-sub{
+  margin:0 0 3px;
+  font-size:0.78rem;
+  color:rgba(237,244,242,0.55);
+  letter-spacing:0.02em;
+}
+.rs-sqi-estado{
+  margin:0;
+  font-size:1.25rem;
+  font-weight:700;
+  line-height:1.2;
+  color:var(--rs-sqi-color,#EDF4F2);
+  transition:color 0.3s ease;
+}
+.rs-sqi-cab-dcha{display:flex;align-items:baseline;gap:3px;white-space:nowrap;}
+.rs-sqi-pct{
+  font-size:3rem;
+  font-weight:800;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:var(--rs-sqi-color,#EDF4F2);
+  transition:color 0.3s ease;
+}
+.rs-sqi-pct-sim{font-size:1.05rem;font-weight:700;color:rgba(237,244,242,0.6);}
+
+/* ---- Aviso de transparencia (estimación + cómo se calcula) ---- */
+.rs-sqi-aviso,
+.rs-sqi-mini-aviso{
+  font-size:0.72rem;
+  line-height:1.5;
+  color:rgba(237,244,242,0.5);
+}
+.rs-sqi-aviso{
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.rs-sqi-mini-aviso{
+  margin-top:6px;
+}
+.rs-sqi-aviso a,
+.rs-sqi-mini-aviso a{
+  color:rgba(237,244,242,0.75);
+  font-weight:600;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.rs-sqi-aviso a:hover,
+.rs-sqi-mini-aviso a:hover{
+  color:#EDF4F2;
+}
+.rs-sqi-aviso a:focus-visible,
+.rs-sqi-mini-aviso a:focus-visible{
+  outline:2px solid var(--accent,#FF6B1A);
+  outline-offset:2px;
+}
+
+/* ---- Barra de escala con indicador ---- */
+.rs-sqi-barra{
+  position:relative;
+  height:8px;
+  border-radius:var(--ux-radius-pill,999px);
+  background:linear-gradient(90deg,#E63E5F 0%,#FF6B1A 32%,#FFC033 62%,#00B98A 100%);
+  margin:6px 6px 0;
+}
+.rs-sqi-barra-indicador{
+  position:absolute;
+  top:50%;
+  left:0%;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:var(--rs-sqi-color,#EDF4F2);
+  border:3px solid #10151B;
+  box-shadow:0 1px 6px rgba(0,0,0,0.5);
+  transform:translate(-50%,-50%);
+  transition:left 0.3s ease,background 0.3s ease;
+}
+.rs-sqi-barra-extremos{
+  display:flex;
+  justify-content:space-between;
+  margin:8px 6px 0;
+  font-size:0.72rem;
+  color:rgba(237,244,242,0.5);
+}
+.rs-sqi-barra-extremos span:last-child{text-align:right;}
+
+/* ---- Caja de contexto ---- */
+.rs-sqi-contexto{
+  margin-top:14px;
+  padding:12px 14px;
+  border-radius:var(--ux-radius-control,8px);
+  background:rgba(237,244,242,0.05);
+  border:1px solid var(--rs-sqi-borde,rgba(237,244,242,0.14));
+  transition:border-color 0.3s ease;
+}
+.rs-sqi-contexto-titulo{
+  margin:0 0 4px;
+  font-size:0.95rem;
+  font-weight:700;
+  color:var(--rs-sqi-color,#EDF4F2);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  transition:color 0.3s ease;
+}
+.rs-sqi-contexto-cuerpo{
+  margin:0;
+  font-size:0.86rem;
+  line-height:1.5;
+  color:var(--rs-sqi-color,#EDF4F2);
+  opacity:0.85;
+  transition:color 0.3s ease;
+}
+
+/* ---- Previsión 6 horas ---- */
+.rs-sqi-rotulo{
+  margin:16px 2px 8px;
+  font-size:0.78rem;
+  color:rgba(237,244,242,0.55);
+}
+.rs-sqi-horas{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:4px;
+}
+.rs-sqi-hora{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:5px;
+  padding:8px 2px;
+  border-radius:var(--ux-radius-control,8px);
+  background:rgba(237,244,242,0.04);
+}
+.rs-sqi-hora-hora{font-size:0.78rem;color:rgba(237,244,242,0.7);font-variant-numeric:tabular-nums;}
+.rs-sqi-hora-punto{
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:var(--rs-sqi-color-h,rgba(237,244,242,0.3));
+}
+.rs-sqi-hora-valor{
+  font-size:0.82rem;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  color:var(--rs-sqi-color-h,rgba(237,244,242,0.85));
+}
+.rs-sqi-hora.rs-sqi-hora-noche{opacity:0.45;}
+
+/* ---- Badges AOD / PM2.5 / DHI ---- */
+.rs-sqi-badges{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:16px;
+}
+.rs-sqi-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:6px 12px;
+  border-radius:var(--ux-radius-pill,999px);
+  background:rgba(237,244,242,0.06);
+  border:1px solid var(--mui-line,rgba(255,255,255,0.09));
+  font-size:0.8rem;
+  color:rgba(237,244,242,0.85);
+  font-variant-numeric:tabular-nums;
+}
+.rs-sqi-badge b{font-weight:700;color:#EDF4F2;}
+.rs-sqi-punto{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#8A9299;
+  flex:0 0 auto;
+}
+.rs-sqi-punto-azul{background:#4FA8E8;}
+.rs-sqi-punto-bajo{background:#00B98A;}
+.rs-sqi-punto-moderado{background:#FFC033;}
+.rs-sqi-punto-alto{background:#FF6B1A;}
+.rs-sqi-punto-muyalto{background:#E63E5F;}
+
+/* ---- Estado noche: vista apagada ---- */
+.rs-sqi-noche .rs-sqi-estado,
+.rs-sqi-noche .rs-sqi-pct,
+.rs-sqi-noche .rs-sqi-contexto-titulo,
+.rs-sqi-noche .rs-sqi-contexto-cuerpo{color:rgba(237,244,242,0.45);}
+.rs-sqi-noche .rs-sqi-indicador,
+.rs-sqi-noche .rs-sqi-barra-indicador{background:rgba(237,244,242,0.35);}
+.rs-sqi-noche .rs-sqi-contexto{border-color:rgba(237,244,242,0.1);}
+
+/* ---- Adaptaciones ---- */
+@media (min-width:641px){
+  .rs-sqi{padding:0;}
+  .rs-sqi-pct{font-size:3.4rem;}
+}
+@media (max-width:380px){
+  .rs-sqi-hora-valor{font-size:0.74rem;}
+  .rs-sqi-tab{font-size:0.85rem;}
+}
+
+/* ==========================================================================
+   CALIDAD DE SOMBRA MINI (panel solar SVG visible, nov-2026)
+   Tarjeta superior unida al widget; no modifica el mapa ni sus controles.
+   ========================================================================== */
+
+#rsSqiMini.rs-sqi-mini{
+  --rs-sqi-mini-color:#EEF1F6;
+  position:absolute;
+  z-index:1125;
+  box-sizing:border-box;
+  margin:0;
+  padding:10px 13px 9px;
+  border:1px solid rgba(255,255,255,0.08);
+  border-bottom:0;
+  border-radius:13.5px 13.5px 0 0;
+  background:rgba(8,12,20,0.96);
+  box-shadow:0 -8px 24px rgba(0,0,0,0.18);
+  color:#EEF1F6;
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  pointer-events:none;
+}
+#rsSqiMini.rs-sqi-mini[hidden]{display:none!important;}
+#rsSqiMini .rs-sqi-mini-fila{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  min-width:0;
+}
+#rsSqiMini .rs-sqi-mini-estado{
+  font-size:12px;
+  font-weight:700;
+  line-height:1.2;
+  color:var(--rs-sqi-mini-color,#EEF1F6);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  transition:color 0.3s ease;
+}
+#rsSqiMini .rs-sqi-mini-pct{
+  font-size:15px;
+  font-weight:800;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:var(--rs-sqi-mini-color,#EEF1F6);
+  white-space:nowrap;
+  transition:color 0.3s ease;
+}
+#rsSqiMini .rs-sqi-mini-barra{
+  position:relative;
+  height:5px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#E63E5F 0%,#FF6B1A 32%,#FFC033 62%,#00B98A 100%);
+}
+#rsSqiMini .rs-sqi-mini-indicador{
+  position:absolute;
+  top:50%;
+  left:0%;
+  width:11px;
+  height:11px;
+  border-radius:50%;
+  background:var(--rs-sqi-mini-color,#EEF1F6);
+  border:2px solid #10151B;
+  box-shadow:0 1px 4px rgba(0,0,0,0.5);
+  transform:translate(-50%,-50%);
+  transition:left 0.3s ease,background 0.3s ease;
+}
+#rsSqiMini .rs-sqi-mini-datos{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px 14px;
+}
+#rsSqiMini .rs-sqi-mini-dato{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:10.5px;
+  color:#AEB7C7;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+#rsSqiMini .rs-sqi-mini-dato b{
+  font-weight:700;
+  color:#EEF1F6;
+}
+#rsSqiMini .rs-sqi-mini-dato .rs-sqi-punto{
+  width:6px;
+  height:6px;
+}
+#rsSqiMini.rs-sqi-mini-noche .rs-sqi-mini-estado{color:rgba(238,241,246,0.65);}
+#rsSqiMini.rs-sqi-mini-noche .rs-sqi-mini-indicador{background:rgba(238,241,246,0.35);}
+@media (max-width:640px){
+  #rsSqiMini.rs-sqi-mini{padding:9px 11px 8px;gap:5px;}
+  #rsSqiMini .rs-sqi-mini-estado{font-size:11px;}
+  #rsSqiMini .rs-sqi-mini-datos{gap:4px 10px;}
+  #rsSqiMini .rs-sqi-mini-dato{font-size:10px;}
+}
+
+/* AÑADIDO: la tarjeta mini SQI debe responder a los clicks del usuario;
+   con pointer-events:none el enlace «Cómo se calcula» era inaccesible. */
+#rsSqiMini.rs-sqi-mini{ pointer-events:auto; }
+
+/* Glosario desplegable: explica las siglas AOD, PM2.5 y DHI en el propio widget. */
+#rsSqiMini .rs-sqi-mini-glosario{font-size:10px;line-height:1.45;color:#AEB7C7;}
+#rsSqiMini .rs-sqi-mini-glosario summary{cursor:pointer;font-weight:600;color:#8FB3D9;list-style:none;user-select:none;}
+#rsSqiMini .rs-sqi-mini-glosario summary::-webkit-details-marker{display:none;}
+#rsSqiMini .rs-sqi-mini-glosario summary::before{content:"› ";}
+#rsSqiMini .rs-sqi-mini-glosario[open] summary::before{content:"⌄ ";}
+#rsSqiMini .rs-sqi-mini-glosario dl{margin:5px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;}
+#rsSqiMini .rs-sqi-mini-glosario li{list-style:none;}
+#rsSqiMini .rs-sqi-mini-glosario b{color:#EEF1F6;font-weight:700;}
+
+/* (nov-2026) Móvil: el glosario del mini widget necesita un objetivo táctil
+   decente; además el JS re-ancla la tarjeta en cada toggle para que al
+   abrirse no crezca fuera de pantalla (parecía que "no abría"). */
+#rsSqiMini .rs-sqi-mini-glosario summary{
+  padding:7px 2px;
+  min-height:30px;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+#rsSqiMini .rs-sqi-mini-glosario ul{margin:2px 0 4px;padding-left:2px;display:flex;flex-direction:column;gap:4px;}
+
+/* Chip de temperatura del microclima dentro del widget de sombra: se
+   muestra junto al glosario cuando la capa de microclima está activa. */
+#rsSqiMini .rs-sqi-mini-temp{
+  margin-top:5px;
+  font-size:11px;
+  line-height:1.3;
+  color:#FFD27A;
+  font-variant-numeric:tabular-nums;
+}
+#rsSqiMini .rs-sqi-mini-temp b{color:#FFF;}
+#rsSqiMini .rs-sqi-mini-temp i{opacity:0.7;font-style:normal;font-size:9.5px;}

@@ -48,7 +48,8 @@
         /* 16 · capas: sombras y sol */ { title: "Sombras y sol", desc: "Sombras dibuja la sombra de cada edificio a la hora que quieras. Posición del sol te enseña dónde está en el cielo. Y con Irradiación solar tocas un punto y ves cuánto sol recibe al año." },
         /* 17 · capas: entorno */       { title: "Entorno y clima", desc: "Árboles suma su sombra al mapa. Nubes enseña las de verdad. Calidad del aire pinta cómo respira tu zona en España y Microclima estima cuánto cambia el calor de un sitio a otro." },
         /* 18 · capas: mapa base */     { title: "Mapa base", desc: "Cambia entre mapa claro, IGN u oscuro. Edificios 3D levanta la ciudad y Catastro 3D añade los datos oficiales del Catastro." },
-        /* 19 · capas: rutas */         { title: "Rutas y movilidad", desc: "Ruta dibuja tu camino. Aquí también planificas un viaje, buscas aparcamiento y enciendes fuentes de agua, carriles bici y transporte público con sus paradas y horarios." }
+        /* 19 · capas: rutas */         { title: "Rutas y movilidad", desc: "Ruta dibuja tu camino. Aquí también planificas un viaje, buscas aparcamiento y enciendes fuentes de agua, carriles bici y transporte público con sus paradas y horarios." },
+        /* 20 · huecos OSM */         { title: "Huecos OSM", desc: "Este botón abre la herramienta que localiza los huecos de OpenStreetMap en tu zona. Así sabes qué calles o árboles faltan por mapear y puedes completarlos tú." }
       ]
     },
     ca: {
@@ -274,7 +275,8 @@
     { seccion: 2, i: 18, side: "left", align: "center", capas: true },
     { seccion: 3, i: 19, side: "left", align: "center", capas: true },
     { sel: ".rs-planetario", i: 6, side: "top", align: "center" },
-    { sel: ".rs-btn-lidar", i: 7, side: "top", align: "center" },
+    { sel: "#rsBtnHuecosOsm", i: 20, side: "top", align: "center" },
+    { sel: "#rsBtnLidar", i: 7, side: "top", align: "center" },
     { sel: "#cityDropdownBtn", i: 0, side: "bottom", align: "start" },
     { sel: "#map", i: 2, side: "top", align: "center" },
     { sel: "#airChart", i: 3, side: "top", align: "center" },
@@ -423,7 +425,10 @@
     const p = obtenerTraducciones().pasos;
     pasosActivos = DEFINICION_PASOS.filter((d) => (d.seccion != null
       ? !!document.getElementById("rsListaCapas") && !!panelCapas()
-      : !!document.querySelector(d.sel)));
+      : !!document.querySelector(d.sel)))
+      // El paso 20 (Huecos OSM) solo existe en español por ahora; en el
+      // resto de idiomas se omite sin romper el paseo.
+      .filter((d) => p[d.i]);
     return pasosActivos.map((d) => ({
       element: d.seccion != null ? "#rsTutoFantasma" : d.sel,
       popover: { title: p[d.i].title, description: p[d.i].desc, side: d.side, align: d.align },

@@ -266,76 +266,236 @@
 // 2026-11-01-f: las políticas legales se localizan en las siete lenguas
 // ofrecidas; se añade georgiano y se invalida la caché de traducciones JS.
 // Cambian js/i18n-legal.js, js/i18n.js y las tres páginas legales.
-// 2026-11-05-compartir-og: cabecera de index.html más limpia para WhatsApp,
-// Telegram y Bing. Había dos twitter:image distintos y dos og:image:alt; ahora
-// hay uno de cada y la imagen lleva un sello nuevo (?v=20261105) para que los
-// rastreadores no sigan usando la copia guardada de cuando la og:image era el
-// compartir.png de 0 bytes. El JSON-LD suma image y logo (tus mismos archivos).
-// No cambia ninguna imagen ni icono. Cambia index.html.
-// 2026-11-05-tutorial-capas: el tutorial se rehace. 1) Va siempre de arriba
-// abajo (antes bajaba a «Sincronizar» y volvía a Ko-fi y a la familia).
-// 2) Abre el panel de capas y lo explica por secciones (Sombras y sol,
-// Entorno y clima, Mapa base, Rutas y movilidad), destacando solo la zona
-// que explica con un recuadro invisible sobre sus filas. 3) La X naranja
-// enorme era el anillo de foco global (3px) sobre el botón de cerrar: ahora
-// es un cierre pequeño y redondo. 4) Tarjeta nueva con los tokens de la
-// paleta (claro y oscuro) y hoja inferior en móvil. Textos nuevos en los 7
-// idiomas. Cambian js/tutorial.js, js/shadows-route.js (tocar la tarjeta del
-// tutorial no cierra el panel de capas), css/style.css e index.html.
-// 2026-11-05-fuente-popup: el popup de las fuentes de agua se rediseña con
-// el mismo lenguaje que la tarjeta de paradas: etiqueta + título y un botón
-// turquesa con el logo Manolit (pin inclinado con glow, antes salía diminuto
-// y descentrado) y el texto «Obtener dirección». Ancho adaptable de 200 a
-// 260 px sin pasar de la pantalla, por encima del buscador (z-index 46) y con
-// modo noche sólido. Cambian js/fuentes-agua.js, css/style.css e index.html
-// (versión de ambos).
-// 2026-11-05-fix-reiniciar-b: causa real del botón «Reiniciar» que no
-// reiniciaba casi nada. detenerCaminata() (primer paso de reiniciarTodo)
-// usaba `manolit`, que vive dentro del `if` de guarda de la figura de
-// Manolit y en modo estricto no existe fuera: ReferenceError y el reinicio
-// se cortaba justo ahí (campos, ruta, marcadores y modos quedaban igual).
-// Lo mismo pasaba con asegurarManolitEnMapa (GPS/caminata) y
-// ocultarIndicadoresUbicacion (pulsación larga). Ahora el motor llama a
-// través de un puente (manolitPuente) que rellena el bloque de la figura.
-// Cambia js/shadows-route.js e index.html (versión del script).
-// 2026-11-05-parada-opaca: la tarjeta de parada de bus deja el «glass» con
-// backdrop-filter (no se desenfoca bien sobre el canvas WebGL del mapa y se
-// veía demasiado transparente/sin blur) y pasa a fondo sólido var(--paper),
-// como el resto de paneles que ya hicieron ese cambio en sep-2026. Además
-// la barra de scroll de la lista de salidas queda oculta (sigue
-// desplazable, solo no se ve la pista gris) y el popup sube a z-index:46
-// para no quedar detrás del buscador de rutas. Cambia js/transporte-publico.js.
-// 2026-11-05-fix-reiniciar: «Reiniciar» también vuelve al modo a pie, borra
-// los resúmenes de min/km de cada pestaña y la etiqueta flotante sobre el
-// destino, y oculta el aviso de CO2 y las indicaciones paso a paso de la
-// ruta anterior (antes se quedaban a la vista aunque la ruta ya se hubiera
-// borrado del mapa). Además el icono de parada de bus quita la línea de
-// ventana del parabrisas (el usuario prefiere el autobús más limpio).
-// Cambian js/shadows-route.js, js/transporte-publico.js e index.html
-// (versión de los dos scripts).
-// 2026-11-05-icono-bus-vesica: el icono de parada en el mapa (el punto que
-// se ve a cada zoom) pasa de un círculo genérico a la vesica roja-neón de
-// Manolit∞ usada como pin, con un autobús esquemático en cian donde el
-// logo lleva el círculo y el infinito. Cambia js/transporte-publico.js.
-// 2026-11-05-parada-glass: la tarjeta de parada de bus pasa del neón oscuro
-// al mismo cristal claro (papel + blur) que el resto de widgets del mapa,
-// con modo noche a juego en css/style.css. El icono "Cómo llegar" se
-// simplifica (sin brillo neón) y cada salida futura muestra además una
-// cuenta atrás ("en 12 min" / "en 1 h 20 min") en los 7 idiomas.
-// Cambian js/transporte-publico.js, js/i18n.js, css/style.css e index.html
-// (versión del script).
-// 2026-11-05-sombras-zoom: al acercarse (zoom >= 16, 16,5 en gama baja) la
-// casilla «Sombras» se enciende sola con la hora actual, y se apaga al alejarse
-// si la encendió el zoom. Si el usuario las apaga a mano no se vuelven a
-// encender solas (se recuerda entre visitas). Además las etiquetas de
-// min y km por modo salen sobre el destino (textos modoCaminar/Bici/Coche en
-// los 7 idiomas). Cambian js/shadows-route.js e index.html (versión del script).
-// 2026-11-04-h: la mascota del GPS amplía sus locuciones andaluzas, dice la
-// hora exacta y adapta las bromas a madrugada, mañana, mediodía, tarde y noche.
+// 2026-11-17-k: capa de LLUVIA (js/lluvia.js, archivo nuevo): mancha de
+// precipitación OWM vía /tiles/lluvia (ruta nueva del worker, espejo de
+// /tiles/nubes) de lejos y gotas animadas en canvas a zoom ≥13 solo si
+// llueve ahora (/clima gana el campo aditivo lluvia_mm_h). Casilla nueva
+// rsToggleLluvia apagada por defecto. Además se enganchan la superficie
+// continua de aire (js/aire-superficie.js) y la nubosidad unificada del
+// microclima de la ronda anterior, que no habían invalidado caché.
+// Cambian worker.js, js/lluvia.js, js/aire-superficie.js, js/shadows-route.js,
+// js/microclima.js, js/i18n.js (2 claves nuevas en 7 idiomas), css/style.css
+// e index.html.
+// 2026-11-17-l: CONFORT TÉRMICO UTCI (Fase 1). El coste del Dijkstra de la
+// ruta fresca deja de ser solo "fracción de sombra": cada tramo pesa
+// tiempo × estrés UTCI (sol/sombra con Tmrt estimada) cuando hay meteo, y
+// cae al coste clásico si no la hay (silencioso). Nuevos módulos
+// js/utci-confort.js (UTCI polinómico de Bröde et al. 2012, Tmrt estimada,
+// viento de Open-Meteo ajustado de 10 m a peatón ×0,6, caché de meteo por
+// celda 0,25°) y js/confort-ruta.js (comparativa ruta fresca vs rápida:
+// UTCI medio, minutos al sol y diferencia; índice de confianza de los
+// datos con alturas reales, especie de árboles, toldos y frescura meteo;
+// avisos por umbrales de UTCI para colectivos vulnerables). worker.js
+// gana wind_speed_10m y shortwave_radiation en /prevision (aditivo).
+// Cambian worker.js, js/shadows-route.js, js/i18n.js (18 claves nuevas en
+// 7 idiomas), css/style.css, index.html y los dos js nuevos.
+// 2026-11-20-a: (1) SQI también en los ÁRBOLES: las sombras de árboles se
+//     tiñen con el color de calidad de sombra (verde/ámbar/naranja/rojo),
+//     mismo mecanismo y colores que los edificios. Cambian
+//     js/sqi-calidad-sombra.js y js/shadows-route.js.
+// (2) Buscador: un solo lugar basta — texto solo en origen (o destino) y
+//     «Buscar ruta» lleva el mapa al sitio, sin exigir los dos campos.
+//     Cambia js/shadows-route.js.
+// 2026-11-20-b: búsqueda de UN solo lugar = solo MIRAR: sin origen no se
+//     lanzan resúmenes de bici/coche ni distancias (antes sacaba km/min
+//     absurdos desde un punto que el usuario nunca pidió) y se limpian los
+//     resúmenes de una búsqueda anterior. El botón dice «Buscar» (antes
+//     «Buscar ruta»). Cambian js/shadows-route.js, js/i18n.js e index.html.
+// 2026-11-20-c: RESALTE DEL LUGAR BUSCADO (como Google). Al buscar una
+//     ciudad, provincia, barrio o calle con «Buscar» y sin origen, se pide a
+//     Nominatim el polígono del área (polygon_geojson=1) y se dibuja
+//     delimitada: relleno azul suave + borde sólido (capa-lugar-buscado y
+//     capa-lugar-buscado-borde), con la cámara encuadrada al área entera en
+//     vez de a un punto. Si el resultado es una dirección puntual sin
+//     polígono, no se pinta nada y se hace el vuelo de siempre.
+//     Funciona en los tres modos (caminar/bici/coche) y se limpia al
+//     calcular una ruta. Verificado: capas, colores, encuadre de polígono,
+//     calle (LineString) y provincia (MultiPolygon), limpieza y casos sin
+//     geometría. Además se corrige una coma doble de sintaxis en
+//     js/i18n-legal.js (met_glop) que rompía ese archivo completo.
+//     Cambian js/shadows-route.js, js/i18n-legal.js e index.html.
+// 2026-11-20-d: EL CHAT YA SABE DE CALIDAD DE SOMBRA (SQI). El prompt del
+//     servidor (SYSTEM_PROMPT_AIRE en worker.js) solo describía «sombras y
+//     mapa» en general: el detalle del SQI que el cliente enviaba
+//     (js/chat.js) se descartaba, así que el chat de producción no conocía
+//     la escala verde/ámbar/naranja/rojo, ni AOD/PM2.5/DHI, ni Köppen.
+//     Ahora el prompt del Worker incluye una sección 2b completa del SQI,
+//     una entrada en la especialidad catedrática y las funciones nuevas
+//     (búsqueda de un solo lugar con área delimitada en azul, árboles 3D
+//     con fenología). Verificado importando el Worker: HTTP 200 y el
+//     sistema recibido por el modelo contiene todo el contenido del SQI.
+//     Cambian worker.js y sw.js.
+// 2026-11-20-e: REINICIAR BORRA TAMBIÉN EL ÁREA DEL LUGAR BUSCADO. Al pulsar
+//     «Reiniciar» el resalte azul de ciudad/barrio/calle (capa
+//     capa-lugar-buscado) se quedaba pintado en el mapa. Ahora
+//     reiniciarTodo() limpia la fuente 'lugar-buscado' mediante el puente
+//     manolitAireMarcarLugarBuscado(null), con optional chaining para que
+//     un puente ausente nunca rompa el reinicio. Verificado: marcado=1,
+//     tras reiniciar=0, doble reinicio=0 sin errores, y se puede volver a
+//     marcar (sigue en 1).
+//     Cambian js/shadows-route.js y sw.js.
+// 2026-11-21-a: ARBOLADO MÁS COHERENTE Y PALMERAS REALES.
+// (1) Palmeras EZ rehechas: generador propio (NO el port fractal de ez-tree
+//     que las dibujaba como "árbol con hojas en la punta"). Fuste con base
+//     abultada + anillos + corona de frondes en arco continuo, verde todo el
+//     año, dátiles en la datilera. 4 especies bien diferenciadas.
+// (2) 4 géneros más del parque de María Luisa con modelo EZ propio (antes
+//     caían en 'generico' sin copa 3D): ailanto, lagunaria, taxodio, tejo.
+// (3) Clasificador: orden de palmáceas corregido — Phoenix dactylifera ya no
+//     cae en 'palmera' genérica y "Pinus canariensis" vuelve a ser PINO (lo
+//     se lo robaba la keyword 'canariensis' de la palmera canaria).
+// (4) Madera por especie en el motor EZ (palmeras con su pardo-gris de fuste).
+// Cambian js/arboles-ez-3d.js, js/shadows-route.js, index.html (?v=) y sw.js
+// (purga de caché).
+// 2026-11-21-b: FIX DE ALTURA EN PALMERAS + PURGA DE CACHÉ DEL SW.
+// (1) El fix de palmeras anteriores (2026-11-21-a) y este NO llegaban al
+//     navegador: arboles-ez-3d.js es cache-first en el SW y la VERSION no
+//     había cambiado, así que seguía sirviéndose la copia vieja. Subir
+//     VERSION borra las cachés viejas y fuerza la descarga del módulo nuevo.
+// (2) PALMERAS: las 147 con altura 1-5 m del inventario (y 26 sin dato)
+//     salían todas enanas e iguales por el suelo de 6 m de
+//     estimarDimensionesArbol. Ahora, si la altura no es verosímil (<6 m),
+//     manda el porte adulto de la ESPECIE (datilera 12 m, canaria 13 m,
+//     washingtonia 14 m); los datos fiables (>=6 m) siguen mandando.
+// Cambian js/shadows-route.js, js/arboles-ez-3d.js, index.html (?v=) y sw.js.
+// 2026-11-21-e: (1) PALMERAS VISIBLES. La corona plana se pinta SIEMPRE para
+// forma palmera (un solo feature, el de la foto, a ras de frondes). La rama
+// que la condicionaba a estar cerca del 3D dejaba las palmeras sin copa y
+// pareciar desaparecer.
+// (2) NARANJO Y ALBIZIA SIN COPAS PLANAS ENCIMA ("árboles con
+// hojas" en las esquinas de los naranjos). Junto a un naranjo/albizia 3D, el
+// motor plano pinta TRES cosas para el mismo ejemplar: el TRONCO (solo, bien)
+// y las DOS copas planas de siempre (dos poligonos apilados de baseM 3,0 y
+// 5,2 m). Las copas planas tapaban por arriba la malla real desde el suelo y
+// hacían que el naranjo pareciera un árbol de hojas planas. Ahora, junto a
+// ellos, solo va el tronco. Nada cambia para albizia/naranjo ni en ningun
+// otro caso (sin 3D, lejos o naranjo de invierno siguen igual).
 // Cambia js/shadows-route.js.
-// 2026-11-03-aa: reintenta el router peatonal directamente si el proxy
-// /ruta falla, evitando rutas rectas cuando el servicio sigue disponible.
-const VERSION = '2026-11-07-feria-mairena-v1';
+// 2026-11-21-c: DOS CORONAS EN LA PALMERA (la causa de "árboles con hojas").
+// (1) Con el motor EZ 3D activo, la palmera pintaba ADEMÁS la copa plana de
+//     siempre, y con DOS pisos (uno de 0,15 y otro de 0,05 de la altura por
+//     encima): una columna de hasta 4,7 m de follaje plano encima de su
+//     fuste, de ahí que parecieran árboles. Ahora, junto al 3D, hay UN solo
+//     feature de corona (el de la foto, a ras de frondes). Sin EZ, etc.
+// (2) 2 árboles más del parque con modelo EZ propio: firmiana (árbol de las
+//     pagodas, 1.085) y ficus_alto (microcarpa/benjamina/elastica, 602).
+// (3) Altura de palmeras: si la del inventario no es verosímil (<6 m), manda
+//     el porte de la especie (datilera 12, canaria 13, washingtonia 14 m).
+// Cambian js/shadows-route.js, js/arboles-ez-3d.js, index.html (?v=) y sw.js.
+// 2026-11-21-f: (1) SEVILLA SIN ÁRBOLES OSM GENÉRICOS: con el inventario
+//     oficial completo, los nodos de OSM sin species/genus/nombre ya no se
+//     dibujan dentro del bbox de Sevilla (fuera, sin cambios). Cambia
+//     js/shadows-route.js. (2) PINO EZ REHECHO: silueta cónica con ramas de
+//     verticilo casi horizontales desde abajo, acículas finas/oscuras y
+//     corteza parda. Cambia js/arboles-ez-3d.js. Ambos con ?v= en index.html.
+// 2026-11-24-a: NARANJO/ALBIZIA RESTAURADOS y 3 especies más.
+// (1) El motor propio de naranjo/albizia (js/arboles-3d.js) vuelve a SU
+//     selección original (en vista, cercanía al centro, tope 40): nada de
+//     EZ ni filtros nuevos, como se pidió.
+// (2) El motor plano (js/shadows-route.js) devuelve su guardia original:
+//     naranjo/albizia NUNCA se saltan el descamuflaje y pintan SIEMPRE sus
+//     copas planas como antes de los EZ (sin mallaTieneEsteEjemplar).
+// (3) 3 géneros más con preset EZ propio y keywords: koelreuteria (2.559,
+//     antes colada como sophora), tamarix (538) y paulownia (127).
+// Cambian js/arboles-3d.js, js/shadows-route.js, js/arboles-ez-3d.js e
+// index.html (?v=). NO se toca la malla del naranjo ni la de la albizia.
+// 2026-11-24-b: PINO CONÍFERA REAL (como la captura). Tronco esbelto
+//     desnudo hasta media altura, verticilos de ramas horizontales (82°)
+//     con penacho denso de acículas finas por rama (52 x 1.05, verde
+//     oscuro) que se acortan hacia la cima: pisos cónicos de pino real.
+//     Solo cambia js/arboles-ez-3d.js e index.html (?v=).
+// 2026-11-25-d: PINO PIÑONERO DEFINITIVO (construirPinoReal). El pino
+//     sale del generador fractal (que daba el "castillo de discos" con
+//     tronco pelado y palas anchas) y pasa a silueta propia: líder recto,
+//     copa CÓNICA CONTINUA de 11 verticilos solapados desde el 32 % de la
+//     altura (sin huecos entre pisos) y acículas finas triangulares (17
+//     por penacho, ancho 0.028) pegadas a cada rama, con tope de 520
+//     penachos por árbol repartidos con cuenta EXACTA por bisección (la
+//     proporción por longitud dejaba la punta pelada por encima de 9 m).
+//     Verde propio de conífera (0x355638) en vez del verde de hoja ancha.
+//     Solo cambia js/arboles-ez-3d.js: el resto de especies EZ, el
+//     naranjo y la albizia quedan exactamente igual.
+// 2026-11-26-a: INDICACIONES CON LADO DE LA SOMBRA + MICROCLIMA SUAVE.
+// (1) Las indicaciones de ruta dicen por qué LADO de la calle va la sombra
+//     ("La sombra va por tu lado izquierdo/derecho", "Hay sombra en los dos
+//     lados") y, en tramos largos al sol, si el sol te da de cara o de
+//     espaldas. Se muestrea cada acera a ~7 m del eje con el mismo índice
+//     espacial de siempre. Cambian js/shadows-route.js y js/i18n.js.
+// (2) Microclima del suelo DIFUMINADO: de círculos duros (lunar de puntos)
+//     a lienzo en miniatura escalado con bilineal: mapa de calor continuo.
+//     Botón "i" de la leyenda con objetivo táctil de 26 px (en móvil no se
+//     podía abrir la nota). Cambia js/microclima.js.
+// (3) Con microclima activo, la temperatura (aire + rango de suelo) se
+//     muestra en un chip dentro del widget de sombra SQI, junto al
+//     glosario; el glosario re-ancla la tarjeta al abrirse (en móvil el
+//     contenido se salía de pantalla). Cambian js/sqi-calidad-sombra.js y
+//     css/sqi.css.
+const VERSION = '2026-11-26-a-lado-sombra-microclima';
+// 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
+// (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
+//     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).
+// (2) La consulta de OSM pide las 4 esquinas reales del lienzo + 30 % de
+//     colchón: con el mapa inclinado el borde de arriba ya no queda vacío.
+// (3) 5 especies más con preset EZ propio sacado del repo dgreenheck/ez-tree
+//     (ash_medium, oak_medium, oak_bushy, pine_medium, aspen_small):
+//     lagerstroemia, bauhinia, grevillea, algarrobo y laurel, más keywords
+//     nuevas en TIPOS_ARBOL para que no caigan en 'generico'.
+// (4) Copas legibles desde arriba: emissive de hoja 0.24 -> 0.55 y
+//     AmbientLight 0.35 en la escena EZ (antes salían casi negras en picado).
+// Cambian js/arboles-ez-3d.js, js/shadows-route.js, index.html y sw.js.
+// 2026-11-19-g: Corrección de vista previa en redes sociales (WhatsApp, Telegram,
+// Twitter/X, iMessage): sustitución de compartir.png (1080x1920 vertical, 671 KB,
+// rechazada por exceder los límites de WhatsApp y relación de aspecto) por
+// og-image.png (1200x630 horizontal 1.91:1 estándar, 52 KB con logo de Manolit∞,
+// edificios 3D y sol). Se añaden metadatos completos og:image:secure_url,
+// og:image:width, og:image:height, og:image:type, itemprop="image" y twitter:image
+// en index.html y todas las páginas del sitio.
+// 2026-11-19-f: (1) ¡NUNCA MÁS ÁRBOLES ARQUEADOS!: gnarliness/twist/force a
+// cero en TODOS los presets EZ (troncos y ramas rectos, copa arriba).
+// (2) Palmera EZ nueva (palmera/datilera/washingtonia): tronco recto único
+// y corona de 26 hojas radiales en la punta; 12 m normalizados. Abunda en
+// Sevilla y en toda ciudad cálida de OSM.
+// Cambian js/arboles-ez-3d.js, js/shadows-route.js y sw.js.
+// 2026-11-19-e: FIX DEFINITIVO de gigantes: cada modelo EZ se NORMALIZA a su
+// altura de referencia (EZ_ALTURAS) al construirlo; antes el suelo 0.4 del
+// clamp de escala OBLIGABA a inflar los presets altos del repo (oak_large ~95
+// unidades) y salían árboles de 20-30 m en la Plaza de España. Ahora la
+// escala en vivo es ~1.0 y el tamaño lo manda el dato real (altura medida).
+// Cambian js/arboles-ez-3d.js y sw.js.
+// 2026-11-19-d: FIX de gigantes e inclinaciones EZ: presets _large con hojas
+// que nacen a media rama (leafStart 0.4+) y de tamaño normal (2.0-2.2 en vez
+// de 4.5), fuerza lateral reducida (force 0.02->0.008) y escala del motor
+// acotada a 1.15x hacia arriba con altura deseada techo por especie. Adiós
+// torres y árboles arqueados de María Luisa. Cambian js/arboles-ez-3d.js y sw.js.
+// 2026-11-19-c: parque de María Luisa: 6 especies EZ más (gleditsia,
+// ligustro, cercis, magnolia, catalpa, casuarina), reutilizando presets del
+// repo (cero peso). FIX del gigantismo: tope de escala del motor EZ de 2.5x
+// a 1.8x y capar alturas imposibles del inventario (810 m...) a 40 m.
+// Cambian js/shadows-route.js, js/arboles-ez-3d.js y sw.js (purga de caché).
+// 2026-11-19-b: 10 especies EZ completas (círculo cerrado): se suman almez,
+// brachychiton, robinia, fresno, ciprés y sophora/acacia de Japón a los
+// presets existentes. Keywords nuevas en TIPOS_ARBOL (shadows-route.js) para
+// que la clasificación funcione GLOBAL con cualquier árbol de OSM etiquetado
+// (Madrid, Tokio, donde sea), no solo con el inventario de Sevilla.
+// Arreglos: 'ciprés/cypress/cupressus' quitadas de 'pino' (iban antes y el
+// ciprés nunca llegaba a su entrada) y forma columnar_estrecha (no existía
+// en ninguna tabla) pasa a conica, ya soportada en todo el pipeline.
+// Cambian js/shadows-route.js, js/arboles-ez-3d.js y sw.js (purga de caché).
+// 2026-11-19-a: árboles visibles sin copias OSM ni copas planas duplicadas;
+// separación del 3D conforme al tamaño de copa y carga versionada de módulos.
+// Cambian index.html, js/shadows-route.js, js/arboles-3d.js y js/arboles-ez-3d.js.
+// 2026-11-18-a: se corrige el render 3D EZ de Sevilla: se actualizarán todas
+// las mallas de hojas de cada variante, evitando la excepción al acercar el mapa.
+// Cambia js/arboles-ez-3d.js.
+// 2026-11-17-n: árboles 3D procedurales estilo ez-tree (MIT) para coníferas
+// y frondosas, en MÓDULO SEPARADO js/arboles-ez-3d.js. La albizia y el
+// naranjo (js/arboles-3d.js) quedan INTACTOS, byte a byte. Cambian index.html
+// (carga del módulo), js/shadows-route.js (hook nuevo manolitAireArbolesEZ)
+// y se añade js/arboles-ez-3d.js.
+// 2026-11-17-f: el coeficiente K de amortiguación del factor LUR del SQI
+// deja de ser el 0.5 fijo y pasa a depender de la zona Köppen-Geiger del
+// punto (Beck et al. 2018, rejilla local data/koppen-rejilla.json,
+// cache-first). Cambian js/sqi-calidad-sombra.js y sw.js.
 // 2026-10-31-c: festejos decorados. Halloween dura del 31 oct al 1 nov 23:59
 // y Navidad del 10 dic al 15 ene (el 31 dic anuncia el cambio de año). js/
 // ambientes.js crea la capa de adornos (SVG en línea, animaciones de bajo
@@ -363,7 +523,7 @@ const HOSTS_REVALIDABLES = [
 ];
 
 /* Rutas propias con datos dinámicos (proxies del worker) */
-const RUTAS_DINAMICAS = ['/api/', '/geo', '/geo-sugerencias', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/carriles-bici', '/transporte-paradas', '/transporte-salidas', '/manolito'];
+const RUTAS_DINAMICAS = ['/api/', '/geo', '/ruta', '/clima', '/prevision', '/arboles', '/aparcamientos', '/carriles-bici', '/transporte-paradas', '/transporte-salidas', '/manolito'];
 
 /* Hosts de datos dinámicos externos */
 const HOSTS_DINAMICOS = [
@@ -371,7 +531,6 @@ const HOSTS_DINAMICOS = [
 	'overpass-api.de',
 	'lz4.overpass-api.de',
 	'overpass.kumi.systems',
-	'overpass.nchc.org.tw',
 ];
 
 /* Respuestas geográficas de fuentes: uso en memoria de la página, sin caché
@@ -412,6 +571,9 @@ self.addEventListener('activate', function(ev) {
 function esEstatico(url) {
 	if (HOSTS_ESTATICOS.indexOf(url.hostname) !== -1) return true;
 	if (url.origin === self.location.origin) {
+		// La rejilla Köppen es un dato estático versionado: cache-first para
+		// que la consulta por punto nunca dependa de red tras el arranque.
+		if (url.pathname === '/data/koppen-rejilla.json') return true;
 		return /\.(js|css|png|jpe?g|svg|ico|webp|woff2?|ttf|webmanifest|geojson)(\?.*)?$/i.test(url.pathname);
 	}
 	return false;
@@ -462,12 +624,42 @@ function cacheFirst(peticion) {
 	});
 }
 
-// Sirve la copia cacheada al instante (si existe) y SIEMPRE pide a red en
-// segundo plano para refrescarla: velocidad de cache-first sin congelar
-// el contenido. Así el planeta nuevo de OpenFreeMap entra solo.
+/* Ventana anti-revalidado (nov-2026, ahorro de batería): cada tesela única
+   se revalida en segundo plano como mucho 1 vez cada 10 minutos. Antes,
+   CADA petición de una tesela ya cacheada (volver a panear por la misma
+   zona, zoom in/out, recentrar) disparaba SIEMPRE una descarga en segundo
+   plano: la radio del móvil no descansa y eso gasta batería y calienta.
+   Con esta ventana la frescura se mantiene (la tesela que se sigue viendo
+   acaba revalidándose en ≤10 min, el planeta nuevo sigue entrando solo)
+   pero el número de peticiones de fondo cae en órdenes de magnitud. */
+const REVALIDACION_MINIMA_MS = 10 * 60 * 1000;
+const TOPE_REVALIDACIONES = 3000;
+const ultimaRevalidacion = new Map(); // url -> timestamp (memoria del SW)
+
+function marcarRevalidacion(clave, ahora) {
+	if (ultimaRevalidacion.size >= TOPE_REVALIDACIONES) {
+		// Map itera en orden de inserción: la primera es la más vieja.
+		ultimaRevalidacion.delete(ultimaRevalidacion.keys().next().value);
+	}
+	ultimaRevalidacion.set(clave, ahora);
+}
+
+// Sirve la copia cacheada al instante (si existe) y pide a red en
+// segundo plano para refrescarla, SALVO si esa tesela ya se revalidó hace
+// menos de REVALIDACION_MINIMA_MS: velocidad de cache-first sin congelar
+// el contenido y sin ahogar la radio del móvil.
 function staleWhileRevalidate(peticion) {
 	return caches.open(CACHE_ESTATICA).then(function(cache) {
 		return cache.match(peticion).then(function(guardada) {
+			const clave = peticion.url;
+			const ahora = Date.now();
+			const ultima = ultimaRevalidacion.get(clave) || 0;
+			if (guardada && (ahora - ultima) < REVALIDACION_MINIMA_MS) {
+				// Copia reciente (primera descarga o revalidación reciente):
+				// se sirve tal cual, cero red de fondo.
+				return guardada;
+			}
+			marcarRevalidacion(clave, ahora);
 			const promesaRed = fetch(peticion).then(function(respuesta) {
 				if (respuesta && (respuesta.ok || respuesta.type === 'opaque')) {
 					cache.put(peticion, respuesta.clone())

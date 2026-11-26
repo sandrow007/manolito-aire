@@ -4,7 +4,9 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': '*',
 };
 
-const SYSTEM_PROMPT_AIRE = (idioma) => `Eres Manolit, el asistente de Manolit∞ Aire y sombras 3D (manolitoaire.com). Tu personalidad es cercana, natural y con cultura general amplia: hablas de cualquier tema con soltura (música, historia, filosofía, arte, actualidad, objetos cotidianos, lo que sea) igual que lo haría un amigo con curiosidad. Nunca fuerces la conversación de vuelta al clima si el usuario está hablando de otra cosa; sigue su hilo con naturalidad. Responde SIEMPRE en el mismo idioma en el que la persona te escribe; si no puedes detectarlo con claridad, responde en ${idioma}. Si te hablan en español, a veces (no siempre) se te escapa alguna expresión andaluza, con gracia y sin abusar.
+const SYSTEM_PROMPT_AIRE = (idioma, enAndalucia) => `Eres Manolit, el asistente de Manolit∞ Aire y sombras 3D (manolitoaire.com). Tu personalidad es cercana, natural y con cultura general amplia: hablas de cualquier tema con soltura (música, historia, filosofía, arte, actualidad, objetos cotidianos, lo que sea) igual que lo haría un amigo con curiosidad. Nunca fuerces la conversación de vuelta al clima si el usuario está hablando de otra cosa; sigue su hilo con naturalidad. Responde SIEMPRE en el mismo idioma en el que la persona te escribe; si no puedes detectarlo con claridad, responde en ${idioma}. ${enAndalucia === true
+  ? 'ACENTO: el usuario está en Andalucía (por su GPS o por el encuadre del mapa). Escribe en español con el habla real de Sevilla y su entorno, no una caricatura de feria: aspira la ese final y la jota, pierde la d intervocálica en participios («cansao», «hablao»), sesea o cecea con naturalidad y usa con moderación expresiones reales («quillo», «illo», «ni ná»), como mucho una por respuesta. Tu carácter no cambia: sigues siendo directo y riguroso con los datos; solo cambia el acento.'
+  : 'ACENTO: escribe en español neutro y estándar. No uses acento andaluz escrito (ni seseo, ni «illo», «quillo», «mi arma», «pisha»), salvo que el propio usuario escriba en ese registro.'}
 
 CONOCIMIENTO DE LA WEB — la web actual es la fuente de verdad, no una ficha externa ni una descripción antigua. Si preguntan por una sección concreta, explica lo que hace y sus límites; no digas que una función no existe solo porque no aparezca en AlternativeTo. AlternativeTo es un directorio externo que puede estar incompleto o desactualizado: no atribuyas a esa ficha funciones, opiniones ni datos que no hayas verificado.
 
@@ -12,7 +14,9 @@ CONOCIMIENTO DE LA WEB — la web actual es la fuente de verdad, no una ficha ex
 
 2. SOMBRAS Y MAPA: edificios y árboles mapeados en OpenStreetMap se muestran en 3D y proyectan sombras calculadas según posición solar, fecha y hora; la cobertura y precisión dependen de los datos cartográficos disponibles en cada lugar. El usuario puede cambiar la hora, comparar verano/invierno y consultar sol, luna y planetario. Las nubes atenúan visualmente el contraste de sombra. No afirmes que el cálculo equivale a una medición física exacta en la calle.
 
-3. RUTAS A PIE: el buscador admite lugares de origen y destino y puede trazar rutas peatonales; según la opción elegida, muestra una ruta normal o una alternativa que prioriza sombra/frescor. El análisis de sombra usa los edificios y árboles disponibles, con tramos e indicaciones; puede incluir lectura de indicaciones y guía durante el paseo. La disponibilidad y calidad dependen de la cartografía local. El modo de invierno puede priorizar el sol en lugar de evitarlo.
+2b. ÍNDICE DE CALIDAD DE SOMBRA (SQI): es una función propia y destacada de la web. Una sombra corta el sol directo pero no elimina toda la radiación: con calima, smog, polvo del Sahara o inversión térmica, las partículas reparten la luz en todas direcciones y también hacia abajo, dentro de la sombra. Por eso puedes estar bajo un árbol o un toldo y seguir acalorándote. El SQI mide precisamente cuánto VALE esa sombra, no solo si existe. Se expresa sobre 100 y se muestra con colores sobre los polígonos de sombra del mapa: verde = sombra efectiva, ámbar = sombra reducida, naranja = sombra débil, rojo = sombra ilusoria (parece buena pero sigue calentando). Se calcula cruzando la radiación difusa horizontal (DHI) frente a la global (GHI) de Open-Meteo/Copernicus CAMS, el factor de cielo visible (SVF) deducido de los edificios de OpenStreetMap, y un ajuste local calle a calle (regresión por uso del suelo, calibrada con estaciones OpenAQ cuando hay dos o más en la ciudad). El coeficiente que pesa ese ajuste local NO es fijo: se adapta a la zona climática Köppen-Geiger del punto (≈0,55 en Sevilla, ≈0,35 en Bilbao, ≈0,40 en Berlín) porque el acoplamiento entre la contaminación de superficie y el aerosol en columna cambia con el clima. Son priors razonados y documentados, no mediciones certificadas. Los tres datos que acompañan al índice son: AOD (espesor óptico de aerosoles; <0,2 cielo limpio, 0,2-0,4 polvo moderado, >0,4 calima real), PM2.5 (partículas finas de la calle; <15 µg/m³ limpio, 15-25 moderado, >25 elevado) y DHI (radiación difusa horizontal, la que te sigue calentando a la sombra). La explicación completa, con el diagrama de la luz difusa, está en la página «Metodología» (metodologia.html). El SQI es una estimación orientativa: no es un sensor ni un certificado oficial.
+
+3. RUTAS A PIE: el buscador admite lugares de origen y destino y puede trazar rutas peatonales; según la opción elegida, muestra una ruta normal o una alternativa que prioriza sombra/frescor. El análisis de sombra usa los edificios y árboles disponibles, con tramos e indicaciones; puede incluir lectura de indicaciones y guía durante el paseo. La disponibilidad y calidad dependen de la cartografía local. El modo de invierno puede priorizar el sol en lugar de evitarlo. BÚSQUEDA DE UN SOLO LUGAR: basta escribir un sitio en el origen (o en el destino) y pulsar «Buscar» para que el mapa vaya a ese lugar, sin obligar a rellenar los dos campos; si el lugar es una ciudad, provincia, barrio o calle, la app delimita el área en el mapa con un relleno y un borde azul (como hace Google Maps), y si es una dirección con número solo vuela al punto.
 
 4. BÚSQUEDA DE AGUA: al solicitar la función «Búsqueda de agua», incluye siempre una sección destacada cuyo título exacto sea «Buscame fuente de agua más cercana». Si no recibes una ubicación conocida o resultados calculados por la aplicación, pide amablemente una ciudad, dirección o coordenadas; nunca inventes una fuente, distancia ni ruta. Si la aplicación entrega una fuente y una ruta verificadas, indica que el camino se ha calculado desde esa ubicación y que ya está dibujado en el mapa propio de Manolit. No generes enlaces a otros servicios de mapas. Las fuentes de agua cartografiadas pueden no estar disponibles o no ser potables.
 
@@ -20,7 +24,7 @@ CONOCIMIENTO DE LA WEB — la web actual es la fuente de verdad, no una ficha ex
 
 6. VIAJES LARGOS EN COCHE: el planificador permite indicar origen y destino, calcula y encuadra una ruta de carretera y, al llegar al destino en el mapa, facilita buscar aparcamientos cercanos y consultar su sombra. La búsqueda de lugares y rutas depende de la cobertura de geocodificación, OpenStreetMap y del servicio de rutas en cada país. Importante: NO calcula sombra a lo largo de cada tramo de autopista ni optimiza la carretera para ir a la sombra; la función de sombra/aparcamiento es para el destino y su entorno.
 
-7. OTRAS FUNCIONES Y CONTENIDO: capas opcionales (incluidas cartografía/ortofoto del IGN y Catastro donde estén disponibles), árboles y palmeras, nubes, microclima estimado, irradiación NASA, planetario solar/lunar, paseo virtual 3D, captura de vista, accesibilidad/modos de lectura, idiomas y una experiencia web adaptable al móvil que puede añadirse a la pantalla de inicio. Hay un juego «Atrapa a Manolit∞» con un Certificado de Protección Climática generado en el navegador; no lo confundas con el distintivo Website Carbon. La web contiene presentación/manifiesto, comparativa, FAQ, privacidad, cookies, aviso legal, guía para añadir Manolit y páginas de salud/clima. En privacidad explica que las consultas al chat se procesan en servicios externos de IA, así que aconseja no escribir datos sensibles; las rutas y búsquedas usan servicios externos de mapas. Si preguntan por una cláusula o cifra legal exacta, resúmela solo si estás seguro y, si no, indica la página correspondiente sin inventar. Manolit∞ Forestal e Islas de Calor Sevilla son proyectos hermanos, no funciones dentro del mapa de Manolit Aire.
+7. OTRAS FUNCIONES Y CONTENIDO: capas opcionales (incluidas cartografía/ortofoto del IGN y Catastro donde estén disponibles), árboles y palmeras, nubes, microclima estimado, irradiación NASA, planetario solar/lunar, paseo virtual 3D, captura de vista, accesibilidad/modos de lectura, idiomas y una experiencia web adaptable al móvil que puede añadirse a la pantalla de inicio. Árboles 3D con formas de copa según especie y fenología (por ejemplo el naranjo con azahar en primavera y naranjas en otoño-invierno, o la albizia con hojas cayendo en otoño), y el inventario oficial de arbolado de Sevilla fusionado con OpenStreetMap. Hay un juego «Atrapa a Manolit∞» con un Certificado de Protección Climática generado en el navegador; no lo confundas con el distintivo Website Carbon. La web contiene presentación/manifiesto, comparativa, FAQ, privacidad, cookies, aviso legal, guía para añadir Manolit y páginas de salud/clima. En privacidad explica que las consultas al chat se procesan en servicios externos de IA, así que aconseja no escribir datos sensibles; las rutas y búsquedas usan servicios externos de mapas. Si preguntan por una cláusula o cifra legal exacta, resúmela solo si estás seguro y, si no, indica la página correspondiente sin inventar. Manolit∞ Forestal e Islas de Calor Sevilla son proyectos hermanos, no funciones dentro del mapa de Manolit Aire.
 
 8. SELLOS, SOSTENIBILIDAD Y AFIRMACIONES: la portada muestra un distintivo Website Carbon Rating con calificación A+ y la medición indicada allí (0,015 g CO₂ por visita, 102,7 KB y fecha 16/09/2026). Descríbelo como lo que publica el distintivo de la web, no como certificación oficial independiente ni como dato vigente verificado por ti. La página también publica estimaciones sobre consumo de agua/tráfico publicitario; preséntalas como cálculos y supuestos explicados en esa página, no como mediciones universales independientes. La web se presenta como gratuita, sin registro ni publicidad.
 
@@ -41,6 +45,7 @@ ESPECIALIDAD CATEDRÁTICA. Cuando la conversación SÍ toca clima urbano, sombra
 - POLEN Y AIRE: polen por época y zona, calidad del aire y contaminación de los coches detectable según la ubicación de la persona (tráfico, avenidas, horas punta).
 - SALUD SOLAR: cómo la radiación solar afecta a la piel y a los ojos: tipos de UV (UVA, UVB), fototipos de piel y recomendaciones de protección. Por qué algunas personas son más sensibles (fotosensibilidad, lupus, medicación fotosensibilizante).
 - PLAYA Y SOL: consejos para quien está cerca de la playa en verano Y en invierno, porque en invierno el sol también quema aunque no lo parezca (y la arena y el mar reflejan radiación).
+- CALIDAD TÉRMICA DE LA SOMBRA Y SQI: explica con claridad por qué una sombra puede ser «ilusoria» (mucha radiación difusa por polvo, smog o calima), qué papel juegan AOD, PM2.5 y DHI, y por qué la física de cada clima cambia el resultado (en el sur seco el aerosol se mezcla en toda la columna y la contaminación local pesa más; en el norte atlántico mandan las nubes). Si piden el detalle técnico, remite a la página «Metodología». Nunca presentes el SQI como sensor ni como certificado oficial.
 
 EN TEMAS DE SALUD: da información educativa clara y consejos generales de sentido común (protección, horarios de riesgo, hidratación). No diagnostiques condiciones ni sustituyas a un médico. Si alguien describe un problema de piel u ojos concreto, sugiere con naturalidad que lo consulte con un dermatólogo u oftalmólogo, sin sonar a aviso legal.
 
@@ -91,7 +96,7 @@ export default {
         }
 
         const uiLangName = langNames[idioma] || 'español';
-        const systemPrompt = SYSTEM_PROMPT_AIRE(uiLangName);
+        const systemPrompt = SYSTEM_PROMPT_AIRE(uiLangName, body.enAndalucia === true);
         const history = Array.isArray(body.history) ? body.history : [];
         const recentMessages = history
           .slice(-6)
@@ -209,7 +214,6 @@ export default {
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://overpass.private.coffee/api/interpreter',
-          'https://overpass.nchc.org.tw/api/interpreter',
         ];
         const obtenerBBoxConsulta = () => {
           const query = new URLSearchParams(rawBody).get('data') || '';
@@ -396,7 +400,6 @@ export default {
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://overpass.private.coffee/api/interpreter',
-          'https://overpass.nchc.org.tw/api/interpreter',
         ];
         const intentarEspejo = async (espejo) => {
           const controller = new AbortController();
@@ -498,7 +501,6 @@ export default {
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://overpass.private.coffee/api/interpreter',
-          'https://overpass.nchc.org.tw/api/interpreter',
         ];
         const intentarEspejo = async (espejo) => {
           const controller = new AbortController();
@@ -811,7 +813,7 @@ export default {
     }
 
     if (url.pathname === '/clima') {
-      const cieloDespejado = () => new Response(JSON.stringify({ nubes: 0, descripcion: '', humedad: null, amanecer: null, atardecer: null, temperatura: null }), {
+      const cieloDespejado = () => new Response(JSON.stringify({ nubes: 0, descripcion: '', humedad: null, amanecer: null, atardecer: null, temperatura: null, lluvia_mm_h: 0 }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
       });
@@ -836,6 +838,23 @@ export default {
           temperatura: isFinite(Number(d?.main?.temp)) ? Number(d.main.temp) : null,
           amanecer: d?.sys?.sunrise ?? null,
           atardecer: d?.sys?.sunset ?? null,
+          // Lluvia actual en mm/h (capa Lluvia del mapa). Campo nuevo y
+          // aditivo: los clientes viejos simplemente lo ignoran.
+          // OWM solo rellena rain.1h cuando hay acumulado medido: la
+          // llovizna (ids 3xx) llega casi siempre SIN ese campo y la capa
+          // se quedaba muda con el parte diciendo «llovizna ligera». Si
+          // falta el dato pero el código de estado anuncia precipitación
+          // (2xx-5xx), se estima un mínimo según el id para que el mapa
+          // pueda dibujarla. Con nieve (6xx) o sin precipitación: 0.
+          lluvia_mm_h: (() => {
+            const medida = Number(d?.rain?.['1h']);
+            if (isFinite(medida) && medida > 0) return medida;
+            const idTiempo = Number(d?.weather?.[0]?.id) || 0;
+            if (idTiempo >= 200 && idTiempo < 300) return 2;   // tormenta
+            if (idTiempo >= 300 && idTiempo < 400) return 0.4; // llovizna
+            if (idTiempo >= 500 && idTiempo < 600) return 0.8; // lluvia sin acumulado
+            return 0;
+          })(),
         };
         return new Response(JSON.stringify(salida), {
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...CORS_HEADERS }
@@ -861,8 +880,12 @@ export default {
         }
         const om = 'https://api.open-meteo.com/v1/forecast' +
           `?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}` +
-          '&current=temperature_2m,cloudcover,relative_humidity_2m,uv_index' +
-          '&hourly=temperature_2m,cloudcover,relative_humidity_2m' +
+          // 17-nov-2026 (UTCI): se añaden viento a 10 m y radiación de onda
+          // corta (horaria). Son campos NUEVOS y aditivos: los clientes
+          // antiguos (microclima.js) los ignoran y el cliente UTCI
+          // (js/utci-confort.js) cae a su modelo solar si faltan.
+          '&current=temperature_2m,cloudcover,relative_humidity_2m,uv_index,wind_speed_10m' +
+          '&hourly=temperature_2m,cloudcover,relative_humidity_2m,wind_speed_10m,shortwave_radiation' +
           '&past_days=1&forecast_days=2&timezone=auto&timeformat=unixtime';
         const r = await fetch(om, {
           headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
@@ -898,6 +921,47 @@ export default {
           });
         }
         const owm = `https://tile.openweathermap.org/map/clouds_new/${z}/${x}/${y}.png?appid=${env.OPENWEATHER_API_KEY}`;
+        const r = await fetch(owm, {
+          headers: { 'User-Agent': 'manolito-aire/1.0' },
+          cf: { cacheTtl: 600, cacheEverything: true },
+        });
+        if (!r.ok) throw new Error(`OpenWeatherMap tiles HTTP ${r.status}`);
+        return new Response(r.body, {
+          headers: {
+            'Content-Type': r.headers.get('Content-Type') || 'image/png',
+            'Cache-Control': 'public, max-age=600',
+            ...CORS_HEADERS
+          }
+        });
+      } catch (err) {
+        return teselaVacia();
+      }
+    }
+
+    // Teselas de PRECIPITACIÓN (capa Lluvia del mapa, js/lluvia.js).
+    // Mismo patrón que /tiles/nubes: misma clave, misma validación z/x/y,
+    // misma caché edge de 10 minutos y misma tesela transparente de respaldo.
+    // Solo cambia la capa de OWM: precipitation_new.
+    const mLluvia = url.pathname.match(/^\/tiles\/lluvia\/(\d+)\/(\d+)\/(\d+)\.png$/);
+    if (mLluvia) {
+      const teselaVacia = () => {
+        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+        return new Response(transparente, {
+          status: 200,
+          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=60', ...CORS_HEADERS }
+        });
+      };
+      try {
+        if (!env.OPENWEATHER_API_KEY) return teselaVacia();
+        const z = parseInt(mLluvia[1], 10), x = parseInt(mLluvia[2], 10), y = parseInt(mLluvia[3], 10);
+        const max = 2 ** z;
+        if (!(z >= 0 && z <= 19) || !(x >= 0 && x < max) || !(y >= 0 && y < max)) {
+          return new Response(JSON.stringify({ error: 'z/x/y fuera de rango' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+          });
+        }
+        const owm = `https://tile.openweathermap.org/map/precipitation_new/${z}/${x}/${y}.png?appid=${env.OPENWEATHER_API_KEY}`;
         const r = await fetch(owm, {
           headers: { 'User-Agent': 'manolito-aire/1.0' },
           cf: { cacheTtl: 600, cacheEverything: true },
@@ -1098,6 +1162,54 @@ export default {
       }
     }
 
+    // Ortofoto PNOA (IGN) para huecos.html. El WMTS de ign.es no envía
+    // cabeceras CORS, así que el navegador bloqueaba cada tesela pedida con
+    // crossOrigin y la ortofoto no se veía ni salía en capturas/exportaciones.
+    // Aquí se proxea con caché; si el WMTS falla se intenta el WMS INSPIRE
+    // equivalente (misma tesela como BBOX EPSG:3857); si todo falla, tesela
+    // neutra con 200 para que la consola quede limpia.
+    if (url.pathname === '/pnoa-tile') {
+      const teselaVaciaPNOA = () => {
+        const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+        return new Response(transparente, {
+          status: 200,
+          headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300', 'X-Proxy-Aviso': 'sin-datos', ...CORS_HEADERS }
+        });
+      };
+      try {
+        const z = parseInt(url.searchParams.get('z') || '', 10);
+        const x = parseInt(url.searchParams.get('x') || '', 10);
+        const y = parseInt(url.searchParams.get('y') || '', 10);
+        if (!Number.isFinite(z) || !Number.isFinite(x) || !Number.isFinite(y) || z < 0 || z > 20) throw new Error('tesela no válida');
+        const destinoWmts = 'https://www.ign.es/wmts/pnoa-ma?layer=OI.OrthoimageCoverage&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg'
+          + '&TileMatrix=' + z + '&TileRow=' + y + '&TileCol=' + x;
+        let r = await fetch(destinoWmts, {
+          headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+          cf: { cacheTtl: 86400, cacheEverything: true },
+        });
+        let ct = r.ok ? (r.headers.get('Content-Type') || '') : '';
+        if (!r.ok || !ct.includes('image')) {
+          const R = 6378137, n = Math.pow(2, z), tam = 2 * Math.PI * R / n;
+          const mx0 = -Math.PI * R + x * tam, mx1 = mx0 + tam;
+          const my1 = Math.PI * R - y * tam, my0 = my1 - tam;
+          const destinoWms = 'https://www.ign.es/wms-inspire/pnoa-ma?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=OI.OrthoimageCoverage&STYLES=&CRS=EPSG:3857&FORMAT=image/jpeg&WIDTH=256&HEIGHT=256'
+            + '&BBOX=' + mx0.toFixed(2) + ',' + my0.toFixed(2) + ',' + mx1.toFixed(2) + ',' + my1.toFixed(2);
+          r = await fetch(destinoWms, {
+            headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+            cf: { cacheTtl: 86400, cacheEverything: true },
+          });
+          ct = r.ok ? (r.headers.get('Content-Type') || '') : '';
+          if (!r.ok || !ct.includes('image')) throw new Error('PNOA no devolvió imagen');
+        }
+        return new Response(r.body, {
+          status: 200,
+          headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=86400', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return teselaVaciaPNOA();
+      }
+    }
+
     if (url.pathname === '/catastro-wms') {
       const teselaVaciaCatastro = () => {
         const transparente = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
@@ -1121,6 +1233,199 @@ export default {
         });
       } catch (err) {
         return teselaVaciaCatastro();
+      }
+    }
+
+    if (url.pathname === '/catastro-edificios') {
+      // Volúmenes 3D del Catastro (WFS INSPIRE bu:BuildingPart): el cliente
+      // pide bloques pequeños (el servicio falla con áreas grandes: ~0,02°
+      // devuelve HTTP 500) y aquí se convierten a un GeoJSON ligero
+      // (geometría + plantas) cacheado en KV. Si el Catastro tarda o falla,
+      // se responde una colección vacía y el mapa sigue igual.
+      // Cabecera X-Proxy-Aviso para que el cliente (y quien depure con el
+      // inspector) distinga SIEMPRE: 'cache' (servido de KV), 'ok' (fresco
+      // del Catastro, con edificios), 'vacio' (el Catastro respondió bien
+      // y no hay nada ahí) y 'error:<detalle>' (falló el Catastro o el
+      // proxy: NO es un hueco real, solo no hay datos ahora).
+      const respuestaCatastro = (cuerpo, aviso, maxAge) => new Response(cuerpo, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=' + maxAge, 'X-Proxy-Aviso': aviso, ...CORS_HEADERS }
+      });
+      const vaciaCatastroEdificios = (aviso) => respuestaCatastro('{"type":"FeatureCollection","features":[]}', aviso || 'vacio', 300);
+      try {
+        const s = parseFloat(url.searchParams.get('s'));
+        const w = parseFloat(url.searchParams.get('w'));
+        const n = parseFloat(url.searchParams.get('n'));
+        const e = parseFloat(url.searchParams.get('e'));
+        if (![s, w, n, e].every(Number.isFinite) || s >= n || w >= e) return vaciaCatastroEdificios('sin-parametros');
+        // Tope duro de área: el WFS del Catastro no admite cajas grandes.
+        if ((n - s) > 0.006 || (e - w) > 0.006 || (n - s) * (e - w) > 0.000025) return vaciaCatastroEdificios('area-grande');
+        const claveKv = 'catedif3d:' + [s, w, n, e].map((v) => v.toFixed(4)).join(',');
+        const kv = env.AIR_QUALITY_CACHE || null;
+        if (kv) {
+          try {
+            const { value, metadata } = await kv.getWithMetadata(claveKv);
+            if (value && metadata && metadata.ts && Date.now() - metadata.ts < 30 * 24 * 3600 * 1000) {
+              return respuestaCatastro(value, 'cache', 86400);
+            }
+          } catch (err) { }
+        }
+        // La petición al Catastro se lanza AHORA y su vida queda amarrada
+        // con ctx.waitUntil: aunque el cliente abandone (abort del fetch
+        // del navegador, navegación, cierre de pestaña), el worker termina
+        // de descargar, parsear y GUARDAR EN KV lo que pidió. Así la
+        // siguiente visita a ese bloque sale de caché aunque esta petición
+        // no llegara a entregar nada.
+        const trabajo = (async () => {
+          const ctl = new AbortController();
+          const timer = setTimeout(() => ctl.abort(), 55000);
+          let texto = '';
+          try {
+            const destino = 'https://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=getfeature'
+              + '&typenames=bu:BuildingPart&srsname=EPSG:4326'
+              + '&BBOX=' + s.toFixed(6) + ',' + w.toFixed(6) + ',' + n.toFixed(6) + ',' + e.toFixed(6);
+            const r = await fetch(destino, {
+              headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+              signal: ctl.signal,
+            });
+            if (!r.ok) throw new Error(`Catastro WFS HTTP ${r.status}`);
+            texto = await r.text();
+          } finally {
+            clearTimeout(timer);
+          }
+          const features = [];
+          if (texto && texto.indexOf('BuildingPart') !== -1) {
+            const redondear = (v) => Math.round(v * 1e6) / 1e6;
+            const anilloDe = (crudo) => {
+              const numeros = crudo.trim().split(/\s+/).map(Number);
+              const ring = [];
+              for (let k = 0; k + 1 < numeros.length; k += 2) {
+                // GML entrega "lat lon": se invierte a [lon, lat] GeoJSON
+                if (isFinite(numeros[k]) && isFinite(numeros[k + 1])) ring.push([redondear(numeros[k + 1]), redondear(numeros[k])]);
+              }
+              return ring.length >= 4 ? ring : null;
+            };
+            const trozos = texto.split('<bu-ext2d:BuildingPart');
+            for (let i = 1; i < trozos.length; i++) {
+              try {
+                const trozo = trozos[i];
+                const mPlantas = trozo.match(/numberOfFloorsAboveGround[^>]*>\s*(\d+)/);
+                const plantas = mPlantas ? parseInt(mPlantas[1], 10) : null;
+                const mExt = /<gml:exterior>[\s\S]*?<gml:posList[^>]*>([^<]+)<\/gml:posList>/.exec(trozo);
+                if (!mExt) continue;
+                const exterior = anilloDe(mExt[1]);
+                if (!exterior) continue;
+                const coordinates = [exterior];
+                const reInt = /<gml:interior>[\s\S]*?<gml:posList[^>]*>([^<]+)<\/gml:posList>/g;
+                let mInt;
+                while ((mInt = reInt.exec(trozo)) !== null) {
+                  const interior = anilloDe(mInt[1]);
+                  if (interior) coordinates.push(interior);
+                }
+                features.push({ type: 'Feature', properties: { p: plantas }, geometry: { type: 'Polygon', coordinates } });
+              } catch (err) { continue; }
+            }
+          }
+          const cuerpo = JSON.stringify({ type: 'FeatureCollection', features });
+          if (kv) {
+            try { await kv.put(claveKv, cuerpo, { expirationTtl: 2592000, metadata: { ts: Date.now() } }); } catch (err) { }
+          }
+          return cuerpo;
+        })();
+        if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(trabajo.catch(() => null));
+        const cuerpo = await trabajo;
+        const cuenta = (JSON.parse(cuerpo).features || []).length;
+        return respuestaCatastro(cuerpo, cuenta > 0 ? 'ok' : 'vacio', 86400);
+      } catch (err) {
+        // Error del Catastro (timeout, HTTP 500, red…): se etiqueta para
+        // que nadie lo confunda con una zona realmente sin edificios.
+        const detalle = String((err && err.message) || err).slice(0, 60).replace(/[^\w .:-]/g, '');
+        return vaciaCatastroEdificios('error:' + detalle);
+      }
+    }
+
+    // --- Estaciones reales de calidad del aire (OpenAQ v3) para calibrar el
+    // ajuste local de contaminación del mapa de sombras. OpenAQ v3 exige
+    // clave (gratuita) en la cabecera X-API-Key: vive como secret del Worker
+    // (OPENAQ_API_KEY) y nunca toca el navegador. Sin clave o sin estaciones
+    // se devuelve una lista vacía etiquetada y el cliente sigue con sus
+    // pesos iniciales, sin ruido.
+    if (url.pathname === '/openaq-estaciones') {
+      const vaciaOpenaq = (aviso) => new Response(JSON.stringify({ estaciones: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', 'X-Proxy-Aviso': aviso, ...CORS_HEADERS }
+      });
+      try {
+        if (!env.OPENAQ_API_KEY) return vaciaOpenaq('sin-clave');
+        const lat = parseFloat(url.searchParams.get('lat'));
+        const lon = parseFloat(url.searchParams.get('lon'));
+        const radio = Math.min(25000, Math.max(1000, parseFloat(url.searchParams.get('radio')) || 25000));
+        if (!isFinite(lat) || !isFinite(lon)) return vaciaOpenaq('sin-parametros');
+        const cabOpenaq = { 'X-API-Key': env.OPENAQ_API_KEY, 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' };
+        const ctl = new AbortController();
+        const temporizador = setTimeout(() => ctl.abort(), 12000);
+        let rLoc;
+        try {
+          rLoc = await fetch(
+            `https://api.openaq.org/v3/locations?coordinates=${lat.toFixed(4)},${lon.toFixed(4)}&radius=${Math.round(radio)}&parameters_id=2&limit=100`,
+            { headers: cabOpenaq, signal: ctl.signal });
+        } finally {
+          clearTimeout(temporizador);
+        }
+        if (!rLoc.ok) return vaciaOpenaq('openaq-' + rLoc.status);
+        const datosLoc = await rLoc.json();
+        const crudos = (datosLoc && datosLoc.results) || [];
+        const cosLat = Math.max(0.087, Math.cos(lat * Math.PI / 180));
+        const dist2 = (l) => {
+          const dx = (l.coordinates.longitude - lon) * 111320 * cosLat;
+          const dy = (l.coordinates.latitude - lat) * 110540;
+          return dx * dx + dy * dy;
+        };
+        const candidatas = crudos
+          .filter((l) => l && l.coordinates &&
+            isFinite(l.coordinates.latitude) && isFinite(l.coordinates.longitude) &&
+            Array.isArray(l.sensors) && l.sensors.some((s) => s.parameter && s.parameter.id === 2))
+          .sort((a, b) => dist2(a) - dist2(b))
+          .slice(0, 10);
+        const ahora = Date.now();
+        const estaciones = await Promise.all(candidatas.map(async (l) => {
+          try {
+            const sensorPm = l.sensors.find((s) => s.parameter && s.parameter.id === 2);
+            const ctl2 = new AbortController();
+            const temporizador2 = setTimeout(() => ctl2.abort(), 8000);
+            let rUlt;
+            try {
+              rUlt = await fetch(`https://api.openaq.org/v3/locations/${l.id}/latest`,
+                { headers: cabOpenaq, signal: ctl2.signal });
+            } finally {
+              clearTimeout(temporizador2);
+            }
+            if (!rUlt.ok) return null;
+            const datosUlt = await rUlt.json();
+            const medidas = (datosUlt && datosUlt.results) || [];
+            const m = medidas.find((mm) => mm.sensorsId === sensorPm.id);
+            if (!m || !isFinite(m.value) || m.value <= 0 || m.value > 500) return null;
+            const fechaTxt = m.datetime && m.datetime.utc;
+            const fechaMs = Date.parse(fechaTxt || '');
+            // Dato viejo (más de 3 h): no calibra la situación actual.
+            if (!isFinite(fechaMs) || ahora - fechaMs > 3 * 3600 * 1000) return null;
+            return {
+              id: l.id,
+              nombre: l.name || '',
+              lat: l.coordinates.latitude,
+              lon: l.coordinates.longitude,
+              pm25: Math.round(m.value * 10) / 10,
+              fecha: fechaTxt,
+            };
+          } catch (e) { return null; }
+        }));
+        const limpias = estaciones.filter(Boolean);
+        return new Response(JSON.stringify({ estaciones: limpias }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', 'X-Proxy-Aviso': limpias.length ? 'ok' : 'sin-datos', ...CORS_HEADERS }
+        });
+      } catch (err) {
+        return vaciaOpenaq('error');
       }
     }
 
@@ -1160,6 +1465,28 @@ export default {
       } catch (err) {
         return neutra();
       }
+    }
+
+    // --- Assets .gz (geojson/csv comprimidos para cumplir el límite de
+    // 25 MiB por asset de Cloudflare). Se sirven tal cual con
+    // Content-Encoding: gzip y el Content-Type del archivo ORIGINAL,
+    // para que el navegador los descomprima de forma transparente.
+    const rutaUrl = url.pathname;
+    if (/\.(geojson|csv|json)\.gz$/i.test(rutaUrl)) {
+      const gzResp = await env.ASSETS.fetch(new Request(new URL(rutaUrl, url), request));
+      if (gzResp && gzResp.status < 400) {
+        const gzHeaders = new Headers(gzResp.headers);
+        const tipoOriginal = rutaUrl.toLowerCase().endsWith('.csv.gz')
+          ? 'text/csv; charset=utf-8'
+          : rutaUrl.toLowerCase().endsWith('.json.gz')
+            ? 'application/json; charset=utf-8'
+            : 'application/geo+json; charset=utf-8';
+        gzHeaders.set('Content-Type', tipoOriginal);
+        gzHeaders.set('Content-Encoding', 'gzip');
+        gzHeaders.set('Cache-Control', 'public, max-age=86400');
+        return new Response(gzResp.body, { status: gzResp.status, headers: gzHeaders });
+      }
+      // Si el .gz no existe, cae al manejo normal (404) abajo.
     }
 
     const respuesta = await env.ASSETS.fetch(request);

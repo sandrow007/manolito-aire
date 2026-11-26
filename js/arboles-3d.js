@@ -686,6 +686,11 @@
     } catch (e) { return []; }
     var b = map.getBounds();
     var c = map.getCenter();
+    // RESTAURADO (nov-2026): selección original del motor propio (el estado
+    // de a9693a9/8f317e7). El filtro de separación por radios de copa se
+    // retiró: se quedaba en las zonas densas (el paseo de naranjos) con 10
+    // árboles en vez de los 40 que tocan. De vuelta al criterio de siempre:
+    // en vista, por cercanía al centro y tope de MAX_ARBOL (40).
     return todas.filter(function (a) {
       return a.lon >= b.getWest() && a.lon <= b.getEast() &&
              a.lat >= b.getSouth() && a.lat <= b.getNorth();

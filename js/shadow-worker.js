@@ -122,6 +122,69 @@ const MANEJADORES = {
   'islas-calor'() {
     throw new Error('islas-calor aún no implementado: ver TODO Worker 4 en la cabecera');
   },
+
+  /* SOMBRAS DE EDIFICIOS DEL CATASTRO (nov-2026)
+     Puerto fiel del «barrido real» de calcularVolumenSombra
+     (js/shadows-route.js), SIN turf: cadena de silueta quieta + cadena
+     desplazada, O(n) por edificio. Los patios interiores del Catastro
+     (raros) se quedan sombreados enteros, el mismo respaldo que usa el
+     motor original cuando la intersección de patio falla.
+     payload: { edificios: [{ ring: [[lon,lat]...], alturaM }],
+                altitudRad, bearingSombraDeg }
+     resultado: { anillos: [ [[lon,lat]...], ... ] } (un anillo exterior
+     cerrado por edificio proyectado) */
+  'sombras-edificios'(p) {
+    const altitud = Number(p.altitudRad);
+    const bearing = Number(p.bearingSombraDeg);
+    if (!isFinite(altitud) || altitud <= 0 || !isFinite(bearing)) return { anillos: [] };
+    const rad = (bearing * Math.PI) / 180;
+    const sinB = Math.sin(rad), cosB = Math.cos(rad);
+    const anillos = [];
+    const lista = (p && p.edificios) || [];
+    for (let e = 0; e < lista.length; e++) {
+      try {
+        const anillo = lista[e].ring;
+        const alturaM = Number(lista[e].alturaM);
+        if (!anillo || anillo.length < 4 || !(alturaM > 0)) continue;
+        const longitudSombraM = alturaM / Math.tan(altitud);
+        if (!isFinite(longitudSombraM) || longitudSombraM <= 0) continue;
+        const distanciaKm = longitudSombraM / 1000;
+        const cosLat = Math.max(0.087, Math.cos((anillo[0][1] * Math.PI) / 180));
+        const dLon = (distanciaKm * sinB) / (111.32 * cosLat);
+        const dLat = (distanciaKm * cosB) / 110.574;
+        if (Math.abs(dLon) + Math.abs(dLat) < 1e-9) {
+          anillos.push(anillo); // sol a pico: la sombra es la huella
+          continue;
+        }
+        const n = anillo.length - 1; // el último vértice repite al primero
+        if (n < 3) continue;
+        // Vértices tangentes: extremos laterales respecto a la sombra
+        const perpX = -dLat, perpY = dLon;
+        let iMin = 0, iMax = 0, wMin = Infinity, wMax = -Infinity;
+        for (let i = 0; i < n; i++) {
+          const w = anillo[i][0] * perpX + anillo[i][1] * perpY;
+          if (w < wMin) { wMin = w; iMin = i; }
+          if (w > wMax) { wMax = w; iMax = i; }
+        }
+        // Las dos cadenas entre tangentes: una quieta, la otra desplazada
+        const cadenaA = [];
+        for (let i = iMin; ; i = (i + 1) % n) { cadenaA.push(anillo[i]); if (i === iMax) break; }
+        const cadenaB = [];
+        for (let i = iMax; ; i = (i + 1) % n) { cadenaB.push(anillo[i]); if (i === iMin) break; }
+        let mediaA = 0, mediaB = 0;
+        for (let i = 0; i < cadenaA.length; i++) mediaA += cadenaA[i][0] * dLon + cadenaA[i][1] * dLat;
+        for (let i = 0; i < cadenaB.length; i++) mediaB += cadenaB[i][0] * dLon + cadenaB[i][1] * dLat;
+        mediaA /= cadenaA.length; mediaB /= cadenaB.length;
+        const quieta = mediaA <= mediaB ? cadenaA : cadenaB;
+        const movida = mediaA <= mediaB ? cadenaB : cadenaA;
+        const contorno = quieta.slice();
+        for (let i = 0; i < movida.length; i++) contorno.push([movida[i][0] + dLon, movida[i][1] + dLat]);
+        contorno.push(contorno[0]); // cerrar el anillo
+        if (contorno.length >= 4) anillos.push(contorno);
+      } catch (err) { continue; }
+    }
+    return { anillos };
+  },
 };
 
 self.onmessage = function (ev) {

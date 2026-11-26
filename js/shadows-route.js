@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MANOLIT AIRE, Ruta real + Sombras 3D reales + AQI (origen)
    Stack: MapLibre GL JS (edificios 3D + capas) + SunCalc (sol)
    + Turf.js (geometría de sombra) + OSRM (ruta por calles)
@@ -103,6 +103,31 @@
     paseoSincroMs: 600, // Menos frecuente, más ligero
     paseoSuavizado: 0.12, // Inercia en el movimiento
   };
+
+  // Paleta arquitectónica cálida de los edificios 3D (modo normal):
+  // tonos tierra por altura en vez del azul de fábrica del estilo base,
+  // con degradado vertical (la azotea recibe más luz que la base).
+  // La usan tanto el pintado inicial (inicializarMapaListo) como el
+  // interruptor «Catastro 3D» al apagarse.
+  const COLOR_EDIFICIOS_NORMAL = [
+    'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 10],
+    0, '#d4c9c1',
+    30, '#bfb3a5',
+    70, '#a39685',
+    140, '#8c8276'
+  ];
+  // Gradiente de densidad del Catastro: verde (bajos) → amarillo →
+  // naranja → fucsia (torres). Se lee de un vistazo dónde se concentra
+  // la altura de la ciudad.
+  const COLOR_EDIFICIOS_CATASTRO = [
+    'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+    0, '#2f9e44',
+    12, '#8ac926',
+    25, '#ffca3a',
+    45, '#f3722c',
+    80, '#d6006d',
+    140, '#9d0060'
+  ];
 
   /* ---------------- Traducción: enganche directo al diccionario de i18n.js ---------------- */
   function t(clave, fallback) {
@@ -454,7 +479,19 @@
           penalizacion = calcularPenalizacionSolar(puntoMedio, posSol, indiceSombras);
           penalizacionPorArista.set(claveArista, penalizacion);
         }
-        const peso = arista.longitudM * (1 + penalizacion);
+        // UTCI (nov-2026, ADITIVO): si el módulo de confort tiene la meteo
+        // lista, el coste de la arista es TIEMPO x nivel de estrés UTCI
+        // (sol/sombra con Tmrt estimada). Si el módulo falta o no hay
+        // datos, el coste es el de siempre, byte a byte.
+        let peso;
+        if (typeof window.__manolitUtciPesoArista === 'function') {
+          const pesoUtci = window.__manolitUtciPesoArista(arista.longitudM, penalizacion === 0);
+          peso = (typeof pesoUtci === 'number' && isFinite(pesoUtci) && pesoUtci > 0)
+            ? pesoUtci
+            : arista.longitudM * (1 + penalizacion);
+        } else {
+          peso = arista.longitudM * (1 + penalizacion);
+        }
 
         const nuevaDist = dist[u] + peso;
         if (nuevaDist < dist[v]) {
@@ -502,6 +539,16 @@
     const centro = { lat: (origen.lat + destino.lat) * 0.5, lon: (origen.lon + destino.lon) * 0.5 };
     const posSol = SunCalc.getPosition(obtenerHoraEfectiva(), centro.lat, centro.lon);
 
+    // UTCI (nov-2026, ADITIVO): prepara el confort del momento (meteo
+    // cacheada + Tmrt estimada sol/sombra) antes de ponderar las aristas.
+    // Tiene timeout propio y jamás rompe: sin módulo o sin datos, el
+    // Dijkstra pondera con el coste clásico de sombra, igual que siempre.
+    try {
+      if (typeof window.__manolitUtciPreparar === 'function') {
+        await window.__manolitUtciPreparar(centro.lat, centro.lon, obtenerHoraEfectiva());
+      }
+    } catch (e) { /* sin UTCI: la ruta sigue igual */ }
+
     // La colección de sombras y su índice espacial se preparan UNA vez
     // por ruta. Antes se reconstruían en CADA arista del Dijkstra (con
     // el serialize() de la capa de árboles incluido) y la web entera se
@@ -513,6 +560,22 @@
 
     const resultado = dijkstraTermico(grafo, inicioIdx, finIdx, posSol, indiceSombrasRuta);
     if (resultado.camino.length < 2) throw new Error('Dijkstra térmico no ha encontrado camino');
+
+    // UTCI (nov-2026, ADITIVO): la "ruta rápida" comparativa es el mismo
+    // grafo sin penalización (posSol null → penalización 0 en todas las
+    // aristas → Dijkstra por distancia pura). Solo se calcula cuando el
+    // confort está listo: sin meteo no hay nada que comparar y la ruta
+    // queda exactamente como antes.
+    let confortRuta = null;
+    try {
+      if (typeof window.__manolitUtciEstadisticasRuta === 'function'
+        && typeof window.__manolitUtciListo === 'function' && window.__manolitUtciListo()) {
+        const rapida = dijkstraTermico(grafo, inicioIdx, finIdx, null, indiceSombrasRuta);
+        if (rapida.camino.length >= 2) {
+          confortRuta = window.__manolitUtciEstadisticasRuta(resultado.camino, rapida.camino, indiceSombrasRuta);
+        }
+      }
+    } catch (e) { /* sin comparativa: la ruta fresca sigue igual */ }
 
     const distanciaRealKm = turf.length(turf.lineString(resultado.camino), { units: 'kilometers' });
     const duracionMin = (distanciaRealKm / CONFIG.velocidadCaminandoKmh) * 60;
@@ -545,6 +608,7 @@
       duracionEstimada: true,
       coberturaSombraPct,
       esDijkstraTermico: true,
+      confort: confortRuta, // UTCI (nov-2026): comparativa fresca/rápida o null
       pasos,
       pasosGuiados,
     };
@@ -873,14 +937,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       CONFIG.edificiosLayerId = capaEdificios.id;
       capaEdificiosDisponible = true;
       try {
-        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', [
-          'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
-          0, '#8fb3e8',
-          30, '#5f8fd6',
-          70, '#3f6bc0',
-          140, '#274a96'
-        ]);
-        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-opacity', 0.93);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-color', COLOR_EDIFICIOS_NORMAL);
+        map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-opacity', 0.95);
         map.setPaintProperty(CONFIG.edificiosLayerId, 'fill-extrusion-vertical-gradient', true);
       } catch (e) {
         console.debug('No se ha podido aplicar el color vivo a los edificios:', e);
@@ -1041,6 +1099,56 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       },
       'capa-puntos-manuales'
     );
+
+    /* -------- Resalte del lugar buscado (nov-2026, ADITIVO) --------
+       Al buscar ciudad/provincia/barrio/calle y pulsar «Buscar», Nominatim
+       entrega el polígono del área (polygon_geojson=1) y aquí se dibuja
+       destacado como hace Google: relleno azul suave + borde sólido. Si
+       el resultado es un punto (una dirección con número), no hay polígono
+       y simplemente no se dibuja nada. Su ausencia jamás rompe nada. */
+    map.addSource('lugar-buscado', { type: 'geojson', data: turf.featureCollection([]) });
+    map.addLayer({
+      id: 'capa-lugar-buscado',
+      type: 'fill',
+      source: 'lugar-buscado',
+      paint: {
+        'fill-color': '#3b82f6',
+        'fill-opacity': 0.10,
+      },
+    });
+    map.addLayer({
+      id: 'capa-lugar-buscado-borde',
+      type: 'line',
+      source: 'lugar-buscado',
+      paint: {
+        'line-color': '#3b82f6',
+        'line-width': 3,
+        'line-opacity': 0.9,
+      },
+    });
+
+    function marcarLugarBuscado(geometria) {
+      try {
+        const vacio = !geometria;
+        map.getSource('lugar-buscado')?.setData(vacio ? turf.featureCollection([]) : { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: geometria }] });
+      } catch (e) { /* el resalte es decorativo: nunca rompe */ }
+    }
+
+    function encuadrarGeometria(geometria) {
+      try {
+        if (!geometria) return false;
+        const caja = turf.bbox({ type: 'Feature', geometry: geometria, properties: {} });
+        // Un lugar puntual (calle muy corta) puede dar caja degenerada.
+        if (!caja || !isFinite(caja[0])) return false;
+        map.fitBounds(caja, { padding: 60, duration: 1200, maxZoom: 16 });
+        return true;
+      } catch (e) { return false; }
+    }
+
+    // Puente seguro para el buscador (otro ámbito): si este módulo aún no
+    // arrancó, las llamadas simplemente no pintan nada.
+    window.manolitAireMarcarLugarBuscado = marcarLugarBuscado;
+    window.manolitAireEncuadrarGeometria = encuadrarGeometria;
 
     inyectarControlesTiempo();
     inyectarControlesMapa();
@@ -1269,6 +1377,24 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       : candidatos;
     edificiosCacheados = elegidos.map((candidato) => candidato.edificio);
     centroidesEdificiosCacheados = elegidos.map((candidato) => candidato.centroide);
+    // Confianza de los datos (nov-2026, ADITIVO): cuántos edificios de la
+    // vista tienen altura REAL (altura o plantas en los datos) frente a
+    // los que caen en el fallback fijo. Lo lee js/confort-ruta.js para el
+    // índice de confianza; si ese módulo falta, este contador no cuesta
+    // nada (un recorrido de la lista ya cargada).
+    try {
+      let conAlturaReal = 0;
+      for (const ed of edificiosCacheados) {
+        const p = (ed && ed.properties) || {};
+        const directa = Number(p.height ?? p.render_height);
+        const plantas = Number(p.levels ?? p['building:levels'] ?? p.render_levels);
+        if ((isFinite(directa) && directa > 0) || (isFinite(plantas) && plantas > 0)) conAlturaReal++;
+      }
+      window.__manolitConfianzaEdificios = {
+        total: edificiosCacheados.length,
+        conAlturaReal,
+      };
+    } catch (e) { /* sin confianza: las sombras siguen igual */ }
   }
 
   /* ---------------- Sombras reales: sol + altura de edificios ---------------- */
@@ -1388,6 +1514,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // los árboles se movieran igual que las de los edificios.
   window.manolitAireHoraEfectiva = () => obtenerHoraEfectiva();
 
+  // Barra de estado para módulos aditivos que viven fuera de este archivo
+  // (js/lluvia.js la usa para avisar de que solo hay lluvia actual). Si
+  // nadie la llama, no cambia nada; mostrarEstado es la función de siempre.
+  window.manolitAireEstado = (texto, tipo) => mostrarEstado(texto, tipo);
+
   // Mismo punto de referencia solar que usan los edificios (el origen de
   // la ruta, tu posición al caminar, etc.), en vez de un centro de mapa
   // potencialmente distinto.
@@ -1402,6 +1533,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   // valen para «ahora». modoManual se declara con let más abajo; esta
   // flecha solo lo lee cuando alguien la llama, siempre después.
   window.manolitAireSimulando = () => modoManual;
+
+  // Punto de entrada público y barato para que módulos externos (p. ej.
+  // las sombras del Catastro 3D) pidan un repintado cuando sus datos
+  // llegan del Web Worker, sin exponer el motor entero.
+  window.manolitAireRecalcularSombras = () => {
+    try { recalcularSombrasVisibles(); } catch (e) { /* nunca rompe nada */ }
+  };
 
   let versionCalculoSombras = 0;
   // Marca si el último barrido de sombras ya repintó los tramos de la ruta,
@@ -1566,6 +1704,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
 
     if (miVersion !== versionCalculoSombras) return;
+    // Catastro 3D (nov-2026): sombras de los edificios del Catastro que OSM
+    // no tiene. Las calcula js/catastro-edificios-3d.js en un Web Worker y
+    // las sirve desde su caché (bloque + franja solar); si el worker aún no
+    // ha respondido devuelve la última versión conocida, así que el slider
+    // de hora nunca se bloquea. Con el modo apagado la función no existe y
+    // este bloque no cuesta nada (un typeof).
+    try {
+      const extra = (typeof window.__manolitoSombrasCatastro === 'function')
+        ? window.__manolitoSombrasCatastro(posSol) : null;
+      if (extra && extra.length) {
+        for (let e2 = 0; e2 < extra.length; e2++) poligonosSombra.push(extra[e2]);
+      }
+    } catch (e) { /* sin Catastro: exactamente como antes */ }
     const coleccionSombras = turf.featureCollection(poligonosSombra);
     map.getSource('sombras')?.setData(coleccionSombras);
     ultimaColeccionSombras = coleccionSombras;
@@ -1710,7 +1861,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     try {
       if (map.getLayer('capa-sombras')) {
         map.setPaintProperty('capa-sombras', 'fill-opacity', 0.34 * f);
-        map.setPaintProperty('capa-sombras', 'fill-color', colorSombra);
+        // La nube solo tiñe el color BASE: donde sqi-calidad-sombra.js ya
+        // pintó una sombra con su sqi_color (calidad calle a calle) ese
+        // color manda y no se pisa con un lavado uniforme.
+        map.setPaintProperty('capa-sombras', 'fill-color', ['coalesce', ['get', 'sqi_color'], colorSombra]);
       }
       if (map.getLayer('capa-sombras-halo')) {
         map.setPaintProperty('capa-sombras-halo', 'fill-opacity', 0.10 * f);
@@ -1718,16 +1872,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       // La capa de sombra de los árboles la crea arboles-globales.js; si ya
       // existe, se atenúa con el mismo factor (comunicación sin romper nada).
+      // Igual que en 'capa-sombras': donde sqi-calidad-sombra.js ya pintó
+      // sqi_color (calidad de sombra del árbol) ese color manda.
       if (map.getLayer('capa-sombra-arboles-globales')) {
         map.setPaintProperty('capa-sombra-arboles-globales', 'fill-opacity', 0.26 * f);
-        map.setPaintProperty('capa-sombra-arboles-globales', 'fill-color', colorSombra);
+        map.setPaintProperty('capa-sombra-arboles-globales', 'fill-color', ['coalesce', ['get', 'sqi_color'], colorSombra]);
       }
     } catch (e) { /* alguna capa aún no existe: se aplicará en la próxima pasada */ }
 
     // 2) Sombra macro de la masa de nubes sobre el suelo.
     const velo = document.getElementById('rsNubesSombra');
     if (velo) {
-      const opVelo = Math.min(0.85, nubosidadActual * densidadAtmosfericaZoom() * 0.9);
+      const opVelo = nubesEncendidas()
+        ? Math.min(0.85, nubosidadActual * densidadAtmosfericaZoom() * 0.9)
+        : 0;
       velo.style.opacity = String(opVelo);
       // AHORRO REAL (sep-2026): el velo lleva una animación CSS infinita
       // (deriva de 90 s). Antes corría LAS 24 H aunque el velo estuviera
@@ -1867,9 +2025,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   }
 
   function aplicarVisibilidadNubes() {
-    if (!map.getLayer(CAPA_NUBES_ID)) return;
     const visible = document.getElementById('rsToggleNubes')?.checked !== false;
-    map.setLayoutProperty(CAPA_NUBES_ID, 'visibility', visible ? 'visible' : 'none');
+    if (map.getLayer(CAPA_NUBES_ID)) {
+      map.setLayoutProperty(CAPA_NUBES_ID, 'visibility', visible ? 'visible' : 'none');
+    }
+    // El velo de sombra macro (la «mancha» sobre el suelo) es parte de la
+    // capa Nubes: al apagar la casilla desaparece también, no solo las teselas.
+    aplicarOpticaNubes();
+  }
+
+  // Nubes activas = casilla marcada (por defecto lo está). El velo de sombra
+  // y las teselas comparten esta misma fuente de verdad.
+  function nubesEncendidas() {
+    return document.getElementById('rsToggleNubes')?.checked !== false;
   }
 
   // Visibilidad de las nubes según ZOOM y modo claro/oscuro:
@@ -1944,6 +2112,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   let puntoReferenciaSol = null;
   let rutaActual = null;
+  // Destino al que pertenece la ruta a pie dibujada (misma referencia que
+  // ultimoDestinoMarcador): permite saber si un punto marcado aún no tiene ruta.
+  let destinoDeRutaActual = null;
 
   /* ---- Tramo ya recorrido en gris (a lo Google Maps, sep-2026) ----
      Mientras caminas, el trozo de ruta ya andado se pinta en gris. Se
@@ -2613,11 +2784,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const factorNubLuz = 1 - nubosidadActual * 0.5;
     const grisNube = mezclarHex('#199EF3', '#8fa0b3', nubosidadActual * 0.85);
 
+    // Hora dorada: con el sol bajo (menos de 20°) la luz se calienta del
+    // blanco cálido del mediodía hacia el naranja del atardecer.
+    const calorSolar = Math.min(1, Math.max(0, (20 - alturaDeg) / 20));
+
+    // anchor 'map' (no 'viewport'): la luz queda fija respecto al norte
+    // del mapa, como las sombras proyectadas en el suelo que calcula el
+    // motor con el azimut real. Con 'viewport' las fachadas cambiarían de
+    // iluminación al rotar la cámara y dejarían de coincidir con ellas.
     map.setLight({
       anchor: 'map',
-      color: bajoHorizonte ? '#3a4a63' : '#fff6e6',
-      intensity: bajoHorizonte ? 0.15 : Math.min(1, (0.35 + alturaDeg / 90) * factorNubLuz),
-      position: [1.5, azimutDeg, polar],
+      color: bajoHorizonte ? '#3a4a63' : mezclarHex('#fff6e6', '#ff9955', calorSolar),
+      intensity: bajoHorizonte ? 0.15 : Math.min(1, (0.6 + (alturaDeg / 90) * 0.4) * factorNubLuz),
+      position: [1.15, azimutDeg, polar],
     });
 
     map.setSky({
@@ -2805,6 +2984,30 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   let modoManual = false;
   let fechaBaseManual = new Date();
+  // AÑADIDO (función «cambiar fecha»): fecha elegida en el <input type="date">
+  // del widget. null = hoy (comportamiento actual, idéntico a antes).
+  let fechaManualFija = null;
+  // AÑADIDO: declarado a nivel de módulo (antes vivía dentro de
+  // inyectarControlesTiempo) para que el setter público de fecha pueda
+  // salir del modo solsticio. Mismo valor inicial y mismos usos.
+  let esFechaSolsticioActiva = false;
+  const isoDeFecha = (d) => d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+
+  // AÑADIDO: punto de entrada público para el <input type="date"> del widget
+  // solar VISIBLE (SVG de index.html): misma lógica que el date-input interno.
+  window.manolitAireFijarFecha = function (iso) {
+    const partes = String(iso || '').split('-').map(Number);
+    if (partes.length !== 3 || partes.some((n) => !isFinite(n))) return;
+    // Mediodía local para evitar sustos de zona horaria al mezclar con la hora.
+    fechaManualFija = new Date(partes[0], partes[1] - 1, partes[2], 12, 0, 0);
+    modoManual = true;
+    esFechaSolsticioActiva = false;
+    fechaBaseManual = new Date(fechaManualFija);
+    aplicarCambioDeHora(false);
+    actualizarEtiquetaTiempo(false);
+  };
   let sliderTiempo = null;
   let etiquetaTiempo = null;
   let temporizadorSlider = null;
@@ -3314,10 +3517,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const resultado = await window.manolitAireCalcularRutaPuntoCompartido(ultimoDestinoMarcador, modoActual);
         if (!resultado) mostrarEstado(t('errorSearch', 'No se ha podido calcular la ruta.'), 'error');
         else {
+          // El chat es un servicio que se pide, nunca algo que se abre
+          // solo: aquí se avisa SOLO si el usuario ya lo tenía abierto, sin
+          // forzar su apertura al calcular la ruta.
           const chatPanel = document.getElementById('chatOverlay');
-          if (chatPanel && (chatPanel.hidden || getComputedStyle(chatPanel).display === 'none') && typeof window.openChat === 'function') window.openChat();
+          const chatYaAbierto = chatPanel && !chatPanel.hidden && getComputedStyle(chatPanel).display !== 'none';
           const chatBody = document.getElementById('chatBody');
-          if (chatBody) {
+          if (chatYaAbierto && chatBody) {
             const mensaje = document.createElement('div');
             mensaje.className = 'chat-msg mano';
             const modoNombre = modoActual === 'bici' ? 'en bici' : (modoActual === 'coche' ? 'en coche' : 'a pie');
@@ -3389,11 +3595,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         // Atajo «Iniciar caminata» junto al resumen (nov-2026). Es una puerta
     // ADITIVA: no tiene lógica propia, solo pulsa el botón de siempre
     // (#rsBtnWalk) para no duplicar el modo caminata.
-    function mostrarAtajoCaminar(visible) {
-      const caja = document.getElementById('rsAccionCaminar');
-      if (!caja) return;
-      caja.hidden = !visible;
-    }
+    // (mostrarAtajoCaminar vive ahora a nivel de módulo, junto a
+    // puntoMarcadoSinRutaAPie: también la llama el cálculo de la ruta.)
     (function enlazarAtajoCaminar() {
       const atajo = document.getElementById('rsBtnCaminarResumen');
       if (!atajo) return;
@@ -3428,11 +3631,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       seleccionPorInput.delete(inputDestino);
       map.getSource('ruta')?.setData(turf.featureCollection([]));
       map.getSource('ruta-sombra')?.setData(turf.featureCollection([]));
+      // (nov-2026) El resalte del lugar buscado (área azul de ciudad, barrio
+      // o calle) es estado del buscador: Reiniciar debe borrarlo también,
+      // como todo lo demás. Si la fuente o el puente aún no existen, no
+      // pasa nada: es decorativo y nunca debe romper el reinicio.
+      try { window.manolitAireMarcarLugarBuscado?.(null); } catch (e) { /* sin resalte activo */ }
       try { limpiarAlertasUvRuta(); } catch (e) { /* la capa UV aún no existe */ }
       map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
       map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       if (marcadorOrigen) { marcadorOrigen.remove(); marcadorOrigen = null; }
       if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
+      puntoOrigenPendiente = null;
+      esperandoSoloDestino = false;
       actualizarMascotaDestino(null);
       ultimoDestinoMarcador = null;
       actualizarBotonCompartirPunto();
@@ -3695,7 +3905,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             }
           }
           yaVolo = yaVolo || !!desdeBoton;
-          if (acc <= 15) dormirGPS(); // calibrado de verdad: GPS a dormir YA
+          // La lectura buena del flujo es ≤20 m (igual que el filtro de arriba).
+          // Apaga el watch en cuanto se alcanza: mantener GPS de alta precisión
+          // activo hasta ≤15 m causaba actualizaciones repetidas en móviles que
+          // ya habían alcanzado precisión suficiente, bloqueando el mapa.
+          if (acc <= 20) dormirGPS();
         },
         (err) => {
           // Permiso denegado: se avisa (si lo pediste tú) y se apaga.
@@ -3789,7 +4003,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // Por (sep-2026): NADA de armar solo el
       // modo «elegir en el mapa». El GPS se enciende, se calibra, planta
       // tu punto como origen y se apaga. Tú decides el siguiente paso.
+      // OJO: si el GPS ya estaba despierto (p. ej. el despertar silencioso
+      // que «Reiniciar» lanza con el permiso ya concedido), despertarGPS
+      // sale por la puerta rápida y la cámara no vuela. En ese caso el
+      // autozoom se hace aquí mismo con la última posición conocida.
+      const yaDespierto = gpsWatchId != null;
       despertarGPS(true);
+      if (yaDespierto) {
+        const ultimaConocida = window.__manolitUltimaPos;
+        if (ultimaConocida && isFinite(ultimaConocida.lat) && isFinite(ultimaConocida.lon)) {
+          map.flyTo({ center: [ultimaConocida.lon, ultimaConocida.lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
+        }
+      }
     });
 
     // Puente para el chat (sep-2026): el chip «¿Calculo tu ruta con sombra
@@ -3876,12 +4101,27 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       atajo.setAttribute('aria-pressed', andando ? 'true' : 'false');
     }
 
-    btnCaminar.addEventListener('click', () => {
+    let preparandoCaminata = false;
+    btnCaminar.addEventListener('click', async () => {
       if (watchId != null) { detenerCaminata(); mostrarEstado(''); return; }
+      if (preparandoCaminata) return;
       if (paseoActivo) detenerPaseoVirtual(); // los dos modos de caminar no pueden convivir
       if (!('geolocation' in navigator)) {
         mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
         return;
+      }
+      // Con un punto marcado y sin ruta hasta él, el camino sale de tu
+      // ubicación (o de un origen que hayas elegido a mano). Si ya hay ruta
+      // a ese punto, o el modo no es «a pie», se arranca como siempre.
+      if ((window.__manolitoModoRuta || 'caminar') === 'caminar' && puntoMarcadoSinRutaAPie() &&
+          typeof window.manolitAireCalcularRutaPuntoCompartido === 'function') {
+        preparandoCaminata = true;
+        try {
+          const destinoCaminata = window.manolitAirePuntoCompartidoActual();
+          if (destinoCaminata) await window.manolitAireCalcularRutaPuntoCompartido(destinoCaminata, 'caminar');
+        } catch (e) { /* si falla, la caminata arranca igualmente sin ruta */ }
+        finally { preparandoCaminata = false; }
+        if (watchId != null) return;
       }
             btnCaminar.classList.add('rs-activo');
       btnCaminar.textContent = t('walkModeStop', 'Detener caminata');
@@ -3915,6 +4155,22 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           ultimaCamaraCaminata = [lonIni, latIni];
         }
       } catch (e) { }
+      // Zoom automático estilo Google Maps (nov-2026): al arrancar la caminata
+      // pedimos YA una lectura GPS y volamos la cámara hasta tu punto con un
+      // zoom peatonal (17.5 ≈ calle a escala de persona). Antes la cámara se
+      // quedaba donde estaba y parecía que «no hacía nada» hasta caminar 12 m.
+      let primeraLecturaCaminata = true;
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (pos0) => {
+            if (watchId == null) return; // la caminata se detuvo mientras esperábamos
+            map.flyTo({ center: [pos0.coords.longitude, pos0.coords.latitude], zoom: 17.5, duration: 900, essential: true });
+            ultimaCamaraCaminata = [pos0.coords.longitude, pos0.coords.latitude];
+          },
+          () => { /* sin posición inicial: la primera lectura del watchPosition llevará la cámara */ },
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 15000 }
+        );
+      } catch (e) { }
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           // Debounce GPS (sep-2026, ADITIVO): máximo 1 lectura procesada
@@ -3936,7 +4192,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             || turf.distance(turf.point([ultimaCamaraCaminata[0], ultimaCamaraCaminata[1]]), turf.point([lon, lat]), { units: 'meters' }) > 12;
           if (movidoSuficiente) {
             ultimaCamaraCaminata = [lon, lat];
-            map.easeTo({ center: [lon, lat], duration: 600 });
+            // Primera lectura en vivo: zoom peatonal garantizado (nov-2026),
+            // como Google Maps al empezar a navegar. Después solo centrado.
+            if (primeraLecturaCaminata) {
+              primeraLecturaCaminata = false;
+              map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 17), duration: 800, essential: true });
+            } else {
+              map.easeTo({ center: [lon, lat], duration: 600 });
+            }
           }
           puntoReferenciaSol = { lat, lon };
           if (window.ManolitA11y) window.ManolitA11y.avanzar(lat, lon); // anuncia el siguiente paso si ya toca
@@ -4433,15 +4696,23 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
 
       if (!puntoOrigenPendiente) {
+        // Un solo punto marcado es el DESTINO: el camino sale de tu ubicación
+        // (o del origen que ya tengas elegido en el campo). Solo se recuerda
+        // como posible salida por si marcas un segundo punto distinto: en ese
+        // caso, y solo en ese, se traza del primero al segundo.
         puntoOrigenPendiente = { lat, lon: lng };
         ultimoDestinoMarcador = { lat, lon: lng, nombre: t('pointMap', 'Punto marcado en el mapa') };
-        window.__manolitOrigenPuntoMarcado = { lat, lon: lng, nombre: t('pointMap', 'Punto marcado en el mapa') };
+        window.__manolitOrigenPuntoMarcado = null;
         mascotaEnPuntoMarcado = true;
         actualizarBotonCompartirPunto();
-        map.getSource('puntos-manuales')?.setData(turf.featureCollection([turf.point([lng, lat])]));
-        inputOrigen.value = textoCoordenadasPunto(lat, lng);
-        mostrarEstado(t('clickDestiny', 'Origen marcado, haz clic en el destino.'));
-        geocodificarInverso(lat, lng).then(() => { inputOrigen.value = textoCoordenadasPunto(lat, lng); });
+        const puntosMarcados = [];
+        if (origenParaAutoRuta && Number.isFinite(Number(origenParaAutoRuta.lat)) && Number.isFinite(Number(origenParaAutoRuta.lon))) {
+          puntosMarcados.push(turf.point([Number(origenParaAutoRuta.lon), Number(origenParaAutoRuta.lat)]));
+        }
+        puntosMarcados.push(turf.point([lng, lat]));
+        map.getSource('puntos-manuales')?.setData(turf.featureCollection(puntosMarcados));
+        inputDestino.value = textoCoordenadasPunto(lat, lng);
+        mostrarEstado('');
         return;
       }
 
@@ -4453,6 +4724,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         turf.point([origenFijado.lon, origenFijado.lat]),
         turf.point([lng, lat]),
       ]));
+      // Dos puntos elegidos a mano: el primero pasa a ser el origen visible.
+      inputOrigen.value = textoCoordenadasPunto(origenFijado.lat, origenFijado.lon);
+      seleccionPorInput.set(inputOrigen, {
+        lat: Number(origenFijado.lat),
+        lon: Number(origenFijado.lon),
+        nombre: origenFijado.nombre || t('pointMap', 'Punto marcado en el mapa'),
+        texto: inputOrigen.value
+      });
       inputDestino.value = textoCoordenadasPunto(lat, lng);
       manejarBusqueda(
         { ...origenFijado, nombre: t('pointMap', 'Punto marcado en el mapa') },
@@ -4501,7 +4780,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             zoom: Math.min(17, Math.max(map.getZoom(), 16)),
             duration: 800
           });
-          map.fire('click', { lngLat: punto, __pulsacionLarga: true });
+          // originalEvent mínimo: MapLibre lo lee en su manejador interno de
+          // clic de marcadores (marker.ts _onMapClick) y sin él lanza
+          // «Cannot read properties of undefined (reading 'target')».
+          map.fire('click', { lngLat: punto, originalEvent: { target: lienzoMapa }, __pulsacionLarga: true });
         }, 1000);
       }, { passive: true });
       lienzoMapa.addEventListener('pointermove', (event) => {
@@ -4527,6 +4809,159 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }, { passive: true });
     }
   }
+
+  /* =================== AÑADIDO: panel de edificio (altura/ocultar) ===================
+     100% aditivo: no toca nada existente. Solo actúa si el edificio clicado
+     tiene dato OSM de altura (properties.height o properties.levels). El
+     cambio es visual y temporal (feature-state, se pierde al recargar). */
+  (function panelEdificioOSM() {
+    let panelEd = null;          // div flotante
+    let objetivoEd = null;       // { id, source, sourceLayer } del feature
+    let lngLatEd = null;         // para reubicar el panel al mover el mapa
+    let alturaOriginalEd = 0;
+    let edificiosModificados = 0; // para re-aplicar el paint tras recargar estilo
+
+    // Extiende el paint de la capa de edificios EN COLA del feature-state:
+    // si no hay feature-state puesto, el coalesce/case devuelve exactamente
+    // lo de antes (mismo color, misma altura, misma opacidad).
+    function extenderPaintEdificios() {
+      const idCapa = CONFIG.edificiosLayerId;
+      if (!idCapa || !map.getLayer(idCapa)) return;
+      try {
+        const alturaActual = map.getPaintProperty(idCapa, 'fill-extrusion-height');
+        if (!alturaActual || JSON.stringify(alturaActual).indexOf('feature-state') !== -1) return;
+        map.setPaintProperty(idCapa, 'fill-extrusion-height',
+          ['coalesce', ['feature-state', 'alturaOverride'], alturaActual]);
+        const opacidadActual = map.getPaintProperty(idCapa, 'fill-extrusion-opacity');
+        if (opacidadActual != null && JSON.stringify(opacidadActual).indexOf('feature-state') === -1) {
+          map.setPaintProperty(idCapa, 'fill-extrusion-opacity',
+            ['case', ['boolean', ['feature-state', 'oculto'], false], 0, opacidadActual]);
+        }
+      } catch (e) { /* el estilo puede estar a medio cargar; se reintenta luego */ }
+    }
+
+    // Tras un cambio de tema/estilo el paint vuelve al del estilo base:
+    // si había edificios modificados, se vuelve a extender el paint.
+    map.on('styledata', () => {
+      if (edificiosModificados > 0) extenderPaintEdificios();
+    });
+
+    function cerrarPanelEd() {
+      if (panelEd) { panelEd.remove(); panelEd = null; }
+      objetivoEd = null;
+      lngLatEd = null;
+    }
+
+    function reubicarPanelEd() {
+      if (!panelEd || !lngLatEd) return;
+      try {
+        const p = map.project(lngLatEd);
+        const caja = contenedorMapa.getBoundingClientRect();
+        panelEd.style.left = Math.min(Math.max(8, p.x - 90), caja.width - 200) + 'px';
+        panelEd.style.top = Math.max(8, p.y - 130) + 'px';
+      } catch (e) { /* el mapa aún no proyecta: se queda donde estaba */ }
+    }
+    map.on('move', reubicarPanelEd);
+
+    function abrirPanelEd(feature, puntoClick) {
+      const p = feature.properties || {};
+      // REGLA: solo si hay dato OSM de altura (height o levels).
+      const tieneHeight = p.height != null && isFinite(Number(p.height));
+      const tieneLevels = p.levels != null && isFinite(Number(p.levels));
+      if (!tieneHeight && !tieneLevels) return;
+      if (feature.id == null || !feature.source) return; // feature-state necesita id
+      alturaOriginalEd = Math.round(
+        Number(p.height ?? (tieneLevels ? Number(p.levels) * 3 : p.render_height)) || 0);
+
+      objetivoEd = { id: feature.id, source: feature.source, sourceLayer: feature.sourceLayer };
+      lngLatEd = puntoClick;
+      extenderPaintEdificios();
+      cerrarPanelEdPrevioYRecrear();
+    }
+
+    function cerrarPanelEdPrevioYRecrear() {
+      if (panelEd) panelEd.remove();
+      panelEd = document.createElement('div');
+      panelEd.id = 'rsPanelEdificio';
+      panelEd.setAttribute('role', 'dialog');
+      panelEd.setAttribute('aria-label', t('buildingPanel', 'Edificio'));
+      panelEd.style.cssText = 'position:absolute;z-index:30;width:180px;' +
+        'background:rgba(15,23,42,.96);border:1px solid rgba(255,107,26,.5);' +
+        'border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;' +
+        'box-shadow:0 6px 18px rgba(0,0,0,.4);color:#e8eef4;' +
+        'font:500 12px/1.4 system-ui,sans-serif;';
+
+      const filaAltura = document.createElement('label');
+      filaAltura.style.cssText = 'display:flex;align-items:center;gap:6px;';
+      const txtAltura = document.createElement('span');
+      txtAltura.textContent = t('buildingHeight', 'Altura (m)');
+      const inputAltura = document.createElement('input');
+      inputAltura.type = 'number';
+      inputAltura.min = '1';
+      inputAltura.step = '1';
+      inputAltura.value = String(alturaOriginalEd || '');
+      inputAltura.setAttribute('aria-label', t('buildingHeight', 'Altura (m)'));
+      inputAltura.style.cssText = 'width:64px;background:#0b1220;color:#e8eef4;' +
+        'border:1px solid rgba(255,107,26,.5);border-radius:8px;padding:4px 6px;' +
+        'font:inherit;';
+      filaAltura.append(txtAltura, inputAltura);
+
+      const filaBotonesEd = document.createElement('div');
+      filaBotonesEd.style.cssText = 'display:flex;gap:6px;';
+      const mkBoton = (texto, alPulsar) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = texto;
+        b.style.cssText = 'flex:1;background:rgba(255,107,26,.14);color:#ffb27a;' +
+          'border:1px solid rgba(255,107,26,.5);border-radius:8px;padding:5px 4px;' +
+          'font:inherit;cursor:pointer;';
+        b.addEventListener('click', alPulsar);
+        return b;
+      };
+      const btnOcultar = mkBoton(t('buildingHide', '👁 Ocultar'), () => {
+        if (!objetivoEd) return;
+        try { map.setFeatureState(objetivoEd, { oculto: true }); edificiosModificados++; } catch (e) { }
+      });
+      const btnRestaurar = mkBoton(t('buildingRestore', '↩ Restaurar'), () => {
+        if (!objetivoEd) return;
+        try { map.removeFeatureState(objetivoEd); edificiosModificados = Math.max(0, edificiosModificados - 1); } catch (e) { }
+        inputAltura.value = String(alturaOriginalEd || '');
+      });
+      const btnCerrar = mkBoton('✕', cerrarPanelEd);
+      btnCerrar.style.flex = '0 0 32px';
+      filaBotonesEd.append(btnOcultar, btnRestaurar, btnCerrar);
+
+      inputAltura.addEventListener('change', () => {
+        if (!objetivoEd) return;
+        const v = Number(inputAltura.value);
+        if (!isFinite(v) || v <= 0) { inputAltura.value = String(alturaOriginalEd || ''); return; }
+        try { map.setFeatureState(objetivoEd, { alturaOverride: v }); edificiosModificados++; } catch (e) { }
+      });
+
+      panelEd.append(filaAltura, filaBotonesEd);
+      contenedorMapa.appendChild(panelEd);
+      reubicarPanelEd();
+    }
+
+    // Clic en un edificio con dato OSM de altura → panel. Sin dato → nada.
+    // Los clics sintéticos de pulsación larga (sin e.point real) se ignoran.
+    map.on('click', (e) => {
+      if (!e || e.__pulsacionLarga || !e.point) return;
+      const idCapa = CONFIG.edificiosLayerId;
+      if (!idCapa || !map.getLayer(idCapa)) return;
+      let feats = [];
+      try {
+        feats = map.queryRenderedFeatures(e.point, { layers: [idCapa] });
+      } catch (err) { return; }
+      const conAltura = (feats || []).find((f) => {
+        const p = f.properties || {};
+        return (p.height != null && isFinite(Number(p.height))) ||
+               (p.levels != null && isFinite(Number(p.levels)));
+      });
+      if (!conAltura) { cerrarPanelEd(); return; }
+      abrirPanelEd(conAltura, e.lngLat);
+    });
+  })();
 
   function inyectarControlesTiempo() {
     if (document.getElementById('rsTimeControls')) return;
@@ -4625,7 +5060,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     sliderTiempo.addEventListener('input', () => {
       modoManual = true;
-      fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual : new Date();
+      // AÑADIDO: si el usuario eligió fecha en el date-input, esa fecha manda
+      // en vez de «hoy». Con fechaManualFija === null es EXACTAMENTE lo de antes.
+      fechaBaseManual = esFechaSolsticioActiva ? fechaBaseManual
+        : (fechaManualFija ? new Date(fechaManualFija) : new Date());
       // Debounce de 250 ms: arrastrar el slider NO recalcula la geometría 3D
       // en cada evento; solo al detenerse un momento (ahorro enorme de CPU).
       clearTimeout(temporizadorSlider);
@@ -4633,7 +5071,37 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       actualizarEtiquetaTiempo(esFechaSolsticioActiva);
     });
 
-    let esFechaSolsticioActiva = false;
+    // (esFechaSolsticioActiva vive a nivel de módulo, junto a fechaBaseManual;
+    // los handlers de aquí abajo la usan igual que antes.)
+
+    // AÑADIDO (función «cambiar fecha»): <input type="date"> conectado a la
+    // MISMA lógica que el slider (mismo fechaBaseManual + aplicarCambioDeHora).
+    const filaFecha = document.createElement('div');
+    filaFecha.className = 'rs-fila';
+    filaFecha.style.justifyContent = 'space-between';
+    const etiquetaFecha = document.createElement('span');
+    etiquetaFecha.textContent = t('dateLabel', 'Fecha');
+    etiquetaFecha.style.cssText = 'font-size:inherit;color:inherit;';
+    const inputFecha = document.createElement('input');
+    inputFecha.type = 'date';
+    inputFecha.id = 'rsFechaInput';
+    inputFecha.value = isoDeFecha(new Date());
+    inputFecha.setAttribute('aria-label', t('dateLabel', 'Fecha'));
+    inputFecha.style.cssText = 'background:rgba(251,250,247,.9);color:#1b2a33;' +
+      'border:1px solid rgba(255,107,26,.4);border-radius:8px;padding:3px 6px;' +
+      'font:inherit;font-size:inherit;';
+    inputFecha.addEventListener('change', () => {
+      const partes = String(inputFecha.value || '').split('-').map(Number);
+      if (partes.length !== 3 || partes.some((n) => !isFinite(n))) return;
+      // Mediodía local para evitar sustos de zona horaria al mezclar con la hora.
+      fechaManualFija = new Date(partes[0], partes[1] - 1, partes[2], 12, 0, 0);
+      modoManual = true;
+      esFechaSolsticioActiva = false;
+      fechaBaseManual = new Date(fechaManualFija);
+      aplicarCambioDeHora(false);
+      actualizarEtiquetaTiempo(false);
+    });
+    filaFecha.append(etiquetaFecha, inputFecha);
 
     const divisor = document.createElement('div');
     divisor.className = 'rs-divisor';
@@ -4663,6 +5131,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       modoManual = false;
       esFechaSolsticioActiva = false;
       fechaBaseManual = new Date();
+      // AÑADIDO: «Ahora» también suelta la fecha elegida a mano.
+      fechaManualFija = null;
+      if (inputFecha) inputFecha.value = isoDeFecha(new Date());
       sliderTiempo.value = String(minutosDesdeFecha(new Date()));
       aplicarCambioDeHora(false);
     });
@@ -4680,6 +5151,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       modoManual = true;
       esFechaSolsticioActiva = 'verano';
       fechaBaseManual = fechaSolsticio('verano');
+      // AÑADIDO: el preajuste de solsticio pisa la fecha manual.
+      fechaManualFija = null;
+      if (inputFecha) inputFecha.value = isoDeFecha(fechaBaseManual);
       sliderTiempo.value = '780';
       aplicarCambioDeHora('verano');
     });
@@ -4688,6 +5162,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       modoManual = true;
       esFechaSolsticioActiva = 'invierno';
       fechaBaseManual = fechaSolsticio('invierno');
+      // AÑADIDO: el preajuste de solsticio pisa la fecha manual.
+      fechaManualFija = null;
+      if (inputFecha) inputFecha.value = isoDeFecha(fechaBaseManual);
       sliderTiempo.value = '780';
       aplicarCambioDeHora('invierno');
     });
@@ -4703,7 +5180,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     filaBotones.append(btnMediodia, btnTarde, btnCapturar);
     // "Ahora / Verano / Invierno" forman un grupo lógico de preajustes;
     // display:contents mantiene el layout exacto sin cambiar el HTML visual.
-    cuerpo.append(filaEtiqueta, sliderTiempo, timeline, divisor, filaBotones, anunciadorHora);
+    cuerpo.append(filaEtiqueta, filaFecha, sliderTiempo, timeline, divisor, filaBotones, anunciadorHora);
     panel.append(cabecera, cuerpo);
     contenedorMapa.appendChild(panel);
 
@@ -4882,25 +5359,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const CAT_SRC = 'catastro-wms-base';
     const CAT_CAPA = 'catastro-wms-capa';
     let catastroActivo = false;
-    const COLOR_EDIFICIOS_NORMAL = [
-      'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
-      0, '#8fb3e8',
-      30, '#5f8fd6',
-      70, '#3f6bc0',
-      140, '#274a96'
-    ];
-    // Gradiente de densidad del Catastro: verde (bajos) → amarillo →
-    // naranja → fucsia (torres). Se lee de un vistazo dónde se concentra
-    // la altura de la ciudad.
-    const COLOR_EDIFICIOS_CATASTRO = [
-      'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
-      0, '#2f9e44',
-      12, '#8ac926',
-      25, '#ffca3a',
-      45, '#f3722c',
-      80, '#d6006d',
-      140, '#9d0060'
-    ];
+    // Las paletas de los edificios (COLOR_EDIFICIOS_NORMAL cálida y
+    // COLOR_EDIFICIOS_CATASTRO de densidad) viven a nivel de módulo,
+    // junto a CONFIG: las comparte el pintado inicial del estilo.
     const asegurarCapaCatastro = () => {
       try {
         if (!map.getSource(CAT_SRC)) {
@@ -4942,6 +5403,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         }
       }
       btnCatastro.setAttribute('aria-pressed', catastroActivo ? 'true' : 'false');
+      // Aviso al módulo de volúmenes de relleno (catastro-edificios-3d.js):
+      // levanta en 3D los edificios del Catastro que OSM no tiene. Si el
+      // módulo aún no cargó, el mapa se comporta exactamente como antes.
+      try { if (typeof window.manolitoCatastro3D === 'function') window.manolitoCatastro3D(catastroActivo); } catch (e) {}
     });
     // Catastro 3D ya NO va con los mapas base (07-oct-2026):
     // es una capa combinable y vive en su propia fila-toggle
@@ -5240,11 +5705,18 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 4, 10, 8, 15, 12],
         'circle-color': ['match', ['get', 'estado'], 'good', AIRE_ES.colores.good, 'mid', AIRE_ES.colores.mid, 'bad', AIRE_ES.colores.bad, AIRE_ES.colores.unknown],
-        'circle-opacity': 0.85,
+        // A zoom de calle manda la superficie interpolada (aire-superficie.js);
+        // los puntos se atenúan pero siguen visibles y clicables (popup intacto).
+        // Hasta zoom 10 la opacidad es la de siempre (0,85): nada cambia.
+        'circle-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.85, 14, 0.35],
         'circle-stroke-width': 1.5,
         'circle-stroke-color': '#FBFAF7',
       },
     });
+    // Superficie continua interpolada (js/aire-superficie.js): se engancha a
+    // esta misma fuente, debajo de los círculos. Aditiva: si el módulo no
+    // cargó o falla, la capa de puntos sigue exactamente igual.
+    try { window.manolitAireSuperficie && window.manolitAireSuperficie.instalar(map, AIRE_ES); } catch (e) { }
     // Popup con el detalle al tocar un punto: mismo estilo que los marcadores.
     map.on('click', AIRE_ES.capaId, (ev) => {
       try {
@@ -5352,6 +5824,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (map.getLayer(AIRE_ES.capaId)) {
           map.setLayoutProperty(AIRE_ES.capaId, 'visibility', 'none');
         }
+        try { window.manolitAireSuperficie && window.manolitAireSuperficie.vis('none'); } catch (e) { }
         map.getSource(AIRE_ES.fuenteId)?.setData(turf.featureCollection([]));
         mostrarEstado(t('airLayerOffSpain', 'Capa de aire apagada, fuera de España no tenemos fuente fiable.'));
       }
@@ -5361,9 +5834,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (toggle.checked) {
         asegurarFuenteAire();
         map.setLayoutProperty(AIRE_ES.capaId, 'visibility', 'visible');
+        try { window.manolitAireSuperficie && window.manolitAireSuperficie.vis('visible'); } catch (e) { }
         refrescarAireEnVista();
       } else if (map.getLayer(AIRE_ES.capaId)) {
         map.setLayoutProperty(AIRE_ES.capaId, 'visibility', 'none');
+        try { window.manolitAireSuperficie && window.manolitAireSuperficie.vis('none'); } catch (e) { }
       }
     });
 
@@ -5433,6 +5908,36 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     }
 
     throw new Error(`${t('notFound', 'No se ha encontrado')}: "${direccionTexto}". ${t('tryFormat', 'Prueba a escribirla como calle, número, ciudad')}.`);
+  }
+
+  /* -------- Geocodificación con polígono del área (nov-2026, ADITIVO) ---
+     Igual que geocodificar() pero pidiendo polygon_geojson=1: Nominatim
+     devuelve la geometría del área (límite administrativo de ciudad,
+     provincia, barrio… o la calle entera como línea). Si no hay polígono
+     (dirección puntual) o falla, devuelve null y el resalte no se dibuja.
+     Nunca sustituye a geocodificar(): solo la complementa. */
+  async function geocodificarConPoligono(direccionTexto, input) {
+    try {
+      const centroCercano = await obtenerCentroPreferido(input);
+      const url = new URL(CONFIG.nominatimUrl, window.location.origin);
+      url.searchParams.set('q', direccionTexto);
+      url.searchParams.set('format', 'json');
+      url.searchParams.set('limit', '1');
+      url.searchParams.set('polygon_geojson', '1');
+      url.searchParams.set('addressdetails', '1');
+      if (centroCercano) aplicarPreferenciaCercania(url, centroCercano);
+      const datos = await fetchConReintentos(url.toString(), { headers: { 'Accept-Language': 'es' } });
+      if (!Array.isArray(datos) || !datos.length) return null;
+      const r = datos[0];
+      const geo = r && r.geojson;
+      if (!geo || !geo.type) return null;
+      // Solo aceptamos las formas que delimitan un área o una línea (calle).
+      if (geo.type !== 'Polygon' && geo.type !== 'MultiPolygon' && geo.type !== 'LineString' && geo.type !== 'MultiLineString') return null;
+      return { lat: parseFloat(r.lat), lon: parseFloat(r.lon), nombre: r.display_name, geometria: geo };
+    } catch (e) {
+      console.debug('[resalte-lugar] Sin polígono para:', direccionTexto);
+      return null;
+    }
   }
 
   async function geocodificarInverso(lat, lon) {
@@ -5557,7 +6062,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return d;
   }
 
-  function fraccionSombraTramo(coords, sombras, indiceSombras) {
+  function analisisSombraTramo(coords, sombras, indiceSombras) {
     // null = no hay sombras calculadas (de noche, capa apagada…): no se dice nada.
     if (!sombras || !sombras.length || !coords || coords.length < 2) return null;
     try {
@@ -5567,22 +6072,74 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // Índice espacial (una vez por guía completa, lo crea el llamante):
       // cada punto medio consulta solo su celda, mismo resultado.
       const indice = indiceSombras || crearIndiceSombras(sombras);
-      let enSombra = 0;
+      let enSombra = 0, izqSombra = 0, derSombra = 0;
       for (const tramo of tramos) {
         const c = tramo.geometry.coordinates;
         const medio = c[Math.floor(c.length / 2)] || c[0];
         if (indice.consultar(medio[0], medio[1])) enSombra++;
+        // (nov-2026) LADO DE LA SOMBRA: además del centro de la calle se
+        // mira cada acera (~7 m perpendicular al rumbo de marcha). Si en
+        // una hay sombra y en la otra no, la indicación puede decir por
+        // qué lado ir protegido, que es lo que importa al caminar.
+        const rumbo = turf.bearing(c[0], c[c.length - 1]);
+        const pIzq = turf.destination(medio, 0.007, rumbo - 90, { units: 'kilometers' }).geometry.coordinates;
+        const pDer = turf.destination(medio, 0.007, rumbo + 90, { units: 'kilometers' }).geometry.coordinates;
+        if (indice.consultar(pIzq[0], pIzq[1])) izqSombra++;
+        if (indice.consultar(pDer[0], pDer[1])) derSombra++;
       }
-      return enSombra / tramos.length;
+      const total = tramos.length;
+      const fIzq = izqSombra / total, fDer = derSombra / total;
+      // Solo se afirma un lado cuando la diferencia es clara: con sombras
+      // repartidas o intermitentes no se manda al peatón a ninguna acera.
+      let lado = null;
+      if (fIzq >= 0.55 && fDer >= 0.55) lado = 'ambos';
+      else if (fIzq >= 0.5 && fIzq - fDer >= 0.3) lado = 'izquierda';
+      else if (fDer >= 0.5 && fDer - fIzq >= 0.3) lado = 'derecha';
+      else if (fIzq < 0.2 && fDer < 0.2) lado = 'ninguno';
+      return { fraccion: enSombra / total, lado };
     } catch (e) { return null; }
   }
 
-  function textoSombra(fraccion, metros) {
-    if (fraccion == null) return { frase: '', consejo: '' };
-    let frase;
-    if (fraccion >= 0.6) frase = t('shadeShade', 'tramo en sombra');
-    else if (fraccion <= 0.25) frase = t('shadeSun', 'tramo al sol');
-    else frase = t('shadeMixed', 'tramo con sol y sombra');
+  function direccionSolEn(punto) {
+    // Rumbo del sol (0=N, horario) para cruzarlo con el de la calle: en
+    // tramos soleados se avisa si lo llevas de cara o de espaldas.
+    // null de noche o sin datos: no se dice nada.
+    try {
+      if (!punto) return null;
+      const pos = SunCalc.getPosition(obtenerHoraEfectiva(), punto[1], punto[0]);
+      if (!pos || pos.altitude <= 0) return null;
+      return ((pos.azimuth * 180) / Math.PI + 180) % 360;
+    } catch (e) { return null; }
+  }
+
+  function textoSombra(analisis, metros, rumboTramo, dirSol) {
+    if (!analisis || analisis.fraccion == null) return { frase: '', consejo: '' };
+    const fraccion = analisis.fraccion;
+    let frase, extra = '';
+    if (fraccion >= 0.6) {
+      frase = t('shadeShade', 'tramo en sombra');
+      if (analisis.lado === 'ambos') extra = t('shadeBothSides', 'Hay sombra en los dos lados de la calle.');
+    } else if (fraccion <= 0.25) {
+      frase = t('shadeSun', 'tramo al sol');
+      // Aunque el CENTRO de la calle vaya al sol, una acera puede ir a la
+      // sombra: es justo el aviso que le salva al peatón, así que manda
+      // sobre el "sol de cara/espalda" (que se reserva para cuando no hay
+      // lado bueno). Solo en tramos con recorrido: en 10 m no aporta.
+      if (analisis.lado === 'izquierda') extra = t('shadeSideLeft', 'La sombra va por tu lado izquierdo.');
+      else if (analisis.lado === 'derecha') extra = t('shadeSideRight', 'La sombra va por tu lado derecho.');
+      else if (analisis.lado === 'ambos') extra = t('shadeBothSides', 'Hay sombra en los dos lados de la calle.');
+      else if (dirSol != null && rumboTramo != null && metros >= 60) {
+        const rel = Math.abs(normalizarGiro(rumboTramo, dirSol));
+        if (rel < 40) extra = t('shadeSunFront', 'El sol te da de cara.');
+        else if (rel > 140) extra = t('shadeSunBack', 'El sol te da en la espalda.');
+      }
+    } else {
+      frase = t('shadeMixed', 'tramo con sol y sombra');
+      if (analisis.lado === 'izquierda') extra = t('shadeSideLeft', 'La sombra va por tu lado izquierdo.');
+      else if (analisis.lado === 'derecha') extra = t('shadeSideRight', 'La sombra va por tu lado derecho.');
+      else if (analisis.lado === 'ambos') extra = t('shadeBothSides', 'Hay sombra en los dos lados de la calle.');
+    }
+    if (extra) frase += '. ' + extra;
     // Consejo de calor solo donde de verdad duele: tramo largo y casi sin sombra.
     const consejo = (fraccion <= 0.25 && metros >= 120)
       ? t('shadeTip', 'Consejo: es un tramo largo al sol, ve despacio, camina por el lado con edificios y lleva agua.')
@@ -5629,13 +6186,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // El índice espacial se crea UNA vez para toda la guía (antes cada
     // calle barría todas las sombras de nuevo).
     const indiceSombrasGuia = (sombras && sombras.length) ? crearIndiceSombras(sombras) : null;
+    // Rumbo del sol UNA vez por guía: a escala de paseo no cambia, y sirve
+    // para avisar "sol de cara / de espaldas" en los tramos soleados.
+    const dirSolGuia = direccionSolEn(grupos[0].coords[0]);
     let bearingAnterior = null;
     grupos.forEach((g, i) => {
       const metros = redondearMetros(g.metros);
       const calle = nombreCalleBonito(g.nombre);
       const bearingIni = turf.bearing(g.coords[0], g.coords[1]);
       const bearingFin = turf.bearing(g.coords[g.coords.length - 2], g.coords[g.coords.length - 1]);
-      const { frase, consejo } = textoSombra(fraccionSombraTramo(g.coords, sombras, indiceSombrasGuia), metros);
+      const { frase, consejo } = textoSombra(analisisSombraTramo(g.coords, sombras, indiceSombrasGuia), metros, bearingIni, dirSolGuia);
       const colaSombra = frase ? '. ' + frase : '';
 
       let texto;
@@ -5683,12 +6243,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // Índice espacial UNA vez para toda la guía (antes cada paso barría
     // todas las sombras de nuevo, sep-2026).
     const indiceSombrasGuia = (sombras && sombras.length) ? crearIndiceSombras(sombras) : null;
+    // Rumbo del sol una vez por guía (igual que en el grafo propio).
+    const dirSolGuia = direccionSolEn(pasosOsrm[0]?.geometry?.coordinates?.[0] || pasosOsrm[0]?.maneuver?.location);
 
     for (const s of pasosOsrm) {
       const calle = nombreCalleBonito(s.name);
       const metros = redondearMetros(s.distance || 0);
       const coords = s.geometry?.coordinates || [];
-      const { frase, consejo } = textoSombra(fraccionSombraTramo(coords, sombras, indiceSombrasGuia), metros);
+      const rumboPaso = coords.length >= 2 ? turf.bearing(coords[0], coords[1]) : null;
+      const { frase, consejo } = textoSombra(analisisSombraTramo(coords, sombras, indiceSombrasGuia), metros, rumboPaso, dirSolGuia);
       const colaSombra = frase ? '. ' + frase : '';
       const maniobra = s.maneuver || {};
       const tipo = maniobra.type || '';
@@ -5814,6 +6377,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (posSolActual.altitude > 0 && capaEdificiosDisponible && edificiosCacheados.length) {
         poligonosSombra = await generarPoligonosSombraPara(edificiosCacheados, posSolActual);
       }
+      // Catastro 3D: las sombras de relleno (cacheadas por su módulo)
+      // también puntúan en la ruta alternativa OSRM, igual que en la
+      // térmica local (que las recibe vía ultimaColeccionSombras).
+      try {
+        const extra = (typeof window.__manolitoSombrasCatastro === 'function')
+          ? window.__manolitoSombrasCatastro(posSolActual) : null;
+        if (extra && extra.length) poligonosSombra = poligonosSombra.concat(extra);
+      } catch (e) { /* sin Catastro: como antes */ }
 
       const distanciaMinimaKm = Math.min(...candidatas.map((r) => r.distance / 1000));
 
@@ -5938,6 +6509,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     actualizarMascotaDestino(null);
     map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
     ultimoDestinoMarcador = null;
+    puntoOrigenPendiente = null;
+    window.__manolitOrigenPuntoMarcado = null;
     mascotaEnPuntoMarcado = false;
     if (typeof inputDestino !== 'undefined' && inputDestino) {
       inputDestino.value = '';
@@ -5958,6 +6531,87 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     boton.hidden = !hayPunto;
     const botonIr = document.getElementById('rsBtnIrAlPunto');
     if (botonIr) botonIr.hidden = !hayPunto;
+    if (hayPunto) acomodarAccionesPunto();
+  }
+
+  // «Ir al punto» y «Compartir» cuelgan justo debajo de la botonera de cámara
+  // (#rsCamCtl, centrada en vertical) con su mismo ancho, así no tapan ningún
+  // control sea cual sea el alto de pantalla. Si debajo no caben, se ponen a
+  // su lado, nunca encima. El panel de compartir se abre al otro lado de ellos.
+  // Las medidas salen de la botonera real para no depender de cifras fijas.
+  let acomodoPuntoObservador = null;
+  let acomodoPuntoReintentos = 0;
+  function acomodarAccionesPunto() {
+    const ir = document.getElementById('rsBtnIrAlPunto');
+    const compartir = document.getElementById('rsBtnCompartirPunto');
+    const pila = document.getElementById('rsCamCtl');
+    const cont = ir && ir.parentElement;
+    if (!ir || !compartir || !cont) return;
+    if (!pila || !pila.offsetWidth) {
+      // La botonera de cámara se crea un poco después: reintento corto.
+      if (acomodoPuntoReintentos++ < 12) setTimeout(acomodarAccionesPunto, 400);
+      return;
+    }
+    if (!acomodoPuntoObservador && typeof ResizeObserver === 'function') {
+      acomodoPuntoObservador = new ResizeObserver(() => acomodarAccionesPunto());
+      acomodoPuntoObservador.observe(cont);
+      acomodoPuntoObservador.observe(pila);
+    }
+    const rc = cont.getBoundingClientRect();
+    const rp = pila.getBoundingClientRect();
+    // left/top/right/bottom se miden desde el borde interior del contenedor.
+    const origenX = rc.left + cont.clientLeft;
+    const origenY = rc.top + cont.clientTop;
+    const anchoCont = cont.clientWidth;
+    const altoCont = cont.clientHeight;
+    if (!anchoCont || !altoCont) return;
+    const lado = Math.round(rp.width);
+    const sep = 10;
+    const hueco = 8;
+    const margenInferior = 44; // deja libre la atribución del mapa
+    const xPila = rp.left - origenX;
+    const bajoPila = rp.bottom - origenY;
+    const cabeDebajo = bajoPila + sep + lado * 2 + hueco <= altoCont - margenInferior;
+    let x = xPila;
+    let yIr;
+    let yCompartir;
+    if (cabeDebajo) {
+      yIr = bajoPila + sep;
+      yCompartir = yIr + lado + hueco;
+    } else {
+      const pilaALaDerecha = xPila + lado / 2 > anchoCont / 2;
+      x = pilaALaDerecha ? xPila - sep - lado : xPila + lado + sep;
+      yCompartir = bajoPila - lado;
+      yIr = yCompartir - lado - hueco;
+    }
+    const fijar = (el, top) => {
+      const estilo = el.style;
+      estilo.setProperty('left', `${Math.round(x)}px`, 'important');
+      estilo.setProperty('top', `${Math.round(top)}px`, 'important');
+      estilo.setProperty('right', 'auto', 'important');
+      estilo.setProperty('bottom', 'auto', 'important');
+      estilo.setProperty('width', `${lado}px`, 'important');
+      estilo.setProperty('min-width', `${lado}px`, 'important');
+      estilo.setProperty('height', `${lado}px`, 'important');
+    };
+    fijar(ir, yIr);
+    fijar(compartir, yCompartir);
+
+    const panel = document.getElementById('rsSharePanel');
+    if (panel) {
+      const hayHuecoIzquierda = x + lado / 2 > anchoCont / 2;
+      panel.style.setProperty('top', 'auto', 'important');
+      panel.style.setProperty('bottom', `${Math.max(8, Math.round(altoCont - (yCompartir + lado)))}px`, 'important');
+      if (hayHuecoIzquierda) {
+        panel.style.setProperty('left', 'auto', 'important');
+        panel.style.setProperty('right', `${Math.round(anchoCont - (x - hueco))}px`, 'important');
+        panel.style.setProperty('max-width', `${Math.max(120, Math.round(x - hueco - 8))}px`, 'important');
+      } else {
+        panel.style.setProperty('right', 'auto', 'important');
+        panel.style.setProperty('left', `${Math.round(x + lado + hueco)}px`, 'important');
+        panel.style.setProperty('max-width', `${Math.max(120, Math.round(anchoCont - (x + lado + hueco) - 8))}px`, 'important');
+      }
+    }
   }
 
   function cargarPuntoCompartido() {
@@ -5987,6 +6641,48 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return `${Number(lat).toFixed(6)}, ${Number(lon).toFixed(6)}`;
   }
 
+  function mismoPunto(a, b) {
+    return Boolean(
+      a && b &&
+      Number.isFinite(Number(a.lat)) && Number.isFinite(Number(a.lon)) &&
+      Number.isFinite(Number(b.lat)) && Number.isFinite(Number(b.lon)) &&
+      Math.abs(Number(a.lat) - Number(b.lat)) <= 0.00001 &&
+      Math.abs(Number(a.lon) - Number(b.lon)) <= 0.00001
+    );
+  }
+
+  // Sin un origen distinto del destino no hay ruta que trazar, pero «Ir al
+  // punto» sigue acercando la cámara con Manolit encima, como al marcarlo.
+  function acercarAlPuntoMarcado(destino) {
+    try {
+      actualizarMascotaDestino(destino, true);
+      map.flyTo({
+        center: [Number(destino.lon), Number(destino.lat)],
+        zoom: Math.min(17, Math.max(map.getZoom(), 16)),
+        duration: 800,
+        essential: true
+      });
+    } catch (e) { /* la cámara nunca debe romper el cálculo de la ruta */ }
+  }
+
+  // Muestra u oculta el atajo «Iniciar caminata» que acompaña al resumen de la
+  // ruta (#rsAccionCaminar). Solo cambia su visibilidad.
+  function mostrarAtajoCaminar(visible) {
+    const caja = document.getElementById('rsAccionCaminar');
+    if (!caja) return;
+    caja.hidden = !visible;
+  }
+
+  // Hay un punto marcado y todavía no se ha trazado la ruta a pie hasta él.
+  function puntoMarcadoSinRutaAPie() {
+    return Boolean(
+      ultimoDestinoMarcador &&
+      Number.isFinite(Number(ultimoDestinoMarcador.lat)) &&
+      Number.isFinite(Number(ultimoDestinoMarcador.lon)) &&
+      !(rutaActual && destinoDeRutaActual === ultimoDestinoMarcador)
+    );
+  }
+
   window.manolitAirePuntoCompartidoActual = () => {
     if (!ultimoDestinoMarcador || !Number.isFinite(Number(ultimoDestinoMarcador.lat)) || !Number.isFinite(Number(ultimoDestinoMarcador.lon))) return null;
     const origenGuardado = ultimoDestinoMarcador.puntoPartida || window.__manolitOrigenPuntoMarcado || null;
@@ -5994,21 +6690,61 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     lat: Number(ultimoDestinoMarcador.lat),
     lon: Number(ultimoDestinoMarcador.lon),
     nombre: ultimoDestinoMarcador.nombre || t('sharedPoint', 'Punto marcado en el mapa')
-    }, origenGuardado ? { puntoPartida: Object.assign({}, origenGuardado) } : {});
+    }, origenGuardado && !mismoPunto(origenGuardado, ultimoDestinoMarcador)
+      ? { puntoPartida: Object.assign({}, origenGuardado) }
+      : {});
   };
+
+  // 08-nov-2026: marcar un punto por coordenadas SIN calcular ruta. Lo usa
+  // el botón «Cómo llegar» del anuncio de la feria (index.html): sube el
+  // mapa y muestra dónde está el lugar, sin recargar la página. Reutiliza
+  // exactamente el mismo marcado que el punto compartido; solo evita pedir
+  // geolocalización ni trazar nada: quien quiera la ruta, la pide.
+  window.manolitAireMarcarPunto = function (lat, lon, nombre) {
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return false;
+    // El mapa puede seguir inicializándose cuando llega el clic (la carga
+    // es en cascada). Reintento breve en vez de fallar: hasta ~10 s.
+    const marcar = function (intentos) {
+      if (!map || !map.getSource || !map.getSource('puntos-manuales')) {
+        if (intentos > 0) { setTimeout(function () { marcar(intentos - 1); }, 500); }
+        return;
+      }
+      const destino = { lat: Number(lat), lon: Number(lon), nombre: String(nombre || t('sharedPoint', 'Punto marcado en el mapa')) };
+      ultimoDestinoMarcador = destino;
+      mascotaEnPuntoMarcado = true;
+      window.__manolitPuntoCompartidoPendiente = { lat: destino.lat, lon: destino.lon };
+      map.getSource('puntos-manuales').setData(turf.featureCollection([
+        turf.point([destino.lon, destino.lat], { tipo: 'destino-compartido' }),
+      ]));
+      try { actualizarBotonCompartirPunto(); } catch (e) { /* aún no existe */ }
+      try { actualizarMascotaDestino(destino, true); } catch (e) { /* sin mascota aún */ }
+      try {
+        map.flyTo({ center: [destino.lon, destino.lat], zoom: Math.max(map.getZoom(), 16), duration: 900, essential: true });
+      } catch (e) { /* la cámara nunca rompe el marcado */ }
+    };
+    marcar(20);
+    return true;
+  };
+
   window.manolitAireCalcularRutaPuntoCompartido = async function (destino, modoForzado) {
     if (!destino || !Number.isFinite(Number(destino.lat)) || !Number.isFinite(Number(destino.lon))) return false;
     try {
       let origen;
-      if (modoForzado === 'caminar' && destino.puntoPartida && Number.isFinite(Number(destino.puntoPartida.lat)) && Number.isFinite(Number(destino.puntoPartida.lon))) {
+      if (modoForzado === 'caminar' && destino.puntoPartida &&
+          Number.isFinite(Number(destino.puntoPartida.lat)) && Number.isFinite(Number(destino.puntoPartida.lon)) &&
+          !mismoPunto(destino.puntoPartida, destino)) {
         origen = { lat: Number(destino.puntoPartida.lat), lon: Number(destino.puntoPartida.lon), nombre: destino.puntoPartida.nombre || t('pointMap', 'Punto marcado en el mapa') };
       } else if (Number.isFinite(Number(destino.lat)) && Number.isFinite(Number(destino.lon))) {
         const origenElegido = seleccionPorInput.get(inputOrigen);
-        if (origenElegido && origenElegido.texto === inputOrigen.value.trim()) origen = origenElegido;
-        else if (inputOrigen.value.trim()) origen = await resolverPunto(inputOrigen);
-        else {
+        if (origenElegido && origenElegido.texto === inputOrigen.value.trim() && !mismoPunto(origenElegido, destino)) {
+          origen = origenElegido;
+        } else if (inputOrigen.value.trim()) {
+          const origenResuelto = await resolverPunto(inputOrigen);
+          if (!mismoPunto(origenResuelto, destino)) origen = origenResuelto;
+        }
+        if (!origen) {
           const ultimaPos = window.__manolitUltimaPos;
-          origen = ultimaPos && Number.isFinite(Number(ultimaPos.lat)) && Number.isFinite(Number(ultimaPos.lon))
+          origen = ultimaPos && Number.isFinite(Number(ultimaPos.lat)) && Number.isFinite(Number(ultimaPos.lon)) && !mismoPunto(ultimaPos, destino)
             ? { lat: Number(ultimaPos.lat), lon: Number(ultimaPos.lon), nombre: t('myLocation', 'Mi ubicación') }
             : null;
         }
@@ -6023,6 +6759,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             window.__manolitUltimaPos = { lat: origen.lat, lon: origen.lon, precisionM: null, ts: Date.now() };
           } catch (errorGps) {
             mostrarEstado(t('chatRouteDenied', 'Sin permiso de ubicación. Selecciona un origen en el panel de rutas.'), 'error');
+            acercarAlPuntoMarcado(destino);
             return false;
           }
         }
@@ -6052,48 +6789,65 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       if (!origen) {
         mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
+        acercarAlPuntoMarcado(destino);
         return false;
       }
-      if (modoForzado === 'caminar' && destino.puntoPartida) {
+      if (modoForzado === 'caminar' && destino.puntoPartida &&
+          Number.isFinite(Number(destino.puntoPartida.lat)) && Number.isFinite(Number(destino.puntoPartida.lon)) &&
+          !mismoPunto(destino.puntoPartida, destino)) {
         origen = { lat: Number(destino.puntoPartida.lat), lon: Number(destino.puntoPartida.lon), nombre: destino.puntoPartida.nombre || t('pointMap', 'Punto marcado en el mapa') };
       }
+      if (mismoPunto(origen, destino)) {
+        mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
+        acercarAlPuntoMarcado(destino);
+        return false;
+      }
       const destinoPunto = { ...destino, lat: Number(destino.lat), lon: Number(destino.lon), nombre: destino.nombre || t('sharedPoint', 'Punto marcado en el mapa') };
+      // Tu ubicación no se guarda como punto de partida fijo: cada vez se
+      // vuelve a leer, así la ruta sale de donde estás ahora y no de donde
+      // estabas la primera vez. Solo un origen elegido a mano se recuerda.
+      const nombreMiUbicacion = t('myLocation', 'Mi ubicación');
+      const origenEsMiUbicacion = origen.nombre === nombreMiUbicacion;
+      const recordarOrigen = () => {
+        if (origenEsMiUbicacion) {
+          delete destinoPunto.puntoPartida;
+          window.__manolitOrigenPuntoMarcado = null;
+        } else {
+          destinoPunto.puntoPartida = { lat: origen.lat, lon: origen.lon, nombre: origen.nombre || '' };
+          window.__manolitOrigenPuntoMarcado = { ...destinoPunto.puntoPartida };
+        }
+        ultimoDestinoMarcador = destinoPunto;
+        actualizarBotonCompartirPunto();
+      };
+      puntoOrigenPendiente = null;
       seleccionPorInput.set(inputOrigen, origen);
-      seleccionPorInput.set(inputDestino, destinoPunto);
-      if (!inputOrigen.value.trim()) inputOrigen.value = textoCoordenadasPunto(origen.lat, origen.lon);
+      if (!inputOrigen.value.trim()) {
+        inputOrigen.value = origenEsMiUbicacion ? nombreMiUbicacion : textoCoordenadasPunto(origen.lat, origen.lon);
+      }
       seleccionPorInput.set(inputOrigen, { ...origen, texto: inputOrigen.value.trim() });
       inputDestino.value = textoCoordenadasPunto(destinoPunto.lat, destinoPunto.lon);
+      // Con .texto puesto, el resumen por pestañas (lanzarResumenesModos)
+      // reutiliza este punto en vez de intentar geocodificar las
+      // coordenadas como si fueran una dirección de texto: antes esa
+      // búsqueda fallaba sola y borraba a los pocos segundos el resumen
+      // que el motor activo ya había pintado bien.
+      seleccionPorInput.set(inputDestino, { ...destinoPunto, texto: inputDestino.value });
       if (modoForzado) {
         window.__manolitoModoRuta = modoForzado;
         sincronizarBotonesModo();
       }
       if (modoForzado === 'bici' && typeof window.manolitAirePlanificarRutaBici === 'function') {
         const res = await window.manolitAirePlanificarRutaBici(inputOrigen.value, textoCoordenadasPunto(destinoPunto.lat, destinoPunto.lon), { origen, destino: destinoPunto });
-        if (res) {
-          destinoPunto.puntoPartida = { lat: origen.lat, lon: origen.lon, nombre: origen.nombre || '' };
-          ultimoDestinoMarcador = destinoPunto;
-          window.__manolitOrigenPuntoMarcado = { ...destinoPunto.puntoPartida };
-          actualizarBotonCompartirPunto();
-        }
+        if (res) recordarOrigen();
         return Boolean(res);
       }
       if (modoForzado === 'coche' && window.manolitoViaje && typeof window.manolitoViaje.planificar === 'function') {
         const res = await window.manolitoViaje.planificar(inputOrigen.value, textoCoordenadasPunto(destinoPunto.lat, destinoPunto.lon), { origenCoordenadas: origen, destinoCoordenadas: destinoPunto });
-        if (res) {
-          destinoPunto.puntoPartida = { lat: origen.lat, lon: origen.lon, nombre: origen.nombre || '' };
-          ultimoDestinoMarcador = destinoPunto;
-          window.__manolitOrigenPuntoMarcado = { ...destinoPunto.puntoPartida };
-          actualizarBotonCompartirPunto();
-        }
+        if (res) recordarOrigen();
         return Boolean(res);
       }
       const ruta = await ejecutarBusquedaConPuntos(origen, destinoPunto);
-      if (ruta && ruta.esReal === true) {
-        destinoPunto.puntoPartida = { lat: origen.lat, lon: origen.lon, nombre: origen.nombre || '' };
-        ultimoDestinoMarcador = destinoPunto;
-        window.__manolitOrigenPuntoMarcado = { ...destinoPunto.puntoPartida };
-        actualizarBotonCompartirPunto();
-      }
+      if (ruta && ruta.esReal === true) recordarOrigen();
       return Boolean(ruta && ruta.esReal === true);
     } catch (error) {
       mostrarEstado(error.message || t('errorSearch', 'No se ha podido calcular la ruta.'), 'error');
@@ -6161,9 +6915,31 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   const inputDestino = document.getElementById('rsDestino');
   const btnBuscar = document.getElementById('rsBuscarBtn');
   const statusEl = document.getElementById('rsStatus');
+  // AÑADIDO: la tarjeta de resumen de ruta («Ruta: X km · Y min») vive DENTRO
+  // del mapa, no encima. Solo se mueve su etiqueta contenedora; el resto de
+  // mensajes de estado siguen apareciendo donde siempre, fuera del mapa.
+  const etiquetaEstado = statusEl ? statusEl.closest('label.rs-status-toggle') : null;
+  function fijarTarjetaRutaFlotante(dentro) {
+    if (!etiquetaEstado || !contenedorMapa) return;
+    if (dentro) {
+      if (etiquetaEstado.parentElement === contenedorMapa) return;
+      if (!etiquetaEstado.__sitioOriginal) {
+        etiquetaEstado.__sitioOriginal = {
+          padre: etiquetaEstado.parentElement,
+          antes: etiquetaEstado.nextElementSibling
+        };
+      }
+      contenedorMapa.appendChild(etiquetaEstado);
+    } else {
+      const sitio = etiquetaEstado.__sitioOriginal;
+      if (!sitio || etiquetaEstado.parentElement !== contenedorMapa) return;
+      sitio.padre.insertBefore(etiquetaEstado, sitio.antes);
+    }
+  }
 
   function mostrarEstado(texto, tipo) {
     statusEl.classList.remove('rs-status-ruta');
+    fijarTarjetaRutaFlotante(false);
     statusEl.textContent = texto;
     statusEl.style.color = tipo === 'error' ? leerVar('--breath-bad') : tipo === 'ok' ? leerVar('--breath-good') : leerVar('--sky-mid');
   }
@@ -6240,6 +7016,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     url.searchParams.set('bounded', '0');
   }
 
+  // Mismo pin direccional que usan las fuentes de agua (ICONO_DIRECCION en
+  // js/fuentes-agua.js, copiado tal cual): logo Manolit inclinado, con su
+  // resplandor y la vesica oscura para leerse sobre cualquier fondo.
+  const ICONO_UBICACION_SUGERENCIA =
+    '<svg class="rs-sug-icono-ubicacion" viewBox="-30 0 260 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
+    '<defs><filter id="glowSugUbicacion" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
+    '<g transform="rotate(18 100 160)" filter="url(#glowSugUbicacion)">' +
+    '<path d="M100,30 C30,110 30,210 100,290 C170,210 170,110 100,30 Z" fill="rgba(8,12,20,0.92)" stroke="#ff2a4b" stroke-width="13" stroke-linejoin="round"/>' +
+    '<circle cx="100" cy="150" r="45" fill="none" stroke="#ffcc00" stroke-width="11"/>' +
+    '<path d="M100,146 C75,121 75,171 100,146 C125,121 125,171 100,146 Z" fill="none" stroke="#ff2a4b" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M60,165 Q80,155 100,165 T140,165" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/>' +
+    '<path d="M65,180 Q82.5,172 100,180 T135,180" fill="none" stroke="#00e5ff" stroke-width="9" stroke-linecap="round"/>' +
+    '</g></svg>';
+
   function crearAutocompletado(input, contenedorSugerenciasId) {
     const contenedor = document.getElementById(contenedorSugerenciasId);
     if (!contenedor) return;
@@ -6257,7 +7047,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       return {
         miUbicacion: true,
         nombre: t('myLocation', 'Mi ubicación'),
-        detalle: t('myLocationHint', 'Usar tu posición GPS'),
+        detalle: '',
         texto: t('myLocation', 'Mi ubicación'),
       };
     }
@@ -6284,9 +7074,27 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           try { window.__manolitUltimaPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, precisionM: pos.coords.accuracy, ts: Date.now() }; } catch (e) { }
           poner(pos.coords.latitude, pos.coords.longitude);
         },
-        () => { /* sin permiso: no se escribe nada */ },
+        () => {
+          contenedor.innerHTML = '';
+          contenedor.style.display = 'none';
+          input.setAttribute('aria-expanded', 'false');
+          mostrarEstado(t('locationDenied', 'No se ha podido obtener tu ubicación (¿has denegado el permiso?).'), 'error');
+        },
         { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
       );
+    }
+
+    // «Mi ubicación» se ofrece tanto en origen como en destino (como Google
+    // Maps), pero si ya está elegida en el OTRO campo no se repite aquí.
+    function ofreceMiUbicacion() {
+      if (!('geolocation' in navigator)) return false;
+      const otro = esOrigen ? inputDestino : inputOrigen;
+      const nombre = t('myLocation', 'Mi ubicación');
+      const textoOtro = otro.value.trim();
+      const seleccionOtro = seleccionPorInput.get(otro);
+      const yaElegidaEnElOtro = textoOtro === nombre ||
+        Boolean(seleccionOtro && seleccionOtro.nombre === nombre && seleccionOtro.texto === textoOtro);
+      return !yaElegidaEnElOtro;
     }
 
     input.addEventListener('input', () => {
@@ -6378,7 +7186,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
                 };
               });
           }
-          pintarSugerencias(resultados, texto);
+          pintarSugerencias(resultados, texto, { conMiUbicacion: false });
         } catch (e) {
           if (e.name !== 'AbortError') contenedor.innerHTML = '';
         }
@@ -6419,8 +7227,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     function resaltarActivo() {
       const items = contenedor.querySelectorAll('li[data-idx]');
+      // El resaltado lo pone la hoja de estilos con aria-selected (mismos
+      // colores fijos que al pasar el ratón), sin colores en línea.
       items.forEach((li, i) => {
-        li.style.background = i === indiceActivo ? (leerVar('--accent') || '#09ffbd') + '22' : '';
+        li.style.background = '';
         li.setAttribute('aria-selected', i === indiceActivo ? 'true' : 'false');
       });
       // Patrón combobox: el foco queda en el input y el lector de pantalla
@@ -6436,7 +7246,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function pintarSugerencias(resultados, textoOriginal, opciones) {
       opciones = opciones || {};
       ultimosResultados = [];
-      const conMiUbicacion = esOrigen && ('geolocation' in navigator);
+      // «Mi ubicación» solo ocupa fila al enfocar un campo vacío
+      // (opciones.conMiUbicacion:true); al escribir una calle no entra en
+      // la lista, dejando sitio a más resultados reales en el mismo alto.
+      const conMiUbicacion = Boolean(opciones.conMiUbicacion) && ofreceMiUbicacion();
       const items = [];
       if (conMiUbicacion) items.push(sugerenciaMiUbicacion());
       if (resultados && resultados.length) {
@@ -6457,8 +7270,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       contenedor.innerHTML = items
         .map((r, i) => {
           const clase = r.miUbicacion ? ' class="rs-sug-ubicacion"' : '';
+          // «Mi ubicación» lleva delante el mismo pin direccional que usan
+          // las fuentes de agua (ICONO_DIRECCION en js/fuentes-agua.js): el
+          // logo Manolit inclinado, idéntico trazo y colores, sin inventar
+          // un icono nuevo.
+          const icono = r.miUbicacion ? ICONO_UBICACION_SUGERENCIA : '';
           return `<li data-idx="${i}" id="${contenedorSugerenciasId}-opt-${i}" role="option" aria-selected="false"${clase}>
-            <span class="rs-sug-linea1">${escHtml(r.nombre)}</span>
+            <span class="rs-sug-linea1">${icono}${escHtml(r.nombre)}</span>
             <span class="rs-sug-linea2">${escHtml(r.detalle)}</span>
           </li>`;
         })
@@ -6475,12 +7293,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       });
     }
 
-    // Al enfocar el origen vacío se ofrece «Mi ubicación» directamente,
-    // como hace Google Maps, sin obligar a escribir nada.
+    // Al enfocar un campo vacío se ofrece «Mi ubicación» directamente,
+    // como hace Google Maps, sin obligar a escribir nada. Al escribir una
+    // calle, en cambio, ya NO aparece: ese hueco lo ocupan las calles
+    // encontradas, para que quepan más sin agrandar el cuadro.
     input.addEventListener('focus', () => {
-      if (!esOrigen || input.value.trim()) return;
-      if (!('geolocation' in navigator)) return;
-      pintarSugerencias([], '', { silenciarNota: true });
+      if (input.value.trim()) return;
+      if (!ofreceMiUbicacion()) return;
+      pintarSugerencias([], '', { silenciarNota: true, conMiUbicacion: true });
     });
 
     input.addEventListener('keydown', (e) => {
@@ -6526,6 +7346,16 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     return geocodificar(texto, input);
   }
 
+  /* -------- Resalte seguro desde el buscador (fuera del ámbito del mapa) --
+     El buscador llama a estas funciones; si el módulo del mapa aún no
+     arrancó, no pasa nada (guard de tipo). */
+  function resaltarLugarBuscado(geometria) {
+    try { window.manolitAireMarcarLugarBuscado?.(geometria || null); } catch (e) { }
+  }
+  function encuadrarLugarBuscado(geometria) {
+    try { return window.manolitAireEncuadrarGeometria ? window.manolitAireEncuadrarGeometria(geometria) : false; } catch (e) { return false; }
+  }
+
   async function manejarBusqueda(origenDirecto, destinoDirecto) {
     if (origenDirecto && destinoDirecto) {
       return ejecutarBusquedaConPuntos(origenDirecto, destinoDirecto);
@@ -6533,6 +7363,49 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     const textoOrigen = inputOrigen.value.trim();
     const textoDestino = inputDestino.value.trim();
+    // BÚSQUEDA DE UN SOLO SITIO (nov-2026): si solo hay texto en UN campo
+    // (origen o destino) y el otro está vacío, ese texto se toma como el
+    // lugar a buscar: se geocodifica y el mapa lleva hasta él, sin exigir
+    // marcar origen y destino a la vez. Mismo flujo que siempre: si hay los
+    // dos textos, se calcula la ruta; si solo hay destino, origen = GPS.
+    if (textoOrigen && !textoDestino) {
+      ponerCargando(true);
+      mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
+      try {
+        const punto = await resolverPunto(inputOrigen);
+        seleccionPorInput.delete(inputOrigen); // era una búsqueda, no un origen fijado
+        inputOrigen.value = '';
+        seleccionPorInput.set(inputDestino, punto);
+        inputDestino.value = punto.nombre || textoOrigen;
+        mostrarEstado(t('placeFound', 'Lugar encontrado. Ya puedes verlo en el mapa o trazarte la ruta desde aquí.'), 'ok');
+        ponerCargando(false);
+        // Resalte del área/calle buscada como hace Google (aditivo): el
+        // polígono manda para encuadrar; sin él, vuelo al punto de siempre.
+        let encuadrado = false;
+        try {
+          const conPoligono = await geocodificarConPoligono(textoOrigen, inputOrigen);
+          if (conPoligono && conPoligono.geometria) {
+            resaltarLugarBuscado(conPoligono.geometria);
+            encuadrado = encuadrarLugarBuscado(conPoligono.geometria);
+          }
+        } catch (e) { /* resalte decorativo */ }
+        if (!encuadrado) resaltarLugarBuscado(null);
+        if (!encuadrado) map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
+        // Solo se ha PEDIDO MIRAR un lugar: sin origen no hay distancias que
+        // mostrar. Se limpian los resúmenes bici/coche de una búsqueda
+        // anterior para que no aparezcan cifras sin sentido (km/min desde un
+        // punto que el usuario nunca pidió).
+        try {
+          document.getElementById('rsResumenBici')?.querySelector('.rs-res-min')?.closest('.rs-res-modo')?.remove();
+          document.getElementById('rsResumenCoche')?.querySelector('.rs-res-min')?.closest('.rs-res-modo')?.remove();
+        } catch (e) { /* sin resúmenes previos: nada que limpiar */ }
+      } catch (err) {
+        console.debug(err);
+        mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+        ponerCargando(false);
+      }
+      return;
+    }
     if (!textoDestino) {
       mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
       return;
@@ -6632,6 +7505,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   async function ejecutarBusquedaConPuntos(origen, destino) {
     ponerCargando(true);
     mostrarEstado(t('calculating', 'Calculando ruta real por calles…'));
+    // Con ruta real el resalte del lugar buscado sobra: la ruta ya guía.
+    try { resaltarLugarBuscado(null); } catch (e) { }
 
     try {
       const ruta = await calcularRutaConPrioridadSombra(origen, destino);
@@ -6670,6 +7545,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
       puntoReferenciaSol = { lat: origen.lat, lon: origen.lon };
       rutaActual = ruta.esReal ? turf.feature(ruta.geojson) : null;
+      destinoDeRutaActual = ruta.esReal ? destino : null;
       asegurarActivacionSolar();
       await recalcularSombrasVisibles();
       actualizarIluminacionSolar();
@@ -6688,10 +7564,26 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
         const resumenRuta = `${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`;
                 mostrarEstado(resumenRuta, 'ok');
+        // (nov-2026) El resumen de la ruta llega al panel del buscador por el
+        // mensaje de estado y al widget solar por sus horquillas: la tarjeta
+        // flotante del mapa sobraba. Ya NO se mete dentro del mapa (el CSS
+        // .rs-status-ruta sigue ahí por si algún día se vuelve a usar).
+        // OJO: la clase se mantiene porque es el latido que sigue
+        // confort-ruta.js para saber que hay ruta viva; sin ella, el panel
+        // UTCI se cerraría solo a los 700 ms.
         statusEl.classList.add('rs-status-ruta');
+        fijarTarjetaRutaFlotante(false);
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);
+        // UTCI (nov-2026, ADITIVO): comparativa fresca/rápida, confianza de
+        // los datos y avisos de confort. Si el módulo no cargó, no pasa
+        // nada: la ruta se muestra exactamente como antes.
+        try {
+          if (window.ManolitConfortRuta && typeof window.ManolitConfortRuta.mostrar === 'function') {
+            window.ManolitConfortRuta.mostrar(ruta);
+          }
+        } catch (e) { /* el panel nunca rompe la ruta */ }
         // Hay ruta: el atajo de «Iniciar caminata» se enciende junto al
         // resumen (sobre todo en móvil, donde la botonera va en iconos).
         mostrarAtajoCaminar(true);
@@ -6999,8 +7891,19 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (peticion !== resumenPeticionId) return;
         // Si el resumen aproximado no está disponible no reemplazar la ruta
         // exacta calculada por el motor de ese modo.
-        if (r) { pintarResumenModo(els[modo], r); registrarResumenMapa(modo, r); }
-        else if (!els[modo].querySelector('.rs-res-min')) pintarResumenModo(els[modo], null);
+        if (r) { pintarResumenModo(els[modo], r); registrarResumenMapa(modo, r); return; }
+        // (nov-2026) Si ese modo YA TIENE su ruta dibujada en el mapa (HUD
+        // del coche o de la bici), jamás se pinta «sin ruta»: el dato real
+        // lo pondrá pintarResumenRutaActiva; si aún no llegó, se deja el
+        // hueco en vez de mentir con «sin ruta».
+        const rutaDibujada = (modo === 'coche' && window.__manolitHudCoche) ||
+          (modo === 'bici' && window.__manolitHudBici);
+        if (rutaDibujada && !els[modo].querySelector('.rs-res-min')) {
+          els[modo].classList.remove('cargando', 'sin-ruta');
+          els[modo].textContent = '';
+          return;
+        }
+        if (!els[modo].querySelector('.rs-res-min')) pintarResumenModo(els[modo], null);
       });
     });
   }
@@ -7018,6 +7921,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const anterior = window.__manolitoModoRuta || 'caminar';
     if (anterior !== modo) {
       window.__manolitoModoRuta = modo;
+      // Limpieza de interfaz secundaria al cambiar de modo (nov-2026,
+      // flujo tipo Google Maps): las indicaciones a pie (con su logo
+      // «IR HASTA AQUÍ» y su flecha), el aviso de CO2 y el panel de
+      // compartir punto no pueden quedarse huérfanos detrás del buscador.
+      // Son capas aditivas: su ausencia no rompe el cambio de modo.
+      try { if (window.ManolitA11y) window.ManolitA11y.ocultarPasos(); } catch (e) { /* aún sin A11Y */ }
+      try { if (window.ManolitCO2) window.ManolitCO2.ocultar(); } catch (e) { /* aún sin CO2 */ }
+      try {
+        const panelCompartir = document.getElementById('rsSharePanel');
+        if (panelCompartir) { panelCompartir.classList.remove('rs-visible'); panelCompartir.hidden = true; }
+      } catch (e) { /* sin panel de compartir */ }
       // Al cambiar de perfil limpiamos solo la línea activa, no el punto destino.
       if (anterior === 'caminar') {
         // Las capas de ruta se dejan activas; el modo seleccionado las sustituye al terminar su cálculo.
@@ -7043,8 +7957,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       : null;
     if (destinoMarcadoCambioModo && modo === 'caminar') {
       const origenPunto = destinoMarcadoCambioModo.puntoPartida || window.__manolitOrigenPuntoMarcado;
-      if (origenPunto) {
-        const destinoPunto = Object.assign({}, destinoMarcadoCambioModo, { puntoPartida: Object.assign({}, origenPunto) });
+      // Sin origen elegido a mano la ruta sale de tu ubicación; solo se
+      // calcula aquí si el punto aún no tiene su ruta a pie (el resto de
+      // cambios de modo siguen por el camino de abajo).
+      if (origenPunto || (anterior === modo && puntoMarcadoSinRutaAPie())) {
+        const destinoPunto = Object.assign({}, destinoMarcadoCambioModo);
+        if (origenPunto) destinoPunto.puntoPartida = Object.assign({}, origenPunto);
         window.manolitAireCalcularRutaPuntoCompartido(destinoPunto, 'caminar').then((ok) => {
           if (!ok) mostrarEstado(t('errorSearch', 'No he podido recalcular esa ruta. Mantengo el punto marcado; prueba otra vez.'), 'error');
         });
@@ -7128,6 +8046,38 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     if (modo === 'bici') {
       const textoDestino = inputDestino.value.trim();
+      const textoOrigenBici = inputOrigen.value.trim();
+      // BÚSQUEDA DE UN SOLO SITIO (nov-2026): texto solo en el origen de bici
+      // = buscar ese lugar y llevar el mapa hasta él (sin exigir destino).
+      if (!textoDestino && textoOrigenBici) {
+        ponerCargando(true);
+        mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
+        try {
+          const punto = await resolverPunto(inputOrigen);
+          seleccionPorInput.delete(inputOrigen);
+          inputOrigen.value = '';
+          seleccionPorInput.set(inputDestino, punto);
+          inputDestino.value = punto.nombre || textoOrigenBici;
+          mostrarEstado(t('placeFound', 'Lugar encontrado. Ya puedes verlo en el mapa o trazarte la ruta desde aquí.'), 'ok');
+          // Resalte del área/calle buscada (aditivo, como en caminar).
+          let encuadrado = false;
+          try {
+            const conPoligono = await geocodificarConPoligono(textoOrigenBici, inputOrigen);
+            if (conPoligono && conPoligono.geometria) {
+              resaltarLugarBuscado(conPoligono.geometria);
+              encuadrado = encuadrarLugarBuscado(conPoligono.geometria);
+            }
+          } catch (e) { /* resalte decorativo */ }
+          if (!encuadrado) resaltarLugarBuscado(null);
+          if (!encuadrado) map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
+        } catch (err) {
+          console.debug(err);
+          mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+        } finally {
+          ponerCargando(false);
+        }
+        return;
+      }
       if (!textoDestino) {
         mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
         if (inputDestino) inputDestino.focus();
@@ -7160,6 +8110,38 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     if (modo === 'coche') {
       const textoDestino = inputDestino.value.trim();
+      const textoOrigenCoche = inputOrigen.value.trim();
+      // BÚSQUEDA DE UN SOLO SITIO (nov-2026): texto solo en el origen de coche
+      // = buscar ese lugar y llevar el mapa hasta él (sin exigir destino).
+      if (!textoDestino && textoOrigenCoche) {
+        ponerCargando(true);
+        mostrarEstado(t('geocoding', 'Geocodificando direcciones…'));
+        try {
+          const punto = await resolverPunto(inputOrigen);
+          seleccionPorInput.delete(inputOrigen);
+          inputOrigen.value = '';
+          seleccionPorInput.set(inputDestino, punto);
+          inputDestino.value = punto.nombre || textoOrigenCoche;
+          mostrarEstado(t('placeFound', 'Lugar encontrado. Ya puedes verlo en el mapa o trazarte la ruta desde aquí.'), 'ok');
+          // Resalte del área/calle buscada (aditivo, como en caminar).
+          let encuadrado = false;
+          try {
+            const conPoligono = await geocodificarConPoligono(textoOrigenCoche, inputOrigen);
+            if (conPoligono && conPoligono.geometria) {
+              resaltarLugarBuscado(conPoligono.geometria);
+              encuadrado = encuadrarLugarBuscado(conPoligono.geometria);
+            }
+          } catch (e) { /* resalte decorativo */ }
+          if (!encuadrado) resaltarLugarBuscado(null);
+          if (!encuadrado) map.flyTo({ center: [punto.lon, punto.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200 });
+        } catch (err) {
+          console.debug(err);
+          mostrarEstado(err.message || t('errorSearch', 'Error al buscar la ruta. Inténtalo de nuevo.'), 'error');
+        } finally {
+          ponerCargando(false);
+        }
+        return;
+      }
       if (!textoDestino) {
         mostrarEstado(t('fillBoth', 'Introduce origen y destino.'), 'error');
         if (inputDestino) inputDestino.focus();
@@ -8230,6 +9212,98 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           '¡Hasta luego, Mari... digo, hasta la próxima caminata, compare!',
           '¡Esto ya está hecho! Un aplauso pa nosotros, que lo vale.'
         ];
+        /* ---- FRASES EN CASTELLANO (nov-2026) ----
+           La mascota habla en andaluz SOLO cuando la detección compartida
+           (window.__manolitEnAndalucia, la misma que usa el chat, definida
+           en js/chat.js) confirma que estás en Andalucía. Fuera, usa estos
+           pools equivalentes en castellano neutro. Una sola lógica para
+           chat y mascota: nunca dos fuentes de verdad distintas. */
+        this._frasesCastellano = [
+          // Saludos y ánimos
+          '¡Ea, hola! ¿Damos un paseo o qué?',
+          '¡Venga, alma de cántaro, que la sombra nos espera!',
+          '¡Hola! Yo te llevo por lo fresquito, tú tranquilo.',
+          '¡Ya está aquí Manolit, que esto se arregla andando!',
+          '¡Poco a poco, que quien corre no llega a la sombra!',
+          '¡Qué ilusión verte! ¿Buscamos sombra o qué?',
+          // Calor y sol
+          '¡Uf, qué calor! Esto es un horno con vistas.',
+          '¡Menuda solana! Hasta los lagartos busquen toldo.',
+          '¡Qué bochorno! Esto no es una calle, es la freidora del cielo.',
+          '¡Qué calor tan malo! Me derrito como un helado de cucurucho.',
+          '¡Qué tartera! Ni los chicharrones aguantan esta tarde.',
+          '¡El sol no perdona! Menos mal que me tienes a mí.',
+          '¡Socorro, que esto achicharra! Por la sombra o no vamos.',
+          '¡Qué calor! Esto no lo aguanta ni el botijo.',
+          '¡Uf! Con esta temperatura el asfalto hace tortilla sin huevo.',
+          'Si sobrevives a una tarde de julio cruzando la plaza a las cuatro, la NASA te convalida el viaje a Marte.',
+          'A las 16:00 no hay calles, hay carriles de lava con fachadas blancas.',
+          '¿El infierno? Un simulacro comparado con el termómetro de un coche aparcado al sol a las cinco de la tarde.',
+          'El verano no es una estación, es una mudanza temporal al interior del congelador.',
+          'De tres a seis de la tarde, el único deporte extremo es abrir las persianas.',
+          'En las tardes de verano, el aire acondicionado no es un electrodoméstico, es un miembro más de la familia.',
+          'Cruzar la acera al sol a las 17:00 no es andar, es un acto de fe con zapatillas que se derriten.',
+          // Sombra y ruta
+          '¡Mira qué sombrita ahí al lado! Eso sí que es vida.',
+          '¡Por aquí, por aquí! Que en esta calle hay sombra de sobra.',
+          '¡Fíjate qué fresquito bajo los árboles! Esto es una maravilla.',
+          '¡Agárrate a la pared de la sombra, que eso es oro puro!',
+          '¡Por aquí, que esta plaza tiene toldo y glorietas!',
+          '¡Qué bien se está a la sombrita! Como en casa no se está en ningún lado.',
+          'Crucemos de sombra en sombra como los gatos, que son muy listos.',
+          '¡Esta callejuela es una gozada! Fresquito y sin sol de cara.',
+          // Árboles y aire
+          '¡Ay, qué bien huele este árbol! Respira hondo.',
+          '¡Mira qué arboleda! Con árboles así se respira otra cosa.',
+          '¡Este airecito sí que entra bien! Nada que ver con la avenida.',
+          '¡Benditos sean los árboles, que ellos sí que dan la cara fresquita!',
+          '¡Respira, respira! Que por aquí el aire está de lujo.',
+          // Ánimo general
+          '¡No te preocupes, que Manolit te guía sin problema!',
+          'Tú camina con calma, que la prisa no es buena consejera.',
+          '¡Ea, ya queda menos! Menos que un minuto de sombra al mediodía.',
+          '¡Qué arte tienes caminando! Pareces profesional.',
+          '¡Vamos que nos vamos! Y con este paseo, ni un museo.',
+          '¡Alegría, que la vida son dos días y hoy hace un día estupendo!',
+          'Tú a tu ritmo, que aquí el único que corre contra ti es el reloj.',
+          'Y si te cansas, paramos un momentito y ya está. Esto no es una competición.',
+          // Despedidas y llegada
+          '¡Ya hemos llegado! Qué paseo más bonito nos hemos dado.',
+          '¡Hasta la próxima caminata!',
+          '¡Esto ya está hecho! Un aplauso para nosotros, que lo vale.'
+        ];
+        this._frasesHoraCastellano = {
+          madrugada: [
+            '¡Madrugada y tú todavía dando paseos! Eso es afición.',
+            '¡A estas horas hasta los gatos hablan bajito! Vamos con cuidado.',
+            '¡La madrugada es para dormir, pero aquí estamos, haciendo kilómetros!',
+            '¡Qué silencio más agradable! La ciudad duerme y nosotros de paseo secreto.'
+          ],
+          mañana: [
+            '¡Buenos días! La mañana está recién estrenada, como una tostada.',
+            '¡Mañanita buena! Antes de que el sol suba, nos movemos.',
+            '¡Ea, a por el día! Con calma, que el café no se bebe solo.',
+            '¡Qué bien empieza la mañana! Tú pones las piernas y yo pongo el estilo.'
+          ],
+          mediodía: [
+            '¡Mediodía! Busca sombra, que el sol viene con ganas.',
+            '¡A esta hora el sol aprieta! Tira por lo fresquito.',
+            '¡Son horas de sombra! Yo voto por la sombra.',
+            '¡El mediodía no perdona! Menos mal que llevamos la ruta bien encaminada.'
+          ],
+          tarde: [
+            '¡Buenas tardes! El sol ya va bajando el tono, qué detalle.',
+            '¡Buena tarde para caminar! Ni corras ni te hagas el héroe.',
+            '¡La tarde es para paseo y charla! Yo hablo, tú no te pierdas.',
+            '¡Ea, que la tarde se pone fresquita! Vamos a aprovecharla.'
+          ],
+          noche: [
+            '¡Buenas noches! Ojo con los baches, que de noche todos parecen artistas.',
+            '¡Noche cerrada y paseo abierto! Tú mira por dónde pisas y yo hago de farolillo.',
+            '¡A estas horas la ciudad tiene otro compás! Despacito y con estilo.',
+            '¡La noche está fresquita! Pero no te despistes, que la sombra no lleva reflectante.'
+          ]
+        };
         this._frasesHora = {
           madrugada: [
             '¡Madrugada y tú todavía dando paseos! Eso es afición, miarma.',
@@ -8262,6 +9336,74 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             '¡La noche está fresquita! Pero no te me despistes, compare, que la sombra no lleva reflectante.'
           ]
         };
+        this._frasesEstacionesCastellano = {
+          invierno: [
+            '¡Uf, qué frío! Esto parece una nevera.',
+            '¡Qué me congelo! Yo nací para la sombrita, no para la escarcha.',
+            '¡Qué fresquita está la mañana! Vamos andando, que eso calienta más que la manta.',
+            '¡Brrr! Si me quedo quieto me plantan en un belén.',
+            '¡El invierno es llevadero, pero ojo con la humedad, que atraviesa!',
+            '¡Venga, al sol que calienta! En invierno la sombra sobra.',
+            '¡Qué frío tan serio! Me faltan las castañas asadas y me sobra el airecito.',
+            '¡Anda que no se agradece nada un cafelito caliente con este tiempo!',
+            '¡Mira qué árboles tan valientes! Verdes en diciembre, eso es resistencia.',
+            '¡Abrígate bien, que el invierno no perdona!',
+            '¡Estamos a {t}! Que me tiembla hasta el corazón.',
+            '¡{t} ahí fuera! Abrígate, que el invierno parece de broma pero muerde.',
+            '¡Marcando {t}! Y yo aquí, plantado como un árbol sin manta.'
+          ],
+          otono: [
+            '¡Ya está aquí el otoño! Caen las hojas y yo me pongo nostálgico.',
+            '¡Qué bien se está! Ni frío ni calor, el otoño es el término medio.',
+            '¡Mira qué alfombra de hojas! Pisa despacio, que crujen como patatas fritas.',
+            '¡El otoño es la primavera al revés! Cada hoja que cae es una flor del suelo.',
+            '¡Con este tiempo apetecen castañas! Y un paseo sin prisa.',
+            '¡Ojo, que anochece antes! No te confíes, que la tarde se te echa encima.',
+            '¡Qué olorcito a tierra mojada! Eso no lo embotella el perfume más caro.',
+            '¡Los árboles aguantan verdes, qué valientes! Otros ya van soltando.',
+            '¡Octubre es un mes traicionero! De mañana chaqueta y de tarde manga corta.',
+            '¡Si llega el chaparrón, corre! Que la lluvia de otoño no avisa.',
+            '¡Estamos a {t}! Tiempo de chaqueta fina, que el otoño va por capas.',
+            '¡{t} y olor a otoño! Esto sí que es vivir.'
+          ],
+          primavera: [
+            '¡Primavera! La floración huele tan bien que hasta yo me pongo poeta.',
+            '¡Qué florecida está la ciudad! La primavera no se aguanta de bonita.',
+            '¡Ojo, el polen anda suelto! Si estornudo yo, que soy de mentira, imagínate tú.',
+            '¡Los ojos llorosos son el precio de tanta flor! Pero qué bien huele.',
+            '¡Las golondrinas ya están aquí! Una no hace verano, pero alegra la tarde.',
+            '¡Ni frío ni calor! La primavera es como yo, templada y agradable.',
+            '¡Mira qué árboles tan contentos! En primavera hasta las sombras huelen bien.',
+            '¡Abril, aguas mil! Si te pilla el chaparrón, yo te cubro con la hoja.',
+            '¡Los jazmines ya se están preparando! Dentro de nada esto huele a gloria.',
+            '¡Estamos a {t} y huele a flores! Esto es lo mejor del año.',
+            '¡{t} de primavera! Ni frío ni calor.'
+          ],
+          verano: [
+            '¡Verano oficial! Empieza la temporada de la sombra buena.',
+            '¡Ya está aquí el verano! A partir de ahora la sombra es oro y yo soy el banquero.',
+            '¡El verano es un horno, pero contigo hasta el horno se pasa bien!',
+            '¡Agosto no perdona! Botijo lleno y a vivir de sombra en sombra.',
+            '¡En verano madruga, que a las doce el sol no tiene piedad!',
+            '¡Qué noches tan buenas las de verano! De día sombra y de noche terraza.',
+            '¡{t}! Esto no es una calle, es una sartén.',
+            '¡Estamos a {t}! Vamos por la sombra o nos fundimos como el helado.',
+            '¡Marcando {t}! Y eso a la sombra, que al sol ni te lo cuento.'
+          ]
+        };
+        this._frasesLugarCastellano = [
+          'Por cierto, que estamos en {lugar}. No sé tú, pero yo aquí me quedo un ratito a la sombra.',
+          '¿Sabes dónde estamos? En {lugar}, que tiene su encanto.',
+          'Estamos en {lugar}. ¡Ya puede presumir el paseo!',
+          'Mira que estamos en {lugar}. {reco}',
+          'Como soy muy curioso, te cuento: estamos en {lugar}. {reco}'
+        ];
+        this._recoPromptsCastellano = [
+          '{reco}, por si quieres darle un capricho al paseo.',
+          'Y ya de paso, {reco}.',
+          '{reco}. Total, andando se llega a todos los lados.',
+          'Además {reco}.'
+        ];
         /* ---- VOZ DE ESTACIÓN (sep-2026) ----
            Manolit comenta la estación del año real, como los árboles que
            cambian solos: en invierno se queja del frío, en otoño y en
@@ -8325,6 +9467,30 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             '¡Marcando {t}! Y eso a la sombra, que al sol ni te lo cuento.'
           ]
         };
+        // Memoria de lo hablado (nov-2026): Manolit no repite la frase
+        // anterior ni el mismo tipo de frase seguido. Con esto el reloj y la
+        // temperatura dejan de monopolizar el saludo: salen de vez en cuando,
+        // y entre medias tira de lugar, estación y frases andaluzas sueltas.
+        this._ultimaFrase = '';
+        this._ultimoTipo = '';
+        // Lugar donde estás (ciudad/barrio) y una recomendación cercana
+        // (museo, restaurante...). Se rellena en segundo plano, sin bloquear
+        // nunca la voz, y se reutiliza mientras no te muevas de zona.
+        this._lugarCache = { ts: 0, lat: null, lon: null, nombre: null, reco: null };
+        this._lugarPendiente = false;
+        this._frasesLugar = [
+          'Por cierto, que estamoh en {lugar}. No sé tú, pero yo aquí me quedo un ratito a la sombra.',
+          '¿Sabes dónde estamoh, miarma? En {lugar}, que tiene su aquel.',
+          'Estamoh en {lugar}. ¡Ea, ya puede presumir el paseo!',
+          'Mira que estamoh en {lugar}. {reco}',
+          'Como soy mu curioso, te cuento: estamoh en {lugar}. {reco}'
+        ];
+        this._recoPrompts = [
+          '{reco}, por si quieres darle un capricho al paseo.',
+          'Y ya de paso, {reco}.',
+          '{reco}. Total, andando se llega a to los laos.',
+          'Además {reco}.'
+        ];
         this._lastLngLat = null;
         this._moving = false;
         this._ultimoMovMs = Date.now();
@@ -8391,34 +9557,121 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if ((m === 8 && d >= 23) || m === 9 || m === 10 || (m === 11 && d < 21)) return 'otono';
         return 'invierno';
       }
-      // Elige la frase adecuada: más de la mitad de las veces habla de la
-      // estación en curso (si hay temperatura conocida la suelta en la
-      // frase) y el resto tira del repertorio general de siempre. Fuera
-      // del verano se apartan las frases de calor, que en enero cantan.
+      // Elige la frase con variedad y sin repetir: el reloj y la temperatura
+      // salen de vez en cuando, pero Manolit intercala lugar, estación y
+      // andaluzas sueltas. Nunca repite la frase anterior ni el tipo seguido.
       _elegirFraseEstacional() {
         try {
-          if (Math.random() < 0.48) return this._elegirFraseHora();
-          const est = this._estacionActual();
-          const deEstacion = (this._frasesEstaciones && this._frasesEstaciones[est]) || [];
-          const generales = est === 'verano' ? this._frasesAndaluz
-            : this._frasesAndaluz.filter((f) => !/calor|solana|bochorno|derrit|flama|lorenzo|achicharra|tortilla|freidora/i.test(f));
           const cache = ManolitWalker._tempCache;
           const t = cache && isFinite(cache.t) ? cache.t : null;
-          const usarEstacion = deEstacion.length && Math.random() < 0.55;
-          const fuente = usarEstacion ? deEstacion : generales;
-          const conTemp = fuente.filter((f) => f.indexOf('{t}') >= 0);
-          const sinTemp = fuente.filter((f) => f.indexOf('{t}') < 0);
-          let pool = (t !== null && conTemp.length && Math.random() < 0.6) ? conTemp : sinTemp;
-          if (!pool.length) pool = fuente.length ? fuente : this._frasesAndaluz;
-          let frase = pool[Math.floor(Math.random() * pool.length)];
-          if (t !== null && frase.indexOf('{t}') >= 0) {
-            const g = Math.round(t);
-            frase = frase.replace('{t}', g === 1 ? '1 grado' : g + ' grados');
+          const est = this._estacionActual();
+          const lugar = (this._lugarCache && this._lugarCache.nombre) ? this._lugarCache : null;
+
+          const gen = [];
+          gen.push({ peso: 16, tipo: 'hora', fn: () => this._elegirFraseHora() });
+          if (t !== null) gen.push({ peso: 14, tipo: 'temp', fn: () => this._elegirFraseTemperatura(t) });
+          gen.push({ peso: 22, tipo: 'estacion', fn: () => this._elegirFraseEstacion(est, t) });
+          if (lugar) gen.push({ peso: 16, tipo: 'lugar', fn: () => this._elegirFraseLugar(lugar) });
+          gen.push({ peso: 32, tipo: 'general', fn: () => this._elegirFraseGeneral(est) });
+
+          // Evita encadenar el mismo tipo; si no queda otro, repite tipo pero
+          // nunca la misma frase.
+          const alternativos = gen.filter((g) => g.tipo !== this._ultimoTipo);
+          const pool = alternativos.length ? alternativos : gen;
+          const total = pool.reduce((s, g) => s + g.peso, 0);
+          let umbral = Math.random() * total;
+          let elegido = pool[pool.length - 1];
+          for (const g of pool) {
+            umbral -= g.peso;
+            if (umbral < 0) { elegido = g; break; }
           }
+
+          let frase = elegido.fn();
+          let intentos = 0;
+          while (frase === this._ultimaFrase && intentos < 3) {
+            frase = elegido.fn();
+            intentos++;
+          }
+          this._ultimaFrase = frase;
+          this._ultimoTipo = elegido.tipo;
           return frase;
         } catch (e) {
-          return this._frasesAndaluz[Math.floor(Math.random() * this._frasesAndaluz.length)];
+          const banco = this._poolAndaluz();
+          return banco[Math.floor(Math.random() * banco.length)];
         }
+      }
+      // Frases con temperatura real: junta todas las de {t} (de cualquier
+      // estación) y elige una, sustituyendo el número.
+      // Misma fuente de verdad que el chat (js/chat.js): si la detección
+      // geolocalizada no confirma Andalucía, la mascota habla castellano.
+      _enAndalucia() {
+        try { return window.__manolitEnAndalucia === true; } catch (e) { return false; }
+      }
+      _poolAndaluz() { return this._enAndalucia() ? this._frasesAndaluz : this._frasesCastellano; }
+      _elegirFraseTemperatura(t) {
+        const bancos = this._enAndalucia() ? this._frasesEstaciones : this._frasesEstacionesCastellano;
+        const todas = [];
+        Object.keys(bancos || {}).forEach((est) => {
+          (bancos[est] || []).forEach((f) => {
+            if (f.indexOf('{t}') >= 0) todas.push(f);
+          });
+        });
+        const pool = todas.length ? todas : this._poolAndaluz();
+        let frase = pool[Math.floor(Math.random() * pool.length)];
+        if (frase.indexOf('{t}') >= 0) {
+          const g = Math.round(t);
+          frase = frase.replace('{t}', g === 1 ? '1 grado' : g + ' grados');
+        }
+        return frase;
+      }
+      _elegirFraseEstacion(est, t) {
+        const banco = this._enAndalucia() ? this._frasesEstaciones : this._frasesEstacionesCastellano;
+        const deEstacion = (banco && banco[est]) || [];
+        const pool = deEstacion.length ? deEstacion : this._poolAndaluz();
+        let frase = pool[Math.floor(Math.random() * pool.length)];
+        if (t !== null && frase.indexOf('{t}') >= 0) {
+          const g = Math.round(t);
+          frase = frase.replace('{t}', g === 1 ? '1 grado' : g + ' grados');
+        }
+        return frase;
+      }
+      _elegirFraseGeneral(est) {
+        const banco = this._poolAndaluz();
+        const generales = est === 'verano' ? banco
+          : banco.filter((f) => !/calor|solana|bochorno|derrit|flama|lorenzo|achicharra|tortilla|freidora/i.test(f));
+        const pool = generales.length ? generales : banco;
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+      _elegirFraseLugar(lugar) {
+        const nombre = String(lugar.nombre || 'por aquí');
+        const reco = lugar.reco ? this._recomendacionTexto(lugar.reco) : '';
+        const bancoLugar = this._enAndalucia() ? this._frasesLugar : this._frasesLugarCastellano;
+        const bancoReco = this._enAndalucia() ? this._recoPrompts : this._recoPromptsCastellano;
+        let pool;
+        if (reco) {
+          pool = bancoLugar.filter((f) => f.indexOf('{reco}') >= 0);
+          if (!pool.length) pool = bancoLugar;
+        } else {
+          pool = bancoLugar.filter((f) => f.indexOf('{reco}') < 0);
+        }
+        if (!pool.length) pool = bancoLugar;
+        let frase = pool[Math.floor(Math.random() * pool.length)];
+        frase = frase.replace('{lugar}', nombre);
+        // Si la frase lleva {reco} pero no hay recomendación, se sustituye por
+        // una coletilla neutra para que no quede hueco.
+        frase = frase.replace('{reco}', reco || (this._enAndalucia()
+          ? 'y aquí no hay quien se pierda'
+          : 'y por aquí no se pierde nadie'));
+        return frase;
+      }
+      _recomendacionTexto(reco) {
+        if (!reco) return '';
+        const nombre = String(reco.nombre || '').trim();
+        const tipo = String(reco.tipo || 'sitio');
+        const detalle = nombre ? `${tipo} llamado «${nombre}»` : `un ${tipo}`;
+        const bancoReco = this._enAndalucia() ? this._recoPrompts : this._recoPromptsCastellano;
+        const plantilla = bancoReco[Math.floor(Math.random() * bancoReco.length)];
+        return plantilla.replace('{reco}', `cerca tienes ${detalle}, muy recomendable`);
       }
       _elegirFraseHora() {
         const ahora = new Date();
@@ -8428,7 +9681,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           : hora < 12 ? 'mañana'
           : hora < 15 ? 'mediodía'
           : hora < 20 ? 'tarde' : 'noche';
-        const frases = this._frasesHora[franja];
+        const bancoHora = this._enAndalucia() ? this._frasesHora : this._frasesHoraCastellano;
+        const frases = bancoHora[franja] || bancoHora.mañana;
         const frase = frases[Math.floor(Math.random() * frases.length)];
         const horaTexto = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         const coletillas = [
@@ -8487,6 +9741,27 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       // (/clima ya devuelve temperatura) y, si no hay dato, directamente a
       // Open-Meteo, que no pide clave. Si todo falla, Manolit habla sin
       // número y tan contento. Nunca bloquea y nunca ensucia la consola.
+      // Lugar y recomendación cercana (nov-2026): rellena la caché de
+      // ubicación en segundo plano. La voz jamás espera a estas peticiones:
+      // se usan en la frase siguiente si ya están listas.
+      async _enriquecerLugar(lat, lon) {
+        if (this._lugarPendiente || !isFinite(Number(lat)) || !isFinite(Number(lon))) return;
+        const cache = this._lugarCache || (this._lugarCache = { ts: 0, lat: null, lon: null, nombre: null, reco: null });
+        const mismaZona = cache.lat !== null && Math.abs(cache.lat - lat) < 0.15 && Math.abs(cache.lon - lon) < 0.15;
+        if (cache.ts && Date.now() - cache.ts < 600000 && mismaZona) return;
+        this._lugarPendiente = true;
+        try {
+          const [nombre, reco] = await Promise.all([
+            ManolitWalker._consultarLugar(lat, lon),
+            ManolitWalker._consultarRecomendacion(lat, lon),
+          ]);
+          this._lugarCache = { ts: Date.now(), lat, lon, nombre, reco };
+        } catch (e) {
+          /* sin lugar ni recomendación no pasa nada */
+        } finally {
+          this._lugarPendiente = false;
+        }
+      }
       static async _refrescarTemperatura(lat, lon) {
         try {
           const c = ManolitWalker._tempCache || (ManolitWalker._tempCache = { t: null, ts: 0, lat: null, lon: null });
@@ -8514,6 +9789,67 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           ManolitWalker._tempCache = { t: temp, ts: ahora, lat, lon };
           return temp;
         } catch (e) { return null; }
+      }
+      // Nombre corto del lugar (ciudad, pueblo, barrio) vía el proxy propio
+      // /geo-reverso (Nominatim). Devuelve null si no se puede resolver.
+      static async _consultarLugar(lat, lon) {
+        try {
+          const url = new URL('/geo-reverso', window.location.origin);
+          url.searchParams.set('lat', lat);
+          url.searchParams.set('lon', lon);
+          url.searchParams.set('format', 'json');
+          url.searchParams.set('addressdetails', '1');
+          const r = await fetch(url.toString(), { headers: { 'Accept-Language': 'es' } });
+          if (!r.ok) return null;
+          const d = await r.json();
+          const a = d && d.address;
+          if (!a) return null;
+          return a.city || a.town || a.village || a.municipality || a.suburb || a.neighbourhood || a.county || a.state || null;
+        } catch (e) { return null; }
+      }
+      // Recomendación cercana (museo, restaurante, café...) vía Overpass.
+      // Mejor esfuerzo: si la red o los espejos fallan, devuelve null en
+      // silencio y Manolit habla solo del lugar, sin romper la voz.
+      static async _consultarRecomendacion(lat, lon) {
+        const query = '[out:json][timeout:6];(' +
+          'node["tourism"~"museum|attraction|gallery"](around:600,' + lat + ',' + lon + ');' +
+          'node["amenity"~"restaurant|cafe|bar|ice_cream"](around:600,' + lat + ',' + lon + ');' +
+          ');out body 5;';
+        const espejos = [
+          'https://overpass.kumi.systems/api/interpreter',
+          'https://overpass-api.de/api/interpreter',
+          'https://lz4.overpass-api.de/api/interpreter',
+          'https://overpass.private.coffee/api/interpreter',
+        ];
+        for (const url of espejos) {
+          try {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 6000);
+            const r = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+              body: 'data=' + encodeURIComponent(query),
+              signal: controller.signal,
+            });
+            clearTimeout(timer);
+            if (!r.ok) continue;
+            const d = await r.json();
+            const el = d && Array.isArray(d.elements) ? d.elements[0] : null;
+            if (!el) return null;
+            const tags = el.tags || {};
+            const nombre = tags.name || tags['name:es'] || '';
+            let tipo = 'sitio con encanto';
+            if (tags.amenity === 'restaurant') tipo = 'restaurante';
+            else if (tags.amenity === 'cafe') tipo = 'café';
+            else if (tags.amenity === 'bar') tipo = 'bar';
+            else if (tags.amenity === 'ice_cream') tipo = 'heladería';
+            else if (tags.tourism === 'museum') tipo = 'museo';
+            else if (tags.tourism === 'attraction') tipo = 'lugar con encanto';
+            else if (tags.tourism === 'gallery') tipo = 'galería';
+            return { nombre, tipo };
+          } catch (e) { /* se prueba el siguiente espejo */ }
+        }
+        return null;
       }
       // Elige la voz española de mejor calidad disponible y detecta su
       // género por el nombre para poder neutralizar el tono después.
@@ -9976,9 +11312,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       'https://overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
       'https://overpass.private.coffee/api/interpreter',
-      'https://overpass.nchc.org.tw/api/interpreter',
-      // OJO: overpass.osm.ch está devolviendo respuestas 200 VACÍAS y
-      // corruptas (timestamp_osm_base:"116617"), fuera de la lista.
+      // OJO: el espejo de Taiwán (overpass.nchc.org.tw) cayó — el dominio ya no
+      // resuelve (NXDOMAIN, verificado 2026-11-23). Tampoco overpass.osm.ch:
+      // está devolviendo respuestas 200 VACÍAS y corruptas (timestamp_osm_base:"116617"), fuera de la lista.
     ],
     overpassTimeoutS: 15,
 
@@ -9999,19 +11335,55 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   /* ---------------- Tipología de árboles (forma + sombra realista) ---------------- */
 
   const TIPOS_ARBOL = {
-    palmera: {
-      keywords: ['phoenix', 'washingtonia', 'palma', 'palm', 'date palm', 'datilera'],
-      alturaMediaM: 10,
-      radioCopaMedioM: 2.0,
+    // --- PALMÁCEAS (nov-2026, orden corregido). Antes 'palmera' iba PRIMERA con
+    // las keywords genéricas ('phoenix', 'washingtonia', 'palm'…) y se comía a
+    // las específicas: TODAS las Phoenix acababan como 'palmera' y un
+    // "Pinus canariensis" salía como palmera canaria. Ahora:
+    //   1º datilera y canaria (keywords de especie, con el género Phoenix)
+    //   2º washingtonia (género Washingtonia)
+    //   3º pino (Pinus…, sigue ganando a 'canariensis' por 'pinus')
+    //   4º 'palmera' genérica, la última de la familia.
+    // Albizia y naranjo NO se tocan: quedan donde estaban.
+    palmera_datilera: {
+      keywords: ['dactylifera', 'datilera', 'dátil', 'date palm', 'phoenix dactylifera'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 2.2,
+      forma: 'palmera',
+      color: '#7a9b4a',
+    },
+    palmera_canaria: {
+      keywords: ['phoenix canariensis', 'palmera canaria', 'canary island date palm'],
+      alturaMediaM: 13,
+      radioCopaMedioM: 2.6,
+      forma: 'palmera',
+      color: '#7a9b4a',
+    },
+    palmera_washingtonia: {
+      keywords: ['washingtonia', 'palmera de california', 'abanico'],
+      alturaMediaM: 14,
+      radioCopaMedioM: 2.4,
       forma: 'palmera',
       color: '#7a9b4a',
     },
     pino: {
-      keywords: ['pinus', 'pino', 'pine', 'cedrus', 'cedro', 'cedar', 'ciprés', 'cypress', 'cupressus', 'abeto', 'fir'],
+      // (nov-2026) SIN 'fir': capturaba "Fi"rmiana" simplex" (1.085 ejemplares
+      // del parque de María Luisa salían de PINO). 'abeto' ya cubre Abies;
+      // si hiciera falta Pinus fir-…, siempre gana la 'pinus'.
+      keywords: ['pinus', 'pino', 'pine', 'cedrus', 'cedro', 'cedar', 'abeto'],
       alturaMediaM: 14,
       radioCopaMedioM: 3.0,
       forma: 'conica',
       color: '#2d5a3d',
+    },
+    // Palmáceo sin especie reconocible (Phoenix sp, "palmera canaria" abreviada
+    // "canariensis"…): va DESPUÉS de pino, así "Pinus canariensis" sigue
+    // siendo pino por 'pinus' y no se lo roba la 'canariensis' de la palmera.
+    palmera: {
+      keywords: ['phoenix', 'palma', 'palm', 'datilera', 'canariensis'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 2.0,
+      forma: 'palmera',
+      color: '#7a9b4a',
     },
     encina_roble: {
       keywords: ['quercus', 'encina', 'roble', 'oak', 'alcornoque', 'cork oak', 'quejigo'],
@@ -10112,11 +11484,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       color: '#4d8a3e',
     },
     laurel: {
+      // (nov-2026) La definición completa está MÁS ABAJO, junto a las 5
+      // especies nuevas: aquí se deja solo la keyword para no duplicar la
+      // silueta (antes este laurel salía genérico por no tener preset EZ).
       keywords: ['laurus', 'laurel'],
       alturaMediaM: 8,
-      radioCopaMedioM: 2.5,
-      forma: 'oval_alargada',
-      color: '#3f7d38',
+      radioCopaMedioM: 3.0,
+      forma: 'ancha_redondeada',
+      color: '#3f7a38',
     },
     granado: {
       keywords: ['punica', 'granado', 'pomegranate'],
@@ -10139,13 +11514,265 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       forma: 'oval_alargada',
       color: '#7cb342',
     },
+    // --- 4 especies NUEVAS (nov-2026): las más abundantes del inventario
+    // oficial que aún no tenían tipo propio (iban a 'generico' y por eso no
+    // salían en EZ). Solo entradas nuevas: no se toca nada existente.
+    almez: {
+      keywords: ['celtis', 'almez', 'latonero', 'hackberry', 'nettle tree'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_redondeada',
+      color: '#5a9440',
+    },
+    brachychiton: {
+      keywords: ['brachychiton', 'braquiquito', 'belote', 'arbol botella'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#679d3e',
+    },
+    robinia: {
+      keywords: ['robinia', 'falsa acacia', 'black locust'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#619b46',
+    },
+    algarrobo: {
+      keywords: ['ceratonia', 'algarrobo', 'algarroba', 'carob', 'st john\'s bread'],
+      alturaMediaM: 9,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_irregular',
+      color: '#4e8a38',
+    },
+    fresno: {
+      keywords: ['fraxinus', 'fresno', 'ash tree', 'fraxino'],
+      alturaMediaM: 14,
+      radioCopaMedioM: 4.0,
+      forma: 'oval_alargada',
+      color: '#5f9443',
+    },
+    cipres: {
+      keywords: ['cupressus', 'cipres', 'ciprés', 'cypress', 'ciprés mediterráneo'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 1.8,
+      forma: 'conica', // forma YA SOPORTADA por las copas planas/sombras
+      color: '#3d6b34',
+    },
+    sophora: {
+      keywords: ['styphnolobium', 'sophora japonica', 'sophora', 'acacia de japón', 'arbol de las pagodas', 'pagoda tree'],
+      alturaMediaM: 11,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#639b45',
+    },
+    // --- 6 especies del parque de María Luisa (nov-2026). Solo entradas
+    // nuevas: nada existente cambia.
+    gleditsia: {
+      keywords: ['gleditsia', 'acacia de tres espinas', 'honey locust', 'triacanthos'],
+      alturaMediaM: 11,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_redondeada',
+      color: '#63a048',
+    },
+    ligustrum: {
+      keywords: ['ligustrum', 'ligustro', 'privet', 'aligustre'],
+      alturaMediaM: 7,
+      radioCopaMedioM: 3.0,
+      forma: 'redondeada',
+      color: '#4f8f3a',
+    },
+    cercis: {
+      keywords: ['cercis', 'arbol de judas', 'árbol de judas', 'judas tree', 'redbud', 'siliquastrum'],
+      alturaMediaM: 6,
+      radioCopaMedioM: 3.5,
+      forma: 'ancha_redondeada',
+      color: '#5f9a4a',
+    },
+    magnolia: {
+      keywords: ['magnolia', 'magnolio'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#3f7a38',
+    },
+    catalpa: {
+      keywords: ['catalpa'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 5.0,
+      forma: 'ancha_redondeada',
+      color: '#5d9a44',
+    },
+    casuarina: {
+      keywords: ['casuarina', 'pino australiano', 'beefwood'],
+      alturaMediaM: 16,
+      radioCopaMedioM: 3.5,
+      forma: 'oval_alargada',
+      color: '#487a3c',
+    },
+    laurel: {
+      keywords: ['laurus', 'laurel'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 3.0,
+      forma: 'ancha_redondeada',
+      color: '#3f7a38',
+    },
+    // --- 4 especies MÁS (nov-2026): árboles de alineado y de jardín que hasta
+    // ahora caían en 'generico' y por eso se quedaban SIN copa 3D aunque el
+    // inventario oficial los tenga a miles. Solo entradas nuevas: nada
+    // existente cambia de clasificación (sus keywords no chocan con las de
+    // arriba y van DESPUÉS de albizia, robinia, sophora y gleditsia).
+    // 'laurel' ya existía arriba (solo le cambiamos la silueta, no el tipo).
+    lagerstroemia: {
+      keywords: ['lagerstroemia', 'arbol de jupiter', 'árbol de júpiter', 'jupiter tree', 'crepe myrtle', 'crape myrtle'],
+      alturaMediaM: 6,
+      radioCopaMedioM: 2.8,
+      forma: 'redondeada',
+      color: '#5f9a4a',
+    },
+    bauhinia: {
+      keywords: ['bauhinia', 'pata de vaca', 'orquidea de los pobres', 'orquídea de los pobres', 'orchid tree', 'mountain ebony'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#66a04e',
+    },
+    grevillea: {
+      keywords: ['grevillea', 'roble sedoso', 'roble australiano', 'silky oak'],
+      alturaMediaM: 13,
+      radioCopaMedioM: 3.2,
+      forma: 'oval_alargada',
+      color: '#4e7a42',
+    },
+    // --- FIRMIANA SIMPLEX (árbol de las pagodas): 1.085 ejemplares en el
+    // inventario oficial y clásico del Parque de María Luisa. Copa ovalada
+    // y elevada, tronco derecho y liso, hoja grande de plátano, verde claro.
+    // (nov-2026) ANTES del pino a propósito: la keyword 'fir' del pino
+    // capturaba "fi"rmiana". Firmiana va ahora en el primer pase y gana.
+    firmiana: {
+      keywords: ['firmiana', 'arbol de las pagodas', 'árbol de las pagodas', 'parasol chino', 'chinese parasol', 'sterculia platanifolia'],
+      alturaMediaM: 11,
+      radioCopaMedioM: 2.8,
+      forma: 'oval_alargada',
+      color: '#7fae52',
+    },
+    // --- FICUS DE COPA ALTA: microcarpa, benjamina, elastica, retusa...
+    // Cientos de ejemplares en el inventario oficial y los árboles más
+    // grandes del parque. Va ANTES de 'ficus' (que usa solo la palabra
+    // genérica): así "Ficus microcarpa" recibe su copa densa y real y
+    // "Ficus sp" sigue clasificándose exactamente igual que siempre.
+    ficus_alto: {
+      keywords: ['ficus microcarpa', 'ficus benjamina', 'ficus nitida', 'ficus retusa', 'ficus elastica', 'ficus macrophylla', 'ficus rubiginosa', 'ficus lyrata', 'laurel de indias', 'higuera de hoja de laurel', 'benjamin fig', 'weeping fig', 'indian laurel fig'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#4f8a3c',
+    },
     generico: {
       alturaMediaM: CONFIG.alturaEstimadaSinDatoM,
       radioCopaMedioM: CONFIG.radioCopaPorDefectoM,
       forma: 'redondeada',
       color: '#7fb069',
     },
+    // --- 4 GÉNEROS MÁS (nov-2026): los ejemplares del parque de María Luisa
+    // que caían en 'generico' (sin tipo, sin copa 3D). Solo entradas nuevas,
+    // DESPUÉS de 'generico' a propósito: no cambian la clasificación de
+    // ninguna especie existente (sus keywords son únicas) y el bucle de
+    // clasificarArbol se queda con la primera que encaje como hasta ahora.
+    ailanto: {
+      keywords: ['ailanthus', 'ailanto', 'árbol del cielo', 'arbol del cielo', 'tree of heaven', 'altissima'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.0,
+      forma: 'oval_alargada',
+      color: '#679b48',
+    },
+    lagunaria: {
+      keywords: ['lagunaria', 'patersonii', 'pica pica', 'pica-pica'],
+      alturaMediaM: 9,
+      radioCopaMedioM: 3.5,
+      forma: 'ancha_redondeada',
+      color: '#4f7a3d',
+      // Solo si no ha encajado nada más específico (ver segunda pasada).
+      debil: true,
+    },
+    taxodio: {
+      keywords: ['taxodium', 'taxodio', 'ciprés calvo', 'cipres calvo', 'bald cypress'],
+      alturaMediaM: 16,
+      radioCopaMedioM: 3.5,
+      forma: 'conica',
+      color: '#62704a',
+    },
+    tejo: {
+      keywords: ['thuja', 'tuya', 'tejo', 'yew', 'podocarpus', 'podocarpo', 'araucaria'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 1.8,
+      forma: 'conica',
+      color: '#3f6038',
+      // Segundo pase. OJO: 'araucaria' contiene 'arauca' y podría colarse en
+      // descripciones de otras especies; 'tejo' no se parece a nada ya
+      // clasificado (ni a 'té', ni a 'plátano'), así que aquí no hay colisión.
+      debil: true,
+    },
+    // --- 3 GÉNEROS MÁS (nov-2026, 2ª ronda María Luisa): los aún sin tipo
+    // según el inventario oficial. Keywords únicas, sin choque con las de
+    // arriba ('molle' solo existe en Schinus; 'negundo' solo en Acer;
+    // 'chorisia'/'speciosa'/'palo borracho' solo en Ceiba).
+    // OJO firmiana: la keyword 'fir' del pino capturaba a Firmiana ("fir"miana)
+    // porque entra en el 1er pase; por eso firmiana va ANTES en el orden, con
+    // keyword FUERTE, y se queda con la primera coincidencia como siempre.
+    schinus: {
+      keywords: ['schinus', 'molle', 'pimiento', 'falso pimiento', 'pepper tree', 'aguareiro'],
+      alturaMediaM: 10,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_irregular',
+      color: '#6f9a50',
+    },
+    acer: {
+      keywords: ['acer negundo', 'arce negundo', 'negundo', 'box elder', 'arce'],
+      alturaMediaM: 9,
+      radioCopaMedioM: 3.8,
+      forma: 'ancha_redondeada',
+      color: '#6ca048',
+    },
+    chorisia: {
+      keywords: ['chorisia', 'ceiba speciosa', 'speciosa', 'palo borracho', 'silk floss', 'kirchneriana'],
+      alturaMediaM: 12,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_redondeada',
+      color: '#5f9e4a',
+    },
+    // --- 3 GÉNEROS MÁS (nov-2026, 3ª ronda): los siguientes con más ejemplares
+    // del inventario oficial que caían en 'generico' (sin copa 3D). Keywords
+    // únicas, sin choque con las de arriba.
+    // OJO koelreuteria: estaba DENTRO de las keywords de 'sophora' (2.559
+    // ejemplares iban a esa copa equivocada). Ahora tiene SU tipo y su copa.
+    koelreuteria: {
+      keywords: ['koelreuteria', 'paniculata', 'arbol del jabon', 'árbol del jabón', 'soplillo', 'golden rain tree', 'china tree'],
+      alturaMediaM: 11,
+      radioCopaMedioM: 4.0,
+      forma: 'ancha_irregular',
+      color: '#6fa04c',
+    },
+    tamarix: {
+      keywords: ['tamarix', 'tamariz', 'tamarisco', 'taray', 'salt cedar', 'tamarisk'],
+      alturaMediaM: 8,
+      radioCopaMedioM: 3.0,
+      forma: 'ancha_irregular',
+      color: '#7fa883',
+    },
+    paulownia: {
+      keywords: ['paulownia', 'tomentosa', 'pawlonia', 'princesa', 'empress tree', 'kiri'],
+      alturaMediaM: 13,
+      radioCopaMedioM: 4.5,
+      forma: 'ancha_redondeada',
+      color: '#699e46',
+    },
   };
+
+  // Expuestas para js/arboles-sevilla.js: el inventario oficial del Ayto.
+  // de Sevilla se clasifica y dimensiona con LA MISMA lógica que OSM.
+  window.manolitoClasificarArbol = clasificarArbol;
+  window.manolitoEstimarDimensionesArbol = estimarDimensionesArbol;
 
   function clasificarArbol(tags) {
     const texto = [
@@ -10177,13 +11804,25 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       (tags['wikipedia:genus'] || '').replace(/^[a-z-]+:/i, ''),
     ].join(' ').toLowerCase();
 
-    for (const [tipo, info] of Object.entries(TIPOS_ARBOL)) {
-      if (tipo === 'generico') continue;
-      for (const kw of info.keywords) {
-        if (texto.includes(kw.toLowerCase())) return { tipo, ...info };
+    // DOS PASES (nov-2026): primero las especies con keywords fuertes (las de
+    // siempre, en el mismo orden) y, solo si ninguna encaja, las nuevas con
+    // keywords cortas o ambíguas marcadas 'debil'. Así una descripción como
+    // "Platanus, pica pica en la corteza" sigue siendo plátano y el ajo/tejo
+    // no se roba ejemplares de otros árboles. Si no hay coincidencia, se
+    // devuelve 'generico' exactamente como antes.
+    function buscarPorKeyword(texto, debiles) {
+      for (const [tipo, info] of Object.entries(TIPOS_ARBOL)) {
+        if (tipo === 'generico') continue;
+        if (!!info.debil !== debiles) continue;
+        for (const kw of info.keywords) {
+          if (texto.includes(kw.toLowerCase())) return { tipo, ...info };
+        }
       }
+      return null;
     }
-    return { tipo: 'generico', ...TIPOS_ARBOL.generico };
+
+    return buscarPorKeyword(texto, false) || buscarPorKeyword(texto, true) ||
+      { tipo: 'generico', ...TIPOS_ARBOL.generico };
   }
 
   function estimarDimensionesArbol(tags, clasificacion) {
@@ -10200,6 +11839,12 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         altura = clasificacion.alturaMediaM;
       }
     }
+
+    // Tope sanitario GLOBAL (nov-2026): el inventario oficial trae alturas
+    // imposibles (46 ejemplares por encima de 35 m: un Brachychiton de 810 m,
+    // naranjos de 666 m...) y OSM a veces trae la altura en cm (height=1800).
+    // Un capatope evita torres-árbol gigantes en cualquier ciudad.
+    altura = Math.min(altura, 40);
 
     if (diametroCopa == null) {
       const circ = leerNumero(tags, ['circumference', 'circumference_dbh', 'dbh']);
@@ -10663,13 +12308,14 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
       const longitudKm = turf.length(linea, { units: 'kilometers' });
       if (!isFinite(longitudKm) || longitudKm <= 0) return [];
-      const SEPARACION_KM = 0.009; // 9 m entre árbol y árbol
+      const SEPARACION_KM = 0.009; // separación urbana típica: 9 m
       const puntos = [];
-      // Primer árbol en el arranque de la línea y luego uno cada 9 m;
-      // el último tramo (<4,5 m) no genera árbol extra para no amontonar.
-      const nArboles = Math.max(1, Math.round(longitudKm / SEPARACION_KM) + 1);
+      // Reparte los árboles uniformemente por toda la hilera, incluidos sus
+      // extremos, para que el último tramo no quede artificialmente corto.
+      const nIntervalos = Math.max(1, Math.round(longitudKm / SEPARACION_KM));
+      const nArboles = nIntervalos + 1;
       for (let i = 0; i < nArboles; i++) {
-        const d = Math.min(i * SEPARACION_KM, longitudKm);
+        const d = longitudKm * i / nIntervalos;
         const p = turf.along(linea, d, { units: 'kilometers' });
         const [lon, lat] = p.geometry.coordinates;
         puntos.push({ type: 'node', lat, lon, tags: el.tags });
@@ -10686,10 +12332,28 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       return limpia || null;
     }
 
+    // (nov-2026) SEVILLA: con el inventario oficial de arbolado del Ayto.
+    // COMPLETO (js/arboles-sevilla.js), los nodos de OSM SIN IDENTIFICAR
+    // (sin species/genus/nota de nombre → caen en tipo 'generico') sobran:
+    // solo pintan el árbol básico con hojas encima de un dato oficial vecino
+    // o de un hueco real del mapa. Regla: dentro del bbox de Sevilla, un nodo
+    // OSM sin ninguna etiqueta identificativa no se dibuja. FUERA de Sevilla
+    // no cambia nada (ahí OSM sin etiquetar es lo único que hay).
+    const SEVILLA_BBOX = { oeste: -6.12, este: -5.80, sur: 37.28, norte: 37.46 };
+    function dentroDeSevilla(lon, lat) {
+      return lon >= SEVILLA_BBOX.oeste && lon <= SEVILLA_BBOX.este &&
+        lat >= SEVILLA_BBOX.sur && lat <= SEVILLA_BBOX.norte;
+    }
+
     function procesarElementoOSM(el) {
       if (el.type !== 'node' || el.lat == null || el.lon == null) return null;
       const tags = el.tags || {};
       const clasificacion = clasificarArbol(tags);
+      // Filtro anti-genéricos de Sevilla (ver comentario arriba). Las
+      // hileras sintéticas (tree_row) sin especie también caen: en Sevilla
+      // el inventario oficial ya trae árbol por árbol con especie medida.
+      if (clasificacion.tipo === 'generico' && !tags.species && !tags['species:es'] &&
+        !tags.genus && !tags['genus:es'] && !tags.name && dentroDeSevilla(el.lon, el.lat)) return null;
       const { altura, radioCopaM } = estimarDimensionesArbol(tags, clasificacion);
       if (altura <= CONFIG.alturaMinimaM) return null;
       const nombre = tags.species || tags['species:es'] || tags.genus || nombreDeWikipedia(tags) || clasificacion.tipo || 'Árbol';
@@ -10702,6 +12366,31 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         color: clasificacion.color,
         tipo: clasificacion.tipo,
       };
+    }
+
+    // (nov-2026) CAJA CON COLCHÓN: map.getBounds() se corta en lat ±85 y, con
+    // el mapa inclinado, no incluye lo que asoma por arriba del todo. Se piden
+    // las 4 esquinas reales del lienzo y además un 30 % extra: así los árboles
+    // del borde (que con pitch se ven en pantalla) entran en la consulta y el
+    // mapa deja de quedarse "sin árboles" en la franja superior.
+    function cajaDeVista() {
+      const b = map.getBounds();
+      let oeste = b.getWest(), este = b.getEast(), sur = b.getSouth(), norte = b.getNorth();
+      try {
+        const lienzo = map.getCanvas();
+        const ancho = lienzo.clientWidth, alto = lienzo.clientHeight;
+        [[0, 0], [ancho, 0], [0, alto], [ancho, alto]].forEach((esquina) => {
+          const p = map.unproject(esquina);
+          if (!isFinite(p.lng) || !isFinite(p.lat)) return;
+          if (p.lng < oeste) oeste = p.lng;
+          if (p.lng > este) este = p.lng;
+          if (p.lat < sur) sur = p.lat;
+          if (p.lat > norte) norte = p.lat;
+        });
+      } catch (e) { /* sin esquinas: nos quedamos con getBounds() */ }
+      const colchonLon = Math.max(0.0008, (este - oeste) * 0.3);
+      const colchonLat = Math.max(0.0008, (norte - sur) * 0.3);
+      return { bounds: b, oeste: oeste - colchonLon, este: este + colchonLon, sur: sur - colchonLat, norte: norte + colchonLat };
     }
 
     async function cargarArbolesDeLaVista() {
@@ -10725,7 +12414,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
       consultaEnCurso = true;
       try {
-        const bbox = [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()];
+        const vista = cajaDeVista();
+        const bbox = [vista.sur, vista.oeste, vista.norte, vista.este];
         const datos = await consultarOverpass(bbox);
         const elementos = datos.elements || [];
         if (forzarAhora) {
@@ -10743,7 +12433,32 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           const candidatos = el.type === 'way' ? expandirHilera(el) : [el];
           for (const cand of candidatos) {
             const arbol = procesarElementoOSM(cand);
-            if (arbol) arbolesGrandes.push(arbol);
+            if (arbol) {
+              // Anti-choque con el inventario oficial del Ayto. de Sevilla
+              // (js/arboles-sevilla.js): si un árbol del inventario oficial
+              // cae a <7 m de este nodo OSM, el dato oficial (con especie,
+              // altura y perímetro medidos) gana y el de OSM no se añade.
+              // Así no se dibuja el mismo árbol dos veces.
+              const duplicadoOficial = typeof window.manolitAireArbolesOficialesDuplicado === 'function'
+                ? window.manolitAireArbolesOficialesDuplicado(cand.lon, cand.lat)
+                : null;
+              // Una misma celda/vía puede volver a llegar en consultas Overpass
+              // solapadas. No acumular copias casi idénticas en la sesión.
+              const cosLat = Math.cos(cand.lat * Math.PI / 180);
+              const duplicadoOSM = !duplicadoOficial && arbolesGrandes.some((previo) => {
+                const [lonPrevio, latPrevio] = previo.punto.geometry.coordinates;
+                const dx = (lonPrevio - cand.lon) * cosLat * 111320;
+                const dy = (latPrevio - cand.lat) * 110540;
+                // En las hileras sintéticas, comparar también con el tamaño
+                // de copa para absorber solapes por diferencias de alineación.
+                const esMismaHilera = cand.tags && cand.tags.natural === 'tree_row';
+                const radioMinimo = esMismaHilera
+                  ? Math.min(8, Math.max(3.5, (arbol.radioCopaM + (previo.radioCopaM || 0)) * 0.45))
+                  : 1.5;
+                return dx * dx + dy * dy < radioMinimo * radioMinimo;
+              });
+              if (!duplicadoOficial && !duplicadoOSM) arbolesGrandes.push(arbol);
+            }
             // INP (2026-09-12): tramos de 80 en vez de 200. Con miles de
             // árboles, 200 seguidos secuestraban el hilo ~200-300 ms y un
             // toque en el mapa esperaba eso (INP 592 ms medido en el
@@ -10771,7 +12486,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function dibujarArbolesVisibles() {
       if (!map.getSource('arboles-globales-copas') || !capaVisible) return [];
       const b = map.getBounds();
-      const enVista = arbolesGrandes.filter((a) => {
+      // El inventario oficial del Ayto. de Sevilla (js/arboles-sevilla.js)
+      // entra aquí FUSIONADO con los de OSM, sin duplicados: si un árbol OSM
+      // cae a <7 m de uno oficial, el oficial (dato medido) gana.
+      const fusionados = (typeof window.manolitAireArbolesFusionados === 'function')
+        ? window.manolitAireArbolesFusionados(arbolesGrandes, b)
+        : arbolesGrandes;
+      const enVista = fusionados.filter((a) => {
         const [lon, lat] = a.punto.geometry.coordinates;
         return lon >= b.getWest() && lon <= b.getEast() && lat >= b.getSouth() && lat <= b.getNorth();
       }).slice(0, CONFIG.maxArbolesEnPantalla);
@@ -10784,6 +12505,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       const MAX_ARBOLES_DECORADOS = 150;
 
       // ------- DESCAMUFLAJE 3D (ADITIVO sep-2026) -------
+      // Las copas planas se ocultan solo mientras el modelo EZ 3D está activo
+      // y cerca de un ejemplar 3D, evitando dibujar ambas copas superpuestas.
+      const arbolesEZ3D = typeof window.manolitAireArbolesEZVisibles === 'function'
+        ? window.manolitAireArbolesEZVisibles()
+        : [];
+      const cercaDeEZ3D = (lon, lat) => {
+        const cosLat = Math.cos(lat * Math.PI / 180);
+        for (const p of arbolesEZ3D) {
+          const dx = (p.lon - lon) * cosLat * 111320;
+          const dy = (p.lat - lat) * 110540;
+          if (dx * dx + dy * dy < 1) return true;
+        }
+        return false;
+      };
       // En OSM a veces el MISMO árbol está dos veces: una con especie
       // (Citrus × … → modelo 3D real) y otra sin etiquetar a 2-3 m. Esa
       // segunda copia dibujaba su copa plana ATRAVESADA en la copa 3D: el
@@ -10804,6 +12539,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         }
         return false;
       };
+      // (nov-2026) RESTAURADO: no hay comprobación de "a quién dibuja la
+      // malla" — naranjo/albizia se pintan siempre con su copa plana de
+      // siempre, exactamente igual que antes de los EZ.
 
       const features = [];
       for (const a of enVista) {
@@ -10811,7 +12549,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const [lon, lat] = a.punto.geometry.coordinates;
         // Si este árbol "normal" está pegado a un naranjo/albizia con
         // modelo 3D real, no se pinta en plano: es el camuflaje del cubo.
+        // (nov-2026) RESTAURADO con SU guardia original: naranjo y albizia
+        // NUNCA se saltan el filtro (su motor propio y sus copas planas viven
+        // por separado, como siempre fue).
         if (a.tipo !== 'albizia' && a.tipo !== 'naranjo' && cercaDeProtegido3D(lon, lat)) continue;
+        // El modelo EZ ocupa ya este ejemplar; su geometría plana duplicaría
+        // tronco y copa. Solo filtra cuando la capa 3D está activa.
+        if (cercaDeEZ3D(lon, lat)) continue;
         // Fenología (solo naranjo y albizia; null = como siempre).
         const feno = fenologiaArbol(a.tipo, estacion, progresoEstacion(obtenerHoraEfectiva()));
         const factorHoja = feno ? (0.30 + 0.70 * feno.densidadHoja) : 1;
@@ -10848,9 +12592,25 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           !(feno && feno.densidadHoja === 0) &&
           (forma === 'naranjo' ? map.getZoom() >= 14 : map.getZoom() >= 17);
 
+        // (nov-2026) RESTAURADO: comportamiento ORIGINAL del motor plano
+        // para naranjo/albizia (estado 8f317e7, ANTES de los EZ). Sus dos
+        // copas planas se pintaban SIEMPRE, exactamente igual que el resto
+        // de especies: el filtro de las EZ ya se encarga de no duplicar.
+        // Ni la malla 3D ni las EZ roban copas a estas dos especies.
         if (usaCopaRealista) {
           const bultos = crearCopaRealista(a, forma, alturaTroncoM, factorHoja, feno, lon, lat);
           for (const b of bultos) features.push(b);
+        } else if (forma === 'palmera') {
+          // (nov-2026) PALMERA: UNA SOLA CORONA, LA DEL 3D. Mientras el motor
+          // EZ dibujaba la palmera se pintaba ADEMAS una copa plana de dos
+          // pisos: el resultado parecía "un árbol con hojas" en vez de un
+          // fuste con corona. Con el 3D activo, este es el ÚNICO feature de
+          // copa (la corona a ras de frondes) para que sombras y solape
+          // sigan teniendo su silueta sin duplicar el dosel.
+          const radioCorona = a.radioCopaM * 0.90 * factorHoja;
+          const copa = crearFormaCopa(a.punto, radioCorona / 1000, 'palmera', lon, lat);
+          copa.properties = { altura: a.altura, baseM: alturaTroncoM * 0.995, alturaTotalM: a.altura, nombre: a.nombre, tipo: 'copa', forma, color: colorCopa };
+          features.push(copa);
         } else {
           // Copa inferior: forma realista según especie. En las especies con
           // fenología (naranjo/albizia) la copa se encoge con la pérdida de
@@ -11153,7 +12913,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             extrusión 3D (lo garantiza asegurarOrdenCapas() tras cada
             styledata: el edificio tapa físicamente la sombra al pintarse);
          2) la extrusión es prácticamente opaca (≥ 0,9; la web la fija a
-            0,93 al cargar el estilo, en los dos temas, porque el tema
+            0,95 al cargar el estilo, en los dos temas, porque el tema
             oscuro es un filtro CSS y no cambia el estilo del mapa).
        Cumplidas ambas, restar la huella no cambia ningún píxel visible ni
        el cálculo de rutas (las calles no atraviesan edificios: la parte
@@ -11451,6 +13211,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     map.on('moveend', () => {
       clearTimeout(esperaMoveend);
       esperaMoveend = setTimeout(() => {
+        // El inventario oficial del Ayto. de Sevilla se descarga UNA vez
+        // cuando la vista toca Sevilla; luego vive en memoria.
+        if (typeof window.manolitAireArbolesOficialesCargarSiToca === 'function') {
+          window.manolitAireArbolesOficialesCargarSiToca(map).then((nuevo) => {
+            if (nuevo) { dibujarArbolesVisibles(); recalcularSombrasArboles(); }
+          });
+        }
         cargarArbolesDeLaVista();
         recalcularSombrasArboles();
       }, CONFIG.esperaMoveendMs);
@@ -11504,7 +13271,17 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // La capa 3D necesita: qué albizias hay cargadas (posición y medidas
     // reales OSM), la estación de la fecha efectiva y el progreso dentro de
     // ella. Nada de lo existente se toca; solo se EXPONE lectura.
-    window.manolitAireAlbizias = () => arbolesGrandes
+    // (feb-2026: el inventario oficial del Ayto. de Sevilla entra por la
+    // fusión de js/arboles-sevilla.js cuando ya está descargado, así los
+    // árboles oficiales también alcanzan el motor 3D sin duplicar OSM.)
+    const arbolesParaTodo = () => {
+      // La fusión siempre es la fuente de verdad: puede tener la misma longitud
+      // aunque haya sustituido duplicados OSM por ejemplares oficiales.
+      return (typeof window.manolitAireArbolesFusionados === 'function')
+        ? window.manolitAireArbolesFusionados(arbolesGrandes)
+        : arbolesGrandes;
+    };
+    window.manolitAireAlbizias = () => arbolesParaTodo()
       .filter((a) => a.tipo === 'albizia')
       .map((a) => ({
         lon: a.punto.geometry.coordinates[0],
@@ -11517,7 +13294,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     window.manolitAireProgresoEstacion = () => progresoEstacion(obtenerHoraEfectiva());
     // Igual que manolitAireAlbizias pero con AMBAS especies con modelo 3D
     // (albizia + naranjo) y su tipo, para js/arboles-3d.js.
-    window.manolitAireArboles3D = () => arbolesGrandes
+    window.manolitAireArboles3D = () => arbolesParaTodo()
       .filter((a) => a.tipo === 'albizia' || a.tipo === 'naranjo')
       .map((a) => ({
         lon: a.punto.geometry.coordinates[0],
@@ -11525,6 +13302,20 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         altura: a.altura,
         radioCopaM: a.radioCopaM,
         nombre: a.nombre,
+        tipo: a.tipo,
+      }));
+
+    // EZ-TREE (nov-2026, ADITIVO): TODOS los árboles clasificados (menos
+    // albizia y naranjo, que van a SU motor de siempre) con su tipo, para
+    // js/arboles-ez-3d.js. Si este hook no existiera, ese módulo no arranca
+    // y todo queda como siempre: aditivo y reversible.
+    window.manolitAireArbolesEZ = () => arbolesParaTodo()
+      .filter((a) => a.tipo !== 'albizia' && a.tipo !== 'naranjo' && a.tipo !== 'generico')
+      .map((a) => ({
+        lon: a.punto.geometry.coordinates[0],
+        lat: a.punto.geometry.coordinates[1],
+        altura: a.altura,
+        radioCopaM: a.radioCopaM,
         tipo: a.tipo,
       }));
 

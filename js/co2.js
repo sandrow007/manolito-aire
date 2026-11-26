@@ -89,18 +89,34 @@ window.ManolitCO2 = (function () {
 
   function inyectarEstilos() {
     if (document.getElementById('co2-estilos')) return;
+    /* (nov-2026) Cristal glossy, elegante y más pequeño: mismo lenguaje que
+       las tarjetas flotantes del mapa (cristal oscuro translúcido, desenfoque
+       y filo de acento), pero un punto más luminoso para que respire sobre
+       la página. Se adapta al móvil por debajo de 640 px. */
     var css = ''
-      + '.co2-caja{margin:0 0 14px;padding:10px 12px;border:1px solid rgba(230,161,0,.25);'
-      + 'border-radius:12px;background:rgba(15,23,42,.92);color:#e2e8f0;'
-      + 'font-family:\'Segoe UI\',system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.45}'
-      + '.co2-pregunta{margin:0 0 8px;color:#fff;font-weight:600}'
-      + '.co2-opciones{display:flex;flex-wrap:wrap;gap:6px}'
-      + '.co2-opcion{border:1px solid rgba(148,163,184,.3);background:#0b1526;color:#cbd5e1;'
-      + 'border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer}'
-      + '.co2-opcion:hover{border-color:#E6A100;color:#E6A100}'
+      + '.co2-caja{margin:0 0 10px;padding:9px 12px;max-width:min(440px,100%);box-sizing:border-box;'
+      + 'border:1px solid rgba(255,255,255,.14);border-top-color:rgba(255,255,255,.26);'
+      + 'border-radius:14px;background:linear-gradient(160deg,rgba(23,28,36,.72) 0%,rgba(15,20,28,.80) 100%);'
+      + 'backdrop-filter:blur(14px) saturate(150%);-webkit-backdrop-filter:blur(14px) saturate(150%);'
+      + 'box-shadow:0 8px 24px rgba(6,12,20,.28),inset 0 1px 0 rgba(255,255,255,.10);'
+      + 'color:#e7edf3;font-family:\'Segoe UI\',system-ui,-apple-system,sans-serif;font-size:12.5px;line-height:1.4}'
+      + '.co2-pregunta{margin:0 0 7px;color:#fff;font-weight:600;font-size:12.5px;letter-spacing:-.01em}'
+      + '.co2-opciones{display:flex;flex-wrap:wrap;gap:5px}'
+      + '.co2-opcion{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#d5dee7;'
+      + 'border-radius:999px;padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer;'
+      + 'transition:background .16s ease,border-color .16s ease,color .16s ease}'
+      + '.co2-opcion:hover{border-color:rgba(230,161,0,.6);color:#E6A100}'
       + '.co2-opcion.activa{background:#E6A100;border-color:#E6A100;color:#1a1005}'
-      + '.co2-resultado{margin:8px 0 0;color:#7ee2a8;font-weight:600}'
-      + '.co2-nota{margin:6px 0 0;font-size:11px;color:#94a3b8}';
+      + '.co2-resultado{margin:7px 0 0;color:#7ee2a8;font-weight:600;font-size:12px}'
+      + '.co2-nota{margin:5px 0 0;font-size:10.5px;color:rgba(214,226,238,.62)}'
+      + '@media (max-width:640px){'
+      + '.co2-caja{margin:0 0 8px;padding:8px 10px;border-radius:12px;font-size:12px}'
+      + '.co2-pregunta{font-size:12px;margin-bottom:6px}'
+      + '.co2-opciones{gap:4px}'
+      + '.co2-opcion{padding:4px 8px;font-size:11px}'
+      + '.co2-resultado{font-size:11.5px;margin-top:6px}'
+      + '.co2-nota{font-size:10px;line-height:1.35}'
+      + '}';
     var style = document.createElement('style');
     style.id = 'co2-estilos';
     style.textContent = css;
@@ -157,6 +173,7 @@ window.ManolitCO2 = (function () {
         boton.setAttribute('aria-pressed', 'true');
         resultado.textContent = textoResultado(op.id);
         resultado.hidden = false;
+        programarDesvanecer();
       });
       grupo.appendChild(boton);
     });
@@ -203,6 +220,22 @@ window.ManolitCO2 = (function () {
     }
     distanciaMetrosActual = 0;
     medioSeleccionado = null;
+    if (temporizadorDesvanecer) { clearTimeout(temporizadorDesvanecer); temporizadorDesvanecer = null; }
+  }
+
+  /* Tras elegir un medio, la encuesta se recoge sola a los 15 s (10-20 s):
+     ya ha cumplido su función y no queda ocupando sitio sobre el mapa.
+     Se cancela si llega una ruta nueva (mostrar → ocultar/mostrar). */
+  var temporizadorDesvanecer = null;
+  function programarDesvanecer() {
+    if (temporizadorDesvanecer) clearTimeout(temporizadorDesvanecer);
+    temporizadorDesvanecer = setTimeout(function () {
+      temporizadorDesvanecer = null;
+      if (caja) {
+        caja.remove();
+        caja = null;
+      }
+    }, 15000);
   }
 
   /* Al cambiar de idioma la encuesta se retraduce en caliente,

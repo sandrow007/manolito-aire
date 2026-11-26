@@ -347,8 +347,11 @@
     lecturaEnCurso = false;
     const btn = document.getElementById('rsBtnEscucharPasos');
     if (btn) {
-      btn.textContent = t('stepsListen', 'Escuchar indicaciones');
+      // Con el icono SVG (nov-2026) el estado se comunica por aria-label y
+      // el evento de estado, no por texto (el texto rompería el icono).
       btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', t('stepsListen', 'Escuchar indicaciones'));
+      btn.dispatchEvent(new CustomEvent('rsLecturaPasosEstado', { bubbles: true, detail: { enCurso: false } }));
     }
   }
 
@@ -359,8 +362,9 @@
     const btn = document.getElementById('rsBtnEscucharPasos');
     lecturaEnCurso = true;
     if (btn) {
-      btn.textContent = t('stepsStop', 'Detener lectura');
       btn.setAttribute('aria-pressed', 'true');
+      btn.setAttribute('aria-label', t('stepsStop', 'Detener lectura'));
+      btn.dispatchEvent(new CustomEvent('rsLecturaPasosEstado', { bubbles: true, detail: { enCurso: true } }));
     }
     const idioma = (document.documentElement.lang || 'es').slice(0, 5);
     const textos = [];
@@ -419,9 +423,24 @@
         fijarPasosPlegados(lista.style.display === 'none');
       });
     }
+    // Orden pedido: primero «Ver indicaciones» y justo después el icono
+    // de escuchar (SVG de altavoz con aria-label, sin texto que ocupe).
+    if (btn && cabecera && btnPlegar && btnPlegar.nextElementSibling !== btn) {
+      btnPlegar.after(btn);
+    }
+    const ICONO_ALTAVOZ = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18 6a8.5 8.5 0 0 1 0 12"/></svg>';
+    if (btn) {
+      btn.innerHTML = ICONO_ALTAVOZ;
+      btn.classList.add('rs-btn-icono-escuchar');
+      btn.setAttribute('aria-label', lecturaEnCurso ? t('stepsStop', 'Detener lectura') : t('stepsListen', 'Escuchar indicaciones'));
+    }
     const fijarPasosPlegados = (abierto) => {
       lista.style.display = abierto ? '' : 'none';
+      // Plegado limpio (nov-2026): plegado = solo el botón «Ver indicaciones».
+      // El altavoz y el logo Manolit solo aparecen DESPUÉS de desplegar.
       if (btn) btn.style.display = abierto ? '' : 'none';
+      const logoPasos = document.getElementById('rsPasosLogo');
+      if (logoPasos) logoPasos.style.display = abierto ? '' : 'none';
       if (btnPlegar) {
         btnPlegar.setAttribute('aria-expanded', abierto ? 'true' : 'false');
         btnPlegar.textContent = abierto
@@ -431,6 +450,19 @@
     };
     fijarPasosPlegados(document.body.classList.contains('modo-accesible'));
   }
+
+  // El icono de escuchar cambia de significado al entrar/parar la lectura:
+  // altavoz sonando (aria-label «Detener lectura») / altavoz callado.
+  document.addEventListener('rsLecturaPasosEstado', (e) => {
+    const btn = document.getElementById('rsBtnEscucharPasos');
+    if (!btn) return;
+    const enCurso = !!(e.detail && e.detail.enCurso);
+    const ICONO_ALTAVOZ = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18 6a8.5 8.5 0 0 1 0 12"/></svg>';
+    const ICONO_ALTAVOZ_PARADO = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><line x1="16" y1="9" x2="21" y2="14"/><line x1="21" y1="9" x2="16" y2="14"/></svg>';
+    btn.innerHTML = enCurso ? ICONO_ALTAVOZ : ICONO_ALTAVOZ_PARADO;
+    btn.setAttribute('aria-pressed', enCurso ? 'true' : 'false');
+    btn.setAttribute('aria-label', enCurso ? t('stepsStop', 'Detener lectura') : t('stepsListen', 'Escuchar indicaciones'));
+  });
 
   function ocultarPasosAccesibles() {
     pasosActuales = [];
@@ -443,9 +475,16 @@
 
   document.addEventListener('langChanged', () => {
     const btn = document.getElementById('rsBtnEscucharPasos');
-    if (btn) btn.textContent = lecturaEnCurso ? t('stepsStop', 'Detener lectura') : t('stepsListen', 'Escuchar indicaciones');
+    // Con icono SVG no se escribe texto: solo se actualiza el aria-label.
+    if (btn) btn.setAttribute('aria-label', lecturaEnCurso ? t('stepsStop', 'Detener lectura') : t('stepsListen', 'Escuchar indicaciones'));
     const titulo = document.getElementById('rsPasosTitulo');
-    if (titulo) titulo.textContent = t('stepsTitle', 'Indicaciones paso a paso');
+    if (titulo) {
+      // El logo Manolit (SVG) y el texto conviven dentro del h3: solo se
+      // actualiza el span del texto, el SVG se queda tal cual.
+      const texto = titulo.querySelector('span[data-i18n="stepsTitle"]');
+      if (texto) texto.textContent = t('stepsTitle', 'Indicaciones paso a paso');
+      else titulo.textContent = t('stepsTitle', 'Indicaciones paso a paso');
+    }
   });
 
   /* ---------------- Botón "Guía por voz" (adopta el que nace con el panel) ----------------

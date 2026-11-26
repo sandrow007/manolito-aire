@@ -2907,12 +2907,12 @@
       // las librerias y shadows-route lo llama cuando enseña la distancia.
       cargaMapaSombrasPromise = Promise.all([
         cargarScript('js/a11y-guia.js'),
-        cargarScript('js/co2.js'),
+        cargarScript('js/co2.js?v=widgets-mapa-20261126-a'),
         cargarScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'),
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=naranjo-albizia-restaurados-20261124-a'))
+        .then(() => cargarScript('js/shadows-route.js?v=widgets-mapa-20261126-a'))
         .then(() => {
           // Superficie continua de calidad del aire: módulo aditivo que se
           // engancha a la fuente 'aire-es' cuando shadows-route la crea.
@@ -2953,7 +2953,7 @@
         // 07-oct-2026 (): aparcamientos y planificador de
         // viaje en UN solo módulo nuevo y aditivo. Carga al final y se
         // engancha al mapa por window.manolitAireMap, como arboles-3d.js.
-        .then(() => cargarScript('js/aparcamientos-viaje.js?v=hud-navegacion-20261102-a'))
+        .then(() => cargarScript('js/aparcamientos-viaje.js?v=widgets-mapa-20261126-a'))
         // HUD de navegación (nov-2026): último de la cadena, presentación
         // flotante sobre el mapa. Lee las rutas por window.__manolitHud* y
         // engancha su GPS propio; no toca la lógica de ruta ni cámara.
@@ -2966,7 +2966,7 @@
         // térmico y comparativa fresca/rápida. Módulos aditivos; sin ellos
         // (o sin meteo) el routing usa el coste clásico de sombra.
         .then(() => cargarScript('js/utci-confort.js?v=utci-20261117-a').catch(() => { }))
-        .then(() => cargarScript('js/confort-ruta.js?v=utci-20261117-a').catch(() => { }))
+        .then(() => cargarScript('js/confort-ruta.js?v=widgets-mapa-20261126-a').catch(() => { }))
         .catch((err) => console.error('No se ha podido cargar el mapa de sombras 3D:', err));
       return cargaMapaSombrasPromise;
     }

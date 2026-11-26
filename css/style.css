@@ -6165,25 +6165,6 @@ body.modo-accesible #main-content .rs-form #rsDestino{
   #main-content .rs-form.rs-form-flotante{ transition:none !important; }
 }
 
-/* AÑADIDO: la tarjeta de resumen de ruta («Ruta: X km · Y min») flota DENTRO
-   del mapa (arriba-izquierda, bajo la botonera), no encima de la página.
-   Solo aplica cuando la etiqueta ha sido movida dentro de .map-wrap por
-   shadows-route.js (fijarTarjetaRutaFlotante); fuera del mapa todo sigue
-   exactamente como antes. */
-#main-content .map-wrap .rs-status-toggle:has(#rsStatus.rs-status-ruta){
-  position:absolute; top:48px; left:12px; z-index:30;
-  width:max-content; max-width:min(420px, calc(100% - 110px));
-  margin:0;
-}
-#main-content .map-wrap .rs-status-toggle:has(#rsStatus.rs-status-ruta) #rsStatus.rs-status-ruta{
-  margin:0 !important;
-}
-@media (max-width:480px){
-  #main-content .map-wrap .rs-status-toggle:has(#rsStatus.rs-status-ruta){
-    top:44px; left:8px;
-    max-width:calc(100% - 90px);
-  }
-}
 /* ==========================================================================
    UTCI en ruta (nov-2026): panel #rsConfortRuta con la comparativa
    fresca/rápida, la confianza de los datos y los avisos de confort.

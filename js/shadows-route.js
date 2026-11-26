@@ -6908,7 +6908,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
   function mostrarEstado(texto, tipo) {
     statusEl.classList.remove('rs-status-ruta');
-    asegurarTarjetaRutaEnMapa(false);
+    asegurarTarjetaRutaEnMapa();
     statusEl.textContent = texto;
     statusEl.style.color = tipo === 'error' ? leerVar('--breath-bad') : tipo === 'ok' ? leerVar('--breath-good') : leerVar('--sky-mid');
   }
@@ -7533,15 +7533,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         const notaSombra = ruta.coberturaSombraPct != null ? ` · ${ruta.coberturaSombraPct}% ${t('shadeCoverage', 'en sombra')}` : '';
         const resumenRuta = `${t('routeReal', 'Ruta real')}: ${ruta.distanciaKm} km · ${ruta.duracionMin} ${t('minWalk', 'min a pie')}${nota}${notaSombra}.`;
                 mostrarEstado(resumenRuta, 'ok');
-        // (nov-2026) El resumen de la ruta llega al panel del buscador por el
-        // mensaje de estado y al widget solar por sus horquillas: la tarjeta
-        // flotante del mapa sobraba. Ya NO se mete dentro del mapa (el CSS
-        // .rs-status-ruta sigue ahí por si algún día se vuelve a usar).
-        // OJO: la clase se mantiene porque es el latido que sigue
-        // confort-ruta.js para saber que hay ruta viva; sin ella, el panel
-        // UTCI se cerraría solo a los 700 ms.
+        // La clase mantiene activa la tarjeta dentro del mapa y permite a
+        // confort-ruta.js seguir la vida de la ruta.
         statusEl.classList.add('rs-status-ruta');
-        asegurarTarjetaRutaEnMapa(false);
+        asegurarTarjetaRutaEnMapa();
         resumenRutaAccesible = resumenRuta;
         actualizarResumenAccesible();
         mostrarBadgeSombra(ruta.coberturaSombraPct);

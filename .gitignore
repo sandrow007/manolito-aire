@@ -36,3 +36,6 @@ poll-inline.js
 
 # datos intermedios generados por descargar_osm.py (solo vale el .geojson final)
 data/arboles-osm-sevilla.json
+
+# perfil temporal de Chrome usado por scripts de capturas
+.tmp-chrome-map/

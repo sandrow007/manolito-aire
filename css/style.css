@@ -1542,20 +1542,61 @@ body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
 .mw-sway{ animation: mwSway 4.6s ease-in-out infinite; transform-origin: 50% 88%; will-change: transform; }
 @media (prefers-reduced-motion: reduce){ .mw-sway{ animation: none !important; } }
 
-/* --- Topbar en móvil (≤700px): orden lógico por filas ---
-   1ª fila: marca + tema · 2ª: idiomas · 3ª: paleta · 4ª: accesible · 5ª: familia */
+/* --- Topbar en móvil (≤700px): cabecera reordenada (26-nov-2026) ---
+   Reordenación pedida por el usuario con una maqueta de referencia,
+   adaptada a la tipografía y paleta propias de la web. SOLO se reordena
+   y se adelgaza lo que ya existe; el escritorio queda exactamente igual:
+   1ª fila: marca (nombre con el subtítulo debajo) y, a la derecha del
+     todo y pegados entre sí, los tres botones redondos: accesibilidad,
+     día/noche y actualizar mapa.
+   2ª: idiomas en una sola línea, finos como en escritorio.
+   3ª: puntos de paleta pequeños, sin caja, con anillo fino en el activo.
+   4ª (última): los modos en una línea, sin scroll (reglas más abajo). */
 @media (max-width: 700px){
-  .topbar{ gap: 8px 10px; padding: 10px 12px; }
-  .topbar .wordmark{ order: 1; }
-  .topbar .wordmark > span:not(.wordmark-name){ font-size: 0.58rem; padding: 2px 6px; }
-  .topbar #themeToggle{ order: 2; margin-left: auto; }
+  .topbar{ gap: 10px 0; padding: 10px 12px; }
   .topbar .topbar-right{ display: contents; }
-  .topbar #langToggle{ order: 3; flex: 1 1 100%; }
-  .topbar #langToggle button{ flex: 1; padding: 8px 4px; }
-  .topbar #paletteToggle{ order: 4; margin: 0 auto; }
-  .topbar .acc-mode-btn{ order: 5; flex: 1 1 100%; margin: 0; }
+  .topbar .wordmark{
+    order: 1; flex: 1 1 auto; min-width: 0; margin-right: 6px;
+    flex-direction: column; align-items: flex-start; gap: 3px;
+  }
+  .topbar .wordmark-name{ font-size: 1.08rem; white-space: nowrap; }
+  .topbar .wordmark > span:not(.wordmark-name){ font-size: 0.58rem; padding: 2px 6px; }
+  /* Los tres botones redondos: pegados (2px) y a la derecha del todo */
+  .topbar #btn-accesibilidad{
+    order: 2; flex: none; width: 34px; min-width: 34px; height: 34px;
+    min-height: 34px; padding: 0; margin: 0; border-radius: 50%;
+  }
+  .topbar #themeToggle{
+    order: 3; flex: none; width: 34px; min-width: 34px; height: 34px;
+    min-height: 34px; padding: 0; margin: 0 0 0 2px;
+  }
+  .topbar #rsBtnActualizarOSM{
+    order: 4; flex: none; width: 34px; min-width: 34px; height: 34px;
+    min-height: 34px; padding: 0; margin: 0 0 0 2px; border-radius: 50%;
+  }
+  .topbar #btn-accesibilidad::before,
+  .topbar #themeToggle::before,
+  .topbar #rsBtnActualizarOSM::before{ width: 16px; height: 16px; }
+  /* Idiomas: una sola línea, finos y compactos como en escritorio */
+  .topbar #langToggle{ order: 6; flex: 1 1 100%; }
+  .topbar #langToggle button{ flex: 1; padding: 4px 2px; font-size: 0.66rem; }
+  /* Puntos de paleta: pequeños y elegantes, sin caja; el activo lleva
+     un anillo fino en vez de un bloque relleno */
+  .topbar #paletteToggle{
+    order: 7; flex: 0 0 auto; margin: 0 auto; width: max-content;
+    border: none; overflow: visible; gap: 12px; background: none;
+  }
+  .topbar #paletteToggle button{ width: 18px; height: 18px; padding: 0; }
+  .topbar #paletteToggle button::before{
+    width: 13px; height: 13px; box-shadow: inset 0 0 0 1.5px rgba(0,0,0,.18);
+  }
+  .topbar #paletteToggle button.active{ background: none; }
+  .topbar #paletteToggle button.active::before{
+    box-shadow: inset 0 0 0 1.5px rgba(0,0,0,.18),
+      0 0 0 2.5px var(--paper), 0 0 0 4px var(--sky-deep);
+  }
   .topbar .family-link{
-    order: 6; font-size: 0.72rem; padding: 4px 10px; margin: 0;
+    order: 9; font-size: 0.72rem; padding: 4px 10px; margin: 0;
     border: 1px solid var(--line); border-radius: 999px;
   }
   /* El formulario de ruta en columna, cómodo para el pulgar */
@@ -2320,12 +2361,39 @@ body.mode-peque .im-lost-btn{
 .modes--compacta .mode-mark{ font-size:0.5rem; margin-bottom:1px; padding:0 3px; }
 .modes--compacta .mode-title{ font-size:0.68rem; }
 .modes--compacta .mode-sub{ display:none; }
+/* Nombre corto SOLO para móvil (26-nov-2026): «Abuelos», «Peques» y
+   equivalentes en cada idioma. En escritorio va oculto y se ven las
+   tarjetas de siempre; el móvil lo muestra y oculta el título largo. */
+.modes--compacta .mode-title-movil{ display:none; }
 
-/* En móvil la barra se ordena por filas y las teclas de modo ocupan
-   la suya propia, centradas, justo debajo del botón accesible. */
+/* En móvil (26-nov-2026) los modos son la ÚLTIMA fila de la cabecera:
+   una sola línea, sin scroll, solo el nombre corto de cada modo. El modo
+   activo se limita a iluminar su nombre: sin raya debajo, sin fondo
+   blanco ni ningún otro marcador (petición expresa del usuario). */
 @media (max-width: 700px){
-  .topbar .modes--compacta{ order:6; flex:1 1 100%; }
-  .topbar .modes--compacta .mode-grid{ justify-content:center; flex-wrap:wrap; }
+  .topbar .modes--compacta{ order: 8; flex: 1 1 100%; min-width: 0; }
+  .topbar .modes--compacta .mode-grid{
+    display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 0;
+  }
+  .topbar .modes--compacta .mode-card{
+    border: none; background: none; box-shadow: none; border-radius: 0;
+    padding: 5px 2px; text-align: center; min-width: 0;
+  }
+  .topbar .modes--compacta .mode-card:hover{ border-color: transparent; transform: none; }
+  .topbar .modes--compacta .mode-card:active{ transform: none; box-shadow: none; }
+  .topbar .modes--compacta .mode-mark,
+  .topbar .modes--compacta .mode-title{ display: none; }
+  .topbar .modes--compacta .mode-title-movil{
+    display: block; font-size: 12px; font-weight: 600; line-height: 1.25;
+    color: var(--sky-mid); white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar .modes--compacta .mode-card.active{
+    background: none; border-color: transparent; box-shadow: none;
+  }
+  .topbar .modes--compacta .mode-card.active .mode-title-movil{
+    color: var(--sky-deep); font-weight: 800;
+  }
 }
 
 /* La familia Manolit, tras el hero (sep-2026): estos enlaces vivían en
@@ -2355,10 +2423,17 @@ body.mode-peque .im-lost-btn{
 }
 .topbar .yayo-zoom-btn{ width:52px; height:52px; font-size:1.25rem; }
 
-/* En móvil la fila del zoom va la última de la barra, debajo de las
-   teclas de modo: es lo primero que tiene la abuela al entrar. */
+/* En móvil (26-nov-2026) el zoom de letra ya NO va debajo de los modos
+   (petición expresa: nada queda por debajo de la fila de modos): sube a
+   la primera fila, junto al botón de actualizar, con el mismo tamaño
+   redondo que el resto de herramientas. Sigue apareciendo SOLO con el
+   modo Abuelos; fuera de él no ocupa ni un píxel. */
 @media (max-width: 700px){
-  .topbar > .yayo-zoom-controls{ order:7; }
+  .topbar > .yayo-zoom-controls{
+    order: 5; flex: 0 0 auto; margin: 0 0 0 2px; padding-top: 0;
+    border-top: none; gap: 2px;
+  }
+  .topbar .yayo-zoom-btn{ width: 34px; height: 34px; font-size: 0.9rem; }
 }
 
 /* Cabecera del chat siempre visible (sep-2026): la X

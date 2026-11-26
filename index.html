@@ -168,7 +168,7 @@
      huerfano al retirar el preload; se elimina 31-oct-2026.) -->
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
-<link rel="stylesheet" href="css/style.css?v=atajo-tamano-buscar-20261126">
+<link rel="stylesheet" href="css/style.css?v=cabecera-movil-20261126">
 <link rel="stylesheet" href="css/sqi.css?v=sqi-temp-movil-20261126">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
@@ -1224,21 +1224,27 @@
         <div class="mode-card active" data-mode="ciudadano">
           <span class="mode-mark">01</span>
           <div class="mode-title" data-i18n="mode_ciudadano_title">Ciudadano</div>
+          <!-- Nombre corto SOLO en móvil (26-nov-2026): el CSS lo muestra
+               y oculta el largo; en escritorio va escondido. -->
+          <div class="mode-title-movil" data-i18n="mode_ciudadano_title_movil">Ciudadano</div>
           <div class="mode-sub" data-i18n="mode_ciudadano_sub">Claro y directo</div>
         </div>
         <div class="mode-card" data-mode="cientifico">
           <span class="mode-mark">02</span>
           <div class="mode-title" data-i18n="mode_cientifico_title">Científico</div>
+          <div class="mode-title-movil" data-i18n="mode_cientifico_title_movil">Científico</div>
           <div class="mode-sub" data-i18n="mode_cientifico_sub">Con los datos</div>
         </div>
         <div class="mode-card" data-mode="yayo">
           <span class="mode-mark">03</span>
           <div class="mode-title" data-i18n="mode_yayo_title">Mayores</div>
+          <div class="mode-title-movil" data-i18n="mode_yayo_title_movil">Abuelos</div>
           <div class="mode-sub" data-i18n="mode_yayo_sub">Letra grande, sin prisa</div>
         </div>
         <div class="mode-card" data-mode="peque">
           <span class="mode-mark">04</span>
           <div class="mode-title" data-i18n="mode_peque_title">Peque</div>
+          <div class="mode-title-movil" data-i18n="mode_peque_title_movil">Peques</div>
           <div class="mode-sub" data-i18n="mode_peque_sub">Con dibujitos</div>
         </div>
       </div>
@@ -2893,7 +2899,7 @@
 
 <!-- leaflet carga bajo demanda desde app.js (EcoIndex) -->
 <script src="js/theme.js" defer></script>
-<script src="js/i18n.js?v=iniciar-corto-20261126" defer></script>
+<script src="js/i18n.js?v=cabecera-movil-20261126" defer></script>
 <!-- Banner de cookies: sin este script no salta el aviso de aceptar/rechazar
      y el tutorial de bienvenida no arranca nunca (espera a la aceptación). -->
 <script src="js/cookie-banner.js" defer></script>

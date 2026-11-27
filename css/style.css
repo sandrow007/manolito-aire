@@ -1662,6 +1662,28 @@ body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
   .rs-btn-lidar:hover, .rs-btn-lidar:focus-visible{ transform:none; }
 }
 
+/* --- FILA DE ACCESOS (27-nov-2026): Huecos OSM, Elefante climático y
+   Renderizado LiDAR van seguidos de lado, centrados, y se reenvuelven
+   en pantallas estrechas. El subtítulo del Elefante va bajo su nombre. --- */
+.rs-botones-familia{
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
+  gap:10px 14px; width:100%;
+  grid-column:1 / -1; justify-self:center;
+}
+.rs-botones-familia .rs-btn-lidar{ margin:0; }
+.rs-btn-lidar .rs-btn-lidar-texto{
+  display:flex; flex-direction:column; align-items:center; line-height:1.1;
+}
+.rs-btn-lidar .rs-btn-lidar-texto small{
+  font-size:0.55rem; font-weight:500; letter-spacing:0.02em; opacity:0.72;
+}
+/* El subtítulo va dentro sin agrandar el botón: menos padding vertical
+   para que quede a la misma altura que los demás. */
+.rs-botones-familia a.rs-btn-lidar:has(.rs-btn-lidar-texto),
+#main-content .rs-botones-familia a.rs-btn-lidar:has(.rs-btn-lidar-texto){
+  padding-top:4px; padding-bottom:4px;
+}
+
 /* ============================================================
    HUMANIZACIÓN sep-2026, la web sale de la calle, no de una
    plantilla: CTA mandarina plana (el naranjo no tiene gradiente),
@@ -3212,6 +3234,11 @@ body.rs-capas-pop #main-content .rs-planetario-sol{
 }
 body.rs-capas-pop #main-content a.rs-btn-lidar{
   margin-left:auto; margin-right:auto;
+}
+/* Con la fila de accesos, los márgenes auto repartirían los botones por
+   todo el ancho; dentro de la fila van pegados con su gap. */
+body.rs-capas-pop #main-content .rs-botones-familia a.rs-btn-lidar{
+  margin-left:0; margin-right:0;
 }
 
 /* ---------- El botón flotante ----------
@@ -6342,96 +6369,3 @@ body.modo-accesible #main-content .rs-form #rsDestino{
   #main-content #rsConfortRuta{ transition:none; }
 }
 
-/* ============================================================
-   PALETA VISIBLE (26-nov-2026), bloque ADITIVO al final del archivo.
-   Los 5 puntos de la barra superior cambian --accent, pero casi
-   todos sus usos eran hovers o tramos finos de degradado: en móvil
-   (sin hover) parecía que no hacían nada. Ahora el acento elegido
-   tiñe de verdad elementos SIEMPRE visibles. NO toca el mapa ni
-   sus capas: solo barra superior, modos, títulos y tarjetas.
-   ============================================================ */
-
-/* --- Marca y títulos de sección: el acento pasa a ser el color
-   dominante del degradado (antes era solo una parada intermedia) --- */
-.wordmark .wordmark-name{
-  background: linear-gradient(110deg,
-    var(--accent) 0%, var(--sky-mid) 38%,
-    var(--accent) 68%, var(--accent-text) 100%);
-  background-size: 300% 100%;
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: transparent;
-}
-.map-title{
-  background: linear-gradient(110deg,
-    var(--accent) 0%, var(--sky-mid) 42%,
-    var(--accent) 72%, var(--accent-text) 100%);
-  background-size: 300% 100%;
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: transparent;
-}
-
-/* --- Chip de tagline junto a la marca: borde y texto en el acento --- */
-.wordmark span{
-  color: var(--accent-text);
-  border: 1px solid var(--accent-soft);
-  box-shadow: inset 0 0 0 1px transparent, 0 0 0 1px var(--accent-soft);
-}
-
-/* --- Tarjeta de modo activa: marco y numerito en el acento elegido --- */
-.mode-card.active{
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent), 0 6px 18px var(--accent-soft);
-}
-.mode-card.active .mode-mark{
-  background: var(--accent);
-  color: var(--paper);
-}
-[data-palette="lavanda"] .mode-card.active .mode-mark{ color:#fff; }
-
-/* --- Botón de idioma activo: franja del acento (visible también
-   en móvil, donde no hay hover) --- */
-.chip-toggle button.active{
-  box-shadow: inset 0 -3px 0 var(--accent);
-}
-#langToggle button.active{
-  background: var(--accent);
-  color: var(--paper);
-}
-[data-palette="salvia"] #langToggle button.active,
-[data-palette="amanecer"] #langToggle button.active,
-[data-palette="cosmos"] #langToggle button.active{ color:#2A1A05; }
-
-/* --- Botones redondos de la barra (día/noche, accesibilidad,
-   actualizar): icono y borde en el acento --- */
-.topbar .icon-btn,
-.topbar .acc-mode-btn{
-  color: var(--accent-text);
-  border-color: var(--accent-soft);
-}
-.topbar .icon-btn:hover,
-.topbar .acc-mode-btn:hover{
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-/* --- Enlace familia y botón «estoy perdido»: acento visible --- */
-.family-link{ color: var(--accent-text); border-bottom-color: var(--accent-text); }
-.im-lost-btn{
-  border-color: var(--accent);
-  color: var(--accent-text);
-}
-.im-lost-btn:hover{
-  background: var(--accent);
-  color: var(--paper);
-  border-color: var(--accent);
-}
-[data-palette="lavanda"] .im-lost-btn:hover{ color:#fff; }
-
-/* --- En móvil el anillo del punto de paleta activo también sigue
-   al acento (antes era siempre azul petróleo) --- */
-@media (max-width: 700px){
-  .topbar #paletteToggle button.active::before{
-    box-shadow: inset 0 0 0 1.5px rgba(0,0,0,.18),
-      0 0 0 2.5px var(--paper), 0 0 0 4px var(--accent);
-  }
-}

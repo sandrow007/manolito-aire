@@ -1237,11 +1237,21 @@ export default {
     }
 
     if (url.pathname === '/catastro-edificios') {
-      // Volúmenes 3D del Catastro (WFS INSPIRE bu:BuildingPart): el cliente
-      // pide bloques pequeños (el servicio falla con áreas grandes: ~0,02°
-      // devuelve HTTP 500) y aquí se convierten a un GeoJSON ligero
-      // (geometría + plantas) cacheado en KV. Si el Catastro tarda o falla,
-      // se responde una colección vacía y el mapa sigue igual.
+      // Volúmenes 3D del Catastro (WFS INSPIRE): el cliente pide bloques
+      // pequeños (el servicio falla con áreas grandes: ~0,02° devuelve
+      // HTTP 500) y aquí se convierten a un GeoJSON ligero (geometría,
+      // plantas y año de construcción) cacheado en KV. Si el Catastro tarda
+      // o falla, se responde una colección vacía y el mapa sigue igual.
+      //
+      // (2026-11-27) AÑO DE CONSTRUCCIÓN: bu:BuildingPart NO publica
+      // dateOfConstruction (comprobado contra el WFS real), así que la
+      // fecha no se puede sacar de ahí. bu:Building sí la trae y además
+      // entrega la huella envolvente del edificio en el MISMO registro, de
+      // modo que año y polígono van juntos sin cruzar geometrías. Se pide
+      // primero bu:Building; las partes se reservan para los edificios que
+      // el Building no devuelva (mismo bbox, una petición más como mucho).
+      // El año viaja como 'a' (entero, 0 = sin dato) y 'a19' (1 = anterior
+      // a 1979, sin aislamiento térmico obligatorio: corte que usa el mapa).
       // Cabecera X-Proxy-Aviso para que el cliente (y quien depure con el
       // inspector) distinga SIEMPRE: 'cache' (servido de KV), 'ok' (fresco
       // del Catastro, con edificios), 'vacio' (el Catastro respondió bien
@@ -1260,7 +1270,10 @@ export default {
         if (![s, w, n, e].every(Number.isFinite) || s >= n || w >= e) return vaciaCatastroEdificios('sin-parametros');
         // Tope duro de área: el WFS del Catastro no admite cajas grandes.
         if ((n - s) > 0.006 || (e - w) > 0.006 || (n - s) * (e - w) > 0.000025) return vaciaCatastroEdificios('area-grande');
-        const claveKv = 'catedif3d:' + [s, w, n, e].map((v) => v.toFixed(4)).join(',');
+        // Sufijo de versión en la clave: los bloques cacheados sin año ('v1')
+        // no se reutilizan, o el mapa seguiría sin colorear lo anterior a 1979
+        // durante 30 días. Los bloques v2 caducan solos.
+        const claveKv = 'catedif3d:v2:' + [s, w, n, e].map((v) => v.toFixed(4)).join(',');
         const kv = env.AIR_QUALITY_CACHE || null;
         if (kv) {
           try {
@@ -1279,22 +1292,35 @@ export default {
         const trabajo = (async () => {
           const ctl = new AbortController();
           const timer = setTimeout(() => ctl.abort(), 55000);
-          let texto = '';
+          // Las dos capas del WFS se piden con el MISMO tope de tiempo: si el
+          // Building no respondiera, todavía queda margen para las partes.
+          // Cualquier fallo es silencioso: el mapa se queda sin esa capa y
+          // sigue igual. Devuelve null si la petición falla y '' si responde
+          // sin elementos (son casos distintos: solo el fallo merece reintento
+          // con la otra capa).
+          const pedirWfs = async (nombre) => {
+            try {
+              const destino = 'https://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=getfeature'
+                + '&typenames=' + nombre + '&srsname=EPSG:4326'
+                + '&BBOX=' + s.toFixed(6) + ',' + w.toFixed(6) + ',' + n.toFixed(6) + ',' + e.toFixed(6);
+              const r = await fetch(destino, {
+                headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
+                signal: ctl.signal,
+              });
+              if (!r.ok) return null;
+              return await r.text();
+            } catch (err) { return null; }
+          };
+          const hayEdificios = (t) => !!t && /<bu-ext2d:Building(Part)? [^>]*gml:id/.test(t);
+          let texto;
           try {
-            const destino = 'https://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx?service=wfs&version=2&request=getfeature'
-              + '&typenames=bu:BuildingPart&srsname=EPSG:4326'
-              + '&BBOX=' + s.toFixed(6) + ',' + w.toFixed(6) + ',' + n.toFixed(6) + ',' + e.toFixed(6);
-            const r = await fetch(destino, {
-              headers: { 'User-Agent': 'manolito-aire/1.0 (manolitoaire.com)' },
-              signal: ctl.signal,
-            });
-            if (!r.ok) throw new Error(`Catastro WFS HTTP ${r.status}`);
-            texto = await r.text();
+            texto = await pedirWfs('bu:Building');
+            if (texto === null) texto = await pedirWfs('bu:BuildingPart');
           } finally {
             clearTimeout(timer);
           }
           const features = [];
-          if (texto && texto.indexOf('BuildingPart') !== -1) {
+          if (hayEdificios(texto)) {
             const redondear = (v) => Math.round(v * 1e6) / 1e6;
             const anilloDe = (crudo) => {
               const numeros = crudo.trim().split(/\s+/).map(Number);
@@ -1305,12 +1331,24 @@ export default {
               }
               return ring.length >= 4 ? ring : null;
             };
-            const trozos = texto.split('<bu-ext2d:BuildingPart');
+            // Año de construcción: solo los cuatro primeros dígitos de la
+            // fecha de inicio. Sin fecha (nil) o sin planta -> 0.
+            const anoDe = (trozo) => {
+              const m = /dateOfConstruction[\s\S]*?<bu-core2d:beginning>\s*(\d{4})/.exec(trozo);
+              if (!m) return 0;
+              const a = parseInt(m[1], 10);
+              return a > 1700 && a <= 2100 ? a : 0;
+            };
+            const conteo = {};
+            // BuildingPart primero (si el texto lo es), Building después:
+            // así nunca se abre un <bu-ext2d:Building> de un <BuildingPart>.
+            const trozos = texto.split(/<bu-ext2d:BuildingPart |<bu-ext2d:Building /);
             for (let i = 1; i < trozos.length; i++) {
               try {
                 const trozo = trozos[i];
                 const mPlantas = trozo.match(/numberOfFloorsAboveGround[^>]*>\s*(\d+)/);
                 const plantas = mPlantas ? parseInt(mPlantas[1], 10) : null;
+                const ano = anoDe(trozo);
                 const mExt = /<gml:exterior>[\s\S]*?<gml:posList[^>]*>([^<]+)<\/gml:posList>/.exec(trozo);
                 if (!mExt) continue;
                 const exterior = anilloDe(mExt[1]);
@@ -1322,20 +1360,49 @@ export default {
                   const interior = anilloDe(mInt[1]);
                   if (interior) coordinates.push(interior);
                 }
-                features.push({ type: 'Feature', properties: { p: plantas }, geometry: { type: 'Polygon', coordinates } });
+                // Misma rejilla de ~5 m que usa el cliente para deduplicar:
+                // varias partes del mismo edificio comparten centroide casi
+                // exacto, mientras que dos casas adosadas no. Se guarda la
+                // primera (que ya trae año si el WFS lo publica).
+                let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+                for (let q = 0; q < exterior.length; q++) {
+                  if (exterior[q][0] < minLon) minLon = exterior[q][0];
+                  if (exterior[q][0] > maxLon) maxLon = exterior[q][0];
+                  if (exterior[q][1] < minLat) minLat = exterior[q][1];
+                  if (exterior[q][1] > maxLat) maxLat = exterior[q][1];
+                }
+                const claveCelda = Math.floor(((minLat + maxLat) / 2) / 0.00005) + ':'
+                  + Math.floor(((minLon + maxLon) / 2) / 0.00005);
+                if (conteo[claveCelda] != null) continue;
+                conteo[claveCelda] = features.length;
+                features.push({
+                  type: 'Feature',
+                  properties: { p: plantas, a: ano, a19: (ano > 0 && ano < 1979) ? 1 : 0 },
+                  geometry: { type: 'Polygon', coordinates }
+                });
               } catch (err) { continue; }
             }
           }
           const cuerpo = JSON.stringify({ type: 'FeatureCollection', features });
-          if (kv) {
+          if (kv && features.length) {
             try { await kv.put(claveKv, cuerpo, { expirationTtl: 2592000, metadata: { ts: Date.now() } }); } catch (err) { }
           }
           return cuerpo;
         })();
         if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(trabajo.catch(() => null));
-        const cuerpo = await trabajo;
+        // Seguro final del tope de 30 s del Worker: si el Catastro tarda
+        // más, se entrega lo que haya en lugar de quedarse colgado (y el
+        // trabajo de arriba sigue guardando el bloque en KV).
+        const cuerpo = await Promise.race([
+          trabajo,
+          new Promise((resolve) => setTimeout(() => resolve('{"type":"FeatureCollection","features":[]}'), 28000)),
+        ]);
         const cuenta = (JSON.parse(cuerpo).features || []).length;
-        return respuestaCatastro(cuerpo, cuenta > 0 ? 'ok' : 'vacio', 86400);
+        // Una colección vacía por FALLO no se guarda ni se sirve como 'vacio':
+        // el cliente reintentará en unos minutos en vez de dar la manzana por
+        // vacía durante un día.
+        if (!cuenta) return vaciaCatastroEdificios('vacio');
+        return respuestaCatastro(cuerpo, 'ok', 86400);
       } catch (err) {
         // Error del Catastro (timeout, HTTP 500, red…): se etiqueta para
         // que nadie lo confunda con una zona realmente sin edificios.
@@ -1471,7 +1538,27 @@ export default {
     // 25 MiB por asset de Cloudflare). Se sirven tal cual con
     // Content-Encoding: gzip y el Content-Type del archivo ORIGINAL,
     // para que el navegador los descomprima de forma transparente.
+    //
+    // (nov-2026) ALTERNATIVA COMPRIMIDA: si existe data/<archivo>.geojson.gz
+    // y el navegador acepta gzip, se sirve ESE en vez del original. El
+    // GeoJSON de Clima 2050 crece al añadir renta, edad y antigüedad por
+    // sección, y así el móvil descarga una fracción. Si el .gz no está, el
+    // comportamiento es exactamente el de antes.
     const rutaUrl = url.pathname;
+    if (/\.geojson$/i.test(rutaUrl) && !request.headers.get('Range')
+        && /\bgzip\b/i.test(request.headers.get('Accept-Encoding') || '')) {
+      try {
+        const gzResp = await env.ASSETS.fetch(new Request(new URL(rutaUrl + '.gz', url), request));
+        if (gzResp && gzResp.status < 400) {
+          const gzHeaders = new Headers(gzResp.headers);
+          gzHeaders.set('Content-Type', 'application/geo+json; charset=utf-8');
+          gzHeaders.set('Content-Encoding', 'gzip');
+          gzHeaders.set('Cache-Control', 'public, max-age=86400');
+          gzHeaders.set('Vary', 'Accept-Encoding');
+          return new Response(gzResp.body, { status: 200, headers: gzHeaders });
+        }
+      } catch (err) { /* sin .gz: sigue el camino normal */ }
+    }
     if (/\.(geojson|csv|json)\.gz$/i.test(rutaUrl)) {
       const gzResp = await env.ASSETS.fetch(new Request(new URL(rutaUrl, url), request));
       if (gzResp && gzResp.status < 400) {

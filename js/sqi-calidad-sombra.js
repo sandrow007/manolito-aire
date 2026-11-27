@@ -51,8 +51,15 @@
             arrancar: sin llamadas externas en tiempo de consulta. Cada
             polígono usa el K de SU centroide; al mover el mapa a otra
             ciudad el coeficiente cambia solo. Sin dato: fallback 0.45.
-     Si GHI <= 10 W/m2 o el sol está bajo el horizonte: estado "noche", sin
-     teñir y con la vista deshabilitada.
+     Si GHI <= 10 W/m2 o el sol está bajo el horizonte: estado "noche".
+     (nov-2026) De noche la sombra no dice nada y manda otra pregunta:
+     cuánto calor retiene esta calle cuando cae el sol. Con el SVF medio
+     de la vista se calcula la RETENCIÓN NOCTURNA (100 = plaza abierta que
+     enfría enseguida, 10 = calleja entre edificios altos que sigue
+     templada de madrugada) y se enseña en la tarjeta, en el widget y en
+     los horarios nocturnos. Es una escala de retención, no una
+     temperatura, y solo aparece si hay sombras y SVF medidos. La fórmula
+     y el porqué del exponente están documentados en el bloque NOCHE.
      AOD y PM2.5 siguen en el panel como dato de zona; lo que se baja a
      calle es el factor que modula la difusa (y por tanto el color).
 
@@ -117,6 +124,50 @@
   var LOTE = 20;                    // polígonos por tanda
   var TTL_CACHE = 20 * 60 * 1000;   // 20 minutos
   var RETRASO_REEVALUACION = 40000; // se repasa la hora cada 40 s
+
+  /* ---------------------------------------------------------------------
+     NOCHE (nov-2026): el calor que no se va
+
+     De día manda la sombra. De madrugada la sombra no significa nada y el
+     problema es otro: el centro histórico y Triana, con calles estrechas
+     entre edificios altos, sueltan mal el calor que han acumulado todo el
+     día. Es el mismo mecanismo que describe el estudio de la Universidad
+     de Sevilla: los barrios abiertos sufren al mediodía y los cascos
+     cerrados son un horno a las tres de la mañana. La variable que lo
+     mide ya está aquí: el SVF (fracción de cielo visible). Cuanto menos
+     cielo se ve, menos calor escapa hacia arriba.
+
+     Fórmula: nocturno = round(100 - 100 x (1 - SVF)^2 x 0.9), acotado a
+     [10, 100]. Es una ESCALA DE RETENCIÓN, no una temperatura: un 100 es
+     una plaza abierta que enfría enseguida y un 10 una calleja cerrada
+     que sigue templada al amanecer. Sin edificios alrededor (SVF 1) da
+     100; con cañón total (SVF 0.05) da 10.
+
+     Por qué el cuadrado: entre una calle de 60 m de ancho y una de 12 m
+     la diferencia de SVF es pequeña, pero la de noche no: el pozo de
+     calor crece mucho más rápido al cerrarse la calle. El exponente
+     marca ese salto y deja el grueso del castigo para las calles de
+     verdad estrechas. DOCUMENTADO EN metodologia.html como criterio
+     físico defendible, no como magnitud medida. El 0.9 evita que un
+     SVF bajo exacto de 0 (imposible en la calle) llegue a 0.
+
+     Solo se aplica de noche y SOLO si se conocen las sombras y el SVF
+     medio de la vista (con «Sombras» apagado no hay dato y no se pinta).
+     Los horarios de la tarjeta también lo aplican: un 15h de hoy ya
+     enseña la retención de esta zona para esa madrugada.
+     --------------------------------------------------------------------- */
+  var NOCHE_EXPONENTE = 2;
+  var NOCHE_FUERZA = 0.9;
+
+  function retencionNocturna(svf) {
+    var s = (svf != null && isFinite(svf)) ? clamp(svf, 0, 1) : 1;
+    return Math.round(clamp(10, 100, 100 - 100 * Math.pow(1 - s, NOCHE_EXPONENTE) * NOCHE_FUERZA));
+  }
+
+  // Color de la retención nocturna, en la MISMA paleta que el SQI (verde
+  // quiere decir "bueno", que de noche es este sitio suelta el calor). Sin
+  // umbrales nuevos que aprender por el usuario.
+  function colorNoche(valor) { return colorDeSqi(valor); }
 
   // Ajuste local calle a calle (land use regression). Las magnitudes están
   // tomadas de la literatura LUR urbana: la pluma de una vía con tráfico cae
@@ -1512,7 +1563,8 @@
       if (glosarioMini) glosarioMini.addEventListener('toggle', posicionarWidgetMini);
       if (S.ultimoPintado) {
         pintarMini(S.ultimoPintado.noche, S.ultimoPintado.sqi,
-          S.ultimoPintado.aod, S.ultimoPintado.pm, S.ultimoPintado.dhi);
+          S.ultimoPintado.aod, S.ultimoPintado.pm, S.ultimoPintado.dhi,
+          S.ultimoPintado.nocheValor, S.ultimoPintado.svf);
       }
     }
     // Chip de temperatura del microclima (llega por evento; si la capa ya
@@ -1532,6 +1584,10 @@
   function pintarTemperaturaMicroclima() {
     var el = document.getElementById('rsSqiMiniTemp');
     if (!el) return;
+    // De noche el hueco del chip lo ocupa la retención nocturna (cielo
+    // visible y si esta zona suelta el calor): la temperatura de superficie
+    // no aporta nada ahí y se quedaría pisando ese texto.
+    if (S.ultimoPintado && S.ultimoPintado.noche && S.ultimoPintado.nocheValor != null) return;
     var d = window.__manolitMicroclimaDatos;
     if (!d || !isFinite(d.aire)) {
       el.hidden = true;
@@ -1547,16 +1603,30 @@
     posicionarWidgetMini();
   }
 
-  function pintarMini(noche, sqi, aod, pm, dhi) {
+  function pintarMini(noche, sqi, aod, pm, dhi, nocheValor, svf) {
     var mini = document.getElementById('rsSqiMini');
     if (!mini) return;
     var estadoEl = document.getElementById('rsSqiMiniEstado');
     var pctEl = document.getElementById('rsSqiMiniPct');
     var ind = document.getElementById('rsSqiMiniIndicador');
     var datosEl = document.getElementById('rsSqiMiniDatos');
+    var tempEl = document.getElementById('rsSqiMiniTemp');
     mini.classList.toggle('rs-sqi-mini-noche', noche);
 
-    if (noche) {
+    if (noche && nocheValor != null && isFinite(nocheValor)) {
+      var colorN = colorNoche(nocheValor);
+      mini.style.setProperty('--rs-sqi-mini-color', colorN);
+      if (estadoEl) estadoEl.textContent = 'Retención nocturna';
+      if (pctEl) pctEl.textContent = nocheValor + ' %';
+      if (ind) ind.style.left = '0%';
+      // Provisional: pintarTemperaturaMicroclima() decide después si el
+      // chip de temperatura tiene algo que enseñar.
+      if (tempEl && svf != null && isFinite(svf)) {
+        tempEl.innerHTML = 'cielo visible <b>' + Math.round(clamp(0, 1, svf) * 100) + '%</b> · ' +
+          (nocheValor >= 65 ? 'suelta el calor' : (nocheValor >= 40 ? 'lo suelta despacio' : 'lo guarda'));
+        tempEl.hidden = false;
+      }
+    } else if (noche) {
       if (estadoEl) estadoEl.textContent = 'Sin radiación solar directa';
       if (pctEl) pctEl.textContent = '';
       if (ind) ind.style.left = '0%';
@@ -1612,9 +1682,14 @@
     // de la página y tiene que pintar aunque la tarjeta aún no exista.
     var sqiMini = (!noche && sqiMedio != null && isFinite(sqiMedio))
       ? Math.round(clamp(0, 100, sqiMedio)) : null;
-    pintarMini(noche, sqiMini, aod, pm, dhi);
+    // NOCHE (nov-2026): con el SVF medio de la vista se estima cuánto calor
+    // retiene esta zona cuando cae el sol. Solo si hay sombras medidas: sin
+    // dato de SVF no se inventa nada y todo queda como antes.
+    var svfZonaUi = (svfMedio != null && isFinite(svfMedio)) ? svfMedio : null;
+    var nocheValor = (noche && svfZonaUi != null) ? retencionNocturna(svfZonaUi) : null;
+    pintarMini(noche, sqiMini, aod, pm, dhi, nocheValor, svfZonaUi);
     S.ultimoPintado = { noche: noche, sqi: sqiMini, aod: aod, pm: pm, dhi: dhi,
-      svf: svfMedio != null && isFinite(svfMedio) ? svfMedio : null };
+      svf: svfZonaUi, nocheValor: nocheValor };
 
     var estado = document.getElementById('rsSqiEstado');
     var pct = document.getElementById('rsSqiPct');
@@ -1635,7 +1710,25 @@
 
     if (card) card.classList.toggle('rs-sqi-noche', noche);
 
-    if (noche) {
+    if (noche && nocheValor != null) {
+      // De noche lo que importa es la retención: un 100 es una plaza abierta
+      // que enfría enseguida y un valor bajo una calleja que sigue templada
+      // al amanecer. Misma paleta que el SQI, sin escalas nuevas.
+      var colorN = colorNoche(nocheValor);
+      if (card) card.style.setProperty('--rs-sqi-color', colorN);
+      if (card) card.style.setProperty('--rs-sqi-borde', colorN + '55');
+      if (estado) estado.textContent = 'Retención nocturna';
+      if (pct) pct.textContent = String(nocheValor);
+      if (indicador) indicador.style.left = '0%';
+      if (titulo) titulo.textContent = 'Calor que no se va';
+      if (cuerpo) {
+        cuerpo.textContent = nocheValor >= 65
+          ? 'Esta zona ve mucho cielo y suelta el calor de la tarde con facilidad. Aun así, de madrugada busca la calle ancha o la plaza abierta.'
+          : (nocheValor >= 40
+            ? 'Los edificios tapan buena parte del cielo y el calor sale despacio. Las calles anchas y las plazas estarán más frescas que esta.'
+            : 'Calle estrecha entre edificios altos: es de las que siguen templadas a las tres de la mañana. Para refrescarte de madrugada, sal a una avenida o un parque.');
+      }
+    } else if (noche) {
       if (estado) estado.textContent = 'Sin radiación solar directa';
       if (pct) pct.textContent = '–';
       if (indicador) indicador.style.left = '0%';
@@ -1701,8 +1794,19 @@
         var dH = iH >= 0 ? serie.dhi[iH] : null;
         var txtHora = fH.getHours() + 'h';
         if (gH == null || !isFinite(gH) || gH <= 10 || !solVisible(fH, lat, lon)) {
-          html += '<div class="rs-sqi-hora rs-sqi-hora-noche"><span class="rs-sqi-hora-hora">' + txtHora +
-            '</span><span class="rs-sqi-hora-punto"></span><span class="rs-sqi-hora-valor">noche</span></div>';
+          // Noche con SVF medido: se enseña la retención de la zona (misma
+          // escala que la tarjeta) en vez de un hueco sin dato. Sin SVF,
+          // todo sigue exactamente como estaba.
+          if (svfZonaUi != null) {
+            var retH = retencionNocturna(svfZonaUi);
+            var colN = colorNoche(retH);
+            html += '<div class="rs-sqi-hora rs-sqi-hora-noche"><span class="rs-sqi-hora-hora">' + txtHora +
+              '</span><span class="rs-sqi-hora-punto" title="Retención nocturna" style="--rs-sqi-color-h:' + colN + ';background:' + colN +
+              '"></span><span class="rs-sqi-hora-valor" style="--rs-sqi-color-h:' + colN + ';color:' + colN + '">' + retH + ' %</span></div>';
+          } else {
+            html += '<div class="rs-sqi-hora rs-sqi-hora-noche"><span class="rs-sqi-hora-hora">' + txtHora +
+              '</span><span class="rs-sqi-hora-punto"></span><span class="rs-sqi-hora-valor">noche</span></div>';
+          }
         } else {
           var sqiH = clamp(0, 100, Math.round(100 * (1 - (dH * svfZona) / gH)));
           var colH = colorDeSqi(sqiH);

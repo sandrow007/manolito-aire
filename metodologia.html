@@ -136,6 +136,65 @@
     fuentes cerradas.
   </p>
 
+  <h2>El calor de noche: las calles que no sueltan lo que acumulan</h2>
+  <p>
+    De día, lo que manda es la sombra. De madrugada, no. A las tres de la mañana el problema es
+    otro: el centro histórico y Triana, con calles estrechas y edificios altos, sueltan mal el
+    calor que han guardado todo el día. En los barrios abiertos pasa lo contrario. Sufren al
+    mediodía y sin embargo refrescan de noche, porque ven mucho cielo por encima.
+  </p>
+  <p>
+    Para medirlo usamos una variable que ya estaba en el modelo. Es el <strong>factor de cielo
+    visible</strong>, la parte de cielo que se ve desde un punto entre los edificios de
+    alrededor. Ya se calcula para el índice de calidad de sombra, en ocho direcciones y cien
+    metros a la redonda, y no cuesta nada reutilizarlo.
+  </p>
+  <p>
+    Con él calculamos la <strong>retención nocturna</strong>. Es un valor de 0 a 100, donde 100
+    es una plaza abierta que enfría enseguida y 10 una calleja que sigue templada al amanecer.
+    No es una temperatura. Es una escala de cuánto se queda el calor. Solo aparece de noche y
+    solo si las sombras están encendidas y hay un dato de cielo visible que medir. Si no lo hay,
+    la tarjeta se queda como siempre.
+  </p>
+  <p>
+    El criterio es sencillo. Entre una calle de sesenta metros y una de doce la diferencia de
+    cielo visible es pequeña, pero la diferencia térmica de noche no lo es. Por eso el castigo
+    crece al estrecharse la calle y se queda para las que de verdad lo están. Es un criterio
+    físico defendible, no una medida de laboratorio. Está documentado en el código, con su
+    fórmula completa.
+  </p>
+
+  <h2>Año de construcción: el corte de 1979</h2>
+  <p>
+    Cuando pones la capa de Catastro en 3D, los edificios anteriores a 1979 se pintan en un tono
+    terroso más oscuro. No es un cálculo complicado ni una estimación. Es el año en el que
+    España empieza a exigir aislamiento térmico en la vivienda, y funciona como un buen
+    indicador de qué manzanas protegen peor del calor. El año lo publica el propio Catastro,
+    dentro del mismo registro que la huella del edificio, así que no hay que cruzar geometrías
+    ni hacer cálculos pesados en tu móvil.
+  </p>
+  <p>
+    El color es solo información. La altura, la forma y la sombra que proyecta cada edificio
+    siguen siendo exactamente las de antes.
+  </p>
+
+  <h2>Renta y personas mayores: datos oficiales, sin inventar</h2>
+  <p>
+    La capa de Clima 2050 puede enseñar también tres datos reales de cada sección censal: la
+    <strong>renta media</strong> por unidad de consumo, que publica el Atlas de Distribución de
+    Renta del INE, el <strong>porcentaje de personas de 65 años o más</strong>, que sale del
+    padrón, y el <strong>porcentaje de viviendas anteriores a 1979</strong>, que sale del
+    Catastro.
+  </p>
+  <p>
+    Los tres son datos agregados por sección. No hay nadie identificable detrás. Y se enseñan
+    como lo que son, medidas oficiales, sin mezclarlos con el nivel de riesgo, que sigue siendo
+    una emulación. Si una sección no tiene dato, no se rellena con un cero ni con una
+    estimación. Simplemente no aparece esa línea. Los prepara un script que se ejecuta en tu
+    ordenador y deja el resultado en un archivo ligero, para que el navegador no cargue los
+    ficheros completos del INE.
+  </p>
+
   <h2 data-i18n-legal="met_s4t">Lo que esto no es</h2>
   <p data-i18n-legal="met_s4p">
     Manolit∞ Aire no es un medidor oficial de calidad del aire. No sustituye los avisos de tu

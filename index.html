@@ -3113,7 +3113,7 @@
           // toggle-climate-layer.
           // Fallo silencioso: sin él no cambia nada. El query nuevo invalida
           // el módulo cacheado al desplegar el generador de informes.
-          cargarScript('js/clima-2050.js?v=informe-logo-inline-20261127').catch(() => { });
+          cargarScript('js/clima-2050.js?v=vulnerabilidad-ine-20261127').catch(() => { });
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
           cargarScript('js/fuentes-agua.js?v=logo-centrado-20261126').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));
@@ -3153,7 +3153,7 @@
         // Calidad de sombra (SQI, nov-2026): último de la cadena. Tiñe las
         // sombras que ya dibuja el mapa según su calidad térmica y muestra
         // el resultado en el widget solar visible. Presentación pura.
-        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-temp-movil-20261126'))
+        .then(() => cargarScript('js/sqi-calidad-sombra.js?v=sqi-noche-svf-20261127'))
         // Confort térmico UTCI (nov-2026): coste de las rutas por estrés
         // térmico y comparativa fresca/rápida. Módulos aditivos; sin ellos
         // (o sin meteo) el routing usa el coste clásico de sombra.

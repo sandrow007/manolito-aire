@@ -456,7 +456,26 @@
 // con SVG y acceso desde el panel junto a la captura de vista.
 // Cambian index.html, js/clima-2050.js, js/shadows-route.js y sw.js; el botón
 // usa un query nuevo para no depender de una copia cache-first del módulo.
-const VERSION = '2026-11-27-clima2050-informe-logo-inline';
+// 2026-11-27-noche-1979-ine: tres piezas nuevas, todas aditivas.
+// (1) NOCHE: el SQI aprovecha el factor de cielo visible que ya calcula
+//     para estimar la RETENCIÓN NOCTURNA (100 = plaza abierta que enfría,
+//     10 = calleja entre edificios altos que sigue templada de madrugada).
+//     Aparece en la tarjeta, en el widget y en las horas nocturnas. La
+//     fórmula diurna no se toca y sin SVF medido todo queda como antes.
+// (2) CATASTRO 1979: /catastro-edificios pide ahora bu:Building, que sí
+//     publica dateOfConstruction (bu:BuildingPart no la trae), y los
+//     volúmenes anteriores a 1979 se pintan en tono terroso. La clave KV
+//     lleva sufijo v2 para no servir bloques viejos sin año. Geometría,
+//     alturas y sombras no cambian.
+// (3) VULNERABILIDAD OFICIAL: js/clima-2050.js lee renta_media_ud,
+//     mayores65_pct y pct_antes_1979 si el GeoJSON los trae (script
+//     preprocesar_ine_vulnerabilidad.py). Si no están, el popup y el
+//     informe quedan exactamente igual. worker.js puede servir el
+//     .geojson.gz del Clima 2050 cuando existe.
+// Cambian index.html (query del SQI), js/sqi-calidad-sombra.js,
+// js/catastro-edificios-3d.js, js/clima-2050.js, worker.js, metodologia.html,
+// aviso-legal.html, sw.js y el nuevo preprocesar_ine_vulnerabilidad.py.
+const VERSION = '2026-11-27-noche-1979-ine';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

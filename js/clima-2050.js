@@ -4,8 +4,8 @@
    Mapa de coropletas (choropleth) del riesgo térmico proyectado a 2050.
 
    Geometría REAL en UN SOLO archivo maestro:
-   data/andalucia_clima_2050.geojson (una única petición HTTP), con 536
-   polígonos de 3 municipios:
+   data/andalucia_clima_2050_ligero.geojson (una única petición HTTP), con
+   536 polígonos de 3 municipios:
    - Sevilla: 521 secciones censales (INE/IGN, vía ctafur/sevillaGeojson,
      GPL-3.0).
    - Mairena del Aljarafe: 9 áreas estadísticas del PMVS 2024-2029 (32
@@ -18,6 +18,15 @@
    nivel de texto y los días >40 °C se derivan aquí, en el cliente, de
    risk_level con la fórmula documentada
    (dias40 = 30 + risk*5 + hash(area)%7), para no duplicar datos.
+
+   VULNERABILIDAD OPCIONAL (nov-2026): si algún día el master trae además
+   renta_media_ud (€ por unidad de consumo, Atlas de Distribución de Renta
+   del INE), mayores65_pct (personas de 65 años o más por sección censal,
+   INE) y pct_antes_1979 (viviendas con año de construcción anterior a
+   1979, Catastro), el popup y el informe las enseñan como datos oficiales
+   de la sección. Los genera scripts/preprocesar_ine_vulnerabilidad.py. Si
+   no están, el popup queda EXACTAMENTE como antes: nunca se rellenan con
+   ceros ni con estimaciones. No entran en risk_level ni en la ruta.
 
    Piezas (todas nacen APAGADAS y se encienden juntas con la casilla):
    1) Relleno (fill) coloreado por risk_level con opacidad baja (máx. 0,35):
@@ -84,13 +93,22 @@
   var CAPA_ID = 'capa-clima-2050';             // relleno coropleta
   var CAPA_BORDE_ID = 'capa-clima-2050-borde'; // contorno de los polígonos
   var CAPAS = [CAPA_ID, CAPA_BORDE_ID];
-  var DATOS_URL = 'data/andalucia_clima_2050.geojson'; // master: Sevilla + Mairena + Bollullos
+  var DATOS_URL = 'data/andalucia_clima_2050_ligero.geojson'; // master: Sevilla + Mairena + Bollullos
+  // El master ligero lleva claves cortas (m, a, r, y opcionales rm, ed, a79)
+  // y coordenadas a 5 decimales. Se lee con propiedad(), que acepta claves
+  // cortas y largas: si mañana se regenera con el script del INE, basta
+  // sustituir el archivo y dejar el preproceso añadir sus campos.
 
   // Paleta por risk_level (0=Bajo … 3=Crítico). Relleno con opacidad baja
   // (máx. 0,35) para no tapar el callejero; borde del mismo tono al 0,8.
-  // Misma pintura para TODOS los municipios: solo se lee risk_level.
+  // Misma pintura para TODOS los municipios: solo se lee el nivel de riesgo.
+  //
+  // (nov-2026) El get acepta la clave larga del GeoJSON completo Y la corta
+  // 'r' del archivo ligero. Solo mirar 'risk_level' dejaba el relleno
+  // transparente con el master ligero (los bordes seguían porque no leen
+  // ningún dato): por eso aparecían los contornos y ningún color.
   var RELLENO_POR_NIVEL = [
-    'match', ['get', 'risk_level'],
+    'match', ['coalesce', ['get', 'risk_level'], ['get', 'r']],
     0, 'rgba(102, 170, 85, 0.20)',   // Bajo: verde suave
     1, 'rgba(255, 209, 102, 0.25)',  // Medio: amarillo suave
     2, 'rgba(247, 148, 30, 0.30)',   // Alto: naranja
@@ -98,7 +116,7 @@
     'rgba(140, 140, 140, 0.15)'
   ];
   var BORDE_POR_NIVEL = [
-    'match', ['get', 'risk_level'],
+    'match', ['coalesce', ['get', 'risk_level'], ['get', 'r']],
     0, 'rgba(102, 170, 85, 0.8)',
     1, 'rgba(212, 164, 34, 0.8)',
     2, 'rgba(230, 126, 20, 0.8)',
@@ -119,6 +137,20 @@
   var ultimaZona = null; // datos del último polígono clicado: alimenta el informe PDF
 
   /* ---------------- utilidades ---------------- */
+
+  // Lector tolerante del master: acepta las claves largas de siempre
+  // (municipio, area, risk_level, renta_media_ud...) y las cortas del
+  // archivo ligero (m, a, r, cu...). Así el mismo módulo sirve con el
+  // GeoJSON completo o con la versión reducida, sin cambiar nada más.
+  var CLAVES_CORTAS = { m: 'municipio', a: 'area', r: 'risk_level', cu: 'cusec', se: 'seccion' };
+  function propiedad(f, nombre) {
+    var p = (f && f.properties) || {};
+    if (p[nombre] != null && p[nombre] !== '') return p[nombre];
+    for (var corta in CLAVES_CORTAS) {
+      if (CLAVES_CORTAS[corta] === nombre && p[corta] != null && p[corta] !== '') return p[corta];
+    }
+    return null;
+  }
 
   function toggle() { return document.getElementById('toggle-climate-layer'); }
   function encendida() { var el = toggle(); return !!(el && el.checked); }
@@ -179,6 +211,22 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  // Número opcional de una propiedad del GeoJSON. Vacío, null, texto raro o
+  // NaN devuelven null: así el popup sabe que ese dato NO existe y no pinta
+  // ni un cero ni un guion que parezcan una medida.
+  function leerNumero(v) {
+    if (v == null || v === '') return null;
+    var n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+
+  // Porcentaje ya expresado 0-100. Si la fuente lo guardara como fracción
+  // (0-1), se pasa a porcentaje para no enseñar «0,18 %» donde hay un 18 %.
+  function formatearPct(v) {
+    var p = v <= 1 ? v * 100 : v;
+    return (Math.round(p * 10) / 10).toLocaleString('es-ES') + ' %';
+  }
+
   // El gráfico describe el número de polígonos; no pondera áreas ni población.
   function cargarEstadisticasInforme() {
     if (estadisticasInformeCache) return Promise.resolve(estadisticasInformeCache);
@@ -190,10 +238,9 @@
       var porMunicipio = {};
       var total = { n: 0, niveles: [0, 0, 0, 0] };
       (coleccion.features || []).forEach(function (feature) {
-        var propiedades = feature.properties || {};
-        var nivel = Number(propiedades.risk_level);
+        var nivel = Number(propiedad(feature, 'risk_level'));
         if (!isFinite(nivel) || nivel < 0 || nivel > 3 || Math.floor(nivel) !== nivel) return;
-        var municipio = String(propiedades.municipio || 'Municipio sin identificar');
+        var municipio = String(propiedad(feature, 'municipio') || 'Municipio sin identificar');
         if (!porMunicipio[municipio]) porMunicipio[municipio] = { municipio: municipio, n: 0, niveles: [0, 0, 0, 0] };
         porMunicipio[municipio].n++;
         porMunicipio[municipio].niveles[nivel]++;
@@ -470,6 +517,25 @@
     var lineasDetalle3 = doc.splitTextToSize(detalle, ancho);
     doc.text(lineasDetalle3, margen, y);
     y += lineasDetalle3.length * 3.6 + 3;
+    // Vulnerabilidad real, solo cuando el GeoJSON la trae (INE y Catastro).
+    var filaVuln = [];
+    if (z.renta != null) filaVuln.push('Renta media: ' + Math.round(z.renta).toLocaleString('es-ES') + ' EUR por unidad de consumo (INE, Atlas de Distribución de Renta).');
+    if (z.mayores != null) filaVuln.push('Personas de 65 años o más: ' + formatearPct(z.mayores) + ' (INE, padrón por sección censal).');
+    if (z.antiguedad != null) filaVuln.push('Viviendas anteriores a 1979: ' + formatearPct(z.antiguedad) + ' (Catastro, año de construcción).');
+    if (filaVuln.length) {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor.apply(doc, tinta);
+      doc.setFontSize(9);
+      var lineasVuln = doc.splitTextToSize(filaVuln.join(' '), ancho);
+      doc.text(lineasVuln, margen, y);
+      y += lineasVuln.length * 4 + 1;
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7.6);
+      doc.setTextColor.apply(doc, gris);
+      var notaVuln = doc.splitTextToSize('Estos tres datos son medidas oficiales de la sección censal, no una estimación del mapa. No cambian el nivel de riesgo ni la penalización de ruta, que siguen siendo emulados.', ancho);
+      doc.text(notaVuln, margen, y);
+      y += notaVuln.length * 3.4 + 3;
+    }
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor.apply(doc, tinta);
@@ -497,6 +563,7 @@
     var secciones = [
       ['Unidad espacial y procedencia', 'El GeoJSON reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029 y 6 secciones censales de Bollullos de la Mitación. La unidad cartográfica difiere entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap.'],
       ['Método que sí ejecuta el prototipo', 'Cada polígono tiene un risk_level entero de 0 a 3, tratado como clase ordinal emulada. El indicador auxiliar es 30 + nivel × 5 + hash determinista del texto del área mod 7. La referencia a Sola-Caraballo et al. es inspiración; no implica que se haya reproducido, calibrado o validado ese estudio.'],
+      ['Vulnerabilidad oficial (si el GeoJSON la incluye)', 'Renta media por unidad de consumo del Atlas de Distribución de Renta del INE, porcentaje de personas de 65 años o más del padrón por sección censal y porcentaje de viviendas anteriores a 1979 según el año de construcción del Catastro. Cuando aparecen, son datos oficiales de la sección censal y se muestran sin transformar. No forman parte del cálculo de risk_level ni de la penalización de ruta.'],
       ['Estadística presentada', 'La página 2 cuenta polígonos por clase y municipio y calcula porcentajes sobre el total de polígonos válidos cargados. Cada polígono pesa uno, con independencia de su superficie. No equivale a porcentaje de terreno, habitantes expuestos, episodios de calor o riesgo sanitario.'],
       ['Qué no representa', 'Esta capa no aporta observaciones meteorológicas, periodo base, series temporales, escenarios climáticos regionalizados, modelo de temperatura urbana, calibración, validación independiente, error predictivo ni intervalos de incertidumbre. Los días no son una predicción para 2050. Las categorías no incorporan población, edad, salud, arbolado real, sombra ni vulnerabilidad.'],
       ['Uso público responsable', 'Material de divulgación, exploración preliminar y apoyo para formular preguntas o planificar mediciones por ayuntamientos, entidades públicas y equipos técnicos. No debe ser base única de inversiones, alertas, diagnóstico o comunicación oficial. Contrastar con datos observados y evaluación profesional.'],
@@ -558,8 +625,14 @@
     }).join('');
     var fecha = escaparHtml(fechaInforme());
     var dias = z.dias == null ? 'No disponible' : z.dias + ' días/año >40 °C (emulado)';
+    // Bloque de vulnerabilidad para el respaldo imprimible: solo si hay datos.
+    var vuln = '';
+    if (z.renta != null) vuln += 'Renta media: ' + Math.round(z.renta).toLocaleString('es-ES') + ' EUR por unidad de consumo (INE). ';
+    if (z.mayores != null) vuln += 'Personas de 65 años o más: ' + formatearPct(z.mayores) + ' (INE). ';
+    if (z.antiguedad != null) vuln += 'Viviendas anteriores a 1979: ' + formatearPct(z.antiguedad) + ' (Catastro). ';
+    if (vuln) vuln = '<p>' + escaparHtml(vuln.trim()) + ' Son datos oficiales de la sección censal. No intervienen en la clase emulada ni en la penalización de ruta.</p>';
     var tabla = '<table><thead><tr><th>Municipio</th><th>N</th><th>Bajo</th><th>Medio</th><th>Alto</th><th>Crítico</th></tr></thead><tbody>' + filas + '</tbody></table>';
-    var lectura = '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p>' + linkSeleccion + '<h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b></p><p>Clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · código emulado ' + (z.risk == null ? 'no disponible' : z.risk + ' de 3') + '</p><p>Indicador auxiliar: ' + dias + '. Fórmula: 30 + risk_level × 5 + hash determinista del nombre del área mod 7; no procede de observaciones ni de una proyección climática calibrada.</p></div>'; 
+    var lectura = '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p>' + linkSeleccion + '<h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b></p><p>Clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · código emulado ' + (z.risk == null ? 'no disponible' : z.risk + ' de 3') + '</p><p>Indicador auxiliar: ' + dias + '. Fórmula: 30 + risk_level × 5 + hash determinista del nombre del área mod 7; no procede de observaciones ni de una proyección climática calibrada.</p>' + vuln + '</div>'; 
     var metodologia = '<h1>Metodología, alcance y limitaciones</h1>' +
       '<h2>Unidad espacial y fuentes</h2><p>El archivo maestro reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029 y 6 secciones censales de Bollullos de la Mitación. Las unidades no son idénticas entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap.</p>' +
       '<h2>Método implementado</h2><p>El GeoJSON contiene un risk_level de 0 a 3, interpretado como categoría ordinal emulada. Los días auxiliares se calculan con 30 + nivel × 5 + hash determinista del texto del área mod 7. La mención de Sola-Caraballo et al. es inspiración general; este módulo no reproduce ni calibra ese estudio.</p>' +
@@ -571,7 +644,7 @@
       'html{background:#f4f6f8}body{margin:0;color:#16181d;font:14px/1.45 system-ui,sans-serif}.barra-acciones{position:sticky;top:0;z-index:2;display:flex;justify-content:center;gap:10px;padding:10px;background:#16181d}.barra-acciones button{min-height:44px;padding:10px 18px;border:1px solid #647080;border-radius:8px;background:#202631;color:white;font:600 14px system-ui,sans-serif;cursor:pointer}.pagina{box-sizing:border-box;width:min(210mm,100%);min-height:297mm;padding:13mm 15mm;margin:12px auto;background:#f4f6f8;box-shadow:0 3px 18px #0002;break-after:page;overflow-wrap:anywhere}.portada{background:#f4f6f8;color:#16181d;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.portada .logo-manolit{display:block;width:min(145mm,100%);height:auto;aspect-ratio:650/370;max-height:90mm}.portada h1{font-size:28px;margin:14px 0 5px}.sub,.meta{color:#56616d}.ficha{border:1px solid #cbd2da;border-radius:8px;padding:12px;margin-top:12px}.badge{display:inline-block;color:white;background:' + escaparHtml(z.acento) + ';padding:4px 10px;border-radius:5px;font-weight:700}.barra{height:18px;display:flex;margin:12px 0 8px;border-radius:4px;overflow:hidden}.barra i{height:100%}.leyenda{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:10px}.leyenda i{display:inline-block;width:10px;height:10px;margin-right:6px}table{width:100%;border-collapse:collapse;margin:8px 0 10px;font-size:11px}td,th{text-align:right;border-bottom:1px solid #cbd2da;padding:5px 4px}td:first-child,th:first-child{text-align:left;overflow-wrap:anywhere}h1{font-size:22px;margin:0 0 8px}h2{font-size:15px;margin:11px 0 4px}p{margin:6px 0}.aviso{border:1px solid #707b86;padding:8px;border-radius:6px;margin-top:10px}.pie{margin-top:10px;border-top:1px solid #cbd2da;padding-top:6px;color:#56616d;font-size:10px}@media(max-width:600px){.barra-acciones{position:static}.pagina{width:100%;min-height:0;padding:22px 18px;margin:0 auto 12px;box-shadow:none}.portada{min-height:calc(100svh - 64px)}.portada .logo-manolit{width:min(100%,480px);height:auto;max-height:34svh}.portada h1{font-size:clamp(23px,7vw,30px)}.leyenda{grid-template-columns:1fr 1fr}table{font-size:10.5px}td,th{padding:6px 2px}h1{font-size:21px}h2{font-size:15px}}@page{size:A4;margin:0}@media print{html,body{width:210mm;margin:0;background:#f4f6f8!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.barra-acciones{display:none!important}.pagina{box-sizing:border-box;width:210mm;height:auto;min-height:297mm;margin:0;padding:14mm 15mm;background:#f4f6f8!important;box-shadow:none;break-after:page;page-break-after:always;overflow:visible;-webkit-box-decoration-break:clone;box-decoration-break:clone}h1,h2{break-after:avoid;page-break-after:avoid}h2,p,.ficha,.aviso,tr{break-inside:avoid;page-break-inside:avoid}.portada{justify-content:center}.portada .logo-manolit{max-height:72mm}.pagina:last-child{break-after:auto;page-break-after:auto}}</style></head><body>' +
       '<nav class="barra-acciones" aria-label="Acciones del informe"><button type="button" id="imprimirInformeClima2050">Imprimir / Guardar como PDF</button><button type="button" id="cerrarInformeClima2050">Cerrar</button></nav>' +
       '<section class="pagina portada">' + logo + '<h1>Informe Clima 2050</h1><p>Prototipo cartográfico · indicadores térmicos emulados</p><div class="ficha"><p>' + escaparHtml(z.municipio) + '</p><h2>' + escaparHtml(z.area) + '</h2><span class="badge">CLASE ' + escaparHtml(z.nivel.toUpperCase()) + '</span></div><p class="meta">' + fecha + '</p><p class="meta">No es una proyección climática validada ni una alerta oficial.</p><p class="meta"><a href="https://manolitoaire.com">manolitoaire.com</a></p></section>' +
-      '<section class="pagina"><h1>Resumen estadístico del mapa</h1><p>N=' + total.n + ' polígonos. Distribución por clase ordinal emulada.</p>' + barra + leyenda + '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p><h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b> · clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · código emulado ' + (z.risk == null ? 'no disponible' : z.risk + ' de 3') + '.</p><p>Indicador auxiliar: ' + dias + '. Fórmula: 30 + risk_level × 5 + hash determinista del nombre del área mod 7; no procede de observaciones ni de una proyección climática calibrada.</p>' + (linkSeleccion || '') + '</div><h2>Metodología, alcance y limitaciones</h2>' + metodologia.replace('<h1>Metodología, alcance y limitaciones</h1>', '') + '<p class="pie">Generado por Manolit∞ Aire · <a href="https://manolitoaire.com">manolitoaire.com</a> · ' + fecha + ' · Los recuentos no equivalen a porcentaje de superficie, habitantes expuestos ni probabilidad.</p></section></body></html>';
+      '<section class="pagina"><h1>Resumen estadístico del mapa</h1><p>N=' + total.n + ' polígonos. Distribución por clase ordinal emulada.</p>' + barra + leyenda + '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p><h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b> · clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · código emulado ' + (z.risk == null ? 'no disponible' : z.risk + ' de 3') + '.</p><p>Indicador auxiliar: ' + dias + '. Fórmula: 30 + risk_level × 5 + hash determinista del nombre del área mod 7; no procede de observaciones ni de una proyección climática calibrada.</p>' + vuln + (linkSeleccion || '') + '</div><h2>Metodología, alcance y limitaciones</h2>' + metodologia.replace('<h1>Metodología, alcance y limitaciones</h1>', '') + '<p class="pie">Generado por Manolit∞ Aire · <a href="https://manolitoaire.com">manolitoaire.com</a> · ' + fecha + ' · Los recuentos no equivalen a porcentaje de superficie, habitantes expuestos ni probabilidad.</p></section></body></html>';
   }
 
   function imprimirRespaldoInforme(zona, ventana) {
@@ -648,18 +721,26 @@
     var p = e.features[0].properties || {};
     var municipio = (p.municipio != null && String(p.municipio).length)
       ? String(p.municipio)
-      : 'Municipio sin identificar';
+      : (p.m != null && String(p.m).length ? String(p.m) : 'Municipio sin identificar');
     var area = (p.area != null && String(p.area).length)
       ? String(p.area)
-      : 'Zona sin identificar';
+      : (p.a != null && String(p.a).length ? String(p.a) : 'Zona sin identificar');
+    // Claves cortas del archivo ligero (r, y opcionales: renta_media_ud ->
+    // rm, mayores65_pct -> ed, pct_antes_1979 -> a79).
+    var risk = leerNumero(p.risk_level != null ? p.risk_level : p.r);
     // Una selección nueva invalida cualquier área anterior.
     ultimaZona = null;
-    // El master solo lleva risk_level: nivel y días se derivan aquí, con
-    // lectura robusta (nunca sale vacío). risk fuera de 0-3 cae en '—'.
-    var risk = (p.risk_level != null && isFinite(Number(p.risk_level))) ? Number(p.risk_level) : null;
     var nivelInfo = (risk != null && risk >= 0 && risk <= 3) ? NIVELES[risk] : null;
     var nivel = nivelInfo ? nivelInfo.texto : '—';
     var diasNum = nivelInfo ? 30 + risk * 5 + (hashTexto(area) % 7) : null;
+    // VULNERABILIDAD REAL (nov-2026): si el GeoJSON trae renta media por
+    // unidad de gasto (INE Atlas de Distribución de Renta) y porcentaje de
+    // personas de 65 años o más por sección censal, se enseñan tal cual.
+    // Si no vienen (el master actual no las tiene), el popup queda
+    // EXACTAMENTE como antes: no se inventa ni se rellena con un cero.
+    var renta = leerNumero(p.renta_media_ud != null ? p.renta_media_ud : p.rm);
+    var mayores = leerNumero(p.mayores65_pct != null ? p.mayores65_pct : p.ed);
+    var antiguedad = leerNumero(p.pct_antes_1979 != null ? p.pct_antes_1979 : p.a79);
     var acento = nivelInfo ? nivelInfo.acento : '#888';
     // Título unificado: "Municipio - Area" (formato del Paso 3).
     var titulo = municipio + ' - ' + area;
@@ -679,8 +760,18 @@
       interpretacion: nivelInfo ? nivelInfo.interpretacion : '',
       consejo: consejo,
       risk: risk,
+      renta: renta,
+      mayores: mayores,
+      antiguedad: antiguedad,
       centro: e.lngLat ? [Number(e.lngLat.lng), Number(e.lngLat.lat)] : null
     };
+    // Bloque de vulnerabilidad: solo si hay algún dato real. Cada línea es
+    // una fuente distinta y se dice cuál es, sin mezclarlas con el riesgo.
+    var vuln = '';
+    if (renta != null) vuln += 'Renta media: <strong>' + Math.round(renta).toLocaleString('es-ES') + ' €</strong> por unidad de consumo<br>';
+    if (mayores != null) vuln += 'Personas de 65 años o más: <strong>' + formatearPct(mayores) + '</strong><br>';
+    if (antiguedad != null) vuln += 'Viviendas anteriores a 1979: <strong>' + formatearPct(antiguedad) + '</strong><br>';
+    if (vuln) vuln = '<span style="display:block;margin-top:4px;padding-top:4px;border-top:1px solid #e2e5e9">' + vuln + '</span>';
     // Color de texto EXPLÍCITO y oscuro (#16181d): el popup de MapLibre es
     // blanco y, sin esto, heredaba el color claro del tema oscuro de FUERA
     // del mapa y el texto quedaba invisible. Mapa y página son independientes.
@@ -688,6 +779,7 @@
       '<strong>' + titulo + '</strong><br>' +
       'Nivel de riesgo: <strong style="color:' + acento + '">' + nivel + '</strong><br>' +
       dias + '<br>' +
+      vuln +
       '<span style="display:block;margin-top:3px;color:#5a6068;font-size:11px">' +
         consejo + (consejo ? ' · ' : '') + 'Riesgo 2050 (emulado)' +
       '</span>' +
@@ -721,6 +813,26 @@
           data: DATOS_URL,
           attribution: 'Secciones censales INE/IGN · PMVS Mairena 2024-2029 · riesgo 2050 emulado',
         });
+        // SEGURO DE COLORES (nov-2026): si el master ligero trae solo la clave
+        // corta 'r', se copia a 'risk_level' al vuelo para que la expresión de
+        // relleno nunca se quede sin dato (síntoma: bordes sin relleno).
+        // Es idempotente y no modifica geometrías ni la URL del archivo.
+        try {
+          var fuenteNueva = mapa.getSource(FUENTE_ID);
+          if (fuenteNueva && typeof fuenteNueva.setData === 'function') {
+            fetch(DATOS_URL).then(function (r) { return r.ok ? r.json() : null; }).then(function (col) {
+              if (!col || !col.features) return;
+              var tocado = false;
+              col.features.forEach(function (f) {
+                var pr = f.properties || (f.properties = {});
+                if (pr.risk_level == null && pr.r != null) { pr.risk_level = pr.r; tocado = true; }
+                if (pr.municipio == null && pr.m != null) { pr.municipio = pr.m; tocado = true; }
+                if (pr.area == null && pr.a != null) { pr.area = pr.a; tocado = true; }
+              });
+              if (tocado) fuenteNueva.setData(col);
+            }).catch(function () { });
+          }
+        } catch (eSeguro) { }
       }
 
       // Ancla de orden: debajo de los edificios 3D y de las etiquetas (el
@@ -863,7 +975,7 @@
       zonasCalor = [];
       if (col && col.features) {
         col.features.forEach(function (f) {
-          var risk = Number(f.properties && f.properties.risk_level);
+          var risk = Number(propiedad(f, 'risk_level'));
           if (!isFinite(risk) || risk < 2 || !f.geometry) return; // solo Alto y Crítico
           var multi = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
           if (!multi || !multi.length) return;

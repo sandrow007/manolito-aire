@@ -1,7 +1,7 @@
 /* ============================================================
    MANOLIT AIRE — catastro-edificios-3d.js
-   Volúmenes 3D de relleno del Catastro oficial (INSPIRE WFS
-   bu:BuildingPart, vía /catastro-edificios del Worker).
+   Volúmenes 3D de relleno del Catastro oficial (INSPIRE WFS,
+   vía /catastro-edificios del Worker).
 
    Enganche: shadows-route.js llama a window.manolitoCatastro3D(activo)
    desde el interruptor «Catastro 3D». Con el zoom suficiente se piden
@@ -11,6 +11,13 @@
    dentro de ningún edificio del mapa base ya cargado. Las líneas del
    catastro (raster WMS) quedan de fondo, intactas. Al apagar se
    eliminan capa y fuente y el mapa queda exactamente como antes.
+
+   AÑO DE CONSTRUCCIÓN (nov-2026): el Worker pide bu:Building, que sí
+   publica dateOfConstruction y entrega la huella en el mismo registro.
+   El año llega como 'a' y el corte como 'a19' (1 = anterior a 1979,
+   cuando en España aún no había norma de aislamiento térmico). Esos
+   edificios se pintan en un tono más oscuro: informa, no puntúa. La
+   altura, la geometría y las sombras son exactamente las de antes.
 
    Regla de oro: este módulo dibuja y proyecta sombra. No toca el motor
    de sombras, ni los árboles, ni el splash, ni los estilos de otras
@@ -121,8 +128,22 @@
           // plano para distinguirlos de lejos. OJO: fill-extrusion-opacity
           // NO admite expresiones de datos en MapLibre (error de estilo), así
           // que la diferencia va en el color y la opacidad es fija.
+          //
+          // (nov-2026) AÑO DE CONSTRUCCIÓN: los edificios anteriores a 1979
+          // (cuando España aún no exigía aislamiento térmico) se pintan en un
+          // tono terroso más oscuro. No es un cálculo: es el corte normativo,
+          // y sirve para reconocer de un vistazo las manzanas que peor
+          // retienen el calor. El resto de la paleta no cambia.
           'fill-extrusion-color': [
             'case',
+            ['==', ['get', 'a19'], 1],
+            [
+              'interpolate', ['linear'], ['coalesce', ['get', 'h'], 10],
+              0, '#b08a72',
+              30, '#9c7458',
+              70, '#855f45',
+              140, '#6f4e38'
+            ],
             ['==', ['get', 'est'], 1],
             '#a89f91',
             [
@@ -446,6 +467,12 @@
             if (huellaCatastroSolapaOsm(ext, rejillaOsm)) continue;
             celdasCatastro.add(celdaC);
             var plantas = f.properties ? f.properties.p : null;
+            // Año de construcción real del Catastro (0 = sin dato). El corte
+            // 1979 llega ya calculado del Worker; si faltara se aplica aquí.
+            var ano = f.properties && isFinite(Number(f.properties.a)) ? Number(f.properties.a) : 0;
+            var antes1979 = f.properties && f.properties.a19 != null
+              ? (f.properties.a19 === 1 ? 1 : 0)
+              : (ano > 0 && ano < 1979 ? 1 : 0);
             var estimada = !(plantas > 0);
             var altura = estimada ? ALTURA_SIN_DATO_M : plantas * ALTURA_PLANTA_M;
             var dx = (clon - centroVista.lng) * cosLatVista, dy = clat - centroVista.lat;
@@ -453,7 +480,7 @@
             for (var h = 1; h < coords.length; h++) anillos.push(decimarAnillo(coords[h], MAX_PUNTOS_ANILLO));
             candidatos.push({
               dc: dx * dx + dy * dy, // distancia al centro (para el recorte)
-              feature: { type: 'Feature', properties: { h: altura, est: estimada ? 1 : 0 }, geometry: { type: 'Polygon', coordinates: anillos } },
+              feature: { type: 'Feature', properties: { h: altura, est: estimada ? 1 : 0, a: ano, a19: antes1979 }, geometry: { type: 'Polygon', coordinates: anillos } },
             });
           } catch (e) { continue; }
         }
@@ -741,11 +768,18 @@
     try { alternar(activoNuevo); } catch (e) { }
   };
   window.__manolitoCatastroDebug = function () {
-    var resumen = { activos: activo, zoom: map && map.getZoom(), bloques: bloques.size, peticiones: 0, edificiosRecibidos: 0, fallos: 0 };
+    var resumen = { activos: activo, zoom: map && map.getZoom(), bloques: bloques.size, peticiones: 0, edificiosRecibidos: 0, fallos: 0, conAno: 0, antes1979: 0 };
     bloques.forEach(function (b) {
       if (b.estado === 'cargando') resumen.peticiones++;
       if (b.estado === 'error') resumen.fallos++;
-      if (b.datos && b.datos.features) resumen.edificiosRecibidos += b.datos.features.length;
+      if (b.datos && b.datos.features) {
+        resumen.edificiosRecibidos += b.datos.features.length;
+        for (var i = 0; i < b.datos.features.length; i++) {
+          var pr = b.datos.features[i].properties || {};
+          if (Number(pr.a) > 0) resumen.conAno++;
+          if (pr.a19 === 1) resumen.antes1979++;
+        }
+      }
     });
     return resumen;
   };

@@ -796,7 +796,7 @@ body.mode-peque .peque-message { animation: pequePop 0.55s cubic-bezier(0.34, 1.
   position: absolute; top: calc(100% + 0.5rem); left: 50%; transform: translateX(-50%);
   background: var(--surface, #fff); backdrop-filter: blur(12px); border: 1px solid var(--border, #ccc);
   border-radius: 1rem; box-shadow: 0 8px 24px rgba(0,0,0,0.12); list-style: none; padding: 0.4rem 0;
-  margin: 0; width: max-content; min-width: 220px; max-height: 260px; overflow-y: auto; z-index: 100; display: none;
+  margin: 0; width: max-content; min-width: 220px; z-index: 100; display: none;
 }
 .city-dropdown-list.open { display: block; }
 .city-dropdown-list li {

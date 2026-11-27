@@ -400,3 +400,15 @@
 }
 #rsSqiMini .rs-sqi-mini-temp b{color:#FFF;}
 #rsSqiMini .rs-sqi-mini-temp i{opacity:0.7;font-style:normal;font-size:9.5px;}
+
+/* (27-nov-2026) El aviso queda reducido al enlace «¿Cómo funciona?».
+   En móvil necesita un objetivo táctil cómodo y que nada lo tape. */
+.rs-sqi-aviso a,
+.rs-sqi-mini-aviso a{
+  display:inline-block;
+  padding:6px 2px;
+  min-height:28px;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  pointer-events:auto;
+}

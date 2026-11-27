@@ -1503,8 +1503,7 @@
         '<li><b>DHI</b> — Radiación solar difusa: la que llega sin sol directo y sigue calentando dentro de la sombra.</li>' +
         '</ul>' +
         '</details>' +
-        '<div class="rs-sqi-mini-aviso">Estimación calculada con datos públicos. No es una medición directa de un sensor en este punto. ' +
-        '<a href="metodologia.html" target="_blank" rel="noopener">Cómo se calcula</a></div>';
+        '<div class="rs-sqi-mini-aviso"><a href="metodologia.html" target="_blank" rel="noopener">¿Cómo funciona?</a></div>';
       root.parentElement.insertBefore(mini, root.nextSibling);
       // (nov-2026) MÓVIL: al abrir el glosario la tarjeta crece hacia abajo
       // y en pantallas pequeñas el contenido quedaba fuera de vista
@@ -1630,8 +1629,7 @@
       var aviso = document.createElement('div');
       aviso.className = 'rs-sqi-aviso';
       aviso.id = 'rsSqiAvisoMetodo';
-      aviso.innerHTML = 'Estimación calculada con datos públicos. No es una medición directa de un sensor en este punto. ' +
-        '<a href="metodologia.html" target="_blank" rel="noopener">Cómo se calcula</a>';
+      aviso.innerHTML = '<a href="metodologia.html" target="_blank" rel="noopener">¿Cómo funciona?</a>';
       card.appendChild(aviso);
     }
 

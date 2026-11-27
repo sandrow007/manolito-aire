@@ -456,6 +456,10 @@
     // (mismo punto medio, mismo sol): se memoriza y cada arista se
     // evalúa una sola vez aunque Dijkstra la relaje varias (sep-2026).
     const penalizacionPorArista = new Map();
+    // Clima 2050 (ADITIVO): sobrecoste por cruzar zonas de riesgo térmico
+    // cuando la casilla está marcada. También fijo por arista: se cachea
+    // en paralelo a la penalización solar.
+    const penalizacionClimaPorArista = new Map();
 
     while (!heap.isEmpty()) {
       const actual = heap.pop();
@@ -473,9 +477,9 @@
 
         const vx = grafo.nodos[v][0], vy = grafo.nodos[v][1];
         const claveArista = u * n + v;
+        const puntoMedio = [(ux + vx) * 0.5, (uy + vy) * 0.5];
         let penalizacion = penalizacionPorArista.get(claveArista);
         if (penalizacion === undefined) {
-          const puntoMedio = [(ux + vx) * 0.5, (uy + vy) * 0.5];
           penalizacion = calcularPenalizacionSolar(puntoMedio, posSol, indiceSombras);
           penalizacionPorArista.set(claveArista, penalizacion);
         }
@@ -491,6 +495,21 @@
             : arista.longitudM * (1 + penalizacion);
         } else {
           peso = arista.longitudM * (1 + penalizacion);
+        }
+
+        // Clima 2050 (ADITIVO): con la casilla marcada, las aristas que
+        // cruzan una zona de riesgo térmico Alto o Crítico suman coste
+        // (avoidHeat: el camino esquiva el calor aunque sea algo más
+        // largo). Apagada o sin datos cargados: +0 y la ruta queda
+        // exactamente como siempre.
+        if (typeof window.__manolitClima2050CosteArista === 'function') {
+          let extraClima = penalizacionClimaPorArista.get(claveArista);
+          if (extraClima === undefined) {
+            try { extraClima = Number(window.__manolitClima2050CosteArista(puntoMedio)) || 0; }
+            catch (e) { extraClima = 0; }
+            penalizacionClimaPorArista.set(claveArista, extraClima);
+          }
+          if (extraClima > 0) peso += arista.longitudM * extraClima;
         }
 
         const nuevaDist = dist[u] + peso;

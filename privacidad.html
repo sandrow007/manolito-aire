@@ -79,6 +79,7 @@
     <tr><td data-i18n-legal="priv_55">Rutas en bici y carriles</td><td data-i18n-legal="priv_56">Los puntos de origen y destino que escribes y la caja visible del mapa, a nuestro proxy en Cloudflare, que consulta OSRM de FOSSGIS, BRouter y Overpass para trazar la ruta o los carriles.</td><td data-i18n-legal="priv_57">Tu identidad, tu nombre y tu cuenta. Nada se guarda.</td></tr>
     <tr><td data-i18n-legal="priv_58">Transporte público</td><td data-i18n-legal="priv_59">La caja visible del mapa y el código de la parada que pulses, a nuestro proxy en Cloudflare, que consulta Transitous y OpenStreetMap para mostrar paradas y próximas salidas.</td><td data-i18n-legal="priv_60">Tu nombre, tu cuenta, tu historial de consultas.</td></tr>
     <tr><td>Calidad de sombra y navegación</td><td>Para teñir las sombras, las coordenadas redondeadas del centro de los polígonos de sombra visibles, a Open-Meteo (pronóstico solar y calidad del aire). En el panel de navegación, nada sale de tu dispositivo.</td><td>Tu nombre, tu cuenta y tu posición exacta de navegación. La caché vive en memoria y se borra al cerrar la pestaña.</td></tr>
+    <tr><td>Modo Clima 2050</td><td><strong>Nada.</strong> El mapa de calor y la penalización térmica de la ruta se descargan y se calculan íntegramente en tu dispositivo, con datos agregados por sección censal.</td><td>Tu posición GPS jamás se envía a ningún servidor para el cálculo de la ruta climática. Sin cuentas ni perfiles.</td></tr>
   </table>
   </div>
 
@@ -225,6 +226,43 @@
     ruta) usa la geolocalización de tu navegador y la procesa entera en tu dispositivo. Tu posición no se
     envía a ningún servidor, no se guarda ningún historial de trayectos y el panel se retira en cuanto
     cancelas la ruta o revocas el permiso de ubicación.
+  </p>
+
+  <h2 id="clima-2050">16. Modo Clima 2050: geolocalización y cálculo en el cliente</h2>
+  <p>
+    El <strong>Modo Clima 2050</strong> solo funciona si lo activas pulsando su botón en el panel de capas.
+    Al activarlo, tu navegador descarga un juego de <strong>datos agregados por sección censal</strong>
+    (polígonos de riesgo térmico) y cruza esos datos con tu posición <strong>dentro de tu propio dispositivo</strong>:
+    el mapa de calor, los polígonos y la penalización térmica que aplica el algoritmo de Dijkstra
+    <strong>se calculan íntegramente en el cliente</strong>.
+  </p>
+  <p>
+    <strong>Tu ubicación es un dato personal</strong> a efectos del RGPD (Reglamento (UE) 2016/679), aunque no
+    te identifique por nombre: puede identificar directa o indirectamente a una persona. Por eso la tratamos
+    con el máximo cuidado, y en este caso con el mejor de todos: <strong>no sale de tu navegador</strong>.
+    Para el cálculo de la ruta climática <strong>no se envían coordenadas a ningún servidor externo</strong>,
+    ni propio ni de terceros. No hay rastreo, ni píxeles, ni perfilado, y el permiso de geolocalización
+    puedes revocarlo en cualquier momento desde tu navegador.
+  </p>
+  <p>
+    <strong>Base jurídica (art. 6 RGPD):</strong> tu <strong>consentimiento explícito</strong> (art. 6.1.a),
+    otorgado en el momento en que activas el modo y revocable en cualquier momento desactivándolo o denegando
+    el permiso de ubicación del navegador. Si en el futuro la aplicación incorpora inicio de sesión, el
+    cálculo de la ruta que solicitas se ampararía además en la <strong>ejecución del contrato</strong>
+    (art. 6.1.b).
+  </p>
+  <p>
+    <strong>Información por capas (art. 11 LOPDGDD):</strong> lo esencial está en el
+    <a href="aviso-legal.html">Aviso legal</a> (lectura rápida) y en esta sección (capa ampliada), que detallan
+    el tratamiento de tus datos de ubicación y climáticos, así como la
+    <a href="aviso-legal.html#transparencia-climatica">transparencia algorítmica de la penalización climática</a>.
+  </p>
+  <p>
+    <strong>Conservación:</strong> al no enviarse tu ubicación a servidores, no existe retención de datos de
+    geolocalización por nuestra parte. Los datos agregados descargados viven en la memoria de la página y
+    desaparecen al cerrar la pestaña. Como no hay envío ni almacenamiento, tampoco hay perfilación ni
+    decisiones automatizadas sobre tu persona (art. 22 RGPD): la ruta sugerida es solo una recomendación que
+    puedes ignorar y sustituir por la que tú decidas.
   </p>
 </div>
 

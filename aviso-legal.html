@@ -273,6 +273,29 @@
   sanitario, y ante episodios de calor extremo deben seguirse siempre las recomendaciones oficiales.
 </p>
 
+<h2 id="transparencia-climatica">12 ter. Transparencia algorítmica de la penalización climática</h2>
+<p>
+  Cuando el <strong>Modo Clima 2050</strong> está activo, el motor de rutas (una variante del
+  <strong>algoritmo de Dijkstra</strong> descrito en la sección 12) sigue calculando el camino de menor
+  coste, pero añade una <strong>penalización térmica por sección censal</strong> basada en la vulnerabilidad
+  climática de cada barrio: proyecciones de días con más de 40&nbsp;°C (NASA NEX-GDDP / Heat.gov),
+  morfología urbana del Copernicus Urban Atlas e indicadores socioeconómicos agregados (renta media,
+  proporción de población mayor y antigüedad de los edificios). El cruce entre la vulnerabilidad
+  socioeconómica y las proyecciones de calor extremo sigue el <strong>marco metodológico</strong> de
+  <strong>Sola-Caraballo, J. de. (2026). <i>Seville Heat Risk: Urban Climate and Socio-economic Vulnerability
+  Viewer</i>. GitHub. <a href="https://j-sola-caraballo.github.io/seville-heat-risk/" target="_blank"
+  rel="noopener">https://j-sola-caraballo.github.io/seville-heat-risk/</a></strong>. Gracias por publicar
+  la metodología abierta: es la que permite a esta capa ponerle números al calor con nombre de barrio.
+</p>
+<p>
+  <strong>Esto no es una decisión automatizada sobre ti.</strong> Conforme al <strong>art. 22 del RGPD</strong>
+  y al considerando 71, esta penalización <strong>no produce efectos jurídicos ni te afecta significativamente</strong>:
+  no hay perfilación individual ni decisión sobre tu persona. Los indicadores se calculan sobre
+  <strong>datos agregados por sección censal</strong>, nunca sobre personas concretas, y el resultado es
+  simplemente <strong>una recomendación de ruta entre otras posibles</strong>. Siempre puedes desactivar el modo,
+  elegir otra ruta o caminar por donde tú decidas: la herramienta te informa, no te obliga.
+</p>
+
 <h2 data-i18n-legal="avis_39">12 bis. Óptica Atmosférica en Tiempo Real: Nubes, Luz Difusa y Sombras Suaves</h2>
 <p data-i18n-legal="avis_40">
   El motor de sombras no solo conoce la posición del sol: también escucha el cielo real.
@@ -528,6 +551,48 @@
   repositorio del proyecto</a> para su consulta, auditoría y mejora por cualquier persona.
   Manolit∞ y su creador no se hacen responsables de decisiones tomadas exclusivamente en base
   a estos datos.
+</p>
+
+<h2>27. «Modo Clima 2050»: mapa de calor y vulnerabilidad climática (experimental)</h2>
+<p>
+  El <strong>Modo Clima 2050</strong> es una función <strong>opcional y experimental</strong> que se activa
+  solo cuando pulsas el botón correspondiente del panel de capas. Al activarla se superpone un mapa de calor
+  con <strong>polígonos de riesgo térmico</strong> por sección censal de Sevilla, y el algoritmo de enrutamiento
+  puede <strong>penalizar las calles con mayor vulnerabilidad climática</strong> para trazar una ruta más fresca.
+</p>
+<p>
+  <strong>Qué es y qué no es.</strong> Es una herramienta de <strong>visualización y concienciación</strong>
+  sobre el impacto del calor extremo en la ciudad. No es un sistema de emergencia climática, no es una
+  predicción meteorológica en tiempo real y no es un consejo médico. Ante una ola de calor, siguen mandando
+  las indicaciones de la <strong>AEMET</strong>, del <strong>Ministerio de Sanidad</strong> y de las
+  autoridades sanitarias y locales.
+</p>
+<p>
+  <strong>Los datos son una simulación.</strong> La capa activa es, como se indica en el propio panel, un
+  <strong>«Mock» (simulación)</strong>: no representa una medición ni una predicción en tiempo real. Combina
+  proyecciones climáticas a medio plazo e indicadores socioeconómicos agregados, cuyo origen y licencias se
+  detallan más abajo. Los valores pueden cambiar cuando se integre el juego de datos definitivo.
+</p>
+<p>
+  <strong>Origen de los datos y atribución.</strong> Los conjuntos de datos provienen de fuentes abiertas:
+  el <strong>Copernicus Urban Atlas</strong> de la Agencia Espacial Europea y la Comisión Europea
+  (morfología urbana, © Copernicus / AEE, licencia CC BY 4.0), las proyecciones de días con más de
+  40&nbsp;°C de <strong>Heat.gov / NASA NEX-GDDP</strong> (NASA Earth Exchange, uso abierto), y el
+  <strong>marco metodológico de Sola-Caraballo, J. de. (2026). <i>Seville Heat Risk: Urban Climate and
+  Socio-economic Vulnerability Viewer</i>. GitHub. <a href="https://j-sola-caraballo.github.io/seville-heat-risk/"
+  target="_blank" rel="noopener">https://j-sola-caraballo.github.io/seville-heat-risk/</a></strong>,
+  empleado para cruzar la vulnerabilidad socioeconómica (renta, edad y antigüedad de edificios por
+  sección censal) con las proyecciones de calor extremo. Gracias a quienes publican estos datos
+  abiertos: sin ellos no existiría esta capa.
+</p>
+<p>
+  <strong>Exención de responsabilidad.</strong> La ruta sugerida con el Modo Clima 2050 es únicamente una
+  <strong>recomendación orientativa</strong>. Puedes ignorarla, modificarla o caminar por donde quieras:
+  la decisión final sobre tu trayecto es tuya y tuya sola. Ni Manolit∞ Aire ni su titular garantizan la
+  exactitud o actualidad de los datos de esta capa ni responden de decisiones de itinerario, exposición al
+  calor o daños derivados de su uso. Cómo funciona la penalización térmica del algoritmo se explica en la
+  sección de <a href="aviso-legal.html#transparencia-climatica">transparencia algorítmica del clima</a>;
+  el tratamiento de tu ubicación, en la <a href="privacidad.html">Política de Privacidad</a>.
 </p>
 </div>
 

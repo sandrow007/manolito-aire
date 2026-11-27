@@ -5145,9 +5145,29 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const btnVerano = crearBoton(t('btnSummer', 'Verano'), 'rsBtnVerano');
     const btnInvierno = crearBoton(t('btnWinter', 'Invierno'), 'rsBtnInvierno');
     const btnCapturar = crearBoton(t('captureView', 'Capturar vista'), 'rsBtnCapturar');
+    const btnInformeClima = crearBoton('Informe Clima 2050', 'rsBtnInformeClima2050');
     btnMediodia.setAttribute('aria-label', '12:00');
     btnTarde.setAttribute('aria-label', '17:00');
     btnCapturar.className = 'rs-btn-capturar';
+    btnInformeClima.className = 'rs-btn-informe-clima2050';
+    btnInformeClima.hidden = true;
+    btnInformeClima.setAttribute('aria-label', 'Descargar informe PDF de Clima 2050');
+    btnInformeClima.addEventListener('click', () => {
+      if (typeof window.manolitAireClima2050DescargarInforme === 'function') {
+        window.manolitAireClima2050DescargarInforme();
+      } else {
+        mostrarEstado('El informe de Clima 2050 todavía se está cargando. Inténtalo de nuevo en un momento.', 'error');
+      }
+    });
+    const toggleClima2050 = document.getElementById('toggle-climate-layer');
+    if (toggleClima2050) {
+      btnInformeClima.hidden = !toggleClima2050.checked;
+      toggleClima2050.addEventListener('change', () => {
+        btnInformeClima.hidden = !toggleClima2050.checked;
+      });
+    } else {
+      btnInformeClima.hidden = true;
+    }
 
     btnAhora.addEventListener('click', () => {
       modoManual = false;
@@ -5199,7 +5219,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     tabs.append(btnInvierno, btnAhora, btnVerano);
     btnMediodia.hidden = true;
     btnTarde.hidden = true;
-    filaBotones.append(btnMediodia, btnTarde, btnCapturar);
+    filaBotones.append(btnMediodia, btnTarde, btnCapturar, btnInformeClima);
     // "Ahora / Verano / Invierno" forman un grupo lógico de preajustes;
     // display:contents mantiene el layout exacto sin cambiar el HTML visual.
     cuerpo.append(filaEtiqueta, filaFecha, sliderTiempo, timeline, divisor, filaBotones, anunciadorHora);

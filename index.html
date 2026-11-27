@@ -3111,8 +3111,9 @@
           // Mairena del Aljarafe y Bollullos de la Mitación): módulo
           // aditivo; se engancha a window.manolitAireMap y a su casilla
           // toggle-climate-layer.
-          // Fallo silencioso: sin él no cambia nada.
-          cargarScript('js/clima-2050.js').catch(() => { });
+          // Fallo silencioso: sin él no cambia nada. El query nuevo invalida
+          // el módulo cacheado al desplegar el generador de informes.
+          cargarScript('js/clima-2050.js?v=informe-logo-inline-20261127').catch(() => { });
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
           cargarScript('js/fuentes-agua.js?v=logo-centrado-20261126').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));

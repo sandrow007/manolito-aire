@@ -452,10 +452,11 @@
 // capa (js/clima-2050.js) y su avoidHeat (js/shadows-route.js) leen solo el
 // master: una petición HTTP en vez de dos. Subir VERSION purga las cachés
 // viejas del SW, que sin esto seguirían sirviendo el geojson y el js
-// anteriores (cache-first).
-// Cambian js/clima-2050.js, sw.js y se añade data/andalucia_clima_2050.geojson
-// (las fuentes por municipio se conservan en el repo solo para regenerarlo).
-const VERSION = '2026-11-27-clima2050-master-andalucia';
+// anteriores (cache-first). El informe PDF añade portada, respaldo imprimible
+// con SVG y acceso desde el panel junto a la captura de vista.
+// Cambian index.html, js/clima-2050.js, js/shadows-route.js y sw.js; el botón
+// usa un query nuevo para no depender de una copia cache-first del módulo.
+const VERSION = '2026-11-27-clima2050-informe-logo-inline';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).
@@ -752,7 +753,7 @@ self.addEventListener('fetch', function(ev) {
 	// Capas en desarrollo activo: red primero para que un arreglo llegue al
 	// momento (con caché como respaldo sin conexión).
 	if (url.origin === self.location.origin &&
-		/\/js\/(transporte-publico|rutas-bici|fuentes-agua)\.js$/i.test(url.pathname)) {
+	/\/js\/(transporte-publico|rutas-bici|fuentes-agua|clima-2050|shadows-route)\.js$/i.test(url.pathname)) {
 		ev.respondWith(networkFirst(peticion));
 		return;
 	}

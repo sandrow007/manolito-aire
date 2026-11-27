@@ -3,39 +3,44 @@
    --------------------------------------------------------------------------
    Mapa de coropletas (choropleth) del riesgo térmico proyectado a 2050.
 
-   Geometría REAL: 521 secciones censales de Sevilla (INE/IGN, vía
-   github.com/ctafur/sevillaGeojson, GPL-3.0), servida en local como
-   data/riesgo-termico-2050.geojson (sin problemas de CORS).
-   Mairena del Aljarafe usa las 32 secciones censales oficiales del INE
-   (WFS Secciones2026, municipio 41059), disueltas en las 8 áreas
-   estadísticas del Ayuntamiento (data/riesgo-termico-2050-mairena.geojson).
-   El riesgo (risk_level 0-3 y dias40) es EMULADO (inspirado en
-   Sola-Caraballo et al.; NO son datos reales) y viaja en cada feature.
+   Geometría REAL en UN SOLO archivo maestro:
+   data/andalucia_clima_2050.geojson (una única petición HTTP), con 536
+   polígonos de 3 municipios:
+   - Sevilla: 521 secciones censales (INE/IGN, vía ctafur/sevillaGeojson,
+     GPL-3.0).
+   - Mairena del Aljarafe: 9 áreas estadísticas del PMVS 2024-2029 (32
+     secciones INE 41059 agrupadas según el Plan de Movilidad).
+   - Bollullos de la Mitación: 6 secciones censales INE (41016), sin
+     división oficial de barrios (urbanizaciones vía OSM/Nominatim).
+   Cada feature lleva EXACTAMENTE tres propiedades:
+   municipio (string), area (string) y risk_level (int 0-3). El riesgo es
+   EMULADO (inspirado en Sola-Caraballo et al.; NO son datos reales): el
+   nivel de texto y los días >40 °C se derivan aquí, en el cliente, de
+   risk_level con la fórmula documentada
+   (dias40 = 30 + risk*5 + hash(area)%7), para no duplicar datos.
 
    Piezas (todas nacen APAGADAS y se encienden juntas con la casilla):
    1) Relleno (fill) coloreado por risk_level con opacidad baja (máx. 0,35):
-      el callejero sigue siendo perfectamente legible.
-   2) Borde (line) del mismo tono con opacidad 0,8 y 1,5 px: delimita cada
-      sección censal.
-   3) Popup al hacer clic en una sección (también con el dedo en móvil):
-      sección + distrito, nivel coloreado, días >40 °C con una lectura
-      ciudadana ("casi la mitad del verano") y un consejo accionable, todo
-      en el mismo tamaño que antes. Los clics van delegados a la capa: si
-      la capa no se ve, ni existen.
+      el callejero sigue siendo perfectamente legible. Idéntico para los
+      tres municipios: la pintura solo mira risk_level.
+   2) Borde (line) del mismo tono con opacidad 0,8 y 1,5 px.
+   3) Popup al hacer clic (también con el dedo en móvil): título
+      "Municipio - Area", nivel coloreado, días >40 °C con lectura
+      ciudadana y consejo accionable. Los clics van delegados a la capa:
+      si la capa no se ve, ni existen.
 
-   Sin leyenda flotante: chocaba con el HUD de sombra de la esquina y la
-   escala de colores va en el propio popup (acento del nivel). Sin velos ni
-   filtros sobre el mapa base: dentro del mapa mandan sus propios modos
-   (Mapa claro / IGN / oscuro) y el tema claro/oscuro de fuera es
+   Sin leyenda flotante: chocaba con el HUD de sombra y la escala de colores
+   va en el propio popup. Sin velos ni filtros sobre el mapa base: dentro
+   del mapa mandan sus propios modos y el tema claro/oscuro de fuera es
    independiente. Esta capa solo pinta encima sin tocar la base.
 
    Reglas (mismo patrón que js/lluvia.js):
    - Casilla "Clima 2050" (toggle-climate-layer), APAGADA por defecto.
      Apagada = capas con visibility 'none': el mapa queda exactamente como
      antes.
-   - Solo añade fuente y capas (addSource/addLayer) y sus propios
-     elementos: NO toca la inicialización del mapa, ni el estilo base, ni
-     capas ni controles de otros módulos.
+   - Solo añade fuente y capas (addSource/addLayer): NO toca la
+     inicialización del mapa, ni el estilo base, ni capas ni controles de
+     otros módulos.
    - Si el usuario cambia de mapa base (claro/IGN/oscuro) el estilo se
      sustituye entero: el evento styledata reinstala fuente y capas.
    - Fallo silencioso: si algo falla (estilo a medio cargar, GeoJSON
@@ -43,28 +48,24 @@
      SQI, lluvia ni ningún módulo existente.
 
    window.manolitAireClima2050Activa() dice si la casilla está marcada.
-   Paso 3 (avoidHeat): window.__manolitClima2050CosteArista(puntoMedio)
-   devuelve al Dijkstra térmico de shadows-route.js el sobrecoste de
-   cruzar una zona de riesgo Alto (+50 %) o Crítico (+100 %); con la
-   casilla apagada devuelve 0 y la ruta es la de siempre.
+   avoidHeat: window.__manolitClima2050CosteArista(puntoMedio) devuelve al
+   Dijkstra térmico de shadows-route.js el sobrecoste de cruzar una zona de
+   riesgo Alto (+50 %) o Crítico (+100 %); con la casilla apagada devuelve
+   0 y la ruta es la de siempre.
    ========================================================================== */
 (function () {
   'use strict';
   if (window.manolitAireClima2050) return;
 
-  var FUENTE_ID = 'clima-2050-riesgo';         // fuente GeoJSON (secciones)
+  var FUENTE_ID = 'clima-2050-riesgo';         // fuente GeoJSON maestra
   var CAPA_ID = 'capa-clima-2050';             // relleno coropleta
-  var CAPA_BORDE_ID = 'capa-clima-2050-borde'; // contorno de las secciones
-  // Mairena del Aljarafe: mismas piezas con las 8 áreas estadísticas.
-  var FUENTE_MAIRENA_ID = 'clima-2050-riesgo-mairena';
-  var CAPA_MAIRENA_ID = 'capa-clima-2050-mairena';
-  var CAPA_MAIRENA_BORDE_ID = 'capa-clima-2050-mairena-borde';
-  var CAPAS = [CAPA_ID, CAPA_BORDE_ID, CAPA_MAIRENA_ID, CAPA_MAIRENA_BORDE_ID];
-  var DATOS_URL = 'data/riesgo-termico-2050.geojson';
-  var DATOS_MAIRENA_URL = 'data/riesgo-termico-2050-mairena.geojson';
+  var CAPA_BORDE_ID = 'capa-clima-2050-borde'; // contorno de los polígonos
+  var CAPAS = [CAPA_ID, CAPA_BORDE_ID];
+  var DATOS_URL = 'data/andalucia_clima_2050.geojson'; // master: Sevilla + Mairena + Bollullos
 
   // Paleta por risk_level (0=Bajo … 3=Crítico). Relleno con opacidad baja
   // (máx. 0,35) para no tapar el callejero; borde del mismo tono al 0,8.
+  // Misma pintura para TODOS los municipios: solo se lee risk_level.
   var RELLENO_POR_NIVEL = [
     'match', ['get', 'risk_level'],
     0, 'rgba(102, 170, 85, 0.20)',   // Bajo: verde suave
@@ -92,11 +93,21 @@
 
   var mapa = null;
   var popup = null;
+  var ultimaZona = null; // datos del último polígono clicado: alimenta el informe PDF
 
   /* ---------------- utilidades ---------------- */
 
   function toggle() { return document.getElementById('toggle-climate-layer'); }
   function encendida() { var el = toggle(); return !!(el && el.checked); }
+
+  // Hash determinista (misma fórmula que los generadores de datos): sirve
+  // para derivar dias40 a partir del nombre del área, igual en los 3
+  // municipios, sin que el número viaje duplicado en el GeoJSON maestro.
+  function hashTexto(t) {
+    var h = 0;
+    for (var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
+    return h;
+  }
 
   /* ---------------- visibilidad global: las dos capas a la vez ---------------- */
 
@@ -109,36 +120,46 @@
       try { mapa.setLayoutProperty(CAPAS[i], 'visibility', ver); } catch (e) { }
     }
     // Al apagar, el popup abierto se retira con la capa que lo originó.
-    if (!on && popup) { try { popup.remove(); } catch (e) { } }
+    if (!on && popup) { try { popup.remove(); } catch (e) { }
+    }
   }
 
-  /* ---------------- popup al hacer clic en una sección ---------------- */
+  /* ---------------- popup al hacer clic en un polígono ---------------- */
 
   function mostrarPopup(e) {
     if (!encendida() || !mapa || !e.features || !e.features.length) return;
     var p = e.features[0].properties || {};
-    var nivel = (p.nivel != null) ? String(p.nivel) : '—';
-    var seccion = (p.seccion != null) ? String(p.seccion) : '—';
-    var distrito = (p.distrito != null) ? String(p.distrito) : null;
-    // Lectura robusta de los días: acepta número o cadena numérica (por si
-    // el dato viaja convertido). Así los días NUNCA salen vacíos.
-    var diasNum = (p.dias40 != null && isFinite(Number(p.dias40))) ? Number(p.dias40) : null;
-    var nivelInfo = null;
-    for (var i = 0; i < NIVELES.length; i++) {
-      if (NIVELES[i].texto === nivel) { nivelInfo = NIVELES[i]; break; }
-    }
+    var municipio = (p.municipio != null && String(p.municipio).length)
+      ? String(p.municipio)
+      : 'Municipio sin identificar';
+    var area = (p.area != null && String(p.area).length)
+      ? String(p.area)
+      : 'Zona sin identificar';
+    // El master solo lleva risk_level: nivel y días se derivan aquí, con
+    // lectura robusta (nunca sale vacío). risk fuera de 0-3 cae en '—'.
+    var risk = (p.risk_level != null && isFinite(Number(p.risk_level))) ? Number(p.risk_level) : null;
+    var nivelInfo = (risk != null && risk >= 0 && risk <= 3) ? NIVELES[risk] : null;
+    var nivel = nivelInfo ? nivelInfo.texto : '—';
+    var diasNum = nivelInfo ? 30 + risk * 5 + (hashTexto(area) % 7) : null;
     var acento = nivelInfo ? nivelInfo.acento : '#888';
-    // Cabecera: sección + distrito (códigos INE) en Sevilla; en Mairena,
-    // nombre del área estadística + municipio (viene en la misma propiedad).
-    var esArea = (p.tipo === 'area');
-    var titulo = (esArea ? 'Área: ' : 'Sección: ') + seccion;
-    if (distrito) titulo += esArea ? ' · ' + distrito : ' · Distrito ' + distrito;
+    // Título unificado: "Municipio - Area" (formato del Paso 3).
+    var titulo = municipio + ' - ' + area;
     // Línea de días: número + lectura ciudadana, en una sola línea.
     var dias = (diasNum != null)
       ? '<strong>' + diasNum + '</strong> días al año a más de 40 °C: ' +
-        (nivelInfo ? nivelInfo.interpretacion : '')
+        nivelInfo.interpretacion
       : 'Días al año a más de 40 °C: —';
     var consejo = nivelInfo ? nivelInfo.consejo : '';
+    // Guardamos la zona para el informe PDF (botón de descarga del popup).
+    ultimaZona = {
+      municipio: municipio,
+      area: area,
+      nivel: nivel,
+      acento: acento,
+      dias: diasNum,
+      interpretacion: nivelInfo ? nivelInfo.interpretacion : '',
+      consejo: consejo
+    };
     // Color de texto EXPLÍCITO y oscuro (#16181d): el popup de MapLibre es
     // blanco y, sin esto, heredaba el color claro del tema oscuro de FUERA
     // del mapa y el texto quedaba invisible. Mapa y página son independientes.
@@ -149,6 +170,7 @@
       '<span style="display:block;margin-top:3px;color:#5a6068;font-size:11px">' +
         consejo + (consejo ? ' · ' : '') + 'Riesgo 2050 (emulado)' +
       '</span>' +
+      '<button type="button" id="rsClima2050Pdf" style="margin-top:7px;padding:6px 10px;border:1px solid #16181d;border-radius:6px;background:#fff;color:#16181d;font:600 12px system-ui,sans-serif;cursor:pointer">Descargar informe PDF</button>' +
       '</div>';
     // focusAfterOpen:false: en móvil el popup no roba el foco ni hace saltar
     // el scroll de la página al abrirse (la cruz de cierre sigue siendo
@@ -158,6 +180,12 @@
       focusAfterOpen: false
     });
     popup.setLngLat(e.lngLat).setHTML(html).addTo(mapa);
+    // El botón del informe PDF: manejador enganchado al DOM del popup (sin
+    // onclick inline). Si algo falla, el popup sigue siendo 100 % usable.
+    try {
+      var btnPdf = popup.getElement().querySelector('#rsClima2050Pdf');
+      if (btnPdf) btnPdf.addEventListener('click', descargarInforme);
+    } catch (eBtn) { }
   }
 
   /* ------------- fuente + capas (solo se añaden, nunca se quita nada) ------------- */
@@ -166,20 +194,11 @@
     if (!mapa) return;
     try {
       if (!mapa.getSource(FUENTE_ID)) {
-        // Secciones censales reales de Sevilla con riesgo 2050 emulado.
+        // Archivo maestro: UNA petición HTTP para los 3 municipios.
         mapa.addSource(FUENTE_ID, {
           type: 'geojson',
           data: DATOS_URL,
-          attribution: 'Secciones censales INE/IGN (vía ctafur/sevillaGeojson, GPL-3.0) · riesgo 2050 emulado',
-        });
-      }
-      if (!mapa.getSource(FUENTE_MAIRENA_ID)) {
-        // Áreas estadísticas reales de Mairena del Aljarafe (secciones INE
-        // disueltas) con riesgo 2050 emulado.
-        mapa.addSource(FUENTE_MAIRENA_ID, {
-          type: 'geojson',
-          data: DATOS_MAIRENA_URL,
-          attribution: 'Áreas de Mairena del Aljarafe: secciones censales INE (WFS) · agrupación por barrios OSM · riesgo 2050 emulado',
+          attribution: 'Secciones censales INE/IGN · PMVS Mairena 2024-2029 · riesgo 2050 emulado',
         });
       }
 
@@ -201,7 +220,8 @@
       } catch (e) { /* sin estilo aún: el styledata lo reinstalará */ }
 
       // 1) Relleno coropleta por risk_level (opacidad máxima 0,35, dentro
-      //    de cada rgba; por eso fill-opacity queda a 1).
+      //    de cada rgba; por eso fill-opacity queda a 1). Igual para Sevilla,
+      //    Mairena y Bollullos: la pintura solo mira risk_level.
       if (!mapa.getLayer(CAPA_ID)) {
         mapa.addLayer({
           id: CAPA_ID,
@@ -212,34 +232,12 @@
         }, antes || undefined);
       }
 
-      // 2) Borde de cada sección: mismo tono al 0,8 y 1,5 px.
+      // 2) Borde de cada polígono: mismo tono al 0,8 y 1,5 px.
       if (!mapa.getLayer(CAPA_BORDE_ID)) {
         mapa.addLayer({
           id: CAPA_BORDE_ID,
           type: 'line',
           source: FUENTE_ID,
-          layout: { visibility: 'none' },
-          paint: { 'line-color': BORDE_POR_NIVEL, 'line-width': 1.5, 'line-opacity': 1 },
-        }, antes || undefined);
-      }
-
-      // 3) y 4) Mairena del Aljarafe: el mismo par relleno + borde con las
-      //    mismas expresiones de pintura (la paleta manda sobre risk_level,
-      //    que viaja en cada feature igual que en Sevilla).
-      if (!mapa.getLayer(CAPA_MAIRENA_ID)) {
-        mapa.addLayer({
-          id: CAPA_MAIRENA_ID,
-          type: 'fill',
-          source: FUENTE_MAIRENA_ID,
-          layout: { visibility: 'none' },
-          paint: { 'fill-color': RELLENO_POR_NIVEL, 'fill-opacity': 1 },
-        }, antes || undefined);
-      }
-      if (!mapa.getLayer(CAPA_MAIRENA_BORDE_ID)) {
-        mapa.addLayer({
-          id: CAPA_MAIRENA_BORDE_ID,
-          type: 'line',
-          source: FUENTE_MAIRENA_ID,
           layout: { visibility: 'none' },
           paint: { 'line-color': BORDE_POR_NIVEL, 'line-width': 1.5, 'line-opacity': 1 },
         }, antes || undefined);
@@ -261,7 +259,7 @@
     // reinstalar fuente y capas (mismo enganche que usa lluvia).
     mapa.on('styledata', function () {
       try {
-        if (mapa.isStyleLoaded() && (!mapa.getSource(FUENTE_ID) || !mapa.getSource(FUENTE_MAIRENA_ID))) instalarCapas();
+        if (mapa.isStyleLoaded() && !mapa.getSource(FUENTE_ID)) instalarCapas();
       } catch (e) { }
     });
 
@@ -278,8 +276,7 @@
 
     // Clic y cursor delegados a la capa de relleno: solo se disparan cuando
     // la capa está renderizada (visible), así que con la casilla apagada el
-    // mapa no recibe NINGÚN comportamiento nuevo. Sevilla y Mairena usan el
-    // mismo popup y el mismo cursor.
+    // mapa no recibe NINGÚN comportamiento nuevo.
     mapa.on('click', CAPA_ID, mostrarPopup);
     mapa.on('mousemove', CAPA_ID, function () {
       try { mapa.getCanvas().style.cursor = 'pointer'; } catch (e) { }
@@ -287,16 +284,9 @@
     mapa.on('mouseleave', CAPA_ID, function () {
       try { mapa.getCanvas().style.cursor = ''; } catch (e) { }
     });
-    mapa.on('click', CAPA_MAIRENA_ID, mostrarPopup);
-    mapa.on('mousemove', CAPA_MAIRENA_ID, function () {
-      try { mapa.getCanvas().style.cursor = 'pointer'; } catch (e) { }
-    });
-    mapa.on('mouseleave', CAPA_MAIRENA_ID, function () {
-      try { mapa.getCanvas().style.cursor = ''; } catch (e) { }
-    });
   }
 
-  /* ============ Paso 3: enrutado que evita el calor (avoidHeat) ============
+  /* ============ enrutado que evita el calor (avoidHeat) ============
      Expone window.__manolitClima2050CosteArista(puntoMedio): factor de
      sobrecoste por unidad de longitud de arista (0 = sin cambio) que el
      Dijkstra térmico de shadows-route.js suma al peso. Solo penalizan las
@@ -345,13 +335,12 @@
   function prepararZonasCalor() {
     if (zonasCalor) return Promise.resolve(zonasCalor);
     if (cargaZonasPromesa) return cargaZonasPromesa;
-    cargaZonasPromesa = Promise.all([
-      fetch(DATOS_URL).then(function (r) { return r.ok ? r.json() : null; }),
-      fetch(DATOS_MAIRENA_URL).then(function (r) { return r.ok ? r.json() : null; })
-    ]).then(function (colecciones) {
+    // UNA sola descarga: el propio archivo maestro que pinta el mapa.
+    cargaZonasPromesa = fetch(DATOS_URL).then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(function (col) {
       zonasCalor = [];
-      colecciones.forEach(function (col) {
-        if (!col || !col.features) return;
+      if (col && col.features) {
         col.features.forEach(function (f) {
           var risk = Number(f.properties && f.properties.risk_level);
           if (!isFinite(risk) || risk < 2 || !f.geometry) return; // solo Alto y Crítico
@@ -359,7 +348,7 @@
           if (!multi || !multi.length) return;
           zonasCalor.push({ risk: risk, bbox: bboxDeCoords(multi), multi: multi });
         });
-      });
+      }
       return zonasCalor;
     }).catch(function () { zonasCalor = []; return zonasCalor; });
     return cargaZonasPromesa;

@@ -446,7 +446,16 @@
 //     El puente rsSolarWidgetBridge (index.html) ahora observa el tamaño
 //     del body con ResizeObserver y re-ancla el widget siempre. Solo
 //     cambia index.html.
-const VERSION = '2026-11-26-widget-anclado-al-mapa';
+// 2026-11-27-a: CLIMA 2050 en archivo maestro único (data/
+// andalucia_clima_2050.geojson, 536 polígonos de Sevilla + Mairena +
+// Bollullos; cada feature con exactamente municipio/area/risk_level). La
+// capa (js/clima-2050.js) y su avoidHeat (js/shadows-route.js) leen solo el
+// master: una petición HTTP en vez de dos. Subir VERSION purga las cachés
+// viejas del SW, que sin esto seguirían sirviendo el geojson y el js
+// anteriores (cache-first).
+// Cambian js/clima-2050.js, sw.js y se añade data/andalucia_clima_2050.geojson
+// (las fuentes por municipio se conservan en el repo solo para regenerarlo).
+const VERSION = '2026-11-27-clima2050-master-andalucia';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

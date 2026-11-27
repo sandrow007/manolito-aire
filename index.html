@@ -1693,11 +1693,13 @@
       <label class="rs-capa-fila rs-ico-aire" id="rsCapaAireFila" hidden><input type="checkbox" id="rsToggleAire"> <span data-i18n="layerAirQuality">Calidad del aire</span></label>
       <label class="rs-capa-fila rs-ico-microclima"><input type="checkbox" id="rsToggleMicroclima"> <span data-i18n="layerMicroclimate">Microclima</span> <em class="rs-capa-tag" data-i18n="microTag">Estimado</em></label>
       <!-- Clima 2050 (módulo aditivo js/clima-2050.js): coropletas con el
-           riesgo térmico proyectado a 2050 sobre las 521 secciones censales
-           REALES de Sevilla (INE/IGN) y las 8 áreas estadísticas REALES de
-           Mairena del Aljarafe (secciones INE disueltas); el riesgo es
-           EMULADO (inspirado en Sola-Caraballo et al.). Incluye popup por
-           sección/área, solo mientras la casilla está marcada.
+           riesgo térmico proyectado a 2050 en UN archivo maestro
+           (data/andalucia_clima_2050.geojson, una sola petición HTTP):
+           521 secciones censales REALES de Sevilla, 9 áreas estadísticas
+           REALES de Mairena del Aljarafe (PMVS 2024-2029) y 6 secciones
+           REALES de Bollullos de la Mitación; el riesgo es EMULADO
+           (inspirado en Sola-Caraballo et al.). Incluye popup por zona,
+           solo mientras la casilla está marcada.
            Apagada por defecto: ni fuente ni capas hasta que la pidas. -->
       <label class="rs-capa-fila rs-ico-clima2050"><input type="checkbox" id="toggle-climate-layer"> <span data-i18n="layerClimate2050">Clima 2050</span> <em class="rs-capa-tag" data-i18n="clima2050Tag">Emulado</em></label>
       <p class="rs-capa-grupo-tit" data-i18n="groupBase">Mapa base</p>
@@ -3104,10 +3106,11 @@
           // aditivo; se engancha a window.manolitAireMap y a su casilla
           // rsToggleLluvia. Fallo silencioso: sin él no cambia nada.
           cargarScript('js/lluvia.js').catch(() => { });
-          // Capa "Clima 2050" (coropletas de riesgo térmico emulado sobre
-          // secciones censales reales de Sevilla y áreas reales de Mairena
-          // del Aljarafe): módulo aditivo; se engancha a
-          // window.manolitAireMap y a su casilla toggle-climate-layer.
+          // Capa "Clima 2050" (coropletas de riesgo térmico emulado en un
+          // master único data/andalucia_clima_2050.geojson con Sevilla,
+          // Mairena del Aljarafe y Bollullos de la Mitación): módulo
+          // aditivo; se engancha a window.manolitAireMap y a su casilla
+          // toggle-climate-layer.
           // Fallo silencioso: sin él no cambia nada.
           cargarScript('js/clima-2050.js').catch(() => { });
           // Capa independiente de fuentes de agua; su fallo no detiene los

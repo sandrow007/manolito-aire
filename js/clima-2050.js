@@ -224,15 +224,21 @@
     return partes.join(' · ') || 'escenario, año y resolución no indicados en el archivo';
   }
 
-  // Badge discreto junto a la casilla: "Fuente: TARGET" o "Fuente: emulada".
+  // Badge discreto junto a la casilla: UNA palabra, como el "Estimado" de
+  // Microclima (el texto largo se partía en dos líneas y desencuadraba la
+  // píldora). En emulada se deja el "Emulado" original: la fila queda byte a
+  // byte como antes. La explicación completa de la fuente va en el tooltip.
   function pintarBadgeFuente() {
     try {
       var em = document.getElementById('clima2050FuenteBadge');
       if (!em) return;
-      em.textContent = esTarget() ? 'Fuente: TARGET' : 'Fuente: emulada';
-      em.title = esTarget()
-        ? 'Datos precalculados con TARGET/UMEP fuera de la web (no se ejecuta en el navegador)'
-        : 'Emulación actual inspirada en Sola-Caraballo et al. (sin datos TARGET válidos)';
+      if (esTarget()) {
+        em.textContent = 'TARGET';
+        em.title = 'Fuente: datos simulados TARGET precalculados fuera de la web (TARGET no se ejecuta en el navegador)';
+      } else {
+        em.textContent = 'Emulado';
+        em.title = 'Fuente: emulada (emulación inspirada en Sola-Caraballo et al.; sin datos TARGET válidos)';
+      }
     } catch (e) { }
   }
 

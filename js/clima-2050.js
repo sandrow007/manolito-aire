@@ -61,6 +61,16 @@
    Dijkstra térmico de shadows-route.js el sobrecoste de cruzar una zona de
    riesgo Alto (+50 %) o Crítico (+100 %); con la casilla apagada devuelve
    0 y la ruta es la de siempre.
+
+   FUENTE OPCIONAL TARGET (nov-2026): js/clima-2050-source.js decide la
+   fuente de datos (CLIMA_2050_SOURCE = auto | emulated | target; por
+   defecto auto). Si existe data/clima2050/target/clima_2050_target.geojson
+   y cumple el esquema mínimo, la capa pinta ESE archivo (risk_level real
+   de la simulación) y los días >40 °C se leen de su propiedad dias40; si
+   falta para una zona se muestra "no disponible", nunca se inventa. Si el
+   archivo no existe, está corrupto o no valida, la capa sigue funcionando
+   EXACTAMENTE como antes con la fórmula emulada. TARGET no se ejecuta en
+   el navegador: el archivo se genera fuera (ver scripts/target/README.md).
    ========================================================================== */
 (function () {
   'use strict';
@@ -98,6 +108,17 @@
   // y coordenadas a 5 decimales. Se lee con propiedad(), que acepta claves
   // cortas y largas: si mañana se regenera con el script del INE, basta
   // sustituir el archivo y dejar el preproceso añadir sus campos.
+
+  /* ------- fuente de datos: emulada (por defecto) o TARGET precalculado -------
+     El módulo js/clima-2050-source.js decide; si no está cargado o falla, la
+     capa queda en emulada y el comportamiento es byte a byte el de siempre.
+     fuenteDatos guarda el resultado normalizado:
+       { source, url, geojson, meta, features, aviso }.
+     En source 'target' geojson viene YA validado y se usa en línea (sin una
+     segunda descarga); en 'emulated' todo va null y manda DATOS_URL. */
+  var FUENTE_MOD = window.manolitClima2050Fuente || null;
+  var fuenteDatos = null;
+  var fuentePromesa = null;
 
   // Paleta por risk_level (0=Bajo … 3=Crítico). Relleno con opacidad baja
   // (máx. 0,35) para no tapar el callejero; borde del mismo tono al 0,8.
@@ -162,6 +183,95 @@
     var h = 0;
     for (var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
     return h;
+  }
+
+  /* ---------------- fuente de datos (emulada / TARGET) ---------------- */
+
+  function esTarget() { return !!(fuenteDatos && fuenteDatos.source === 'target'); }
+
+  // FÓRMULA EMULADA de días >40 °C, aislada: dias40 = 30 + risk×5 + hash(area) mod 7.
+  // Vive en clima-2050-source.js para compartirla con tests y CLI; si el
+  // módulo no cargó, se usa esta copia local idéntica (fallback defensivo).
+  function dias40Emulados(risk, area) {
+    if (FUENTE_MOD && typeof FUENTE_MOD.calcularDias40Emulados === 'function') {
+      return FUENTE_MOD.calcularDias40Emulados(risk, area);
+    }
+    return 30 + risk * 5 + (hashTexto(area) % 7);
+  }
+
+  // Días >40 °C según la fuente activa. Con TARGET se lee dias40 del
+  // GeoJSON; si falta, devuelve null ("no disponible") y NO se deriva con la
+  // fórmula emulada: no se inventa ningún número.
+  function dias40SegunFuente(risk, area, props) {
+    if (esTarget()) return leerNumero(props.dias40);
+    return dias40Emulados(risk, area);
+  }
+
+  // Etiqueta corta de la fuente para popup e informe.
+  function etiquetaFuente() {
+    return esTarget()
+      ? 'Datos simulados TARGET'
+      : 'Emulación inspirada en Sola-Caraballo et al.';
+  }
+
+  // "escenario SSP2-4.5 · año 2050 · resolución 100 m" (solo lo que el
+  // archivo declare; si no declara nada, se dice y no se inventa).
+  function metaTargetTexto(meta) {
+    var partes = [];
+    if (meta && meta.scenario) partes.push('escenario ' + meta.scenario);
+    if (meta && meta.year != null) partes.push('año ' + meta.year);
+    if (meta && meta.resolution_m != null) partes.push('resolución ' + meta.resolution_m + ' m');
+    return partes.join(' · ') || 'escenario, año y resolución no indicados en el archivo';
+  }
+
+  // Badge discreto junto a la casilla: "Fuente: TARGET" o "Fuente: emulada".
+  function pintarBadgeFuente() {
+    try {
+      var em = document.getElementById('clima2050FuenteBadge');
+      if (!em) return;
+      em.textContent = esTarget() ? 'Fuente: TARGET' : 'Fuente: emulada';
+      em.title = esTarget()
+        ? 'Datos precalculados con TARGET/UMEP fuera de la web (no se ejecuta en el navegador)'
+        : 'Emulación actual inspirada en Sola-Caraballo et al. (sin datos TARGET válidos)';
+    } catch (e) { }
+  }
+
+  // Resolución perezosa, una sola vez. Si el módulo de fuente no está, la
+  // capa queda emulada sin más (comportamiento de siempre).
+  function resolverFuenteDatos() {
+    if (fuentePromesa) return fuentePromesa;
+    if (!FUENTE_MOD || typeof FUENTE_MOD.resolverFuente !== 'function') {
+      fuentePromesa = Promise.resolve(null);
+      return fuentePromesa;
+    }
+    fuentePromesa = FUENTE_MOD.resolverFuente().then(function (f) {
+      fuenteDatos = (f && f.source) ? f : null;
+      if (fuenteDatos && fuenteDatos.aviso && typeof console !== 'undefined' && console.info) {
+        console.info('[Clima 2050] TARGET no disponible (' + fuenteDatos.aviso + '); se usa la emulación actual.');
+      }
+      pintarBadgeFuente();
+      return fuenteDatos;
+    }).catch(function () {
+      fuenteDatos = null;
+      pintarBadgeFuente();
+      return null;
+    });
+    return fuentePromesa;
+  }
+
+  function urlDatosEfectiva() { return (fuenteDatos && fuenteDatos.url) || DATOS_URL; }
+
+  // Devuelve la colección GeoJSON efectiva: en TARGET ya la tenemos en
+  // memoria (validada); en emulada se pide la URL maestra como siempre.
+  function obtenerGeojsonClima() {
+    if (fuenteDatos && fuenteDatos.geojson) return Promise.resolve(fuenteDatos.geojson);
+    return fetch(urlDatosEfectiva()).then(function (r) { return r.ok ? r.json() : null; });
+  }
+
+  function atribucionSegunFuente() {
+    return esTarget()
+      ? 'Simulación TARGET precalculada fuera de la web · geometría INE/IGN'
+      : 'Secciones censales INE/IGN · PMVS Mairena 2024-2029 · riesgo 2050 emulado';
   }
 
   /* ---------------- informe divulgativo de Clima 2050 ---------------- */
@@ -231,10 +341,8 @@
   function cargarEstadisticasInforme() {
     if (estadisticasInformeCache) return Promise.resolve(estadisticasInformeCache);
     if (estadisticasInformePromise) return estadisticasInformePromise;
-    estadisticasInformePromise = fetch(DATOS_URL).then(function (respuesta) {
-      if (!respuesta.ok) throw new Error('No se pudo cargar el GeoJSON de Clima 2050');
-      return respuesta.json();
-    }).then(function (coleccion) {
+    estadisticasInformePromise = resolverFuenteDatos().then(obtenerGeojsonClima).then(function (coleccion) {
+      if (!coleccion) throw new Error('No se pudo cargar el GeoJSON de Clima 2050');
       var porMunicipio = {};
       var total = { n: 0, niveles: [0, 0, 0, 0] };
       (coleccion.features || []).forEach(function (feature) {
@@ -342,7 +450,7 @@
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(22, 24, 29);
-    doc.text('Distribución del GeoJSON por categoría emulada', M, 56);
+    doc.text(z.fuente === 'target' ? 'Distribución del GeoJSON por categoría TARGET' : 'Distribución del GeoJSON por categoría emulada', M, 56);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.text('Unidad de conteo: un polígono (N = ' + total.n + ').', M, 63);
@@ -398,8 +506,10 @@
     y += 8;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    var diasZona = z.dias == null ? 'indicador de días no disponible' : z.dias + ' días/año >40 °C (emulado; regla determinista, no predicción)';
-    var codigoRiesgo = z.risk == null ? 'sin código' : 'código emulado ' + z.risk + ' de 3';
+    var diasZona = z.dias == null
+      ? (z.fuente === 'target' ? 'indicador de días no disponible en el archivo TARGET para esta zona' : 'indicador de días no disponible')
+      : z.dias + ' días/año >40 °C (' + (z.fuente === 'target' ? 'simulación TARGET precalculada' : 'emulado; regla determinista, no predicción') + ')';
+    var codigoRiesgo = z.risk == null ? 'sin código' : (z.fuente === 'target' ? 'código TARGET ' : 'código emulado ') + z.risk + ' de 3';
     var interpretacion = 'Área seleccionada: ' + z.municipio + ' · ' + z.area + ' · clase ordinal ' + z.nivel + ' (' + codigoRiesgo + '). Indicador: ' + diasZona + '.';
     var lineas = doc.splitTextToSize(interpretacion, ancho);
     doc.text(lineas, M, y);
@@ -419,7 +529,7 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(90, 96, 104);
-    doc.text('Manolit∞ Aire · estadística descriptiva de datos emulados', M, 286);
+    doc.text(z.fuente === 'target' ? 'Manolit∞ Aire · estadística descriptiva de datos simulados TARGET' : 'Manolit∞ Aire · estadística descriptiva de datos emulados', M, 286);
     doc.text('Página 2 de 3', 194, 286, { align: 'right' });
   }
 
@@ -442,7 +552,7 @@
     doc.text('Informe Clima 2050', 105, 141, { align: 'center' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text('Prototipo cartográfico · indicadores térmicos emulados', 105, 148, { align: 'center' });
+    doc.text(z.fuente === 'target' ? 'Prototipo cartográfico · datos simulados TARGET' : 'Prototipo cartográfico · indicadores térmicos emulados', 105, 148, { align: 'center' });
     doc.setDrawColor(92, 104, 118);
     doc.roundedRect(27, 171, 156, 45, 4, 4, 'S');
     doc.setFontSize(10);
@@ -506,17 +616,47 @@
     doc.setFont('helvetica', 'normal');
     doc.setTextColor.apply(doc, tinta);
     doc.setFontSize(9.5);
-    var diasTxt = z.dias == null ? 'Indicador de días >40 °C: no disponible.' : String(z.dias) + ' días/año >40 °C · EMULADO';
+    var diasTxt = z.dias == null
+      ? 'Indicador de días >40 °C: no disponible' + (z.fuente === 'target' ? ' en el archivo TARGET para esta zona' : '') + '.'
+      : String(z.dias) + ' días/año >40 °C · ' + (z.fuente === 'target' ? 'SIMULACIÓN TARGET' : 'EMULADO');
     var lineasDias3 = doc.splitTextToSize(diasTxt, ancho);
     doc.text(lineasDias3, margen, y);
     y += lineasDias3.length * 4.4 + 2;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor.apply(doc, gris);
-    var detalle = z.dias == null ? 'No se ha calculado indicador para esta selección; la categoría sigue siendo emulada.' : 'Fórmula del indicador en el cliente: días = 30 + risk_level × 5 + hash(area) mod 7. El hash determinista hace variar el ejemplo según el nombre del área; no representa medición ni variabilidad climática.';
+    var detalle = z.fuente === 'target'
+      ? (z.dias == null
+          ? 'El archivo TARGET precalculado no incluye dias40 para esta zona; no se deriva con ninguna fórmula en el cliente. ' + metaTargetTexto(z.meta) + '.'
+          : 'El indicador se lee de la propiedad dias40 del archivo TARGET precalculado fuera de la web (' + metaTargetTexto(z.meta) + '); no se deriva con ninguna fórmula en el cliente.')
+      : (z.dias == null
+          ? 'No se ha calculado indicador para esta selección; la categoría sigue siendo emulada.'
+          : 'Fórmula del indicador en el cliente: días = 30 + risk_level × 5 + hash(area) mod 7. El hash determinista hace variar el ejemplo según el nombre del área; no representa medición ni variabilidad climática.');
     var lineasDetalle3 = doc.splitTextToSize(detalle, ancho);
     doc.text(lineasDetalle3, margen, y);
     y += lineasDetalle3.length * 3.6 + 3;
+    // Datos TARGET opcionales: solo si el archivo los trae; si faltan, no se
+    // pinta ni un cero ni un guion que parezcan una medida.
+    if (z.fuente === 'target') {
+      var filaTarget = [];
+      if (z.noches != null) filaTarget.push('Noches tropicales: ' + z.noches + ' al año (TARGET).');
+      if (z.hazard != null) filaTarget.push('Índice de peligrosidad (hazard_index): ' + z.hazard.toLocaleString('es-ES') + ' (TARGET).');
+      if (z.vulnerabilidadIndice != null) filaTarget.push('Índice de vulnerabilidad (vulnerability_index): ' + z.vulnerabilidadIndice.toLocaleString('es-ES') + ' (TARGET).');
+      if (filaTarget.length) {
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor.apply(doc, tinta);
+        doc.setFontSize(9);
+        var lineasTarget = doc.splitTextToSize(filaTarget.join(' '), ancho);
+        doc.text(lineasTarget, margen, y);
+        y += lineasTarget.length * 4 + 1;
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7.6);
+        doc.setTextColor.apply(doc, gris);
+        var notaTarget = doc.splitTextToSize('Valores procedentes de la simulación TARGET precalculada fuera de la web (' + metaTargetTexto(z.meta) + '). TARGET no se ejecuta en el navegador.', ancho);
+        doc.text(notaTarget, margen, y);
+        y += notaTarget.length * 3.4 + 3;
+      }
+    }
     // Vulnerabilidad real, solo cuando el GeoJSON la trae (INE y Catastro).
     var filaVuln = [];
     if (z.renta != null) filaVuln.push('Renta media: ' + Math.round(z.renta).toLocaleString('es-ES') + ' EUR por unidad de consumo (INE, Atlas de Distribución de Renta).');
@@ -562,7 +702,9 @@
     doc.text('Metodología, alcance y limitaciones', margen, y); y += 6;
     var secciones = [
       ['Unidad espacial y procedencia', 'El GeoJSON reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029 y 6 secciones censales de Bollullos de la Mitación. La unidad cartográfica difiere entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap.'],
-      ['Método que sí ejecuta el prototipo', 'Cada polígono tiene un risk_level entero de 0 a 3, tratado como clase ordinal emulada. El indicador auxiliar es 30 + nivel × 5 + hash determinista del texto del área mod 7. La referencia a Sola-Caraballo et al. es inspiración; no implica que se haya reproducido, calibrado o validado ese estudio.'],
+      ['Método que sí ejecuta el prototipo', z.fuente === 'target'
+        ? 'Cada polígono tiene un risk_level entero de 0 a 3 leído del archivo TARGET precalculado (' + metaTargetTexto(z.meta) + '). Los días >40 °C se leen de su propiedad dias40 cuando existe; si falta para una zona se muestra "no disponible" y no se deriva con ninguna fórmula en el cliente. TARGET no se ejecuta en el navegador: el archivo se genera fuera de la web y se copia a data/clima2050/target/.'
+        : 'Cada polígono tiene un risk_level entero de 0 a 3, tratado como clase ordinal emulada. El indicador auxiliar es 30 + nivel × 5 + hash determinista del texto del área mod 7. La referencia a Sola-Caraballo et al. es inspiración; no implica que se haya reproducido, calibrado o validado ese estudio.'],
       ['Vulnerabilidad oficial (si el GeoJSON la incluye)', 'Renta media por unidad de consumo del Atlas de Distribución de Renta del INE, porcentaje de personas de 65 años o más del padrón por sección censal y porcentaje de viviendas anteriores a 1979 según el año de construcción del Catastro. Cuando aparecen, son datos oficiales de la sección censal y se muestran sin transformar. No forman parte del cálculo de risk_level ni de la penalización de ruta.'],
       ['Estadística presentada', 'La página 2 cuenta polígonos por clase y municipio y calcula porcentajes sobre el total de polígonos válidos cargados. Cada polígono pesa uno, con independencia de su superficie. No equivale a porcentaje de terreno, habitantes expuestos, episodios de calor o riesgo sanitario.'],
       ['Qué no representa', 'Esta capa no aporta observaciones meteorológicas, periodo base, series temporales, escenarios climáticos regionalizados, modelo de temperatura urbana, calibración, validación independiente, error predictivo ni intervalos de incertidumbre. Los días no son una predicción para 2050. Las categorías no incorporan población, edad, salud, arbolado real, sombra ni vulnerabilidad.'],
@@ -624,7 +766,21 @@
       return '<tr><td>' + escaparHtml(fila.municipio) + '</td><td>' + fila.n + '</td>' + fila.niveles.map(function (n) { return '<td>' + n + '</td>'; }).join('') + '</tr>';
     }).join('');
     var fecha = escaparHtml(fechaInforme());
-    var dias = z.dias == null ? 'No disponible' : z.dias + ' días/año >40 °C (emulado)';
+    var dias = z.dias == null
+      ? (z.fuente === 'target' ? 'No disponible en el archivo TARGET para esta zona' : 'No disponible')
+      : z.dias + ' días/año >40 °C (' + (z.fuente === 'target' ? 'simulación TARGET' : 'emulado') + ')';
+    var codigoTxt = (z.fuente === 'target' ? 'código TARGET ' : 'código emulado ') + (z.risk == null ? 'no disponible' : z.risk + ' de 3');
+    var explicacionDias = z.fuente === 'target'
+      ? 'El indicador se lee de la propiedad dias40 del archivo TARGET precalculado (' + escaparHtml(metaTargetTexto(z.meta)) + '); si falta se muestra "no disponible" y no se deriva con ninguna fórmula en el cliente.'
+      : 'Fórmula: 30 + risk_level × 5 + hash determinista del nombre del área mod 7; no procede de observaciones ni de una proyección climática calibrada.';
+    // Datos TARGET opcionales: solo si el archivo los trae.
+    var extraTarget = '';
+    if (z.fuente === 'target') {
+      if (z.noches != null) extraTarget += 'Noches tropicales: ' + z.noches + ' al año (TARGET). ';
+      if (z.hazard != null) extraTarget += 'Índice de peligrosidad: ' + z.hazard.toLocaleString('es-ES') + ' (TARGET). ';
+      if (z.vulnerabilidadIndice != null) extraTarget += 'Índice de vulnerabilidad: ' + z.vulnerabilidadIndice.toLocaleString('es-ES') + ' (TARGET). ';
+      if (extraTarget) extraTarget = '<p>' + escaparHtml(extraTarget.trim()) + '</p>';
+    }
     // Bloque de vulnerabilidad para el respaldo imprimible: solo si hay datos.
     var vuln = '';
     if (z.renta != null) vuln += 'Renta media: ' + Math.round(z.renta).toLocaleString('es-ES') + ' EUR por unidad de consumo (INE). ';
@@ -632,7 +788,7 @@
     if (z.antiguedad != null) vuln += 'Viviendas anteriores a 1979: ' + formatearPct(z.antiguedad) + ' (Catastro). ';
     if (vuln) vuln = '<p>' + escaparHtml(vuln.trim()) + ' Son datos oficiales de la sección censal. No intervienen en la clase emulada ni en la penalización de ruta.</p>';
     var tabla = '<table><thead><tr><th>Municipio</th><th>N</th><th>Bajo</th><th>Medio</th><th>Alto</th><th>Crítico</th></tr></thead><tbody>' + filas + '</tbody></table>';
-    var lectura = '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p>' + linkSeleccion + '<h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b></p><p>Clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · código emulado ' + (z.risk == null ? 'no disponible' : z.risk + ' de 3') + '</p><p>Indicador auxiliar: ' + dias + '. Fórmula: 30 + risk_level × 5 + hash determinista del nombre del área mod 7; no procede de observaciones ni de una proyección climática calibrada.</p>' + vuln + '</div>'; 
+    var lectura = '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p>' + linkSeleccion + '<h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b></p><p>Clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · ' + codigoTxt + '</p><p>Indicador auxiliar: ' + dias + '. ' + explicacionDias + '</p>' + extraTarget + vuln + '</div>'; 
     var metodologia = '<h1>Metodología, alcance y limitaciones</h1>' +
       '<h2>Unidad espacial y fuentes</h2><p>El archivo maestro reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029 y 6 secciones censales de Bollullos de la Mitación. Las unidades no son idénticas entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap.</p>' +
       '<h2>Método implementado</h2><p>El GeoJSON contiene un risk_level de 0 a 3, interpretado como categoría ordinal emulada. Los días auxiliares se calculan con 30 + nivel × 5 + hash determinista del texto del área mod 7. La mención de Sola-Caraballo et al. es inspiración general; este módulo no reproduce ni calibra ese estudio.</p>' +
@@ -643,8 +799,8 @@
     return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe Clima 2050</title><style>' +
       'html{background:#f4f6f8}body{margin:0;color:#16181d;font:14px/1.45 system-ui,sans-serif}.barra-acciones{position:sticky;top:0;z-index:2;display:flex;justify-content:center;gap:10px;padding:10px;background:#16181d}.barra-acciones button{min-height:44px;padding:10px 18px;border:1px solid #647080;border-radius:8px;background:#202631;color:white;font:600 14px system-ui,sans-serif;cursor:pointer}.pagina{box-sizing:border-box;width:min(210mm,100%);min-height:297mm;padding:13mm 15mm;margin:12px auto;background:#f4f6f8;box-shadow:0 3px 18px #0002;break-after:page;overflow-wrap:anywhere}.portada{background:#f4f6f8;color:#16181d;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.portada .logo-manolit{display:block;width:min(145mm,100%);height:auto;aspect-ratio:650/370;max-height:90mm}.portada h1{font-size:28px;margin:14px 0 5px}.sub,.meta{color:#56616d}.ficha{border:1px solid #cbd2da;border-radius:8px;padding:12px;margin-top:12px}.badge{display:inline-block;color:white;background:' + escaparHtml(z.acento) + ';padding:4px 10px;border-radius:5px;font-weight:700}.barra{height:18px;display:flex;margin:12px 0 8px;border-radius:4px;overflow:hidden}.barra i{height:100%}.leyenda{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:10px}.leyenda i{display:inline-block;width:10px;height:10px;margin-right:6px}table{width:100%;border-collapse:collapse;margin:8px 0 10px;font-size:11px}td,th{text-align:right;border-bottom:1px solid #cbd2da;padding:5px 4px}td:first-child,th:first-child{text-align:left;overflow-wrap:anywhere}h1{font-size:22px;margin:0 0 8px}h2{font-size:15px;margin:11px 0 4px}p{margin:6px 0}.aviso{border:1px solid #707b86;padding:8px;border-radius:6px;margin-top:10px}.pie{margin-top:10px;border-top:1px solid #cbd2da;padding-top:6px;color:#56616d;font-size:10px}@media(max-width:600px){.barra-acciones{position:static}.pagina{width:100%;min-height:0;padding:22px 18px;margin:0 auto 12px;box-shadow:none}.portada{min-height:calc(100svh - 64px)}.portada .logo-manolit{width:min(100%,480px);height:auto;max-height:34svh}.portada h1{font-size:clamp(23px,7vw,30px)}.leyenda{grid-template-columns:1fr 1fr}table{font-size:10.5px}td,th{padding:6px 2px}h1{font-size:21px}h2{font-size:15px}}@page{size:A4;margin:0}@media print{html,body{width:210mm;margin:0;background:#f4f6f8!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.barra-acciones{display:none!important}.pagina{box-sizing:border-box;width:210mm;height:auto;min-height:297mm;margin:0;padding:14mm 15mm;background:#f4f6f8!important;box-shadow:none;break-after:page;page-break-after:always;overflow:visible;-webkit-box-decoration-break:clone;box-decoration-break:clone}h1,h2{break-after:avoid;page-break-after:avoid}h2,p,.ficha,.aviso,tr{break-inside:avoid;page-break-inside:avoid}.portada{justify-content:center}.portada .logo-manolit{max-height:72mm}.pagina:last-child{break-after:auto;page-break-after:auto}}</style></head><body>' +
       '<nav class="barra-acciones" aria-label="Acciones del informe"><button type="button" id="imprimirInformeClima2050">Imprimir / Guardar como PDF</button><button type="button" id="cerrarInformeClima2050">Cerrar</button></nav>' +
-      '<section class="pagina portada">' + logo + '<h1>Informe Clima 2050</h1><p>Prototipo cartográfico · indicadores térmicos emulados</p><div class="ficha"><p>' + escaparHtml(z.municipio) + '</p><h2>' + escaparHtml(z.area) + '</h2><span class="badge">CLASE ' + escaparHtml(z.nivel.toUpperCase()) + '</span></div><p class="meta">' + fecha + '</p><p class="meta">No es una proyección climática validada ni una alerta oficial.</p><p class="meta"><a href="https://manolitoaire.com">manolitoaire.com</a></p></section>' +
-      '<section class="pagina"><h1>Resumen estadístico del mapa</h1><p>N=' + total.n + ' polígonos. Distribución por clase ordinal emulada.</p>' + barra + leyenda + '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p><h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b> · clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · código emulado ' + (z.risk == null ? 'no disponible' : z.risk + ' de 3') + '.</p><p>Indicador auxiliar: ' + dias + '. Fórmula: 30 + risk_level × 5 + hash determinista del nombre del área mod 7; no procede de observaciones ni de una proyección climática calibrada.</p>' + vuln + (linkSeleccion || '') + '</div><h2>Metodología, alcance y limitaciones</h2>' + metodologia.replace('<h1>Metodología, alcance y limitaciones</h1>', '') + '<p class="pie">Generado por Manolit∞ Aire · <a href="https://manolitoaire.com">manolitoaire.com</a> · ' + fecha + ' · Los recuentos no equivalen a porcentaje de superficie, habitantes expuestos ni probabilidad.</p></section></body></html>';
+      '<section class="pagina portada">' + logo + '<h1>Informe Clima 2050</h1><p>' + (z.fuente === 'target' ? 'Prototipo cartográfico · datos simulados TARGET' : 'Prototipo cartográfico · indicadores térmicos emulados') + '</p><div class="ficha"><p>' + escaparHtml(z.municipio) + '</p><h2>' + escaparHtml(z.area) + '</h2><span class="badge">CLASE ' + escaparHtml(z.nivel.toUpperCase()) + '</span></div><p class="meta">' + fecha + '</p><p class="meta">No es una proyección climática validada ni una alerta oficial.</p><p class="meta"><a href="https://manolitoaire.com">manolitoaire.com</a></p></section>' +
+      '<section class="pagina"><h1>Resumen estadístico del mapa</h1><p>N=' + total.n + ' polígonos. Distribución por clase ordinal ' + (z.fuente === 'target' ? 'TARGET' : 'emulada') + '.</p>' + barra + leyenda + '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p><h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b> · clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · ' + codigoTxt + '.</p><p>Indicador auxiliar: ' + dias + '. ' + explicacionDias + '</p>' + extraTarget + vuln + (linkSeleccion || '') + '</div><h2>Metodología, alcance y limitaciones</h2>' + metodologia.replace('<h1>Metodología, alcance y limitaciones</h1>', '') + '<p class="pie">Generado por Manolit∞ Aire · <a href="https://manolitoaire.com">manolitoaire.com</a> · ' + fecha + ' · Los recuentos no equivalen a porcentaje de superficie, habitantes expuestos ni probabilidad.</p></section></body></html>';
   }
 
   function imprimirRespaldoInforme(zona, ventana) {
@@ -732,7 +888,10 @@
     ultimaZona = null;
     var nivelInfo = (risk != null && risk >= 0 && risk <= 3) ? NIVELES[risk] : null;
     var nivel = nivelInfo ? nivelInfo.texto : '—';
-    var diasNum = nivelInfo ? 30 + risk * 5 + (hashTexto(area) % 7) : null;
+    // Días >40 °C según la fuente activa: con TARGET se lee dias40 del
+    // GeoJSON (si falta, null = "no disponible", NUNCA la fórmula); con la
+    // emulada, la fórmula de siempre aislada en dias40Emulados().
+    var diasNum = nivelInfo ? dias40SegunFuente(risk, area, p) : null;
     // VULNERABILIDAD REAL (nov-2026): si el GeoJSON trae renta media por
     // unidad de gasto (INE Atlas de Distribución de Renta) y porcentaje de
     // personas de 65 años o más por sección censal, se enseñan tal cual.
@@ -741,14 +900,22 @@
     var renta = leerNumero(p.renta_media_ud != null ? p.renta_media_ud : p.rm);
     var mayores = leerNumero(p.mayores65_pct != null ? p.mayores65_pct : p.ed);
     var antiguedad = leerNumero(p.pct_antes_1979 != null ? p.pct_antes_1979 : p.a79);
+    // INDICADORES TARGET OPCIONALES: solo si la fuente activa es TARGET y el
+    // archivo los trae; si faltan quedan null y no se pinta nada.
+    var noches = esTarget() ? leerNumero(p.noches_tropicales) : null;
+    var hazard = esTarget() ? leerNumero(p.hazard_index) : null;
+    var vulnerabilidadIndice = esTarget() ? leerNumero(p.vulnerability_index) : null;
     var acento = nivelInfo ? nivelInfo.acento : '#888';
     // Título unificado: "Municipio - Area" (formato del Paso 3).
     var titulo = municipio + ' - ' + area;
-    // Línea de días: número + lectura ciudadana, en una sola línea.
+    // Línea de días: número + lectura ciudadana, en una sola línea. Con
+    // TARGET y sin dias40 en la zona se dice "no disponible" (no se inventa).
     var dias = (diasNum != null)
       ? '<strong>' + diasNum + '</strong> días al año a más de 40 °C: ' +
         nivelInfo.interpretacion
-      : 'Días al año a más de 40 °C: —';
+      : (esTarget() && nivelInfo)
+        ? 'Días al año a más de 40 °C: no disponible (TARGET)'
+        : 'Días al año a más de 40 °C: —';
     var consejo = nivelInfo ? nivelInfo.consejo : '';
     // Guardamos la zona para el informe PDF (botón de descarga del popup).
     ultimaZona = {
@@ -763,6 +930,11 @@
       renta: renta,
       mayores: mayores,
       antiguedad: antiguedad,
+      fuente: (fuenteDatos && fuenteDatos.source) || 'emulated',
+      meta: (fuenteDatos && fuenteDatos.meta) || null,
+      noches: noches,
+      hazard: hazard,
+      vulnerabilidadIndice: vulnerabilidadIndice,
       centro: e.lngLat ? [Number(e.lngLat.lng), Number(e.lngLat.lat)] : null
     };
     // Bloque de vulnerabilidad: solo si hay algún dato real. Cada línea es
@@ -772,6 +944,14 @@
     if (mayores != null) vuln += 'Personas de 65 años o más: <strong>' + formatearPct(mayores) + '</strong><br>';
     if (antiguedad != null) vuln += 'Viviendas anteriores a 1979: <strong>' + formatearPct(antiguedad) + '</strong><br>';
     if (vuln) vuln = '<span style="display:block;margin-top:4px;padding-top:4px;border-top:1px solid #e2e5e9">' + vuln + '</span>';
+    // Bloque TARGET: indicadores extra de la simulación, solo los que el
+    // archivo declare para esta zona (mismo estilo discreto que el bloque de
+    // vulnerabilidad).
+    var extrasTarget = '';
+    if (noches != null) extrasTarget += 'Noches tropicales: <strong>' + noches + '</strong> al año<br>';
+    if (hazard != null) extrasTarget += 'Índice de peligrosidad: <strong>' + hazard.toLocaleString('es-ES') + '</strong><br>';
+    if (vulnerabilidadIndice != null) extrasTarget += 'Índice de vulnerabilidad: <strong>' + vulnerabilidadIndice.toLocaleString('es-ES') + '</strong><br>';
+    if (extrasTarget) extrasTarget = '<span style="display:block;margin-top:4px;padding-top:4px;border-top:1px solid #e2e5e9">' + extrasTarget + '</span>';
     // Color de texto EXPLÍCITO y oscuro (#16181d): el popup de MapLibre es
     // blanco y, sin esto, heredaba el color claro del tema oscuro de FUERA
     // del mapa y el texto quedaba invisible. Mapa y página son independientes.
@@ -779,9 +959,10 @@
       '<strong>' + titulo + '</strong><br>' +
       'Nivel de riesgo: <strong style="color:' + acento + '">' + nivel + '</strong><br>' +
       dias + '<br>' +
+      extrasTarget +
       vuln +
       '<span style="display:block;margin-top:3px;color:#5a6068;font-size:11px">' +
-        consejo + (consejo ? ' · ' : '') + 'Riesgo 2050 (emulado)' +
+        consejo + (consejo ? ' · ' : '') + etiquetaFuente() +
       '</span>' +
       '<button type="button" id="rsClima2050Pdf" style="margin-top:7px;padding:6px 10px;border:1px solid #16181d;border-radius:6px;background:#fff;color:#16181d;font:600 12px system-ui,sans-serif;cursor:pointer">Descargar informe PDF</button>' +
       '</div>';
@@ -807,11 +988,12 @@
     if (!mapa) return;
     try {
       if (!mapa.getSource(FUENTE_ID)) {
-        // Archivo maestro: UNA petición HTTP para los 3 municipios.
+        // Con TARGET validado el GeoJSON ya está en memoria (se pasa en
+        // línea); con la emulada se usa la URL maestra como siempre.
         mapa.addSource(FUENTE_ID, {
           type: 'geojson',
-          data: DATOS_URL,
-          attribution: 'Secciones censales INE/IGN · PMVS Mairena 2024-2029 · riesgo 2050 emulado',
+          data: (fuenteDatos && fuenteDatos.geojson) || urlDatosEfectiva(),
+          attribution: atribucionSegunFuente(),
         });
         // SEGURO DE COLORES (nov-2026): si el master ligero trae solo la clave
         // corta 'r', se copia a 'risk_level' al vuelo para que la expresión de
@@ -820,7 +1002,7 @@
         try {
           var fuenteNueva = mapa.getSource(FUENTE_ID);
           if (fuenteNueva && typeof fuenteNueva.setData === 'function') {
-            fetch(DATOS_URL).then(function (r) { return r.ok ? r.json() : null; }).then(function (col) {
+            obtenerGeojsonClima().then(function (col) {
               if (!col || !col.features) return;
               var tocado = false;
               col.features.forEach(function (f) {
@@ -886,13 +1068,18 @@
     if (mapa || !m) return;
     mapa = m;
 
-    // Las dos capas nacen con la casilla apagada (visibility 'none').
-    instalarCapas();
+    // Primero se resuelve la fuente de datos (auto/emulated/target, una sola
+    // vez) y DESPUÉS se instalan fuente y capas: así el addSource ya sabe si
+    // pinta el GeoJSON TARGET en línea o la URL maestra de siempre.
+    resolverFuenteDatos().then(function () {
+      instalarCapas();
+      pintarBadgeFuente();
+    });
     // Cambio de mapa base: el estilo se sustituye entero y hay que
     // reinstalar fuente y capas (mismo enganche que usa lluvia).
     mapa.on('styledata', function () {
       try {
-        if (mapa.isStyleLoaded() && !mapa.getSource(FUENTE_ID)) instalarCapas();
+        if (mapa.isStyleLoaded() && !mapa.getSource(FUENTE_ID)) resolverFuenteDatos().then(instalarCapas);
       } catch (e) { }
     });
 
@@ -900,12 +1087,18 @@
     // oculto y el mapa vuelve exactamente a la normalidad.
     var el = toggle();
     if (el) el.addEventListener('change', function () {
-      instalarCapas(); // por si el estilo aún no estaba listo al marcar
-      aplicarVisibilidad();
-      // avoidHeat: al encender, las zonas de riesgo se cargan en segundo
-      // plano para que la PRIMERA ruta ya esquive el calor.
-      if (encendida()) prepararZonasCalor();
+      resolverFuenteDatos().then(function () {
+        instalarCapas(); // por si el estilo aún no estaba listo al marcar
+        aplicarVisibilidad();
+        // avoidHeat: al encender, las zonas de riesgo se cargan en segundo
+        // plano para que la PRIMERA ruta ya esquive el calor.
+        if (encendida()) prepararZonasCalor();
+      });
     });
+
+    // i18n re-traduce las etiquetas data-i18n al cambiar de idioma y pisaría
+    // el badge de fuente: se vuelve a pintar tras cada cambio.
+    document.addEventListener('langChanged', pintarBadgeFuente);
 
     // Clic y cursor delegados a la capa de relleno: solo se disparan cuando
     // la capa está renderizada (visible), así que con la casilla apagada el
@@ -968,10 +1161,9 @@
   function prepararZonasCalor() {
     if (zonasCalor) return Promise.resolve(zonasCalor);
     if (cargaZonasPromesa) return cargaZonasPromesa;
-    // UNA sola descarga: el propio archivo maestro que pinta el mapa.
-    cargaZonasPromesa = fetch(DATOS_URL).then(function (r) {
-      return r.ok ? r.json() : null;
-    }).then(function (col) {
+    // UNA sola descarga: el mismo GeoJSON que pinta el mapa (TARGET en línea
+    // si la fuente validó; la URL maestra si sigue emulada).
+    cargaZonasPromesa = resolverFuenteDatos().then(obtenerGeojsonClima).then(function (col) {
       zonasCalor = [];
       if (col && col.features) {
         col.features.forEach(function (f) {

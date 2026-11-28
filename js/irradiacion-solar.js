@@ -491,6 +491,14 @@
         #irrResumen b{ color:var(--irr-ink); }
         #irrLeyendaAtenuacion{ font-size:9px; line-height:1.5; color:var(--irr-muted); border-top:1px solid var(--irr-line); margin-top:6px; padding-top:6px; }
         #irrEstado{ font-size:10px; margin-top:4px; line-height:1.4; }
+        .irr-map-popup .maplibregl-popup-content{ background:#fffdf8; color:#17232b; border:1px solid rgba(14,59,71,.2); border-radius:10px; box-shadow:0 8px 24px rgba(22,35,46,.24); }
+        .irr-map-popup .irr-popup-body{ font-family:inherit; font-size:12.5px; line-height:1.55; max-width:240px; color:#17232b; overflow-wrap:anywhere; }
+        .irr-map-popup .irr-popup-muted{ color:#53636d; }
+        .irr-map-popup .irr-popup-divider{ border:0; border-top:1px dashed #9aa7ad; margin:5px 0; }
+        .rs-mapa-oscuro-activo .irr-map-popup .maplibregl-popup-content{ background:#101820; color:#f2f6f7; border-color:rgba(255,154,92,.55); box-shadow:0 8px 24px rgba(0,0,0,.6); }
+        .rs-mapa-oscuro-activo .irr-map-popup .irr-popup-body{ color:#f2f6f7; }
+        .rs-mapa-oscuro-activo .irr-map-popup .irr-popup-muted{ color:#c4d0d5; }
+        .rs-mapa-oscuro-activo .irr-map-popup .irr-popup-divider{ border-top-color:rgba(232,244,240,.45); }
         @media (max-width:480px){ #irrPanel{ width:calc(100% - 24px); max-width:235px; right:12px; top:100px; } }
       `;
       document.head.appendChild(estilo);
@@ -784,15 +792,15 @@
       } catch (err) { /* el panel avisa por su propio canal */ }
 
       const html = `
-        <div style="font-family:inherit;font-size:12.5px;line-height:1.55;max-width:240px;">
-          <b style="color:${atenuacion.color}">${atenuacion.etiqueta}</b><br>
-          <span style="color:#999;">${t('irrExposureFactor', 'Factor de exposición')} ×${atenuacion.factor.toFixed(1)}</span><br>
-          <hr style="border:none;border-top:1px dashed #ccc;margin:5px 0;">
+        <div class="irr-popup-body">
+          <b class="irr-popup-heading" style="color:${atenuacion.color}">${atenuacion.etiqueta}</b><br>
+          <span class="irr-popup-muted">${t('irrExposureFactor', 'Factor de exposición')} ×${atenuacion.factor.toFixed(1)}</span><br>
+          <hr class="irr-popup-divider">
           ${bloqueHistorico}
         </div>`;
 
       if (popupInspeccion) popupInspeccion.remove();
-      popupInspeccion = new maplibregl.Popup({ closeOnClick: true })
+      popupInspeccion = new maplibregl.Popup({ closeOnClick: true, className: 'irr-map-popup' })
         .setLngLat(e.lngLat)
         .setHTML(html)
         .addTo(map);

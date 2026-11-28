@@ -5,7 +5,7 @@
 
    Geometría REAL en UN SOLO archivo maestro:
    data/andalucia_clima_2050_ligero.geojson (una única petición HTTP), con
-   566 polígonos de 4 municipios:
+   576 polígonos de 5 municipios:
    - Sevilla: 521 secciones censales (INE/IGN, vía ctafur/sevillaGeojson,
      GPL-3.0).
    - Mairena del Aljarafe: 9 áreas estadísticas del PMVS 2024-2029 (32
@@ -17,6 +17,8 @@
      administrativa DC/D1/D2/D3 no publica límites digitales) y el barrio
      se asigna por anclas OSM/Nominatim documentadas (ver
      preprocesar_ecija_2050.py).
+   - Tiflis: 10 distritos administrativos (admin_level 9, vía OSM/Overpass;
+     añadidos con anadir_tbilisi.py sobre el maestro completo).
    Cada feature lleva EXACTAMENTE tres propiedades:
    municipio (string), area (string) y risk_level (int 0-3). El riesgo es
    EMULADO (inspirado en Sola-Caraballo et al.; NO son datos reales): el
@@ -108,7 +110,7 @@
   var CAPA_ID = 'capa-clima-2050';             // relleno coropleta
   var CAPA_BORDE_ID = 'capa-clima-2050-borde'; // contorno de los polígonos
   var CAPAS = [CAPA_ID, CAPA_BORDE_ID];
-  var DATOS_URL = 'data/andalucia_clima_2050_ligero.geojson'; // master: Sevilla + Mairena + Bollullos + Écija
+  var DATOS_URL = 'data/andalucia_clima_2050_ligero.geojson'; // master: Sevilla + Mairena + Bollullos + Écija + Tiflis
   // El master ligero lleva claves cortas (m, a, r, y opcionales rm, ed, a79)
   // y coordenadas a 5 decimales. Se lee con propiedad(), que acepta claves
   // cortas y largas: si mañana se regenera con el script del INE, basta
@@ -287,8 +289,6 @@
 
   /* ---------------- informe divulgativo de Clima 2050 ---------------- */
   var jsPdfPromise = null;
-  var estadisticasInformePromise = null;
-  var estadisticasInformeCache = null;
   var jsPDFInformeTimeout = null;
   var COLORES_INFORME = [
     { nombre: 'Bajo', rgb: [102, 170, 85] },
@@ -348,38 +348,8 @@
     return (Math.round(p * 10) / 10).toLocaleString('es-ES') + ' %';
   }
 
-  // El gráfico describe el número de polígonos; no pondera áreas ni población.
-  function cargarEstadisticasInforme() {
-    if (estadisticasInformeCache) return Promise.resolve(estadisticasInformeCache);
-    if (estadisticasInformePromise) return estadisticasInformePromise;
-    estadisticasInformePromise = resolverFuenteDatos().then(obtenerGeojsonClima).then(function (coleccion) {
-      if (!coleccion) throw new Error('No se pudo cargar el GeoJSON de Clima 2050');
-      var porMunicipio = {};
-      var total = { n: 0, niveles: [0, 0, 0, 0] };
-      (coleccion.features || []).forEach(function (feature) {
-        var nivel = Number(propiedad(feature, 'risk_level'));
-        if (!isFinite(nivel) || nivel < 0 || nivel > 3 || Math.floor(nivel) !== nivel) return;
-        var municipio = String(propiedad(feature, 'municipio') || 'Municipio sin identificar');
-        if (!porMunicipio[municipio]) porMunicipio[municipio] = { municipio: municipio, n: 0, niveles: [0, 0, 0, 0] };
-        porMunicipio[municipio].n++;
-        porMunicipio[municipio].niveles[nivel]++;
-        total.n++;
-        total.niveles[nivel]++;
-      });
-      estadisticasInformeCache = {
-        total: total,
-        municipios: Object.keys(porMunicipio).sort().map(function (nombre) { return porMunicipio[nombre]; })
-      };
-      if (!total.n) throw new Error('GeoJSON sin polígonos válidos para el resumen estadístico');
-      return estadisticasInformeCache;
-    }).catch(function () {
-      estadisticasInformePromise = null;
-      return null;
-    });
-    return estadisticasInformePromise;
-  }
-
-  function porcentajeInforme(n, total) { return total ? Math.round(n * 1000 / total) / 10 : 0; }
+  // El informe se limita a la zona seleccionada: no carga estadísticas
+  // globales del GeoJSON ni desgloses de otros municipios.
 
   // Piezas de marca para el respaldo HTML. Si el SVG del índice sigue en el
   // DOM se copia tal cual; si la pantalla de idioma ya se retiró, se usa la
@@ -455,66 +425,13 @@
     catch (error) { return new Date().toISOString().slice(0, 10); }
   }
 
-  function dibujarGraficoPdf(doc, estadisticas, z) {
-    var M = 16, ancho = 178, total = estadisticas && estadisticas.total ? estadisticas.total : { n: 0, niveles: [0, 0, 0, 0] };
-    var x = M, y = 71, alto = 12;
+  function dibujarGraficoPdf(doc, z) {
+    var M = 16, ancho = 178, y = 45;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(22, 24, 29);
-    doc.text(z.fuente === 'target' ? 'Distribución del GeoJSON por categoría TARGET' : 'Distribución del GeoJSON por categoría emulada', M, 56);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text('Unidad de conteo: un polígono (N = ' + total.n + ').', M, 63);
-    for (var i = 0; i < COLORES_INFORME.length; i++) {
-      var cantidad = total.niveles[i] || 0;
-      var anchoSegmento = total.n ? ancho * cantidad / total.n : 0;
-      if (anchoSegmento > 0) {
-        doc.setFillColor.apply(doc, COLORES_INFORME[i].rgb);
-        doc.rect(x, y, anchoSegmento, alto, 'F');
-        x += anchoSegmento;
-      }
-    }
-    y += 23;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    for (var k = 0; k < COLORES_INFORME.length; k++) {
-      var nivel = COLORES_INFORME[k];
-      var cuenta = total.niveles[k] || 0;
-      doc.setFillColor.apply(doc, nivel.rgb);
-      doc.rect(M, y - 3, 4, 4, 'F');
-      doc.setTextColor(22, 24, 29);
-      doc.text(nivel.nombre + ': ' + cuenta + ' polígonos (' + porcentajeInforme(cuenta, total.n) + '%)', M + 8, y);
-      y += 8;
-    }
-    y += 5;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('Desglose por municipio', M, y);
-    y += 9;
-    doc.setFontSize(8);
-    doc.text('Municipio', M, y);
-    doc.text('N', 103, y, { align: 'right' });
-    doc.text('Bajo', 124, y, { align: 'right' });
-    doc.text('Medio', 145, y, { align: 'right' });
-    doc.text('Alto', 166, y, { align: 'right' });
-    doc.text('Crítico', 194, y, { align: 'right' });
-    y += 3;
-    doc.setDrawColor(220, 223, 228);
-    doc.line(M, y, 194, y);
-    y += 7;
-    doc.setFont('helvetica', 'normal');
-    var filas = estadisticas && estadisticas.municipios ? estadisticas.municipios : [];
-    for (var r = 0; r < filas.length; r++) {
-      doc.text(doc.splitTextToSize(filas[r].municipio, 70)[0], M, y);
-      doc.text(String(filas[r].n), 103, y, { align: 'right' });
-      for (var c = 0; c < 4; c++) doc.text(String(filas[r].niveles[c]), 124 + c * 21, y, { align: 'right' });
-      y += 8;
-    }
-    y += 7;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
     doc.text('Lectura de la selección', M, y);
-    y += 8;
+    y += 10;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     var diasZona = z.dias == null
@@ -540,11 +457,11 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(90, 96, 104);
-    doc.text(z.fuente === 'target' ? 'Manolit∞ Aire · estadística descriptiva de datos simulados TARGET' : 'Manolit∞ Aire · estadística descriptiva de datos emulados', M, 286);
+    doc.text('Manolit∞ Aire · informe limitado a la zona seleccionada', M, 286);
     doc.text('Página 2 de 3', 194, 286, { align: 'right' });
   }
 
-  function pintarInformePdf(doc, z, logoPng, estadisticas) {
+  function pintarInformePdf(doc, z, logoPng) {
     var tinta = [22, 24, 29], gris = [90, 96, 104], margen = 16, ancho = 178;
     doc.setFillColor.apply(doc, tinta);
     doc.rect(0, 0, 210, 297, 'F');
@@ -599,8 +516,8 @@
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text('Resumen estadístico del mapa', margen, 19);
-    dibujarGraficoPdf(doc, estadisticas, z);
+    doc.text('Lectura de la selección', margen, 19);
+    dibujarGraficoPdf(doc, z);
 
     // Página 3 sin bloques solapados: ficha arriba y metodología a continuación,
     // con la misma tinta y espaciado regular para no dejar saltos ni huecos.
@@ -721,12 +638,12 @@
     doc.setTextColor.apply(doc, tinta);
     doc.text('Metodología, alcance y limitaciones', margen, y); y += 6;
     var secciones = [
-      ['Unidad espacial y procedencia', 'El GeoJSON reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029, 6 secciones censales de Bollullos de la Mitación y 30 secciones censales de Écija. La unidad cartográfica difiere entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap; en Écija el "Distrito 0X" es el distrito censal del INE y el barrio se aproxima con anclas OSM/Nominatim documentadas.'],
+      ['Unidad espacial y procedencia', 'El GeoJSON reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029, 6 secciones censales de Bollullos de la Mitación y 30 secciones censales de Écija y 10 distritos administrativos de Tiflis (OpenStreetMap, admin_level 9). La unidad cartográfica difiere entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap; en Écija el "Distrito 0X" es el distrito censal del INE y el barrio se aproxima con anclas OSM/Nominatim documentadas.'],
       ['Método que sí ejecuta el prototipo', z.fuente === 'target'
         ? 'Cada polígono tiene un risk_level entero de 0 a 3 leído del archivo TARGET precalculado (' + metaTargetTexto(z.meta) + '). Los días >40 °C se leen de su propiedad dias40 cuando existe; si falta para una zona se muestra "no disponible" y no se deriva con ninguna fórmula en el cliente. TARGET no se ejecuta en el navegador: el archivo se genera fuera de la web y se copia a data/clima2050/target/.'
         : 'Cada polígono tiene un risk_level entero de 0 a 3, tratado como clase ordinal emulada. El indicador auxiliar es 30 + nivel × 5 + hash determinista del texto del área mod 7. La referencia a Sola-Caraballo et al. es inspiración; no implica que se haya reproducido, calibrado o validado ese estudio.'],
       ['Vulnerabilidad oficial (si el GeoJSON la incluye)', 'Renta media por unidad de consumo del Atlas de Distribución de Renta del INE, porcentaje de personas de 65 años o más del padrón por sección censal y porcentaje de viviendas anteriores a 1979 según el año de construcción del Catastro. Cuando aparecen, son datos oficiales de la sección censal y se muestran sin transformar. No forman parte del cálculo de risk_level ni de la penalización de ruta.'],
-      ['Estadística presentada', 'La página 2 cuenta polígonos por clase y municipio y calcula porcentajes sobre el total de polígonos válidos cargados. Cada polígono pesa uno, con independencia de su superficie. No equivale a porcentaje de terreno, habitantes expuestos, episodios de calor o riesgo sanitario.'],
+      ['Estadística presentada', 'Este informe se limita a la zona seleccionada: municipio, área, clase ordinal e indicador auxiliar. No incluye recuentos globales del GeoJSON ni desgloses de otros municipios. El indicador de días es un valor por zona, no un porcentaje de terreno, habitantes expuestos, episodios de calor o riesgo sanitario.'],
       ['Qué no representa', 'Esta capa no aporta observaciones meteorológicas, periodo base, series temporales, escenarios climáticos regionalizados, modelo de temperatura urbana, calibración, validación independiente, error predictivo ni intervalos de incertidumbre. Los días no son una predicción para 2050. Las categorías no incorporan población, edad, salud, arbolado real, sombra ni vulnerabilidad.'],
       ['Uso público responsable', 'Material de divulgación, exploración preliminar y apoyo para formular preguntas o planificar mediciones por ayuntamientos, entidades públicas y equipos técnicos. No debe ser base única de inversiones, alertas, diagnóstico o comunicación oficial. Contrastar con datos observados y evaluación profesional.'],
       ['Requisitos para una evaluación científica', 'Definir variable y periodo de referencia; reunir observaciones con control de calidad; documentar escenarios regionalizados; calibrar y validar con datos independientes; informar error e incertidumbre; incorporar exposición y vulnerabilidad con salvaguardas de privacidad; publicar fuentes, versión y método reproducible.']
@@ -757,7 +674,7 @@
     doc.text('Página 3 de 3', 194, 288, { align: 'right' });
   }
 
-  function generarHtmlInforme(z, estadisticas) {
+  function generarHtmlInforme(z) {
     var partes = obtenerPartesMarca();
     var logo = '<strong>MANOLIT∞ AIRE</strong>';
     if (partes) {
@@ -770,21 +687,6 @@
       ? 'https://www.openstreetmap.org/?mlat=' + z.centro[1].toFixed(5) + '&mlon=' + z.centro[0].toFixed(5) + '#map=15/' + z.centro[1].toFixed(5) + '/' + z.centro[0].toFixed(5)
       : '';
     var linkSeleccion = enlaceMapa ? '<p><a href="' + escaparHtml(enlaceMapa) + '">Abrir coordenada consultada en OpenStreetMap</a> · ' + z.centro[1].toFixed(5) + ', ' + z.centro[0].toFixed(5) + '</p>' : '';
-    var total = estadisticas && estadisticas.total ? estadisticas.total : { n: 0, niveles: [0, 0, 0, 0] };
-    var barra = '<div class="barra">';
-    var leyenda = '<div class="leyenda">';
-    for (var i = 0; i < COLORES_INFORME.length; i++) {
-      var cuenta = total.niveles[i] || 0;
-      var porcentaje = porcentajeInforme(cuenta, total.n);
-      var color = 'rgb(' + COLORES_INFORME[i].rgb.join(',') + ')';
-      barra += '<i style="width:' + porcentaje + '%;background:' + color + '"></i>';
-      leyenda += '<span><i style="background:' + color + '"></i>' + COLORES_INFORME[i].nombre + ': ' + cuenta + ' (' + porcentaje + '%)</span>';
-    }
-    barra += '</div>';
-    leyenda += '</div>';
-    var filas = (estadisticas && estadisticas.municipios ? estadisticas.municipios : []).map(function (fila) {
-      return '<tr><td>' + escaparHtml(fila.municipio) + '</td><td>' + fila.n + '</td>' + fila.niveles.map(function (n) { return '<td>' + n + '</td>'; }).join('') + '</tr>';
-    }).join('');
     var fecha = escaparHtml(fechaInforme());
     var dias = z.dias == null
       ? (z.fuente === 'target' ? 'No disponible en el archivo TARGET para esta zona' : 'No disponible')
@@ -807,10 +709,9 @@
     if (z.mayores != null) vuln += 'Personas de 65 años o más: ' + formatearPct(z.mayores) + ' (INE). ';
     if (z.antiguedad != null) vuln += 'Viviendas anteriores a 1979: ' + formatearPct(z.antiguedad) + ' (Catastro). ';
     if (vuln) vuln = '<p>' + escaparHtml(vuln.trim()) + ' Son datos oficiales de la sección censal. No intervienen en la clase emulada ni en la penalización de ruta.</p>';
-    var tabla = '<table><thead><tr><th>Municipio</th><th>N</th><th>Bajo</th><th>Medio</th><th>Alto</th><th>Crítico</th></tr></thead><tbody>' + filas + '</tbody></table>';
-    var lectura = '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p>' + linkSeleccion + '<h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b></p><p>Clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · ' + codigoTxt + '</p><p>Indicador auxiliar: ' + dias + '. ' + explicacionDias + '</p>' + extraTarget + vuln + '</div>'; 
+    var lectura = '<p>Este informe se limita a la zona seleccionada; no incluye recuentos globales del mapa ni datos de otros municipios.</p>' + linkSeleccion + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b></p><p>Clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · ' + codigoTxt + '</p><p>Indicador auxiliar: ' + dias + '. ' + explicacionDias + '</p>' + extraTarget + vuln + '</div>'; 
     var metodologia = '<h1>Metodología, alcance y limitaciones</h1>' +
-      '<h2>Unidad espacial y fuentes</h2><p>El archivo maestro reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029, 6 secciones censales de Bollullos de la Mitación y 30 secciones censales de Écija. Las unidades no son idénticas entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap; en Écija el "Distrito 0X" es el distrito censal del INE y el barrio se aproxima con anclas OSM/Nominatim documentadas.</p>' +
+      '<h2>Unidad espacial y fuentes</h2><p>El archivo maestro reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029, 6 secciones censales de Bollullos de la Mitación y 30 secciones censales de Écija y 10 distritos administrativos de Tiflis (OpenStreetMap, admin_level 9). Las unidades no son idénticas entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap; en Écija el "Distrito 0X" es el distrito censal del INE y el barrio se aproxima con anclas OSM/Nominatim documentadas.</p>' +
       '<h2>Método implementado</h2><p>El GeoJSON contiene un risk_level de 0 a 3, interpretado como categoría ordinal emulada. Los días auxiliares se calculan con 30 + nivel × 5 + hash determinista del texto del área mod 7. La mención de Sola-Caraballo et al. es inspiración general; este módulo no reproduce ni calibra ese estudio.</p>' +
       '<h2>Límites de inferencia</h2><p>No se aportan aquí observaciones meteorológicas, periodo base, series temporales, escenarios regionalizados, resolución temporal, modelo de temperatura urbana, validación independiente, calibración, errores ni intervalos de incertidumbre. Los días no son una predicción para 2050. La clase no representa °C ni probabilidad, y no incorpora población, salud, sombra real o vulnerabilidad.</p>' +
       '<h2>Uso para entidades públicas</h2><p>Material de divulgación y exploración preliminar para ayuntamientos, entidades públicas y equipos técnicos; puede ayudar a formular preguntas y planificar mediciones. No debe ser base única de inversiones, alertas o diagnóstico. Contrastar con observaciones y evaluación profesional.</p>' +
@@ -821,24 +722,23 @@
       'html{background:#f4f6f8}body{margin:0;color:#16181d;font:14px/1.45 system-ui,sans-serif}.barra-acciones{position:sticky;top:0;z-index:2;display:flex;justify-content:center;gap:10px;padding:10px;background:#16181d}.barra-acciones button{min-height:44px;padding:10px 18px;border:1px solid #647080;border-radius:8px;background:#202631;color:white;font:600 14px system-ui,sans-serif;cursor:pointer}.pagina{box-sizing:border-box;width:min(210mm,100%);min-height:297mm;padding:13mm 15mm;margin:12px auto;background:#f4f6f8;box-shadow:0 3px 18px #0002;break-after:page;overflow-wrap:anywhere}.portada{background:#f4f6f8;color:#16181d;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.portada .logo-manolit{display:block;width:min(145mm,100%);height:auto;aspect-ratio:650/370;max-height:90mm}.portada h1{font-size:28px;margin:14px 0 5px}.sub,.meta{color:#56616d}.ficha{border:1px solid #cbd2da;border-radius:8px;padding:12px;margin-top:12px}.badge{display:inline-block;color:white;background:' + escaparHtml(z.acento) + ';padding:4px 10px;border-radius:5px;font-weight:700}.barra{height:18px;display:flex;margin:12px 0 8px;border-radius:4px;overflow:hidden}.barra i{height:100%}.leyenda{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:10px}.leyenda i{display:inline-block;width:10px;height:10px;margin-right:6px}table{width:100%;border-collapse:collapse;margin:8px 0 10px;font-size:11px}td,th{text-align:right;border-bottom:1px solid #cbd2da;padding:5px 4px}td:first-child,th:first-child{text-align:left;overflow-wrap:anywhere}h1{font-size:22px;margin:0 0 8px}h2{font-size:15px;margin:11px 0 4px}p{margin:6px 0}.aviso{border:1px solid #707b86;padding:8px;border-radius:6px;margin-top:10px}.pie{margin-top:10px;border-top:1px solid #cbd2da;padding-top:6px;color:#56616d;font-size:10px}@media(max-width:600px){.barra-acciones{position:static}.pagina{width:100%;min-height:0;padding:22px 18px;margin:0 auto 12px;box-shadow:none}.portada{min-height:calc(100svh - 64px)}.portada .logo-manolit{width:min(100%,480px);height:auto;max-height:34svh}.portada h1{font-size:clamp(23px,7vw,30px)}.leyenda{grid-template-columns:1fr 1fr}table{font-size:10.5px}td,th{padding:6px 2px}h1{font-size:21px}h2{font-size:15px}}@page{size:A4;margin:0}@media print{html,body{width:210mm;margin:0;background:#f4f6f8!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.barra-acciones{display:none!important}.pagina{box-sizing:border-box;width:210mm;height:auto;min-height:297mm;margin:0;padding:14mm 15mm;background:#f4f6f8!important;box-shadow:none;break-after:page;page-break-after:always;overflow:visible;-webkit-box-decoration-break:clone;box-decoration-break:clone}h1,h2{break-after:avoid;page-break-after:avoid}h2,p,.ficha,.aviso,tr{break-inside:avoid;page-break-inside:avoid}.portada{justify-content:center}.portada .logo-manolit{max-height:72mm}.pagina:last-child{break-after:auto;page-break-after:auto}}</style></head><body>' +
       '<nav class="barra-acciones" aria-label="Acciones del informe"><button type="button" id="imprimirInformeClima2050">Imprimir / Guardar como PDF</button><button type="button" id="cerrarInformeClima2050">Cerrar</button></nav>' +
       '<section class="pagina portada">' + logo + '<h1>Informe Clima 2050</h1><p>' + (z.fuente === 'target' ? 'Prototipo cartográfico · datos simulados TARGET' : 'Prototipo cartográfico · indicadores térmicos emulados') + '</p><div class="ficha"><p>' + escaparHtml(z.municipio) + '</p><h2>' + escaparHtml(z.area) + '</h2><span class="badge">CLASE ' + escaparHtml(z.nivel.toUpperCase()) + '</span></div><p class="meta">' + fecha + '</p><p class="meta">No es una proyección climática validada ni una alerta oficial.</p><p class="meta"><a href="https://manolitoaire.com">manolitoaire.com</a></p></section>' +
-      '<section class="pagina"><h1>Resumen estadístico del mapa</h1><p>N=' + total.n + ' polígonos. Distribución por clase ordinal ' + (z.fuente === 'target' ? 'TARGET' : 'emulada') + '.</p>' + barra + leyenda + '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p><h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b> · clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · ' + codigoTxt + '.</p><p>Indicador auxiliar: ' + dias + '. ' + explicacionDias + '</p>' + extraTarget + vuln + (linkSeleccion || '') + '</div><h2>Metodología, alcance y limitaciones</h2>' + metodologia.replace('<h1>Metodología, alcance y limitaciones</h1>', '') + '<p class="pie">Generado por Manolit∞ Aire · <a href="https://manolitoaire.com">manolitoaire.com</a> · ' + fecha + ' · Los recuentos no equivalen a porcentaje de superficie, habitantes expuestos ni probabilidad.</p></section></body></html>';
+      '<section class="pagina"><h1>Área seleccionada</h1>' + lectura + '<h2>Metodología, alcance y limitaciones</h2>' + metodologia.replace('<h1>Metodología, alcance y limitaciones</h1>', '') + '<p class="pie">Generado por Manolit∞ Aire · <a href="https://manolitoaire.com">manolitoaire.com</a> · ' + fecha + ' · El indicador no equivale a porcentaje de superficie, habitantes expuestos ni probabilidad.</p></section></body></html>';
   }
 
   function imprimirRespaldoInforme(zona, ventana) {
-    cargarEstadisticasInforme().then(function (estadisticas) {
-      if (!estadisticas) throw new Error('No se pudieron obtener los recuentos del GeoJSON');
+    try {
       ventana.document.open();
-      ventana.document.write(generarHtmlInforme(zona, estadisticas));
+      ventana.document.write(generarHtmlInforme(zona));
       ventana.document.close();
       ventana.focus();
       var botonImprimir = ventana.document.getElementById('imprimirInformeClima2050');
       var botonCerrar = ventana.document.getElementById('cerrarInformeClima2050');
       if (botonImprimir) botonImprimir.addEventListener('click', function () { try { ventana.focus(); ventana.print(); } catch (error) { } });
       if (botonCerrar) botonCerrar.addEventListener('click', function () { try { ventana.close(); } catch (error) { } });
-    }).catch(function () {
-      try { ventana.close(); } catch (error) { }
-      try { window.alert('No se pudo construir el informe: comprueba la conexión con el archivo de Clima 2050 e inténtalo de nuevo.'); } catch (error) { }
-    });
+    } catch (error) {
+      try { ventana.close(); } catch (errorCierre) { }
+      try { window.alert('No se pudo construir el informe. Inténtalo de nuevo.'); } catch (errorAlerta) { }
+    }
   }
 
   function descargarInforme() {
@@ -854,12 +754,10 @@
     ventanaImpresion.document.open();
     ventanaImpresion.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preparando informe Clima 2050</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#16181d;color:white;font:16px/1.5 system-ui,sans-serif;text-align:center}main{padding:24px}p{color:#c4cfdb}</style></head><body><main><strong>Preparando el informe Clima 2050…</strong><p>La impresión solo se abrirá si tú pulsas «Imprimir / Guardar como PDF».</p></main></body></html>');
     ventanaImpresion.document.close();
-    var datosPromise = cargarEstadisticasInforme();
-    Promise.all([cargarJsPdf(), svgMarcaComoPng(obtenerSvgMarca()), datosPromise]).then(function (recursos) {
-      if (!recursos[2]) throw new Error('No se pudieron obtener los recuentos del GeoJSON');
+    Promise.all([cargarJsPdf(), svgMarcaComoPng(obtenerSvgMarca())]).then(function (recursos) {
       var Ctor = recursos[0];
       var doc = new Ctor({ unit: 'mm', format: 'a4' });
-      pintarInformePdf(doc, zona, recursos[1], recursos[2]);
+      pintarInformePdf(doc, zona, recursos[1]);
       doc.save('clima-2050-' + String(zona.municipio).toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.pdf');
       ventanaImpresion.close();
     }).catch(function () {

@@ -536,7 +536,7 @@
 //     (cancelarPuntoMarcado también limpia el origen si venía del mapa).
 // Cambian js/arboles-ez-3d.js, js/shadows-route.js, js/i18n.js (5 claves
 // nuevas × 7 idiomas), css/style.css (bloque nuevo al final) y sw.js.
-const VERSION = '2026-11-28-e-pino-editor-y-puntos';
+const VERSION = '2026-11-28-g-informe-solo-zona';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

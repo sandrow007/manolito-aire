@@ -38,6 +38,22 @@ Para añadir una ciudad o país:
 
 Fuera de las regiones definidas, las capas usan la región por defecto (`defaultRegion`, normalmente `global`).
 
+### Clima 2050: fuente de datos TARGET (opcional)
+
+La capa "Clima 2050" funciona por defecto con una **emulación** en cliente (inspirada en Sola-Caraballo et al.; los días >40 °C se derivan con una fórmula documentada, no son datos reales). Opcionalmente puede consumir un GeoJSON **precalculado con TARGET/UMEP fuera de la web**. **TARGET no se ejecuta en el navegador** (sin Python ni WASM en el frontend): la web solo lee el archivo ya generado.
+
+**Cómo activar cada modo** (`CLIMA_2050_SOURCE = auto | emulated | target`, por defecto `auto`), por orden de prioridad:
+
+1. Parámetro de URL: `?clima2050source=target` (o `emulated`, `auto`).
+2. `localStorage["manolito_clima2050_source"]`.
+3. `window.MANOLIT_CLIMA_2050_SOURCE` antes de cargar el módulo.
+
+**Cómo generar los datos TARGET:** el archivo se crea fuera de la web con TARGET (Python) o UMEP/QGIS y se copia a `data/clima2050/target/clima_2050_target.geojson`. Pipeline, datos de entrada y comando de importación: [`scripts/target/README.md`](./scripts/target/README.md). Esquema mínimo y comportamiento de fallback: [`data/clima2050/target/README.md`](./data/clima2050/target/README.md). Validación (sin dependencias): `node scripts/validate-target-geojson.mjs`.
+
+**Cómo volver a emulated:** borra el archivo `data/clima2050/target/clima_2050_target.geojson` o usa `?clima2050source=emulated`. Si el archivo falta, está corrupto o no cumple el esquema, la web **cae automáticamente a la emulación actual** con un aviso discreto en consola: nada se rompe.
+
+**Limitaciones:** si al archivo TARGET le falta `dias40` (u otro opcional) para una zona, se muestra "no disponible" y **nunca se deriva con la fórmula emulada**. El popup, el informe PDF y una etiqueta junto a la casilla indican siempre la fuente activa ("Datos simulados TARGET" o "Emulación inspirada en Sola-Caraballo et al.").
+
 ### Stack técnico
 
 - JavaScript (ES6+), sin frameworks pesados
@@ -94,6 +110,22 @@ Seville in summer isn't a city, it's an oven. Walking 10 minutes down the wrong 
 - ☁️ Real cloud cover (OpenWeatherMap)
 - 🌬️ Air quality (Copernicus CAMS via Open-Meteo)
 - ☀️ Solar irradiation history since 1984 (NASA POWER)
+
+### Clima 2050: optional TARGET data source
+
+The "Clima 2050" layer runs by default on a **client-side emulation** (inspired by Sola-Caraballo et al.; days >40 °C are derived with a documented formula — they are not real data). Optionally it can consume a GeoJSON **precomputed with TARGET/UMEP outside the website**. **TARGET never runs in the browser** (no Python/WASM in the frontend): the site only reads the already-generated file.
+
+**How to switch modes** (`CLIMA_2050_SOURCE = auto | emulated | target`, default `auto`), in priority order:
+
+1. URL parameter: `?clima2050source=target` (or `emulated`, `auto`).
+2. `localStorage["manolito_clima2050_source"]`.
+3. `window.MANOLIT_CLIMA_2050_SOURCE` before the module loads.
+
+**How to generate TARGET data:** the file is produced outside the website with TARGET (Python) or UMEP/QGIS and copied to `data/clima2050/target/clima_2050_target.geojson`. Pipeline, input data and import command: [`scripts/target/README.md`](./scripts/target/README.md). Minimal schema and fallback behaviour: [`data/clima2050/target/README.md`](./data/clima2050/target/README.md). Validation (no dependencies): `node scripts/validate-target-geojson.mjs`.
+
+**How to go back to emulated:** delete `data/clima2050/target/clima_2050_target.geojson` or use `?clima2050source=emulated`. If the file is missing, corrupt or fails the schema check, the site **automatically falls back to the current emulation** with a discreet console notice — nothing breaks.
+
+**Limitations:** if the TARGET file lacks `dias40` (or another optional field) for a zone, the UI shows "no disponible" and **never derives it with the emulated formula**. The popup, the PDF report and a small badge next to the layer toggle always state the active source ("Datos simulados TARGET" or "Emulación inspirada en Sola-Caraballo et al.").
 
 ### Tech stack
 

@@ -202,6 +202,26 @@
     todavía no ha llegado su turno; no significa que esté descartada.
   </p>
 
+  <h2>Clima 2050: dos fuentes, siempre declaradas</h2>
+  <p>
+    El mapa de Clima 2050 puede alimentarse de dos fuentes, y la interfaz dice siempre cuál está
+    activa: en la etiqueta junto a la casilla («Emulado» o «TARGET»), en cada ventana de zona y en
+    el informe descargable. La fuente por defecto es una <strong>emulación</strong> que se calcula
+    en el navegador: el nivel de riesgo es una clase ordinal y los días a más de 40 °C se derivan
+    con una fórmula determinista documentada, inspirada en Sola-Caraballo et al., sin que ese
+    estudio se haya reproducido ni calibrado aquí.
+  </p>
+  <p>
+    La segunda fuente es <strong>opcional</strong>: un GeoJSON generado fuera de la web con la
+    herramienta <strong>TARGET</strong> (o su equivalente UMEP/QGIS) y copiado al servidor. En ese
+    modo los días a más de 40 °C se leen del archivo simulado; si falta para una zona se muestra
+    «no disponible» y <strong>nunca</strong> se calcula con la fórmula de la emulación. TARGET no
+    se ejecuta en el navegador: no hay Python ni nada que se descargue y corra en tu móvil; el
+    sitio solo lee el archivo ya generado. Si el archivo falta, está corrupto o no cumple el
+    esquema técnico, la capa vuelve sola a la emulación. El escenario, el año y la resolución de
+    la simulación (por ejemplo, SSP2-4.5 · 2050 · 100 m) se indican en el informe.
+  </p>
+
   <h2 data-i18n-legal="met_s4t">Lo que esto no es</h2>
   <p data-i18n-legal="met_s4p">
     Manolit∞ Aire no es un medidor oficial de calidad del aire. No sustituye los avisos de tu

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -286,6 +286,10 @@
   Viewer</i>. GitHub. <a href="https://j-sola-caraballo.github.io/seville-heat-risk/" target="_blank"
   rel="noopener">https://j-sola-caraballo.github.io/seville-heat-risk/</a></strong>. Gracias por publicar
   la metodología abierta: es la que permite a esta capa ponerle números al calor con nombre de barrio.
+  Cuando la capa muestra la fuente «TARGET», los niveles de riesgo proceden de una simulación
+  <strong>precalculada fuera de la web</strong> con esa herramienta (escenario, año y resolución
+  indicados junto a los datos); la penalización de ruta sigue usando el mismo nivel ordinal, sea
+  cual sea la fuente activa.
 </p>
 <p>
   <strong>Esto no es una decisión automatizada sobre ti.</strong> Conforme al <strong>art. 22 del RGPD</strong>
@@ -575,10 +579,18 @@
   autoridades sanitarias y locales.
 </p>
 <p>
-  <strong>Los datos son una simulación.</strong> La capa activa es, como se indica en el propio panel, un
-  <strong>«Mock» (simulación)</strong>: no representa una medición ni una predicción en tiempo real. Combina
-  proyecciones climáticas a medio plazo e indicadores socioeconómicos agregados, cuyo origen y licencias se
-  detallan más abajo. Los valores pueden cambiar cuando se integre el juego de datos definitivo.
+  <strong>Los datos son una simulación, con dos fuentes posibles que siempre se declaran.</strong>
+  Por defecto la capa usa una <strong>emulación</strong> calculada en el navegador (etiqueta
+  «Emulado»), inspirada en el marco metodológico citado más abajo: no representa una medición ni
+  una predicción en tiempo real. De forma opcional, la capa puede cargar un archivo
+  <strong>precalculado con la herramienta TARGET/UMEP</strong> (etiqueta «TARGET»): en ese caso el
+  panel, cada ventana de zona y el informe descargable indican la fuente y el <strong>escenario,
+  año y resolución</strong> de la simulación (por ejemplo, SSP2-4.5 · 2050 · 100 m).
+  <strong>TARGET no se ejecuta en tu navegador</strong>: el archivo se genera fuera de la web y el
+  sitio solo lo descarga. Si el archivo falta, está corrupto o no cumple el esquema técnico, la
+  capa vuelve automáticamente a la emulación, sin avisos intrusivos. En ambos casos se trata de
+  una simulación con fines de visualización y concienciación, no de un dato observado ni de una
+  alerta oficial, y los valores pueden cambiar cuando se integre el juego de datos definitivo.
 </p>
 <p>
   <strong>Origen de los datos y atribución.</strong> Los conjuntos de datos provienen de fuentes abiertas:
@@ -590,7 +602,11 @@
   target="_blank" rel="noopener">https://j-sola-caraballo.github.io/seville-heat-risk/</a></strong>,
   empleado para cruzar la vulnerabilidad socioeconómica (renta, edad y antigüedad de edificios por
   sección censal) con las proyecciones de calor extremo. Gracias a quienes publican estos datos
-  abiertos: sin ellos no existiría esta capa.
+  abiertos: sin ellos no existiría esta capa. De forma opcional, la capa puede cargar además un
+  GeoJSON <strong>precalculado con la herramienta TARGET</strong> (procesamiento térmico urbano) o su
+  equivalente UMEP/QGIS: ese archivo se genera fuera de la web, se valida antes de publicarse y su
+  escenario, año y resolución se declaran siempre junto a los datos, en el panel, en cada ventana
+  de zona y en el informe descargable.
 </p>
 <p>
   <strong>Exención de responsabilidad.</strong> La ruta sugerida con el Modo Clima 2050 es únicamente una

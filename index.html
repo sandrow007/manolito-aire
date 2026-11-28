@@ -1701,7 +1701,7 @@
            (inspirado en Sola-Caraballo et al.). Incluye popup por zona,
            solo mientras la casilla está marcada.
            Apagada por defecto: ni fuente ni capas hasta que la pidas. -->
-      <label class="rs-capa-fila rs-ico-clima2050"><input type="checkbox" id="toggle-climate-layer"> <span data-i18n="layerClimate2050">Clima 2050</span> <em class="rs-capa-tag" data-i18n="clima2050Tag">Emulado</em></label>
+      <label class="rs-capa-fila rs-ico-clima2050"><input type="checkbox" id="toggle-climate-layer"> <span data-i18n="layerClimate2050">Clima 2050</span> <em class="rs-capa-tag" id="clima2050FuenteBadge" data-i18n="clima2050Tag">Emulado</em></label>
       <p class="rs-capa-grupo-tit" data-i18n="groupBase">Mapa base</p>
       <!-- Control segmentado [Mapa claro | Mapa IGN | Mapa oscuro] -->
       <div class="rs-capas-mapas" id="rsCapasMapas"></div>
@@ -3113,7 +3113,13 @@
           // toggle-climate-layer.
           // Fallo silencioso: sin él no cambia nada. El query nuevo invalida
           // el módulo cacheado al desplegar el generador de informes.
-          cargarScript('js/clima-2050.js?v=vulnerabilidad-ine-20261127').catch(() => { });
+          // La fuente de datos (clima-2050-source.js, auto/emulated/target)
+          // carga ANTES: detecta si existe
+          // data/clima2050/target/clima_2050_target.geojson válido; si no,
+          // la capa sigue con la emulación actual. Si la fuente falla, la
+          // capa carga igualmente y queda emulada.
+          cargarScript('js/clima-2050-source.js?v=target-source-20261128').catch(() => { })
+            .then(() => cargarScript('js/clima-2050.js?v=target-source-20261128')).catch(() => { });
           // Capa independiente de fuentes de agua; su fallo no detiene los
           // módulos existentes de árboles, irradiación ni aparcamientos.
           cargarScript('js/fuentes-agua.js?v=logo-centrado-20261126').catch((err) => console.error('No se ha podido cargar la capa de fuentes de agua:', err));

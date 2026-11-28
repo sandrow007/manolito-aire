@@ -1692,8 +1692,9 @@
            riesgo térmico proyectado a 2050 en UN archivo maestro
            (data/andalucia_clima_2050.geojson, una sola petición HTTP):
            521 secciones censales REALES de Sevilla, 9 áreas estadísticas
-           REALES de Mairena del Aljarafe (PMVS 2024-2029) y 6 secciones
-           REALES de Bollullos de la Mitación; el riesgo es EMULADO
+           REALES de Mairena del Aljarafe (PMVS 2024-2029), 6 secciones
+           REALES de Bollullos de la Mitación y 30 secciones REALES de
+           Écija; el riesgo es EMULADO
            (inspirado en Sola-Caraballo et al.). Incluye popup por zona,
            solo mientras la casilla está marcada.
            Apagada por defecto: ni fuente ni capas hasta que la pidas. -->
@@ -3092,7 +3093,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=tema-mapa-independiente-20261128'))
+        .then(() => cargarScript('js/shadows-route.js?v=gps-seguimiento-20261128'))
         .then(() => {
           // Superficie continua de calidad del aire: módulo aditivo que se
           // engancha a la fuente 'aire-es' cuando shadows-route la crea.
@@ -3104,7 +3105,7 @@
           cargarScript('js/lluvia.js').catch(() => { });
           // Capa "Clima 2050" (coropletas de riesgo térmico emulado en un
           // master único data/andalucia_clima_2050.geojson con Sevilla,
-          // Mairena del Aljarafe y Bollullos de la Mitación): módulo
+          // Mairena del Aljarafe, Bollullos de la Mitación y Écija): módulo
           // aditivo; se engancha a window.manolitAireMap y a su casilla
           // toggle-climate-layer.
           // Fallo silencioso: sin él no cambia nada. El query nuevo invalida

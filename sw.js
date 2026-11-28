@@ -494,7 +494,28 @@
 // favicon-32x32.png real (about, aviso-legal, cookies, privacidad) y
 // <base target> duplicados reducidos a uno (about, aviso-legal, index).
 // Cambian js/app.js, js/hud-navegacion.js y esas cinco páginas.
-const VERSION = '2026-11-28-b-fixes-extraidos';
+// 2026-11-28-c: la mascota te SIGUE al moverte (estilo Google Maps) sin
+// pulsar «Iniciar caminata». El despertar por acelerómetro, con tu punto
+// ya plantado, ya no duerme el GPS en la primera lectura fina: replanta
+// la mascota al moverte >10 m y se duerme solo a los 90 s quieto, con la
+// pestaña oculta o al arrancar caminata/paseo. Acelerómetro más sensible
+// (umbral 1.0, rearme 15 s). Cambian js/shadows-route.js y su query.
+// 2026-11-28-d-ecija: CLIMA 2050 suma ÉCIJA (566 polígonos, 4 municipios):
+// 30 secciones censales reales del INE (41039, WFS Secciones_2025; se
+// descartan los 5 agregados de distrito). El "Distrito 0X" del área es el
+// distrito CENSAL del INE: la división administrativa DC/D1/D2/D3 no
+// publica límites digitales. Los 8 barrios del listado municipal se
+// aproximan con anclas documentadas de OSM/Nominatim (ancla dentro del
+// polígono o más cercana <=700 m, solo secciones urbanas); sin barrio
+// verificable, el área es "Sección <CUSEC> - Distrito 0X". El riesgo sigue
+// EMULADO con el mismo hash del CUSEC que Bollullos. Lo genera
+// preprocesar_ecija_2050.py (caché del INE en data/_ine_secciones_41039_
+// cache.json). Cambian data/andalucia_clima_2050.geojson,
+// data/andalucia_clima_2050_ligero.geojson, el nuevo
+// data/riesgo-termico-2050-ecija.geojson, js/clima-2050.js (solo textos),
+// index.html, metodologia.html y aviso-legal.html. Subir VERSION purga
+// las cachés viejas del SW (el ligero se sirve cache-first).
+const VERSION = '2026-11-28-d-ecija';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

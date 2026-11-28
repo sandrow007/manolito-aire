@@ -5,13 +5,18 @@
 
    Geometría REAL en UN SOLO archivo maestro:
    data/andalucia_clima_2050_ligero.geojson (una única petición HTTP), con
-   536 polígonos de 3 municipios:
+   566 polígonos de 4 municipios:
    - Sevilla: 521 secciones censales (INE/IGN, vía ctafur/sevillaGeojson,
      GPL-3.0).
    - Mairena del Aljarafe: 9 áreas estadísticas del PMVS 2024-2029 (32
      secciones INE 41059 agrupadas según el Plan de Movilidad).
    - Bollullos de la Mitación: 6 secciones censales INE (41016), sin
      división oficial de barrios (urbanizaciones vía OSM/Nominatim).
+   - Écija: 30 secciones censales INE (41039, WFS Secciones_2025); el
+     "Distrito 0X" del área es el distrito CENSAL del INE (la división
+     administrativa DC/D1/D2/D3 no publica límites digitales) y el barrio
+     se asigna por anclas OSM/Nominatim documentadas (ver
+     preprocesar_ecija_2050.py).
    Cada feature lleva EXACTAMENTE tres propiedades:
    municipio (string), area (string) y risk_level (int 0-3). El riesgo es
    EMULADO (inspirado en Sola-Caraballo et al.; NO son datos reales): el
@@ -31,7 +36,7 @@
    Piezas (todas nacen APAGADAS y se encienden juntas con la casilla):
    1) Relleno (fill) coloreado por risk_level con opacidad baja (máx. 0,35):
       el callejero sigue siendo perfectamente legible. Idéntico para los
-      tres municipios: la pintura solo mira risk_level.
+      cuatro municipios: la pintura solo mira risk_level.
    2) Borde (line) del mismo tono con opacidad 0,8 y 1,5 px.
    3) Popup al hacer clic (también con el dedo en móvil): título
       "Municipio - Area", nivel coloreado, días >40 °C con lectura
@@ -103,7 +108,7 @@
   var CAPA_ID = 'capa-clima-2050';             // relleno coropleta
   var CAPA_BORDE_ID = 'capa-clima-2050-borde'; // contorno de los polígonos
   var CAPAS = [CAPA_ID, CAPA_BORDE_ID];
-  var DATOS_URL = 'data/andalucia_clima_2050_ligero.geojson'; // master: Sevilla + Mairena + Bollullos
+  var DATOS_URL = 'data/andalucia_clima_2050_ligero.geojson'; // master: Sevilla + Mairena + Bollullos + Écija
   // El master ligero lleva claves cortas (m, a, r, y opcionales rm, ed, a79)
   // y coordenadas a 5 decimales. Se lee con propiedad(), que acepta claves
   // cortas y largas: si mañana se regenera con el script del INE, basta
@@ -716,7 +721,7 @@
     doc.setTextColor.apply(doc, tinta);
     doc.text('Metodología, alcance y limitaciones', margen, y); y += 6;
     var secciones = [
-      ['Unidad espacial y procedencia', 'El GeoJSON reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029 y 6 secciones censales de Bollullos de la Mitación. La unidad cartográfica difiere entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap.'],
+      ['Unidad espacial y procedencia', 'El GeoJSON reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029, 6 secciones censales de Bollullos de la Mitación y 30 secciones censales de Écija. La unidad cartográfica difiere entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap; en Écija el "Distrito 0X" es el distrito censal del INE y el barrio se aproxima con anclas OSM/Nominatim documentadas.'],
       ['Método que sí ejecuta el prototipo', z.fuente === 'target'
         ? 'Cada polígono tiene un risk_level entero de 0 a 3 leído del archivo TARGET precalculado (' + metaTargetTexto(z.meta) + '). Los días >40 °C se leen de su propiedad dias40 cuando existe; si falta para una zona se muestra "no disponible" y no se deriva con ninguna fórmula en el cliente. TARGET no se ejecuta en el navegador: el archivo se genera fuera de la web y se copia a data/clima2050/target/.'
         : 'Cada polígono tiene un risk_level entero de 0 a 3, tratado como clase ordinal emulada. El indicador auxiliar es 30 + nivel × 5 + hash determinista del texto del área mod 7. La referencia a Sola-Caraballo et al. es inspiración; no implica que se haya reproducido, calibrado o validado ese estudio.'],
@@ -805,7 +810,7 @@
     var tabla = '<table><thead><tr><th>Municipio</th><th>N</th><th>Bajo</th><th>Medio</th><th>Alto</th><th>Crítico</th></tr></thead><tbody>' + filas + '</tbody></table>';
     var lectura = '<p>La gráfica representa la proporción de polígonos por clase, no porcentaje de superficie ni de población expuesta. Cada polígono cuenta una vez, sin ponderación.</p>' + linkSeleccion + '<h2>Desglose territorial</h2>' + tabla + '<div class="ficha"><h2>Área seleccionada</h2><p><b>' + escaparHtml(z.municipio) + ' · ' + escaparHtml(z.area) + '</b></p><p>Clase ordinal: <b>' + escaparHtml(z.nivel) + '</b> · ' + codigoTxt + '</p><p>Indicador auxiliar: ' + dias + '. ' + explicacionDias + '</p>' + extraTarget + vuln + '</div>'; 
     var metodologia = '<h1>Metodología, alcance y limitaciones</h1>' +
-      '<h2>Unidad espacial y fuentes</h2><p>El archivo maestro reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029 y 6 secciones censales de Bollullos de la Mitación. Las unidades no son idénticas entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap.</p>' +
+      '<h2>Unidad espacial y fuentes</h2><p>El archivo maestro reúne 521 secciones censales de Sevilla, 9 áreas estadísticas de Mairena del Aljarafe agrupadas según PMVS 2024–2029, 6 secciones censales de Bollullos de la Mitación y 30 secciones censales de Écija. Las unidades no son idénticas entre municipios. Geometrías INE/IGN; Sevilla vía ctafur/sevillaGeojson (GPL-3.0); nombres de urbanización en Bollullos vía OpenStreetMap; en Écija el "Distrito 0X" es el distrito censal del INE y el barrio se aproxima con anclas OSM/Nominatim documentadas.</p>' +
       '<h2>Método implementado</h2><p>El GeoJSON contiene un risk_level de 0 a 3, interpretado como categoría ordinal emulada. Los días auxiliares se calculan con 30 + nivel × 5 + hash determinista del texto del área mod 7. La mención de Sola-Caraballo et al. es inspiración general; este módulo no reproduce ni calibra ese estudio.</p>' +
       '<h2>Límites de inferencia</h2><p>No se aportan aquí observaciones meteorológicas, periodo base, series temporales, escenarios regionalizados, resolución temporal, modelo de temperatura urbana, validación independiente, calibración, errores ni intervalos de incertidumbre. Los días no son una predicción para 2050. La clase no representa °C ni probabilidad, y no incorpora población, salud, sombra real o vulnerabilidad.</p>' +
       '<h2>Uso para entidades públicas</h2><p>Material de divulgación y exploración preliminar para ayuntamientos, entidades públicas y equipos técnicos; puede ayudar a formular preguntas y planificar mediciones. No debe ser base única de inversiones, alertas o diagnóstico. Contrastar con observaciones y evaluación profesional.</p>' +
@@ -1052,7 +1057,7 @@
 
       // 1) Relleno coropleta por risk_level (opacidad máxima 0,35, dentro
       //    de cada rgba; por eso fill-opacity queda a 1). Igual para Sevilla,
-      //    Mairena y Bollullos: la pintura solo mira risk_level.
+      //    Mairena, Bollullos y Écija: la pintura solo mira risk_level.
       if (!mapa.getLayer(CAPA_ID)) {
         mapa.addLayer({
           id: CAPA_ID,

@@ -3767,11 +3767,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
        3) FILTRO DE CALIBRACIÓN: se descarta toda lectura con margen de
           error mayor de 20 m (coords.accuracy). El marcador solo se planta
           cuando el GPS devuelve alta fidelidad.
-       4) ENCENDIDO/APAGADO INTELIGENTE: en cuanto llega una lectura fina
-          (15 m o menos) se guarda la posición y el GPS se APAGA al momento
-          con clearWatch. Después duerme, y solo vuelve a encenderse unos
-          segundos si el acelerómetro del móvil (DeviceMotionEvent, sensor
-          de bajo consumo) nota movimiento físico real del usuario. */
+       4) ENCENDIDO/APAGADO INTELIGENTE: pedida desde el botón, en cuanto
+          llega una lectura fina (20 m o menos) se guarda la posición y el
+          GPS se APAGA al momento con clearWatch. Después duerme, y si el
+          acelerómetro del móvil (DeviceMotionEvent, sensor de bajo
+          consumo) nota que te mueves de verdad, despierta en MODO
+          SEGUIMIENTO: la mascota avanza contigo en vivo (estilo Google
+          Maps, nov-2026) y el GPS se vuelve a dormir solo tras 90 s
+          quieto, con la pestaña oculta o al arrancar la caminata/paseo,
+          que tienen su propio watch. */
     let gpsWatchId = null;
     let gpsDeadlineTimer = null;
     let gpsAvisoPendiente = false;
@@ -3781,11 +3785,21 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     let gpsMuestraSaltador = 0;
     let gpsDetectorArmado = false;
     let gpsPermisoMovimientoPedido = false;
+    // Estado del modo seguimiento (ver 4): referencias para distinguir el
+    // desplazamiento real del tembleque del GPS.
+    let segAnclaMov = null;      // [lon,lat] desde la que se mide si hay marcha real
+    let segUltimaPlanta = null;  // [lon,lat] donde se plantó la mascota por última vez
 
     const dormirGPS = () => {
       if (gpsWatchId != null) { try { navigator.geolocation.clearWatch(gpsWatchId); } catch (e) { } gpsWatchId = null; }
       if (gpsDeadlineTimer) { clearTimeout(gpsDeadlineTimer); gpsDeadlineTimer = null; }
     };
+
+    // Pestaña oculta: la radio se apaga del todo, seguimiento incluido.
+    // Al volver, el acelerómetro lo despertará de nuevo si te mueves.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) dormirGPS();
+    });
 
     // Planta o actualiza tu punto con una lectura YA calibrada (≤20 m).
     // volar: mueve la cámara (solo cuando lo pides tú con el botón).
@@ -3793,6 +3807,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const aplicarPosicionGPS = (pos, opciones) => {
       const volar = !!(opciones && opciones.volar);
       const silenciosa = !!(opciones && opciones.silenciosa);
+      // sinAviso (nov-2026): en seguimiento continuo la mascota se replanta
+      // cada pocos metros; escribir el estado cada vez sería un ruido
+      // constante en pantalla. El punto se mueve, el texto no dice nada.
+      const sinAviso = !!(opciones && opciones.sinAviso);
       // La lectura tosca planta el punto YA para que veas respuesta. También
       // puede resolver el puente del chat: una posición reciente y de hasta
       // 150 m es preferible a bloquear la ruta esperando una precisión ideal.
@@ -3861,13 +3879,15 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         map.getSource('precision-ubicacion')?.setData(turf.featureCollection([]));
       }
 
-      if (silenciosa) {
-        mostrarEstado(`${t('locationUpdated', 'Ubicación actualizada')} (±${precisionM} m).`, 'ok');
-      } else {
-        const notaPrecision = precisionM > 0
-          ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m. ${t('locationNote', 'Sin GPS real puede ser orientativa')})`
-          : '';
-        mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision}. ${t('chooseDestination', 'Toca un punto del mapa para poner el destino.')}`, 'ok');
+      if (!sinAviso) {
+        if (silenciosa) {
+          mostrarEstado(`${t('locationUpdated', 'Ubicación actualizada')} (±${precisionM} m).`, 'ok');
+        } else {
+          const notaPrecision = precisionM > 0
+            ? ` (${t('locationPrecision', 'precisión reportada por el navegador')}: ±${precisionM} m. ${t('locationNote', 'Sin GPS real puede ser orientativa')})`
+            : '';
+          mostrarEstado(`${t('locationMarked', 'Ubicación marcada como origen')}${notaPrecision}. ${t('chooseDestination', 'Toca un punto del mapa para poner el destino.')}`, 'ok');
+        }
       }
       if (volar) map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 900 });
       // Puente con el chat: si el chip «¿Calculo tu ruta desde aquí?» está
@@ -3884,9 +3904,33 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       dormirGPS(); // limpia cualquier plazo anterior
       gpsUltimoDespertarMs = Date.now();
       gpsAvisoPendiente = !!desdeBoton;
+      // Seguimiento continuo (nov-2026): solo cuando el despertar viene del
+      // acelerómetro y YA tienes tu punto plantado. Botón y «Reiniciar»
+      // siguen siendo de un disparo: calibran y duermen como siempre.
+      const seguimiento = !desdeBoton && gpsYaColocado;
+      segAnclaMov = null;
+      segUltimaPlanta = null;
       let huboLecturaBuena = false;
       let huboLecturaTosca = false;  // la primera lectura burda ya plantó el punto
       let yaVolo = false;            // la cámara vuela una sola vez por despertar
+      // Al cumplirse el plazo con el GPS encendido, se apaga sí o sí.
+      // El aviso y el puente del chat solo existen en despertares de un
+      // disparo; en modo seguimiento son inertes y esto simplemente duerme.
+      const plazoCumplido = () => {
+        const avisar = gpsAvisoPendiente && !huboLecturaBuena && !huboLecturaTosca;
+        dormirGPS();
+        if (avisar) {
+          mostrarEstado(t('locationNotCalibrated', 'El GPS no ha llegado a buena precisión (20 m o menos). Acércate a una ventana o sal a cielo abierto, o mantén pulsado el mapa para marcar el punto a mano.'), 'error');
+        }
+        if (!huboLecturaBuena && !huboLecturaTosca && window.__manolitUbicacionCb) {
+          try { window.__manolitUbicacionCb.reject(new Error('sin-precision')); } catch (e) { }
+          window.__manolitUbicacionCb = null;
+        }
+      };
+      const rearmarPlazo = (ms) => {
+        if (gpsDeadlineTimer) clearTimeout(gpsDeadlineTimer);
+        gpsDeadlineTimer = setTimeout(plazoCumplido, ms);
+      };
       try {
         gpsWatchId = navigator.geolocation.watchPosition(
         (pos) => {
@@ -3899,7 +3943,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           if (!latValida) return;
           const acc = isFinite(coords.accuracy) ? coords.accuracy : Infinity;
           if (acc > 20) {
-            if (!huboLecturaTosca) {
+            // En seguimiento ya tienes tu punto plantado de antes: las
+            // lecturas burdas no mueven la mascota, se espera a la lectura
+            // fina (≤20 m) para que no dé saltos falsos.
+            if (!huboLecturaTosca && !seguimiento) {
               huboLecturaTosca = true;
               try {
                 aplicarPosicionGPS(pos, {
@@ -3918,6 +3965,29 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
             return;
           }
           huboLecturaBuena = true;
+          if (seguimiento) {
+            // Seguimiento vivo (nov-2026): la mascota avanza contigo sin
+            // tocar nada más. Se replanta solo si te moviste >10 m (el
+            // tembleque del GPS queda filtrado) y la siesta se pospone
+            // únicamente con marcha real: >25 m desde el ancla. Quieto 90 s
+            // o pestaña oculta → el GPS duerme solo.
+            try {
+              const puntoNuevo = [pos.coords.longitude, pos.coords.latitude];
+              const distPlanta = segUltimaPlanta
+                ? turf.distance(turf.point(segUltimaPlanta), turf.point(puntoNuevo), { units: 'meters' })
+                : Infinity;
+              if (distPlanta > 10) {
+                aplicarPosicionGPS(pos, { silenciosa: true, sinAviso: true });
+                segUltimaPlanta = puntoNuevo;
+              }
+              if (!segAnclaMov) segAnclaMov = puntoNuevo;
+              if (turf.distance(turf.point(segAnclaMov), turf.point(puntoNuevo), { units: 'meters' }) > 25) {
+                segAnclaMov = puntoNuevo;
+                rearmarPlazo(90000);
+              }
+            } catch (e) { /* el seguimiento jamás rompe el mapa */ }
+            return;
+          }
           try {
             aplicarPosicionGPS(pos, { volar: !!desdeBoton && !yaVolo, silenciosa: !desdeBoton });
           } catch (e) {
@@ -3959,18 +4029,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         }
       }
       // Plazo máximo con el GPS encendido: 45 s si lo pediste tú, 25 s si
-      // despertó por movimiento. Cumplido el plazo, se apaga sí o sí.
-      gpsDeadlineTimer = setTimeout(() => {
-        const avisar = gpsAvisoPendiente && !huboLecturaBuena && !huboLecturaTosca;
-        dormirGPS();
-        if (avisar) {
-          mostrarEstado(t('locationNotCalibrated', 'El GPS no ha llegado a buena precisión (20 m o menos). Acércate a una ventana o sal a cielo abierto, o mantén pulsado el mapa para marcar el punto a mano.'), 'error');
-        }
-        if (!huboLecturaBuena && !huboLecturaTosca && window.__manolitUbicacionCb) {
-          try { window.__manolitUbicacionCb.reject(new Error('sin-precision')); } catch (e) { }
-          window.__manolitUbicacionCb = null;
-        }
-      }, desdeBoton ? 45000 : 25000);
+      // despertó por movimiento suelto, 90 s sin marcha real en modo
+      // seguimiento (cada desplazamiento real lo rearma en la lectura).
+      // Cumplido el plazo, se apaga sí o sí.
+      rearmarPlazo(desdeBoton ? 45000 : (seguimiento ? 90000 : 25000));
     };
 
     // Despertar por movimiento físico real: el acelerómetro consume
@@ -3982,18 +4044,29 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         if (gpsWatchId != null) return; // ya despierto
         if (!gpsYaColocado) return;     // sin posición previa no hay nada que refrescar
         if (document.hidden) return;
+        // La caminata GPS real y el paseo virtual tienen su propio mundo:
+        // con cualquiera de los dos activo el seguimiento no despierta.
+        // (watchId se declara más abajo con let; esto solo corre con un
+        // evento devicemotion, siempre tras evaluar el script entero.)
+        if (watchId != null) return;
+        if (paseoActivo) return;
         gpsMuestraSaltador = (gpsMuestraSaltador + 1) % 3;
         if (gpsMuestraSaltador !== 0) return; // con 1 de cada 3 eventos basta
         const a = ev.accelerationIncludingGravity || ev.acceleration;
         if (!a) return;
         const mag = Math.sqrt((a.x || 0) * (a.x || 0) + (a.y || 0) * (a.y || 0) + (a.z || 0) * (a.z || 0));
         // Quieto o en reposo la magnitud ronda la gravedad (9.81); andar o
-        // ir en bici la aleja de forma clara y repetida.
-        if (Math.abs(mag - 9.81) > 1.4) gpsRachaMovimiento++; else gpsRachaMovimiento = 0;
+        // ir en bici la aleja de forma clara y repetida. Umbral 1.0 (antes
+        // 1.4): caminar con el móvil en el bolsillo apenas pasaba de 1.4 y
+        // el despertar no llegaba nunca.
+        if (Math.abs(mag - 9.81) > 1.0) gpsRachaMovimiento++; else gpsRachaMovimiento = 0;
         const ahora = Date.now();
-        // 3 sacudidas seguidas y al menos 90 s desde el último despertar:
-        // así el GPS no se enciende por coger el móvil del bolsillo.
-        if (gpsRachaMovimiento >= 3 && ahora - gpsUltimoDespertarMs > 90000) {
+        // 3 sacudidas seguidas y al menos 15 s desde el último despertar
+        // (antes 90 s: si parabas y reanudabas la marcha, el seguimiento
+        // tardaba minuto y medio en volver). Como el GPS se duerme solo a
+        // los 90 s quieto, un despertar falso por coger el móvil caduca
+        // enseguida y no gasta más que unos segundos de radio.
+        if (gpsRachaMovimiento >= 3 && ahora - gpsUltimoDespertarMs > 15000) {
           gpsRachaMovimiento = 0;
           despertarGPS(false);
         }
@@ -4128,6 +4201,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       if (watchId != null) { detenerCaminata(); mostrarEstado(''); return; }
       if (preparandoCaminata) return;
       if (paseoActivo) detenerPaseoVirtual(); // los dos modos de caminar no pueden convivir
+      dormirGPS(); // la caminata abre su propio watch: el seguimiento cede la radio
       if (!('geolocation' in navigator)) {
         mostrarEstado(t('errorGeolocation', 'Este navegador no permite compartir tu ubicación.'), 'error');
         return;
@@ -4252,6 +4326,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     function entrarPaseoVirtual() {
       if (paseoActivo) return;
       if (watchId != null) detenerCaminata(); // no convivir con la caminata GPS real
+      try { dormirGPS(); } catch (e) { } // el paseo es cámara libre: el seguimiento también cede
 
       // Guardamos el estado real del mapa para poder volver a él tal cual al salir
       paseoEstadoPrevio = {

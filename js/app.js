@@ -178,6 +178,7 @@ let currentMode = 'ciudadano';
 let currentCity = 'sevilla';
 let currentPM25 = null;
 let airRequestFailed = false;
+let airRequestId = 0;
 
 // *** FUNCIÓN MÁGICA PARA EL NUEVO SELECTOR DE CIUDADES ***
 // El HTML la llama cuando eligen una ciudad.
@@ -299,6 +300,7 @@ function aqiFromPM25(pm){
 
 async function fetchCurrentCity(){
   const d = cityData[currentCity];
+  const requestId = ++airRequestId;
   currentPM25 = null;
   airRequestFailed = false;
   renderHero();
@@ -316,6 +318,9 @@ async function fetchCurrentCity(){
       r = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?${consultaAire}`);
     }
     const data = await r.json();
+    // Si la persona cambió de ciudad mientras volvía la respuesta, este
+    // resultado ya es viejo y no debe pisar el de la ciudad nueva.
+    if (requestId !== airRequestId) return;
     const c = data.current || {};
     currentPM25 = c.pm2_5 != null && Number.isFinite(Number(c.pm2_5)) ? Number(c.pm2_5) : null;
     airRequestFailed = currentPM25 == null;
@@ -334,7 +339,7 @@ async function fetchCurrentCity(){
         hora
       });
     }
-  } catch(e){ airRequestFailed = true; }
+  } catch(e){ if (requestId === airRequestId) airRequestFailed = true; }
   renderHero();
 }
 

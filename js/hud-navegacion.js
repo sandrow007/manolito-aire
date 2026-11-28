@@ -656,7 +656,7 @@
         // Tolerancia de 3 evaluaciones para que un recambio de estilo del
         // mapa no apague y encienda el HUD en un parpadeo.
         S.fallosRuta++;
-        if (S.fallosRuta < 3 && enMarcha) return;
+        if (S.fallosRuta < 3) return;
       }
 
       if (hayRuta && !S.visible) {

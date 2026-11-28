@@ -486,7 +486,15 @@
 // Cambian index.html (badge + query nuevo de ambos módulos), js/
 // clima-2050.js y sw.js; el nuevo js/clima-2050-source.js entra en la
 // lista de red-primero para que los arreglos lleguen al momento.
-const VERSION = '2026-11-28-clima2050-target-source';
+// 2026-11-28-b: rescatado de la rama mode-navegacion-ux lo que main aún
+// no tenía: guarda contra la carrera al cambiar de ciudad (js/app.js ya
+// no pisa el aire de la ciudad nueva con la respuesta vieja), arreglo del
+// ReferenceError por «enMarcha» sin declarar en el HUD de navegación
+// (js/hud-navegacion.js), favicon.png que no existe sustituido por el
+// favicon-32x32.png real (about, aviso-legal, cookies, privacidad) y
+// <base target> duplicados reducidos a uno (about, aviso-legal, index).
+// Cambian js/app.js, js/hud-navegacion.js y esas cinco páginas.
+const VERSION = '2026-11-28-b-fixes-extraidos';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

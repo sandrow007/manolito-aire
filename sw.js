@@ -475,7 +475,18 @@
 // Cambian index.html (query del SQI), js/sqi-calidad-sombra.js,
 // js/catastro-edificios-3d.js, js/clima-2050.js, worker.js, metodologia.html,
 // aviso-legal.html, sw.js y el nuevo preprocesar_ine_vulnerabilidad.py.
-const VERSION = '2026-11-27-noche-1979-ine';
+// 2026-11-28-clima2050-target-source: FUENTE OPCIONAL TARGET para Clima
+// 2050. Nuevo js/clima-2050-source.js decide la fuente (CLIMA_2050_SOURCE =
+// auto|emulated|target; por defecto auto). Si data/clima2050/target/
+// clima_2050_target.geojson existe y valida, la capa lo pinta y lee dias40
+// del archivo; si falta o no valida, todo queda emulado como antes. TARGET
+// NO se ejecuta en el navegador: el archivo se genera fuera (scripts/
+// target/README.md) y se valida con scripts/validate-target-geojson.mjs.
+// Popup, informe PDF y un badge junto a la casilla indican la fuente.
+// Cambian index.html (badge + query nuevo de ambos módulos), js/
+// clima-2050.js y sw.js; el nuevo js/clima-2050-source.js entra en la
+// lista de red-primero para que los arreglos lleguen al momento.
+const VERSION = '2026-11-28-clima2050-target-source';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).
@@ -772,7 +783,7 @@ self.addEventListener('fetch', function(ev) {
 	// Capas en desarrollo activo: red primero para que un arreglo llegue al
 	// momento (con caché como respaldo sin conexión).
 	if (url.origin === self.location.origin &&
-	/\/js\/(transporte-publico|rutas-bici|fuentes-agua|clima-2050|shadows-route)\.js$/i.test(url.pathname)) {
+	/\/js\/(transporte-publico|rutas-bici|fuentes-agua|clima-2050|clima-2050-source|shadows-route)\.js$/i.test(url.pathname)) {
 		ev.respondWith(networkFirst(peticion));
 		return;
 	}

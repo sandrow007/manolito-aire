@@ -1,0 +1,43 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "source": "TARGET",
+    "scenario": "SSP2-4.5",
+    "year": 2050,
+    "resolution_m": 100,
+    "fixture": true,
+    "nota": "FIXTURE SINTÉTICO para tests automáticos (tests/clima-2050-source.test.mjs). Los valores NO proceden de una ejecución real de TARGET/UMEP ni son datos reales: solo sirven para comprobar el esquema y el fallback. NO usar como dato de producción."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "municipio": "Sevilla",
+        "area": "Fixture Centro (sintético)",
+        "risk_level": 2,
+        "dias40": 47,
+        "noches_tropicales": 58,
+        "hazard_index": 0.71,
+        "vulnerability_index": 0.42
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-5.995, 37.385], [-5.990, 37.385], [-5.990, 37.390], [-5.995, 37.390], [-5.995, 37.385]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "municipio": "Mairena del Aljarafe",
+        "area": "Fixture Norte (sintético, sin dias40 para probar el 'no disponible')",
+        "risk_level": 3,
+        "hazard_index": 0.88,
+        "vulnerability_index": 0.35
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-6.210, 37.340], [-6.205, 37.340], [-6.205, 37.345], [-6.210, 37.345], [-6.210, 37.340]]]
+      }
+    }
+  ]
+}

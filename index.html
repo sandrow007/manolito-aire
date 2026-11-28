@@ -168,7 +168,7 @@
      huerfano al retirar el preload; se elimina 31-oct-2026.) -->
 
 <!-- driver.js carga bajo demanda desde tutorial.js (EcoIndex) -->
-<link rel="stylesheet" href="css/style.css?v=cabecera-movil-20261126">
+<link rel="stylesheet" href="css/style.css?v=tema-mapa-independiente-20261128">
 <link rel="stylesheet" href="css/sqi.css?v=sqi-temp-movil-20261126">
 <!-- 28-sep-2026 (arreglo carga en frio): preconectar con los dos CDN de las
      librerias del mapa ahorra el salto de DNS y TLS en la primera visita. -->
@@ -3039,7 +3039,7 @@
      widget; nadie más decide por su cuenta si es de día o de noche. -->
 <script src="js/sol.js" defer></script>
 <script src="js/chat.js?v=sin-prompt-gps-20261117-j" defer></script>
-<script src="js/app.js" defer></script>
+<script src="js/app.js?v=tema-mapa-independiente-20261128" defer></script>
 <script src="js/air-forecast.js" defer></script>
 <script src="js/planetario.js" defer></script>
 <script src="js/tutorial.js" defer></script>
@@ -3096,7 +3096,7 @@
         cargarScript('https://unpkg.com/@turf/turf@6.5.0/turf.min.js'),
         cargarScript('https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js'),
       ])
-        .then(() => cargarScript('js/shadows-route.js?v=resumen-dentro-mapa-20261126'))
+        .then(() => cargarScript('js/shadows-route.js?v=tema-mapa-independiente-20261128'))
         .then(() => {
           // Superficie continua de calidad del aire: módulo aditivo que se
           // engancha a la fuente 'aire-es' cuando shadows-route la crea.
@@ -3145,7 +3145,7 @@
           cargarScript('js/arboles-ez-3d.js?v=pino-ez-20261126')
             .catch((err) => console.error('Árboles EZ-TREE no cargados (el resto sigue igual):', err))
         )
-        .then(() => cargarScript('js/irradiacion-solar.js'))
+        .then(() => cargarScript('js/irradiacion-solar.js?v=tema-mapa-independiente-20261128'))
         .then(() => cargarScript('js/microclima.js?v=microclima-difuminado-20261126'))
         .then(() => cargarScript('js/rendimiento-movil.js'))
         // 07-oct-2026 (): aparcamientos y planificador de

@@ -920,16 +920,6 @@ function initMap(){
 
   let tileLayer = capaBase().addTo(map);
 
-  const themeBtn = document.getElementById('themeToggle');
-  if (themeBtn){
-    themeBtn.addEventListener('click', () => {
-      setTimeout(() => {
-        map.removeLayer(tileLayer);
-        tileLayer = capaBase().addTo(map);
-      }, 0);
-    });
-  }
-
   const statusLine = document.getElementById('statusLine');
 
   // 1) Todos los marcadores nacen grises con su popup "cargando".

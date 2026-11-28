@@ -414,16 +414,19 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
     linear-gradient(120deg, var(--accent) 0%, var(--sky-mid) 50%, var(--breath-good) 100%) border-box;
   box-shadow: 0 18px 44px rgba(22,35,46,0.16), 0 0 0 5px rgba(255,107,26,0.07);
 }
-#map{ height: 460px; width:100%; background:var(--mist); }
+#map{ height: 460px; width:100%; background:#E4F1EB; }
 
 /* El mapa de rutas y sombras 3D es la pieza protagonista: más alto y
    con altura fluida según el viewport (dvh corrige la barra del
    navegador en iPhone/Android, que con vh recortaba el mapa). */
+/* Fondo FIJO (no var(--mist)): el tema claro/oscuro de la página no
+   tiñe nunca el lienzo del mapa; solo el modo propio del mapa (Mapa
+   oscuro) lo altera, vía .rs-mapa-oscuro-activo. */
 #shadowRouteMap{
   width:100%;
   height: clamp(440px, 62svh, 760px);
   height: clamp(440px, 62dvh, 760px);
-  background:var(--mist);
+  background:#E4F1EB;
 }
 
 /* En móvil el mapa de sombras rompe el margen lateral y crece hasta
@@ -454,21 +457,24 @@ select, select option{ background: var(--paper); color: var(--sky-deep); }
 }
 /* MapLibre gestiona sus propios gestos (pellizcar para zoom) */
 #shadowRouteMap .maplibregl-canvas{ touch-action: none; }
-.legend{ position:absolute; bottom:14px; left:14px; z-index:400; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 14px; font-size:0.75rem; box-shadow:0 4px 14px rgba(0,0,0,0.1); }
+/* Leyenda flotante DENTRO del mapa: colores fijos, independientes del
+   tema de la página (misma regla que el resto de widgets del mapa). */
+.legend{ position:absolute; bottom:14px; left:14px; z-index:400; background:#FBFAF7; border:1px solid rgba(14,59,71,0.14); border-radius:12px; padding:10px 14px; font-size:0.75rem; color:#0D1F26; box-shadow:0 4px 14px rgba(0,0,0,0.1); }
 .legend-row{ display:flex; align-items:center; gap:6px; margin:3px 0; }
 .legend-dot{ width:10px; height:10px; border-radius:50%; }
-.legend-note{ color: var(--sky-mid); margin-top:6px; font-style:italic; max-width:190px; }
+.legend-note{ color:#17788A; margin-top:6px; font-style:italic; max-width:190px; }
 .status-line{ text-align:center; font-family:var(--font-mono); font-size:0.68rem; color:var(--sky-mid); padding:8px; }
 .popup-human{ font-family:var(--font-display); font-weight:600; font-size:0.96rem; color:var(--sky-deep); margin-bottom:4px; }
 .popup-tech{ font-family:var(--font-mono); font-size:0.66rem; color:var(--sky-mid); }
 .popup-tag{ font-size:0.63rem; color:var(--accent); font-family:var(--font-mono); margin-top:4px; display:block; }
 
-[data-theme="dark"] .leaflet-control-zoom a{ background:var(--mist); color:var(--ink); border-color:var(--line); }
-[data-theme="dark"] .leaflet-control-zoom a:hover{ background:var(--sky-deep); color:var(--paper); }
-[data-theme="dark"] .leaflet-popup-content-wrapper,
-[data-theme="dark"] .leaflet-popup-tip{ background:var(--paper); color:var(--ink); }
-[data-theme="dark"] .leaflet-control-attribution{ background:rgba(0,0,0,0.55); color:var(--sky-mid); }
-[data-theme="dark"] .leaflet-control-attribution a{ color:var(--sky-mid); }
+/* El aspecto de los controles Leaflet depende del modo del propio mapa, no del tema global. */
+#map .leaflet-control-zoom a{ background:#F6FAF7; color:#0D1F26; border-color:rgba(14,59,71,.2); }
+#map .leaflet-control-zoom a:hover{ background:#0E3B47; color:#F6FAF7; }
+#map .leaflet-popup-content-wrapper,
+#map .leaflet-popup-tip{ background:#F6FAF7; color:#0D1F26; }
+#map .leaflet-control-attribution{ background:rgba(255,255,255,.8); color:#17788A; }
+#map .leaflet-control-attribution a{ color:#17788A; }
 
 /* ---------- sección "qué significa esto" ---------- */
 .explain{ max-width: 720px; margin: 50px auto 0; padding: 0 24px; }
@@ -863,9 +869,9 @@ body.mode-peque .peque-message { animation: pequePop 0.55s cubic-bezier(0.34, 1.
 .rs-planetario-cielo{ fill:rgba(23,120,138,0.10); fill:color-mix(in srgb, var(--sky-mid) 11%, color-mix(in srgb, var(--accent) 11%, transparent)); transition:fill 1.2s ease; }
 .rs-planetario[data-cielo="tarde"] .rs-planetario-cielo{ fill:rgba(255,107,26,0.18); fill:color-mix(in srgb, var(--accent) 22%, transparent); }
 .rs-planetario[data-cielo="noche"] .rs-planetario-cielo{ fill:rgba(8,20,38,0.88); }
-[data-theme="dark"] .rs-planetario-cielo{ fill:rgba(159,216,206,0.12); fill:color-mix(in srgb, var(--sky-mid) 15%, color-mix(in srgb, var(--accent) 12%, transparent)); }
-[data-theme="dark"] .rs-planetario[data-cielo="tarde"] .rs-planetario-cielo{ fill:color-mix(in srgb, var(--accent) 24%, transparent); }
-[data-theme="dark"] .rs-planetario[data-cielo="noche"] .rs-planetario-cielo{ fill:rgba(2,8,18,0.92); }
+.rs-planetario[data-theme-mapa="dark"] .rs-planetario-cielo{ fill:rgba(159,216,206,0.12); fill:color-mix(in srgb, #17788A 15%, color-mix(in srgb, #FF6B1A 12%, transparent)); }
+.rs-planetario[data-theme-mapa="dark"][data-cielo="tarde"] .rs-planetario-cielo{ fill:color-mix(in srgb, #FF6B1A 24%, transparent); }
+.rs-planetario[data-theme-mapa="dark"][data-cielo="noche"] .rs-planetario-cielo{ fill:rgba(2,8,18,0.92); }
 .rs-planetario[data-cielo="noche"] .rs-sol-cardinal{ fill:#9FD8CE; }
 .rs-estrella{ fill:#ffffff; opacity:0; transition:opacity 1.2s ease; }
 .rs-planetario[data-cielo="noche"] .rs-estrella{ opacity:0.85; }
@@ -918,16 +924,9 @@ body.mode-peque .peque-message { animation: pequePop 0.55s cubic-bezier(0.34, 1.
 .rs-sug-linea2{ font-size:0.7rem; color:var(--sky-mid); }
 .rs-sug-linea2:empty{ display:none; }
 
-/* Fondo del contenedor del mapa cuando el modo oscuro está activo:
-   el filtro CSS que oscurece de verdad el lienzo lo añade
-   shadows-route.js sobre #shadowRouteMap .maplibregl-canvas; esto es
-   solo el color de fondo mientras cargan los tiles. */
+/* Fondo del contenedor del mapa cuando su propio modo oscuro está activo:
+   el filtro afecta solo al lienzo MapLibre y no al resto de la página. */
 .rs-mapa-oscuro-activo{ background:#0b0f14; }
-/* El mapa nacional (Leaflet) también se oscurece con el modo noche del MAPA:
-   solo las teselas, los puntos de colores quedan intactos */
-.rs-mapa-oscuro-activo #map .leaflet-tile-pane{
-  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
-}
 
 /* ============================================================
    MODO NOCHE, widgets flotantes del mapa
@@ -1648,13 +1647,14 @@ body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
 }
 .rs-btn-lidar:active{ transform:translateY(0); }
 .rs-btn-lidar:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
-[data-theme="dark"] .rs-btn-lidar{
+#rsPlanetario[data-theme-mapa="dark"] .rs-btn-lidar{
   color:#06222b;
-  background:linear-gradient(135deg, var(--sky-mid) 0%, var(--sky-deep) 100%);
-  border-color:color-mix(in srgb, var(--sky-mid) 60%, transparent);
+  background:linear-gradient(135deg, #4FB5 0%, #0E3B47 100%);
+  border-color:rgba(79,191,181,.6);
   box-shadow:0 4px 16px rgba(0,240,255,0.18);
 }
-[data-theme="dark"] .rs-btn-lidar:hover, [data-theme="dark"] .rs-btn-lidar:focus-visible{
+#rsPlanetario[data-theme-mapa="dark"] .rs-btn-lidar:hover,
+#rsPlanetario[data-theme-mapa="dark"] .rs-btn-lidar:focus-visible{
   box-shadow:0 8px 22px rgba(0,240,255,0.28);
 }
 @media (prefers-reduced-motion: reduce){
@@ -1709,7 +1709,7 @@ body.manolito-fs .rs-planetario-capas.rs-capas-cerrada{
 
 /* --- 2. Botón LiDAR plano (mea culpa: llevaba gradiente) --- */
 .rs-btn-lidar{ background:var(--sky-deep) !important; }
-[data-theme="dark"] .rs-btn-lidar{ background:var(--sky-mid) !important; }
+#rsPlanetario[data-theme-mapa="dark"] .rs-btn-lidar{ background:#4FB5 !important; }
 
 /* --- 3. «Posición del sol» legible: nada de eyebrow de 8.5px --- */
 #rsTimeControls .rs-eyebrow{
@@ -2008,11 +2008,12 @@ body > #rsBtnActualizarOSM{ position:fixed; top:10px; right:48px; z-index:30; }
   filter:none;
   box-shadow:0 4px 12px rgba(14,59,71,0.30);
 }
-[data-theme="dark"] .rs-btn-lidar{
-  background:var(--sky-mid);
+#rsPlanetario[data-theme-mapa="dark"] .rs-btn-lidar{
+  background:#4FB5;
   color:#06222B;
   box-shadow:0 2px 8px rgba(0,240,255,0.16);}
-[data-theme="dark"] .rs-btn-lidar:hover, [data-theme="dark"] .rs-btn-lidar:focus-visible{
+#rsPlanetario[data-theme-mapa="dark"] .rs-btn-lidar:hover,
+#rsPlanetario[data-theme-mapa="dark"] .rs-btn-lidar:focus-visible{
   box-shadow:0 4px 12px rgba(0,240,255,0.24);
 }
 
@@ -2609,15 +2610,15 @@ body.mode-peque .im-lost-btn{
    (#FBFAF7) pero el icono heredaba --sky-deep, que en oscuro es casi blanco:
    icono invisible sobre círculo blanco. Misma solución que ya tenía la
    variante .rs-mapa-oscuro-activo: fondo petróleo noche y trazo claro. */
-[data-theme="dark"] #rsBtnActualizarOSM{
+#rsPlanetario[data-theme-mapa="dark"] #rsBtnActualizarOSM{
   background:#0B1E26;
   color:#E8F4F0;
   border-color:rgba(232,244,240,0.22);
   box-shadow:0 1px 4px rgba(0,0,0,0.35);
 }
-[data-theme="dark"] #rsBtnActualizarOSM:hover{
+#rsPlanetario[data-theme-mapa="dark"] #rsBtnActualizarOSM:hover{
   background:rgba(255,107,26,0.18);
-  border-color:var(--accent, #FF6B1A);
+  border-color:#FF6B1A;
 }
 
 /* 5) El botón LiDAR en oscuro: la regla vieja le cambiaba el fondo a
@@ -2625,7 +2626,7 @@ body.mode-peque .im-lost-btn{
    fijo: blanco sobre turquesa = 2,2:1, ilegible. El fondo turquesa se
    queda (es la firma de la noche de verano), la tinta pasa a noche:
    9,2:1. En claro no se toca: blanco sobre petróleo ya daba 12,1:1. */
-[data-theme="dark"] .rs-btn-lidar{
+#rsPlanetario[data-theme-mapa="dark"] .rs-btn-lidar{
   color:#03050F !important;
 }
 
@@ -5341,10 +5342,6 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
   --rs-flotante-texto:#202124;
   --rs-flotante-sombra:none;
 }
-[data-theme="dark"] #main-content .map-wrap{
-  --rs-flotante-texto:#202124;
-  --rs-flotante-sombra:none;
-}
 #main-content .map-wrap:has(.rs-mapa-oscuro-activo){
   --rs-flotante-texto:#EDF4F2;
   --rs-flotante-sombra:0 1px 2px rgba(0,0,0,.94),0 0 5px rgba(0,0,0,.72);
@@ -5521,24 +5518,24 @@ svg#rsSolarMap:not(:has(#w.o)) #mk *{
 /* El panel de ruta conserva el mismo blanco translúcido en ambos temas y
    sobre cualquier estilo de mapa; texto oscuro para mantener el contraste.
    Solo depende del modo noche del MAPA, nunca del tema de la página. */
-#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form,
+#main-content .map-wrap.rs-mapa-oscuro-activo .rs-form,
 .rs-form:has(~ #main-content .map-wrap.rs-mapa-oscuro-activo){
   border-color:rgba(60,64,67,.18) !important;
   background:rgba(255,255,255,.96) !important;
   box-shadow:0 2px 6px rgba(60,64,67,.20) !important;
   color:#202124 !important;
 }
-#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form .rs-modo-ruta button,
-#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form #rsBuscarBtn,
-#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form .rs-parking-action,
-#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form #rsBtnCerrarForm {
+#main-content .map-wrap.rs-mapa-oscuro-activo .rs-form .rs-modo-ruta button,
+#main-content .map-wrap.rs-mapa-oscuro-activo .rs-form #rsBuscarBtn,
+#main-content .map-wrap.rs-mapa-oscuro-activo .rs-form .rs-parking-action,
+#main-content .map-wrap.rs-mapa-oscuro-activo .rs-form #rsBtnCerrarForm {
   color:#202124 !important;
 }
-#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form .rs-field input[type="text"] {
+#main-content .map-wrap.rs-mapa-oscuro-activo .rs-form .rs-field input[type="text"] {
   color:#202124 !important;
   caret-color:#202124;
 }
-#main-content:has(.map-wrap.rs-mapa-oscuro-activo) .rs-form .rs-field input[type="text"]::placeholder {
+#main-content .map-wrap.rs-mapa-oscuro-activo .rs-form .rs-field input[type="text"]::placeholder {
   color:#5f6368 !important;
   opacity:1;
 }

@@ -5252,14 +5252,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         cursor:pointer; box-shadow:0 3px 10px rgba(22,35,46,0.12); transition:background .15s,border-color .15s;
       }
       #rsMapStyleToggle button:hover{ background:var(--accent-soft, rgba(255,107,26,0.16)); border-color:var(--accent, #FF6B1A); }
-      /* Mapa oscuro SOLO a petición (botón "Mapa oscuro"). El filtro
-         invert() sobre el canvas WebGL es un pase de GPU a pantalla
-         completa en CADA repintado del mapa, y antes se aplicaba SOLO
-         al arrancar, porque la web nace en tema oscuro: el mapa salía
-         oscuro ("el inicio mapa claro, la
-         península, en blanco") y el iPhone pagaba el filtro desde el
-         primer frame. Ahora el mapa nace claro siempre y el filtro solo
-         existe cuando el usuario pulsa el botón (sep-2026). */
+      /* Modo oscuro independiente: el mapa y sus controles cambian solo
+         cuando el usuario lo solicita desde el control integrado. */
       .rs-mapa-oscuro-activo #shadowRouteMap .maplibregl-canvas{
         filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
       }
@@ -5287,6 +5281,8 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const sincronizarSegmentos = () => {
       btn.textContent = t('darkMapOff', 'Mapa claro');
       btn.setAttribute('aria-pressed', (!ignActivo && !mapaOscuro) ? 'true' : 'false');
+      const widgetSolar = document.getElementById('rsPlanetario');
+      if (widgetSolar) widgetSolar.setAttribute('data-theme-mapa', mapaOscuro ? 'dark' : 'light');
       const bI = document.getElementById('rsBtnMapaIGN');
       if (bI) bI.setAttribute('aria-pressed', ignActivo ? 'true' : 'false');
       const bO = document.getElementById('rsBtnMapaOsc');
@@ -5298,8 +5294,6 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       contenedorMapa.classList.remove('rs-mapa-oscuro-activo');
       aplicarEstiloNubes(); // las nubes vuelven a su brillo de mapa claro
     };
-    new MutationObserver(() => { sincronizarSegmentos(); aplicarEstiloNubes(); })
-      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     btn.addEventListener('click', () => {
       // Segmento CLARO: base vectorial limpia. Apaga el WMS del IGN si
       // estaba encendido y también el filtro oscuro (claro es claro).
@@ -5455,11 +5449,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // del grupo «Base e infraestructura», igual que Árboles e Intensidad
     // solar. El interruptor de la fila se pinta solo leyendo aria-pressed.
     (document.getElementById('rsMonteCatastro') || wrap).appendChild(btnCatastro);
-    // El control segmentado [Mapa claro | Mapa IGN] DENTRO del widget de
-    // posición solar (sep-2026): ya no flota encima del
-    // mapa; vive en el planetario, junto a las casillas de capas. Si el
-    // widget no estuviera en el HTML, se quedan donde estaba. La forma
-    // (fila plana de dos botones) la pone el CSS, no estilos en línea.
+    // El control segmentado [Mapa claro | Mapa IGN | Mapa oscuro] DENTRO del widget de
+    // posición solar (sep-2026): ya no flota encima del mapa; vive en el
+    // planetario, junto a las casillas de capas. Si el widget no estuviera
+    // en el HTML, usa el contenedor del mapa como respaldo.
     (document.getElementById('rsCapasMapas') || contenedorMapa).appendChild(wrap);
   }
 
@@ -8432,14 +8425,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       #rsCamCtl button.manolito-fs-btn[aria-pressed="true"]{
         background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");
       }
-      /* En tema oscuro la botonera es clara: el icono se pinta oscuro,
+      /* En modo oscuro propio del mapa la botonera es clara: el icono se pinta oscuro,
        igual que los símbolos + - ▲ ▼ N. */
-      [data-theme="dark"] #rsCamCtl button.manolito-fs-btn,
       .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn{
         background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3'/%3E%3Cpath d='M16 3h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M8 21H5a2 2 0 0 1-2-2v-3'/%3E%3Cpath d='M16 21h3a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
       }
-      [data-theme="dark"] #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
-      [data-theme="dark"] #rsCamCtl button.manolito-fs-btn[aria-pressed="true"],
       .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn.manolito-fs-activo,
       .rs-mapa-oscuro-activo #rsCamCtl button.manolito-fs-btn[aria-pressed="true"]{
         background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230E3B47' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3v3a2 2 0 0 1-2 2H3'/%3E%3Cpath d='M21 8h-3a2 2 0 0 1-2-2V3'/%3E%3Cpath d='M3 16h3a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M16 21v-3a2 2 0 0 1 2-2h3'/%3E%3C/svg%3E");

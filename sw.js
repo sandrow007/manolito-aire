@@ -515,7 +515,28 @@
 // data/riesgo-termico-2050-ecija.geojson, js/clima-2050.js (solo textos),
 // index.html, metodologia.html y aviso-legal.html. Subir VERSION purga
 // las cachés viejas del SW (el ligero se sirve cache-first).
-const VERSION = '2026-11-28-d-ecija';
+// 2026-11-28-e-pino-editor-y-puntos: tres frentes.
+// (1) PINO DEL EDITOR: pine_ez ya no pasa por el port fractal; usa
+//     generadorEzTree(), port fiel de ez-tree (mismo RNG, esqueleto, ramas
+//     e hijas) para reproducir el tree.json del editor. FIX: el RNG del
+//     port usaba >>> y el repo usa >>; la secuencia divergía en la 9.ª
+//     llamada y el pino NO era el del editor. Corregido y verificado
+//     (5000 llamadas idénticas). index.html ya carga el módulo con
+//     ?v=pino-editor-exacto-20261128.
+// (2) BOTONERA EN EL BUSCADOR: la barra oscura del mapa (#rsMapControls)
+//     se integra como fila del buscador blanco, que sube al hueco de la
+//     barra (top 44/50px -> 8px, tamaño intacto); el botón de invertir
+//     origen/destino (el «punto gris» de móvil) entra en la fila entre los
+//     campos. «Iniciar caminata» no se duplica (#rsBtnWalk oculto, lo
+//     pulsan el atajo y el GPS); el ≡ muere con la barra.
+// (3) PUNTOS SIN AUTOCÁLCULO: la 2.ª pulsación larga ya no traza la ruta
+//     sola; el cálculo lo decide la persona con la píldora «Calcular ruta»
+//     / «Calcular desde tu ubicación» (el antiguo «Ir hasta este punto»
+//     con texto). Nueva ✕ «Quitar punto» que desmarca sin Reiniciar
+//     (cancelarPuntoMarcado también limpia el origen si venía del mapa).
+// Cambian js/arboles-ez-3d.js, js/shadows-route.js, js/i18n.js (5 claves
+// nuevas × 7 idiomas), css/style.css (bloque nuevo al final) y sw.js.
+const VERSION = '2026-11-28-e-pino-editor-y-puntos';
 // 2026-11-19-h: ÁRBOLES EZ COMPLETOS Y BIEN DIBUJADOS.
 // (1) Mapa lleno: tope por vista 30 -> 200 y fuera el filtro de separación
 //     entre copas (solo se descartan nodos a <1,2 m, o sea duplicados).

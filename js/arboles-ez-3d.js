@@ -152,7 +152,14 @@
     // port fractal (construirArbol), que es la silueta de la captura; el
     // antiguo cono de penachos (construirPinoReal) queda solo para un
     // hipotético preset con legacyCono. Casuarina sigue con 'pine'.
-    pine_ez: { seed: 55661, type: 'evergreen', levels: 1, angle: [0, 104, 91, 27], children: [76, 6, 5], length: [55.3, 29.7, 8.9, 37], radius: [1.31, 0.47, 0.7, 3.47], sections: [15, 12, 7, 5], segments: [4, 8, 7, 11], start: [0, 0.27, 0.14, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0.04, -0.05, 0.03, -0.06], twist: [-0.08, -0.18, 0.04, -0.12], force: -0.003, leafAngle: 39, leafCount: 30, leafStart: 0.09, leafSize: 1.435, leafVariance: 0.201, leafColor: 0xffffff, barkColor: 0xffffff },
+    // (28-nov-2026, FIX ) Este preset YA NO pasa por
+    // el port fractal: usa generadorEzTree(), el port FIEL de
+    // Tree.#generateSkeleton/#growBranch/generateChildBranches/generateLeaves
+    // del repo de ez-tree (mismo RNG, mismas secciones, taper de conífera
+    // 1→0, rama hija de longitud length·(1-start) y UNA hoja tipo PINO por
+    // slot, que es lo que exporta el editor con leaves.type 'pine'). Así sale
+    // EXACTAMENTE el árbol del tree.json del jefe.
+    pine_ez: { seed: 55661, type: 'evergreen', levels: 1, angle: [0, 104, 91, 27], children: [76, 6, 5], length: [55.3, 29.7, 8.9, 37], radius: [1.31, 0.47, 0.7, 3.47], sections: [15, 12, 7, 5], segments: [4, 8, 7, 11], start: [0, 0.27, 0.14, 0.3], taper: [0.7, 0.7, 0.7, 0.7], gnarliness: [0.04, -0.05, 0.03, -0.06], twist: [-0.08, -0.18, 0.04, -0.12], force: -0.003, forceDirection: [0, 1, 0], leafAngle: 39, leafCount: 30, leafStart: 0.09, leafSize: 1.435, leafVariance: 0.201, leafColor: 0xffffff, barkColor: 0xffffff, ezReal: true, alturaReal: 14 },
 
     // --- 4 presets EZ-TREE NUEVOS (nov-2026), tomados tal cual del repo
     // dgreenheck/ez-tree (MIT) para las 4 especies más abundantes de Sevilla
@@ -407,6 +414,25 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
   function dirToEuler(dir) {
     return new THREE.Euler(Math.atan2(dir.z, dir.y), 0, Math.atan2(-dir.x, Math.sqrt(dir.y * dir.y + dir.z * dir.z)));
   }
+  // (28-nov-2026) RNG EXACTO del repo dgreenheck/ez-tree (src/lib/rng.js).
+  // El port fiel del generador (generadorEzTree) lo necesita: con otro LCG,
+  // el mismo seed del editor daría otra secuencia y, por tanto, otro árbol.
+  // OJO: el desplazamiento es >> (aritmético) como en el repo, NO >>>: con
+  // >>> la secuencia diverge a partir de la 9.ª llamada (comprobado) y el
+  // pino deja de ser el árbol del editor.
+  function ezRngRepo(seed) {
+    var m_w = (123456789 + seed) & 0xffffffff;
+    var m_z = (987654321 - seed) & 0xffffffff;
+    return function (max, min) {
+      if (max === undefined) max = 1;
+      if (min === undefined) min = 0;
+      m_z = (36969 * (m_z & 65535) + (m_z >> 16)) & 0xffffffff;
+      m_w = (18000 * (m_w & 65535) + (m_w >> 16)) & 0xffffffff;
+      var result = ((m_z << 16) + (m_w & 65535)) >>> 0;
+      result /= 4294967296;
+      return (max - min) * result + min;
+    };
+  }
   function hashCoords(lon, lat) {
     var x = Math.sin(lon * 12.9898 + lat * 78.233) * 43758.5453;
     return x - Math.floor(x);
@@ -475,10 +501,12 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
   // ==========================================================================
   function construirEsqueleto(preset, rand, tipo) {
     // (26-nov-2026) El pino YA NO usa el cono de penachos: su preset
-    // pine_ez es el del editor de ez-trees y se genera con el port fractal
-    // (misma ruta que pine_large/pine_small). El cono solo se conservaría
-    // para un preset marcado con legacyCono (ninguno hoy).
-    if (tipo === 'pino' && preset.legacyCono) return construirPinoReal(preset, rand);
+    // pine_ez es el del editor de ez-trees. El cono solo se conservaría para
+    // un preset marcado con legacyCono (ninguno hoy).
+    // (28-nov-2026) Y tampoco el port fractal: ezReal lo manda al port FIEL
+    // del repo (generadorEzTree), que reproduce el árbol del editor. Solo lo
+    // llevan pine_ez: ninguna otra especie cambia de ruta.
+    if (preset.ezReal) return generadorEzTree(preset);
     // (nov-2026) Las palmeras NO son árboles: un port de ramas fractales
     // les daba un "árbol con hojas verdes en la punta" (el tronco se
     // estrechaba como una rama y las hojas eran elipses horizontales
@@ -949,7 +977,225 @@ firmiana: { seed: 28657, type: 'deciduous', levels: 3, angle: [42, 56, 44], chil
     return { madera: ramas, hojas: hojas };
   }
 
+  // ==========================================================================
+  // PINO DEL EDITOR: port fiel de ez-tree (dgreenheck/ez-tree, MIT)
+  // --------------------------------------------------------------------------
+  // Reproduce step a step lo que hace el editor que exporto el tree.json:
+  // el esqueleto (tronco, ramas y hojas) y el mallado de madera y hojas.
+  // Solo lo usa el preset pine_ez (ezReal), el resto de especies sigue por
+  // construirArbol sin cambios.
+  // ==========================================================================
+  function generadorEzTree(preset) {
+    var rng = ezRngRepo(preset.seed);
+    var esCaduca = preset.type === 'deciduous';
+    var niveles = preset.levels;
+    var dirFuerza = new THREE.Vector3(0, 1, 0);
+    if (preset.forceDirection && preset.forceDirection.length === 3) {
+      dirFuerza.fromArray(preset.forceDirection).normalize();
+    }
+    var fuerza = preset.force || 0;
+    var MAX_RAMAS = 6000;
+    var MAX_HOJAS = 12000;
+    var ramas = [];
+    var hojas = [];
+    var cola = [];
 
+    function barajar(n) {
+      var arr = [], k;
+      for (k = 0; k < n; k++) arr.push(k);
+      for (k = n - 1; k > 0; k--) {
+        var r = Math.floor(rng() * (k + 1));
+        var tmp = arr[k]; arr[k] = arr[r]; arr[r] = tmp;
+      }
+      return arr;
+    }
+
+    function crecer(rama) {
+      var orient = rama.orientation.clone();
+      var origen = rama.origin.clone();
+      var largoSeccion = rama.length / rama.sectionCount / (esCaduca ? Math.max(1, niveles - 1) : 1);
+      var secciones = [];
+      for (var i = 0; i <= rama.sectionCount; i++) {
+        var radio = rama.radius;
+        if (i === rama.sectionCount && rama.level === niveles) radio = 0.001;
+        else if (esCaduca) radio *= 1 - (preset.taper[rama.level] || 0) * (i / rama.sectionCount);
+        else radio *= 1 - (i / rama.sectionCount);
+        secciones.push({ origin: origen.clone(), orientation: orient.clone(), radius: radio });
+        origen.add(new THREE.Vector3(0, largoSeccion, 0).applyEuler(orient));
+        var gnarliness = Math.max(1, 1 / Math.sqrt(Math.max(1e-6, radio))) * (preset.gnarliness[rama.level] || 0);
+        orient.x += rng(gnarliness, -gnarliness);
+        orient.z += rng(gnarliness, -gnarliness);
+        var qSection = new THREE.Quaternion().setFromEuler(orient);
+        qSection.multiply(new THREE.Quaternion().setFromAxisAngle(
+          new THREE.Vector3(0, 1, 0), preset.twist[rama.level] || 0));
+        if (fuerza) {
+          var sectionUp = new THREE.Vector3(0, 1, 0).applyQuaternion(qSection);
+          var axis = new THREE.Vector3().crossVectors(sectionUp, dirFuerza);
+          var sinFull = axis.length();
+          if (sinFull > 1e-6) {
+            axis.divideScalar(sinFull);
+            var fullAngle = Math.atan2(sinFull, sectionUp.dot(dirFuerza));
+            var step = fuerza / Math.max(1e-6, radio);
+            var clamped = Math.max(-fullAngle, Math.min(fullAngle, step));
+            qSection.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, clamped));
+          }
+        }
+        orient.setFromQuaternion(qSection);
+      }
+      ramas.push({ secciones: secciones, segmentos: rama.segmentCount });
+
+      if (rama.level === niveles) generarHojas(secciones);
+      else if (rama.level < niveles) {
+        generarHijas(preset.children[rama.level] || 0, rama.level + 1, secciones);
+      }
+    }
+
+    function generarHijas(count, level, secciones) {
+      if (!(count > 0) || ramas.length >= MAX_RAMAS) return;
+      var radialOffset = rng();
+      var startMin = preset.start[level] || 0;
+      var heightStep = (1 - startMin) / count;
+      var angleSlots = barajar(count);
+      var nSec = secciones.length - 1;
+      for (var i = 0; i < count; i++) {
+        if (ramas.length + cola.length >= MAX_RAMAS) return;
+        var childStart = startMin + (i + rng()) * heightStep;
+        var idx = Math.min(nSec, Math.floor(childStart * nSec));
+        var A = secciones[idx];
+        var B = idx === nSec ? A : secciones[idx + 1];
+        var alpha = (childStart - idx / nSec) * nSec;
+        var hijoOrigen = new THREE.Vector3().lerpVectors(A.origin, B.origin, alpha);
+        var hijoRadio = (preset.radius[level] || 0.01) *
+          ((1 - alpha) * A.radius + alpha * B.radius);
+        var qA = new THREE.Quaternion().setFromEuler(A.orientation);
+        var qB = new THREE.Quaternion().setFromEuler(B.orientation);
+        var parentOrientation = new THREE.Euler().setFromQuaternion(qB.slerp(qA, alpha));
+        var jitter = rng(0.5, -0.5);
+        var radialAngle = 2 * Math.PI * (radialOffset + (angleSlots[i] + jitter) / count);
+        var q1 = new THREE.Quaternion().setFromAxisAngle(
+          new THREE.Vector3(1, 0, 0), (preset.angle[level] || 0) / (180 / Math.PI));
+        var q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), radialAngle);
+        var q3 = new THREE.Quaternion().setFromEuler(parentOrientation);
+        var hijoOrient = new THREE.Euler().setFromQuaternion(q3.multiply(q2.multiply(q1)));
+        // En coniferas la rama hija se acorta con la altura: la copa queda conica.
+        var hijoLargo = (preset.length[level] || 1) * (esCaduca ? 1 : 1 - childStart);
+        cola.push({
+          origin: hijoOrigen, orientation: hijoOrient, length: hijoLargo,
+          radius: hijoRadio, level: level,
+          sectionCount: preset.sections[level] || 1,
+          segmentCount: preset.segments[level] || 3,
+        });
+      }
+    }
+
+    function generarHojas(secciones) {
+      var radialOffset = rng();
+      var count = preset.leafCount;
+      var startMin = preset.leafStart || 0;
+      var heightStep = (1 - startMin) / count;
+      var angleSlots = barajar(count);
+      var nSec = secciones.length - 1;
+      for (var i = 0; i < count; i++) {
+        if (hojas.length >= MAX_HOJAS) return;
+        var leafStart = startMin + (i + rng()) * heightStep;
+        var idx = Math.min(nSec, Math.floor(leafStart * nSec));
+        var A = secciones[idx];
+        var B = idx === nSec ? A : secciones[idx + 1];
+        var alpha = (leafStart - idx / nSec) * nSec;
+        var hojaOrigen = new THREE.Vector3().lerpVectors(A.origin, B.origin, alpha);
+        var qA = new THREE.Quaternion().setFromEuler(A.orientation);
+        var qB = new THREE.Quaternion().setFromEuler(B.orientation);
+        var parentOrientation = new THREE.Euler().setFromQuaternion(qB.slerp(qA, alpha));
+        var jitter = rng(0.5, -0.5);
+        var radialAngle = 2 * Math.PI * (radialOffset + (angleSlots[i] + jitter) / count);
+        var q1 = new THREE.Quaternion().setFromAxisAngle(
+          new THREE.Vector3(1, 0, 0), (preset.leafAngle || 0) / (180 / Math.PI));
+        var q2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), radialAngle);
+        var q3 = new THREE.Quaternion().setFromEuler(parentOrientation);
+        var hojaOrient = new THREE.Euler().setFromQuaternion(q3.multiply(q2.multiply(q1)));
+        var tam = preset.leafSize * (1 + rng(preset.leafVariance, -preset.leafVariance));
+        hojas.push({ origin: hojaOrigen, orientation: hojaOrient, size: tam });
+      }
+    }
+
+    cola.push({
+      origin: new THREE.Vector3(), orientation: new THREE.Euler(),
+      length: preset.length[0], radius: preset.radius[0], level: 0,
+      sectionCount: preset.sections[0] || 1, segmentCount: preset.segments[0] || 3,
+    });
+    while (cola.length) crecer(cola.shift());
+
+    // Madera: anillos de cada seccion, duplicando el primer vertice (UV) y
+    // cerrando la punta con radio casi cero, igual que el editor.
+    var geoRamas = [];
+    for (var r = 0; r < ramas.length; r++) {
+      var secs = ramas[r].secciones;
+      var segs = Math.max(3, Math.round(ramas[r].segmentos));
+      var verts = [], nors = [], inds = [];
+      var N = segs + 1;
+      for (var k = 0; k < secs.length; k++) {
+        var sec = secs[k];
+        var primero = null;
+        for (var j = 0; j < segs; j++) {
+          var ang = (2 * Math.PI * j) / segs;
+          var vert = new THREE.Vector3(Math.cos(ang), 0, Math.sin(ang))
+            .multiplyScalar(sec.radius).applyEuler(sec.orientation).add(sec.origin);
+          var nor = new THREE.Vector3(Math.cos(ang), 0, Math.sin(ang))
+            .applyEuler(sec.orientation).normalize();
+          verts.push(vert.x, vert.y, vert.z);
+          nors.push(nor.x, nor.y, nor.z);
+          if (j === 0) primero = { v: vert, n: nor };
+        }
+        verts.push(primero.v.x, primero.v.y, primero.v.z);
+        nors.push(primero.n.x, primero.n.y, primero.n.z);
+      }
+      for (var ii = 0; ii < secs.length - 1; ii++) {
+        for (var jj = 0; jj < segs; jj++) {
+          var v1 = ii * N + jj, v2 = ii * N + (jj + 1), v3 = v1 + N, v4 = v2 + N;
+          inds.push(v1, v3, v2, v2, v3, v4);
+        }
+      }
+      var gRama = new THREE.BufferGeometry();
+      gRama.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      gRama.setAttribute('normal', new THREE.Float32BufferAttribute(nors, 3));
+      gRama.setIndex(inds);
+      geoRamas.push(gRama);
+    }
+
+    // Hojas: un quad de leafSize por hoja (dos cruzados con billboard double).
+    var lpos = [], lnor = [], lind = [], vbase = 0;
+    var doble = preset.leafBillboard !== 'single';
+    for (var h = 0; h < hojas.length; h++) {
+      var hoja = hojas[h];
+      for (var c = 0; c < (doble ? 2 : 1); c++) {
+        var rot = c === 0 ? 0 : Math.PI / 2;
+        var W = hoja.size, L = hoja.size;
+        var esquinas = [[-W / 2, L, 0], [-W / 2, 0, 0], [W / 2, 0, 0], [W / 2, L, 0]];
+        var qs = [];
+        for (var v = 0; v < 4; v++) {
+          var p = new THREE.Vector3(esquinas[v][0], esquinas[v][1], esquinas[v][2])
+            .applyEuler(new THREE.Euler(0, rot, 0))
+            .applyEuler(hoja.orientation)
+            .add(hoja.origin);
+          qs.push(p);
+          lpos.push(p.x, p.y, p.z);
+        }
+        var nBase = new THREE.Vector3(0, 0, 1).applyEuler(hoja.orientation);
+        for (var v2 = 0; v2 < 4; v2++) {
+          var nn = new THREE.Vector3().copy(nBase).add(qs[v2]).sub(hoja.origin).normalize();
+          lnor.push(nn.x, nn.y, nn.z);
+        }
+        lind.push(vbase, vbase + 1, vbase + 2, vbase, vbase + 2, vbase + 3);
+        vbase += 4;
+      }
+    }
+    var geoHojas = new THREE.BufferGeometry();
+    geoHojas.setAttribute('position', new THREE.Float32BufferAttribute(lpos, 3));
+    geoHojas.setAttribute('normal', new THREE.Float32BufferAttribute(lnor, 3));
+    geoHojas.setIndex(lind);
+
+    return { madera: geoRamas, hojas: [geoHojas] };
+  }
 
   function construirVariantes() {
     var matDatile = null;   // material único para los frutos de todas las datileras

@@ -3279,15 +3279,32 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       #rsBtnIrAlPunto{
         position:absolute !important; right:10px; bottom:180px; z-index:100;
         display:inline-flex; align-items:center; justify-content:center;
-        width:42px; min-width:42px; height:42px; padding:0 !important;
+        gap:7px; width:auto; min-width:42px; height:42px; padding:0 12px 0 4px !important;
         border:1px solid #303b4f !important; border-radius:12px !important;
         background:#020406 !important; color:#fff !important;
         box-shadow:0 2px 6px rgba(0,0,0,.35) !important;
+        font-family:inherit; font-size:12px; font-weight:600; line-height:1.1;
+        white-space:nowrap; cursor:pointer;
       }
       #rsBtnIrAlPunto[hidden]{ display:none !important; }
       #rsBtnIrAlPunto:hover{ filter:brightness(1.08); }
-      #rsBtnIrAlPunto > svg{ display:block; width:100%; height:100%; pointer-events:none; border-radius:12px; }
+      #rsBtnIrAlPunto > svg{ display:block; width:34px; height:34px; flex:0 0 auto; pointer-events:none; border-radius:9px; }
+      #rsBtnIrAlPunto .rs-ir-txt{ pointer-events:none; }
       #rsBtnIrAlPunto:disabled{ opacity:.55; }
+      /* Quitar el punto marcado sin Reiniciar (28-nov-2026): ✕ cuadrada,
+         mismo idioma visual que «Compartir punto». La posición fina la da
+         acomodarAccionesPunto(); right/bottom son solo el arranque. */
+      #rsBtnQuitarPunto{
+        position:absolute !important; right:10px; bottom:236px; z-index:100;
+        display:inline-flex; align-items:center; justify-content:center;
+        width:42px; min-width:42px; height:42px; padding:0;
+        border:1px solid #303b4f; border-radius:12px;
+        background:#020406; color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.35);
+        cursor:pointer;
+      }
+      #rsBtnQuitarPunto[hidden]{ display:none !important; }
+      #rsBtnQuitarPunto:hover{ filter:brightness(1.08); }
+      #rsBtnQuitarPunto > svg{ display:block; width:18px; height:18px; pointer-events:none; }
       @media (max-width:480px){
         #rsMapControls{ gap:3px; top:8px; left:8px; }
         #rsMapControls button{ padding:2px 7px; font-size:8px; }
@@ -3523,7 +3540,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     btnIrAlPunto.hidden = true;
     btnIrAlPunto.title = t('routeToPoint', 'Ir hasta este punto');
     btnIrAlPunto.setAttribute('aria-label', btnIrAlPunto.title);
-    btnIrAlPunto.innerHTML = ICONO_RUTA_PUNTO;
+    // (28-nov-2026) El botón deja de ser un icono críptico: lleva texto
+    // («Calcular ruta» con dos puntos, «Calcular desde tu ubicación» con
+    // uno + GPS). Lo pinta pintarBotonCalcularPuntos(); el icono se queda.
+    btnIrAlPunto.innerHTML = ICONO_RUTA_PUNTO + '<span class="rs-ir-txt"></span>';
     btnIrAlPunto.addEventListener('click', async () => {
       if (!ultimoDestinoMarcador) return;
       btnIrAlPunto.disabled = true;
@@ -3564,6 +3584,27 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       }
     });
     contenedorMapa.appendChild(btnIrAlPunto);
+
+    // Quitar el punto marcado SIN Reiniciar (28-nov-2026): una ✕ discreta
+    // bajo «Calcular ruta»/«Compartir». Desmarca el punto (o los dos) y
+    // limpia los campos que vinieran del mapa; la ruta dibujada, el mapa y
+    // tu ubicación GPS no se tocan. Reutiliza cancelarPuntoMarcado(), que
+    // ya existía para la ✕ del panel de compartir.
+    const btnQuitarPunto = document.createElement('button');
+    btnQuitarPunto.type = 'button';
+    btnQuitarPunto.id = 'rsBtnQuitarPunto';
+    btnQuitarPunto.hidden = true;
+    btnQuitarPunto.title = t('removeMarkedPoint', 'Quitar punto');
+    btnQuitarPunto.setAttribute('aria-label', btnQuitarPunto.title);
+    btnQuitarPunto.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    btnQuitarPunto.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      cancelarPuntoMarcado();
+      mostrarEstado(t('pointRemoved', 'Punto quitado.'), 'ok');
+    });
+    contenedorMapa.appendChild(btnQuitarPunto);
     btnCompartirPunto.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -4710,8 +4751,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // Si una página no trae los anclajes, caen a la barra como antes.
     // La fila superior conserva solo los controles de mapa; compartir vive
     // en el cuadrado inferior derecho señalado junto a los controles.
+    // (28-nov-2026) La barra de arriba DESAPARECE: sus acciones se integran
+    // dentro del buscador blanco como una fila más, sin cápsula ni marcos.
+    // «Iniciar caminata» NO se duplica: el buscador ya tiene su atajo junto
+    // a Buscar (#rsBtnCaminarResumen); #rsBtnWalk se queda en el DOM oculto
+    // porque ese atajo (y el GPS) lo pulsan por delegación. El ≡ de plegar
+    // muere con la barra: ya no hay botonera flotante que plegar.
     panelMapa.append(
-      btnPlegarControles,
       btnUbicacion,
       btnCaminar,
       btnGuiaVoz,
@@ -4727,7 +4773,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     // el botón SIGUE en el DOM porque el mini-Manolit de la pila de cámara
     // (rsCamUbicacion) le delega su click, pero ya no ocupa hueco en el banner.
     btnUbicacion.style.display = 'none';
-    contenedorMapa.appendChild(panelMapa);
+    btnCaminar.style.display = 'none';
+    // La botonera se cuelga del buscador (una fila más de su rejilla). Si la
+    // página no tuviera .rs-form, cae al mapa como antes: nada se rompe.
+    const buscadorForm = document.querySelector('#main-content .rs-form');
+    (buscadorForm || contenedorMapa).appendChild(panelMapa);
     contenedorMapa.appendChild(btnCompartirPunto);
     contenedorMapa.appendChild(panelCompartir);
 
@@ -4784,10 +4834,9 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
           turf.point([lng, lat]),
         ]));
         inputDestino.value = textoCoordenadasPunto(lat, lng);
-        manejarBusqueda(
-          { ...origenFijado },
-          { ...destinoFijado, nombre: t('pointMap', 'Punto marcado en el mapa') }
-        );
+        // (28-nov-2026) Rama hoy inalcanzable (nadie pone esperandoSoloDestino
+        // a true), pero si vuelve, tampoco calcula sola: manda el botón.
+        mostrarEstado(t('pointsReadyCalc', 'Origen y destino marcados. Pulsa «Calcular ruta» cuando quieras trazar el camino.'), 'info');
         geocodificarInverso(lat, lng).then(() => { inputDestino.value = textoCoordenadasPunto(lat, lng); });
         return;
       }
@@ -4830,10 +4879,11 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
         texto: inputOrigen.value
       });
       inputDestino.value = textoCoordenadasPunto(lat, lng);
-      manejarBusqueda(
-        { ...origenFijado, nombre: t('pointMap', 'Punto marcado en el mapa') },
-        { ...destinoFijado, nombre: t('pointMap', 'Punto marcado en el mapa') }
-      );
+      // (28-nov-2026) YA NO se calcula solo: la persona decide cuándo trazar
+      // el camino. El botón «Calcular ruta» (rsBtnIrAlPunto, ya visible por
+      // actualizarBotonCompartirPunto) hace el cálculo bajo demanda; así, si
+      // te equivocas de punto, lo quitas o lo mueves sin que nada choque.
+      mostrarEstado(t('pointsReadyCalc', 'Origen y destino marcados. Pulsa «Calcular ruta» cuando quieras trazar el camino.'), 'info');
       geocodificarInverso(origenFijado.lat, origenFijado.lon).then(() => {
         inputOrigen.value = textoCoordenadasPunto(origenFijado.lat, origenFijado.lon);
       });
@@ -6618,6 +6668,10 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (marcadorDestino) { marcadorDestino.remove(); marcadorDestino = null; }
     actualizarMascotaDestino(null);
     map.getSource('puntos-manuales')?.setData(turf.featureCollection([]));
+    // (28-nov-2026) Si el origen también se marcó en el mapa (dos pulsaciones
+    // largas), la ✕ lo quita igualmente. «Mi ubicación» (GPS) no se toca:
+    // solo se limpia cuando el campo origen es EXACTAMENTE el punto marcado.
+    const origenMarcado = window.__manolitOrigenPuntoMarcado || null;
     ultimoDestinoMarcador = null;
     puntoOrigenPendiente = null;
     window.__manolitOrigenPuntoMarcado = null;
@@ -6625,6 +6679,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     if (typeof inputDestino !== 'undefined' && inputDestino) {
       inputDestino.value = '';
       seleccionPorInput.delete(inputDestino);
+    }
+    if (origenMarcado && typeof inputOrigen !== 'undefined' && inputOrigen) {
+      const selOrigen = seleccionPorInput.get(inputOrigen);
+      if (selOrigen && mismoPunto(selOrigen, origenMarcado)) {
+        inputOrigen.value = '';
+        seleccionPorInput.delete(inputOrigen);
+      }
     }
     actualizarBotonCompartirPunto();
   }
@@ -6641,7 +6702,27 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     boton.hidden = !hayPunto;
     const botonIr = document.getElementById('rsBtnIrAlPunto');
     if (botonIr) botonIr.hidden = !hayPunto;
+    const botonQuitar = document.getElementById('rsBtnQuitarPunto');
+    if (botonQuitar) botonQuitar.hidden = !hayPunto;
+    pintarBotonCalcularPuntos();
     if (hayPunto) acomodarAccionesPunto();
+  }
+
+  // Etiqueta del botón de cálculo bajo demanda (28-nov-2026): con dos puntos
+  // marcados (o un origen elegido) es «Calcular ruta»; con un solo punto y
+  // sin origen, el cálculo saldrá de tu ubicación GPS y lo dice claramente.
+  function pintarBotonCalcularPuntos() {
+    const botonIr = document.getElementById('rsBtnIrAlPunto');
+    if (!botonIr) return;
+    const origenMarcado = (ultimoDestinoMarcador && ultimoDestinoMarcador.puntoPartida) || window.__manolitOrigenPuntoMarcado || null;
+    const desdeTuUbicacion = !origenMarcado;
+    const texto = desdeTuUbicacion
+      ? t('calcRouteFromMe', 'Calcular desde tu ubicación')
+      : t('calcRoute', 'Calcular ruta');
+    const txt = botonIr.querySelector('.rs-ir-txt');
+    if (txt) txt.textContent = texto;
+    botonIr.title = texto;
+    botonIr.setAttribute('aria-label', texto);
   }
 
   // «Ir al punto» y «Compartir» cuelgan justo debajo de la botonera de cámara
@@ -6654,6 +6735,7 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
   function acomodarAccionesPunto() {
     const ir = document.getElementById('rsBtnIrAlPunto');
     const compartir = document.getElementById('rsBtnCompartirPunto');
+    const quitar = document.getElementById('rsBtnQuitarPunto');
     const pila = document.getElementById('rsCamCtl');
     const cont = ir && ir.parentElement;
     if (!ir || !compartir || !cont) return;
@@ -6681,20 +6763,25 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
     const margenInferior = 44; // deja libre la atribución del mapa
     const xPila = rp.left - origenX;
     const bajoPila = rp.bottom - origenY;
-    const cabeDebajo = bajoPila + sep + lado * 2 + hueco <= altoCont - margenInferior;
+    // Tres piezas (28-nov-2026): «Calcular ruta» + Compartir + Quitar punto.
+    const cabeDebajo = bajoPila + sep + lado * 3 + hueco * 2 <= altoCont - margenInferior;
     let x = xPila;
     let yIr;
     let yCompartir;
+    let yQuitar;
     if (cabeDebajo) {
       yIr = bajoPila + sep;
       yCompartir = yIr + lado + hueco;
+      yQuitar = yCompartir + lado + hueco;
     } else {
       const pilaALaDerecha = xPila + lado / 2 > anchoCont / 2;
       x = pilaALaDerecha ? xPila - sep - lado : xPila + lado + sep;
-      yCompartir = bajoPila - lado;
+      yQuitar = bajoPila - lado;
+      yCompartir = yQuitar - lado - hueco;
       yIr = yCompartir - lado - hueco;
     }
     const fijar = (el, top) => {
+      if (!el) return;
       const estilo = el.style;
       estilo.setProperty('left', `${Math.round(x)}px`, 'important');
       estilo.setProperty('top', `${Math.round(top)}px`, 'important');
@@ -6704,8 +6791,23 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
       estilo.setProperty('min-width', `${lado}px`, 'important');
       estilo.setProperty('height', `${lado}px`, 'important');
     };
-    fijar(ir, yIr);
+    // «Calcular ruta» es una píldora con texto: se ancla por su borde DERECHO
+    // al borde derecho de la pila de cámara y crece hacia la izquierda, así
+    // el texto nunca se sale del mapa por la derecha.
+    const fijarPildora = (el, top) => {
+      if (!el) return;
+      const estilo = el.style;
+      estilo.setProperty('left', 'auto', 'important');
+      estilo.setProperty('right', `${Math.round(anchoCont - (x + lado))}px`, 'important');
+      estilo.setProperty('top', `${Math.round(top)}px`, 'important');
+      estilo.setProperty('bottom', 'auto', 'important');
+      estilo.setProperty('width', 'auto', 'important');
+      estilo.setProperty('min-width', `${lado}px`, 'important');
+      estilo.setProperty('height', `${lado}px`, 'important');
+    };
+    fijarPildora(ir, yIr);
     fijar(compartir, yCompartir);
+    fijar(quitar, yQuitar);
 
     const panel = document.getElementById('rsSharePanel');
     if (panel) {
@@ -8338,6 +8440,13 @@ window.addEventListener('pagehide', () => controlPantallaCompleta._salirFallback
 
     const btnPaseo = document.getElementById('rsBtnPaseo');
     if (btnPaseo) btnPaseo.textContent = paseoActivo ? t('virtualWalkStop', 'Salir del paseo') : t('virtualWalkStart', 'Paseo virtual 3D');
+    // Botones del punto marcado: «Calcular ruta / desde tu ubicación» y la ✕.
+    pintarBotonCalcularPuntos();
+    const btnQuitarPuntoIdioma = document.getElementById('rsBtnQuitarPunto');
+    if (btnQuitarPuntoIdioma) {
+      btnQuitarPuntoIdioma.title = t('removeMarkedPoint', 'Quitar punto');
+      btnQuitarPuntoIdioma.setAttribute('aria-label', btnQuitarPuntoIdioma.title);
+    }
 
     const btnDark = document.getElementById('rsBtnMapaOscuro');
     // 07-oct: el id histórico rsBtnMapaOscuro es ahora el segmento «Mapa

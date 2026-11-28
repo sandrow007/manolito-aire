@@ -6392,3 +6392,150 @@ body.modo-accesible #main-content .rs-form #rsDestino{
   #main-content #rsConfortRuta{ transition:none; }
 }
 
+
+/* ==========================================================================
+   2026-11-28 — La botonera del mapa se integra EN el buscador
+   --------------------------------------------------------------------------
+   La barra oscura de arriba (#rsMapControls) deja de ser un elemento
+   flotante: shadows-route.js cuelga el MISMO contenedor (mismos ids, mismos
+   handlers) como una fila más del buscador blanco, y el buscador sube al
+   hueco que la barra dejaba (top 44/50px -> 8px; tamaño y rejilla intactos).
+   Sin cápsula ni marcos: los botones usan la misma tinta y el mismo idioma
+   visual que las pestañas A pie/Bici/Coche (subrayado al activarse).
+   «Iniciar caminata» NO se duplica: #rsBtnWalk queda oculto y el atajo de
+   siempre (#rsBtnCaminarResumen, junto a Buscar) lo sigue pulsando.
+   El «punto gris» de móvil era el botón de invertir origen/destino, que la
+   rejilla mandaba a una fila fantasma debajo de los campos: ahora vive EN la
+   fila, entre los dos campos, sin círculo.
+   ========================================================================== */
+
+/* 1. El buscador sube al hueco de la antigua barra (solo cambia el top). */
+#main-content .rs-form,
+#main-content .rs-form.rs-form-flotante{
+  top:calc(8px + env(safe-area-inset-top, 0px));
+}
+@media (max-width:760px){
+  #main-content .rs-form,
+  #main-content .rs-form.rs-form-flotante{ top:calc(8px + env(safe-area-inset-top, 0px)); }
+}
+@media (pointer:coarse){
+  #main-content .rs-form,
+  #main-content .rs-form.rs-form-flotante{ top:calc(8px + env(safe-area-inset-top, 0px)); }
+}
+/* La píldora de reabrir el buscador sigue al buscador. */
+#main-content #rsBtnAbrirForm{ top:calc(8px + env(safe-area-inset-top, 0px)); }
+
+/* 2. La botonera: de barra flotante a fila más del buscador. */
+#main-content .rs-form #rsMapControls{
+  position:static !important;
+  inset:auto !important;
+  grid-column:1 / -1;
+  grid-row:3;
+  display:flex !important;
+  flex-wrap:wrap !important;
+  justify-content:center;
+  align-items:center;
+  gap:0 14px;
+  width:auto;
+  max-width:none !important;
+  max-inline-size:none !important;
+  padding:3px 0 1px !important;
+  margin:0;
+  border:0 !important;
+  border-radius:0 !important;
+  background:none !important;
+  box-shadow:none !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  overflow:visible !important;
+  color:#202124 !important;
+  text-shadow:none;
+  z-index:auto !important;
+}
+#main-content .rs-form #rsMapControls button{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  width:auto !important;
+  min-width:0 !important;
+  height:auto !important;
+  min-height:26px !important;
+  padding:2px 4px !important;
+  border:0 !important;
+  border-bottom:1px solid transparent !important;
+  border-radius:0 !important;
+  background:none !important;
+  box-shadow:none !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  color:#202124 !important;
+  font-size:11px !important;
+  font-weight:500 !important;
+  line-height:1.2 !important;
+  letter-spacing:0 !important;
+  text-transform:none !important;
+  text-shadow:none;
+  white-space:nowrap;
+  opacity:.72;
+  transition:opacity 160ms ease,border-color 160ms ease;
+}
+#main-content .rs-form #rsMapControls button::before{
+  width:14px; height:14px; color:#5f6368 !important;
+}
+#main-content .rs-form #rsMapControls button:hover,
+#main-content .rs-form #rsMapControls button.rs-activo{
+  background:none !important;
+  border:0 !important;
+  border-bottom-color:currentColor !important;
+  color:#202124 !important;
+  box-shadow:none !important;
+  opacity:1;
+}
+#main-content .rs-form #rsMapControls button:focus-visible{
+  outline:1px solid currentColor !important;
+  outline-offset:1px;
+  opacity:1;
+}
+/* «Iniciar caminata» no se duplica: ya está el atajo junto a Buscar. */
+#main-content .rs-form #rsMapControls #rsBtnWalk{ display:none !important; }
+/* El ≡ de plegar la vieja barra ya no se añade al DOM; si una caché vieja lo
+   sirviera, aquí no tendría sitio. */
+#main-content .rs-form #rsMapControls #rsBtnPlegarControles{ display:none !important; }
+
+/* 3. El «punto gris»: el botón de invertir entra EN la fila, entre origen y
+      destino, sin círculo ni marco; la rejilla gana una columna fina. */
+#main-content .rs-form .rs-barra{
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto auto 30px;
+}
+#main-content .rs-form .rs-barra .rs-field:nth-child(1){ grid-column:1; grid-row:1; }
+#main-content .rs-form .rs-barra .rs-invertir-ruta{
+  grid-column:2; grid-row:1;
+  justify-self:center; align-self:center;
+  width:26px; height:26px; padding:0; margin:0;
+  border:0 !important;
+  border-radius:0 !important;
+  background:none !important;
+  box-shadow:none !important;
+  color:#5f6368;
+}
+#main-content .rs-form .rs-barra .rs-invertir-ruta svg{ width:15px; height:15px; }
+#main-content .rs-form .rs-barra .rs-field:nth-child(3){ grid-column:3; grid-row:1; }
+#main-content .rs-form .rs-barra #rsBuscarBtn{ grid-column:4; grid-row:1; }
+#main-content .rs-form .rs-barra #rsParkingAction{ grid-column:5; grid-row:1; }
+#main-content .rs-form .rs-barra #rsBtnCerrarForm{ grid-column:6; grid-row:1; }
+@media (max-width:760px){
+  #main-content .rs-form .rs-barra{
+    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) 34px 34px 28px;
+  }
+}
+
+/* 4. Táctil: dedo cómodo sin engordar la fila. */
+@media (pointer:coarse){
+  #main-content .rs-form #rsMapControls button{ min-height:34px !important; }
+  #main-content .rs-form .rs-barra .rs-invertir-ruta{ width:30px; height:30px; }
+}
+
+/* 5. Modo accesible: mismo contraste máximo que el resto del buscador. */
+body.modo-accesible #main-content .rs-form #rsMapControls,
+body.modo-accesible #main-content .rs-form #rsMapControls button{ color:#000 !important; text-shadow:none; }
+body.modo-accesible #main-content .rs-form .rs-barra .rs-invertir-ruta{ color:#000; }
